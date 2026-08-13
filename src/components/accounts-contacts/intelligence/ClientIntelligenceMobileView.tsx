@@ -1,20 +1,13 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback, Fragment } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { FinancialReferenceMobileCard } from "@/components/finance/FinancialReferenceMobileCard"
-import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import type { CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
-import {
-  lifecycleLabel,
-  ProvenanceBadge,
-  SectionBlock,
-  FreshnessLine,
-} from "./intelligence-parts"
+import { ProvenanceBadge, SectionBlock, FreshnessLine } from "./intelligence-parts"
 import {
   ContactsKeyCard,
   CommercialRelationCard,
@@ -45,15 +38,8 @@ import { ClientIntelligenceSectorMobileTab } from "./ClientIntelligenceSectorTab
 import { ClientIntelligenceSocleTab } from "./ClientIntelligenceSocleTab"
 import { AccountIssuesTopList } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
-import { AccountWatchSettingsCard } from "./AccountWatchSettingsCard"
-import { ScoreBadge } from "./ScoreBadge"
-import { ScoreDetailModal } from "./ScoreDetailModal"
-import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
-import {
-  type TabKey,
-  INTELLIGENCE_PROCESS_STEPS,
-} from "./intelligence-process"
+import { type TabKey } from "./intelligence-process"
 import {
   type AnalysisTypeKey,
   ANALYSIS_SECTIONS,
@@ -67,22 +53,31 @@ import {
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
 import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
+import {
+  buildMobileAccountCockpit,
+  type MobileCockpitFeature,
+} from "@/lib/intelligence/mobile-account-cockpit"
 
 type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
 
-export function ClientIntelligenceMobileView({ data, financialReference = null }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
-  const { company, client, sector, diagnostic, diagnosticPdfUrl, signals, contacts, opportunities, missions, accountSignals } = data
+export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
+  const { company, client, sector, diagnostic, diagnosticPdfUrl, contacts, opportunities, missions, accountSignals } = data
   const supabase = useMemo(() => createBrowserClient(), [])
 
   const [activePanel, setActivePanel] = useState<TabKey>("accueil")
-  const [signalsExpanded, setSignalsExpanded] = useState(false)
   const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "processus" | null>(null)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
-  const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
-  const [scoreModalOpen, setScoreModalOpen] = useState(false)
-  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
+
+  useEffect(() => {
+    const openAccountIntelligence = (event: Event) => {
+      const detail = (event as CustomEvent<{ companyId: string }>).detail
+      if (detail.companyId === company.id) setActivePanel("connaissance")
+    }
+    window.addEventListener("kredo:open-account-intelligence", openAccountIntelligence)
+    return () => window.removeEventListener("kredo:open-account-intelligence", openAccountIntelligence)
+  }, [company.id])
 
   // Lot 1 — le contenu affiché vient directement de `data` (Server Component),
   // rafraîchi par `router.refresh()` au succès du run. Aucun miroir local : la
@@ -331,9 +326,9 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
                     <div className="mt-4 border-t border-border/30 pt-4">
                       {data.accountKnowledge.version === 1 ? (
                         <AccountKnowledgeOpenQuestions data={data.accountKnowledge.data} resultId={data.accountKnowledge.resultId} />
-                      ) : (
-                        <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data as any} />
-                      )}
+                      ) : data.accountKnowledge.version === 2 ? (
+                        <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data} />
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -649,228 +644,160 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
 
         </div>
 
-        <ScoreDetailModal
-          open={scoreModalOpen}
-          onOpenChange={setScoreModalOpen}
-          companyId={company.id}
-          summary={scoreSummary}
-          onRecomputed={setScoreSummary}
-        />
       </div>
     )
   }
 
+  const cockpit = buildMobileAccountCockpit(data, new Date(data.loadedAt))
+
   return (
-    <div data-theme="cockpit" className="flex min-h-full flex-col gap-4 bg-canvas p-4 pb-24">
-      <div className="flex items-center gap-1.5 -ml-1">
-        <Link
-          href={`/prospection/accounts?drawer=${company.id}`}
-          className="inline-flex items-center justify-center text-white hover:text-white/80 transition-colors rounded p-1 min-h-[44px]"
-          aria-label="Retour"
-        >
-          <svg className="h-4.5 w-4.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="16,5 7,12 16,19" />
-          </svg>
-        </Link>
-        <h2 className="font-heading text-xl font-bold text-heading">
-          Cockpit intelligence
-        </h2>
-      </div>
-
-      {/* Header compact */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="xl" className="bg-white p-1 shrink-0" />
-          <div className="min-w-0">
-            <h1 className="truncate font-heading text-lg font-bold text-white">{company.name}</h1>
-            <p className="text-[11px] text-body">
-              {company.sector}
-            </p>
-            <div className="mt-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
-                {lifecycleLabel(company.lifecycleStatus)}
-              </span>
-            </div>
-          </div>
+    <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full bg-canvas pb-24 text-body">
+      <header className="flex min-h-[96px] items-center gap-3 border-b-2 border-secondary bg-cockpit-cobalt px-4 py-3 text-white">
+        <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" className="border-white/20 bg-white p-1" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.17em] text-secondary">Cockpit Intelligence</p>
+          <h1 className="truncate text-[22px] font-bold leading-6 tracking-[-0.02em] text-white">{company.name}</h1>
+          <p className="mt-0.5 text-[11px] font-semibold leading-4 text-white/75">{cockpit.stateLabel}</p>
         </div>
-        <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} className="shrink-0" />
-      </div>
+      </header>
 
-      {/* Bouton Consulter les documents (Mobile style) */}
-      <button
-        onClick={() => setIsDocsModalOpen(true)}
-        className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-brand-brass border border-brand-brass/25 py-3 text-white hover:bg-brand-brass-hover transition-all cursor-pointer shadow-sm active:scale-98"
-      >
-        <img
-          src="/icons_set/cockpit_intelligence/dossier.png"
-          alt=""
-          className="size-6 object-contain"
-        />
-        <span className="text-xs font-bold">Consulter les documents</span>
-      </button>
+      <div className="px-4">
+        <EditorialCockpitSection label="À faire maintenant" accentClassName="bg-secondary" actionClassName="border-secondary/35 bg-secondary/15 text-heading" feature={cockpit.nowAction} company={company} featured />
+        <EditorialCockpitSection label="Actualité" accentClassName="bg-info" actionClassName="border-info/25 bg-info/10 text-info" feature={cockpit.actuality} company={company} />
+        <EditorialCockpitSection label="À exploiter" accentClassName="bg-brand-brass" actionClassName="border-brand-brass/30 bg-brand-brass/10 text-heading" feature={cockpit.opportunityWindow} company={company} />
+        <EditorialCockpitSection label="Développer" accentClassName="bg-success" actionClassName="border-success/25 bg-success/10 text-success" feature={cockpit.developmentAction} company={company} />
 
-      {financialReference ? <FinancialReferenceMobileCard reference={financialReference} /> : null}
-
-      <AccountWatchSettingsCard
-        companyId={company.id}
-        initialSettings={data.accountWatch}
-        isMobile
-      />
-
-      {/* Signaux Récents (Collapsible Frame) */}
-      <div className="rounded-lg border border-border bg-surface overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setSignalsExpanded(!signalsExpanded)}
-          className="w-full flex items-center justify-center gap-2 p-3.5 text-center hover:bg-surface-hover transition-colors focus-visible:outline-none"
-        >
-          <span className="text-xs font-bold uppercase tracking-wider text-muted">
-            Signaux récents ({signals.length})
-          </span>
-          <svg
-            className={cn(
-              "w-4 h-4 text-muted transition-transform duration-200",
-              signalsExpanded ? "transform rotate-180" : ""
-            )}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-          </svg>
-        </button>
-
-        {signalsExpanded && (
-          <div className="px-4 pb-4 pt-1 border-t border-border/30 bg-canvas/10 animate-in fade-in duration-200">
-            {signals.length === 0 ? (
-              <p className="text-xs italic text-muted py-2">Aucun signal récent capté pour l&apos;instant.</p>
-            ) : (
-              <ul className="space-y-3 mt-1">
-                {signals.map((signal, i) => (
-                  <li key={i} className="flex flex-col gap-2 py-1.5 text-xs border-b border-border/10 last:border-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex gap-2.5 items-start flex-1 min-w-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                        <span className="text-xs leading-relaxed text-body">{signal}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 justify-start mt-2">
-                      <a
-                        href={
-                          signal.match(/(https?:\/\/[^\s]+)/)?.[0] ||
-                          `https://www.google.com/search?q=${encodeURIComponent(`${company.name} ${signal}`)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group relative overflow-hidden bg-brand-blue hover:bg-primary-deep hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl min-h-[44px] px-3 text-[10px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
-                        title="Accéder à la source"
-                      >
-                        <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
-                        <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
-                        <img
-                          src="/icons_set/cockpit_intelligence/recherche_actualités.png"
-                          alt=""
-                          width={12}
-                          height={12}
-                          className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
-                        />
-                        <span className="relative z-10">Voir la source</span>
-                      </a>
-                      <ContextualCommunicationButton
-                        entryPoint="signal_card"
-                        companyId={company.id}
-                        companyName={company.name}
-                        primaryEntity={{ type: "company", id: company.id }}
-                        label="Contacter sur ce signal"
-                        className="group relative overflow-hidden bg-brand-blue hover:bg-primary-deep hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(72,77,245,0.2)] transition-all duration-200 rounded-xl min-h-[44px] px-3 text-[10px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
-                        aria-label={`Contacter ${company.name} sur le signal ${i + 1}`}
-                        refs={{ signalRef: signal }}
-                        leftIcon={
-                          <>
-                            <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
-                            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
-                            <img
-                              src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
-                              alt=""
-                              width={12}
-                              height={12}
-                              className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
-                            />
-                          </>
-                        }
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+        <section className="py-3" aria-labelledby="mobile-cockpit-upcoming-title">
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-5 bg-edito-navy" aria-hidden="true" />
+            <h2 id="mobile-cockpit-upcoming-title" className="text-[10px] font-bold uppercase leading-4 tracking-[0.15em] text-muted">Prochains mouvements</h2>
           </div>
-        )}
+          {cockpit.upcoming.length > 0 ? (
+            <ul className="mt-1.5 divide-y divide-border">
+              {cockpit.upcoming.map((item) => (
+                <li key={item.id}>
+                  <Link href={item.href} className="flex min-h-11 items-center justify-between gap-4 py-1.5 text-[13px] leading-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+                    <span className="min-w-0 truncate font-semibold text-heading">{item.label}</span>
+                    <span className={cn("shrink-0 text-[11px] font-semibold", item.overdue ? "text-danger" : "text-muted")}>{item.timing}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="mt-2 text-[13px] leading-5 text-muted">Aucun mouvement planifié.</p>}
+        </section>
       </div>
-
-      {/* Timeline verticale mobile */}
-      <div className="flex flex-col gap-0 py-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-muted mb-3">
-          Processus commercial
-        </span>
-        {INTELLIGENCE_PROCESS_STEPS.map((step, idx) => (
-          <Fragment key={step.key}>
-            <button
-              type="button"
-              onClick={() => setActivePanel(step.key)}
-              aria-label={`Étape ${idx + 1} : ${step.label}. ${step.description}`}
-              className={cn(
-                "w-full flex items-center justify-between p-3 rounded-lg border border-border bg-surface text-left min-h-[48px]",
-                "transition-all hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  {idx + 1}
-                </span>
-                <div>
-                  <div className="font-heading text-xs font-bold text-heading leading-tight">
-                    {step.label}
-                  </div>
-                  <div className="text-[10px] text-body mt-0.5 leading-tight">
-                    {step.description}
-                  </div>
-                </div>
-              </div>
-              <ChevronRightIcon className="h-4 w-4 text-muted shrink-0 ml-2" />
-            </button>
-            {idx < INTELLIGENCE_PROCESS_STEPS.length - 1 && (
-              <div className="w-0.5 h-3.5 bg-border/50 ml-[25px]" />
-            )}
-          </Fragment>
-        ))}
-      </div>
-
-      <ScoreDetailModal
-        open={scoreModalOpen}
-        onOpenChange={setScoreModalOpen}
-        companyId={company.id}
-        summary={scoreSummary}
-        onRecomputed={setScoreSummary}
-      />
-
-      <CompanyDocumentsModal
-        open={isDocsModalOpen}
-        onClose={() => setIsDocsModalOpen(false)}
-        companyId={company.id}
-        companyName={company.name}
-        isMobile={true}
-      />
-    </div>
+    </main>
   )
 }
 
-function ChevronRightIcon({ className }: { className?: string }) {
+function EditorialCockpitSection({ label, accentClassName, actionClassName, feature, company, featured = false }: {
+  label: string
+  accentClassName: string
+  actionClassName: string
+  feature: MobileCockpitFeature
+  company: ClientIntelligenceData["company"]
+  featured?: boolean
+}) {
   return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
+    <section className={cn(
+      "border-b border-border py-3",
+      featured && "-mx-4 border-y border-secondary/25 bg-secondary/[0.07] px-4",
+    )}>
+      <div className="flex items-center gap-2">
+        <div className={cn("h-0.5 w-5", accentClassName)} aria-hidden="true" />
+        <h2 className={cn(
+          "text-[10px] font-bold uppercase leading-4 tracking-[0.15em] text-muted",
+          featured && "text-heading",
+        )}>{label}</h2>
+      </div>
+      <h3 className={cn(
+        "mt-1 max-w-[35ch] font-bold leading-5 tracking-[-0.01em] text-heading",
+        featured ? "line-clamp-2 text-[18px]" : "line-clamp-3 text-[16px]",
+      )}>{feature.title}</h3>
+      {feature.meta ? <p className="mt-0.5 text-[12px] font-semibold leading-4 text-body">{feature.meta}</p> : null}
+      {feature.context ? <p className="mt-0.5 line-clamp-1 text-[12px] leading-4 text-body">{feature.context}</p> : null}
+      <EditorialFeatureActions feature={feature} company={company} actionClassName={actionClassName} />
+    </section>
+  )
+}
+
+function getFeatureSource(feature: MobileCockpitFeature, companyName: string): { href: string; label: string } {
+  if (feature.actionKind === "agenda") return { href: feature.href ?? "/agenda", label: "Voir l’agenda" }
+  if (feature.actionKind === "actuality") {
+    if (feature.id.startsWith("article:")) return { href: "/veille", label: "Consulter la veille" }
+    return { href: "/veille", label: "Consulter les signaux" }
+  }
+  if (feature.actionKind === "veille") return { href: feature.href ?? "/veille", label: "Ouvrir la veille" }
+  if (feature.actionKind === "opportunity") {
+    if (feature.missionId) return { href: feature.href ?? "/missions/actives", label: "Voir les missions" }
+    if (feature.signalId) return { href: "/veille", label: "Consulter les signaux" }
+    if (feature.id.startsWith("regulatory:")) return { href: feature.href ?? "/prospection/approche-sectorielle", label: "Voir le secteur" }
+    return {
+      href: feature.href ?? "/missions/opps",
+      label: feature.opportunityId
+        ? /renfort|staffing/i.test(feature.opportunityTitle ?? feature.title) ? "Voir le staffing" : "Voir l’opportunité"
+        : "Voir le pipe",
+    }
+  }
+  if (feature.opportunityId) return { href: `/missions/opps/${feature.opportunityId}/modifier`, label: "Voir l’opportunité" }
+  if (feature.signalId) return { href: "/veille", label: "Consulter les signaux" }
+  return {
+    href: `/prospection/accounts?tab=contacts&q=${encodeURIComponent(companyName)}`,
+    label: "Voir les contacts",
+  }
+}
+
+function EditorialFeatureActions({ feature, company, actionClassName }: {
+  feature: MobileCockpitFeature
+  company: ClientIntelligenceData["company"]
+  actionClassName: string
+}) {
+  const source = getFeatureSource(feature, company.name)
+  const framedButtonClassName = "inline-flex min-h-11 min-w-0 items-center justify-center rounded-[var(--radius-medium)] border px-2.5 text-center text-[12px] font-bold leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+  const actionIsLink = feature.id === "plan-next-action" || feature.id === "actuality-empty" || feature.id === "window-empty"
+  const intent = feature.actionKind === "agenda"
+    ? "discovery_preparation"
+    : feature.missionId
+      ? "mission_renewal"
+      : feature.actionKind === "actuality"
+        ? "signal_outreach"
+        : "prospection_follow_up"
+
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      <Link
+        href={source.href}
+        className={cn(framedButtonClassName, "border-cockpit-cobalt/20 bg-cockpit-cobalt/[0.06] text-cockpit-cobalt hover:bg-cockpit-cobalt/10")}
+      >
+        {source.label}
+      </Link>
+      {actionIsLink ? (
+        <Link href={feature.href ?? source.href} className={cn(framedButtonClassName, actionClassName)}>
+          {feature.ctaLabel}
+        </Link>
+      ) : (
+        <ContextualCommunicationButton
+          intent={intent}
+          companyId={company.id}
+          companyName={company.name}
+          contactId={feature.contactId}
+          contactName={feature.contactName}
+          opportunityId={feature.opportunityId}
+          opportunityTitle={feature.opportunityTitle}
+          missionId={feature.missionId}
+          missionTitle={feature.missionTitle}
+          signalId={feature.signalId}
+          eventId={feature.eventId}
+          eventTitle={feature.eventTitle}
+          eventStartsAt={feature.eventStartsAt}
+          primaryEntity={{ type: "company", id: company.id }}
+          label={feature.ctaLabel}
+          mustInclude={feature.signalTitle ?? feature.context ?? feature.title}
+          variant="ghost"
+          className={cn(framedButtonClassName, "!h-11 !w-full !min-w-0 !px-2.5", actionClassName)}
+        />
+      )}
+    </div>
   )
 }
 

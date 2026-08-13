@@ -229,6 +229,17 @@ export type ClientIntelligenceSignal = {
   } | null
 }
 
+export type ClientIntelligenceVeilleArticle = {
+  id: string
+  title: string
+  summary: string
+  commercialAction: string
+  sourceName: string
+  sourceUrl: string
+  publishedAt: string | null
+  createdAt: string
+}
+
 export type AccountKnowledgeCitedSource = {
   id: string
   name: string
@@ -301,6 +312,7 @@ export type ClientIntelligenceIssue = {
 }
 
 export type ClientIntelligenceData = {
+  loadedAt: string
   company: {
     id: string
     name: string
@@ -387,6 +399,7 @@ export type ClientIntelligenceData = {
   missions: ClientIntelligenceMission[]
   projects: ClientIntelligenceProject[]
   commercialTimeline: ClientIntelligenceCommercialTimelineEntry[]
+  veilleArticles: ClientIntelligenceVeilleArticle[]
   accountSignals: ClientIntelligenceSignal[]
   accountWatch: AccountWatchSettingsState
   recentDocuments: AccountRecentDocument[]
@@ -742,6 +755,17 @@ type AccountSignalRow = {
   }[] | null
 }
 
+type VeilleArticleRow = {
+  id: string
+  titre_fr: string
+  resume: string
+  action_commerciale: string
+  source_name: string
+  url: string
+  published_at: string | null
+  created_at: string
+}
+
 const DISMISSED_SIGNAL_STATUSES = new Set(["dismissed", "false_positive", "expired", "archived"])
 
 // Un run de veille produit une trentaine de signaux (cf. intel-033). Les deux
@@ -849,6 +873,7 @@ export async function getClientIntelligence(
     projectsResult,
     commercialInteractionsResult,
     commercialCalendarResult,
+    veilleArticlesResult,
     accountSignalsResult,
     accountWatchResult,
     recentDocumentsResult,
@@ -945,6 +970,14 @@ export async function getClientIntelligence(
       .order("starts_at", { ascending: false })
       .limit(24)
       .returns<CommercialCalendarTimelineRow[]>(),
+    supabaseReal
+      .from("veille_articles")
+      .select("id,titre_fr,resume,action_commerciale,source_name,url,published_at,created_at")
+      .eq("company_id", companyId)
+      .neq("action_commerciale", "")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(3)
+      .returns<VeilleArticleRow[]>(),
     supabase
       .from("account_signals")
       .select<AccountSignalRow>(`
@@ -1048,6 +1081,9 @@ export async function getClientIntelligence(
   }
   if (commercialCalendarResult.error) {
     console.error("[intelligence] commercial calendar query failed:", commercialCalendarResult.error.message, { companyId })
+  }
+  if (veilleArticlesResult.error) {
+    console.error("[intelligence] veille articles query failed:", veilleArticlesResult.error.message, { companyId })
   }
 
   const company = companyResult.data
@@ -1388,6 +1424,17 @@ export async function getClientIntelligence(
       }
     })
 
+  const veilleArticles: ClientIntelligenceVeilleArticle[] = (veilleArticlesResult.data ?? []).map((row) => ({
+    id: row.id,
+    title: row.titre_fr,
+    summary: row.resume,
+    commercialAction: row.action_commerciale,
+    sourceName: row.source_name,
+    sourceUrl: row.url,
+    publishedAt: row.published_at,
+    createdAt: row.created_at,
+  }))
+
   const accountIssues: ClientIntelligenceIssue[] = (accountIssuesResult.data ?? []).map((row) => ({
     id: row.id,
     title: row.title,
@@ -1453,6 +1500,7 @@ export async function getClientIntelligence(
   return {
     error: null,
     data: {
+      loadedAt: new Date().toISOString(),
       company: {
         id: company.id,
         name: company.name,
@@ -1508,6 +1556,7 @@ export async function getClientIntelligence(
       missions,
       projects,
       commercialTimeline,
+      veilleArticles,
       accountSignals,
       accountWatch,
       recentDocuments,

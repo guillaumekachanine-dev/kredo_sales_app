@@ -4,6 +4,7 @@ import { useState, useMemo, type CSSProperties } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 import {
   resolveEntityActions,
@@ -12,10 +13,6 @@ import {
 } from "@/lib/intelligence/intelligence-registry"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import { IntelligenceActionCard } from "./IntelligenceActionCard"
-import { PanelActionsGrid } from "./PanelActionsGrid"
-import { PanelResources } from "./PanelResources"
-import { PanelActivity } from "./PanelActivity"
-import { PanelKeyContacts } from "./PanelKeyContacts"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { COCKPIT_PANEL_INDIGO, cockpitActionIcons } from "./cockpit-action-icons"
 import {
@@ -33,7 +30,7 @@ import {
   type DeterministicIntelligenceActionId,
 } from "./action-results/IntelligenceActionResultContent"
 
-type AccountPanelAction = "pitch" | "summary" | null
+type AccountPanelAction = "summary" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
 type RegistryButtonAction = {
   id: RegistryActionId
@@ -177,76 +174,129 @@ function QuickAccessLink({
   )
 }
 
-function AccountMobileContent({ onWriteEmailClick }: { onWriteEmailClick: () => void }) {
+const ACCOUNT_EDITORIAL_ACTIONS = [
+  { id: "write", label: "Rédiger", iconSrc: cockpitActionIcons.message },
+  { id: "plan", label: "Planifier", iconSrc: cockpitActionIcons.tasks, href: "/agenda" },
+  { id: "analyze", label: "Analyser", iconSrc: cockpitActionIcons.recommendations },
+  { id: "watch", label: "S’informer", iconSrc: cockpitActionIcons.alert, href: "/veille" },
+  { id: "simulate", label: "Simuler", iconSrc: cockpitActionIcons.financeReport, href: "/finance" },
+  { id: "recruit", label: "Recruter", iconSrc: cockpitActionIcons.recruitmentReport, href: "/recruitment" },
+] as const
+
+function EditorialPanelAction({ action, onClick }: {
+  action: (typeof ACCOUNT_EDITORIAL_ACTIONS)[number]
+  onClick: () => void
+}) {
+  const content = (
+    <>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded bg-surface-hover">
+        <Image src={action.iconSrc} alt="" width={40} height={40} className="size-7 object-contain" />
+      </span>
+      <span className="text-sm font-bold text-heading">{action.label}</span>
+    </>
+  )
+  const className = "flex min-h-[64px] items-center gap-2.5 rounded-[var(--radius-medium)] border border-border bg-surface px-3 text-left transition-colors hover:bg-surface-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+
+  if ("href" in action) return <Link href={action.href} onClick={onClick} className={className}>{content}</Link>
+  return <button type="button" onClick={onClick} className={className}>{content}</button>
+}
+
+function EditorialResourceRow({ label, iconSrc, href, onClick }: {
+  label: string
+  iconSrc: string
+  href?: string
+  onClick?: () => void
+}) {
+  const content = (
+    <>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded bg-surface-hover">
+        <Image src={iconSrc} alt="" width={32} height={32} className="size-5 object-contain" />
+      </span>
+      <span className="min-w-0 flex-1 text-sm font-semibold text-heading">{label}</span>
+      <svg className="size-4 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+      </svg>
+    </>
+  )
+  const className = "flex min-h-12 w-full items-center gap-3 border-b border-border py-2 text-left transition-colors last:border-b-0 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+  if (href) return <Link href={href} onClick={onClick} className={className}>{content}</Link>
+  return <button type="button" onClick={onClick} className={className}>{content}</button>
+}
+
+function AccountMobileContent({ onWriteEmailClick, onClose }: { onWriteEmailClick: () => void; onClose: () => void }) {
   const { panelData } = useIntelligenceContext()
   const [activeAction, setActiveAction] = useState<AccountPanelAction>(null)
   if (!panelData) return null
 
-  const { company, resources, sector, activity, contacts } = panelData
+  const { company, sector } = panelData
 
-  if (activeAction === "pitch" || activeAction === "summary") {
+  if (activeAction === "summary") {
     return (
       <div className="space-y-4">
         <button
           type="button"
           onClick={() => setActiveAction(null)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 transition-colors hover:text-white"
+          className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:text-primary-deep"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           Retour
         </button>
-        <div data-theme="cockpit" className="rounded-lg border border-white/10 bg-slate-800/60 p-4">
-          {activeAction === "pitch" ? (
-            <PitchMailDrawerContent
-              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
-              variant="mobile"
-            />
-          ) : (
-            <SummaryDrawerContent
-              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
-              variant="mobile"
-            />
-          )}
+        <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-4">
+          <SummaryDrawerContent
+            data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
+            variant="mobile"
+          />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <section>
-        <MobileSectionHeading title="Actions" />
-        <PanelActionsGrid
-          sectorSlug={sector.hasStructuredSector ? sector.structuredSectorSlug : null}
-          onWriteEmailClick={onWriteEmailClick}
-          onActionClick={(actionId) => {
-            if (actionId === "generate_pitch") setActiveAction("pitch")
-            if (actionId === "generate_report") setActiveAction("summary")
-          }}
-          tone="light"
-        />
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-0.5 w-5 bg-brand-brass" aria-hidden="true" />
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">Actions</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {ACCOUNT_EDITORIAL_ACTIONS.map((action) => (
+            <EditorialPanelAction
+              key={action.id}
+              action={action}
+              onClick={() => {
+                if ("href" in action) {
+                  onClose()
+                  return
+                }
+                if (action.id === "write") onWriteEmailClick()
+                if (action.id === "analyze") setActiveAction("summary")
+              }}
+            />
+          ))}
+        </div>
       </section>
 
       <section>
-        <MobileSectionHeading title="Ressources" />
-        <PanelResources resources={resources} hasStructuredSector={sector.hasStructuredSector} tone="light" />
+        <div className="mb-2 flex items-center gap-2 border-t border-border pt-5">
+          <span className="h-0.5 w-5 bg-edito-navy" aria-hidden="true" />
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">Ressources</h3>
+        </div>
+        <div>
+          <EditorialResourceRow
+            label="Account Intelligence"
+            iconSrc={cockpitActionIcons.recommendations}
+            onClick={() => {
+              onClose()
+              window.dispatchEvent(new CustomEvent("kredo:open-account-intelligence", { detail: { companyId: company.id } }))
+            }}
+          />
+          <EditorialResourceRow label="Mails, Pitchs, Supports RDV" iconSrc="/icons_set/cockpit_intelligence/dossier_pitchs.png" href={`/reports?companyId=${company.id}`} onClick={onClose} />
+          <EditorialResourceRow label="Contacts" iconSrc="/icons_set/cockpit_intelligence/compte_contact.png" href={`/prospection/accounts?tab=contacts&q=${encodeURIComponent(company.name)}`} onClick={onClose} />
+          <EditorialResourceRow label="Playbook" iconSrc={cockpitActionIcons.sectorAnalysis} href={sector.structuredSectorSlug ? `/ressources/playbook/${sector.structuredSectorSlug}` : "/prospection/approche-sectorielle"} onClick={onClose} />
+        </div>
       </section>
-
-      {activity.length > 0 && (
-        <section>
-          <MobileSectionHeading title="Activité" count={activity.length} />
-          <PanelActivity activity={activity} tone="light" />
-        </section>
-      )}
-
-      {contacts.length > 0 && (
-        <section>
-          <MobileSectionHeading title="Contacts clés" count={contacts.length} />
-          <PanelKeyContacts contacts={contacts} tone="light" />
-        </section>
-      )}
     </div>
   )
 }
@@ -425,11 +475,7 @@ export function IntelligenceFAB() {
   const isGenericEntityMode = !!entityContext && entityContext.entityType !== "company"
   const hasEntityFocus = isAccountMode || isGenericEntityMode
 
-  const eyebrow = isAccountMode
-    ? panelData.company.name
-    : isGenericEntityMode
-      ? entityContext.label
-      : undefined
+  const eyebrow = isGenericEntityMode ? entityContext.label : undefined
 
   // Selector states
   const [isCompanySelectorOpen, setIsCompanySelectorOpen] = useState(false)
@@ -498,10 +544,12 @@ export function IntelligenceFAB() {
         onClick={() => setIsOpen(true)}
         aria-label="Ouvrir le cockpit intelligence"
         className={cn(
-          "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[0_2px_12px_rgba(37,84,184,0.35)] transition-transform active:scale-90",
-          hasEntityFocus
-            ? "kredo-fab-cockpit-active bg-brand-brass text-secondary-fg"
-            : "bg-secondary text-secondary-fg",
+          "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[var(--shadow-overlay-sm)] transition-transform active:scale-90",
+          isAccountMode
+            ? "bg-edito-petrol-deep text-brand-brass"
+            : hasEntityFocus
+              ? "kredo-fab-cockpit-active bg-brand-brass text-secondary-fg"
+              : "bg-secondary text-secondary-fg",
         )}
       >
         <SparkleIcon />
@@ -517,18 +565,39 @@ export function IntelligenceFAB() {
             setPitchContext(null)
           }
         }}
-        title="Cockpit Intelligence"
+        title={isAccountMode ? (
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-bold leading-5 text-white">Cockpit Intelligence</h2>
+            <p className="mt-1 truncate text-xs font-medium text-white/70">{panelData.company.name}</p>
+          </div>
+        ) : "Cockpit Intelligence"}
         side="bottom"
         eyebrow={eyebrow}
-        className="sm:hidden border-t border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]"
-        headerClassName="border-b border-white/15 text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"
-        headerStyle={COCKPIT_PANEL_STYLE}
-        contentClassName="bg-primary text-white"
-        icon={
-          <span className="inline-flex size-5 items-center justify-center text-white">
-            <SparkleIcon />
-          </span>
-        }
+        className={cn(
+          "sm:hidden",
+          isAccountMode
+            ? "border-t border-border bg-surface text-heading"
+            : "border-t border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]",
+        )}
+        headerClassName={isAccountMode
+          ? "border-b border-white/15 bg-edito-petrol-deep text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
+          : "border-b border-white/15 text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"}
+        headerStyle={isAccountMode ? undefined : COCKPIT_PANEL_STYLE}
+        contentClassName={isAccountMode
+          ? "bg-edito-canvas text-heading [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"
+          : "bg-primary text-white"}
+        showMobileCloseButton={isAccountMode}
+        icon={isAccountMode ? (
+          <CompanyLogo
+            name={panelData.company.name}
+            logoPath={panelData.company.logoPath}
+            website={panelData.company.website}
+            size="md"
+            className="border-0 bg-white p-0.5"
+          />
+        ) : (
+          <span className="inline-flex size-5 items-center justify-center text-white"><SparkleIcon /></span>
+        )}
       >
         {activeDeterministicAction ? (
           <div className="space-y-4">
@@ -569,6 +638,7 @@ export function IntelligenceFAB() {
           <AccountMobileContent
             key={`${entityContext?.entityId}-${isOpen}`}
             onWriteEmailClick={openComposerFromCockpit}
+            onClose={() => setIsOpen(false)}
           />
         ) : isGenericEntityMode ? (
           <GenericEntityMobileContent key={`${entityContext.entityType}:${entityContext.entityId}-${isOpen}`} />

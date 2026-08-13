@@ -15,7 +15,7 @@ export function ClientIntelligenceView({
   financialReference?: FinancialReference | null
 }) {
   if (device === "mobile") {
-    return <ClientIntelligenceMobileView data={data} financialReference={financialReference} />
+    return <ClientIntelligenceMobileView data={data} />
   }
   return <ClientIntelligenceDesktopView data={data} financialReference={financialReference} />
 }
