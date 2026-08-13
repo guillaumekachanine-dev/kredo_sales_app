@@ -39,6 +39,45 @@ indéterminé : on ignore si c'est 18 sur 20 attribuables ou 18 sur 200 dont 180
 `describeIntensity()` énonce toujours cette couverture — un comptage muet sur son angle mort
 se lit comme une certitude, ce qu'interdit l'axiome A11.
 
+## Où ce canal produit — mesuré le 2026-08-13
+
+France Travail publie **9 467 offres SI** en France (`domaine=M18`, 96 métiers du
+référentiel). Cette matière est très inégalement répartie selon la division NAF de
+l'employeur — donc selon le segment travaillé :
+
+| Div. NAF | Secteur | Offres SI | Part des offres du secteur |
+|---|---|---|---|
+| 62 | Programmation & conseil informatique (ESN) | 747 | **27,2 %** |
+| 70 | Sièges sociaux & conseil de gestion | 458 | 4,0 % |
+| 71 | Ingénierie & études techniques | 180 | 5,6 % |
+| 85 | Enseignement | 83 | 0,8 % |
+| 61 | Télécommunications | 37 | **21,6 %** |
+| 74 | Autres activités spécialisées | 27 | 5,6 % |
+| 26 | Produits informatiques & électroniques | 26 | 5,1 % |
+| **30** | **Construction aéronautique & spatiale** | **22** | 3,7 % |
+| 96 | Autres services personnels | 0 | 0,0 % |
+
+**Le canal n'est donc pas inutile — il est sectoriel.** Sur `62`, `61`, `70` et `71`
+il porte une matière dense. Sur `30`, il n'y a que 22 offres SI dans toute la France :
+le zéro constaté sur le Spatial-Défense n'est pas un artefact de l'enveloppe ni du
+classement, c'est la réalité du gisement.
+
+### Deux conséquences de méthode
+
+**1. Les groupes recrutent leur SI depuis d'autres entités que celle qu'on a résolue.**
+Une offre « Ingénieur Cloud GCP » (M1805) est publiée par **Thales Services Numériques
+SAS** en division 70 — invisible d'une enveloppe calée sur le NAF `2630Z` de Thales SIX
+GTS. L'appariement la refuse à juste titre : c'est une autre personne morale, et c'est
+d'ailleurs une ESN, donc un concurrent.
+Ce n'est pas un défaut à corriger en silence, c'est une **question de périmètre** :
+un compte Kredo désigne-t-il une entité juridique ou un groupe ? Le champ
+`entite_retenue` de `02-socle.json` porte déjà cet arbitrage compte par compte.
+
+**2. Avant de lancer A7 sur un segment, mesurer d'abord la densité de son gisement.**
+Deux appels suffisent (`secteurActivite=XX` et `secteurActivite=XX&domaine=M18`).
+En dessous de quelques dizaines d'offres SI au national, A7 ne rendra rien et il vaut
+mieux le savoir avant que le corpus n'annonce un zéro.
+
 ## Ce qui est livré, ce qui ne l'est pas
 
 | | État |
