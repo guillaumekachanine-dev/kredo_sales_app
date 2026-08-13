@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
 import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { FolioFormattedText } from "@/components/intelligence/FolioFormattedText"
 
 interface CompanyDocumentsModalProps {
   open: boolean
@@ -314,11 +315,7 @@ function DocumentContent({ document }: { document: DocumentDetail }) {
   }
 
   if (document.currentContentText) {
-    return (
-      <div className="rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body">
-        {document.currentContentText}
-      </div>
-    )
+    return <FolioFormattedText text={document.currentContentText} />
   }
 
   return <p className="text-sm text-muted">Aucun contenu texte disponible.</p>

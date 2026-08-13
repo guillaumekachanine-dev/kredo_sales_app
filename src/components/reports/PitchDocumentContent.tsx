@@ -10,6 +10,8 @@ import {
 } from "@/components/accounts-contacts/intelligence/PitchResult"
 import { buildResultPresentationFromSnapshot } from "@/lib/communication/communication-result-documents"
 
+import { FolioFormattedText } from "@/components/intelligence/FolioFormattedText"
+
 type PitchDocumentContentProps = {
   contentJson: unknown
   contentText: string | null
@@ -37,7 +39,7 @@ export function parsePitchContent(value: unknown): PitchOutput | null {
 // texte disponible" pour les documents commercial_pitch / prise_de_parole.
 // Réutilise le même rendu que la génération en direct (PitchResult) pour rester
 // visuellement cohérent.
-export function PitchDocumentContent({ contentJson, contentText, briefJson, fallbackClassName }: PitchDocumentContentProps) {
+export function PitchDocumentContent({ contentJson, contentText, briefJson }: PitchDocumentContentProps) {
   const [copied, setCopied] = useState(false)
   const result = parsePitchContent(contentJson)
   const presentation = buildResultPresentationFromSnapshot(briefJson)
@@ -67,11 +69,7 @@ export function PitchDocumentContent({ contentJson, contentText, briefJson, fall
   }
 
   if (contentText) {
-    return (
-      <div className={fallbackClassName ?? "rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"}>
-        {contentText}
-      </div>
-    )
+    return <FolioFormattedText text={contentText} />
   }
 
   return <p className="text-sm text-muted">Aucun contenu structuré disponible.</p>
