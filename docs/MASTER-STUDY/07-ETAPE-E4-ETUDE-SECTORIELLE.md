@@ -216,20 +216,40 @@ Playbook et Fenêtres · Cockpit → Secteur et Stratégie.
 
 ### Correspondance des vocabulaires de practices & offres (Action A6)
 
-Le catalogue KREDO s'appuie sur **8 practices** et **41 offres granulaires** (tables `offer_practices` et `offers` dans Supabase) :
+Le catalogue KREDO s'appuie sur **8 practices** et **41 offres granulaires** (tables
+`offer_practices` et `offers` dans Supabase). Trois vocabulaires coexistent et **un seul
+slug leur est commun** (`cybersecurity`) — les confondre produit des jointures vides
+silencieuses :
 
-| `kredo_practice` | `offer_practices.slug` | Nom de la practice | Nombre d'offres |
+| `kredo_practice` (tables `sector_*`) | `offer_practices.slug` (**base, autorité**) | `PracticeSlug` (front, affichage) | Offres |
 |---|---|---|---|
-| `data_ai` | `data-ia` | Data Intelligence & Artificial Intelligence | 5 |
-| `cloud_eng` | `digital-cloud` | Digital & Cloud Engineering | 5 |
-| `cyber` | `cybersecurity` | Cybersecurity & SecOps | 5 |
-| `testing` | `qa-testing` | QA & Testing | 5 |
-| `product` | `agile-pm` | Agile Product Management & Delivery | 5 |
-| `design` | `ux-ui-design` | UX Research, Product Design & Omnichannel | 5 |
-| `apps` | `custom-apps` | Custom Business Applications & Software Architecture | 6 |
-| `legacy` | `legacy-mainframe` | Legacy Modernization, Mainframe & MCO Operations | 5 |
+| `data_ai` | `data-ai` | `data-ia` | 5 |
+| `cloud_eng` | `cloud-engineering` | `digital-cloud` | 5 |
+| `cyber` | `cybersecurity` | `cybersecurity` | 5 |
+| `testing` | `quality-engineering-testing` | `qa-testing` | 5 |
+| `product` | `project-agile-delivery` | `agile-pm` | 5 |
+| `design` | `digital-experience` | `ux-ui-design` | 5 |
+| `apps` | `digital-business-solutions` | `custom-apps` | 6 |
+| `legacy` | `legacy-systems-mainframe` | `legacy-mainframe` | 5 |
 
-Toutes les 41 offres granulaires (ex: `generative-ai-rag-automation`, `soc-detection-incident-response`, `cloud-migration-application-modernization`, `test-automation-continuous-quality`, etc.) sont indexées et rattachées bi-directionnellement via `src/lib/config/practices.ts` (`KREDO_OFFERS_CATALOG`) et la migration SQL `077_practice_mapping_function.sql`.
+> ⚠️ **La colonne du milieu est la seule qui joint.** `offers`, `offer_pricing_grids` et
+> toute requête SQL passent par `offer_practices.slug`. `PracticeSlug` ne sert qu'à
+> l'affichage (couleurs, images, badges) et n'a aucune existence en base. Une première
+> version de cette table, livrée le 13/08, présentait la colonne de droite comme étant
+> `offer_practices.slug` : sept correspondances sur huit ne joignaient donc rien.
+>
+> Valeurs de `kredo_practice` réellement présentes en base au 13/08 : `data_ai`,
+> `cloud_eng`, `cyber`, `product`, `multi`. Les quatre autres sont prévues par le contrat
+> mais sans occurrence. `multi` ne se mappe sur aucune practice.
+
+Les 41 offres granulaires (`generative-ai-rag-automation`, `soc-detection-incident-response`,
+`cloud-migration-application-modernization`, `test-automation-continuous-quality`…) sont
+indexées dans `src/lib/config/practices.ts` (`KREDO_OFFERS_CATALOG`), chacune rattachée à un
+slug **base**. Le pont entre vocabulaires est explicite et testé :
+`PRACTICE_SLUG_TO_OFFER_PRACTICE`, `mapKredoPracticeToOfferPractice()`,
+`mapOfferPracticeToKredoPractice()`. Il n'existe **pas** de fonction SQL équivalente : la
+migration `077_practice_mapping_function.sql` a été retirée sans jamais être appliquée,
+ses deux fonctions renvoyant des slugs inexistants.
 
 **Finalité** : que le commercial tienne trois minutes de conversation métier sans être
 interchangeable, et qu'il sache pourquoi il appelle maintenant.

@@ -2,6 +2,7 @@
 "use client"
 
 import { useState } from "react"
+import type { OfferPracticeSlug } from "@/lib/config/practices"
 import { TechItem, PracticeItem } from "./kredo-expertise.types"
 
 interface TechnologiesViewProps {
@@ -10,7 +11,10 @@ interface TechnologiesViewProps {
   isMobile?: boolean
 }
 
-const PRACTICE_LOGOS: Record<string, string> = {
+// Indexées par `offer_practices.slug` — le slug que la base renvoie dans
+// `practice.slug`, jamais le `PracticeSlug` d'affichage. Le type rend exhaustif :
+// ajouter une practice en base sans l'illustrer ici casse le typecheck.
+const PRACTICE_LOGOS: Record<OfferPracticeSlug, string> = {
   "data-ai": "/images/practice_icons/practice_data_ia.png",
   "cloud-engineering": "/images/practice_icons/practice_cloud_engineering.png",
   "digital-business-solutions": "/images/practice_icons/practice_digital_business_solutions.png",
@@ -21,7 +25,7 @@ const PRACTICE_LOGOS: Record<string, string> = {
   "quality-engineering-testing": "/images/practice_icons/practice_QA_testing.png",
 }
 
-const PRACTICE_COLORS: Record<string, { border: string }> = {
+const PRACTICE_COLORS: Record<OfferPracticeSlug, { border: string }> = {
   "data-ai": { border: "border-[#1D39C4]" },
   "cloud-engineering": { border: "border-[#389E0D]" },
   "digital-business-solutions": { border: "border-[#D46B08]" },
@@ -58,10 +62,11 @@ export function KredoTechnologiesView({
         classes: "bg-white text-edito-navy border-edito-border",
       }
     }
-    const colors = PRACTICE_COLORS[practice.slug] || {
+    const colors = PRACTICE_COLORS[practice.slug as OfferPracticeSlug] || {
       border: "border-edito-border",
     }
-    const logoUrl = PRACTICE_LOGOS[practice.slug] || "/images/practice_icons/practice_data_ia.png"
+    const logoUrl =
+      PRACTICE_LOGOS[practice.slug as OfferPracticeSlug] || "/images/practice_icons/practice_data_ia.png"
     return {
       logoUrl,
       classes: `bg-white text-edito-navy ${colors.border}`,

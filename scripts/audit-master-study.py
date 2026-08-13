@@ -363,6 +363,36 @@ def check_sources(docs, checks, verifier_urls):
                                 None, "non exécuté — relancer avec --check-urls", bloquant=True))
 
 
+def check_urls_reglementaires(docs, checks, verifier_urls):
+    """Les URLs réglementaires du socle sont des références opposables.
+
+    Une échéance se prononce devant un DSI : son URL doit résoudre. Le contrôle des URLs
+    ne couvrait que le registre de sources de E4 ; un identifiant Légifrance inventé
+    (`JORFTEXT` plausible mais inexistant) passait donc le gate sans être vu."""
+    doc = docs.get("02-socle.json")
+    if doc is None:
+        return
+    reg = doc.get("reglementaire") or {}
+    urls = []
+    pivot = reg.get("echeance_pivot") or {}
+    if pivot.get("source_url"):
+        urls.append({"url": pivot["source_url"], "src_id": "echeance_pivot"})
+    for cle in ("items_futurs", "items_passes_non_marques", "items_sans_date"):
+        for item in reg.get(cle) or []:
+            if item.get("source_url"):
+                urls.append({"url": item["source_url"], "src_id": "{} · {}".format(cle, item.get("libelle"))})
+    if not urls:
+        return
+    if not verifier_urls:
+        checks.append(Check("sources", "02-socle.json : chaque URL réglementaire répond (HEAD 2xx/3xx)",
+                            None, "{} URL(s) — passer --check-urls pour vérifier".format(len(urls)),
+                            bloquant=False))
+        return
+    ok, detail = _head_all(urls)
+    checks.append(Check("sources", "02-socle.json : chaque URL réglementaire répond (HEAD 2xx/3xx)",
+                        ok, detail if not ok else "{} URL(s) vérifiée(s)".format(len(urls))))
+
+
 def _head_all(sources):
     import urllib.request
     ko = []
@@ -451,19 +481,42 @@ def check_autorite_du_score(docs, checks):
                             ("présente" if justifie else "ABSENTE"))))
 
 
+def _cle_nom(nom):
+    """Rapprochement de noms de comptes entre E2 et E5, insensible à la casse et aux
+    accents. Les deux livrables nomment les mêmes comptes mais pas toujours à
+    l'identique (« Thalès Alénia Space » / « Thales Alenia Space »)."""
+    import unicodedata
+    base = unicodedata.normalize("NFKD", nom or "")
+    base = "".join(ch for ch in base if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", "", base.lower())
+
+
+def _identites_resolues(docs):
+    """Comptes dont l'identité France est résolue, LUE DANS E2.
+
+    Le plancher de preuve exige une identité ; le régime déterministe (A1) interdit au
+    modèle de remplir `identifiant_national` dans E5. Lire l'identité dans 05-comptes.json
+    rendait donc les deux contrôles mutuellement exclusifs : « plancher de preuve » ne
+    pouvait structurellement jamais passer. L'identité se lit là où le socle l'écrit."""
+    socle = docs.get("02-socle.json") or {}
+    resolus = ((socle.get("identite") or {}).get("detail_resolus")) or []
+    return {_cle_nom(r.get("nom")) for r in resolus if r.get("siren")}
+
+
 def check_plancher(docs, checks):
     doc = docs.get("05-comptes.json")
     if doc is None:
         return
     transverse = doc.get("transverse") or {}
     prioritaires = set(transverse.get("comptes_prioritaires") or [])
+    resolues = _identites_resolues(docs)
     manquants = []
     for c in doc.get("comptes") or []:
         if c.get("nom") not in prioritaires:
             continue
         pbs = []
-        if not c.get("identifiant_national"):
-            pbs.append("identité")
+        if _cle_nom(c.get("nom")) not in resolues:
+            pbs.append("identité (absente de 02-socle.json · identite.detail_resolus)")
         if c.get("ca_meur") is None and c.get("effectif_france") is None:
             pbs.append("taille")
         if not c.get("trigger_events"):
@@ -511,6 +564,30 @@ def check_couche_esn(docs, checks):
                         not sans_ia, "{} compte(s) sans grille".format(len(sans_ia))))
 
 
+def check_preuve_chantiers(docs, checks):
+    """Un chantier observé sans lien n'est pas une observation, c'est une affirmation.
+
+    Chaque valeur du domaine `preuve` — offre_emploi, communique, marche,
+    reference_editeur, conference — désigne un artefact externe et daté. Sans `source`,
+    rien ne distingue un chantier relevé d'un chantier inventé, et le gate ne mesurait
+    jusqu'ici que la non-vacuité du bloc."""
+    doc = docs.get("05-comptes.json")
+    if doc is None:
+        return
+    sans_source, total = [], 0
+    for c in doc.get("comptes") or []:
+        esn = ((c.get("profil_compte") or {}).get("couche_esn") or {})
+        for ch in esn.get("chantiers_observes") or []:
+            total += 1
+            if not str(ch.get("source") or "").strip():
+                sans_source.append("{} · « {} » (preuve {})".format(
+                    c.get("nom"), str(ch.get("chantier"))[:60], ch.get("preuve")))
+    checks.append(Check("plancher_preuve", "chaque chantier observé porte une source",
+                        not sans_source,
+                        "\n".join("      · " + x for x in sans_source) if sans_source
+                        else "{} chantier(s) contrôlé(s)".format(total)))
+
+
 def check_regime_deterministe(docs, checks):
     doc = docs.get("05-comptes.json")
     if doc is None:
@@ -528,7 +605,7 @@ def check_regime_deterministe(docs, checks):
                             len(CHAMPS_DETERMINISTES), len(doc.get("comptes") or []))))
 
 
-def check_echeance_pivot(docs, checks, today):
+def check_echeance_pivot(docs, checks, today, journal_jouees=None):
     doc = docs.get("02-socle.json")
     if doc is None:
         checks.append(Check("echeance_pivot", "02-socle.json présent", False, "fichier absent"))
@@ -555,15 +632,40 @@ def check_echeance_pivot(docs, checks, today):
                             "officielle" if officielle else "NON OFFICIELLE ({})".format(host or "vide"))))
 
     revalide = (doc.get("reglementaire") or {}).get("revalides_le")
-    checks.append(Check("echeance_pivot", "échéances revalidées le jour du run",
-                        revalide == today.isoformat(),
-                        "revalides_le = {!r}, run du {}".format(revalide, today.isoformat())))
+    mode = str(doc.get("mode") or "").lower()
+    sans_collecte = ("releve" in mode or "relev" in mode or "conversion" in mode)
+
+    if sans_collecte:
+        # Un run qui déclare ne rien collecter ne peut pas avoir revalidé quoi que ce
+        # soit : `revalides_le` doit valoir null. C'est le seul état honnête, et
+        # l'écraser par la date du jour est le moyen le plus simple de franchir ce
+        # contrôle sans avoir ouvert une seule source officielle.
+        #
+        # La garde porte sur le MODE, pas sur le comptage du journal : un journal peut
+        # compter quelques lectures en base — des `SELECT`, pas des sources — et suffire
+        # à faire croire qu'une recherche a eu lieu. Le mode, lui, est déclaré une fois
+        # et engage le run entier.
+        checks.append(Check("echeance_pivot",
+                            "revalidation cohérente avec le mode du run",
+                            revalide is None,
+                            "mode {!r} : aucune collecte déclarée → revalides_le doit être null ; vaut {!r}".format(
+                                doc.get("mode"), revalide)))
+    else:
+        jouees = sum((journal_jouees or {}).values())
+        checks.append(Check("echeance_pivot", "échéances revalidées le jour du run",
+                            revalide == today.isoformat() and jouees > 0,
+                            "revalides_le = {!r}, run du {}, {} requête(s) jouée(s)".format(
+                                revalide, today.isoformat(), jouees)))
 
 
 def check_journaux(run_dir, checks):
+    """Renvoie {fichier: nb de requêtes réellement jouées} — consommé par le contrôle
+    de revalidation, qui doit savoir si le run a cherché quoi que ce soit."""
+    jouees_par_fichier = {}
     for fichier, seuil in sorted(SEUIL_JOURNAL.items()):
         path = os.path.join(run_dir, fichier)
         if not os.path.exists(path):
+            jouees_par_fichier[fichier] = 0
             checks.append(Check("journal", "{} : ≥ {} requêtes distinctes".format(fichier, seuil),
                                 False, "fichier absent"))
             continue
@@ -575,8 +677,41 @@ def check_journaux(run_dir, checks):
         detail = "{} requête(s) jouée(s)".format(len(jouees))
         if gabarits:
             detail += " ; {} gabarit(s) à variable non substituée, non comptés".format(len(gabarits))
+        jouees_par_fichier[fichier] = len(jouees)
         checks.append(Check("journal", "{} : ≥ {} requêtes distinctes".format(fichier, seuil),
                             len(jouees) >= seuil, detail))
+    return jouees_par_fichier
+
+
+def check_socle_arithmetique(docs, checks):
+    """A9 étendu au socle : les totaux d'identité doivent s'additionner.
+
+    `faits_avec_source.total` est un total, pas une annonce : il doit valoir la somme
+    des `detail_resolus[].faits_identite`. Un socle qui déclare 130 faits sourcés pour
+    85 faits détaillés décrit une base qui n'existe pas — et c'est exactement le type
+    d'écart qu'aucun contrôle de non-vacuité ne voit."""
+    doc = docs.get("02-socle.json")
+    if doc is None:
+        return
+    ident = doc.get("identite") or {}
+    resolus = ident.get("detail_resolus") or []
+    fas = ident.get("faits_avec_source") or {}
+    if not resolus or "total" not in fas:
+        checks.append(Check("invariant_a9", "02-socle.json : total des faits = somme du détail",
+                            None, "detail_resolus ou faits_avec_source absent", bloquant=False))
+        return
+    somme = sum(int(r.get("faits_identite") or 0) for r in resolus)
+    total = int(fas.get("total") or 0)
+    avec_src = int(fas.get("avec_primary_source_id") or 0)
+    ecarts = []
+    if somme != total:
+        ecarts.append("faits_avec_source.total déclaré {} / somme du détail {}".format(total, somme))
+    if avec_src > total:
+        ecarts.append("avec_primary_source_id {} > total {}".format(avec_src, total))
+    checks.append(Check("invariant_a9", "02-socle.json : total des faits = somme du détail",
+                        not ecarts,
+                        " ; ".join(ecarts) if ecarts
+                        else "{} faits sur {} comptes résolus, tous sourcés".format(somme, len(resolus))))
 
 
 def _extraire_requetes(texte):
@@ -667,14 +802,17 @@ def build(run_dir, today, verifier_urls):
     check_compteurs(docs, checks)
     check_schemas(docs, checks)
     check_sources(docs, checks, verifier_urls)
+    check_urls_reglementaires(docs, checks, verifier_urls)
     check_editeur(docs, checks)
     check_arithmetique(docs, checks)
     check_autorite_du_score(docs, checks)
+    check_socle_arithmetique(docs, checks)
     check_plancher(docs, checks)
     check_couche_esn(docs, checks)
+    check_preuve_chantiers(docs, checks)
     check_regime_deterministe(docs, checks)
-    check_echeance_pivot(docs, checks, today)
-    check_journaux(run_dir, checks)
+    jouees = check_journaux(run_dir, checks)
+    check_echeance_pivot(docs, checks, today, jouees)
     check_vocabulaire(docs, checks)
     check_portee(docs, checks)
     return docs, illisibles, checks

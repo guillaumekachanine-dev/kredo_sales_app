@@ -119,7 +119,7 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": ["chantier", "preuve", "date"],
+                      "required": ["chantier", "preuve", "date", "source"],
                       "properties": {
                         "chantier": { "type": "string" },
                         "preuve": { "enum": ["offre_emploi", "communique", "marche", "reference_editeur", "conference"] },

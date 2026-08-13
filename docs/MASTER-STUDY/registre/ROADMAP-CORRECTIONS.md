@@ -51,7 +51,7 @@ préférence d'ordonnancement, c'est une condition pour que la collecte ne soit 
 | **A3** | Ajouter `compteurs` à `cadrage.schema.json` | `schemas/` | 5 min | ✅ **fait 13/08** |
 | **A4** | Étendre le parseur E5 à la couche ESN | code, 3 couches | ½ j | ✅ **fait 13/08** |
 | **A5** | Écrire `taxonomie.schema.json` et `socle.schema.json` | `schemas/` | 1 h | ✅ **fait 13/08** |
-| **A6** | Table de correspondance `kredo_practice` ↔ `offer_practices.slug` | corpus + migration | 2 h | ✅ **fait 13/08** |
+| **A6** | Table de correspondance `kredo_practice` ↔ `offer_practices.slug` | corpus + migration | 2 h | ✅ **refait 13/08 (soir)** — la 1re version mappait vers le vocabulaire front |
 
 ### A1 — G0 est inpassable par construction ✅ *corrigé le 13/08*
 
@@ -143,21 +143,43 @@ Deux domaines de valeurs à corriger en même temps :
   récupérer les études antérieures que le corpus déclare lui-même « à réparer avant
   réutilisation ».
 
-### A6 — Deux vocabulaires de practice cohabitent 🟠
+### A6 — Deux vocabulaires de practice cohabitent ✅ *résolu le 13/08 (soir)*
 
 Le schéma E4 exige un « slug issu de `offer_practices` ». La base écrit partout autre chose, dans
-`sector_regulatory_items`, `sector_pain_points` et `sector_intelligence.practices_fit` :
+`sector_regulatory_items`, `sector_pain_points` et `sector_intelligence.practices_fit` — et un
+**troisième** vocabulaire vit côté front (`PracticeSlug`, couleurs et images) :
 
-| En base | `offer_practices.slug` réel |
-|---|---|
-| `cloud_eng` | `cloud-engineering` |
-| `cyber` | `cybersecurity` |
-| `data_ai` | `data-ai` |
-| `multi` | *(n'existe pas)* |
-| `product` | *(n'existe pas)* |
+| `kredo_practice` (base) | `offer_practices.slug` (**autorité**) | `PracticeSlug` (front) |
+|---|---|---|
+| `data_ai` | `data-ai` | `data-ia` |
+| `cloud_eng` | `cloud-engineering` | `digital-cloud` |
+| `cyber` | `cybersecurity` | `cybersecurity` |
+| `product` | `project-agile-delivery` | `agile-pm` |
+| `testing` | `quality-engineering-testing` | `qa-testing` |
+| `apps` | `digital-business-solutions` | `custom-apps` |
+| `design` | `digital-experience` | `ux-ui-design` |
+| `legacy` | `legacy-systems-mainframe` | `legacy-mainframe` |
+| `multi` | *(aucune — transversal)* | — |
 
-Aucune table de correspondance n'existe. Toute conversion doit traduire, et toute traduction non
-écrite sera refaite différemment la fois suivante.
+**Première livraison, rejetée.** La table du 13/08 après-midi mappait `kredo_practice` vers la
+colonne de **droite** en la présentant comme `offer_practices.slug` : sept correspondances sur huit
+ne joignaient aucune ligne, silencieusement. Les deux fonctions SQL de
+`077_practice_mapping_function.sql` portaient le même défaut ; la migration n'ayant jamais été
+appliquée (la prod s'arrête à 076), elle a été **retirée** plutôt que corrigée. Le catalogue des
+41 offres livré au même moment était, lui, exact — seul l'axe practice était faux.
+
+**État livré.** `src/lib/config/practices.ts` porte les deux vocabulaires explicitement :
+`OfferPracticeSlug` (base) à côté de `PracticeSlug` (front), le pont
+`PRACTICE_SLUG_TO_OFFER_PRACTICE`, et les mappers `mapKredoPracticeToOfferPractice()` /
+`mapOfferPracticeToKredoPractice()` qui acceptent n'importe lequel des trois vocabulaires en
+entrée et renvoient toujours un slug qui joint. 13 tests contrôlent la répartition des 41 offres
+contre le relevé base, et non contre la table elle-même. `KredoTechnologiesView.tsx` — qui
+utilisait déjà les bons slugs — est typé `Record<OfferPracticeSlug, …>` : toute dérive future
+devient une erreur de compilation.
+
+La leçon tient en une ligne : **toute traduction non écrite sera refaite différemment la fois
+suivante** — y compris par un agent qui a la bonne table sous les yeux, puisque la version correcte
+figurait déjà dans cette même section.
 
 ---
 
