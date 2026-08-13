@@ -11,6 +11,7 @@
  * `seg-aero-spatial-defense`, 9 comptes résolus par le socle A1).
  */
 
+import { writeFileSync } from 'node:fs'
 import { buildSearchEnvelope } from '../src/features/hiring-intensity/domain/build-search-envelope'
 import {
   computeHiringIntensity,
@@ -41,6 +42,12 @@ const COMPTES: Compte[] = [
 const measuredAt = new Date().toISOString().slice(0, 10)
 const lignes: string[] = []
 let totalSignaux = 0
+
+// `--json <chemin>` : artefact machine, pour que l'écriture en base transcrive la
+// mesure au lieu de la ressaisir. Le script reste en lecture seule côté Supabase.
+const jsonIndex = process.argv.indexOf('--json')
+const jsonPath = jsonIndex >= 0 ? process.argv[jsonIndex + 1] : null
+const artefact: unknown[] = []
 
 for (const compte of COMPTES) {
   const envelope = buildSearchEnvelope({
@@ -75,7 +82,7 @@ for (const compte of COMPTES) {
   )
   console.log(
     `   SI : ${intensity.offersMatched} attribuée(s) · ${intensity.offersOtherEmployer} autre(s) employeur(s) · ` +
-      `${intensity.offersAnonymous} anonyme(s) · couverture ${Math.round(intensity.recall * 100)} %`,
+      `${intensity.offersAnonymous} anonyme(s) · couverture ${intensity.recall === null ? 'n/a' : Math.round(intensity.recall * 100) + ' %'}`,
   )
   console.log(`   signal : ${intensity.emitsSignal ? `OUI (seuil ${intensity.threshold})` : 'non'}`)
   for (const m of matched) {
@@ -85,9 +92,29 @@ for (const compte of COMPTES) {
   }
   console.log('')
 
+  artefact.push({
+    ...intensity,
+    accountName: compte.accountName,
+    legalName: compte.legalName,
+    envelope,
+    offersReceived: offers.offers.length,
+    offersAnnounced: offers.total,
+    truncated: offers.truncated,
+    summary: describeIntensity(intensity),
+    matched: matched.map((m) => ({
+      id: m.offer.id,
+      intitule: m.offer.intitule,
+      practice: m.practice,
+      romeCode: m.offer.romeCode,
+      url: m.offer.url,
+      employer: m.offer.employerName,
+      via: m.employerMatch.via,
+    })),
+  })
+
   lignes.push(
     `${compte.accountName.padEnd(46)} ${String(intensity.offersMatched).padStart(3)}  ` +
-      `${String(Math.round(intensity.recall * 100)).padStart(3)} %  ${intensity.emitsSignal ? 'signal' : '—'}`,
+      `${(intensity.recall === null ? 'n/a' : Math.round(intensity.recall * 100) + ' %').padStart(5)}  ${intensity.emitsSignal ? 'signal' : '—'}`,
   )
   lignes.push(`   ${describeIntensity(intensity)}`)
 }
@@ -97,4 +124,8 @@ console.log(`compte${' '.repeat(41)}  SI  couv.  signal`)
 for (const l of lignes) console.log(l)
 console.log('')
 console.log(`Comptes franchissant le seuil : ${totalSignaux} / ${COMPTES.length}`)
-console.log('Aucune écriture effectuée — mesure en lecture seule.')
+if (jsonPath) {
+  writeFileSync(jsonPath, JSON.stringify(artefact, null, 2), 'utf8')
+  console.log(`Artefact écrit : ${jsonPath}`)
+}
+console.log('Aucune écriture en base — mesure en lecture seule.')

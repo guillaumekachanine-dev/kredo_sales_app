@@ -1,7 +1,7 @@
 {
   "date_execution": "2026-08-13",
-  "mode": "releve + socle A1 execute",
-  "commentaire_mode": "Deux régimes dans ce fichier, explicitement séparés. (1) Le socle A1 — identité France — A ÉTÉ exécuté le 2026-08-13 sur l'API publique Sirene/INSEE (recherche-entreprises.api.gouv.fr) et écrit en base : companies.siren, companies.naf_code et les faits d'identité correspondants, tous porteurs d'un primary_source_id. Les chiffres du bloc `identite` sont relevés dans cette base, pas déclarés. (2) Tout le reste du socle — A6 accessibilité, A7 intensité SI, marchés publics — n'est PAS branché : les blocs correspondants valent zéro et le disent. Tout ce qui est vide ici l'est parce que le socle n'a pas tourné, jamais parce qu'un modèle a renoncé.",
+  "mode": "releve + socle A1 et A7 executes",
+  "commentaire_mode": "Deux régimes dans ce fichier, explicitement séparés. (1) Le socle A1 — identité France — et A7 — intensité SI — ONT ÉTÉ exécutés le 2026-08-13, le premier sur l'API Sirene/INSEE, le second sur l'API France Travail « Offres d'emploi v2 ». Leurs résultats sont écrits en base et relevés ici, pas déclarés. (2) Le reste du socle — A6 accessibilité, marchés publics — n'est PAS branché : les blocs correspondants valent zéro et le disent. Tout ce qui est vide ici l'est parce que le socle n'a pas tourné, jamais parce qu'un modèle a renoncé.",
   "perimetre": {
     "segment_slug": "seg-aero-spatial-defense",
     "comptes_rattaches": 10,
@@ -153,10 +153,16 @@
     ]
   },
   "intensite_si": {
-    "comptes_mesures": 0,
+    "comptes_mesures": 9,
+    "offres_si_attribuees": 1,
     "signaux_emis": 0,
-    "seuil": null,
-    "commentaire": "A7 (API France Travail par SIREN) n'est pas branché : aucun client API, aucun workflow n8n, aucun secret dans le dépôt. Les signaux du segment sont tous des reprises FOLIO (`folio_news_item`, `folio_growth_trend`, `folio_digital_maturity`, `folio_hiring_signal`) ; aucun `it_hiring_intensity` ni `hiring_signal` n'existe en base. La résolution d'identité du 13/08 rend A7 techniquement exécutable (9 SIREN disponibles), mais A7 n'a pas été exécuté. E5 ne reçoit donc aucun chantier observé mesuré."
+    "seuil": 3,
+    "couverture_min": 0.75,
+    "couverture_max": 1.0,
+    "ecart_contrat": "L'énoncé de A7 — « API France Travail par SIREN » — est INEXÉCUTABLE : l'API « Offres d'emploi v2 » n'expose aucun filtre SIREN ni SIRET, et `motsCles` n'indexe pas le nom de l'employeur (HTTP 204 sur « thales alenia space », « arianegroup », « eutelsat », « telespazio »). La mesure passe donc par une enveloppe déterministe — division NAF de l'employeur + départements de ses établissements, tous deux issus du socle A1 — puis par un appariement sur le nom de l'employeur. Cet appariement est faillible et une part des offres est anonymisée : chaque mesure porte donc sa couverture.",
+    "resultat": "9 comptes mesurés le 2026-08-13, couverture de 75 à 100 %. UNE seule offre SI sur tout le segment : Thales Alenia Space, « Responsable Produit Space Edge Computing » (ROME M1879). Aucun compte ne franchit le seuil de 3, donc aucun `hiring_signal` émis. Les 9 mesures sont écrites en `account_facts.it_hiring_intensity`, chacune rattachée à une `intelligence_sources` portant l'URL de la requête jouée.",
+    "lecture": "Ce zéro n'est pas un défaut d'outil. France Travail publie 9 467 offres SI en France (domaine ROME M18), mais seulement 22 dans la division NAF 30 « construction aéronautique et spatiale » — 3,7 % de ses offres. Le gisement est ailleurs : division 62 (ESN) 747 offres soit 27,2 %, division 61 (télécoms) 21,6 %, divisions 70 et 71 denses. A7 reste donc pertinent sur d'autres segments, et deux appels suffisent à mesurer un gisement avant de lancer la collecte.",
+    "limite_connue": "Les groupes publient leurs offres SI depuis d'autres personnes morales que celle résolue par A1 : une offre « Ingénieur Cloud GCP » (M1805) est portée par Thales Services Numériques SAS en division 70, invisible d'une enveloppe calée sur le NAF de Thales SIX GTS. L'appariement la refuse à juste titre — autre entité juridique, et de surcroît une ESN. Trancher relève du périmètre du compte (entité juridique ou groupe), arbitrage déjà porté par `identite.detail_resolus[].entite_retenue`."
   },
   "marches_publics": {
     "comptes_avec_attribution": 0,

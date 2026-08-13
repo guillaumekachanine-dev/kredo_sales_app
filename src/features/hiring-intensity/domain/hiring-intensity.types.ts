@@ -79,8 +79,12 @@ export interface HiringIntensity {
   /**
    * Part des offres SI de l'enveloppe qu'on a su attribuer, anonymes comprises au
    * dénominateur. C'est la couverture de la mesure, pas sa précision.
+   *
+   * `null` quand l'enveloppe ne contenait AUCUNE offre SI : il n'y avait alors rien
+   * à attribuer, et annoncer « 0 % » se lirait comme un échec d'attribution.
+   * Absence de gisement et échec de mesure sont deux constats différents.
    */
-  recall: number
+  recall: number | null
   /** Seuil de déclenchement du signal, porté par la mesure pour être relisible. */
   threshold: number
   /** `true` si `offersMatched >= threshold`. */

@@ -93,7 +93,7 @@ export function computeHiringIntensity({
       byPractice,
       offersAnonymous: anonymous,
       offersOtherEmployer: otherEmployer,
-      recall: totalSi === 0 ? 0 : Number((attribuables / totalSi).toFixed(3)),
+      recall: totalSi === 0 ? null : Number((attribuables / totalSi).toFixed(3)),
       threshold,
       emitsSignal: matched.length >= threshold,
     },
@@ -107,6 +107,9 @@ export function computeHiringIntensity({
  * comme une certitude, et c'est exactement ce que A11 interdit.
  */
 export function describeIntensity(intensity: HiringIntensity): string {
+  if (intensity.recall === null) {
+    return "Aucune offre SI dans l'enveloppe interrogée : il n'y avait rien à attribuer. Absence de gisement, pas échec de mesure."
+  }
   if (intensity.offersMatched === 0) {
     return `Aucune offre SI attribuée au compte sur l'enveloppe interrogée (${intensity.offersAnonymous} offre(s) SI à employeur anonymisé, non attribuables).`
   }
@@ -114,7 +117,7 @@ export function describeIntensity(intensity: HiringIntensity): string {
     .sort((a, b) => b[1] - a[1])
     .map(([practice, count]) => `${practice} ${count}`)
     .join(', ')
-  const couverture = Math.round(intensity.recall * 100)
+  const couverture = Math.round((intensity.recall ?? 0) * 100)
   return (
     `${intensity.offersMatched} offre(s) SI attribuée(s) au compte` +
     (ventilation ? ` (${ventilation})` : '') +

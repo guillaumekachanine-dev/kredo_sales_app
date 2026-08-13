@@ -260,6 +260,15 @@ describe('agrégation de l’intensité', () => {
     expect(intensity.recall).toBe(0.5)
   })
 
+  it('rend une couverture n/a — et non 0 % — quand l’enveloppe n’a aucune offre SI', () => {
+    const { intensity } = computeHiringIntensity({
+      ...base,
+      offers: [offer({ id: 'z', intitule: 'Chaudronnier aéronautique', employerName: 'LATECOERE' })],
+    })
+    expect(intensity.recall).toBeNull()
+    expect(describeIntensity(intensity)).toContain('Absence de gisement')
+  })
+
   it('ignore les offres hors SI dans le dénominateur', () => {
     const { intensity } = computeHiringIntensity({
       ...base,
@@ -272,9 +281,9 @@ describe('agrégation de l’intensité', () => {
     expect(intensity.recall).toBe(1)
   })
 
-  it('rend une couverture nulle sur une enveloppe vide, sans division par zéro', () => {
+  it('rend une couverture n/a sur une enveloppe vide, sans division par zéro', () => {
     const { intensity } = computeHiringIntensity({ ...base, offers: [] })
-    expect(intensity.recall).toBe(0)
+    expect(intensity.recall).toBeNull()
     expect(intensity.emitsSignal).toBe(false)
   })
 

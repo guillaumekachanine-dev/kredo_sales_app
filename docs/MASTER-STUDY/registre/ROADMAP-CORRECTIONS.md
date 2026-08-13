@@ -188,7 +188,7 @@ figurait déjà dans cette même section.
 | # | Action | Débloque | État |
 |---|---|---|---|
 | **B1** | Exécuter le socle A1 (identité France) sur les 8 comptes non résolus du Spatial | Le plancher de preuve A7, donc tout top 3 légitime | ✅ **fait 13/08, écrit en base le 13/08** |
-| **B2** | Brancher A7 — ~~API France Travail par SIREN~~ → enveloppe NAF+géo et appariement mesuré | La grille « IA annoncé vs déployé », vide sur 10/10 | ◐ **domaine livré, réseau bloqué sur identifiants** |
+| **B2** | Brancher A7 — ~~API France Travail par SIREN~~ → enveloppe NAF+géo et appariement mesuré | La grille « IA annoncé vs déployé », vide sur 10/10 | ✅ **exécuté et écrit en base le 13/08 (soir)** |
 | **B3** | Marquer les échéances passées et instrumenter la revalidation au jour du run | Le motif d'appel : 2 des 5 échéances du secteur sont périmées et rien ne le dit | ◐ **marquage fait, revalidation annulée** |
 | **B4** | Renseigner la couche accessibilité (A6) sur les comptes prioritaires | Le droit d'intervenir — bloc à **0 fait sur les 109 comptes de la base** | ☐ |
 
@@ -222,8 +222,23 @@ réponse et quotas ne se devinent pas. Les cinq points à établir au premier ap
 listés dans `src/features/hiring-intensity/README.md`. **Rien ne sera écrit en base avant qu'un
 appel réel ait tourné.**
 
-**Bloqué sur** : `FRANCE_TRAVAIL_CLIENT_ID` / `FRANCE_TRAVAIL_CLIENT_SECRET` (documentés dans
-`.env.example`), à créer sur francetravail.io.
+**Exécuté le 13/08 au soir.** Identifiants posés, adaptateur écrit contre l'API réelle après
+deux sondes. Les 9 comptes résolus sont mesurés, couverture 75 à 100 %, **1 seule offre SI sur
+tout le segment** (Thales Alenia Space, « Responsable Produit Space Edge Computing », M1879).
+Aucun compte ne franchit le seuil de 3 : **aucun `hiring_signal` émis**. Les 9 mesures sont en
+base (`account_facts.it_hiring_intensity`), chacune rattachée à une source portant l'URL de la
+requête jouée.
+
+**Ce zéro est un résultat, pas un échec.** France Travail publie 9 467 offres SI en France
+(domaine ROME M18) mais seulement 22 dans la division NAF 30 : le gisement du Spatial est vide,
+alors qu'il est dense en division 62 (ESN, 27,2 %), 61 (télécoms, 21,6 %), 70 et 71. Le canal
+reste donc pertinent sur d'autres segments — et deux appels suffisent désormais à le vérifier
+avant de lancer A7. Table de densité dans `src/features/hiring-intensity/README.md`.
+
+**Deux corrections que seule la donnée réelle a révélées** : l'appariement en sous-chaîne
+(`ssi` dans « mission », `soc` dans « société ») et le classement sur la description, qui
+énumère l'environnement et non le poste. Quatre tests de régression portent les intitulés réels
+qui ont piégé la première version.
 
 ---
 
