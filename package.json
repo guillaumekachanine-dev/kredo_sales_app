@@ -16,7 +16,9 @@
     "logos:attach": "node --env-file=.env.local scripts/attach-company-logos.mjs",
     "n8n:status": "node --env-file=.env.local scripts/n8n-status.mjs",
     "test": "vitest run",
-    "ft:check": "node --env-file=.env.local scripts/check-france-travail-credentials.mjs"
+    "ft:check": "node --env-file=.env.local scripts/check-france-travail-credentials.mjs",
+    "ft:probe": "node --env-file=.env.local scripts/probe-france-travail-api.mjs",
+    "ft:measure": "tsx --conditions=react-server --env-file=.env.local scripts/measure-hiring-intensity.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

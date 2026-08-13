@@ -72,6 +72,59 @@ describe('classification par practice (vocabulaire base)', () => {
     )
   })
 
+  // Régression : intitulés réels renvoyés par l'API le 2026-08-13 sur l'enveloppe
+  // NAF 30 / dép. 31. La première version, qui appariait en sous-chaîne, les classait
+  // en cybersecurity et digital-experience — « mission » contient « ssi », « société »
+  // contient « soc », « flux » contient « ux ».
+  it('n’attrape pas un terme court en sous-chaîne d’un mot français', () => {
+    const cas = [
+      'Technicien Procédés Micro électronique-F/H',
+      'Technicien Méthode Microélectronique DMS -F/H',
+      'Technicien production érosion- secteur spatial F/H',
+      'Câbleur/Câbleuse en faisceaux électriques (H/F)',
+      'Mécanicien Piste A320/A330 A350 -CDI AIRBUS (H/F)',
+    ]
+    for (const intitule of cas) {
+      expect(classifyOffer(offer({ id: intitule, intitule })).practice).toBeNull()
+    }
+  })
+
+  it('ne déclenche pas cybersecurity sur une prose contenant « mission » ou « société »', () => {
+    const result = classifyOffer(
+      offer({
+        id: 'prose',
+        intitule: 'Technicien de production',
+        description:
+          'Au sein de notre société, votre mission principale consiste à assurer la transmission des pièces.',
+      }),
+    )
+    expect(result.practice).toBeNull()
+  })
+
+  it('reconnaît toujours les sigles quand ils sont des mots entiers', () => {
+    expect(classifyOffer(offer({ id: 's1', intitule: 'Analyste SOC / SIEM' })).practice).toBe(
+      'cybersecurity',
+    )
+    expect(classifyOffer(offer({ id: 's2', intitule: 'Responsable SSI' })).practice).toBe(
+      'cybersecurity',
+    )
+    expect(classifyOffer(offer({ id: 's3', intitule: 'Designer UX' })).practice).toBe(
+      'digital-experience',
+    )
+  })
+
+  it('couvre les variantes par préfixe', () => {
+    expect(classifyOffer(offer({ id: 'p1', intitule: 'Ingénieur cryptographie' })).practice).toBe(
+      'cybersecurity',
+    )
+    expect(classifyOffer(offer({ id: 'p2', intitule: 'Expert cybersécurité' })).practice).toBe(
+      'cybersecurity',
+    )
+    expect(classifyOffer(offer({ id: 'p3', intitule: 'Développeuse Java' })).practice).toBe(
+      'digital-business-solutions',
+    )
+  })
+
   it('retient une offre codée SI au ROME même sans terme reconnu', () => {
     const o = offer({ id: '8', intitule: 'Ingénieur études', romeCode: 'M1805' })
     expect(classifyOffer(o).practice).toBeNull()

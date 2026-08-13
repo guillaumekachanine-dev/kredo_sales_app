@@ -38,8 +38,27 @@ const ROME_SI_PREFIX = 'M18'
 
 interface PracticeRule {
   practice: OfferPracticeSlug
-  /** Termes normalisés. Un terme = un point ; les termes longs priment naturellement. */
+  /**
+   * Termes normalisés, appariés sur des FRONTIÈRES DE MOT, jamais en sous-chaîne.
+   * Un suffixe `*` autorise le préfixe de token (`cryptograph*` couvre
+   * « cryptographie » et « cryptographique »).
+   *
+   * La sous-chaîne nue était un piège : `ssi` matche « mi(ssi)on », `soc` matche
+   * « (soc)iété », `ux` matche « fl(ux)», `iam` matche « d(iam)ètre ». La première
+   * mesure réelle a ainsi classé « Technicien Méthode Microélectronique » en
+   * cybersecurity. Aucun test hors ligne ne l'avait vu : les fixtures étaient des
+   * intitulés courts, la prose française ne l'est pas.
+   */
   terms: string[]
+}
+
+/** Le terme apparaît-il comme mot (ou suite de mots) dans le texte normalisé ? */
+function containsTerm(paddedHaystack: string, term: string): boolean {
+  if (term.endsWith('*')) {
+    const stem = term.slice(0, -1)
+    return new RegExp(`(?:^| )${stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(paddedHaystack)
+  }
+  return paddedHaystack.includes(` ${term} `)
 }
 
 // L'ordre départage les égalités : une offre « Data Engineer Cloud » part en data-ai.
@@ -54,8 +73,8 @@ const RULES: PracticeRule[] = [
   {
     practice: 'cybersecurity',
     terms: [
-      'cyber', 'cybersecurite', 'securite des systemes', 'secops', 'soc', 'siem', 'pentest',
-      'test d intrusion', 'iam', 'pam', 'rssi', 'ssi', 'cryptograph', 'zero trust', 'edr',
+      'cyber*', 'cybersecurite', 'securite des systemes', 'secops', 'soc', 'siem', 'pentest',
+      'test d intrusion', 'iam', 'pam', 'rssi', 'ssi', 'cryptograph*', 'zero trust', 'edr',
       'dfir', 'ebios', 'homologation de securite', 'analyste securite', 'devsecops',
       'post-quantique', 'post quantique',
     ],
@@ -63,11 +82,11 @@ const RULES: PracticeRule[] = [
   {
     practice: 'data-ai',
     terms: [
-      'data engineer', 'data scientist', 'data analyst', 'ingenieur data', 'donnees',
+      'data engineer', 'data scientist', 'data analyst', 'ingenieur data', 'donnee*',
       'machine learning', 'deep learning', 'intelligence artificielle', 'ia generative',
       'mlops', 'dataops', 'big data', 'datalake', 'lakehouse', 'spark', 'snowflake',
       'databricks', 'llm', 'nlp', 'computer vision', 'business intelligence', 'power bi',
-      'dataviz', 'analytics', 'traitement d images', 'data architect',
+      'dataviz', 'analytic*', 'traitement d images', 'data architect',
     ],
   },
   {
@@ -81,7 +100,7 @@ const RULES: PracticeRule[] = [
   {
     practice: 'quality-engineering-testing',
     terms: [
-      'testeur', 'qa engineer', 'quality assurance', 'automaticien de test', 'ingenieur test',
+      'testeur*', 'qa engineer', 'quality assurance', 'automaticien de test', 'ingenieur test',
       'recette fonctionnelle', 'ivvq', 'validation logicielle', 'selenium', 'cypress',
       'playwright', 'test de performance', 'tests automatises', 'banc de test',
     ],
@@ -89,7 +108,7 @@ const RULES: PracticeRule[] = [
   {
     practice: 'digital-experience',
     terms: [
-      'ux', 'ui designer', 'design system', 'ergonom', 'product designer', 'ux researcher',
+      'ux', 'ui designer', 'design system', 'ergonom*', 'product designer', 'ux researcher',
       'accessibilite numerique', 'rgaa', 'parcours utilisateur', 'front end', 'frontend',
       'react', 'angular', 'vue.js', 'developpeur mobile', 'ios', 'android',
     ],
@@ -105,7 +124,7 @@ const RULES: PracticeRule[] = [
   {
     practice: 'digital-business-solutions',
     terms: [
-      'developpeur', 'ingenieur logiciel', 'architecte logiciel', 'architecte si',
+      'developpeur*', 'ingenieur logiciel', 'architecte logiciel', 'architecte si',
       'ingenieur etudes et developpement', 'java', 'python', '.net', 'c++', 'api',
       'integration applicative', 'erp', 'sap', 'business analyst', 'amoa', 'moa',
       'systeme embarque', 'embarque', 'iot', 'plm', 'maitrise d ouvrage',
@@ -123,39 +142,28 @@ export interface ClassificationResult {
  * l'offre sort alors du périmètre A7 au lieu d'être rangée par défaut quelque part.
  */
 export function classifyOffer(offer: NormalizedJobOffer): ClassificationResult {
-  const titre = normalizeText(offer.intitule)
-  const haystack = `${titre} ${normalizeText(offer.description)}`.trim()
-  if (!haystack) return { practice: null, matchedTerms: [] }
+  // Classement sur le SEUL intitulé. La description a été retirée du périmètre
+  // après la première mesure réelle : elle énumère l'environnement de travail, pas
+  // le poste. Un « Technicien production érosion » dont la description mentionne
+  // « données » n'est pas un profil data — il partait pourtant en data-ai.
+  //
+  // Le rappel perdu est couvert autrement : une offre SI à l'intitulé générique
+  // reste dans le périmètre A7 par son code ROME (`isInformationSystemsOffer`),
+  // simplement sans ventilation par practice. Compter juste sans ventiler vaut
+  // mieux que ventiler faux.
+  const titre = ` ${normalizeText(offer.intitule)} `
+  if (titre.trim() === '') return { practice: null, matchedTerms: [] }
 
-  // L'intitulé prime, et pas d'un simple coefficient : dès qu'une practice est
-  // reconnue dans le titre, la décision se joue ENTRE les practices du titre.
-  // Sinon une description qui énumère l'environnement technique l'emporte sur le
-  // poste lui-même — un « Data Scientist » travaillant sur AWS/Kubernetes/Terraform
-  // partait en cloud-engineering sur le seul nombre de termes cités.
-  const scored = RULES.map((rule) => {
-    const inTitle = rule.terms.filter((term) => titre.includes(term))
-    const inAll = rule.terms.filter((term) => haystack.includes(term))
-    return { practice: rule.practice, inTitle, inAll }
-  }).filter((entry) => entry.inAll.length > 0)
+  const scored = RULES.map((rule) => ({
+    practice: rule.practice,
+    terms: rule.terms.filter((term) => containsTerm(titre, term)),
+  })).filter((entry) => entry.terms.length > 0)
 
-  // Aucun terme reconnu : l'offre sort de la ventilation. Elle peut malgré tout
-  // rester dans le périmètre A7 via son code ROME — c'est `isInformationSystemsOffer`
-  // qui en décide, pas ce classement.
   if (scored.length === 0) return { practice: null, matchedTerms: [] }
 
-  const titled = scored.filter((entry) => entry.inTitle.length > 0)
-  const pool = titled.length > 0 ? titled : scored
   // À nombre égal de termes, l'ordre de RULES départage (le plus spécifique d'abord).
-  const best = pool.reduce((acc, entry) => {
-    if (!acc) return entry
-    const accKey = titled.length > 0 ? acc.inTitle.length : acc.inAll.length
-    const entryKey = titled.length > 0 ? entry.inTitle.length : entry.inAll.length
-    if (entryKey > accKey) return entry
-    if (entryKey === accKey && entry.inAll.length > acc.inAll.length) return entry
-    return acc
-  }, pool[0])
-
-  return { practice: best.practice, matchedTerms: best.inAll }
+  const best = scored.reduce((acc, entry) => (entry.terms.length > acc.terms.length ? entry : acc))
+  return { practice: best.practice, matchedTerms: best.terms }
 }
 
 export function isInformationSystemsRome(romeCode: string | null | undefined): boolean {
