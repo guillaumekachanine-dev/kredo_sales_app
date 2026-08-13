@@ -1,0 +1,89 @@
+{
+  "date_execution": "2026-08-13",
+  "mode": "releve",
+  "commentaire_mode": "AUCUNE production dans ce run : E2 est un régime déterministe (n8n + API publiques) et le chantier interdit toute exécution de collecte. Ce fichier est le relevé, à la date du run, de ce que le socle a déjà écrit en base pour le segment. Tout ce qui est vide ici l'est parce que le socle n'a pas tourné, jamais parce qu'un modèle a renoncé.",
+  "perimetre": {
+    "segment_slug": "seg-aero-spatial-defense",
+    "comptes_rattaches": 10,
+    "dont_mapped": 7,
+    "commentaire": "Les 7 comptes `mapped` sont comptés ici et non exclus : le plancher de preuve A7 leur est opposable dès qu'ils entrent dans la carte de priorisation de E5, et c'est sur eux que porte l'essentiel du déficit d'identité."
+  },
+  "identite": {
+    "comptes_cibles": 10,
+    "resolus": 2,
+    "ambigus": 0,
+    "non_tentes": 8,
+    "taux_couverture": 0.2,
+    "detail_resolus": [
+      { "nom": "Exail Robotics", "siren": "509232591", "naf_code": "3011Z", "faits_identite": 8 },
+      { "nom": "ACRI-ST", "siren": "428834113", "naf_code": "7112B", "faits_identite": 21 }
+    ],
+    "echecs": [
+      { "company_id": "19b4d3cb-80dc-45b4-b963-b9eb74c59e45", "nom": "Thalès Alénia Space", "motif": "socle_non_execute" },
+      { "company_id": "0abbe65c-2da8-422f-86e4-cd76abe5547f", "nom": "Airbus Defence and Space", "motif": "socle_non_execute" },
+      { "company_id": "81e2fda2-90ec-4b92-b897-42fc426de3cf", "nom": "ArianeGroup / Arianespace", "motif": "socle_non_execute" },
+      { "company_id": "918fcbc9-5fd7-485e-b802-849f2f3f0c70", "nom": "D-Orbit", "motif": "socle_non_execute" },
+      { "company_id": "87d78e51-7166-41aa-a1fd-fbb6e66d5aef", "nom": "Eutelsat / OneWeb", "motif": "socle_non_execute" },
+      { "company_id": "56a79065-0f85-48d8-b216-bbe8b2c23c6f", "nom": "Leonardo / Telespazio", "motif": "socle_non_execute" },
+      { "company_id": "ffef984c-e141-4573-ba91-02629f85f615", "nom": "OHB", "motif": "socle_non_execute" },
+      { "company_id": "a8690e6b-f322-4068-a506-ca2d01843e9a", "nom": "Thales - systèmes défense, cyber et critiques", "motif": "socle_non_execute" }
+    ],
+    "ecart_contrat": "Le domaine de `motif` prévu par E2 §8 est `homonymie | hors_france | non_immatricule`. Aucune de ces trois valeurs ne décrit le cas réel et majoritaire, qui est que le socle n'a jamais été exécuté sur le compte. `socle_non_execute` est introduit ici et signalé : sans lui, huit échecs d'exécution seraient enregistrés comme des échecs de résolution, ce qui est un mensonge de mesure.",
+    "faits_avec_source": { "total": 74, "avec_primary_source_id": 74, "taux": 1.0 }
+  },
+  "reglementaire": {
+    "items_segment": 0,
+    "items_macro": 5,
+    "futurs": 2,
+    "datees": 4,
+    "revalides_le": null,
+    "commentaire_revalidation": "E2 §1 impose de revalider chaque échéance au jour du run sur sa source officielle. Le chantier interdit tout accès web : la revalidation n'a PAS eu lieu et le champ reste null plutôt que de porter la date du jour. Une échéance non revalidée ne doit pas être prononcée devant un DSI.",
+    "echeance_pivot": {
+      "libelle": "AI Act — obligations des systèmes à haut risque (Annexe III)",
+      "date": "2027-12-02",
+      "authority": "EU",
+      "source_url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai",
+      "kredo_practice": "data_ai",
+      "reg_item_portee": "macro",
+      "reserve": "C'est la seule échéance future, datée, sourcée sur une autorité officielle et porteuse d'un angle commercial du corpus de ce segment. Elle est à 16 mois : elle fonde un chantier, pas un motif d'appel de cette semaine. Les deux échéances qui auraient fait un motif d'appel — EDIP au 30/12/2025 et le décret SecNumCloud n° 2026-272 au 14/04/2026, seule échéance `critical` du secteur — sont PASSÉES à la date du run et rien en base ne les marque comme telles."
+    },
+    "items_futurs": [
+      { "libelle": "AI Act — obligations systèmes à haut risque (Annexe III)", "deadline_date": "2027-12-02", "urgency": "high", "portee": "macro" },
+      { "libelle": "EU Space Act — règlement spatial européen", "deadline_date": "2030-01-01", "urgency": "medium", "portee": "macro", "statut": "proposition" }
+    ],
+    "items_passes_non_marques": [
+      { "libelle": "EDIP — programme européen pour l'industrie de défense", "deadline_date": "2025-12-30" },
+      { "libelle": "Décret n° 2026-272 SecNumCloud (art. 31 loi SREN)", "deadline_date": "2026-04-14", "urgency": "critical" }
+    ],
+    "items_sans_date": [
+      { "libelle": "Directive NIS2 — loi de résilience (transposition FR)", "urgency": "high" }
+    ]
+  },
+  "intensite_si": {
+    "comptes_mesures": 0,
+    "signaux_emis": 0,
+    "seuil": null,
+    "commentaire": "A7 (API France Travail par SIREN) n'est pas branché. Les 15 signaux du segment sont tous des reprises FOLIO (`folio_news_item`, `folio_growth_trend`, `folio_digital_maturity`, `folio_hiring_signal`), portées par 2 comptes sur 10. Aucun `it_hiring_intensity` dans account_facts, aucun `hiring_signal`. E5 ne recevra donc aucun chantier observé mesuré et devra les lire dans les études, c'est-à-dire dans du déclaratif."
+  },
+  "marches_publics": {
+    "comptes_avec_attribution": 0,
+    "source": null,
+    "commentaire": "TED / BOAMP / PLACE non branchés. Sur un segment dont les 3 comptes réels portent tous `regime_achat = commande_publique`, c'est la source déterministe la plus rentable du segment et elle est absente."
+  },
+  "accessibilite_a6": {
+    "access_channel": 0,
+    "supplier_panel": 0,
+    "clearance_required": 0,
+    "incumbent_esn": 0,
+    "it_decision_owner": 0,
+    "outsourcing_policy": 0,
+    "commentaire": "Les six familles de faits d'accessibilité sont vides sur les 10 comptes, comme sur les 109 comptes de la base. Sur un segment défense où l'habilitation et la zone protégée conditionnent le droit d'intervenir, c'est le bloc dont l'absence coûte le plus cher."
+  },
+  "compteurs": {
+    "detail_resolus": 2,
+    "echecs": 8,
+    "items_futurs": 2,
+    "items_passes_non_marques": 2,
+    "items_sans_date": 1
+  }
+}

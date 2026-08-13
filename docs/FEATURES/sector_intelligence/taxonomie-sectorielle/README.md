@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Conserve la critique de la taxonomie V0.1 et les arbitrages — le pourquoi, pas le comment. Ses chiffres (96 comptes, 14 secteurs) sont périmés : 109 comptes, 15 macros, 38 segments.
+> **Référence à appliquer : `REFERENTIEL-CLASSIFICATION.md` (normatif) et `MASTER-STUDY/04-ETAPE-E1-TAXONOMIE.md`**
+
+---
+
 > ### ⚠ Ce document n'est pas la référence
 > Le document faisant foi est **[`REFERENTIEL-CLASSIFICATION.md`](REFERENTIEL-CLASSIFICATION.md)** — objectif, méthode, spécification de chaque paramètre, procédure de classification, jurisprudence, gouvernance et interdits. C'est lui qu'il faut lire pour classer un compte, et lui seul qu'une IA doit recevoir.
 >

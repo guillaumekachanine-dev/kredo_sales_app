@@ -7930,6 +7930,7 @@ export type Database = {
         | "financial_reference"
         | "commercial_quote"
         | "strategic_watch_analysis"
+        | "master_study"
       intelligence_document_version_origin:
         | "generated"
         | "regenerated"
@@ -8160,6 +8161,7 @@ export const Constants = {
         "financial_reference",
         "commercial_quote",
         "strategic_watch_analysis",
+        "master_study",
       ],
       intelligence_document_version_origin: [
         "generated",

@@ -1,3 +1,9 @@
+> 🟢 **NORMATIF DÉLÉGUÉ** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Le corpus lui délègue la grille des tiers T1-T4, le barème d'utilité /100, les statuts de faits et les 24 critères de scorecard (fichiers `01_`, `02_`, `04_`→`08_`). Seul `03_PROMPT_CANONIQUE` est périmé.
+> **Référence à appliquer : ce dossier, pour la qualification d'une source**
+
+---
+
 # KREDO — Standard d'établissement des sources sectorielles
 
 **Version : 1.0**  

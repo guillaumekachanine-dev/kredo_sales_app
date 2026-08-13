@@ -19,6 +19,13 @@ export type CompetitiveMapActorDetails = {
   triggers: string[]
   lignesRouges: string[]
   trous: string[]
+  metierChaineValeur: string | null
+  maillon: string | null
+  contratsMajeurs: string[]
+  grilles: string[]
+  coucheEsn: string[]
+  traductionCommerciale: string[]
+  iaAnnonceVsDeploye: string | null
 }
 
 export type CompetitiveMapActor = {

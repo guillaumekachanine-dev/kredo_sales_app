@@ -17,6 +17,7 @@ type ReportDocumentType =
   | "financial_reference"
   | "commercial_quote"
   | "strategic_watch_analysis"
+  | "master_study"
 
 type CommunicationDocumentType =
   | "communication"
@@ -45,6 +46,7 @@ const REPORT_DOCUMENT_TYPES = new Set<ReportDocumentType>([
   "financial_reference",
   "commercial_quote",
   "strategic_watch_analysis",
+  "master_study",
 ])
 
 export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
@@ -68,6 +70,7 @@ export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
   financial_reference: "Référence financière",
   commercial_quote: "Devis commercial",
   strategic_watch_analysis: "Analyse stratégique de la veille",
+  master_study: "Master Study sectorielle",
 }
 
 const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentType, string> = {
@@ -91,6 +94,7 @@ const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentTyp
   financial_reference: "rapport",
   commercial_quote: "rapport",
   strategic_watch_analysis: "rapport",
+  master_study: "rapport",
 }
 
 export function getDocumentCategory(documentType: DocumentType): DocumentCategory {

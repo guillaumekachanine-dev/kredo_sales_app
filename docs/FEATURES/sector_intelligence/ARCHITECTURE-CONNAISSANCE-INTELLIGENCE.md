@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Colonne vertébrale du chantier, reprise intégralement dans le corpus (nomenclature des blocs, décisions D-A→D-H). Ses compteurs du 12/08 sont périmés — voir `MASTER-STUDY/registre/ETAT-DES-LIEUX-2026-08-13.md`. Le compte de blocs est 37, pas 36.
+> **Référence à appliquer : `MASTER-STUDY/01-CARTE-DE-LA-CONNAISSANCE.md` + `02-DISTRIBUTION-DANS-KREDO.md`**
+
+---
+
 # Architecture de la connaissance — pages Intelligence
 
 **Colonne vertébrale du chantier.** Ce document fait autorité sur : le périmètre métier de chaque page et onglet, la nomenclature unique des blocs de connaissance, l'état réel de chacun, qui le produit, où il est rangé, et dans quel ordre on construit.

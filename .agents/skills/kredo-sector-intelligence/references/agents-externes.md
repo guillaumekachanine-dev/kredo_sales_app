@@ -4,7 +4,7 @@
 
 ## Où ce skill est installé, et pourquoi là
 
-Ce skill vit dans **`.agents/skills/kredo-sector-intelligence/`**, à la racine du dépôt. Ce n'est pas un choix esthétique : c'est le seul emplacement que **Codex et Antigravity lisent tous les deux**, et il est versionné avec `docs/PROCESS-ETUDE-SECTORIELLE.md`, ce qui empêche les deux de dériver l'un de l'autre.
+Ce skill vit dans **`.agents/skills/kredo-sector-intelligence/`**, à la racine du dépôt. Ce n'est pas un choix esthétique : c'est le seul emplacement que **Codex et Antigravity lisent tous les deux**, et il est versionné avec `docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md`, ce qui empêche les deux de dériver l'un de l'autre.
 
 | Agent | Ce qu'il lit | Vérifié |
 |---|---|---|
@@ -20,7 +20,7 @@ Une étude autonome demande trois pièces. Aucune ne remplace les autres.
 
 | Pièce | Rôle | Sans elle |
 |---|---|---|
-| **`docs/PROCESS-ETUDE-SECTORIELLE.md`** | La référence : schéma réel, requêtes, structure, grille | Tu écris du SQL de mémoire — il sera faux, le schéma a bougé |
+| **`docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md`** | La référence : schéma réel, requêtes, structure, grille | Tu écris du SQL de mémoire — il sera faux, le schéma a bougé |
 | **Ce skill** | La conduite : ordre, gates, arrêts, doctrine | Tu produis une fiche plausible et invérifiable |
 | **Le prompt de lancement** (Annexe A du doc) | L'amorce : la mission et les interdits | L'agent improvise son propre périmètre |
 

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kredo/master-study/cadrage.schema.json",
+  "title": "E0 — Cadrage d'une Master Study",
+  "type": "object",
+  "required": ["version", "date_snapshot", "segment", "definition_du_marche", "hors_champ",
+               "compte_etalon", "quotas", "objectif_commercial", "offre_kredo", "variante"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "1.0" },
+    "date_snapshot": { "type": "string", "format": "date" },
+    "variante": { "enum": ["master", "tier", "compte_unique", "trimestriel", "chaine_de_valeur"] },
+    "segment": {
+      "type": "object",
+      "required": ["slug", "nom", "sector_intelligence_id", "macro_slug"],
+      "properties": {
+        "slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "nom": { "type": "string", "description": "Libellé SANS numérotation d'affichage (display_code)" },
+        "sector_intelligence_id": { "type": "string", "format": "uuid" },
+        "macro_slug": { "type": "string", "description": "Deduit de parent_id, jamais saisi" }
+      }
+    },
+    "definition_du_marche": { "type": "string", "minLength": 40,
+      "description": "2 phrases : quelle offre, pour quels clients, sur quelle geographie" },
+    "hors_champ": { "type": "array", "minItems": 1, "items": { "type": "string" },
+      "description": "Obligatoire : une definition qui n'exclut rien n'est pas un test d'inclusion" },
+    "geographie": { "type": "string", "default": "France entiere (metropole + DROM)" },
+    "compte_etalon": {
+      "type": "object",
+      "required": ["nom", "motif_du_choix"],
+      "properties": {
+        "nom": { "type": "string" },
+        "company_id": { "type": ["string", "null"], "format": "uuid" },
+        "motif_du_choix": { "type": "string" }
+      }
+    },
+    "quotas": {
+      "type": "object",
+      "required": ["leaders", "challengers", "mid_market", "outsiders_emergents", "outsiders_niche"],
+      "properties": {
+        "leaders": { "type": "integer", "default": 3 },
+        "challengers": { "type": "integer", "default": 3 },
+        "mid_market": { "type": "integer", "default": 3 },
+        "outsiders_emergents": { "type": "integer", "default": 2 },
+        "outsiders_niche": { "type": "integer", "default": 3 }
+      }
+    },
+    "profondeur_historique_ans": { "type": "integer", "default": 10 },
+    "exercice_de_reference": { "type": "string", "default": "dernier exercice clos publie" },
+    "objectif_commercial": { "enum": ["ouverture", "appels_offres", "extension", "angle_sectoriel"] },
+    "offre_kredo": {
+      "type": "object",
+      "required": ["practices", "offers", "lu_en_base_le"],
+      "description": "LU EN BASE (offer_practices, offers). Jamais saisi a la main.",
+      "properties": {
+        "practices": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "offers": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "lu_en_base_le": { "type": "string", "format": "date" }
+      }
+    },
+    "comptes_exclus": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nom", "motif"],
+        "properties": {
+          "nom": { "type": "string" },
+          "motif": { "enum": ["client", "pair_partenaire", "nda", "conflit"] }
+        }
+      }
+    },
+    "compte_pivot": { "type": ["string", "null"], "format": "uuid",
+      "description": "Obligatoire si variante = tier ou compte_unique" },
+    "run_precedent": { "type": ["string", "null"],
+      "description": "Obligatoire si variante = trimestriel" },
+    "ce_que_j_en_ferai": { "type": "string", "minLength": 20 },
+    "compteurs": {
+      "type": "object",
+      "description": "INVARIANT A9 — chaque compteur == len(sa liste). Verifie par G1. Sans cette propriete, additionalProperties:false rendait l axiome A9 et ce schema mutuellement exclusifs (amendement 13/08/2026).",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

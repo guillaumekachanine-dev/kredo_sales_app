@@ -1,0 +1,135 @@
+{
+  "segment": {
+    "slug": "seg-aero-spatial-defense",
+    "id": "fdc0c713-795e-484e-b84a-9be738b230e9",
+    "level": "segment",
+    "macro_slug": "aeronautique-spatial-defense",
+    "macro_id": "2060e156-e0d6-416c-b4f8-dd086a2f6d97",
+    "display_code": "5.1"
+  },
+  "comptes": {
+    "total": 3,
+    "confiance_faible": 0,
+    "mapped": 7,
+    "total_rattaches_toutes_profondeurs": 10,
+    "detail": [
+      {
+        "nom": "Thalès Alénia Space",
+        "depth_level": "active",
+        "relation_type": "prospect",
+        "axes_manquants": [
+          "moment",
+          "vertical_client"
+        ]
+      },
+      {
+        "nom": "Exail Robotics",
+        "depth_level": "active",
+        "relation_type": "client",
+        "axes_manquants": [
+          "moment",
+          "vertical_client"
+        ],
+        "hors_cibles_de_prospection": "client",
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "ACRI-ST",
+        "depth_level": "qualified",
+        "relation_type": "prospect",
+        "axes_manquants": [
+          "moment"
+        ]
+      }
+    ],
+    "classifies_5_axes_obligatoires": 3,
+    "axes_conditionnels_nuls_non_documentes": 3,
+    "dans_le_perimetre_g0": 3
+  },
+  "corpus_existant": {
+    "regulatory_items_segment": 0,
+    "regulatory_items_macro": 5,
+    "regulatory_items_macro_futurs": 2,
+    "pain_points_segment": 0,
+    "pain_points_macro": 6,
+    "events_segment": 0,
+    "events_macro": 4,
+    "playbook_rempli": false,
+    "playbook_macro_rempli": true,
+    "description_segment": false,
+    "attractiveness_score_segment": null,
+    "practices_fit_segment_non_nul": false,
+    "competitive_map_entries": 10,
+    "competitive_map_entries_avec_profil_narratif": 1,
+    "account_facts_segment": 74,
+    "commentaire": "La totalité de la connaissance sectorielle du segment est héritée du macro par les vues v_sector_knowledge_* (migrations 069-071). Rien n'est écrit à la maille segment. Les 10 competitive_map_entries portent un profile_json de 40 à 73 octets — une seule clé `trous` — sauf Thalès Alénia Space (408 octets, `trigger_events` + `a_ne_pas_dire`)."
+  },
+  "controles_e1": [
+    {
+      "n": 1,
+      "libelle": "Le macro est le parent_id du segment",
+      "resultat": "pass"
+    },
+    {
+      "n": 2,
+      "libelle": "regime_achat, modele_eco, tier renseignés ensemble",
+      "resultat": "pass",
+      "note": "3/3 comptes non-mapped"
+    },
+    {
+      "n": 3,
+      "libelle": "classification_note présente si confiance < seuil",
+      "resultat": "pass",
+      "note": "confiance haute sur 3/3, aucune note requise à ce titre"
+    },
+    {
+      "n": 4,
+      "libelle": "Aucun compte avec sector_id divergent de segment.parent_id",
+      "resultat": "pass",
+      "note": "10/10 cohérents"
+    },
+    {
+      "n": 5,
+      "libelle": "Aucun segment créé sans les 3 conditions cumulatives",
+      "resultat": "pass",
+      "note": "aucun segment créé par ce run"
+    },
+    {
+      "n": 6,
+      "libelle": "Aucun compte mapped dans les compteurs",
+      "resultat": "pass",
+      "note": "7 mapped exclus de comptes.total"
+    },
+    {
+      "n": 7,
+      "libelle": "Les 2 axes conditionnels sont renseignés ou leur NULL est documenté",
+      "resultat": "fail",
+      "note": "moment NULL sur 3/3 et vertical_client NULL sur 2/3 — les NULL sont LÉGITIMES au sens du référentiel §5.5/§5.7 (aucun fait daté sourçable connu), mais aucun n'est documenté dans classification_note. Correction : 3 UPDATE, pas une étude."
+    }
+  ],
+  "verdict_g0": "go_avec_reserve",
+  "motif": "Le segment existe, sa hiérarchie est saine, et les trois comptes non-mapped — client compris — portent les cinq axes obligatoires avec confiance haute. Deux réserves subsistent, dont une seule tient à ce run.",
+  "reserves": [
+    "R1 — Les NULL de `moment` (3/3) et `vertical_client` (2/3) sont légitimes au sens du REFERENTIEL §5.5 et §5.7, mais ne sont documentés dans aucun `classification_note`. G0 amendé le 13/08 exige le NULL documenté, pas le NULL renseigné : la correction est de trois UPDATE.",
+    "R3 — Aucun corpus de sources E3 n'existe pour ce segment et le chantier interdit d'en produire un. La condition « un corpus de sources existe ou est budgété » reste non satisfaite. La matière de substitution — les études A et B d'août 2026 — porte 0 URL résolvable."
+  ],
+  "compteurs": {
+    "detail": 3,
+    "controles_e1": 7,
+    "reserves": 2,
+    "amendements_appliques": 2
+  },
+  "amendements_appliques": [
+    {
+      "date": "2026-08-13",
+      "ref": "roadmap A1",
+      "objet": "G0 distingue 5 axes toujours renseignables et 2 axes conditionnels. L'ancienne réserve R1 « G0 inpassable par construction » est LEVÉE : le gate ne contredit plus le REFERENTIEL-CLASSIFICATION."
+    },
+    {
+      "date": "2026-08-13",
+      "ref": "roadmap A2",
+      "tranche_par": "Guillaume",
+      "objet": "Un compte client compte dans le seuil des 3 et figure dans la cartographie ; `comptes_exclus` d'E0 signifie « hors cibles de prospection ». Les anciennes réserves R2 (deux comptages incompatibles) et R4 (Exail exclu mais ingéré) sont LEVÉES — la cartographie du Spatial était conforme, et son verdict G0 aussi."
+    }
+  ]
+}

@@ -15,6 +15,104 @@
 
 ---
 
+### Session 42 — MASTER STUDY, premier run : le corpus contre la matière réelle (2026-08-13)
+
+**Objet** : lots 0 et 1 du corpus `docs/MASTER-STUDY/`, établi la veille et jamais exécuté.
+L'objectif n'était pas de produire de la connaissance — la matière existait, sous forme de deux
+études du Spatial d'août 2026 — mais d'éprouver les contrats contre elle. **Le résultat attendu
+était que quelque chose casse. Treize contrôles G1 sur trente-deux ont cassé.**
+
+**Lot 0.1 — migration 076.** `intelligence_document_type += master_study`. Une seule valeur
+d'enum, additive, idempotente. Vérifié avant d'écrire : `ai_intelligence_results.result_type` et
+`account_facts.fact_type` sont des colonnes `text` (aucune migration), `intelligence_entity_type`
+contient déjà `sector`. **Piège découvert** : ajouter une valeur à cet enum casse le `typecheck`
+et non le build — quatre `Record` exhaustifs la réclament (`document-display.tsx` en compte
+quatre à lui seul, dont le type `ReportDocumentType` et le Set `REPORT_DOCUMENT_TYPES`). Remonté
+dans CLAUDE.md.
+
+**Lot 1 — run `registre/2026-08-aero-spatial-defense/`.** E0 → E1/G0 → E2 → E4 → E5, en
+conversion pure, sans une seule requête web. `OFFRE_KREDO` lu en base (8 practices, 41 offres).
+Les JSON sont produits par générateur Python pour que l'invariant A9 (`compteurs.<liste> ==
+len(<liste>)`) soit vrai par construction et non par recomptage.
+
+**Lot 0.2 — `scripts/audit-master-study.py`**, le gate G1, écrit *pendant* le lot 1 et piloté par
+ce qui cassait. Il généralise les deux scripts existants sur un point : **le schéma n'est plus
+dans le code, il est lu sur disque** dans `docs/MASTER-STUDY/schemas/`. Le mini-validateur de
+`audit_referentiel.py` a été étendu aux mots-clés que les schémas MASTER STUDY utilisent et que
+la v1 ignorait en silence — `$ref`/`$defs`, `minItems`, `maxItems`, `minLength`, `format: uri`.
+**Un `minItems` ignoré, c'est exactement la troncature qui passe.** Un faux positif corrigé en
+cours de route : le comptage de requêtes du journal comptait toute ligne de plus de douze
+caractères, si bien qu'un journal entièrement rédigé franchissait le seuil de 25 sans porter une
+seule requête.
+
+**Ce qui casse dans le CONTRAT** (neuf défauts, aucune collecte ne les réparera) :
+- **G0 est inpassable par construction** — sa condition « 7 axes à 100 % » contredit le
+  `REFERENTIEL-CLASSIFICATION.md` qu'il déclare normatif, lequel impose `moment = NULL` sans fait
+  daté. En base : `moment` sur 1 compte / 96. Aucun run ne peut passer G0, sur aucun segment.
+- **Le parseur E5 ne lit pas la couche ESN.** `competitive-map-output.ts` ne projette que onze
+  clés dans `profile_json`, et aucune des six que le schéma déclare — `couche_esn`, `grilles`,
+  `traduction_commerciale`… La preuve est en base : les dix `competitive_map_entries` du segment
+  portent un `profile_json` de **40 à 73 octets**. Tout le narratif a été perdu à l'import **sans
+  qu'aucune erreur ne soit levée**.
+- **A9 et `cadrage.schema.json` s'excluent** : le bloc `compteurs` est exigé par l'axiome et
+  interdit par `additionalProperties: false`.
+- E1 et E2 n'ont **pas de schéma** ; le régime « conversion » n'existe pas (`acces_web` n'admet
+  pas `aucun`) ; le domaine des motifs d'échec d'identité ne couvre pas « le socle n'a pas
+  tourné » ; deux vocabulaires de practice cohabitent (`cloud_eng` en base vs
+  `cloud-engineering` dans `offer_practices`).
+
+**Ce qui casse dans la MATIÈRE** (six manques) : **0 URL** dans les deux études (100 jetons de
+citation non résolvables côté étude B), donc 63 blocs à `src_ids` vide contre un schéma qui exige
+25 sources ; **identité du top 3 : 0/3**, le compte étalon lui-même n'a pas de SIREN ; **couche
+ESN 0/3** — `08-ETAPE-E5` s'ouvre en disant qu'elle « a échoué deux fois de suite » et que le
+document existe pour éviter la troisième : **c'est arrivé une troisième fois**, mais cette fois
+c'est mesuré ; grille « IA annoncé vs déployé » vide sur 10/10 ; top 3 déclaré ≠ top 3 trié
+(Eutelsat 31 et OHB 29 absents du podium) sans `justification_ecart_top3`.
+
+**Deux découvertes hors périmètre.** (1) Le taux « 95 % des faits sont sourcés » est en partie
+auto-référentiel : 8 comptes sur 10 sont sourcés par une ligne `intelligence_sources` sans URL,
+créée par l'import de la cartographie — ce sont les **10 seules lignes sans URL sur 450**, et
+elles tombent toutes sur ce segment. (2) L'étude B n'est **pas** « PDF hors dépôt » comme
+l'annonce le registre : elle est au dépôt en markdown.
+
+**Ce qui a fonctionné** : l'arithmétique de l'appétence est juste sur 10 comptes sur 10 ; les
+quatre conversions de la doctrine sont produisibles **sans une seule recherche**, par retournement
+de la matière existante ; le « DONC, commercialement » tient sur 100 % des blocs — seul taux à 1,0
+du run.
+
+**Verdict** : `rejected`. Aucune ingestion. Le chiffre du chantier — segments porteurs de
+connaissance — reste à **1/38**, et c'est le résultat honnête : la chaîne n'est pas bloquée par la
+production de connaissance, elle est bloquée par la preuve.
+
+**Livrables** : `docs/MASTER-STUDY/registre/2026-08-aero-spatial-defense/` (00-cadrage, 01-taxonomie,
+02-socle, 04-secteur + journal, 05-comptes + journal, 07-g1.txt, 07-verdict.json,
+07-g2-a-executer.md, **08-rapport-ecarts.md**) et `scripts/audit-master-study.py`.
+
+**Corpus v1.1, appliqué dans la foulée** : A1 (G0 distingue 5 axes toujours renseignables et 2
+axes conditionnels dont le NULL se documente — il ne contredit plus le référentiel), A2 et A3.
+G1 passe de 13 à **12 FAIL**, et le verdict G0 du Spatial devient `go_avec_reserve` avec 2
+réserves au lieu de 4.
+
+**Amendement tranché par Guillaume** : *un compte client compte dans le seuil des 3 de G0 et
+figure dans la cartographie* — le positionner face aux concurrents étudiés est un actif
+commercial. `comptes_exclus` d'E0 signifie « hors cibles de prospection », pas « hors périmètre
+d'étude », et l'exclusion du top 3 dépend désormais de `objectif_commercial` (jamais sous
+`ouverture`, légitimement sous `extension`). Ma recommandation inverse était fausse : elle aurait
+rendu `no_go` un run dont l'étude est jugée utile.
+
+**Documentation de reprise** : `docs/MASTER-STUDY/registre/ROADMAP-CORRECTIONS.md` — autoportant,
+conçu pour un agent sans historique. Le `README.md` §6 du corpus, qui affirmait encore que la
+Master Study n'avait pas d'endroit où vivre en base, est réécrit en état d'exécution. Bandeaux de
+défaut ouvert posés sur `08-ETAPE-E5` §8 et `schemas/competitive-map.schema.json`, là où un agent
+lirait le contrat et le croirait. Journal du corpus ouvert en `13-GOUVERNANCE` §5 (v1.1).
+
+**Reste à faire** : **A4 est le seul bloquant** — étendre le parseur E5 à la couche ESN, sur
+trois couches (parsing → présentation → écran). Tant qu'il n'est pas fait, toute collecte
+d'accessibilité est perdue à l'ingestion. Puis A5, A6, puis la collecte B1-B4. G2 reste à
+exécuter en session séparée, avec le bundle de `07-g2-a-executer.md`.
+
+---
+
 ### Session 41 — BI Environnement concurrentiel Lot 3 : vue Mobile (2026-08-12)
 
 **Objet** : ajouter `competitive_env` à `BusinessIntelligenceMobile` sous le libellé court

@@ -1,25 +1,33 @@
 ---
 name: kredo-sector-intelligence
-description: Conduit une étude sectorielle KREDO de bout en bout — audit du corpus Supabase, recherche réglementaire sourcée, playbook commercial, injection en base, recette — en appliquant docs/PROCESS-ETUDE-SECTORIELLE.md, qui fait autorité sur le schéma, les gates et la grille qualité. Utilise ce skill dès que Guillaume demande de lancer ou mettre à jour une étude sectorielle, d'activer/ajouter un secteur dans "Approche sectorielle", de construire un playbook commercial, de préparer un argumentaire ou un angle d'attaque pour une industrie, de choisir le prochain secteur à travailler, ou d'évaluer/noter une fiche sectorielle existante — même sans les mots "étude" ou "playbook" (ex. "go secteur Aéronautique", "il nous faut un angle pour le BTP", "on attaque quoi après la parfumerie ?", "cette fiche vaut quoi ?", "ajoute la Travel Tech à Kredo"). Couvre la recherche marché, le calendrier réglementaire, les pain points, les personas, les arguments ROI, les objections et le pitch.
+description: Conduit une étude sectorielle KREDO de bout en bout — audit du corpus Supabase, recherche réglementaire sourcée, playbook commercial, injection en base, recette — en appliquant docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md, qui fait autorité sur le schéma, les gates et la grille qualité. Utilise ce skill dès que Guillaume demande de lancer ou mettre à jour une étude sectorielle, d'activer/ajouter un secteur dans "Approche sectorielle", de construire un playbook commercial, de préparer un argumentaire ou un angle d'attaque pour une industrie, de choisir le prochain secteur à travailler, ou d'évaluer/noter une fiche sectorielle existante — même sans les mots "étude" ou "playbook" (ex. "go secteur Aéronautique", "il nous faut un angle pour le BTP", "on attaque quoi après la parfumerie ?", "cette fiche vaut quoi ?", "ajoute la Travel Tech à Kredo"). Couvre la recherche marché, le calendrier réglementaire, les pain points, les personas, les arguments ROI, les objections et le pitch.
 ---
 
 # KREDO — Étude sectorielle
 
+> 🟡 **Ce skill conduit le process v1 (fiche sectorielle).** Le corpus de référence de la
+> production de connaissance commerciale est désormais **`docs/MASTER-STUDY/`** — il porte la
+> chaîne E0→E7, les quatre gates et les schémas de sortie. Le présent skill reste valable pour
+> une fiche sectorielle isolée ; pour une Master Study, ouvrir `docs/MASTER-STUDY/README.md`.
+> *(Le chemin de son document d'autorité a été corrigé le 13/08/2026 : il avait été déplacé
+> dans `_legacy_kredo_(studies_v1)/` sans que le skill soit mis à jour.)*
+
+
 ## Ce skill est une conduite, pas une référence
 
-Tout le **quoi** — schéma exact, requêtes, structure du livrable, template d'injection, grille de notation — vit dans **`docs/PROCESS-ETUDE-SECTORIELLE.md`**. Ce skill porte le **comment** : l'ordre, les gates, les arrêts, l'auto-contrôle.
+Tout le **quoi** — schéma exact, requêtes, structure du livrable, template d'injection, grille de notation — vit dans **`docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md`**. Ce skill porte le **comment** : l'ordre, les gates, les arrêts, l'auto-contrôle.
 
 Cette séparation n'est pas cosmétique. La version précédente de ce skill recopiait le schéma Supabase. La base a évolué, le skill non, et il a fini par référencer une table qui n'existe pas (`company_audit`), une colonne renommée (`ai_score`), et un template d'injection auquel manquaient deux colonnes `NOT NULL` — il échouait donc en Phase 1 **et** en Phase 4. **Ne recopie jamais de schéma ici.** Une seule source de vérité, sinon la dérive recommence.
 
 > **Ce que tu crois savoir sur ce module est peut-être faux.** Si tu as en tête `company_audit`, `companies.ai_score`, `opportunities.status`, `opportunities.amount_eur`, ou « il y a 2 secteurs en base » : tout cela est périmé. Ne te fie qu'au document et à la base.
 
-**Préséance :** `docs/PROCESS-ETUDE-SECTORIELLE.md` > ce skill > `CLAUDE.md` (périmé sur le sectoriel) > ta mémoire.
+**Préséance :** `docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md` > ce skill > `CLAUDE.md` (périmé sur le sectoriel) > ta mémoire.
 
 ## Préflight — avant toute chose
 
 Trois vérifications. Chacune peut arrêter la mission ; le dire est un livrable, pas un échec.
 
-1. **Le document.** Lis `docs/PROCESS-ETUDE-SECTORIELLE.md`. Absent ? Demande-le. Sans lui tu n'as ni le schéma réel ni la grille : tu produirais une fiche qui ne s'injecte pas.
+1. **Le document.** Lis `docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md`. Absent ? Demande-le. Sans lui tu n'as ni le schéma réel ni la grille : tu produirais une fiche qui ne s'injecte pas.
 2. **L'accès Supabase.** Un connecteur MCP, un client SQL, ou rien. Si rien → tu es en **mode dégradé** : lis `references/agents-externes.md` avant de continuer. Ne devine jamais un corpus.
 3. **La cible.** Le secteur existe presque sûrement déjà en base (les comptes y sont rattachés). Trouve son slug. N'en crée pas un doublon.
 

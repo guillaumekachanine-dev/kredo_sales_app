@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Brief du pilote BTP. Historique.
+> **Référence à appliquer : `MASTER-STUDY/09-ETAPE-E6-CHAINE-DE-VALEUR.md`**
+
+---
+
 # BRIEF — Modélisation des chaînes de valeur sectorielles Kredo
 
 **Document de lancement pour une session neuve.** Rédigé le 09/08/2026 à l'issue du chantier de classification.

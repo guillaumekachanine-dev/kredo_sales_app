@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Conserve l'arbitrage `sector_id` et les 8 amendements au modèle. À lire avant de toucher au schéma des tables `value_chain_*`.
+> **Référence à appliquer : `MASTER-STUDY/09-ETAPE-E6-CHAINE-DE-VALEUR.md`**
+
+---
+
 # DÉCISION — Modèle de données des chaînes de valeur sectorielles
 
 **Étapes 0 et 1 du §8 du brief.** Rédigé le 09/08/2026 · Base `Kredo_Sales_App` (`jvzgmhvwirsbdkjpmvla`)

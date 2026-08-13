@@ -32,6 +32,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
   financial_reference: "Référence financière",
   commercial_quote: "Devis commercial",
   strategic_watch_analysis: "Analyse stratégique de la veille",
+  master_study: "Master Study sectorielle",
 }
 
 function formatDate(value: string) {

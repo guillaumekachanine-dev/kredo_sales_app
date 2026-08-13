@@ -5,6 +5,13 @@ description: Construit et contrôle le référentiel de sources d'un secteur —
 
 # KREDO — Référentiel de sources sectorielles
 
+> 🟢 **Ce skill reste la conduite de l'étape E3.** Le corpus de référence est
+> **`docs/MASTER-STUDY/`** ; voir `06-ETAPE-E3-CORPUS-DE-SOURCES.md` pour l'articulation, et
+> `prompts/E3-corpus-sources.md` pour le prompt à jour (il remplace `03_PROMPT_CANONIQUE`,
+> périmé). Le standard `sources_intelligence_standards/` reste normatif sur la qualification
+> d'une source.
+
+
 ## Ce skill conduit et contrôle ; il ne cherche pas
 
 Deux choses ne sont pas dans ce fichier, et c'est volontaire.

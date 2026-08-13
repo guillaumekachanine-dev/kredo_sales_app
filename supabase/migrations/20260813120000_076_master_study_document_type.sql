@@ -1,0 +1,17 @@
+-- MASTER STUDY — lot 0.1 · rendre le corpus ingérable.
+--
+-- `docs/MASTER-STUDY/10-ETAPE-E7-GATES-ET-INGESTION.md` §6.3 : trois écritures
+-- de schéma étaient annoncées, une seule est réelle.
+--   1. `intelligence_document_type += master_study`  -> cette migration.
+--   2. `ai_intelligence_results.result_type` : colonne `text` (vérifié le
+--      13/08 sur information_schema), aucune migration.
+--   3. Familles `fact_type` accessibilité/technologie : `account_facts.fact_type`
+--      est `text`, c'est une convention, pas une contrainte.
+--
+-- `intelligence_entity_type` contient déjà `sector` : une Master Study se pose
+-- donc sur `intelligence_documents` avec `primary_entity_type = 'sector'` et
+-- `primary_entity_id = sector_intelligence.id` du SEGMENT (axiome A4), sans
+-- table nouvelle.
+--
+-- Additif et idempotent : un rejeu ne duplique ni ne casse.
+ALTER TYPE public.intelligence_document_type ADD VALUE IF NOT EXISTS 'master_study';

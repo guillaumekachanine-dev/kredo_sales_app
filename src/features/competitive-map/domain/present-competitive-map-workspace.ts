@@ -100,7 +100,7 @@ export function buildCompetitiveMapCatalog(
   )
 }
 
-function asObject(value: CompetitiveMapJsonValue | null): Record<string, CompetitiveMapJsonValue | undefined> {
+function asObject(value: CompetitiveMapJsonValue | null | undefined): Record<string, CompetitiveMapJsonValue | undefined> {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {}
 }
 
@@ -197,6 +197,13 @@ export function presentCompetitiveMapSnapshot(input: {
         triggers: formatProfileValue(profile.trigger_events),
         lignesRouges: formatProfileValue(profile.a_ne_pas_dire),
         trous: formatProfileValue(profile.trous),
+        metierChaineValeur: firstText(profile.metier_chaine_valeur),
+        maillon: firstText(profile.maillon),
+        contratsMajeurs: formatProfileValue(profile.contrats_majeurs),
+        grilles: formatProfileValue(profile.grilles),
+        coucheEsn: formatProfileValue(profile.couche_esn),
+        traductionCommerciale: formatProfileValue(profile.traduction_commerciale),
+        iaAnnonceVsDeploye: firstText(asObject(profile.grilles).ia_annonce_vs_deploye),
       },
     }]
   })

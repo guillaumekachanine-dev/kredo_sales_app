@@ -1,3 +1,9 @@
+> 🔴 **PÉRIMÉ — ne plus appliquer** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Méthode en 8 phases d'un run unique, remplacée par la chaîne E0→E7 et ses quatre gates.
+> **Référence à appliquer : `MASTER-STUDY/03-` à `10-ETAPE-…`**
+
+---
+
 # 02 — Méthode opératoire reproductible
 
 Objectif de ce document : que **deux personnes différentes, lançant l'étude sur le même secteur à la même date, aboutissent à la même segmentation et aux mêmes comptes prioritaires**. C'est le seul test valable de reproductibilité.

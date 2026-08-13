@@ -1,3 +1,9 @@
+> 🟢 **NORMATIF DÉLÉGUÉ** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Le corpus MASTER-STUDY lui délègue **toute la classification d'un compte** : les 15 macros / 38 segments, les 7 axes, les 4 tests, la jurisprudence et les contrôles §10. `MASTER-STUDY/04-ETAPE-E1-TAXONOMIE.md` dit quand l'ouvrir ; il ne le duplique jamais.
+> **Référence à appliquer : ce document**
+
+---
+
 # RÉFÉRENTIEL DE CLASSIFICATION DES COMPTES — KREDO
 
 **Document faisant foi.** Version 1.0 · 09/08/2026 · Base `Kredo_Sales_App` (`jvzgmhvwirsbdkjpmvla`)

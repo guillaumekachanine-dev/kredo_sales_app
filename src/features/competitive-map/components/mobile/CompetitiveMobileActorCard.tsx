@@ -42,6 +42,8 @@ export function CompetitiveMobileActorCard({ actor }: { actor: CompetitiveMapAct
 
         <dl className="mt-4 space-y-3 border-t border-white/10 pt-4">
           {actor.positioning ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Positionnement</dt><dd className="mt-1 text-xs leading-relaxed text-white/75">{actor.positioning}</dd></div> : null}
+          <DetailList title="Couche ESN" items={actor.details.coucheEsn} />
+          {actor.details.iaAnnonceVsDeploye ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">IA (Annoncé vs Déployé)</dt><dd className="mt-1 text-xs leading-relaxed text-white/75">{actor.details.iaAnnonceVsDeploye}</dd></div> : null}
           <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Dépendance principale</dt><dd className="mt-1 text-xs leading-relaxed text-white/75">{mainDependency ?? "Non renseignée"}</dd></div>
           <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Angle d’entrée</dt><dd className="mt-1 border-l-2 border-brand-brass pl-2.5 text-xs leading-relaxed text-white/85">{actor.angleEntree ?? "Non renseigné"}</dd></div>
           {mainTrigger ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Trigger principal</dt><dd className="mt-1 text-xs leading-relaxed text-white/75">{mainTrigger}</dd></div> : null}
@@ -55,9 +57,14 @@ export function CompetitiveMobileActorCard({ actor }: { actor: CompetitiveMapAct
           <dl id="competitive-mobile-actor-detail" className="mt-4 space-y-3 border-t border-white/10 pt-4">
             {actor.details.propositionValeur ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Proposition de valeur</dt><dd className="mt-1 text-xs leading-relaxed text-white/70">{actor.details.propositionValeur}</dd></div> : null}
             <DetailList title="Différenciateurs" items={actor.details.differenciateurs} />
+            {actor.details.metierChaineValeur ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Métier & chaîne de valeur</dt><dd className="mt-1 text-xs leading-relaxed text-white/70">{actor.details.metierChaineValeur}</dd></div> : null}
+            {actor.details.maillon ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Maillon</dt><dd className="mt-1 text-xs leading-relaxed text-white/70">{actor.details.maillon}</dd></div> : null}
+            <DetailList title="Contrats majeurs" items={actor.details.contratsMajeurs} />
             {actor.forces ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Forces</dt><dd className="mt-1 text-xs leading-relaxed text-white/70">{actor.forces}</dd></div> : null}
             {actor.vulnerability ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">Vulnérabilité</dt><dd className="mt-1 text-xs leading-relaxed text-white/70">{actor.vulnerability}</dd></div> : null}
             <DetailList title="Chantiers technologiques" items={actor.details.chantiersTechnologiques} />
+            <DetailList title="Grilles" items={actor.details.grilles} />
+            <DetailList title="Traduction commerciale" items={actor.details.traductionCommerciale} />
             <DetailList title="Lignes rouges" items={actor.details.lignesRouges} />
             <DetailList title="Trous" items={actor.details.trous} />
           </dl>

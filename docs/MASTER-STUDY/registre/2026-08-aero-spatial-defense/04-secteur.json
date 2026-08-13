@@ -1,0 +1,1226 @@
+{
+  "meta": {
+    "segment_slug": "seg-aero-spatial-defense",
+    "macro_slug": "aeronautique-spatial-defense",
+    "date_snapshot": "2026-08-13",
+    "acces_web": "aucun",
+    "acces_web_ecart_contrat": "Le domaine du schéma est `complet | recherche_seule`, et E4 §4.4 impose l'ARRÊT quand l'accès est AUCUN. Ce run est une CONVERSION : il ne produit aucune affirmation nouvelle, il réexprime une étude existante dans le contrat cible. Le corpus ne prévoit pas ce régime ; la valeur honnête est `aucun` et elle est hors domaine.",
+    "confiance_plafond": "faible",
+    "auteur": "Claude Opus 5 (conversion), sous MASTER-STUDY v1.0",
+    "version": "1.0",
+    "mode": "conversion",
+    "matiere_convertie": [
+      "docs/FEATURES/sector_intelligence/livrables_etudes/Secteur Spatial, défense & systèmes critiques.md (étude B)",
+      "sector_regulatory_items / sector_pain_points / sector_intelligence.caveats du macro aeronautique-spatial-defense (base live, 13/08/2026)"
+    ]
+  },
+  "perimetre": {
+    "definition": "La conception, l'intégration et l'exploitation de systèmes spatiaux civils, militaires et duals — satellites, charges utiles, segments sol, communications sécurisées, PNT, ISR — et des systèmes critiques nécessaires à leur emploi opérationnel, par des entités disposant d'une autonomie de décision et d'achat en France.",
+    "hors_champ": [
+      "Armements conventionnels sans composante spatiale ou système critique associé",
+      "Aéronautique civile commerciale",
+      "Sites français sans autonomie de décision ni d'achat",
+      "Agences et institutions publiques donneuses d'ordre",
+      "Fournisseurs de composants, traités comme dépendance et non comme comptes"
+    ],
+    "regle_comparabilite": "Les acteurs de ce segment publient des périmètres structurellement incompatibles — groupe, défense, space, space & airborne, ou coentreprise — et une part importante de l'activité militaire est classifiée. Aucun classement homogène par chiffre d'affaires n'est donc produit : chaque chiffre reste sur son périmètre publié, nommé, et n'est jamais annualisé ni reconstitué. Un chiffre de groupe n'est jamais utilisé pour caractériser une branche."
+  },
+  "theses": [
+    {
+      "id": 1,
+      "these": "Le moteur du marché s'est déplacé du satellite unitaire vers l'architecture de mission : les programmes structurants assemblent plusieurs orbites, des segments sol distribués, du traitement embarqué, du cyber et de la donnée.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL",
+      "donc_commercialement": "DONC, commercialement : le budget qui grossit n'est pas celui du hardware, c'est celui de l'ingénierie système, du segment sol et du logiciel. C'est exactement là que se vend une ESN, et c'est là qu'il faut ouvrir la conversation — pas sur le satellite."
+    },
+    {
+      "id": 2,
+      "these": "Thales Alenia Space couvre presque toute la chaîne européenne mais porte deux discontinuités assumées : le lancement, et la relation de service final avec l'utilisateur.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL",
+      "donc_commercialement": "DONC, commercialement : les deux discontinuités sont les deux endroits où le compte achète de l'intégration à l'extérieur. Le segment sol et la couche service sont les portes d'entrée, pas la plateforme satellite."
+    },
+    {
+      "id": 3,
+      "these": "L'Europe reste technologiquement crédible mais économiquement sous pression : la concurrence porte désormais autant sur la cadence industrielle et le coût total de mission que sur la performance du satellite.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL",
+      "donc_commercialement": "DONC, commercialement : « industrialiser », « cadence », « coût de série » sont les mots du secteur en 2026. Un discours d'ESN centré sur l'innovation pure passe à côté ; un discours centré sur le digital thread, l'automatisation d'AIT et la qualité de série est entendu."
+    },
+    {
+      "id": 4,
+      "these": "La demande défense est devenue l'accélérateur principal, et elle impose ses conditions d'accès — habilitation, nationalité, zone protégée — avant toute discussion technique.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL",
+      "donc_commercialement": "DONC, commercialement : la première question à instruire sur ce segment n'est pas « de quoi ont-ils besoin » mais « avons-nous le droit d'intervenir ». Sans réponse à celle-là, le reste de la fiche ne sert à rien."
+    },
+    {
+      "id": 5,
+      "these": "Les zones de différenciation des trois prochaines années sont logicielles et non mécaniques : IA embarquée, communications optiques et quantiques, architectures proliférées, servicing en orbite, souveraineté composant et cyber-by-design.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL",
+      "donc_commercialement": "DONC, commercialement : cinq des six fronts technologiques du secteur sont des fronts logiciels, data ou cyber. Le catalogue KREDO y répond directement — c'est le seul argument de légitimité sectorielle qui ne soit pas interchangeable."
+    }
+  ],
+  "message_sectoriel": "Sur ce segment, la valeur a quitté le satellite pour l'architecture de mission : le segment sol, l'exploitation et le cyber sont devenus du SI d'entreprise sous contrainte de sûreté, et c'est là — pas sur la plateforme — que se joue la tenue des programmes. Nous intervenons sur ce maillon-là, avec une obligation déjà opposable comme point d'entrée : SecNumCloud depuis avril 2026, NIS2 sur les infrastructures sol, l'AI Act au 2 décembre 2027.",
+  "incertitudes": [
+    "Le rythme réel de bascule des budgets vers le segment sol et le service n'est pas mesuré : la thèse est structurelle, sa temporalité est une hypothèse.",
+    "Aucune donnée d'accessibilité n'existe sur ce segment — panels, canaux d'achat, habilitations. Sur un segment défense, c'est l'incertitude qui conditionne toutes les autres.",
+    "L'écart entre ce qui est annoncé et ce qui est déployé n'est pas mesurable faute de données d'offres d'emploi : tout ce qui est écrit ici sur les chantiers technologiques relève du déclaratif d'entreprise.",
+    "La matière convertie date du 10 août 2026 et n'a pas été revalidée : deux des cinq échéances réglementaires du corpus sont déjà passées à la date du run."
+  ],
+  "marche": {
+    "taille_eur_bn": null,
+    "croissance_pct": null,
+    "perimetre": "France — non publié. Le seul ordre de grandeur disponible dans la matière convertie porte sur l'EUROPE et ne peut pas caractériser le segment France (axiome A3).",
+    "exercice": null,
+    "src_ids": [],
+    "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+  },
+  "blocs_clients": [
+    {
+      "nom": "Clients militaires (DGA, ministères de la Défense, armées, OTAN et alliés)",
+      "qui_finance": "Budget de défense national, programmes OTAN et instruments européens",
+      "cycle_budgetaire": "Loi de programmation militaire pluriannuelle, tranches annuelles ; visibilité longue mais engagement rythmé par les homologations",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Clients civils institutionnels (ESA, Commission européenne, CNES, agences nationales)",
+      "qui_finance": "Souscriptions des États membres et programme spatial de l'Union",
+      "cycle_budgetaire": "Conférences ministérielles ESA et cadre financier pluriannuel UE ; engagement par phases de programme (A/B/C/D)",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Clients commerciaux (opérateurs GEO/LEO, télécoms, fournisseurs de données)",
+      "qui_finance": "Capex opérateur, financements privés",
+      "cycle_budgetaire": "Décision d'investissement par campagne de flotte ; cycle court comparé à l'institutionnel",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Clients institutionnels duals (civil + sécurité, type COSMO-SkyMed ou IRIS²)",
+      "qui_finance": "Cofinancement agence civile + ministère de la Défense, ou concession public-privé",
+      "cycle_budgetaire": "Concession longue (jusqu'à 12 ans) : le budget est engagé une fois, l'exécution s'étale",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    }
+  ],
+  "modeles_economiques": [
+    {
+      "nom": "Développement puis production institutionnelle (NRE + fabrication)",
+      "description": "R&D, qualification, fabrication, intégration, essais puis livraison ; revenus reconnus sur plusieurs années.",
+      "qui_signe": "Agence spatiale (ESA, CNES) ou direction de programme étatique",
+      "quand_le_budget_est_engage": "À l'entrée en phase C/D, après revue de conception",
+      "implication_achat_prestation": "CONVERSION 1 — la prestation d'ingénierie s'achète au moment du passage en phase de développement, pas à la signature du contrat cadre. L'ESN qui appelle après l'annonce du contrat arrive avec 6 à 12 mois de retard : le bon signal d'appel est la revue de conception, pas le communiqué.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Programme par tranches / séries de satellites",
+      "description": "Premier lot contractuel puis options et tranches successives ; effet de série croissant.",
+      "qui_signe": "Agence, avec levée d'option par tranche",
+      "quand_le_budget_est_engage": "À chaque levée de tranche, donc plusieurs fenêtres par programme",
+      "implication_achat_prestation": "CONVERSION 1 — chaque levée de tranche rouvre un besoin d'industrialisation, de test et de qualité de série. C'est le modèle qui offre le plus de fenêtres d'entrée récurrentes pour une practice Quality Engineering & Testing.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Sous-traitance de charges utiles et sous-systèmes",
+      "description": "Contrat passé avec un autre maître d'œuvre ; forte valeur technologique mais contrôle moindre de l'architecture.",
+      "qui_signe": "Le prime industriel, pas l'agence",
+      "quand_le_budget_est_engage": "Après attribution au prime, en cascade",
+      "implication_achat_prestation": "CONVERSION 1 — l'interlocuteur d'achat n'est pas l'agence mais un industriel pair. Le canal d'entrée est le panel fournisseur du prime, pas la commande publique : deux circuits totalement différents pour le même programme.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Satellite commercial clé en main",
+      "description": "Capex opérateur ; paiements pendant conception et fabrication, puis recettes de support.",
+      "qui_signe": "Direction générale de l'opérateur",
+      "quand_le_budget_est_engage": "À la commande, décision unique",
+      "implication_achat_prestation": "CONVERSION 1 — cycle de décision court et centralisé. C'est le seul modèle du secteur où un appel commercial peut aboutir dans le trimestre ; les autres se jouent sur 12 à 36 mois.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Concession / partenariat public-privé (type IRIS²)",
+      "description": "Investissement public et privé, construction puis exploitation sur longue durée (12 ans sur IRIS²).",
+      "qui_signe": "Consortium concessionnaire, gouvernance partagée",
+      "quand_le_budget_est_engage": "Une fois, à la signature de la concession ; l'exécution s'étale sur la durée",
+      "implication_achat_prestation": "CONVERSION 1 — une concession crée un SI de consortium qui n'existait pas : interopérabilité entre membres, gouvernance de données, cyber transverse. C'est un besoin d'intégration pur, et il naît au moment de la signature, pas au premier lancement.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Opérations, capacité et services (revenus récurrents)",
+      "description": "Exploitation de flotte, téléports, distribution de données, connectivité sous SLA.",
+      "qui_signe": "Direction des opérations de l'opérateur",
+      "quand_le_budget_est_engage": "Budget d'exploitation annuel, renouvelé",
+      "implication_achat_prestation": "CONVERSION 1 — budget OPEX annuel et récurrent, donc un cycle d'achat court et répétable. C'est la porte d'entrée d'une TMA ou d'un run applicatif, à l'inverse des budgets programme qui sont des CAPEX à fenêtre unique.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Démonstrateur R&D cofinancé",
+      "description": "Financement public de maturation technologique, puis conversion en offre commerciale.",
+      "qui_signe": "Agence, sur appel à projets",
+      "quand_le_budget_est_engage": "À la sélection du projet",
+      "implication_achat_prestation": "CONVERSION 1 — petits montants, équipes réduites, forte tolérance à un prestataire nouveau. C'est le meilleur point d'entrée pour un premier contrat de référence sur un compte inaccessible autrement.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Servicing en orbite (marché en construction)",
+      "description": "À terme : prix par intervention, extension de vie, disponibilité ou service de flotte.",
+      "qui_signe": "Opérateur de flotte ou agence, modèle non stabilisé",
+      "quand_le_budget_est_engage": "Non établi — le business case est en cours de construction",
+      "implication_achat_prestation": "CONVERSION 1 — aucun budget récurrent à ce jour. Le besoin réel et immédiat est en amont : concevoir des satellites ravitaillables et upgradables, donc de l'ingénierie d'interfaces et de logiciel embarqué, financée sur les programmes existants.",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    }
+  ],
+  "maillons": [
+    {
+      "rang": 1,
+      "nom": "R&D et composants critiques",
+      "contenu": "EEE, semi-conducteurs durcis, RF, optique, propulsion, logiciels, cyber.",
+      "acteurs_types": [
+        "Équipementiers",
+        "Fondeurs spécialisés",
+        "Laboratoires et agences"
+      ],
+      "position_compte_etalon": "Client de la chaîne, pas producteur",
+      "ou_lesn_se_branche": "Traçabilité et gestion de configuration des nomenclatures, cyber-SBOM, outillage de qualification. Rien de mécanique : de la donnée et du logiciel de maîtrise.",
+      "qui_y_est_deja": [],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 2,
+      "nom": "Architecture et ingénierie de mission",
+      "contenu": "Système de systèmes, exigences, sûreté, interfaces, qualification, architecture orbitale.",
+      "acteurs_types": [
+        "Primes spatiaux",
+        "Bureaux d'études système"
+      ],
+      "position_compte_etalon": "Très forte — maître d'œuvre régulier de missions institutionnelles complexes",
+      "ou_lesn_se_branche": "MBSE, gestion des exigences, continuité numérique entre outils, automatisation des chaînes de vérification. C'est le maillon le plus dense en ingénierie logicielle du secteur.",
+      "qui_y_est_deja": [
+        "Airbus Defence and Space",
+        "OHB",
+        "Lockheed Martin Space",
+        "Northrop Grumman"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 3,
+      "nom": "Satellites et plateformes",
+      "contenu": "GEO télécom, LEO/MEO, satellites scientifiques, plateformes de constellation.",
+      "acteurs_types": [
+        "Primes spatiaux",
+        "Intégrateurs NewSpace"
+      ],
+      "position_compte_etalon": "Très forte, large spectre",
+      "ou_lesn_se_branche": "Logiciel de bord, bancs de test, IVVQ automatisée. Le satellite devient software-defined : la valeur bascule vers le logiciel embarqué et sa validation.",
+      "qui_y_est_deja": [
+        "Airbus Defence and Space",
+        "OHB",
+        "SpaceX (benchmark industriel)"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 4,
+      "nom": "Charges utiles et capteurs",
+      "contenu": "Radar SAR, optique, hyperspectral, RF, télécoms, altimétrie, navigation.",
+      "acteurs_types": [
+        "Primes",
+        "Spécialistes capteurs"
+      ],
+      "position_compte_etalon": "Différenciateur majeur du compte étalon",
+      "ou_lesn_se_branche": "Chaînes de traitement du signal, calibration, pipelines data. Maillon fortement propriétaire : l'ESN y entre par la donnée, pas par le capteur.",
+      "qui_y_est_deja": [
+        "Airbus Defence and Space",
+        "L3Harris",
+        "Leonardo",
+        "OHB"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 5,
+      "nom": "Production et AIT (assemblage, intégration, tests)",
+      "contenu": "Industrialisation, qualité spatiale, cadence, automatisation.",
+      "acteurs_types": [
+        "Primes",
+        "Sous-traitants d'intégration"
+      ],
+      "position_compte_etalon": "Solide sur missions complexes, en transformation vers les séries",
+      "ou_lesn_se_branche": "MES, digital thread, automatisation des bancs de test, traçabilité de série. C'est le maillon en transformation active, donc celui qui achète le plus de prestation aujourd'hui.",
+      "qui_y_est_deja": [
+        "Airbus Defence and Space",
+        "OHB"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 6,
+      "nom": "Accès à l'espace (lancement)",
+      "contenu": "Lanceur, intégration lancement, services de mise en orbite.",
+      "acteurs_types": [
+        "Opérateurs de lancement"
+      ],
+      "position_compte_etalon": "Position indirecte — dépendance à des fournisseurs tiers",
+      "ou_lesn_se_branche": "Maillon quasi fermé à une ESN généraliste : la valeur SI y est de la logistique de campagne et de la gestion de configuration, pas du développement.",
+      "qui_y_est_deja": [
+        "ArianeGroup / Arianespace",
+        "SpaceX"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 7,
+      "nom": "Segment sol et contrôle mission",
+      "contenu": "TT&C, stations, traitement, orchestration, centres utilisateur.",
+      "acteurs_types": [
+        "Primes",
+        "Intégrateurs sol spécialisés"
+      ],
+      "position_compte_etalon": "Très forte",
+      "ou_lesn_se_branche": "MAILLON PRINCIPAL POUR KREDO — logiciel métier, cloud, données, cyber, IHM opérateur, exploitation. C'est du SI d'entreprise à contrainte de sûreté, pas de la mécanique spatiale.",
+      "qui_y_est_deja": [
+        "Telespazio",
+        "Airbus Defence and Space",
+        "Thales",
+        "GMV"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 8,
+      "nom": "Opérations et services",
+      "contenu": "Exploitation de flotte, téléports, distribution de données, connectivité.",
+      "acteurs_types": [
+        "Opérateurs",
+        "Joint-ventures de service"
+      ],
+      "position_compte_etalon": "Forte via alliance, plus faible en propre",
+      "ou_lesn_se_branche": "SECOND MAILLON POUR KREDO — plateformes de données, SLA, observabilité, run applicatif. Budget OPEX récurrent, donc cycle d'achat court.",
+      "qui_y_est_deja": [
+        "Eutelsat / OneWeb",
+        "SES",
+        "Telespazio",
+        "SpaceX / Starlink"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 9,
+      "nom": "Maintenance et servicing en orbite",
+      "contenu": "Rendez-vous, docking, extension de vie, upgrade, assemblage, retrait.",
+      "acteurs_types": [
+        "Spécialistes robotique orbitale",
+        "Primes en R&D"
+      ],
+      "position_compte_etalon": "Position émergente crédible",
+      "ou_lesn_se_branche": "Logiciel de navigation relative, simulation, validation. Maillon en R&D : petits budgets, forte ouverture à un nouveau prestataire.",
+      "qui_y_est_deja": [
+        "D-Orbit",
+        "ClearSpace"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "rang": 10,
+      "nom": "Cybersécurité et résilience transverse",
+      "contenu": "Protection du satellite, du sol, des données, des identités et de la chaîne fournisseur.",
+      "acteurs_types": [
+        "Groupes cyber-défense",
+        "Intégrateurs sécurité"
+      ],
+      "position_compte_etalon": "Avantage de groupe plutôt qu'actif propre",
+      "ou_lesn_se_branche": "TROISIÈME MAILLON POUR KREDO — le maillon traverse tous les autres et il est adossé à deux obligations réglementaires opposables (NIS2, SecNumCloud). C'est le seul maillon où le besoin est prescrit par un texte.",
+      "qui_y_est_deja": [
+        "Thales",
+        "L3Harris",
+        "Lockheed Martin"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    }
+  ],
+  "fronts_technologiques": [
+    {
+      "nom": "IA embarquée et traitement edge en orbite",
+      "etat": "Démontré en vol sur CubeSat, industrialisation non faite",
+      "zone_de_transition": true,
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL",
+      "commentaire": "Le passage de `collecter → descendre → traiter` à `capter → traiter → prioriser → transmettre` est un changement d'architecture logicielle, pas de capteur."
+    },
+    {
+      "nom": "Communications optiques inter-satellites",
+      "etat": "Programmes de démonstration en cours",
+      "zone_de_transition": true,
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Quantique et distribution de clés (QKD)",
+      "etat": "Sortie de recherche, infrastructure souveraine en maturation",
+      "zone_de_transition": true,
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Architectures smallsat proliférées et multi-orbites",
+      "etat": "En transition industrielle : la fiabilité institutionnelle doit rencontrer la cadence",
+      "zone_de_transition": true,
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Servicing en orbite et serviceability-by-design",
+      "etat": "Techniquement concret, commercialement incertain",
+      "zone_de_transition": true,
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Souveraineté composant, cyber-by-design et exportabilité",
+      "etat": "Devenu un critère d'architecture, plus une contrainte d'achat",
+      "zone_de_transition": true,
+      "src_ids": [
+        1,
+        5
+      ],
+      "commentaire": "Seul front adossé à des textes opposables consultables."
+    }
+  ],
+  "dependances_critiques": [
+    {
+      "nom": "Composants EEE et semi-conducteurs spatiaux",
+      "criticite": "haute",
+      "situation": "Qualifications longues, très faibles volumes, dépendance extra-européenne partielle",
+      "risque": "Obsolescence, délais, blocage export sur un composant unique",
+      "prestation_ouverte": "CONVERSION 3 — outillage de traçabilité de nomenclature et de gestion d'obsolescence : référentiel composant, alertes de fin de vie, second sourcing documenté.",
+      "practice_kredo": "digital-business-solutions",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "RF, électronique de puissance et composants télécom",
+      "criticite": "haute",
+      "situation": "Fournisseurs uniques, qualification longue",
+      "risque": "Rupture d'approvisionnement sur un maillon sans substitut",
+      "prestation_ouverte": "CONVERSION 3 — instrumentation des bancs de test et automatisation des campagnes de qualification, pour réduire le temps de qualification d'un second fournisseur.",
+      "practice_kredo": "quality-engineering-testing",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Optique, détecteurs et laser",
+      "criticite": "haute",
+      "situation": "Capacité industrielle limitée, forte sensibilité export",
+      "risque": "Concentration et contrainte de contrôle des exportations",
+      "prestation_ouverte": "CONVERSION 3 — chaînes de traitement et de calibration des données capteur, et gestion des classifications export dès la conception.",
+      "practice_kredo": "data-ai",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Propulsion, AOCS et micropropulsion",
+      "criticite": "moyenne",
+      "situation": "Chaîne européenne croisée, single sourcing fréquent",
+      "risque": "Dépendance à un fournisseur unique sur des programmes longs",
+      "prestation_ouverte": "CONVERSION 3 — simulation et validation logicielle des lois de commande, bancs hardware-in-the-loop.",
+      "practice_kredo": "quality-engineering-testing",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Accès au lancement",
+      "criticite": "haute",
+      "situation": "Concentration de l'offre, arbitrage entre accès souverain et fournisseur extra-européen",
+      "risque": "Aucun satellite ne produit de revenu avant sa mise en orbite : le lancement est le goulot financier",
+      "prestation_ouverte": "CONVERSION 3 — planification et pilotage de portefeuille de campagnes, gestion des scénarios de replanification.",
+      "practice_kredo": "project-agile-delivery",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "nom": "Logiciels, cloud, cryptographie et composants numériques",
+      "criticite": "haute",
+      "situation": "Le segment sol et le traitement deviennent une part croissante de la mission ; NIS2 et SecNumCloud en renforcent la criticité",
+      "risque": "Cyberattaque, dépendance logicielle, vulnérabilité de chaîne d'approvisionnement",
+      "prestation_ouverte": "CONVERSION 3 — la dépendance la plus directement adressable par KREDO : cloud souverain qualifié, DevSecOps, SBOM, durcissement NIS2. Elle est prescrite par un texte, pas par une conviction.",
+      "practice_kredo": "cybersecurity",
+      "src_ids": [
+        1,
+        5
+      ]
+    },
+    {
+      "nom": "Capacité d'essais et de qualification",
+      "criticite": "moyenne",
+      "situation": "Infrastructures concentrées et difficiles à dupliquer",
+      "risque": "Goulot d'étranglement au moment des montées en cadence de constellation",
+      "prestation_ouverte": "CONVERSION 3 — ordonnancement et optimisation d'usage des moyens d'essai, traçabilité des campagnes.",
+      "practice_kredo": "digital-business-solutions",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    }
+  ],
+  "regulation": [
+    {
+      "reg_item_id": null,
+      "libelle": "Décret n° 2026-272 SecNumCloud (art. 31 loi SREN)",
+      "statut": "acquis",
+      "deadline_date": "2026-04-14",
+      "authority": "FR",
+      "source_url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053900789",
+      "commercial_angle": "Cadrer et opérer la migration vers un cloud souverain qualifié. ATTENTION : l'échéance est PASSÉE à la date du run — elle ne s'annonce plus comme une échéance à venir mais comme une obligation déjà opposable, ce qui change la phrase d'ouverture.",
+      "kredo_practice": "cloud-engineering",
+      "portee": "macro"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "AI Act — obligations des systèmes à haut risque (Annexe III)",
+      "statut": "acquis",
+      "deadline_date": "2027-12-02",
+      "authority": "EU",
+      "source_url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai",
+      "commercial_angle": "Gouvernance et mise en conformité IA : traçabilité, supervision humaine, robustesse. Seule échéance future, datée et sourcée du segment — c'est l'échéance pivot de ce run.",
+      "kredo_practice": "data-ai",
+      "portee": "macro"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "Directive NIS2 — loi de résilience (transposition française)",
+      "statut": "acquis",
+      "deadline_date": null,
+      "authority": "FR",
+      "source_url": "https://monespacenis2.cyber.gouv.fr/directive/",
+      "commercial_angle": "Diagnostic de conformité et durcissement cyber des systèmes critiques connectés ; les infrastructures sol supportant des services spatiaux sont explicitement dans le périmètre de haute criticité.",
+      "kredo_practice": "cybersecurity",
+      "portee": "macro"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "EDIP — programme européen pour l'industrie de défense",
+      "statut": "acquis",
+      "deadline_date": "2025-12-30",
+      "authority": "EU",
+      "source_url": "https://www.consilium.europa.eu/en/press/press-releases/2025/12/08/european-defence-industry-programme-council-gives-final-approval/",
+      "commercial_angle": "Accompagner le montage de projets éligibles et la structuration SI associée. Échéance passée : à citer comme cadre en vigueur, pas comme fenêtre.",
+      "kredo_practice": null,
+      "portee": "macro"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "EU Space Act — règlement spatial européen",
+      "statut": "proposition",
+      "deadline_date": "2030-01-01",
+      "authority": "EU",
+      "source_url": "https://france.representation.ec.europa.eu/informations/la-commission-propose-une-legislation-spatiale-de-lue-pour-stimuler-lacces-au-marche-et-renforcer-la-2025-06-25_fr",
+      "commercial_angle": "Anticiper les exigences de résilience et de cybersécurité des futures obligations spatiales. À prononcer explicitement comme une PROPOSITION : c'est la nuance qui distingue un interlocuteur informé d'un vendeur.",
+      "kredo_practice": "cybersecurity",
+      "portee": "macro"
+    }
+  ],
+  "regulation_non_convertie": [
+    {
+      "libelle": "Contrôle américain ITAR / EAR sur les matériels et technologies spatiales sensibles",
+      "authority": "US",
+      "motif_non_conversion": "Décrite par l'étude B sans texte officiel consultable ni URL résolvable. A1 interdit à un modèle de dater ou de sourcer un texte réglementaire : l'item doit venir de E2 (Légifrance / EUR-Lex / autorité), pas d'ici."
+    },
+    {
+      "libelle": "Règlement (UE) 2021/821 sur les biens et technologies à double usage",
+      "authority": "EU",
+      "motif_non_conversion": "Idem — référence citée sans URL résolvable dans l'étude B. À faire produire par E2 sur EUR-Lex."
+    },
+    {
+      "libelle": "Régime français d'autorisation des matériels de guerre et instruction CIEEMG",
+      "authority": "FR",
+      "motif_non_conversion": "Idem — à faire produire par E2 sur Légifrance."
+    },
+    {
+      "libelle": "Loi relative aux opérations spatiales et sa réglementation technique (modernisée en juin 2024)",
+      "authority": "FR",
+      "motif_non_conversion": "Idem — à faire produire par E2 sur Légifrance."
+    }
+  ],
+  "chronologie": [
+    {
+      "date": "2018",
+      "fait": "La loi de programmation militaire 2019-2025 amorce un cycle de réinvestissement français.",
+      "portee": "macro",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2019-09-03",
+      "fait": "Création du Commandement de l'espace français ; l'OTAN reconnaît l'espace comme cinquième domaine opérationnel en décembre.",
+      "portee": "macro",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2020",
+      "fait": "Première mission européenne utilisant l'IA embarquée pour l'observation de la Terre.",
+      "portee": "segment",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2021",
+      "fait": "Entrée en vigueur du programme spatial de l'UE 2021-2027 et du règlement européen sur le double usage.",
+      "portee": "macro",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2022",
+      "fait": "Adoption de NIS2, qui fait entrer les infrastructures sol spatiales dans les secteurs de haute criticité.",
+      "portee": "segment",
+      "src_ids": [
+        5
+      ]
+    },
+    {
+      "date": "2023",
+      "fait": "Adoption de la loi de programmation militaire française 2024-2030.",
+      "portee": "macro",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2024-07-09",
+      "fait": "Premier vol d'Ariane 6, rétablissant l'accès autonome européen lourd à l'espace ; modernisation de la réglementation française des opérations spatiales le mois précédent.",
+      "portee": "segment",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2024-08-16",
+      "fait": "Lancement d'un CubeSat 6U embarquant six applications d'IA — l'IA quitte la démonstration pour l'orbite.",
+      "portee": "segment",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2024-12",
+      "fait": "Signature de la concession IRIS² : 12 ans, plus de 290 satellites multi-orbites.",
+      "portee": "segment",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2025",
+      "fait": "L'Union européenne présente sa proposition de Space Act ; les programmes optique et quantique accélèrent.",
+      "portee": "segment",
+      "src_ids": [
+        4
+      ]
+    },
+    {
+      "date": "2025-11-12",
+      "fait": "La France publie sa stratégie spatiale 2025-2040 ; le Commandement de l'espace annonce sa capacité opérationnelle initiale.",
+      "portee": "macro",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2025-12-08",
+      "fait": "Le Conseil de l'UE donne son approbation finale au programme EDIP pour l'industrie de défense.",
+      "portee": "macro",
+      "src_ids": [
+        3
+      ]
+    },
+    {
+      "date": "2025-12",
+      "fait": "Les États membres de l'ESA approuvent environ 22,1 Md€ de souscriptions lors de la ministérielle CM25.",
+      "portee": "segment",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2026-01",
+      "fait": "Le CNES et la DGA confient à Thales Alenia Space la charge utile radar et le segment sol du programme DESIR.",
+      "portee": "segment",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "date": "2026-04-14",
+      "fait": "Le décret n° 2026-272 rend SecNumCloud opposable sur les marchés publics sensibles.",
+      "portee": "macro",
+      "src_ids": [
+        1
+      ]
+    },
+    {
+      "date": "2026-06",
+      "fait": "Thales Alenia Space obtient Sentinel-1 NG et coordonne EROSS SC ; Ariane 6 poursuit sa montée en cadence.",
+      "portee": "segment",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    }
+  ],
+  "risques_opportunites": [
+    {
+      "risque": "Dérives de coût, de calendrier et de qualification sur les grands programmes à prix contraint",
+      "opportunite": "Architecture modulaire, digital engineering, réutilisation de briques et productisation",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Le marché passe du satellite artisanal à la constellation, et la qualité institutionnelle devient une structure de coût trop lourde",
+      "opportunite": "Faire des plateformes existantes un modèle de série, avec des indicateurs de cadence distincts",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Militarisation de l'espace, tensions export, fragmentation des blocs",
+      "opportunite": "Hausse de la demande de capacités souveraines européennes et duales",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Un programme bloqué par un composant à source unique",
+      "opportunite": "Architecture ITAR-light, double sourcing et substitution progressive des composants",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Surface d'attaque croissante à mesure que le système devient software-defined",
+      "opportunite": "Secure-by-design opposable, adossé à NIS2 et SecNumCloud",
+      "src_ids": [
+        1,
+        5
+      ]
+    },
+    {
+      "risque": "Brouillage et usurpation des signaux GNSS en environnement de haute intensité",
+      "opportunite": "PNT résilient multi-orbite et fusion de capteurs",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Congestion orbitale et exigences de fin de vie",
+      "opportunite": "Satellites conçus dès l'origine pour être servis et retirés",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Compression des prix et des cycles par un acteur verticalisé qui est aussi fournisseur",
+      "opportunite": "Différenciation par la souveraineté, l'interopérabilité et la mission critique plutôt que par l'imitation",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Fragmentation européenne : agences, États et règles de retour industriel ralentissent l'échelle",
+      "opportunite": "Les instruments européens récents fédèrent progressivement les architectures",
+      "src_ids": [
+        3
+      ]
+    },
+    {
+      "risque": "Temps de vente allongé et configuration produit spécifique par pays du fait du contrôle export",
+      "opportunite": "Exportabilité dès la conception comme avantage différenciant",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Frontière civil / militaire politiquement plus sensible",
+      "opportunite": "Même architecture amortie entre civil, sécurité et défense",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    },
+    {
+      "risque": "Les opérateurs captent la relation client et le revenu récurrent",
+      "opportunite": "Basculer d'une activité de projet vers des opérations, des données et des services gérés",
+      "src_ids": [],
+      "src_non_resolvable": "étude B — jeton de citation `turn…search…` non résolvable en URL"
+    }
+  ],
+  "pain_points": [
+    {
+      "libelle": "Cloud souverain SecNumCloud imposé sur les marchés publics",
+      "frequency_count": 2,
+      "acteurs_nommes": [
+        "Exail Robotics",
+        "ACRI-ST"
+      ],
+      "source_company_ids": [
+        "cf0c393a-adbe-4564-b70a-78355a56f0a0",
+        "fcbfd676-3a75-4d17-8241-815583a3868e"
+      ],
+      "src_ids": [
+        1
+      ],
+      "practice_kredo": "cloud-engineering",
+      "portee_origine": "macro"
+    },
+    {
+      "libelle": "Cybersécurité NIS2 des systèmes critiques connectés",
+      "frequency_count": 2,
+      "acteurs_nommes": [
+        "Exail Robotics",
+        "ACRI-ST"
+      ],
+      "source_company_ids": [
+        "cf0c393a-adbe-4564-b70a-78355a56f0a0",
+        "fcbfd676-3a75-4d17-8241-815583a3868e"
+      ],
+      "src_ids": [
+        5
+      ],
+      "practice_kredo": "cybersecurity",
+      "portee_origine": "macro"
+    },
+    {
+      "libelle": "Conformité AI Act sur les systèmes IA à haut risque",
+      "frequency_count": 2,
+      "acteurs_nommes": [
+        "Exail Robotics",
+        "ACRI-ST"
+      ],
+      "source_company_ids": [
+        "cf0c393a-adbe-4564-b70a-78355a56f0a0",
+        "fcbfd676-3a75-4d17-8241-815583a3868e"
+      ],
+      "src_ids": [
+        2
+      ],
+      "practice_kredo": "data-ai",
+      "portee_origine": "macro"
+    },
+    {
+      "libelle": "Pénurie de talents en ingénierie et data spatiale",
+      "frequency_count": 2,
+      "acteurs_nommes": [
+        "Exail Robotics",
+        "ACRI-ST"
+      ],
+      "source_company_ids": [
+        "cf0c393a-adbe-4564-b70a-78355a56f0a0",
+        "fcbfd676-3a75-4d17-8241-815583a3868e"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "hérité du macro sans source rattachée",
+      "practice_kredo": null,
+      "portee_origine": "macro"
+    },
+    {
+      "libelle": "Dépendance aux cycles budgétaires publics et aux homologations",
+      "frequency_count": 2,
+      "acteurs_nommes": [
+        "Exail Robotics",
+        "ACRI-ST"
+      ],
+      "source_company_ids": [
+        "cf0c393a-adbe-4564-b70a-78355a56f0a0",
+        "fcbfd676-3a75-4d17-8241-815583a3868e"
+      ],
+      "src_ids": [],
+      "src_non_resolvable": "hérité du macro sans source rattachée",
+      "practice_kredo": null,
+      "portee_origine": "macro"
+    },
+    {
+      "libelle": "Montée en cadence industrielle sous carnet record",
+      "frequency_count": 1,
+      "acteurs_nommes": [
+        "Exail Robotics"
+      ],
+      "source_company_ids": [
+        "cf0c393a-adbe-4564-b70a-78355a56f0a0"
+      ],
+      "src_ids": [
+        6
+      ],
+      "practice_kredo": "project-agile-delivery",
+      "portee_origine": "macro"
+    }
+  ],
+  "playbook": {
+    "personas": [
+      {
+        "role": "Directeur de l'ingénierie système / architecte mission",
+        "enjeu": "Tenir la continuité numérique entre exigences, conception, essais et qualification sur des programmes de dix ans.",
+        "peur": "Découvrir en qualification un écart d'interface né trois ans plus tôt dans un tableur."
+      },
+      {
+        "role": "Responsable segment sol et exploitation",
+        "enjeu": "Faire tenir un SI d'exploitation sous contrainte de sûreté et de disponibilité, avec des équipes rares.",
+        "peur": "Que la conformité NIS2 impose une refonte au moment où la charge d'exploitation augmente."
+      },
+      {
+        "role": "RSSI / responsable sécurité SI industriel",
+        "enjeu": "Rendre opposable la conformité SecNumCloud et NIS2 sans bloquer les programmes en cours.",
+        "peur": "Qu'une non-conformité disqualifie l'entreprise d'un marché public ou d'un consortium."
+      },
+      {
+        "role": "Directeur industriel / responsable AIT",
+        "enjeu": "Passer d'une production de missions unitaires à une production de série sans perdre la qualité spatiale.",
+        "peur": "Que le carnet de commandes se transforme en retards, en pénalités et en perte d'un client institutionnel."
+      }
+    ],
+    "objections": [
+      {
+        "objection": "Nos systèmes sont classifiés, un prestataire externe ne peut pas y toucher.",
+        "reponse": "L'intervention porte sur la couche SI, cloud et outillage hors briques classifiées, avec des consultants habilitables. La question à trancher ensemble n'est pas technique, c'est le périmètre d'habilitation — et c'est précisément ce que nous demandons à cadrer en premier."
+      },
+      {
+        "objection": "Nous avons déjà des ESN référencées sur nos panels.",
+        "reponse": "C'est attendu sur ce segment, et c'est pour cela que la première demande n'est pas un projet mais l'accès au panel : quel est le cycle de référencement, et quelle est la prochaine fenêtre."
+      },
+      {
+        "objection": "Notre priorité c'est de livrer les programmes, pas de faire de la transformation SI.",
+        "reponse": "La montée en cadence est précisément ce qui échoue quand l'outillage ne suit pas. L'entrée proposée est un chantier de quelques semaines sur l'automatisation d'essais ou la traçabilité, pas un programme de transformation."
+      },
+      {
+        "objection": "Une ESN généraliste ne connaît pas nos contraintes spatiales.",
+        "reponse": "Nous ne prétendons pas au métier spatial. Nous intervenons sur le segment sol, l'exploitation et le cyber — du SI d'entreprise sous contrainte de sûreté. C'est la partie de votre chaîne qui ressemble le plus à ce que nous faisons ailleurs, et c'est celle qui grossit le plus vite."
+      }
+    ],
+    "entry_points": [
+      {
+        "type": "reglementaire",
+        "libelle": "AI Act, obligations haut risque au 2 décembre 2027 : cadrer la gouvernance et la traçabilité des IA embarquées et des chaînes de traitement d'images avant que la conformité ne devienne un chantier de refonte. Source : Commission européenne, digital-strategy.ec.europa.eu."
+      },
+      {
+        "type": "reglementaire",
+        "libelle": "SecNumCloud opposable depuis le 14 avril 2026 : l'échéance est passée, l'obligation est en vigueur. L'angle n'est plus « anticipez », c'est « où en êtes-vous, et qu'est-ce qui bloque encore l'accès aux marchés sensibles ». Source : décret n° 2026-272, Légifrance."
+      },
+      {
+        "type": "quick_win",
+        "libelle": "Diagnostic de conformité NIS2 des infrastructures sol supportant des services spatiaux, explicitement dans le périmètre de haute criticité. Source : ANSSI, monespacenis2.cyber.gouv.fr."
+      },
+      {
+        "type": "transformation",
+        "libelle": "Industrialisation du segment sol et de l'exploitation : c'est le maillon où la valeur bascule et le seul où une ESN généraliste est légitime sans prétendre au métier spatial."
+      }
+    ],
+    "roi_arguments": [
+      {
+        "argument": "La mise en conformité au décret n° 2026-272 conditionne l'accès aux marchés publics sensibles : l'obligation est opposable depuis le 14 avril 2026. Source : Légifrance, décret n° 2026-272."
+      },
+      {
+        "argument": "Les obligations AI Act pour les systèmes à haut risque s'appliquent au 2 décembre 2027 : engager la gouvernance maintenant évite une refonte produit sous contrainte. Source : Commission européenne, cadre réglementaire IA."
+      },
+      {
+        "argument": "Les infrastructures terrestres supportant des services spatiaux sont explicitement dans le périmètre de haute criticité de NIS2 : le diagnostic sécurise l'éligibilité aux marchés. Source : ANSSI, Mon Espace NIS2."
+      },
+      {
+        "argument": "Sur ce segment, la digitalisation de la production est le levier de tenue du carnet : un acteur du portefeuille a enregistré 844 M€ de commandes, en hausse de 87 %, sur le seul exercice 2025. Source : Exail Technologies, résultats annuels 2025."
+      }
+    ],
+    "market_thesis": [
+      {
+        "these": "Le moteur du marché s'est déplacé du satellite unitaire vers l'architecture de mission : les programmes structurants assemblent plusieurs orbites, des segments sol distribués, du traitement embarqué, du cyber et de la donnée.",
+        "donc": "DONC, commercialement : le budget qui grossit n'est pas celui du hardware, c'est celui de l'ingénierie système, du segment sol et du logiciel. C'est exactement là que se vend une ESN, et c'est là qu'il faut ouvrir la conversation — pas sur le satellite."
+      },
+      {
+        "these": "Thales Alenia Space couvre presque toute la chaîne européenne mais porte deux discontinuités assumées : le lancement, et la relation de service final avec l'utilisateur.",
+        "donc": "DONC, commercialement : les deux discontinuités sont les deux endroits où le compte achète de l'intégration à l'extérieur. Le segment sol et la couche service sont les portes d'entrée, pas la plateforme satellite."
+      },
+      {
+        "these": "L'Europe reste technologiquement crédible mais économiquement sous pression : la concurrence porte désormais autant sur la cadence industrielle et le coût total de mission que sur la performance du satellite.",
+        "donc": "DONC, commercialement : « industrialiser », « cadence », « coût de série » sont les mots du secteur en 2026. Un discours d'ESN centré sur l'innovation pure passe à côté ; un discours centré sur le digital thread, l'automatisation d'AIT et la qualité de série est entendu."
+      },
+      {
+        "these": "La demande défense est devenue l'accélérateur principal, et elle impose ses conditions d'accès — habilitation, nationalité, zone protégée — avant toute discussion technique.",
+        "donc": "DONC, commercialement : la première question à instruire sur ce segment n'est pas « de quoi ont-ils besoin » mais « avons-nous le droit d'intervenir ». Sans réponse à celle-là, le reste de la fiche ne sert à rien."
+      },
+      {
+        "these": "Les zones de différenciation des trois prochaines années sont logicielles et non mécaniques : IA embarquée, communications optiques et quantiques, architectures proliférées, servicing en orbite, souveraineté composant et cyber-by-design.",
+        "donc": "DONC, commercialement : cinq des six fronts technologiques du secteur sont des fronts logiciels, data ou cyber. Le catalogue KREDO y répond directement — c'est le seul argument de légitimité sectorielle qui ne soit pas interchangeable."
+      }
+    ],
+    "economic_models": [
+      {
+        "nom": "Développement puis production institutionnelle (NRE + fabrication)",
+        "qui_signe": "Agence spatiale (ESA, CNES) ou direction de programme étatique",
+        "implication_achat": "CONVERSION 1 — la prestation d'ingénierie s'achète au moment du passage en phase de développement, pas à la signature du contrat cadre. L'ESN qui appelle après l'annonce du contrat arrive avec 6 à 12 mois de retard : le bon signal d'appel est la revue de conception, pas le communiqué."
+      },
+      {
+        "nom": "Programme par tranches / séries de satellites",
+        "qui_signe": "Agence, avec levée d'option par tranche",
+        "implication_achat": "CONVERSION 1 — chaque levée de tranche rouvre un besoin d'industrialisation, de test et de qualité de série. C'est le modèle qui offre le plus de fenêtres d'entrée récurrentes pour une practice Quality Engineering & Testing."
+      },
+      {
+        "nom": "Sous-traitance de charges utiles et sous-systèmes",
+        "qui_signe": "Le prime industriel, pas l'agence",
+        "implication_achat": "CONVERSION 1 — l'interlocuteur d'achat n'est pas l'agence mais un industriel pair. Le canal d'entrée est le panel fournisseur du prime, pas la commande publique : deux circuits totalement différents pour le même programme."
+      },
+      {
+        "nom": "Satellite commercial clé en main",
+        "qui_signe": "Direction générale de l'opérateur",
+        "implication_achat": "CONVERSION 1 — cycle de décision court et centralisé. C'est le seul modèle du secteur où un appel commercial peut aboutir dans le trimestre ; les autres se jouent sur 12 à 36 mois."
+      },
+      {
+        "nom": "Concession / partenariat public-privé (type IRIS²)",
+        "qui_signe": "Consortium concessionnaire, gouvernance partagée",
+        "implication_achat": "CONVERSION 1 — une concession crée un SI de consortium qui n'existait pas : interopérabilité entre membres, gouvernance de données, cyber transverse. C'est un besoin d'intégration pur, et il naît au moment de la signature, pas au premier lancement."
+      },
+      {
+        "nom": "Opérations, capacité et services (revenus récurrents)",
+        "qui_signe": "Direction des opérations de l'opérateur",
+        "implication_achat": "CONVERSION 1 — budget OPEX annuel et récurrent, donc un cycle d'achat court et répétable. C'est la porte d'entrée d'une TMA ou d'un run applicatif, à l'inverse des budgets programme qui sont des CAPEX à fenêtre unique."
+      },
+      {
+        "nom": "Démonstrateur R&D cofinancé",
+        "qui_signe": "Agence, sur appel à projets",
+        "implication_achat": "CONVERSION 1 — petits montants, équipes réduites, forte tolérance à un prestataire nouveau. C'est le meilleur point d'entrée pour un premier contrat de référence sur un compte inaccessible autrement."
+      },
+      {
+        "nom": "Servicing en orbite (marché en construction)",
+        "qui_signe": "Opérateur de flotte ou agence, modèle non stabilisé",
+        "implication_achat": "CONVERSION 1 — aucun budget récurrent à ce jour. Le besoin réel et immédiat est en amont : concevoir des satellites ravitaillables et upgradables, donc de l'ingénierie d'interfaces et de logiciel embarqué, financée sur les programmes existants."
+      }
+    ],
+    "tech_fronts": [
+      {
+        "nom": "IA embarquée et traitement edge en orbite",
+        "etat": "Démontré en vol sur CubeSat, industrialisation non faite"
+      },
+      {
+        "nom": "Communications optiques inter-satellites",
+        "etat": "Programmes de démonstration en cours"
+      },
+      {
+        "nom": "Quantique et distribution de clés (QKD)",
+        "etat": "Sortie de recherche, infrastructure souveraine en maturation"
+      },
+      {
+        "nom": "Architectures smallsat proliférées et multi-orbites",
+        "etat": "En transition industrielle : la fiabilité institutionnelle doit rencontrer la cadence"
+      },
+      {
+        "nom": "Servicing en orbite et serviceability-by-design",
+        "etat": "Techniquement concret, commercialement incertain"
+      },
+      {
+        "nom": "Souveraineté composant, cyber-by-design et exportabilité",
+        "etat": "Devenu un critère d'architecture, plus une contrainte d'achat"
+      }
+    ],
+    "risks": [
+      {
+        "risque": "Dérives de coût, de calendrier et de qualification sur les grands programmes à prix contraint",
+        "opportunite": "Architecture modulaire, digital engineering, réutilisation de briques et productisation"
+      },
+      {
+        "risque": "Le marché passe du satellite artisanal à la constellation, et la qualité institutionnelle devient une structure de coût trop lourde",
+        "opportunite": "Faire des plateformes existantes un modèle de série, avec des indicateurs de cadence distincts"
+      },
+      {
+        "risque": "Militarisation de l'espace, tensions export, fragmentation des blocs",
+        "opportunite": "Hausse de la demande de capacités souveraines européennes et duales"
+      },
+      {
+        "risque": "Un programme bloqué par un composant à source unique",
+        "opportunite": "Architecture ITAR-light, double sourcing et substitution progressive des composants"
+      },
+      {
+        "risque": "Surface d'attaque croissante à mesure que le système devient software-defined",
+        "opportunite": "Secure-by-design opposable, adossé à NIS2 et SecNumCloud"
+      },
+      {
+        "risque": "Brouillage et usurpation des signaux GNSS en environnement de haute intensité",
+        "opportunite": "PNT résilient multi-orbite et fusion de capteurs"
+      },
+      {
+        "risque": "Congestion orbitale et exigences de fin de vie",
+        "opportunite": "Satellites conçus dès l'origine pour être servis et retirés"
+      },
+      {
+        "risque": "Compression des prix et des cycles par un acteur verticalisé qui est aussi fournisseur",
+        "opportunite": "Différenciation par la souveraineté, l'interopérabilité et la mission critique plutôt que par l'imitation"
+      },
+      {
+        "risque": "Fragmentation européenne : agences, États et règles de retour industriel ralentissent l'échelle",
+        "opportunite": "Les instruments européens récents fédèrent progressivement les architectures"
+      },
+      {
+        "risque": "Temps de vente allongé et configuration produit spécifique par pays du fait du contrôle export",
+        "opportunite": "Exportabilité dès la conception comme avantage différenciant"
+      },
+      {
+        "risque": "Frontière civil / militaire politiquement plus sensible",
+        "opportunite": "Même architecture amortie entre civil, sécurité et défense"
+      },
+      {
+        "risque": "Les opérateurs captent la relation client et le revenu récurrent",
+        "opportunite": "Basculer d'une activité de projet vers des opérations, des données et des services gérés"
+      }
+    ]
+  },
+  "budgets_18_36_mois": [
+    {
+      "trajectoire": "Devenir l'architecte de référence des systèmes spatiaux résilients multi-orbites",
+      "famille_de_budget": "Architecture système, interfaces ouvertes, continuité numérique inter-programmes",
+      "offer_slug": "software-architecture-apis-integration"
+    },
+    {
+      "trajectoire": "Industrialiser une famille constellation / smallsat",
+      "famille_de_budget": "Automatisation d'AIT, digital thread, qualité de série",
+      "offer_slug": "test-automation-continuous-quality"
+    },
+    {
+      "trajectoire": "Passer du satellite au service de mission avec l'aval",
+      "famille_de_budget": "Plateforme sol et cloud commune, fusion de données, exploitation sous SLA",
+      "offer_slug": "data-platforms-engineering-dataops"
+    },
+    {
+      "trajectoire": "Faire du servicing et de la serviceabilité une ligne de produits",
+      "famille_de_budget": "Standardisation d'interfaces, simulation et validation logicielle",
+      "offer_slug": "performance-reliability-resilience-testing"
+    },
+    {
+      "trajectoire": "Construire une architecture souveraine et exportable dès la conception",
+      "famille_de_budget": "Cyber-SBOM, classification export dès la conception, cloud qualifié",
+      "offer_slug": "cyber-strategy-grc-compliance"
+    }
+  ],
+  "sources": [
+    {
+      "src_id": 1,
+      "publisher": "Légifrance (République française)",
+      "url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053900789",
+      "tier": 1,
+      "atteste": "Décret n° 2026-272 rendant SecNumCloud opposable (art. 31 loi SREN), échéance 14/04/2026",
+      "consulted_at": "2026-08-13",
+      "corroboration_de": null,
+      "provenance": "sector_regulatory_items (macro aeronautique-spatial-defense), non revalidé ce jour"
+    },
+    {
+      "src_id": 2,
+      "publisher": "Commission européenne — Digital Strategy",
+      "url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai",
+      "tier": 1,
+      "atteste": "AI Act : obligations des systèmes à haut risque (Annexe III), applicables au 02/12/2027",
+      "consulted_at": "2026-08-13",
+      "corroboration_de": null,
+      "provenance": "sector_regulatory_items (macro), non revalidé ce jour"
+    },
+    {
+      "src_id": 3,
+      "publisher": "Conseil de l'Union européenne",
+      "url": "https://www.consilium.europa.eu/en/press/press-releases/2025/12/08/european-defence-industry-programme-council-gives-final-approval/",
+      "tier": 1,
+      "atteste": "EDIP — approbation finale du programme européen pour l'industrie de défense",
+      "consulted_at": "2026-08-13",
+      "corroboration_de": null,
+      "provenance": "sector_regulatory_items (macro), non revalidé ce jour"
+    },
+    {
+      "src_id": 4,
+      "publisher": "Représentation en France de la Commission européenne",
+      "url": "https://france.representation.ec.europa.eu/informations/la-commission-propose-une-legislation-spatiale-de-lue-pour-stimuler-lacces-au-marche-et-renforcer-la-2025-06-25_fr",
+      "tier": 1,
+      "atteste": "EU Space Act : PROPOSITION législative de la Commission, statut non acquis en août 2026",
+      "consulted_at": "2026-08-13",
+      "corroboration_de": null,
+      "provenance": "sector_regulatory_items (macro), non revalidé ce jour"
+    },
+    {
+      "src_id": 5,
+      "publisher": "ANSSI — Mon Espace NIS2",
+      "url": "https://monespacenis2.cyber.gouv.fr/directive/",
+      "tier": 1,
+      "atteste": "Directive NIS2 : périmètre des entités et transposition française, sans date d'échéance en base",
+      "consulted_at": "2026-08-13",
+      "corroboration_de": null,
+      "provenance": "sector_regulatory_items (macro), non revalidé ce jour"
+    },
+    {
+      "src_id": 6,
+      "publisher": "Exail Technologies — communication financière",
+      "url": "https://www.exail-technologies.com/fr/resultats-annuels-2025-forte-amelioration-des-resultats-et-des-flux-de-tresorerie/",
+      "tier": 2,
+      "atteste": "Résultats annuels 2025 Exail : commandes 844 M€, +87 %",
+      "consulted_at": "2026-08-13",
+      "corroboration_de": null,
+      "provenance": "sector_intelligence.caveats.sources (macro), non revalidé ce jour"
+    }
+  ],
+  "trous": [
+    {
+      "rubrique": "sources",
+      "motif": "L'étude B convertie porte 0 URL résolvable et 100 jetons de citation `turn…search…` propres à l'outil de production d'origine. L'étude A n'en porte aucune non plus. Seules 6 URL sont réellement résolvables, toutes relevées en base, aucune issue des deux études.",
+      "recherche_effectuee": "Aucune — le chantier interdit la recherche web. Extraction exhaustive des URL des deux fichiers markdown : 0."
+    },
+    {
+      "rubrique": "marche.taille_eur_bn",
+      "motif": "Le seul ordre de grandeur disponible (ventes de l'industrie spatiale européenne 2024) est un périmètre EUROPE, pas FRANCE, et sa source n'est pas résolvable. A3 interdit de l'utiliser pour caractériser le segment France.",
+      "recherche_effectuee": "Aucune. Le champ reste null plutôt que de porter un chiffre de mauvais périmètre."
+    },
+    {
+      "rubrique": "marche.croissance_pct",
+      "motif": "Non publié sur le périmètre du segment.",
+      "recherche_effectuee": "Aucune."
+    },
+    {
+      "rubrique": "regulation (4 couches d'export control)",
+      "motif": "ITAR/EAR, règlement UE 2021/821, régime français des matériels de guerre et loi sur les opérations spatiales sont décrits par l'étude B sans texte officiel consultable. A1 interdit à E4 de les dater ou de les sourcer.",
+      "recherche_effectuee": "Aucune — c'est un livrable de E2, listé dans `regulation_non_convertie`."
+    },
+    {
+      "rubrique": "echeance_pivot",
+      "motif": "La seule échéance future, datée et sourcée du segment est à 16 mois (AI Act, 02/12/2027). Les deux qui auraient fait un motif d'appel immédiat sont passées et rien en base ne les marque comme telles.",
+      "recherche_effectuee": "Relevé exhaustif de sector_regulatory_items sur le segment et son macro : 0 item au segment, 5 au macro, 2 futurs."
+    },
+    {
+      "rubrique": "maillons.qui_y_est_deja",
+      "motif": "Les ESN et intégrateurs déjà en place chez ces comptes ne sont pas connus. Les noms listés sont les CONCURRENTS INDUSTRIELS des comptes, pas les prestataires informatiques en place — ce n'est pas la même information, et c'est la seconde qui sert commercialement.",
+      "recherche_effectuee": "Relevé de account_facts : 0 fait `incumbent_esn` sur les 10 comptes du segment, comme sur les 109 de la base."
+    },
+    {
+      "rubrique": "pain_points.verbatim",
+      "motif": "Aucun verbatim client réel sur ce segment.",
+      "recherche_effectuee": "Relevé en base : les interactions du secteur sont des données de test."
+    },
+    {
+      "rubrique": "pain_points.frequency_count",
+      "motif": "Les fréquences sont plafonnées à 2 parce que le segment ne porte que 2 comptes réels documentés. Une fréquence de 2 sur un univers de 2 n'a pas de valeur discriminante.",
+      "recherche_effectuee": "Comptage exhaustif sur les comptes non-mapped du segment."
+    },
+    {
+      "rubrique": "intensite_si",
+      "motif": "Aucun chantier technologique observé et mesuré : A7 (France Travail par SIREN) n'est pas branché et 8 comptes sur 10 n'ont pas de SIREN.",
+      "recherche_effectuee": "Relevé de account_facts et account_signals : 0 `it_hiring_intensity`, 0 `hiring_signal`."
+    }
+  ],
+  "compteurs": {
+    "theses": 5,
+    "blocs_clients": 4,
+    "modeles_economiques": 8,
+    "maillons": 10,
+    "fronts_technologiques": 6,
+    "dependances_critiques": 7,
+    "regulation": 5,
+    "regulation_non_convertie": 4,
+    "chronologie": 16,
+    "risques_opportunites": 12,
+    "pain_points": 6,
+    "budgets_18_36_mois": 5,
+    "sources": 6,
+    "trous": 9,
+    "incertitudes": 4
+  }
+}

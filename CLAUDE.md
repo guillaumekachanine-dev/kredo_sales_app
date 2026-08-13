@@ -58,6 +58,10 @@ npm run db:types               # régénère src/types/database.generated.ts dep
 npm run n8n:status             # dérive entre n8n/workflows/ (repo) et ce qui tourne sur le VPS
 ```
 
+```bash
+python3 scripts/audit-master-study.py docs/MASTER-STUDY/registre/<run>/   # gate G1 d'un run MASTER STUDY
+```
+
 **Boucle de validation avant de déclarer un travail fini** — dans cet ordre :
 `typecheck` → `test` → `check:server-boundary` → `lint` (fichiers touchés) → `build`.
 
@@ -136,6 +140,10 @@ Trois pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260811232234 | 070_sector_knowledge_functions_search_path (`search_path = ''` sur les 5 helpers `private.*`) |
 | 20260811233206 | 071_sector_playbook_merge_drop_empty_keys (correctif : une clé vide des deux côtés disparaît du playbook fusionné) |
 | 20260811234834 | 072_sector_intelligence_strip_display_numbering (numérotation « 5.1 » sortie de `name` → colonne `display_code`) |
+| 20260812110000 | 073_account_facts_identite_france (socle identité France — `companies.siren`/`naf_code`, familles de faits `legal_id`…) |
+| 20260812124353 | 074_competitive_map_ingestion (`competitive_map_entries`, comptes `depth_level='mapped'`) |
+| 20260812153000 | 075_competitive_map_profile_extension (`profile_json`, `accessibilite_score`) |
+| 20260813120000 | 076_master_study_document_type (`intelligence_document_type` += `master_study` — MASTER-STUDY lot 0.1) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -276,7 +284,9 @@ les items. Invariants assertés par `supabase/tests/069_sector_knowledge_resolut
 | `intelligence_document_versions` | 59 | Historique append-only des versions d'un document |
 | `intelligence_document_links` | 55 | Relation N:M polymorphe entre un document et les entités métier Kredo |
 
-`intelligence_document_type` (enum, 17 valeurs) : `communication` · `client_summary` · `commercial_pitch` · `campaign` · `internal_note` · `activity_commercial` · `activity_recruitment` · `weekly_manager` · `planning_deadlines` · `financial` · `quarterly_review` · `staffing_capacity` · `delivery_profitability` · `account_portfolio` · `commercial_strategy` · `prise_de_parole` · `workspace_diagnostic`
+`intelligence_document_type` (enum, **21 valeurs**, vérifié live le 2026-08-13) : `communication` · `client_summary` · `commercial_pitch` · `campaign` · `internal_note` · `activity_commercial` · `activity_recruitment` · `weekly_manager` · `planning_deadlines` · `financial` · `quarterly_review` · `staffing_capacity` · `delivery_profitability` · `account_portfolio` · `commercial_strategy` · `prise_de_parole` · `workspace_diagnostic` · `financial_reference` · `commercial_quote` · `strategic_watch_analysis` · **`master_study`** (migration 076)
+
+> ⚠️ **Ajouter une valeur à cet enum casse le `typecheck`**, pas le build : quatre `Record` exhaustifs la réclament aussitôt — `document-display.tsx` (deux maps + le type `ReportDocumentType` + le Set `REPORT_DOCUMENT_TYPES`), `DocumentCard.tsx`, `DocumentMobileDetail.tsx` et `communication-result-documents.ts`. Les patcher fait partie de la migration, pas d'un suivi.
 
 `intelligence_provenance` (enum, ADR-0012 D-3) : `relational` · `human_verified` · `engine_researched` · `folio_legacy` · `inferred`
 
@@ -527,7 +537,20 @@ Utiliser EXCLUSIVEMENT les variables de couleurs du projet.
 | Historique des sessions | `docs/JOURNAL-SESSIONS.md` |
 | Audit de performance | `docs/audits/AUDIT-PERFORMANCE-KREDO.md` |
 | Workflows n8n (JSON + SETUP) | `n8n/workflows/` |
-| Étude sectorielle (process) | `docs/FEATURES/sector_intelligence/` |
+| **Production de la connaissance commerciale** | **`docs/MASTER-STUDY/`** — source unique |
+| Étude sectorielle (matière brute, archives) | `docs/FEATURES/sector_intelligence/` |
+
+> 🔴 **`docs/MASTER-STUDY/` fait autorité sur tout ce qui concerne la production de
+> connaissance commerciale** : taxonomie, corpus de sources, étude sectorielle, cartographie
+> concurrentielle, chaîne de valeur, gates et ingestion. Les documents de
+> `docs/FEATURES/sector_intelligence/` portent chacun un bandeau de statut — **PÉRIMÉ**,
+> **ARCHIVE** ou **NORMATIF DÉLÉGUÉ** — fixé par `docs/MASTER-STUDY/README.md` §5.
+> Ne jamais appliquer un document marqué PÉRIMÉ, quel que soit son air d'autorité.
+>
+> 🔴 **Le corpus a tourné une fois (13/08/2026) et le run est rejeté : trois défauts de
+> contrat bloquent tout run futur, sur n'importe quel segment.** Point de reprise autoportant,
+> à lire avant de relancer quoi que ce soit sur le sujet :
+> `docs/MASTER-STUDY/registre/ROADMAP-CORRECTIONS.md`.
 
 > ⚠️ **`docs/` a été réorganisé en août 2026 et la réorganisation n'est pas commitée.** Toute
 > référence à `docs/CONVENTIONS.md`, `docs/ARCHITECTURE.md`, `docs/design-systems/…` trouvée

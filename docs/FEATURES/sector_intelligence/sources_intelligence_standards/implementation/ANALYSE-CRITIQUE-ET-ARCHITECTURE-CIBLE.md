@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Audit du 13/08 du chantier sources & corpus : le bug `slice(0,40)`, les trois tables cibles, la résolution de provenance. ⚠️ Son §2.10 est faux : `ai_intelligence_results.company_id` est **nullable**, pas NOT NULL (vérifié live le 13/08).
+> **Référence à appliquer : `MASTER-STUDY/06-ETAPE-E3-CORPUS-DE-SOURCES.md` §6**
+
+---
+
 # Gestion des sources & corpus réutilisables — analyse critique, audit et architecture cible
 
 **Date :** 2026-08-13

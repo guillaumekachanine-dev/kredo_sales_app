@@ -33,6 +33,13 @@ function actor(id: string, benchmark = false): CompetitiveMapActor {
       triggers: [],
       lignesRouges: [],
       trous: [],
+      metierChaineValeur: null,
+      maillon: null,
+      contratsMajeurs: [],
+      grilles: [],
+      coucheEsn: [],
+      traductionCommerciale: [],
+      iaAnnonceVsDeploye: null,
     },
   }
 }

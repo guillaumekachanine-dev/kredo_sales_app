@@ -48,6 +48,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   financial_reference: "Référence financière",
   commercial_quote: "Devis commercial",
   strategic_watch_analysis: "Analyse stratégique de la veille",
+  master_study: "Master Study sectorielle",
 }
 
 const STATUS_LABELS: Record<DocumentDetail["status"], string> = {

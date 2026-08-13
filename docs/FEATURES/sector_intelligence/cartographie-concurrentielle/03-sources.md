@@ -1,3 +1,9 @@
+> 🔴 **PÉRIMÉ — ne plus appliquer** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Antérieur au standard sources v1.0, qu'il contredit sur la grille des tiers.
+> **Référence à appliquer : `MASTER-STUDY/06-ETAPE-E3-CORPUS-DE-SOURCES.md`**
+
+---
+
 # 03 — Référentiel de sources
 
 Ce référentiel est **sectoriellement neutre** : la colonne de droite indique comment l'adapter au secteur étudié. Les URL peuvent changer ; le nom de l'organisme et la nature de la donnée, non — c'est sur eux que repose la reproductibilité.

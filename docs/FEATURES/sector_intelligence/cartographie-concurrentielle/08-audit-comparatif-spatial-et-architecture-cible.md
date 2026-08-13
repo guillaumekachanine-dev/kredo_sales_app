@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Audit des études A et B : les 7 lacunes L1-L7, les 3 règles R1-R3, l'architecture en trois couches. Le raisonnement se lit ici ; la méthode s'applique dans le corpus.
+> **Référence à appliquer : `MASTER-STUDY/07-` et `08-ETAPE-…`**
+
+---
+
 # 08 — Audit comparatif des deux études « Spatial, défense & systèmes critiques » et architecture cible des prochaines cartographies
 
 Snapshot : 11/08/2026 · Objet : comparer les deux livrables produits sur le même périmètre, évaluer chaque section au regard de l'objectif réel (§ `00-analyse-et-recommandations.md`), et en déduire l'architecture des études suivantes.

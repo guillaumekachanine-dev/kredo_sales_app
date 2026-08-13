@@ -1,0 +1,106 @@
+{
+  "version": "1.0",
+  "date_snapshot": "2026-08-13",
+  "variante": "master",
+  "segment": {
+    "slug": "seg-aero-spatial-defense",
+    "nom": "Spatial, défense & systèmes critiques",
+    "sector_intelligence_id": "fdc0c713-795e-484e-b84a-9be738b230e9",
+    "macro_slug": "aeronautique-spatial-defense"
+  },
+  "definition_du_marche": "La conception, l'intégration et l'exploitation de systèmes spatiaux civils, militaires et duals — satellites, charges utiles, segments sol, communications sécurisées, PNT, ISR — et des systèmes critiques directement nécessaires à leur emploi opérationnel, par des entités disposant d'une autonomie de décision et d'achat en France. Sont visés les donneurs d'ordre industriels et opérateurs qui achètent de la prestation d'ingénierie logicielle, cyber, data et qualité sur le territoire français.",
+  "hors_champ": [
+    "Armements terrestres, navals et aéronautiques conventionnels sans composante spatiale ou système critique associé",
+    "Aéronautique civile commerciale (cellules, moteurs, MRO) — relève d'un autre segment du macro",
+    "Sites français pilotés intégralement depuis l'étranger, sans autonomie de décision ni d'achat locale",
+    "Agences et institutions publiques donneuses d'ordre (ESA, CNES, DGA, Commission européenne) : elles financent le marché, elles n'en sont pas des comptes cibles",
+    "Fournisseurs de composants EEE et de semi-conducteurs, traités comme dépendance de supply chain et non comme comptes"
+  ],
+  "geographie": "France entière (métropole + DROM)",
+  "compte_etalon": {
+    "nom": "Thalès Alénia Space",
+    "company_id": "19b4d3cb-80dc-45b4-b963-b9eb74c59e45",
+    "motif_du_choix": "Prospect du portefeuille, déjà classifié avec confiance haute, et compte étalon des deux études d'août 2026 (is_benchmark_account = true sur son competitive_map_entry). Le retenir est la condition pour que l'écart entre l'ancienne et la nouvelle méthode soit mesurable sur la même matière : c'est l'objet de ce run."
+  },
+  "quotas": {
+    "leaders": 3,
+    "challengers": 3,
+    "mid_market": 3,
+    "outsiders_emergents": 2,
+    "outsiders_niche": 3
+  },
+  "profondeur_historique_ans": 10,
+  "exercice_de_reference": "dernier exercice clos publié",
+  "objectif_commercial": "ouverture",
+  "offre_kredo": {
+    "practices": [
+      "cloud-engineering",
+      "cybersecurity",
+      "data-ai",
+      "digital-business-solutions",
+      "digital-experience",
+      "legacy-systems-mainframe",
+      "project-agile-delivery",
+      "quality-engineering-testing"
+    ],
+    "offers": [
+      "cloud-migration-application-modernization",
+      "cloud-operations-sre-observability",
+      "cloud-strategy-assessment-landing-zones",
+      "finops-greenops-cloud-optimization",
+      "platform-engineering-devops-kubernetes",
+      "application-security-devsecops-offensive-testing",
+      "cyber-strategy-grc-compliance",
+      "iam-pam-zero-trust",
+      "security-architecture-cloud-security",
+      "soc-detection-incident-response",
+      "ai-machine-learning-mlops",
+      "bi-analytics-decision-intelligence",
+      "data-ai-strategy-governance",
+      "data-platforms-engineering-dataops",
+      "generative-ai-rag-automation",
+      "application-management-productive-tma",
+      "application-modernization-legacy-refactoring",
+      "business-analysis-digital-process-design",
+      "connected-products-iot-embedded-software",
+      "custom-business-applications-b2b-portals",
+      "software-architecture-apis-integration",
+      "digital-product-management-optimization",
+      "mobile-applications-omnichannel-services",
+      "product-design-ui-design-systems",
+      "ux-research-service-design",
+      "web-experiences-portals-ecommerce",
+      "legacy-estate-assessment-risk-reduction",
+      "legacy-infrastructure-mco-expert-operations",
+      "legacy-modernization-knowledge-transfer",
+      "legacy-performance-reliability-major-incidents",
+      "mainframe-application-maintenance-evolution",
+      "agile-at-scale-release-coordination",
+      "agile-delivery-scrum-kanban",
+      "change-management-adoption",
+      "pmo-portfolio-transformation-governance",
+      "project-program-management",
+      "functional-api-integration-testing",
+      "mobile-accessibility-experience-quality",
+      "performance-reliability-resilience-testing",
+      "quality-strategy-test-governance",
+      "test-automation-continuous-quality"
+    ],
+    "lu_en_base_le": "2026-08-13"
+  },
+  "comptes_exclus": [
+    {
+      "nom": "Exail Robotics",
+      "motif": "client"
+    }
+  ],
+  "compte_pivot": null,
+  "run_precedent": null,
+  "ce_que_j_en_ferai": "Éprouver les contrats du corpus MASTER-STUDY contre de la matière réelle et déjà produite, et faire basculer la connaissance du macro vers le segment seg-aero-spatial-defense — le premier des 38 segments à en porter.",
+  "compteurs": {
+    "hors_champ": 5,
+    "practices": 8,
+    "offers": 41,
+    "comptes_exclus": 1
+  }
+}

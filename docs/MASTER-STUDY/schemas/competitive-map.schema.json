@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kredo/master-study/competitive-map.schema.json",
+  "title": "E5 / V1 / V2 / V3 — Cartographie concurrentielle et fiches comptes",
+  "description": "CONTRAT NORMATIF = src/features/competitive-map/domain/competitive-map-output.ts. Ce schema le documente ; en cas de divergence, le parseur gagne et ce fichier est corrige.",
+  "type": "object",
+  "required": ["meta", "comptes", "transverse", "compteurs"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["secteur", "segment", "date_snapshot", "version"],
+      "properties": {
+        "secteur": { "type": "string" },
+        "segment": { "type": "string",
+          "description": "Libelle brut. JAMAIS resolu automatiquement en slug — aucune creation de segment (REFERENTIEL §9)." },
+        "geographie": { "type": "string" },
+        "date_snapshot": { "type": "string",
+          "description": "ISO AAAA-MM-JJ. Le parseur convertit aussi JJ/MM/AAAA." },
+        "compte_etalon": { "type": ["string", "null"] },
+        "auteur": { "type": "string" },
+        "version": { "type": "string" },
+        "variante": { "enum": ["master", "tier", "compte_unique", "trimestriel"], "default": "master" },
+        "compte_pivot": { "type": ["string", "null"], "description": "Obligatoire si variante = tier | compte_unique" },
+        "run_precedent": { "type": ["string", "null"], "description": "Obligatoire si variante = trimestriel" }
+      }
+    },
+    "comptes": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["nom", "categorie", "justification_categorie", "perimetre_ca",
+                     "appetence", "angle_entree", "confiance", "sources"],
+        "properties": {
+          "nom": { "type": "string" },
+          "identifiant_national": { "type": ["string", "null"],
+            "description": "RECU DU SOCLE (E2). Le modele ne le produit JAMAIS. Absent => resolution par denomination, ce n'est pas un prerequis." },
+          "code_activite": { "type": ["string", "null"], "description": "RECU DU SOCLE" },
+          "convention_collective": { "type": ["string", "null"], "description": "RECU DU SOCLE" },
+          "effectif_france": { "type": ["integer", "null"], "description": "RECU DU SOCLE" },
+          "groupe": { "type": ["string", "null"] },
+          "branche_retenue": { "type": ["string", "null"] },
+          "categorie": { "enum": ["leader", "challenger", "mid_market", "outsider_emergent", "outsider_niche"],
+            "description": "Le parseur normalise aussi les variantes a tirets (mid-market)" },
+          "justification_categorie": { "type": "string", "minLength": 20,
+            "description": "Obligatoire : une segmentation dont la regle est cachee n'est pas reproductible" },
+          "critere_substitution": { "type": ["string", "null"],
+            "description": "A renseigner quand la part relative n'etait pas calculable" },
+          "ca_meur": { "type": ["number", "null"] },
+          "exercice": { "type": ["integer", "null"] },
+          "perimetre_ca": { "type": "string",
+            "description": "branche France | societe France | branche monde | non publie — AXIOME A3" },
+          "rayon": { "enum": ["regional", "national", "international"] },
+          "empreinte_metier": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+          "maturite_numerique": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+          "reputation": { "enum": ["forte", "correcte", "fragilisee"] },
+          "appetence": {
+            "type": "object",
+            "required": ["capacite_a_payer", "intensite_it", "moment", "accessibilite", "fit_offre", "total"],
+            "description": "Notes en 1/3/5 UNIQUEMENT. total = c + i + 2*m + 2*a + f, sur 35.",
+            "properties": {
+              "capacite_a_payer": { "type": ["integer", "null"], "enum": [1, 3, 5, null] },
+              "intensite_it": { "type": ["integer", "null"], "enum": [1, 3, 5, null] },
+              "moment": { "type": ["integer", "null"], "enum": [1, 3, 5, null] },
+              "accessibilite": { "type": ["integer", "null"], "enum": [1, 3, 5, null] },
+              "fit_offre": { "type": ["integer", "null"], "enum": [1, 3, 5, null] },
+              "total": { "type": ["integer", "null"], "minimum": 5, "maximum": 35 },
+              "preuves": { "type": "object", "description": "Une preuve par composante" }
+            }
+          },
+          "accessibilite": { "type": ["integer", "null"], "enum": [1, 3, 5, null],
+            "description": "Axe Y de la carte de priorisation (C2b). JAMAIS de valeur de remplacement : null => non positionne." },
+          "trigger_events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["date", "fait", "source"],
+              "properties": {
+                "date": { "type": "string", "description": "Date au MOIS minimum" },
+                "fait": { "type": "string" },
+                "source": { "type": "string", "format": "uri" }
+              }
+            }
+          },
+          "profil_compte": {
+            "type": "object",
+            "description": "Blocs B2 a B5. AUCUN chiffre source ici (ADR-0019 D-4) : CA et effectif vont dans account_facts. /!\\ DEFAUT OUVERT AU 13/08/2026 (roadmap A4) : le parseur normatif competitive-map-output.ts ne lit AUCUNE des cles ci-dessous. Il ne projette que proposition_valeur, modele_economique, a_ne_pas_dire, dependances_cles, differenciateurs, priorites_strategiques, chantiers_technologiques, chaine_valeur, trigger_events, trous, sources. Tout ce bloc est donc PERDU SILENCIEUSEMENT a l ingestion — les competitive_map_entries du Spatial pesent 40 a 73 octets. Ne pas produire de couche ESN pour import tant que registre/ROADMAP-CORRECTIONS.md A4 n est pas fait.",
+            "properties": {
+              "metier_chaine_valeur": { "type": "string" },
+              "maillon": { "type": "string" },
+              "contrats_majeurs": { "type": "array", "items": { "type": "object" } },
+              "grilles": {
+                "type": "object",
+                "properties": {
+                  "financiere": { "type": "string" },
+                  "empreinte": { "type": "string" },
+                  "reputation": { "type": "string" },
+                  "innovation": { "type": "string" },
+                  "ia_annonce_vs_deploye": { "type": "string", "minLength": 30,
+                    "description": "OBLIGATOIRE sur TOUS les comptes. Seule case vide des deux etudes auditees, et la plus differenciante." },
+                  "avantages": { "type": "string" },
+                  "vulnerabilite_principale": { "type": "string" },
+                  "trajectoire": { "type": "string" }
+                },
+                "required": ["ia_annonce_vs_deploye"]
+              },
+              "couche_esn": {
+                "type": "object",
+                "description": "OBLIGATOIRE, jamais 'non verifie' sur un compte prioritaire",
+                "required": ["voie_entree_probable"],
+                "properties": {
+                  "organisation_si": { "type": "string" },
+                  "decideur_si": { "type": "string", "description": "Fonction publique uniquement" },
+                  "modele_achat": { "type": "string" },
+                  "modele_achat_statut": { "enum": ["verifie", "hypothese_qualifiee"] },
+                  "conditions_acces": { "type": "string",
+                    "description": "Habilitation, nationalite, zone protegee. 'aucune identifiee' si le secteur n'en a pas." },
+                  "esn_en_place": { "type": "array", "items": { "type": "string" } },
+                  "chantiers_observes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["chantier", "preuve", "date"],
+                      "properties": {
+                        "chantier": { "type": "string" },
+                        "preuve": { "enum": ["offre_emploi", "communique", "marche", "reference_editeur", "conference"] },
+                        "date": { "type": "string" },
+                        "source": { "type": "string" },
+                        "practice_kredo": { "type": ["string", "null"] }
+                      }
+                    }
+                  },
+                  "voie_entree_probable": { "type": "string", "minLength": 20 }
+                }
+              },
+              "traduction_commerciale": {
+                "type": "object",
+                "required": ["angle", "accroches", "a_ne_pas_dire"],
+                "properties": {
+                  "angle": { "type": "string" },
+                  "accroches": { "type": "array", "minItems": 2, "items": { "type": "string" } },
+                  "a_ne_pas_dire": { "type": "string" }
+                }
+              }
+            }
+          },
+          "angle_entree": { "type": "string" },
+          "a_ne_pas_dire": { "type": ["string", "null"] },
+          "confiance": { "enum": ["haute", "moyenne", "faible"],
+            "description": "Domaine canonique KREDO. 'elevee' est tolere a l'import et normalise, ne plus le produire." },
+          "trous": { "type": "array", "items": { "type": "string" } },
+          "sources": {
+            "type": "array", "minItems": 2,
+            "description": "PLANCHER DE PREUVE : 2 sources independantes dont une T1/T2",
+            "items": {
+              "type": "object",
+              "required": ["url", "atteste", "tier"],
+              "properties": {
+                "url": { "type": "string", "format": "uri" },
+                "atteste": { "type": "string" },
+                "tier": { "type": "integer", "minimum": 1, "maximum": 4 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "reserve_a_qualifier": {
+      "type": "array",
+      "description": "Comptes sous plancher de preuve. Hors carte, hors tableau, hors top 3.",
+      "items": {
+        "type": "object",
+        "required": ["nom", "ce_qui_manque"],
+        "properties": {
+          "nom": { "type": "string" },
+          "ce_qui_manque": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "acteurs_ecartes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nom", "motif"],
+        "properties": {
+          "nom": { "type": "string" },
+          "motif": { "type": "string",
+            "description": "Le bon motif est l'absence d'autonomie d'achat France, pas la taille" }
+        }
+      }
+    },
+    "concurrents_directs": {
+      "type": "array",
+      "description": "V2 uniquement — la demi-page qui credibilise le discours en rendez-vous",
+      "items": {
+        "type": "object",
+        "required": ["nom", "fait_mieux", "a_industrialise", "menace"],
+        "properties": {
+          "nom": { "type": "string" },
+          "fait_mieux": { "type": "string" },
+          "a_industrialise": { "type": "string" },
+          "menace": { "type": "string" }
+        }
+      }
+    },
+    "transverse": {
+      "type": "object",
+      "required": ["comptes_prioritaires", "comptes_a_ecarter", "message_sectoriel"],
+      "properties": {
+        "comptes_prioritaires": { "type": "array", "maxItems": 3, "items": { "type": "string" } },
+        "justification_ecart_top3": { "type": ["string", "null"],
+          "description": "OBLIGATOIRE si le top 3 differe des 3 premiers du tri par appetence (AXIOME A6)" },
+        "comptes_a_ecarter": { "type": "array", "maxItems": 3, "items": { "type": "string" } },
+        "message_sectoriel": { "type": "string",
+          "description": "Repris de 04-secteur.json, jamais reinvente" },
+        "enjeux_communs": { "type": "array", "items": { "type": "string" } },
+        "enjeux_par_segment": { "type": "object" },
+        "segmentation_critere": { "type": "string" }
+      }
+    },
+    "compteurs": {
+      "type": "object",
+      "required": ["comptes", "comptes_prioritaires", "comptes_prioritaires_couche_esn_complete"],
+      "description": "INVARIANT A9 + metrique de la couche ESN (doit valoir 100 %)",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

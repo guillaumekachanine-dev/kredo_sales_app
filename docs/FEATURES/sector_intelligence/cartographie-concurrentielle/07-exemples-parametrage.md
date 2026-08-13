@@ -1,3 +1,9 @@
+> 🔴 **PÉRIMÉ — ne plus appliquer** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Absorbé par le formulaire de cadrage, qui lit l'offre KREDO en base au lieu de la saisir.
+> **Référence à appliquer : `MASTER-STUDY/prompts/E0-cadrage.md`**
+
+---
+
 # 07 — Exemples de paramétrage
 
 Trois secteurs très différents, pour démontrer que le prompt tient sans modification de sa structure. **Seul le bloc A change.** Les blocs B (mission) restent strictement identiques.

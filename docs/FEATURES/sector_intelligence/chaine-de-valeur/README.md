@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Le modèle, les contraintes SQL et la procédure de régénération restent exacts et sont repris dans le corpus.
+> **Référence à appliquer : `MASTER-STUDY/09-ETAPE-E6-CHAINE-DE-VALEUR.md`**
+
+---
+
 # Chaînes de valeur sectorielles
 
 Pilote **BTP** livré le 09/08/2026. Modélisation additive en base Supabase, générateur SVG autonome.

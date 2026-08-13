@@ -2,7 +2,7 @@
 """
 audit_fiche.py — Gate 3 mécanique d'une étude sectorielle KREDO.
 
-Note la moitié objective de la grille de docs/PROCESS-ETUDE-SECTORIELLE.md §10
+Note la moitié objective de la grille de docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md §10
 sur un brouillon JSON, AVANT injection en base.
 
 Pourquoi ce script existe : l'agent qui vient de produire une fiche est le plus
@@ -124,7 +124,7 @@ def find_desaccented(text):
     # officiel comme cyber.gouv.fr/reglementation/... contient légitimement le
     # marqueur "reglementation" sans que ce soit de la désaccentuation défensive.
     # Découvert en produisant transport-mobilite-regionale (2026-07-29) — voir
-    # docs/PROCESS-ETUDE-SECTORIELLE.md §13 dette #13.
+    # docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md §13 dette #13.
     if text.strip().lower().startswith("http"):
         return []
     return sorted({m.group(0).lower() for m in DESACCENT_RE.finditer(text)})
@@ -494,7 +494,7 @@ def print_report(rep, draft):
     w = 78
     print("=" * w)
     print(f" AUDIT — {draft.get('secteur', '(secteur non nommé)')}  [{draft.get('slug', '?')}]")
-    print(f" Grille : docs/PROCESS-ETUDE-SECTORIELLE.md §10")
+    print(f" Grille : docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md §10")
     print("=" * w)
 
     current_axis = None
@@ -565,7 +565,7 @@ def _wrap(text, width):
 
 
 SCHEMA = """\
-Format d'entrée — miroir de docs/PROCESS-ETUDE-SECTORIELLE.md §6.1 (JSON).
+Format d'entrée — miroir de docs/FEATURES/sector_intelligence/_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md §6.1 (JSON).
 Le document fait autorité : en cas d'écart, c'est lui qui a raison.
 
 {

@@ -1,3 +1,9 @@
+> 🔴 **PÉRIMÉ — ne plus appliquer** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Remplacé par un prompt intégrant les trois correctifs du document 09 (auto-notation, OFFRE_ESN lu en base, accessibilité) et le durcissement du format de sortie.
+> **Référence à appliquer : `MASTER-STUDY/prompts/E3-corpus-sources.md`**
+
+---
+
 # 03 — Prompt canonique : établir le référentiel de sources d'un secteur
 
 Copier-coller ce prompt dans un modèle disposant d'un accès web. Il est autonome : aucun historique KREDO n'est nécessaire.

@@ -286,7 +286,13 @@ function parseAppetence(raw: unknown): CompetitiveMapAppetence | null {
  * listes, un objet libre. Rien de chiffré et sourcé n'entre ici — CA et
  * effectif vont dans `account_facts` (ADR-0019 D-4).
  */
-const PROFILE_TEXT_KEYS = ["proposition_valeur", "modele_economique", "a_ne_pas_dire"] as const
+const PROFILE_TEXT_KEYS = [
+  "proposition_valeur",
+  "modele_economique",
+  "a_ne_pas_dire",
+  "metier_chaine_valeur",
+  "maillon",
+] as const
 const PROFILE_LIST_KEYS = [
   "dependances_cles",
   "differenciateurs",
@@ -295,8 +301,14 @@ const PROFILE_LIST_KEYS = [
   "trigger_events",
   "trous",
   "sources",
+  "contrats_majeurs",
 ] as const
-const PROFILE_OBJECT_KEYS = ["chaine_valeur"] as const
+const PROFILE_OBJECT_KEYS = [
+  "chaine_valeur",
+  "grilles",
+  "couche_esn",
+  "traduction_commerciale",
+] as const
 
 /**
  * Le bloc `profil_compte` est optionnel et récent ; les études V1 portent déjà

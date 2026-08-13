@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Process v1 de la fiche sectorielle et sa grille /100. ⚠️ Deux skills de `.agents/skills/` le déclarent encore comme leur autorité, sur le chemin `docs/PROCESS-ETUDE-SECTORIELLE.md` — qui n'existe plus depuis la réorganisation d'août.
+> **Référence à appliquer : `MASTER-STUDY/07-ETAPE-E4-ETUDE-SECTORIELLE.md` + `10-ETAPE-E7-…`**
+
+---
+
 # KREDO — Processus de réalisation d'une étude sectorielle
 
 > **Document de référence.** Il définit ce qu'est une étude sectorielle KREDO, comment on la produit, ce qu'elle doit contenir, et comment on juge qu'elle est bonne.

@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kredo/master-study/sector-knowledge.schema.json",
+  "title": "E4 — Connaissance sectorielle (couche COMPRENDRE)",
+  "type": "object",
+  "required": ["meta", "perimetre", "theses", "message_sectoriel", "marche",
+               "modeles_economiques", "maillons", "regulation", "playbook",
+               "sources", "compteurs"],
+  "$defs": {
+    "srcIds": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "minItems": 1,
+      "description": "Renvoie a sources[].src_id. Tout chiffre porte au moins une source." },
+    "donc": { "type": "string", "minLength": 20,
+      "description": "AXIOME A12 — DONC, commercialement. Sans lui le bloc ne passe pas." }
+  },
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["segment_slug", "date_snapshot", "acces_web", "confiance_plafond", "version"],
+      "properties": {
+        "segment_slug": { "type": "string" },
+        "macro_slug": { "type": "string" },
+        "date_snapshot": { "type": "string", "format": "date" },
+        "acces_web": { "enum": ["complet", "recherche_seule"],
+          "description": "AUCUN => l'etude n'est pas produite" },
+        "confiance_plafond": { "enum": ["haute", "moyenne", "faible"],
+          "description": "recherche_seule => plafonne a moyenne, aucune donnee T1" },
+        "auteur": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "perimetre": {
+      "type": "object",
+      "required": ["definition", "hors_champ", "regle_comparabilite"],
+      "properties": {
+        "definition": { "type": "string" },
+        "hors_champ": { "type": "array", "items": { "type": "string" } },
+        "regle_comparabilite": { "type": "string" }
+      }
+    },
+    "theses": {
+      "type": "array", "minItems": 3, "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["id", "these", "src_ids", "donc_commercialement"],
+        "properties": {
+          "id": { "type": "integer" },
+          "these": { "type": "string", "minLength": 40,
+            "description": "Une affirmation qui pourrait etre fausse et qu'on peut defendre" },
+          "src_ids": { "$ref": "#/$defs/srcIds" },
+          "donc_commercialement": { "$ref": "#/$defs/donc" }
+        }
+      }
+    },
+    "message_sectoriel": { "type": "string", "minLength": 40,
+      "description": "Test : une ESN generaliste ne doit PAS pouvoir la prononcer" },
+    "incertitudes": { "type": "array", "items": { "type": "string" }, "minItems": 3 },
+    "marche": {
+      "type": "object",
+      "required": ["perimetre", "src_ids"],
+      "properties": {
+        "taille_eur_bn": { "type": ["number", "null"] },
+        "croissance_pct": { "type": ["number", "null"] },
+        "perimetre": { "type": "string", "description": "France | UE | monde — obligatoire (axiome A3)" },
+        "exercice": { "type": ["integer", "null"] },
+        "src_ids": { "$ref": "#/$defs/srcIds" }
+      }
+    },
+    "blocs_clients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nom", "qui_finance", "cycle_budgetaire", "src_ids"],
+        "properties": {
+          "nom": { "type": "string" },
+          "qui_finance": { "type": "string" },
+          "cycle_budgetaire": { "type": "string" },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "modeles_economiques": {
+      "type": "array", "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["nom", "description", "qui_signe", "implication_achat_prestation", "src_ids"],
+        "properties": {
+          "nom": { "type": "string" },
+          "description": { "type": "string" },
+          "qui_signe": { "type": "string" },
+          "quand_le_budget_est_engage": { "type": "string" },
+          "implication_achat_prestation": { "type": "string", "minLength": 30,
+            "description": "CONVERSION 1 — obligatoire" },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "maillons": {
+      "type": "array", "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["rang", "nom", "contenu", "ou_lesn_se_branche", "src_ids"],
+        "properties": {
+          "rang": { "type": "integer" },
+          "nom": { "type": "string" },
+          "contenu": { "type": "string" },
+          "acteurs_types": { "type": "array", "items": { "type": "string" } },
+          "position_compte_etalon": { "type": ["string", "null"] },
+          "ou_lesn_se_branche": { "type": "string", "minLength": 20,
+            "description": "CONVERSION 2 — obligatoire" },
+          "qui_y_est_deja": { "type": "array", "items": { "type": "string" },
+            "description": "Amorce du bloc C6 — ESN deja en place" },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "fronts_technologiques": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nom", "etat", "zone_de_transition", "src_ids"],
+        "properties": {
+          "nom": { "type": "string" },
+          "etat": { "type": "string" },
+          "zone_de_transition": { "type": "boolean",
+            "description": "true = le secteur y est en transition, donc en besoin" },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "dependances_critiques": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nom", "criticite", "risque", "prestation_ouverte", "practice_kredo", "src_ids"],
+        "properties": {
+          "nom": { "type": "string" },
+          "criticite": { "enum": ["haute", "moyenne", "faible"] },
+          "situation": { "type": "string" },
+          "risque": { "type": "string" },
+          "prestation_ouverte": { "type": "string", "description": "CONVERSION 3 — obligatoire" },
+          "practice_kredo": { "type": "string",
+            "description": "slug issu de offer_practices. Aucune practice inventee." },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "regulation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["libelle", "statut", "authority", "source_url", "commercial_angle"],
+        "properties": {
+          "reg_item_id": { "type": ["string", "null"],
+            "description": "Renseigne quand l'item vient de sector_regulatory_items (E2)" },
+          "libelle": { "type": "string" },
+          "statut": { "enum": ["acquis", "proposition"],
+            "description": "Distinction obligatoire — nuance decisive face a un DSI" },
+          "deadline_date": { "type": ["string", "null"],
+            "description": "RECU DE E2. Jamais date par le modele." },
+          "authority": { "type": "string" },
+          "source_url": { "type": "string", "format": "uri" },
+          "commercial_angle": { "type": "string" },
+          "kredo_practice": { "type": ["string", "null"] },
+          "portee": { "enum": ["segment", "macro"], "default": "segment" }
+        }
+      }
+    },
+    "chronologie": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "fait", "src_ids"],
+        "properties": {
+          "date": { "type": "string" },
+          "fait": { "type": "string" },
+          "portee": { "type": "string" },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "risques_opportunites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["risque", "opportunite", "src_ids"],
+        "properties": {
+          "risque": { "type": "string" },
+          "opportunite": { "type": "string" },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "pain_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["libelle", "frequency_count", "acteurs_nommes", "src_ids"],
+        "properties": {
+          "libelle": { "type": "string" },
+          "frequency_count": { "type": "integer", "minimum": 1 },
+          "acteurs_nommes": { "type": "array", "items": { "type": "string" }, "minItems": 1,
+            "description": "Une frequence est un COMPTAGE : len(acteurs_nommes) == frequency_count" },
+          "source_company_ids": { "type": "array", "items": { "type": "string" },
+            "description": "NOT NULL en base — la preuve verifiable de la frequence" },
+          "src_ids": { "$ref": "#/$defs/srcIds" }
+        }
+      }
+    },
+    "playbook": {
+      "type": "object",
+      "required": ["personas", "objections", "entry_points", "roi_arguments"],
+      "description": "Fusionne CLE PAR CLE en base, jamais le blob (migration 071)",
+      "properties": {
+        "personas": { "type": "array", "items": { "type": "object" } },
+        "objections": { "type": "array", "items": { "type": "object" } },
+        "entry_points": { "type": "array", "items": { "type": "object" } },
+        "roi_arguments": { "type": "array", "items": { "type": "object" },
+          "description": "Chaque argument porte sa source DANS sa phrase" },
+        "market_thesis": { "type": "array", "items": { "type": "object" } },
+        "economic_models": { "type": "array", "items": { "type": "object" } },
+        "tech_fronts": { "type": "array", "items": { "type": "object" } },
+        "risks": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "budgets_18_36_mois": {
+      "type": "array",
+      "description": "CONVERSION 4 — trajectoires du secteur RETOURNEES en familles de budget",
+      "items": {
+        "type": "object",
+        "required": ["trajectoire", "famille_de_budget"],
+        "properties": {
+          "trajectoire": { "type": "string" },
+          "famille_de_budget": { "type": "string" },
+          "offer_slug": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "sources": {
+      "type": "array", "minItems": 25,
+      "items": {
+        "type": "object",
+        "required": ["src_id", "publisher", "url", "tier", "atteste", "consulted_at"],
+        "properties": {
+          "src_id": { "type": "integer", "minimum": 1 },
+          "publisher": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "tier": { "type": "integer", "minimum": 1, "maximum": 4 },
+          "atteste": { "type": "string" },
+          "consulted_at": { "type": "string", "format": "date" },
+          "corroboration_de": { "type": ["integer", "null"] }
+        }
+      }
+    },
+    "trous": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rubrique", "motif", "recherche_effectuee"],
+        "properties": {
+          "rubrique": { "type": "string" },
+          "motif": { "type": "string" },
+          "recherche_effectuee": { "type": "string" }
+        }
+      }
+    },
+    "compteurs": {
+      "type": "object",
+      "required": ["theses", "modeles_economiques", "maillons", "sources"],
+      "description": "INVARIANT A9 : chaque compteur == len(sa liste). Verifie par G1.",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

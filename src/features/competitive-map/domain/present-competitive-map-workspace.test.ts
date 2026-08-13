@@ -31,6 +31,8 @@ const baseEntry: CompetitiveMapWorkspaceEntryRow = {
     chaine_valeur: { amont: "Conception", aval: "Opérations" },
     trigger_events: [{ date: "2026-06", fait: "Nouveau programme", source: "ESA" }],
     trous: ["Panel fournisseurs"],
+    grilles: { ia_annonce_vs_deploye: "Discours IA fort, 0 déploiement" },
+    couche_esn: { voie_entree_probable: "Auditer la maturité IA" },
   },
   companies: { id: "company-a", name: "Orbite SA" },
 }
@@ -83,6 +85,8 @@ describe("competitive map workspace presenter", () => {
         differenciateurs: ["Souveraineté", "Multi-orbite"],
         triggers: ["2026-06 · Nouveau programme · ESA"],
         trous: ["Panel fournisseurs"],
+        iaAnnonceVsDeploye: "Discours IA fort, 0 déploiement",
+        coucheEsn: ["Voie entree probable : Auditer la maturité IA"],
       },
     })
     expect(snapshot.actors[1]).toMatchObject({ accessibilityScore: null, isPositioned: false })

@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Porte le diagnostic décisif — « le schéma n'est pas le problème, la chaîne l'est » — la subsidiarité des sources et les trois gates. Ses lots 0 à 2 ont été livrés depuis (12-13/08).
+> **Référence à appliquer : `MASTER-STUDY/00-DOCTRINE.md` §2 + `10-ETAPE-E7-…`**
+
+---
+
 # 09 — Méthode ultime des études KREDO : diagnostic, recommandations et plan de finalisation
 
 Snapshot : 11/08/2026 · Fait suite au `08-audit-comparatif-spatial-et-architecture-cible.md`

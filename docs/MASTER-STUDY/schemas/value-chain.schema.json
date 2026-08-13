@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kredo/master-study/value-chain.schema.json",
+  "title": "E6 — Chaine de valeur sectorielle",
+  "type": "object",
+  "required": ["meta", "noeuds", "acteurs", "liens", "compteurs"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["sector_slug", "level", "date_snapshot", "confiance_globale"],
+      "properties": {
+        "sector_slug": { "type": "string" },
+        "level": { "const": "macro",
+          "description": "sector_id designe le SUJET de la chaine, jamais l'appartenance de ses acteurs" },
+        "date_snapshot": { "type": "string" },
+        "confiance_globale": { "enum": ["haute", "moyenne", "faible"] },
+        "etude_concurrentielle_source": { "type": "string",
+          "description": "REGLE ANTI-POSTER : pas de chaine sans etude concurrentielle prealable" }
+      }
+    },
+    "noeuds": {
+      "type": "array", "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["couche", "nom", "description", "maillons_cles",
+                     "dependances_critiques", "points_vulnerabilite", "confiance"],
+        "properties": {
+          "couche": { "enum": ["chaine", "prescripteur", "financeur", "technologie"] },
+          "maillon": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+          "rang": { "type": ["integer", "null"], "minimum": 1, "maximum": 3 },
+          "nom": { "type": "string" },
+          "description": { "type": "string" },
+          "maillons_cles": { "type": "string", "description": "Ce qui se joue vraiment ici" },
+          "dependances_critiques": { "type": "string" },
+          "points_vulnerabilite": { "type": "string" },
+          "capture_valeur": { "type": ["string", "null"], "enum": ["forte", "moyenne", "faible", null] },
+          "capture_justification": { "type": ["string", "null"],
+            "description": "CONTRAINTE SQL : NOT NULL des que capture_valeur est renseigne" },
+          "capture_source": { "type": ["string", "null"],
+            "description": "Marge publiee et sourcee. A defaut, confiance = faible." },
+          "confiance": { "enum": ["haute", "moyenne", "faible"] }
+        }
+      }
+    },
+    "acteurs": {
+      "type": "array", "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["node_nom", "nom", "relation", "confiance"],
+        "description": "CONTRAINTE SQL : company_id NOT NULL OU source NOT NULL",
+        "properties": {
+          "node_nom": { "type": "string" },
+          "nom": { "type": "string" },
+          "company_id": { "type": ["string", "null"] },
+          "source": { "type": ["string", "null"],
+            "description": "Obligatoire si company_id est null. build.py refuse de construire sans." },
+          "relation": { "enum": ["client", "prospect", "pair_partenaire", "hors_portefeuille"] },
+          "macro_origine": { "type": ["string", "null"],
+            "description": "Le macro-secteur de rattachement du compte KREDO. Un ecart avec meta.sector_slug est la decouverte que cette etape produit." },
+          "confiance": { "enum": ["haute", "moyenne", "faible"] }
+        }
+      }
+    },
+    "liens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["node_amont", "node_aval", "nature", "intensite"],
+        "properties": {
+          "node_amont": { "type": "string" },
+          "node_aval": { "type": "string" },
+          "nature": { "enum": ["fournit", "prescrit", "finance", "outille"] },
+          "intensite": { "type": "integer", "minimum": 1, "maximum": 3 }
+        }
+      }
+    },
+    "lecture": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "description": "Trois observations qui sortent des donnees SANS interpretation",
+      "items": { "type": "string" }
+    },
+    "prospection_deduite": {
+      "type": "array",
+      "description": "Trie par couverture croissante des maillons",
+      "items": {
+        "type": "object",
+        "required": ["priorite", "maillon", "couverture", "ce_qui_manque"],
+        "properties": {
+          "priorite": { "type": "integer" },
+          "maillon": { "type": "string" },
+          "couverture": { "type": "string", "description": "ex. 3 / 16" },
+          "ce_qui_manque": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "compteurs": {
+      "type": "object",
+      "required": ["noeuds", "acteurs", "acteurs_hors_kredo", "acteurs_hors_kredo_sources", "liens"],
+      "description": "INVARIANT : acteurs_hors_kredo == acteurs_hors_kredo_sources. Verifie par build.py et rejoue par G1.",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

@@ -45,15 +45,22 @@ function ActorProfile({ actor, selected, onSelect }: { actor: CompetitiveMapActo
       </button>
 
       <div className="mt-5 grid gap-x-6 gap-y-5 px-4 md:grid-cols-2 xl:grid-cols-3">
+        <DetailBlock title="Couche ESN" items={actor.details.coucheEsn} />
+        <DetailBlock title="IA (Annoncé vs Déployé)" value={actor.details.iaAnnonceVsDeploye} />
         <DetailBlock title="Positionnement" value={actor.positioning} />
+        <DetailBlock title="Angle d’entrée" value={actor.angleEntree} />
         <DetailBlock title="Proposition de valeur" value={actor.details.propositionValeur} />
         <DetailBlock title="Différenciateurs" items={actor.details.differenciateurs} />
+        <DetailBlock title="Métier & chaîne de valeur" value={actor.details.metierChaineValeur} />
+        <DetailBlock title="Maillon" value={actor.details.maillon} />
+        <DetailBlock title="Contrats majeurs" items={actor.details.contratsMajeurs} />
         <DetailBlock title="Dépendances" items={actor.details.dependances} />
         <DetailBlock title="Chaîne de valeur" items={actor.details.chaineValeur} />
         <DetailBlock title="Forces" value={actor.forces} />
         <DetailBlock title="Vulnérabilité" value={actor.vulnerability} />
         <DetailBlock title="Chantiers technologiques" items={actor.details.chantiersTechnologiques} />
-        <DetailBlock title="Angle d’entrée" value={actor.angleEntree} />
+        <DetailBlock title="Les grilles" items={actor.details.grilles} />
+        <DetailBlock title="Traduction commerciale" items={actor.details.traductionCommerciale} />
         <DetailBlock title="Triggers" items={actor.details.triggers} />
         <DetailBlock title="Lignes rouges" items={actor.details.lignesRouges} tone="warning" />
         <DetailBlock title="Trous déclarés" items={actor.details.trous} tone="warning" />

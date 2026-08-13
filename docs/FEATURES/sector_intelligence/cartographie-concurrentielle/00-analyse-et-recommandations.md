@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Conserve l'intention profonde — les quatre questions du directeur commercial — et les 12 améliorations. C'est le meilleur document pour comprendre POURQUOI la méthode est ce qu'elle est.
+> **Référence à appliquer : `MASTER-STUDY/00-DOCTRINE.md` §1**
+
+---
+
 # 00 — Analyse de l'intention et recommandations
 
 ## 1. Ce que le prompt d'origine demande, et ce qu'il cherche réellement

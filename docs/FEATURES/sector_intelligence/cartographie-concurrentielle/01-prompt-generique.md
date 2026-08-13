@@ -1,3 +1,9 @@
+> 🔴 **PÉRIMÉ — ne plus appliquer** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Prompt v1.1 monolithique : il fait produire par un LLM ce que l'étape E2 obtient déterministiquement (SIREN, NAF, IDCC), et la réécriture prévue par le document 09 (« Lot 6 ») n'a jamais eu lieu.
+> **Référence à appliquer : `MASTER-STUDY/prompts/E4-etude-sectorielle.md` + `prompts/E5-cartographie-comptes.md`**
+
+---
+
 # 01 — Le prompt générique
 
 **Version 1.1** — intègre les 8 correctifs issus du premier run réel (secteur BTP / grands travaux, 08/08/2026). Détail dans `etudes/2026-08-btp-travaux-publics/retour-de-test.md`.

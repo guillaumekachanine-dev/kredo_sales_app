@@ -1,3 +1,9 @@
+> 🔴 **PÉRIMÉ — ne plus appliquer** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Scorecard administrée par le producteur lui-même — le défaut E1 diagnostiqué par le document 09. Remplacée par G0/G1/G2/G3, dont deux hors du contexte de production.
+> **Référence à appliquer : `MASTER-STUDY/10-ETAPE-E7-GATES-ET-INGESTION.md`**
+
+---
+
 # 04 — Contrôle et validation de l'information
 
 Le mode d'échec de ce type d'étude n'est pas l'erreur visible : c'est **l'erreur plausible**. Un CA arrondi au mauvais périmètre, un contrat attribué à la mauvaise filiale, une échéance réglementaire décalée d'un an — rien de tout cela ne se voit à la lecture, et tout cela se voit immédiatement en rendez-vous, en face d'un interlocuteur qui connaît son marché.

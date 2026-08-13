@@ -1,3 +1,9 @@
+> 🔴 **PÉRIMÉ — ne plus appliquer** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Gabarits markdown. Le livrable est désormais un JSON validé, et le markdown en est une vue générée (axiome A9).
+> **Référence à appliquer : `MASTER-STUDY/schemas/`**
+
+---
+
 # 05 — Gabarits de livrables
 
 ---

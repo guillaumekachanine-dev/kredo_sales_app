@@ -311,6 +311,59 @@ describe("parseCompetitiveMapOutput — extension Lot 1 (BI environnement concur
     expect(profil).not.toHaveProperty("trous_supplementaires")
   })
 
+  it("extrait l'intégralité des 6 blocs V1.1 de profil_compte (couche ESN, grilles, traduction commerciale...)", () => {
+    const result = parseCompetitiveMapOutput(
+      btpFixture({
+        comptes: [
+          {
+            nom: "Airbus Defence and Space",
+            categorie: "leader",
+            confiance: "haute",
+            profil_compte: {
+              metier_chaine_valeur: "Constructeur & intégrateur spatial",
+              maillon: "Maître d'œuvre",
+              contrats_majeurs: [{ intitule: "EPR2", montant: "200M€" }],
+              grilles: {
+                financiere: "CA 12M€",
+                ia_annonce_vs_deploye: "Discours IA générative fort, mais seuls 2 POCs déployés en production",
+              },
+              couche_esn: {
+                organisation_si: "DSI centrale 200 personnes",
+                decideur_si: "CTO / Directeur Innovation",
+                voie_entree_probable: "Tierce maintenance applicative sur le socle Data",
+              },
+              traduction_commerciale: {
+                angle: "Industrialisation de la chaîne IA",
+                accroches: ["Votre POC IA stagne ?", "Sécurisez vos déploiements"],
+                a_ne_pas_dire: "Ne pas proposer d'assistance technique régie",
+              },
+            },
+          },
+        ],
+      }),
+    )
+    if (!("data" in result)) throw new Error("expected data")
+
+    const profil = result.data.comptes[0].profil
+    expect(profil.metier_chaine_valeur).toBe("Constructeur & intégrateur spatial")
+    expect(profil.maillon).toBe("Maître d'œuvre")
+    expect(profil.contrats_majeurs).toEqual([{ intitule: "EPR2", montant: "200M€" }])
+    expect(profil.grilles).toEqual({
+      financiere: "CA 12M€",
+      ia_annonce_vs_deploye: "Discours IA générative fort, mais seuls 2 POCs déployés en production",
+    })
+    expect(profil.couche_esn).toEqual({
+      organisation_si: "DSI centrale 200 personnes",
+      decideur_si: "CTO / Directeur Innovation",
+      voie_entree_probable: "Tierce maintenance applicative sur le socle Data",
+    })
+    expect(profil.traduction_commerciale).toEqual({
+      angle: "Industrialisation de la chaîne IA",
+      accroches: ["Votre POC IA stagne ?", "Sécurisez vos déploiements"],
+      a_ne_pas_dire: "Ne pas proposer d'assistance technique régie",
+    })
+  })
+
   it("recalcule le score quand l'étude a sommé naïvement les 5 composantes (/25 legacy)", () => {
     // Cas réel : les 14 comptes du livrable BTP d'août 2026 somment sans
     // pondérer. 5+5+3+2+4 = 19 au lieu de 5+5+2×3+2×2+4 = 24.

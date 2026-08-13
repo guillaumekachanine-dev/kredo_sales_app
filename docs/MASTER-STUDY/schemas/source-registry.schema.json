@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kredo/master-study/source-registry.schema.json",
+  "title": "E3 — Referentiel de sources sectorielles (standard 1.1)",
+  "type": "object",
+  "required": ["meta", "besoins_information", "sources", "pack_minimal", "pack_enrichi",
+               "matrice_couverture", "gaps", "compteurs"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["segment_slug", "date_snapshot", "version"],
+      "properties": {
+        "segment_slug": { "type": "string" },
+        "secteur": { "type": "string" },
+        "geographie": { "type": "string" },
+        "date_snapshot": { "type": "string" },
+        "version": { "const": "1.1" },
+        "validation_status": { "enum": ["pending", "production_ready", "usable_with_caveats", "rejected"],
+          "description": "NE PAS renseigner autre chose que 'pending' : le verdict est calcule par script, hors du contexte producteur (AXIOME A10)" }
+      }
+    },
+    "besoins_information": {
+      "type": "array", "minItems": 11, "maxItems": 11,
+      "description": "Les 11 familles canoniques. Une famille peut etre non_applicable AVEC justification.",
+      "items": {
+        "type": "object",
+        "required": ["famille", "statut"],
+        "properties": {
+          "famille": { "enum": ["identite_juridique", "financier_trajectoire", "marche_concurrence",
+                                "contrats_clients", "reglementation_normes", "technologie_si",
+                                "emploi_competences", "achats_accessibilite", "trigger_events",
+                                "reputation_signaux", "ancrage_regional"] },
+          "statut": { "enum": ["couvert", "partiel", "gap", "non_applicable"] },
+          "justification": { "type": "string", "description": "Obligatoire si non_applicable" }
+        }
+      }
+    },
+    "familles_sectorielles_obligatoires": {
+      "type": "object",
+      "required": ["presse_professionnelle", "federation", "regulateur"],
+      "description": "Les trois recherches sans lesquelles l'etude est incompletement parametree",
+      "properties": {
+        "presse_professionnelle": { "type": "string", "description": "src_id ou 'aucune identifiee'" },
+        "federation": { "type": "string" },
+        "regulateur": { "type": "string" }
+      }
+    },
+    "sources": {
+      "type": "array", "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["src_id", "publisher", "domain", "url", "tier", "primary_role",
+                     "utility_score", "utility_score_detail", "automation_fit",
+                     "search_domain", "content_temporality", "usage_scopes", "pack",
+                     "atteste", "validation_status"],
+        "properties": {
+          "src_id": { "type": "string", "pattern": "^SRC-[0-9]{3}$" },
+          "publisher": { "type": "string",
+            "description": "DOIT etre coherent avec 'domain'. Un editeur declare qui ne correspond pas au domaine est un blanchiment de tier." },
+          "domain": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "tier": { "type": "integer", "minimum": 1, "maximum": 4,
+            "description": "T1 registres/textes/autorites | T2 publications de l'organisme | T3 presse pro etablie | T4 agregateurs et indices. Regle de degradation : une source qui cite une primaire ne devient pas primaire." },
+          "primary_role": { "enum": ["proof", "corroboration", "discovery", "watch"] },
+          "secondary_roles": { "type": "array", "items": { "enum": ["proof", "corroboration", "discovery", "watch"] } },
+          "utility_score": { "type": "integer", "minimum": 0, "maximum": 100,
+            "description": "DOIT egaler la somme exacte de utility_score_detail" },
+          "utility_score_detail": {
+            "type": "object",
+            "required": ["pertinence_sectorielle", "couverture_besoins", "valeur_commerciale",
+                         "fraicheur", "autorite_editoriale", "automation_access"],
+            "properties": {
+              "pertinence_sectorielle": { "type": "integer", "minimum": 0, "maximum": 20 },
+              "couverture_besoins": { "type": "integer", "minimum": 0, "maximum": 20 },
+              "valeur_commerciale": { "type": "integer", "minimum": 0, "maximum": 15 },
+              "fraicheur": { "type": "integer", "minimum": 0, "maximum": 15 },
+              "autorite_editoriale": { "type": "integer", "minimum": 0, "maximum": 20 },
+              "automation_access": { "type": "integer", "minimum": 0, "maximum": 10 }
+            }
+          },
+          "automation_fit": { "enum": ["high", "medium", "low", "manual_only"] },
+          "collection_url": { "type": ["string", "null"],
+            "description": "Flux RSS / API. Nullable : une autorite sans flux reste utilisable en site:domain." },
+          "search_domain": { "type": "string",
+            "description": "Domaine de restriction pour une recherche site:. Obligatoire." },
+          "content_temporality": { "enum": ["static", "periodic", "continuous"],
+            "description": "REGLE DETERMINISTE : 'static' n'entre JAMAIS dans une veille recurrente" },
+          "usage_scopes": { "type": "array", "items": { "enum": ["news", "account_watch", "study"] } },
+          "pack": { "enum": ["minimal", "enrichi"],
+            "description": "Les deux packs sont DISJOINTS et COUVRANTS" },
+          "acces": { "enum": ["libre", "inscription", "abonnement"] },
+          "frequence_publication": { "type": ["string", "null"] },
+          "atteste": { "type": "string", "description": "Ce que cette source permet d'attester" },
+          "familles_couvertes": { "type": "array", "items": { "type": "string" } },
+          "consulted_at": { "type": ["string", "null"] },
+          "validation_status": { "enum": ["verified", "pending"],
+            "description": "'pending' tant que collection_url ou url n'a pas ete probee. Une seule 'pending' interdit le verdict production_ready." },
+          "conditions_utilisation": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "pack_minimal": { "type": "array", "minItems": 8, "maxItems": 15, "items": { "type": "string" } },
+    "pack_enrichi": { "type": "array", "items": { "type": "string" } },
+    "matrice_couverture": {
+      "type": "array",
+      "description": "Une case remplie par un nom sans src_id est une couverture affichee et inexistante",
+      "items": {
+        "type": "object",
+        "required": ["famille", "src_ids"],
+        "properties": {
+          "famille": { "type": "string" },
+          "src_ids": { "type": "array", "items": { "type": "string", "pattern": "^SRC-[0-9]{3}$" } }
+        }
+      }
+    },
+    "requetes_types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["famille", "requete"],
+        "properties": { "famille": { "type": "string" }, "requete": { "type": "string" } }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "description": "Un gap n'est pas un echec s'il est nomme, journalise, et non masque",
+      "items": {
+        "type": "object",
+        "required": ["famille", "motif", "recherches_effectuees"],
+        "properties": {
+          "famille": { "type": "string" },
+          "motif": { "type": "string" },
+          "recherches_effectuees": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "journal_recherche": {
+      "type": "array", "minItems": 15,
+      "items": {
+        "type": "object",
+        "required": ["requete", "trouve"],
+        "properties": {
+          "requete": { "type": "string" },
+          "trouve": { "type": "string" },
+          "non_trouve": { "type": "string" }
+        }
+      }
+    },
+    "compteurs": {
+      "type": "object",
+      "required": ["sources", "pack_minimal", "pack_enrichi", "requetes"],
+      "description": "INVARIANT : sources == pack_minimal + pack_enrichi == len(sources). C'est ce qui detecte la troncature systematique du generateur.",
+      "properties": {
+        "sources": { "type": "integer" },
+        "pack_minimal": { "type": "integer" },
+        "pack_enrichi": { "type": "integer" },
+        "requetes": { "type": "integer", "minimum": 15 }
+      }
+    }
+  }
+}

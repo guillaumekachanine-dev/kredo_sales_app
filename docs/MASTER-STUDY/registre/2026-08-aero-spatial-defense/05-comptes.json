@@ -1,0 +1,895 @@
+{
+  "meta": {
+    "secteur": "Aéronautique, Spatial & Défense",
+    "segment": "Spatial, défense & systèmes critiques",
+    "geographie": "France entière (métropole + DROM)",
+    "date_snapshot": "2026-08-13",
+    "compte_etalon": "Thales Alenia Space",
+    "auteur": "Claude Opus 5 (conversion), sous MASTER-STUDY v1.0",
+    "version": "1.0",
+    "variante": "master",
+    "compte_pivot": null,
+    "run_precedent": null,
+    "mode": "conversion",
+    "matiere_convertie": [
+      "docs/FEATURES/sector_intelligence/livrables_etudes/KREDO_Cartographie_Spatial_Defense_Systemes_Critiques_structure_reference.md (étude A, Annexe C + blocs 3/4/5)",
+      "competitive_map_entries (10 lignes, base live du 13/08/2026)",
+      "account_facts + intelligence_sources des comptes du segment (base live)"
+    ]
+  },
+  "comptes": [
+    {
+      "nom": "Thales Alenia Space",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "Coentreprise Thales 67 % / Leonardo 33 %",
+      "branche_retenue": "activité spatiale consolidée",
+      "categorie": "leader",
+      "justification_categorie": "Prime spatial européen à très large couverture de chaîne de valeur et maître d'œuvre de programmes institutionnels complexes.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": 2360,
+      "exercice": 2025,
+      "perimetre_ca": "coentreprise consolidée — PAS un périmètre France",
+      "rayon": "international",
+      "empreinte_metier": 5,
+      "maturite_numerique": 5,
+      "reputation": "forte",
+      "appetence": {
+        "capacite_a_payer": 5,
+        "intensite_it": 5,
+        "moment": 5,
+        "accessibilite": 1,
+        "fit_offre": 5,
+        "total": 27
+      },
+      "accessibilite": 1,
+      "trigger_events": [
+        {
+          "date": "2026-01",
+          "fait": "Le CNES et la DGA confient la charge utile radar et le segment sol du programme DESIR",
+          "source": "non résolvable — l'étude A cite « rapport de recherche source »"
+        },
+        {
+          "date": "2026-06",
+          "fait": "Coordination du programme EROSS SC (robotique et servicing en orbite)",
+          "source": "non résolvable — l'étude A cite « rapport de recherche source »"
+        }
+      ],
+      "profil_compte": {
+        "metier_chaine_valeur": "Architecte-intégrateur spatial européen dual : architecture de mission, plateformes, charges utiles radar et optiques, segments sol, science, exploration, servicing. Discontinuité assumée sur le lancement et, selon les programmes, sur la relation de service final.",
+        "maillon": "Architecture et ingénierie de mission (rang 2) ; segment sol et contrôle mission (rang 7)",
+        "contrats_majeurs": [],
+        "grilles": {
+          "financiere": "2,36 Md€ de chiffre d'affaires consolidé 2025 sur le périmètre de la coentreprise — ce n'est PAS un chiffre France et il ne doit pas être présenté comme tel.",
+          "empreinte": "Très large : architecture, plateformes, charges utiles, EO/SAR, télécoms, PNT, segments sol, science, exploration, servicing.",
+          "reputation": "Prime spatial européen reconnu, partenaire récurrent des grands programmes institutionnels.",
+          "innovation": "Multi-orbite, quantique, communications optiques, radar, architectures de constellation, servicing en orbite.",
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion.",
+          "avantages": "Profondeur duale, accès aux actifs du groupe et de l'actionnaire minoritaire, alliance aval, savoir-faire charges utiles.",
+          "vulnerabilite_principale": "Moins verticalisé que le benchmark mondial : pas de contrôle intégré du lanceur, de la constellation et du service final.",
+          "trajectoire": "Du satellite unitaire vers les architectures multi-orbites, les constellations et les services de cycle de vie."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné — aucun organigramme public vérifié ni date de prise de fonction dans l'étude A",
+          "decideur_si": "non renseigné",
+          "modele_achat": "Achat fortement référencé et encadré, avec contraintes de sécurité, qualification fournisseurs et cycles longs.",
+          "modele_achat_statut": "hypothese_qualifiee",
+          "conditions_acces": "non renseigné — l'étude A ne traite ni habilitation, ni nationalité, ni zone protégée, sur un compte de défense",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "Une expertise de niche ou une capacité critique rattachée à un programme identifié — IVVQ, automatisation de tests, cyber, data mission — plutôt qu'une offre générique de transformation.",
+          "_ecart": "Seul compte des dix dont la couche ESN est partiellement renseignée : 2 rubriques sur 6, et le modèle d'achat n'est qu'une hypothèse qualifiée. Les neuf chantiers que l'étude A liste sous une formulation d'inférence non marquée (bannie par A11, 9 occurrences dans le document d'origine) ont été RETIRÉS : aucun n'est adossé à une preuve observable — offre d'emploi, communiqué, marché ou référence éditeur."
+        },
+        "traduction_commerciale": {
+          "angle": "Industrialiser la continuité numérique et la preuve de conformité des architectures souveraines multi-orbites.",
+          "accroches": [
+            "Vos programmes gagnent simultanément en cadence, en logiciel et en exigences cyber ; le point de tension n'est plus l'ingénierie d'un satellite, c'est la chaîne de preuve, de tests et de configuration sur l'ensemble de l'architecture de mission.",
+            "Sur le segment sol et l'exploitation, vous faites du SI d'entreprise sous contrainte de sûreté — c'est exactement la partie de votre chaîne où nous intervenons ailleurs, et celle qui grossit le plus vite."
+          ],
+          "a_ne_pas_dire": "« Nous pouvons migrer vos systèmes critiques dans le cloud » sans qualifier souveraineté et classification ; « nous faisons de l'IA » sans cas d'usage ; présenter la sûreté, la configuration et l'IVVQ comme des frictions que l'agilité lèverait."
+        }
+      },
+      "angle_entree": "Industrialiser la continuité numérique et la preuve de conformité des architectures souveraines multi-orbites",
+      "a_ne_pas_dire": "« Nous pouvons migrer vos systèmes critiques dans le cloud » sans qualifier souveraineté et classification ; « nous faisons de l'IA » sans cas d'usage ; présenter la sûreté, la configuration et l'IVVQ comme des frictions que l'agilité lèverait.",
+      "confiance": "haute",
+      "trous": [
+        "SIREN et entités juridiques France",
+        "effectif France",
+        "organisation SI",
+        "modèle d'achat et panels",
+        "usages IA réellement industrialisés"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "Compte étalon. `confiance` livrée par l'étude A : « elevee » — valeur legacy, normalisée en « haute » par le parseur, corrigée à la source ici."
+      ]
+    },
+    {
+      "nom": "Airbus Defence and Space",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "Airbus",
+      "branche_retenue": "Defence and Space",
+      "categorie": "leader",
+      "justification_categorie": "Concurrent européen de premier rang capable de porter des systèmes spatiaux et défense complexes.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": 13400,
+      "exercice": 2025,
+      "perimetre_ca": "Defence & Space — périmètre beaucoup plus large que le spatial, et non France",
+      "rayon": "international",
+      "empreinte_metier": 5,
+      "maturite_numerique": 5,
+      "reputation": "forte",
+      "appetence": {
+        "capacite_a_payer": 5,
+        "intensite_it": 5,
+        "moment": 5,
+        "accessibilite": 1,
+        "fit_offre": 5,
+        "total": 27
+      },
+      "accessibilite": 1,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Industrialisation numérique et validation de systèmes critiques",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "périmètre spatial France",
+        "modèle d'achat",
+        "organisation SI"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "ordre de grandeur de taille sur périmètre déclaré",
+          "trigger daté",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "l'étude A ne porte aucune URL ; la seule source rattachée en base est la ligne `intelligence_sources` créée par l'import de la cartographie elle-même, dont `source_url` est NULL — une auto-référence, pas une source."
+      ]
+    },
+    {
+      "nom": "Thales - systèmes défense, cyber et critiques",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "Thales",
+      "branche_retenue": "systèmes défense, cyber et critiques",
+      "categorie": "leader",
+      "justification_categorie": "Profondeur C4ISR, cyber, communications et systèmes critiques ; actionnaire majoritaire du compte étalon.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": null,
+      "exercice": 2025,
+      "perimetre_ca": "non publié — le chiffre de groupe disponible n'est pas comparable (axiome A3)",
+      "rayon": "international",
+      "empreinte_metier": 5,
+      "maturite_numerique": 5,
+      "reputation": "forte",
+      "appetence": {
+        "capacite_a_payer": 5,
+        "intensite_it": 5,
+        "moment": 3,
+        "accessibilite": 1,
+        "fit_offre": 5,
+        "total": 23
+      },
+      "accessibilite": 1,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Cyber souverain et intégration de systèmes de systèmes",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "périmètre financier pertinent",
+        "modèle d'achat",
+        "organisation SI"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "ordre de grandeur de taille sur périmètre déclaré",
+          "trigger daté",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "l'étude A ne porte aucune URL ; la seule source rattachée en base est la ligne `intelligence_sources` créée par l'import de la cartographie elle-même, dont `source_url` est NULL — une auto-référence, pas une source."
+      ]
+    },
+    {
+      "nom": "OHB",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "OHB",
+      "branche_retenue": "groupe spatial",
+      "categorie": "challenger",
+      "justification_categorie": "Prime spatial européen agile et très présent sur les programmes institutionnels.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": 1248,
+      "exercice": 2025,
+      "perimetre_ca": "total revenue groupe — pas un périmètre France",
+      "rayon": "international",
+      "empreinte_metier": 4,
+      "maturite_numerique": 5,
+      "reputation": "forte",
+      "appetence": {
+        "capacite_a_payer": 3,
+        "intensite_it": 5,
+        "moment": 5,
+        "accessibilite": 3,
+        "fit_offre": 5,
+        "total": 29
+      },
+      "accessibilite": 3,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Ingénierie de mission, IVVQ et automatisation de tests",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "présence et modèle d'achat France"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "ordre de grandeur de taille sur périmètre déclaré",
+          "trigger daté",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "l'étude A ne porte aucune URL ; la seule source rattachée en base est la ligne `intelligence_sources` créée par l'import de la cartographie elle-même, dont `source_url` est NULL — une auto-référence, pas une source.",
+        "`rayon` livré par l'étude A : « europeen » — hors du domaine `regional | national | international` du schéma. Ramené à « international » ; le parseur ne lit pas ce champ, l'écart serait donc passé inaperçu à l'import."
+      ]
+    },
+    {
+      "nom": "ArianeGroup / Arianespace",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "ArianeGroup",
+      "branche_retenue": "lancement et systèmes critiques",
+      "categorie": "challenger",
+      "justification_categorie": "Maillon souverain critique de l'accès européen à l'espace.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": 2600,
+      "exercice": 2025,
+      "perimetre_ca": "groupe publié — périmètre non France",
+      "rayon": "international",
+      "empreinte_metier": 4,
+      "maturite_numerique": 4,
+      "reputation": "forte",
+      "appetence": {
+        "capacite_a_payer": 5,
+        "intensite_it": 5,
+        "moment": 5,
+        "accessibilite": 1,
+        "fit_offre": 5,
+        "total": 27
+      },
+      "accessibilite": 1,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Logiciel critique, cyber et chaîne de preuve",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "effectif France exact",
+        "modèle d'achat et panels"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "ordre de grandeur de taille sur périmètre déclaré",
+          "trigger daté",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "l'étude A ne porte aucune URL ; la seule source rattachée en base est la ligne `intelligence_sources` créée par l'import de la cartographie elle-même, dont `source_url` est NULL — une auto-référence, pas une source."
+      ]
+    },
+    {
+      "nom": "Leonardo / Telespazio",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "Leonardo",
+      "branche_retenue": "Telespazio et capacités spatiales",
+      "categorie": "challenger",
+      "justification_categorie": "Profondeur capteurs, opérations sol, téléports et services spatiaux.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": null,
+      "exercice": 2025,
+      "perimetre_ca": "non établi — aucun périmètre comparable publié",
+      "rayon": "international",
+      "empreinte_metier": 4,
+      "maturite_numerique": 4,
+      "reputation": "forte",
+      "appetence": {
+        "capacite_a_payer": 5,
+        "intensite_it": 5,
+        "moment": 3,
+        "accessibilite": 1,
+        "fit_offre": 5,
+        "total": 23
+      },
+      "accessibilite": 1,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Segment sol, opérations et cyber du continuum sol-espace",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "CA comparable",
+        "autonomie d'achat France"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "ordre de grandeur de taille sur périmètre déclaré",
+          "trigger daté",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "l'étude A ne porte aucune URL ; la seule source rattachée en base est la ligne `intelligence_sources` créée par l'import de la cartographie elle-même, dont `source_url` est NULL — une auto-référence, pas une source."
+      ]
+    },
+    {
+      "nom": "Eutelsat / OneWeb",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "Eutelsat",
+      "branche_retenue": "opérateur GEO/LEO",
+      "categorie": "mid_market",
+      "justification_categorie": "Acteur de service et d'exploitation multi-orbite, central dans le consortium de la concession européenne.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": 1244,
+      "exercice": 2025,
+      "perimetre_ca": "FY2024-25 groupe — exercice décalé, pas un périmètre France",
+      "rayon": "international",
+      "empreinte_metier": 3,
+      "maturite_numerique": 4,
+      "reputation": "forte",
+      "appetence": {
+        "capacite_a_payer": 5,
+        "intensite_it": 5,
+        "moment": 5,
+        "accessibilite": 3,
+        "fit_offre": 5,
+        "total": 31
+      },
+      "accessibilite": 3,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Orchestration LEO/GEO, observabilité, données et cyber",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "modèle d'achat",
+        "organisation SI"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "ordre de grandeur de taille sur périmètre déclaré",
+          "trigger daté",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "l'étude A ne porte aucune URL ; la seule source rattachée en base est la ligne `intelligence_sources` créée par l'import de la cartographie elle-même, dont `source_url` est NULL — une auto-référence, pas une source.",
+        "Score d'appétence le plus élevé de la carte (31/35) et absent du top 3 déclaré par l'étude A, sans justification d'écart."
+      ]
+    },
+    {
+      "nom": "Exail Robotics",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "Exail Technologies",
+      "branche_retenue": "robotique et systèmes autonomes",
+      "categorie": "mid_market",
+      "justification_categorie": "Spécialiste fortement technologique des systèmes autonomes et critiques.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": null,
+      "exercice": null,
+      "perimetre_ca": "non repris par l'étude A",
+      "rayon": "international",
+      "empreinte_metier": 3,
+      "maturite_numerique": 5,
+      "reputation": "correcte",
+      "appetence": {
+        "capacite_a_payer": 3,
+        "intensite_it": 5,
+        "moment": 3,
+        "accessibilite": 3,
+        "fit_offre": 5,
+        "total": 25
+      },
+      "accessibilite": 3,
+      "trigger_events": [
+        {
+          "date": "2026-03",
+          "fait": "Résultats annuels 2025 : 844 M€ de commandes, +87 %",
+          "source": "https://www.exail-technologies.com/fr/resultats-annuels-2025-forte-amelioration-des-resultats-et-des-flux-de-tresorerie/"
+        }
+      ],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Cyber embarqué, qualité logicielle et validation de systèmes autonomes",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "qualification financière sur périmètre France",
+        "modèle d'achat",
+        "organisation SI"
+      ],
+      "sources": [
+        {
+          "url": "https://recherche-entreprises.api.gouv.fr/search?q=509232591",
+          "atteste": "SIREN 509232591, NAF 3011Z, effectif et établissements France",
+          "tier": 1
+        },
+        {
+          "url": "https://www.exail.com/",
+          "atteste": "Activité, marchés servis, positionnement",
+          "tier": 2
+        }
+      ],
+      "plancher_de_preuve": {
+        "satisfait": true,
+        "manquants": []
+      },
+      "notes_de_conversion": [
+        "CONFLIT DE CADRAGE : `relation_type = client` en base. Le cadrage E0 §3 exclut ce compte du périmètre ; l'étude A l'a néanmoins scoré et placé en n°2 de son top 3, et il est ingéré en `competitive_map_entries` comme cible `mid_market`. Conservé ici pour que la conversion reste fidèle à ce qui est en base, et signalé."
+      ]
+    },
+    {
+      "nom": "D-Orbit",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": "D-Orbit",
+      "branche_retenue": "services orbitaux",
+      "categorie": "outsider_emergent",
+      "justification_categorie": "Positionnement différenciant sur le servicing et les services orbitaux, sur un marché en émergence.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": null,
+      "exercice": null,
+      "perimetre_ca": "non publié dans le corpus retenu",
+      "rayon": "international",
+      "empreinte_metier": 3,
+      "maturite_numerique": 5,
+      "reputation": "correcte",
+      "appetence": {
+        "capacite_a_payer": 3,
+        "intensite_it": 5,
+        "moment": 5,
+        "accessibilite": 3,
+        "fit_offre": 5,
+        "total": 29
+      },
+      "accessibilite": 3,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Industrialisation logicielle et exploitation du servicing orbital",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "présence France",
+        "CA",
+        "modèle d'achat"
+      ],
+      "sources": [],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "identité juridique France",
+          "ordre de grandeur de taille sur périmètre déclaré",
+          "trigger daté",
+          "2 sources indépendantes dont une T1/T2"
+        ]
+      },
+      "notes_de_conversion": [
+        "l'étude A ne porte aucune URL ; la seule source rattachée en base est la ligne `intelligence_sources` créée par l'import de la cartographie elle-même, dont `source_url` est NULL — une auto-référence, pas une source.",
+        "Acteur de droit étranger : les trois marqueurs d'inclusion de E5 §4.1 (entité juridique France, effectif France substantiel, autonomie d'achat France) ne sont documentés sur aucun des trois. L'étude A l'inclut malgré tout."
+      ]
+    },
+    {
+      "nom": "ACRI-ST",
+      "identifiant_national": null,
+      "code_activite": null,
+      "convention_collective": null,
+      "effectif_france": null,
+      "groupe": null,
+      "branche_retenue": "données spatiales et observation de la Terre",
+      "categorie": "outsider_niche",
+      "justification_categorie": "Spécialiste des données géospatiales, du traitement d'images et de l'IA appliquée à l'observation de la Terre.",
+      "critere_substitution": "Part relative non calculable : les acteurs publient des périmètres incompatibles (groupe / défense / space / coentreprise) et une part de l'activité militaire est classifiée. Substitution appliquée : présence sur les grands programmes et capacité démontrée à porter des systèmes complexes.",
+      "ca_meur": null,
+      "exercice": null,
+      "perimetre_ca": "non repris par l'étude A",
+      "rayon": "national",
+      "empreinte_metier": 2,
+      "maturite_numerique": 5,
+      "reputation": "correcte",
+      "appetence": {
+        "capacite_a_payer": 3,
+        "intensite_it": 5,
+        "moment": 3,
+        "accessibilite": 5,
+        "fit_offre": 5,
+        "total": 29
+      },
+      "accessibilite": 5,
+      "trigger_events": [],
+      "profil_compte": {
+        "grilles": {
+          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+        },
+        "couche_esn": {
+          "organisation_si": "non renseigné",
+          "decideur_si": "non renseigné",
+          "modele_achat": "non renseigné",
+          "modele_achat_statut": null,
+          "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
+          "esn_en_place": [],
+          "chantiers_observes": [],
+          "voie_entree_probable": "non renseigné",
+          "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
+        }
+      },
+      "angle_entree": "Industrialisation des pipelines géospatiaux et MLOps",
+      "a_ne_pas_dire": null,
+      "confiance": "moyenne",
+      "trous": [
+        "CA",
+        "organisation SI",
+        "modèle d'achat"
+      ],
+      "sources": [
+        {
+          "url": "https://recherche-entreprises.api.gouv.fr/search?q=428834113",
+          "atteste": "SIREN 428834113, NAF 7112B, effectif 116, établissements et convention collective",
+          "tier": 1
+        },
+        {
+          "url": "https://www.acri-st.fr/fr/",
+          "atteste": "Activité, marchés servis, priorités stratégiques, partenaires",
+          "tier": 2
+        }
+      ],
+      "plancher_de_preuve": {
+        "satisfait": false,
+        "manquants": [
+          "trigger daté des 12 derniers mois"
+        ]
+      },
+      "notes_de_conversion": [
+        "`accessibilite = 5/5` est la note la plus haute de la carte, attribuée à un compte dont l'étude A déclare par ailleurs ne pas avoir audité le modèle d'achat. C'est le défaut nommé par A7 et par E5 §4.3 — une petite structure supposée abordable — et il est reproduit tel quel ici parce que c'est ce qui est en base (`accessibilite_score = 5`)."
+      ]
+    }
+  ],
+  "reserve_a_qualifier": [],
+  "reserve_a_qualifier_commentaire": "VIDE, et c'est le résultat à lire. L'application littérale du plancher de preuve A7 déplacerait 9 comptes sur 10 en réserve — seul Exail Robotics le satisfait, et c'est le compte que le cadrage E0 exclut. `comptes` tomberait à 1 élément et la carte de priorisation n'existerait plus. Le corpus n'a pas de régime pour une cartographie dont la matière est entière sous le plancher : il suppose que E2 a tourné. Les comptes sont donc conservés dans `comptes` avec leur `plancher_de_preuve` explicite, et le compteur `comptes_sous_plancher` porte la mesure.",
+  "acteurs_ecartes": [
+    {
+      "nom": "Lockheed Martin Space",
+      "motif": "Autonomie d'achat France non démontrée ; benchmark, pas cible."
+    },
+    {
+      "nom": "Northrop Grumman Space Systems",
+      "motif": "Autonomie d'achat France non démontrée."
+    },
+    {
+      "nom": "Boeing Defense, Space & Security",
+      "motif": "Périmètre trop large et accessibilité France non établie."
+    },
+    {
+      "nom": "L3Harris",
+      "motif": "Présence et décision d'achat France non qualifiées."
+    },
+    {
+      "nom": "SpaceX",
+      "motif": "Centre de décision hors cible commerciale France ; utile comme référence de cadence, pas comme prospect."
+    },
+    {
+      "nom": "Blue Origin",
+      "motif": "Présence décisionnelle France non établie."
+    }
+  ],
+  "ecartes": [
+    {
+      "nom": "Lockheed Martin Space",
+      "motif": "Autonomie d'achat France non démontrée ; benchmark, pas cible."
+    },
+    {
+      "nom": "Northrop Grumman Space Systems",
+      "motif": "Autonomie d'achat France non démontrée."
+    },
+    {
+      "nom": "Boeing Defense, Space & Security",
+      "motif": "Périmètre trop large et accessibilité France non établie."
+    },
+    {
+      "nom": "L3Harris",
+      "motif": "Présence et décision d'achat France non qualifiées."
+    },
+    {
+      "nom": "SpaceX",
+      "motif": "Centre de décision hors cible commerciale France ; utile comme référence de cadence, pas comme prospect."
+    },
+    {
+      "nom": "Blue Origin",
+      "motif": "Présence décisionnelle France non établie."
+    }
+  ],
+  "_note_ecartes": "La clé est dupliquée volontairement : le schéma nomme `acteurs_ecartes`, le parseur `competitive-map-output.ts` ne lit que `ecartes`. La règle de préséance donne raison au code ; le schéma est à corriger.",
+  "transverse": {
+    "comptes_prioritaires": [
+      "ACRI-ST",
+      "Exail Robotics",
+      "Thales Alenia Space"
+    ],
+    "justification_ecart_top3": null,
+    "ecart_top3_constate": {
+      "top3_declare": [
+        "ACRI-ST",
+        "Exail Robotics",
+        "Thales Alenia Space"
+      ],
+      "top3_par_tri_appetence": [
+        "Eutelsat / OneWeb",
+        "OHB",
+        "D-Orbit"
+      ],
+      "scores_tries": [
+        {
+          "nom": "Eutelsat / OneWeb",
+          "total": 31
+        },
+        {
+          "nom": "OHB",
+          "total": 29
+        },
+        {
+          "nom": "D-Orbit",
+          "total": 29
+        },
+        {
+          "nom": "ACRI-ST",
+          "total": 29
+        },
+        {
+          "nom": "Thales Alenia Space",
+          "total": 27
+        },
+        {
+          "nom": "Airbus Defence and Space",
+          "total": 27
+        },
+        {
+          "nom": "ArianeGroup / Arianespace",
+          "total": 27
+        },
+        {
+          "nom": "Exail Robotics",
+          "total": 25
+        },
+        {
+          "nom": "Thales - systèmes défense, cyber et critiques",
+          "total": 23
+        },
+        {
+          "nom": "Leonardo / Telespazio",
+          "total": 23
+        }
+      ],
+      "constat": "Le top 3 déclaré n'est pas le top 3 du tableau trié, et l'étude A ne fournit aucune justification d'écart. Deux des trois comptes déclarés (Exail 25, Thales Alenia Space 27) sont derrière trois comptes non retenus (Eutelsat 31, OHB 29, D-Orbit 29). La conversion ne peut pas fabriquer la justification que l'étude n'a pas donnée : le champ reste null et G1 doit échouer dessus."
+    },
+    "comptes_a_ecarter": [
+      "SpaceX",
+      "Lockheed Martin Space",
+      "Northrop Grumman Space Systems"
+    ],
+    "message_sectoriel": "Sur ce segment, la valeur a quitté le satellite pour l'architecture de mission : le segment sol, l'exploitation et le cyber sont devenus du SI d'entreprise sous contrainte de sûreté, et c'est là — pas sur la plateforme — que se joue la tenue des programmes. Nous intervenons sur ce maillon-là, avec une obligation déjà opposable comme point d'entrée : SecNumCloud depuis avril 2026, NIS2 sur les infrastructures sol, l'AI Act au 2 décembre 2027.",
+    "enjeux_communs": [
+      "Continuité numérique exigences → conception → code → test → preuve",
+      "Cybersécurité dès la conception et gestion des identités et des secrets",
+      "Automatisation des tests et IVVQ",
+      "Chaîne d'approvisionnement logicielle et DevSecOps adaptés au critique",
+      "Gestion de configuration et traçabilité",
+      "Ingénierie de données mission et télémétrie",
+      "Architecture sol distribuée, observabilité et résilience",
+      "Gouvernance de programmes multi-acteurs"
+    ],
+    "enjeux_par_segment": {
+      "leader": "Passer à l'échelle sur des programmes multi-orbites sans perdre maîtrise, sécurité et qualité",
+      "challenger": "Gagner en vitesse de delivery sans augmenter la dette de qualification",
+      "mid_market": "Faire fonctionner un actif numérique critique avec des équipes plus concentrées",
+      "outsider_emergent": "Passer du démonstrateur à une plateforme opérable et sécurisée",
+      "outsider_niche": "Productiser la donnée et le logiciel avec une équipe légère"
+    },
+    "segmentation_critere": "Part relative au leader non calculable : périmètres publiés incompatibles et activité militaire partiellement classifiée. Critère de substitution appliqué et déclaré : présence sur les grands programmes et consortiums, puis capacité démontrée à porter les systèmes les plus complexes.",
+    "echeance_commune_datee": {
+      "libelle": "AI Act — obligations des systèmes à haut risque (Annexe III)",
+      "deadline_date": "2027-12-02",
+      "source_url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai",
+      "reçue_de": "02-socle.json > reglementaire.echeance_pivot",
+      "note": "L'étude A déclarait cette rubrique VIDE (« aucune échéance réglementaire unique, datée et officiellement vérifiée n'a été établie »). La base en contenait cinq, dont deux futures. C'est exactement le défaut que E1 §8 attribue au champ `corpus_existant` : l'étude est repartie d'une page blanche et a redécouvert un vide qui n'existait pas."
+    }
+  },
+  "compteurs": {
+    "comptes": 10,
+    "comptes_prioritaires": 3,
+    "comptes_prioritaires_couche_esn_complete": 0,
+    "comptes_sous_plancher": 9,
+    "comptes_avec_sources_suffisantes": 2,
+    "comptes_avec_trigger_date": 2,
+    "comptes_avec_ia_annonce_vs_deploye_renseigne": 0,
+    "acteurs_ecartes": 6,
+    "enjeux_communs": 8,
+    "reserve_a_qualifier": 0
+  },
+  "taux": {
+    "couche_esn": 0.0,
+    "identite_top3": 0.3333333333333333,
+    "plancher_de_preuve": 0.2
+  }
+}

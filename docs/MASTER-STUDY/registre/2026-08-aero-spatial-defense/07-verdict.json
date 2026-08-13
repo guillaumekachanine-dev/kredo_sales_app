@@ -1,0 +1,44 @@
+{
+  "run_id": "2026-08-aero-spatial-defense",
+  "segment_slug": "seg-aero-spatial-defense",
+  "date_snapshot": "2026-08-13",
+  "variante": "master",
+  "mode": "conversion",
+  "gates": {
+    "g0": "go_avec_reserve",
+    "g1": "fail",
+    "g2": "non_execute",
+    "g3": "non_execute"
+  },
+  "verdict": "rejected",
+  "motif_verdict": "13 contrôles G1 en échec contre le corpus v1.0, 12 contre v1.1 après application de A1-A2-A3 le 13/08. Le run n'est pas ingérable et ne doit pas l'être : sa finalité était d'éprouver les contrats contre de la matière réelle. Voir 08-rapport-ecarts.md pour la répartition entre ce qui manque à la MATIÈRE et ce qui manquait au CONTRAT, et ../ROADMAP-CORRECTIONS.md pour l'état vivant des corrections.",
+  "taux": {
+    "couche_esn": 0.0,
+    "identite_top3": 0.0,
+    "sources_resolvables": 0.06,
+    "blocs_avec_donc": 1.0,
+    "comptes_sous_plancher": 0.9,
+    "segments_avec_connaissance_avant": 0.026,
+    "segments_avec_connaissance_apres": 0.026
+  },
+  "commentaire_taux": "sources_resolvables = 6 URL réellement résolvables sur ~100 affirmations sourcées par l'étude d'origine. identite_top3 = 0/3 : le compte étalon lui-même n'a pas de SIREN. Le dernier couple de taux est le seul qui compte à l'échelle du chantier : ce run N'A PAS fait bouger le nombre de segments porteurs de connaissance, parce qu'il s'arrête à G1 et n'ingère rien.",
+  "peremption": {
+    "triggers": "2026-11-13",
+    "financier": "2027-08-13",
+    "cartographie": "2027-08-13",
+    "economie": "2028-08-13"
+  },
+  "reserves": [
+    "R1 — LEVÉE le 13/08 (roadmap A1) : G0 distingue désormais 5 axes toujours renseignables et 2 axes conditionnels, et ne contredit plus le REFERENTIEL-CLASSIFICATION.",
+    "R2 — LEVÉE le 13/08 (roadmap A2, tranché par Guillaume) : un compte client compte dans le seuil G0 et figure dans la cartographie ; `comptes_exclus` d'E0 signifie « hors cibles de prospection ».",
+    "R3 — OUVERTE : aucun corpus E3 n'existe et le chantier en interdit la production.",
+    "R4 — OUVERTE (roadmap A4, bloquant) : le parseur normatif E5 ne lit pas la couche ESN que le schéma déclare obligatoire. Toute collecte d'accessibilité faite avant cette correction est perdue à l'ingestion.",
+    "R5 — OUVERTE (roadmap A5) : l'accès aux sources est AUCUN, état que le schéma ne sait pas exprimer et que E4 §4.4 traite par l'arrêt."
+  ],
+  "ingestion": {
+    "executee": false,
+    "motif": "G1 en échec. Aucune écriture en base au titre de ce run, hors la migration 076 (valeur d'enum master_study), qui est une préparation de schéma et non une ingestion de connaissance."
+  },
+  "corpus_version_au_run": "1.0",
+  "corpus_version_courante": "1.1"
+}

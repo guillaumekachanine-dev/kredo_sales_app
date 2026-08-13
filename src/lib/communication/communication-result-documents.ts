@@ -95,6 +95,7 @@ const FALLBACK_TITLE_BY_DOCUMENT_TYPE = {
   financial_reference: "Reference financiere",
   commercial_quote: "Devis client",
   strategic_watch_analysis: "Analyse stratégique de la veille",
+  master_study: "Master Study sectorielle",
 } satisfies Record<IntelligenceDocumentType, string>
 
 const LENGTH_LABELS = {

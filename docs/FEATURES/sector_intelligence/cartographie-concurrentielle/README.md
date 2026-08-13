@@ -1,3 +1,9 @@
+> 🟡 **ARCHIVE — raisonnement conservé, application interdite** — statut fixé par [`docs/MASTER-STUDY/README.md`](/docs/MASTER-STUDY/README.md) §5 (13/08/2026).
+> Index du kit v1.1. Les fichiers 01 à 07 qu'il présente sont périmés ; 00, 08 et 09 sont en archive.
+> **Référence à appliquer : `MASTER-STUDY/README.md`**
+
+---
+
 # Cartographie concurrentielle sectorielle — Kit complet
 
 **Pour qui** : un directeur commercial d'ESN en France (et son équipe : commerciaux, business managers, avant-vente, marketing).
