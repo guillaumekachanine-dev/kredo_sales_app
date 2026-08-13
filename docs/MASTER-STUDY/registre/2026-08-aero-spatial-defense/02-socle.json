@@ -10,26 +10,26 @@
   },
   "identite": {
     "comptes_cibles": 10,
-    "resolus": 2,
+    "resolus": 9,
     "ambigus": 0,
-    "non_tentes": 8,
-    "taux_couverture": 0.2,
+    "non_tentes": 0,
+    "taux_couverture": 0.9,
     "detail_resolus": [
       { "nom": "Exail Robotics", "siren": "509232591", "naf_code": "3011Z", "faits_identite": 8 },
-      { "nom": "ACRI-ST", "siren": "428834113", "naf_code": "7112B", "faits_identite": 21 }
+      { "nom": "ACRI-ST", "siren": "428834113", "naf_code": "7112B", "faits_identite": 21 },
+      { "nom": "Thales Alenia Space", "siren": "414725101", "naf_code": "3030Z", "faits_identite": 8 },
+      { "nom": "Airbus Defence and Space", "siren": "393341516", "naf_code": "3030Z", "faits_identite": 8 },
+      { "nom": "ArianeGroup / Arianespace", "siren": "519032247", "naf_code": "3030Z", "faits_identite": 8 },
+      { "nom": "Eutelsat / OneWeb", "siren": "422551176", "naf_code": "6130Z", "faits_identite": 8 },
+      { "nom": "Leonardo / Telespazio", "siren": "439969569", "naf_code": "6130Z", "faits_identite": 8 },
+      { "nom": "OHB", "siren": "492720685", "naf_code": "7490B", "faits_identite": 8 },
+      { "nom": "Thales - systèmes défense, cyber et critiques", "siren": "383470937", "naf_code": "2630Z", "faits_identite": 8 }
     ],
     "echecs": [
-      { "company_id": "19b4d3cb-80dc-45b4-b963-b9eb74c59e45", "nom": "Thalès Alénia Space", "motif": "socle_non_execute" },
-      { "company_id": "0abbe65c-2da8-422f-86e4-cd76abe5547f", "nom": "Airbus Defence and Space", "motif": "socle_non_execute" },
-      { "company_id": "81e2fda2-90ec-4b92-b897-42fc426de3cf", "nom": "ArianeGroup / Arianespace", "motif": "socle_non_execute" },
-      { "company_id": "918fcbc9-5fd7-485e-b802-849f2f3f0c70", "nom": "D-Orbit", "motif": "socle_non_execute" },
-      { "company_id": "87d78e51-7166-41aa-a1fd-fbb6e66d5aef", "nom": "Eutelsat / OneWeb", "motif": "socle_non_execute" },
-      { "company_id": "56a79065-0f85-48d8-b216-bbe8b2c23c6f", "nom": "Leonardo / Telespazio", "motif": "socle_non_execute" },
-      { "company_id": "ffef984c-e141-4573-ba91-02629f85f615", "nom": "OHB", "motif": "socle_non_execute" },
-      { "company_id": "a8690e6b-f322-4068-a506-ca2d01843e9a", "nom": "Thales - systèmes défense, cyber et critiques", "motif": "socle_non_execute" }
+      { "company_id": "918fcbc9-5fd7-485e-b802-849f2f3f0c70", "nom": "D-Orbit", "motif": "hors_france" }
     ],
-    "ecart_contrat": "Le domaine de `motif` prévu par E2 §8 est `homonymie | hors_france | non_immatricule`. Aucune de ces trois valeurs ne décrit le cas réel et majoritaire, qui est que le socle n'a jamais été exécuté sur le compte. `socle_non_execute` est introduit ici et signalé : sans lui, huit échecs d'exécution seraient enregistrés comme des échecs de résolution, ce qui est un mensonge de mesure.",
-    "faits_avec_source": { "total": 74, "avec_primary_source_id": 74, "taux": 1.0 }
+    "ecart_contrat": "Le domaine de `motif` prévu par E2 §8 est `homonymie | hors_france | non_immatricule`. D-Orbit est une entité de droit italien (D-Orbit S.p.A.) sans immatriculation en France (`hors_france`). Les 7 autres comptes du segment ont été résolus avec SIREN et NAF officiels (Sirene / INSEE).",
+    "faits_avec_source": { "total": 130, "avec_primary_source_id": 130, "taux": 1.0 }
   },
   "reglementaire": {
     "items_segment": 0,
@@ -80,8 +80,8 @@
     "commentaire": "Les six familles de faits d'accessibilité sont vides sur les 10 comptes, comme sur les 109 comptes de la base. Sur un segment défense où l'habilitation et la zone protégée conditionnent le droit d'intervenir, c'est le bloc dont l'absence coûte le plus cher."
   },
   "compteurs": {
-    "detail_resolus": 2,
-    "echecs": 8,
+    "detail_resolus": 9,
+    "echecs": 1,
     "items_futurs": 2,
     "items_passes_non_marques": 2,
     "items_sans_date": 1

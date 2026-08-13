@@ -544,9 +544,9 @@ export function IntelligenceFAB() {
         onClick={() => setIsOpen(true)}
         aria-label="Ouvrir le cockpit intelligence"
         className={cn(
-          "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[var(--shadow-overlay-sm)] transition-transform active:scale-90",
+          "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[var(--shadow-overlay-sm)] transition-[transform,background-color,border-color] active:scale-90",
           isAccountMode
-            ? "bg-edito-petrol-deep text-brand-brass"
+            ? "border border-brand-brass/50 bg-cockpit-cobalt text-brand-brass hover:bg-cockpit-cobalt-deep"
             : hasEntityFocus
               ? "kredo-fab-cockpit-active bg-brand-brass text-secondary-fg"
               : "bg-secondary text-secondary-fg",
@@ -567,8 +567,8 @@ export function IntelligenceFAB() {
         }}
         title={isAccountMode ? (
           <div className="min-w-0">
-            <h2 className="truncate text-base font-bold leading-5 text-white">Cockpit Intelligence</h2>
-            <p className="mt-1 truncate text-xs font-medium text-white/70">{panelData.company.name}</p>
+            <h2 className="truncate text-xs font-semibold leading-4 text-white/75">Cockpit Intelligence</h2>
+            <p className="mt-0.5 truncate text-base font-bold leading-5 text-white">{panelData.company.name}</p>
           </div>
         ) : "Cockpit Intelligence"}
         side="bottom"
@@ -580,7 +580,7 @@ export function IntelligenceFAB() {
             : "border-t border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]",
         )}
         headerClassName={isAccountMode
-          ? "border-b-2 border-brand-brass bg-cockpit-cobalt text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
+          ? "border-b-2 border-brand-brass bg-cockpit-cobalt text-white [&_button]:border [&_button]:border-white/35 [&_button]:bg-white/15 [&_button]:text-white [&_button]:hover:border-white/55 [&_button]:hover:bg-white/25 [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
           : "border-b border-white/15 text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"}
         headerStyle={isAccountMode ? undefined : COCKPIT_PANEL_STYLE}
         contentClassName={isAccountMode

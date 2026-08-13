@@ -652,12 +652,11 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   return (
     <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full bg-canvas pb-24 text-body">
-      <header className="flex min-h-[96px] items-center gap-3 border-b-2 border-secondary bg-cockpit-cobalt px-4 py-3 text-white">
+      <header className="flex min-h-[88px] items-center gap-3 border-b-2 border-secondary bg-cockpit-cobalt px-4 py-3 text-white">
         <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" className="border-white/20 bg-white p-1" />
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col justify-center gap-0.5">
           <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.17em] text-secondary">Cockpit Intelligence</p>
-          <h1 className="truncate text-[22px] font-bold leading-6 tracking-[-0.02em] text-white">{company.name}</h1>
-          <p className="mt-0.5 text-[11px] font-semibold leading-4 text-white/75">{cockpit.stateLabel}</p>
+          <h1 className="truncate text-[22px] font-bold leading-7 tracking-[-0.02em] text-white">{company.name}</h1>
         </div>
       </header>
 
