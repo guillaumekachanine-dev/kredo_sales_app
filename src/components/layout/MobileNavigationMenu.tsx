@@ -78,6 +78,7 @@ const mainItems: MenuItem[] = [
     tone: "navy",
     tabs: [
       { label: "Business Intelligence", shortLabel: "BI", href: "/intelligence", icon: "bi" },
+      { label: "Prospection", href: "/prospection/accounts", icon: "equipe" },
       { label: "Rapports & rédaction", shortLabel: "Rapports", href: "/reports", icon: "reports" },
       { label: "Veille & actualités", shortLabel: "Veille", href: "/veille", icon: "veille" },
     ],
