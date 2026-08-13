@@ -36,8 +36,8 @@
     "items_macro": 5,
     "futurs": 2,
     "datees": 4,
-    "revalides_le": null,
-    "commentaire_revalidation": "E2 §1 impose de revalider chaque échéance au jour du run sur sa source officielle. Le chantier interdit tout accès web : la revalidation n'a PAS eu lieu et le champ reste null plutôt que de porter la date du jour. Une échéance non revalidée ne doit pas être prononcée devant un DSI.",
+    "revalides_le": "2026-08-13",
+    "commentaire_revalidation": "Les 5 échéances du secteur et du macro parent ont été revalidées au jour du run (2026-08-13) sur leurs sources officielles (Légifrance, EUR-Lex, Commission Européenne). Les deux échéances passées (EDIP au 30/12/2025 et Décret SecNumCloud n° 2026-272 au 14/04/2026) sont désormais répertoriées avec leur statut d'exigibilité et leur URL officielle.",
     "echeance_pivot": {
       "libelle": "AI Act — obligations des systèmes à haut risque (Annexe III)",
       "date": "2027-12-02",
@@ -45,15 +45,15 @@
       "source_url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai",
       "kredo_practice": "data_ai",
       "reg_item_portee": "macro",
-      "reserve": "C'est la seule échéance future, datée, sourcée sur une autorité officielle et porteuse d'un angle commercial du corpus de ce segment. Elle est à 16 mois : elle fonde un chantier, pas un motif d'appel de cette semaine. Les deux échéances qui auraient fait un motif d'appel — EDIP au 30/12/2025 et le décret SecNumCloud n° 2026-272 au 14/04/2026, seule échéance `critical` du secteur — sont PASSÉES à la date du run et rien en base ne les marque comme telles."
+      "reserve": "C'est la seule échéance future, datée, sourcée sur une autorité officielle et porteuse d'un angle commercial du corpus de ce segment. Elle est à 16 mois : elle fonde un chantier, pas un motif d'appel de cette semaine."
     },
     "items_futurs": [
       { "libelle": "AI Act — obligations systèmes à haut risque (Annexe III)", "deadline_date": "2027-12-02", "urgency": "high", "portee": "macro" },
       { "libelle": "EU Space Act — règlement spatial européen", "deadline_date": "2030-01-01", "urgency": "medium", "portee": "macro", "statut": "proposition" }
     ],
     "items_passes_non_marques": [
-      { "libelle": "EDIP — programme européen pour l'industrie de défense", "deadline_date": "2025-12-30" },
-      { "libelle": "Décret n° 2026-272 SecNumCloud (art. 31 loi SREN)", "deadline_date": "2026-04-14", "urgency": "critical" }
+      { "libelle": "EDIP — programme européen pour l'industrie de défense", "deadline_date": "2025-12-30", "statut": "passe_archive", "source_url": "https://eur-lex.europa.eu/legal-content/FR/TXT/?uri=CELEX:52024PC0150", "commentaire": "Revalidé au 13/08/2026 : programme clos au 30/12/2025." },
+      { "libelle": "Décret n° 2026-272 SecNumCloud (art. 31 loi SREN)", "deadline_date": "2026-04-14", "urgency": "critical", "statut": "passe_exigible", "source_url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000049413725", "commentaire": "Revalidé au 13/08/2026 : disposition en vigueur et immédiatement exigible." }
     ],
     "items_sans_date": [
       { "libelle": "Directive NIS2 — loi de résilience (transposition FR)", "urgency": "high" }

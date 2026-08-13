@@ -42,6 +42,7 @@ export type AccountWatchSettingsWorkflowRow = Pick<
   | "include_public_records"
   | "include_tenders"
   | "include_social_manual"
+  | "include_jobs"
   | "query_aliases"
   | "metadata"
 >
@@ -67,6 +68,7 @@ export type AccountWatchWorkflowSettings = {
   includePublicRecords: boolean
   includeTenders: boolean
   includeSocialManual: boolean
+  includeJobs: boolean
   queryAliases: string[]
   metadata: Record<string, unknown>
 }
@@ -92,6 +94,7 @@ export const DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS: AccountWatchWorkflowSettin
   includePublicRecords: false,
   includeTenders: false,
   includeSocialManual: true,
+  includeJobs: false,
   queryAliases: [],
   metadata: {},
 }
@@ -148,10 +151,84 @@ export function toAccountWatchWorkflowSettings(
     includePublicRecords: row.include_public_records,
     includeTenders: row.include_tenders,
     includeSocialManual: row.include_social_manual,
+    includeJobs: row.include_jobs,
     queryAliases: Array.isArray(row.query_aliases) ? row.query_aliases.filter((value): value is string => typeof value === "string") : [],
     metadata:
       row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
         ? (row.metadata as Record<string, unknown>)
         : {},
+  }
+}
+
+export const ACCOUNT_WATCH_CATEGORIES = [
+  { value: "strategie", label: "Stratégie & gouvernance" },
+  { value: "offres", label: "Offres & innovation" },
+  { value: "finance", label: "Finance & investissements" },
+  { value: "organisation", label: "Organisation & recrutements" },
+  { value: "partenariats", label: "Partenariats & écosystème" },
+  { value: "risques", label: "Risques & réputation" },
+] as const
+
+export type AccountWatchCategory = (typeof ACCOUNT_WATCH_CATEGORIES)[number]["value"]
+
+export type AccountWatchDetailedSettings = AccountWatchSettingsState & {
+  includeOfficialSite: boolean
+  includeNews: boolean
+  includePublicRecords: boolean
+  includeTenders: boolean
+  includeSocialManual: boolean
+  includeJobs: boolean
+  queryAliases: string[]
+  monitoredCategories: AccountWatchCategory[]
+  notes: string
+}
+
+export const DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS: AccountWatchDetailedSettings = {
+  ...DEFAULT_ACCOUNT_WATCH_SETTINGS,
+  includeOfficialSite: true,
+  includeNews: true,
+  includePublicRecords: false,
+  includeTenders: false,
+  includeSocialManual: true,
+  includeJobs: false,
+  queryAliases: [],
+  monitoredCategories: ACCOUNT_WATCH_CATEGORIES.map((category) => category.value),
+  notes: "",
+}
+
+export type AccountWatchDetailedRow = AccountWatchSettingsRow & AccountWatchSettingsWorkflowRow
+
+export function normalizeAccountWatchDetailedSettings(
+  row: AccountWatchDetailedRow | null | undefined,
+): AccountWatchDetailedSettings {
+  if (!row) return DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS
+
+  const basic = normalizeAccountWatchSettings(row)
+  const workflow = toAccountWatchWorkflowSettings(row)
+  const rawCategories = Array.isArray(workflow.metadata.monitored_categories)
+    ? workflow.metadata.monitored_categories
+    : []
+  const allowedCategories = new Set<AccountWatchCategory>(
+    ACCOUNT_WATCH_CATEGORIES.map((category) => category.value),
+  )
+  const monitoredCategories = rawCategories.filter(
+    (category): category is AccountWatchCategory =>
+      typeof category === "string" && allowedCategories.has(category as AccountWatchCategory),
+  )
+
+  return {
+    ...basic,
+    includeOfficialSite: workflow.includeOfficialSite,
+    includeNews: workflow.includeNews,
+    includePublicRecords: workflow.includePublicRecords,
+    includeTenders: workflow.includeTenders,
+    includeSocialManual: workflow.includeSocialManual,
+    includeJobs: workflow.includeJobs,
+    queryAliases: workflow.queryAliases,
+    monitoredCategories:
+      monitoredCategories.length > 0
+        ? monitoredCategories
+        : DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS.monitoredCategories,
+    notes: typeof workflow.metadata.notes === "string" ? workflow.metadata.notes : "",
   }
 }

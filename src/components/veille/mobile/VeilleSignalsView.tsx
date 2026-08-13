@@ -22,16 +22,18 @@ type VeilleSignalsViewProps = {
   companies?: Array<{ id: string; name: string }>
   onDismissSignal: (signalId: string) => void
   onFeedback?: (message: string) => void
+  initialCompanyId?: string
 }
 
 export function VeilleSignalsView({
   signals,
   onDismissSignal,
   onFeedback,
+  initialCompanyId,
 }: VeilleSignalsViewProps) {
   const groups = useMemo(() => buildSignalGroups(signals), [signals])
 
-  const [openGroupId, setOpenGroupId] = useState<string | null>(null)
+  const [openGroupId, setOpenGroupId] = useState<string | null>(initialCompanyId ?? null)
   const [detailSignal, setDetailSignal] = useState<WatchedAccountSignal | null>(null)
   const [returnGroupId, setReturnGroupId] = useState<string | null>(null)
   const groupTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -251,4 +253,3 @@ function SignalMarkerBadge({ marker }: { marker: Exclude<SignalMarker, null> }) 
     </span>
   )
 }
-

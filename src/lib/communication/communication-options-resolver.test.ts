@@ -91,6 +91,16 @@ describe("resolveCommunicationOptions", () => {
     expect(notOffered.requiredReferences).not.toContain("offerRef")
   })
 
+  it("limits sector rebound objectives to the scenario contract", () => {
+    const resolved = resolveCommunicationOptions({ hasCompany: true }, brief({
+      what: { ...brief().what, scenario: "sector_rebound" },
+    }))
+
+    expect(resolved.availableObjectives).toEqual(["get_meeting"])
+    expect(resolved.availableObjectives).not.toContain("manage_expectations")
+    expect(resolved.availableObjectives).not.toContain("escalate_issue")
+  })
+
   it("uses only compatible tones and supports delivery, recruitment and Staff", () => {
     const delivery = resolveCommunicationOptions({ hasMission: true, recipientType: "active_client" }, brief({
       what: { ...brief().what, scenario: "project_alert_escalation", activityCategory: "delivery" },

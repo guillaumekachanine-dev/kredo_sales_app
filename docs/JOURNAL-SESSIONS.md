@@ -15,6 +15,42 @@
 
 ---
 
+### Session 43 — Cockpit Intelligence mobile : premier lot d’actions réelles (2026-08-13)
+
+**Objet** : raccorder les quatre premières actions du panneau mobile d’un compte à leurs parcours
+réels, sans recréer les composants déjà présents et sans modifier le schéma Supabase.
+
+**Rédiger** ouvre désormais le sélecteur progressif général catégorie → scénario → objectif avant
+le drawer de rédaction. L’ancien écran intermédiaire, qui exposait tous les objectifs quel que soit
+le scénario, est supprimé. La sélection est transmise au modèle du drawer ; ses listes restent
+pilotées par la registry canonique. Le cas demandé « Rebond sur actualité sectorielle » est couvert
+par test : seul `get_meeting` est proposé, jamais `manage_expectations` ni `escalate_issue`.
+
+**Planifier** ouvre le sélecteur général de nature d’événement existant, puis le drawer classique
+prérempli avec le type retenu et le compte courant. **Analyser** ouvre un hub compte : fiche de
+synthèse paramétrable/générable existante, générateurs transverses commercial et financier,
+bibliothèque filtrée sur le compte, et récipient explicite pour les métriques compte plus fines du
+lot suivant. **S’informer** ouvre trois entrées : signaux, paramètres et synthèse des enseignements.
+La première navigue vers `/veille?tab=veille&companyId=…` ; la vue mobile sélectionne l’onglet
+Veille et ouvre directement le drawer du compte. La troisième est un récipient futur.
+
+**Paramètres de veille** : nouvelle modale mobile complète (activation, niveau/cadence, six sources,
+catégories, alias et notes). Les sources utilisent les colonnes existantes de
+`account_watch_settings`; catégories et notes sont conservées dans `metadata` en préservant les
+autres clés. Lecture et écriture restent sous RLS via le client Supabase serveur, avec sélections de
+colonnes explicites et aucune migration.
+
+**Performance et contrats** : les parcours événement et paramètres de veille sont chargés
+dynamiquement au clic. Les vues Desktop ne sont pas modifiées. Les composants maison `AppDialog`,
+`AppDrawer`, `Select` et `ProgressivePickerModal` restent les seules primitives utilisées.
+
+**Validation** : `typecheck` vert · 118 fichiers / 1 171 tests verts · frontière serveur/client
+verte · lint global vert · build Next 16.2.7 vert. Le build affiche encore les messages historiques
+`DYNAMIC_SERVER_USAGE` pendant la tentative de pré-rendu de routes utilisant cookies/headers, puis
+termine correctement. Aucun commit ni déploiement.
+
+---
+
 ### Session 42 — MASTER STUDY, premier run : le corpus contre la matière réelle (2026-08-13)
 
 **Objet** : lots 0 et 1 du corpus `docs/MASTER-STUDY/`, établi la veille et jamais exécuté.

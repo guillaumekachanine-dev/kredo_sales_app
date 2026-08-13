@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, type CSSProperties } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -14,6 +15,7 @@ import {
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import { IntelligenceActionCard } from "./IntelligenceActionCard"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { AppDialog } from "@/components/ui/AppDialog"
 import { COCKPIT_PANEL_INDIGO, cockpitActionIcons } from "./cockpit-action-icons"
 import {
   PitchMailDrawerContent,
@@ -24,13 +26,28 @@ import { AccountCombobox, type AccountValue } from "@/components/missions/Accoun
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { getPlaybookSectors, type PlaybookSector } from "@/lib/prospection/get-playbook-sectors"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { openReportGeneration } from "@/lib/reports/report-generation"
+import type { AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import {
   IntelligenceActionResultContent,
   isDeterministicIntelligenceAction,
   type DeterministicIntelligenceActionId,
 } from "./action-results/IntelligenceActionResultContent"
 
-type AccountPanelAction = "summary" | null
+const AgendaEventTypePicker = dynamic(
+  () => import("@/components/agenda/AgendaEventTypePicker").then((module) => module.AgendaEventTypePicker),
+  { ssr: false },
+)
+const AgendaEventDrawer = dynamic(
+  () => import("@/components/agenda/AgendaEventDrawer").then((module) => module.AgendaEventDrawer),
+  { ssr: false },
+)
+const AccountWatchSettingsDialog = dynamic(
+  () => import("@/components/accounts-contacts/intelligence/AccountWatchSettingsDialog").then((module) => module.AccountWatchSettingsDialog),
+  { ssr: false },
+)
+
+type AccountPanelAction = "analysis" | "summary" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
 type RegistryButtonAction = {
   id: RegistryActionId
@@ -176,9 +193,9 @@ function QuickAccessLink({
 
 const ACCOUNT_EDITORIAL_ACTIONS = [
   { id: "write", label: "Rédiger", iconSrc: cockpitActionIcons.message },
-  { id: "plan", label: "Planifier", iconSrc: cockpitActionIcons.tasks, href: "/agenda" },
+  { id: "plan", label: "Planifier", iconSrc: cockpitActionIcons.tasks },
   { id: "analyze", label: "Analyser", iconSrc: cockpitActionIcons.recommendations },
-  { id: "watch", label: "S’informer", iconSrc: cockpitActionIcons.alert, href: "/veille" },
+  { id: "watch", label: "S’informer", iconSrc: cockpitActionIcons.alert },
   { id: "simulate", label: "Simuler", iconSrc: cockpitActionIcons.financeReport, href: "/finance" },
   { id: "recruit", label: "Recruter", iconSrc: cockpitActionIcons.recruitmentReport, href: "/recruitment" },
 ] as const
@@ -223,7 +240,158 @@ function EditorialResourceRow({ label, iconSrc, href, onClick }: {
   return <button type="button" onClick={onClick} className={className}>{content}</button>
 }
 
-function AccountMobileContent({ onWriteEmailClick, onClose }: { onWriteEmailClick: () => void; onClose: () => void }) {
+function AnalysisHub({ companyId, onOpenSummary, onClose }: {
+  companyId: string
+  onOpenSummary: () => void
+  onClose: () => void
+}) {
+  const reportAxes = [
+    "Activité commerciale",
+    "Besoins ouverts, traités et gagnés",
+    "Typologies de besoins et profils",
+    "Pipe, chiffre d’affaires et forecast",
+    "Documents et coûts d’automatisation",
+  ]
+
+  return (
+    <div className="space-y-4">
+      <button
+        type="button"
+        onClick={onClose}
+        className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-white/80 transition-colors hover:text-white"
+      >
+        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        Retour aux actions
+      </button>
+
+      <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-4 text-body">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Analyse du compte</p>
+        <h3 className="mt-1 text-lg font-bold text-heading">Rapports & synthèses</h3>
+        <p className="mt-1 text-sm text-muted">Produisez la lecture adaptée à la décision du moment.</p>
+
+        <button
+          type="button"
+          onClick={onOpenSummary}
+          className="mt-4 w-full rounded-[var(--radius-medium)] border border-primary/25 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
+        >
+          <span className="block text-sm font-bold text-heading">Fiche de synthèse du compte</span>
+          <span className="mt-1 block text-xs leading-5 text-muted">
+            Paramétrer, générer et conserver la synthèse décisionnelle du compte.
+          </span>
+          <span className="mt-3 flex flex-wrap gap-1.5">
+            {reportAxes.slice(0, 4).map((axis) => (
+              <span key={axis} className="rounded-full border border-border bg-surface px-2 py-1 text-[10px] font-semibold text-body">
+                {axis}
+              </span>
+            ))}
+          </span>
+        </button>
+
+        <div className="mt-3 grid grid-cols-1 gap-2">
+          <button
+            type="button"
+            onClick={() => openReportGeneration({ origin: "cockpit", reportType: "activity_commercial" })}
+            className="min-h-16 rounded-[var(--radius-small)] border border-border px-3 py-2.5 text-left transition-colors hover:bg-canvas"
+          >
+            <span className="block text-sm font-bold text-heading">Rapport d’activité commerciale</span>
+            <span className="mt-0.5 block text-xs text-muted">Générateur transverse disponible immédiatement.</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openReportGeneration({ origin: "cockpit", reportType: "financial" })}
+            className="min-h-16 rounded-[var(--radius-small)] border border-border px-3 py-2.5 text-left transition-colors hover:bg-canvas"
+          >
+            <span className="block text-sm font-bold text-heading">Rapport financier</span>
+            <span className="mt-0.5 block text-xs text-muted">Indicateurs, écarts et points de vigilance.</span>
+          </button>
+          <Link
+            href={`/reports?entityType=company&entityId=${companyId}`}
+            onClick={onClose}
+            className="min-h-16 rounded-[var(--radius-small)] border border-border px-3 py-2.5 text-left transition-colors hover:bg-canvas"
+          >
+            <span className="block text-sm font-bold text-heading">Documents générés pour ce compte</span>
+            <span className="mt-0.5 block text-xs text-muted">Consulter la bibliothèque filtrée sur le compte.</span>
+          </Link>
+        </div>
+
+        <p className="mt-4 border-t border-border pt-3 text-xs text-muted">
+          {reportAxes[4]} : le récipient est prêt ; les métriques détaillées seront raccordées au lot analytique suivant.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+type AccountInformationView = "menu" | "learnings"
+
+function AccountInformationDialog({
+  open,
+  onOpenChange,
+  companyName,
+  view,
+  onViewChange,
+  onSignals,
+  onSettings,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  companyName: string
+  view: AccountInformationView
+  onViewChange: (view: AccountInformationView) => void
+  onSignals: () => void
+  onSettings: () => void
+}) {
+  return (
+    <AppDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={view === "learnings" ? "Synthèse des enseignements" : `S’informer · ${companyName}`}
+      description={view === "learnings" ? undefined : "Consultez les signaux ou adaptez la veille de ce compte."}
+      className="w-[min(calc(100vw-1rem),36rem)]"
+    >
+      {view === "learnings" ? (
+        <div className="space-y-4">
+          <button type="button" onClick={() => onViewChange("menu")} className="inline-flex min-h-11 items-center text-xs font-bold text-primary">
+            ← Retour
+          </button>
+          <div className="rounded-[var(--radius-medium)] border border-dashed border-primary/35 bg-primary/5 px-5 py-8 text-center">
+            <p className="text-sm font-bold text-heading">Récipient prêt</p>
+            <p className="mt-2 text-xs leading-5 text-muted">
+              Cette vue accueillera la production, la consultation et l’historique de la synthèse des enseignements issus de la veille du compte et de son segment métier.
+            </p>
+            <span className="mt-4 inline-flex rounded-full bg-canvas px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+              Fonctionnalité à venir
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <button type="button" onClick={onSignals} className="aspect-square rounded-[var(--radius-medium)] border border-primary/25 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10">
+            <span className="block text-sm font-bold text-heading">Consulter les signaux</span>
+            <span className="mt-2 block text-xs leading-5 text-muted">Ouvrir directement la veille de {companyName}.</span>
+          </button>
+          <button type="button" onClick={onSettings} className="aspect-square rounded-[var(--radius-medium)] border border-brand-brass/35 bg-brand-brass/5 p-4 text-left transition-colors hover:bg-brand-brass/10">
+            <span className="block text-sm font-bold text-heading">Paramétrer la veille</span>
+            <span className="mt-2 block text-xs leading-5 text-muted">Fréquence, sources, catégories et notes.</span>
+          </button>
+          <button type="button" onClick={() => onViewChange("learnings")} className="col-span-2 min-h-32 rounded-[var(--radius-medium)] border border-border bg-canvas p-4 text-left transition-colors hover:bg-surface-hover">
+            <span className="block text-sm font-bold text-heading">Synthèse des enseignements</span>
+            <span className="mt-2 block text-xs leading-5 text-muted">Préparer le futur document d’analyse consolidée.</span>
+          </button>
+        </div>
+      )}
+    </AppDialog>
+  )
+}
+
+function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onClose }: {
+  onWriteEmailClick: () => void
+  onPlanClick: () => void
+  onInformClick: () => void
+  onClose: () => void
+}) {
   const { panelData } = useIntelligenceContext()
   const [activeAction, setActiveAction] = useState<AccountPanelAction>(null)
   if (!panelData) return null
@@ -253,6 +421,16 @@ function AccountMobileContent({ onWriteEmailClick, onClose }: { onWriteEmailClic
     )
   }
 
+  if (activeAction === "analysis") {
+    return (
+      <AnalysisHub
+        companyId={company.id}
+        onOpenSummary={() => setActiveAction("summary")}
+        onClose={() => setActiveAction(null)}
+      />
+    )
+  }
+
   return (
     <div className="space-y-6">
       <section>
@@ -271,7 +449,9 @@ function AccountMobileContent({ onWriteEmailClick, onClose }: { onWriteEmailClic
                   return
                 }
                 if (action.id === "write") onWriteEmailClick()
-                if (action.id === "analyze") setActiveAction("summary")
+                if (action.id === "plan") onPlanClick()
+                if (action.id === "analyze") setActiveAction("analysis")
+                if (action.id === "watch") onInformClick()
               }}
             />
           ))}
@@ -485,6 +665,24 @@ export function IntelligenceFAB() {
   const [pitchContext, setPitchContext] = useState<PitchMailAccountContext | null>(null)
   const [activeAction, setActiveAction] = useState<"pitch" | null>(null)
   const [activeDeterministicAction, setActiveDeterministicAction] = useState<DeterministicIntelligenceActionId | null>(null)
+  const [eventTypePickerOpen, setEventTypePickerOpen] = useState(false)
+  const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
+  const [selectedEventType, setSelectedEventType] = useState("")
+  const [informationOpen, setInformationOpen] = useState(false)
+  const [informationView, setInformationView] = useState<AccountInformationView>("menu")
+  const [watchSettingsOpen, setWatchSettingsOpen] = useState(false)
+
+  const eventInitialValues = useMemo<AgendaEventDrawerInitialValues | undefined>(() => {
+    if (!panelData || !selectedEventType) return undefined
+    return {
+      event_type: selectedEventType,
+      company: {
+        id: panelData.company.id,
+        name: panelData.company.name,
+        isNew: false,
+      },
+    }
+  }, [panelData, selectedEventType])
 
   // Secteurs proposés au sélecteur de playbook — chargés depuis la base à l'ouverture,
   // plus depuis une liste codée en dur qui pointait vers trois slugs inexistants.
@@ -533,8 +731,31 @@ export function IntelligenceFAB() {
     setActiveDeterministicAction(null)
     setPitchContext(null)
     window.setTimeout(() => {
-      openCommunicationComposer({ origin: "cockpit_header" })
+      openCommunicationComposer({
+        origin: "account_panel",
+        companyId: panelData?.company.id ?? null,
+        companyName: panelData?.company.name ?? null,
+        selectedOutputKind: "written_message",
+        startWithGeneralPicker: true,
+      })
     }, 280)
+  }
+
+  function openPlannerFromCockpit() {
+    setIsOpen(false)
+    setSelectedEventType("")
+    window.setTimeout(() => setEventTypePickerOpen(true), 280)
+  }
+
+  function openInformationFromCockpit() {
+    setIsOpen(false)
+    setInformationView("menu")
+    window.setTimeout(() => setInformationOpen(true), 280)
+  }
+
+  function selectEventType(eventType: string) {
+    setSelectedEventType(eventType)
+    window.setTimeout(() => setEventDrawerOpen(true), 220)
   }
 
   return (
@@ -638,6 +859,8 @@ export function IntelligenceFAB() {
           <AccountMobileContent
             key={`${entityContext?.entityId}-${isOpen}`}
             onWriteEmailClick={openComposerFromCockpit}
+            onPlanClick={openPlannerFromCockpit}
+            onInformClick={openInformationFromCockpit}
             onClose={() => setIsOpen(false)}
           />
         ) : isGenericEntityMode ? (
@@ -661,6 +884,50 @@ export function IntelligenceFAB() {
           />
         )}
       </AppDrawer>
+
+      <AgendaEventTypePicker
+        open={eventTypePickerOpen}
+        onOpenChange={setEventTypePickerOpen}
+        value={selectedEventType}
+        onChange={selectEventType}
+      />
+
+      <AgendaEventDrawer
+        open={eventDrawerOpen}
+        onOpenChange={setEventDrawerOpen}
+        event={null}
+        initialValues={eventInitialValues}
+        onSaved={() => {
+          setEventDrawerOpen(false)
+          router.refresh()
+        }}
+      />
+
+      {panelData ? (
+        <>
+          <AccountInformationDialog
+            open={informationOpen}
+            onOpenChange={setInformationOpen}
+            companyName={panelData.company.name}
+            view={informationView}
+            onViewChange={setInformationView}
+            onSignals={() => {
+              setInformationOpen(false)
+              router.push(`/veille?tab=veille&companyId=${panelData.company.id}`)
+            }}
+            onSettings={() => {
+              setInformationOpen(false)
+              window.setTimeout(() => setWatchSettingsOpen(true), 180)
+            }}
+          />
+          <AccountWatchSettingsDialog
+            open={watchSettingsOpen}
+            onOpenChange={setWatchSettingsOpen}
+            companyId={panelData.company.id}
+            companyName={panelData.company.name}
+          />
+        </>
+      ) : null}
 
       {/* Select Company Popup */}
       {isCompanySelectorOpen && (

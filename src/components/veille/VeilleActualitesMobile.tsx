@@ -47,6 +47,8 @@ interface VeilleActualitesMobileProps {
   companies: CompanyContextStats[]
   watchedSignals: WatchedAccountSignal[]
   analyses: StrategicWatchAnalysis[]
+  initialTab?: VeilleTab
+  initialCompanyId?: string
 }
 
 export function VeilleActualitesMobile({
@@ -57,12 +59,14 @@ export function VeilleActualitesMobile({
   companies,
   watchedSignals,
   analyses,
+  initialTab = "actualites",
+  initialCompanyId,
 }: VeilleActualitesMobileProps) {
   const router = useRouter()
 
   const allArticles = feedArticles.length > 0 ? feedArticles : articles
 
-  const [activeTab, setActiveTab] = useState<VeilleTab>("actualites")
+  const [activeTab, setActiveTab] = useState<VeilleTab>(initialTab)
   /** On mémorise l'ID du briefing, pas son rang : l'index se dérive ensuite,
       ce qui reste correct si la liste des briefings change. */
   const [activeDigestId, setActiveDigestId] = useState<string | null>(selectedDigestId)
@@ -269,6 +273,7 @@ export function VeilleActualitesMobile({
               setLocalSignals((previous) => previous.filter((signal) => signal.id !== signalId))
             }
             onFeedback={showFeedback}
+            initialCompanyId={initialCompanyId}
           />
         ) : null}
 

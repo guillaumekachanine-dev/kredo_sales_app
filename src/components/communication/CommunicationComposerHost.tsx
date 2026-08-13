@@ -9,6 +9,7 @@ import {
   type PitchMailAccountContext,
 } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import { CollaboratorSelect } from "@/components/accounts-contacts/intelligence/CollaboratorSelect"
+import { QuoiHubModal } from "@/components/accounts-contacts/intelligence/QuoiHubModal"
 import { getWorkspaceCollaborators, type CollaboratorOption } from "@/components/accounts-contacts/intelligence/get-collaborator-options"
 import { createClient } from "@/lib/supabase/client"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
@@ -24,12 +25,16 @@ import {
 import { loadCommunicationContextForCurrentUser } from "@/lib/communication/communication-context-actions"
 import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
 import type { CommunicationOutputKind, CommunicationScenario, CommunicationObjective } from "@/lib/n8n/types"
-import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
+import {
+  getScenarioRegistryItem,
+  type ActivityCategory,
+} from "@/lib/communication/communication-scenario-registry"
 import {
   getCommunicationPurposeNavigationItems,
   getOutputKindFromComposerPreset,
+  getScenarioPurposeGroups,
 } from "@/lib/communication/communication-purpose"
-import { SCENARIO_OPTIONS, OBJECTIVE_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
+import { OBJECTIVE_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 
 interface CompanyRecord {
   id: string
@@ -311,85 +316,6 @@ function ComposerCollaboratorSelector({
   )
 }
 
-function ComposerScenarioStep({
-  context,
-  onConfirm,
-}: {
-  context: ComposerAccountContext
-  onConfirm: (scenario: CommunicationScenario, objective: CommunicationObjective) => void
-}) {
-  const defaultScenario = context.communicationPreset?.scenario ?? "signal_outreach"
-  const defaultObj = context.communicationPreset?.objective ?? "get_meeting"
-
-  const [selectedScenario, setSelectedScenario] = useState<CommunicationScenario>(defaultScenario)
-  const [selectedObjective, setSelectedObjective] = useState<CommunicationObjective>(defaultObj)
-
-  const entityName = context.company?.name ?? context.collaborator?.name ?? "Contexte sélectionné"
-
-  const handleConfirm = () => {
-    onConfirm(selectedScenario, selectedObjective)
-  }
-
-  return (
-    <div className="space-y-5 rounded-[var(--radius-medium)] border border-primary-fg/15 bg-primary-fg/[0.07] p-5 text-body">
-      <div className="border-b border-border/40 pb-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Étape 2 · Cadrage du scénario</span>
-        <h3 className="mt-1 text-base font-bold text-heading">Intention & Scénario pour {entityName}</h3>
-        <p className="mt-1 text-xs text-muted">
-          L&apos;information du scénario et de l&apos;objectif permet de clarifier l&apos;intention et de cadrer plus rapidement les paramètres à appliquer à la génération.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-heading">Scénario de communication</label>
-          <select
-            value={selectedScenario}
-            onChange={(e) => {
-              const sc = e.target.value as CommunicationScenario
-              setSelectedScenario(sc)
-              const found = SCENARIO_OPTIONS.find((item) => item.value === sc)
-              if (found) setSelectedObjective(found.defaultObjective)
-            }}
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-heading outline-none focus:border-primary"
-          >
-            {SCENARIO_OPTIONS.map((sc) => (
-              <option key={sc.value} value={sc.value}>
-                {sc.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-heading">Objectif principal</label>
-          <select
-            value={selectedObjective}
-            onChange={(e) => setSelectedObjective(e.target.value as CommunicationObjective)}
-            className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-heading outline-none focus:border-primary"
-          >
-            {OBJECTIVE_OPTIONS.map((obj) => (
-              <option key={obj.value} value={obj.value}>
-                {obj.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="flex justify-end pt-2">
-        <button
-          type="button"
-          onClick={handleConfirm}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-xs font-bold text-primary-fg transition-opacity hover:opacity-90"
-        >
-          Valider le scénario & afficher les paramètres →
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function ComposerContent({
   context,
   scope,
@@ -411,12 +337,6 @@ function ComposerContent({
   instanceKey: number
   outputKind: CommunicationOutputKind
 }) {
-  const [step, setStep] = useState<"scenario" | "full">("scenario")
-
-  useEffect(() => {
-    setStep("scenario")
-  }, [context?.company?.id, context?.collaborator?.id])
-
   if (!context) {
     if (scope === "collaborator") {
       return <ComposerCollaboratorSelector onSelect={onCollaboratorSelect} error={error} />
@@ -437,36 +357,8 @@ function ComposerContent({
     )
   }
 
-  if (step === "scenario") {
-    return (
-      <ComposerScenarioStep
-        context={context}
-        onConfirm={(scenario, objective) => {
-          if (context.communicationPreset) {
-            context.communicationPreset.scenario = scenario
-            context.communicationPreset.objective = objective
-          }
-          if (context.initialBrief) {
-            context.initialBrief.what.scenario = scenario
-            context.initialBrief.who.objective = objective
-          }
-          setStep("full")
-        }}
-      />
-    )
-  }
-
   const content = (
     <div className="space-y-3">
-      <div className="flex items-center justify-between border-b border-border/30 pb-2">
-        <button
-          type="button"
-          onClick={() => setStep("scenario")}
-          className="text-xs font-semibold text-primary hover:underline"
-        >
-          ← Changer le scénario & l&apos;objectif
-        </button>
-      </div>
       <PitchMailDrawerContent
         key={`${instanceKey}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
         data={context}
@@ -613,10 +505,25 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const [context, setContext] = useState<ComposerAccountContext | null>(null)
   const [instanceKey, setInstanceKey] = useState(0)
   const [outputKind, setOutputKind] = useState<CommunicationOutputKind>("written_message")
+  const [generalPickerOpen, setGeneralPickerOpen] = useState(false)
+  const [generalPickerRequest, setGeneralPickerRequest] = useState<CommunicationComposerRequest | null>(null)
+  const [generalCategory, setGeneralCategory] = useState<ActivityCategory>("commerce_prospection")
+  const [generalScenario, setGeneralScenario] = useState<CommunicationScenario>("signal_outreach")
+  const [generalObjective, setGeneralObjective] = useState<CommunicationObjective>("get_meeting")
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent(COMMUNICATION_COMPOSER_STATE_EVENT, { detail: { open } }))
   }, [open])
+
+  const generalCategories = useMemo(
+    () => getScenarioPurposeGroups(outputKind).map((group) => group.value),
+    [outputKind],
+  )
+  const generalScenarioDefinition = getScenarioRegistryItem(generalScenario)
+  const generalObjectiveOptions = (generalScenarioDefinition?.allowedObjectives ?? [generalObjective]).map((value) => ({
+    value,
+    label: OBJECTIVE_OPTIONS.find((option) => option.value === value)?.label ?? value,
+  }))
 
   const resolvePrimaryEntity = useCallback(async (
     currentRequest: CommunicationComposerRequest,
@@ -1012,14 +919,79 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     function handleOpen(event: Event) {
       const customEvent = event as CustomEvent<CommunicationComposerRequest>
       const nextRequest = customEvent.detail ?? { origin: "global" }
-      setOpen(true)
       setSelectedAccount(null)
+      if (nextRequest.startWithGeneralPicker) {
+        const nextOutputKind = nextRequest.selectedOutputKind ?? getOutputKindFromComposerPreset(nextRequest.preset)
+        const requestedScenario = nextRequest.preset?.scenario
+        const definition = requestedScenario ? getScenarioRegistryItem(requestedScenario) : undefined
+        const firstGroup = getScenarioPurposeGroups(nextOutputKind)[0]
+        const initialScenario = definition?.allowedOutputKinds.includes(nextOutputKind)
+          ? definition
+          : firstGroup?.scenarios[0]
+
+        setOpen(false)
+        setOutputKind(nextOutputKind)
+        setGeneralPickerRequest(nextRequest)
+        setGeneralCategory(initialScenario?.activityCategory ?? "commerce_prospection")
+        setGeneralScenario(initialScenario?.value ?? "signal_outreach")
+        setGeneralObjective(initialScenario?.defaultObjective ?? "get_meeting")
+        setGeneralPickerOpen(true)
+        return
+      }
+
+      setOpen(true)
       void hydrate(nextRequest)
     }
 
     window.addEventListener(COMMUNICATION_COMPOSER_EVENT, handleOpen)
     return () => window.removeEventListener(COMMUNICATION_COMPOSER_EVENT, handleOpen)
   }, [hydrate])
+
+  function selectGeneralCategory(category: ActivityCategory) {
+    setGeneralCategory(category)
+    const nextScenario = getScenarioPurposeGroups(outputKind)
+      .find((group) => group.value === category)
+      ?.scenarios[0]
+    if (!nextScenario) return
+    setGeneralScenario(nextScenario.value)
+    setGeneralObjective(nextScenario.defaultObjective)
+  }
+
+  function selectGeneralScenario(scenario: CommunicationScenario) {
+    const definition = getScenarioRegistryItem(scenario)
+    setGeneralScenario(scenario)
+    if (definition) {
+      setGeneralCategory(definition.activityCategory)
+      setGeneralObjective(definition.defaultObjective)
+    }
+  }
+
+  function confirmGeneralSelection(objective: CommunicationObjective) {
+    const currentRequest = generalPickerRequest ?? { origin: "global" as const }
+    const scope: CommunicationComposerScope = generalCategory === "management_consultants"
+      ? "collaborator"
+      : generalCategory === "internal_staff"
+        ? "internal"
+        : "account"
+    const nextRequest: CommunicationComposerRequest = {
+      ...currentRequest,
+      startWithGeneralPicker: false,
+      scope,
+      selectedOutputKind: outputKind,
+      preset: {
+        ...currentRequest.preset,
+        activityCategory: generalCategory,
+        scenario: generalScenario,
+        objective,
+        outputKind,
+      },
+    }
+
+    setGeneralObjective(objective)
+    setGeneralPickerOpen(false)
+    setOpen(true)
+    void hydrate(nextRequest)
+  }
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
@@ -1077,9 +1049,28 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     onOutputKindChange: setOutputKind,
   }
 
-  return device === "mobile" ? (
-    <MobileCommunicationDrawer {...drawerProps} />
-  ) : (
-    <DesktopCommunicationDrawer {...drawerProps} />
+  return (
+    <>
+      <QuoiHubModal
+        open={generalPickerOpen}
+        onOpenChange={setGeneralPickerOpen}
+        outputKind={outputKind}
+        initialStep="category"
+        showCategory
+        availableCategories={generalCategories}
+        categoryValue={generalCategory}
+        onSelectCategory={selectGeneralCategory}
+        scenarioValue={generalScenario}
+        onSelectScenario={selectGeneralScenario}
+        objectiveOptions={generalObjectiveOptions}
+        objectiveValue={generalObjective}
+        onSelectObjective={confirmGeneralSelection}
+      />
+      {device === "mobile" ? (
+        <MobileCommunicationDrawer {...drawerProps} />
+      ) : (
+        <DesktopCommunicationDrawer {...drawerProps} />
+      )}
+    </>
   )
 }

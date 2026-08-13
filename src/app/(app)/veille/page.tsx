@@ -26,10 +26,12 @@ import { VeilleActualitesPage } from "@/components/veille/VeilleActualitesPage"
 export default async function VeillePage({
   searchParams,
 }: {
-  searchParams: Promise<{ digestId?: string }>
+  searchParams: Promise<{ digestId?: string; tab?: string; companyId?: string }>
 }) {
   const resolvedParams = await searchParams
   const digestId = resolvedParams.digestId
+  const initialTab = resolvedParams.tab === "veille" ? "veille" : undefined
+  const initialCompanyId = resolvedParams.companyId || undefined
 
   const [
     device,
@@ -129,6 +131,8 @@ export default async function VeillePage({
         latestAnalysis={latestAnalysis}
         analysisHistory={analysisHistory}
         monthlyGeneration={monthlyGeneration}
+        initialMobileTab={initialTab}
+        initialMobileCompanyId={initialCompanyId}
       />
     </div>
   )

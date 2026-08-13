@@ -75,6 +75,8 @@ export type CommunicationComposerPreset = {
 
 export type CommunicationComposerRequest = {
   origin: CommunicationComposerOrigin
+  /** Ouvre le parcours général catégorie → scénario → objectif avant le drawer. */
+  startWithGeneralPicker?: boolean
   // Défaut "account" si omis — rétro-compatible avec tous les call-sites existants.
   scope?: CommunicationComposerScope
   companyId?: string | null

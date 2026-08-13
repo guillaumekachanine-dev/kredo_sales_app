@@ -35,6 +35,8 @@ interface VeilleActualitesPageProps {
   latestAnalysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
   monthlyGeneration: MonthlyWatchGenerationContext
+  initialMobileTab?: "veille"
+  initialMobileCompanyId?: string
 }
 
 export function VeilleActualitesPage({
@@ -54,6 +56,8 @@ export function VeilleActualitesPage({
   latestAnalysis,
   analysisHistory,
   monthlyGeneration,
+  initialMobileTab,
+  initialMobileCompanyId,
 }: VeilleActualitesPageProps) {
   if (device === "mobile") {
     return (
@@ -65,6 +69,8 @@ export function VeilleActualitesPage({
         companies={companies}
         watchedSignals={watchedSignals}
         analyses={analysisHistory}
+        initialTab={initialMobileTab}
+        initialCompanyId={initialMobileCompanyId}
       />
     )
   }
