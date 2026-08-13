@@ -123,11 +123,11 @@ export function IntelligenceSplitModalShell({
           "flex shrink-0 items-center justify-between border-b border-white/5 px-6 py-4",
           isMobile && "px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]",
         )}>
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 mr-2">
             {headerActions}
-            <div className="min-w-0">
-              <h2 id={titleId} className="font-heading text-lg font-bold leading-tight">{title}</h2>
-              {subtitle ? <p id={subtitleId} className="mt-0.5 text-xs leading-tight text-muted">{subtitle}</p> : null}
+            <div className="min-w-0 flex-1">
+              <h2 id={titleId} className="font-heading text-base sm:text-lg font-bold leading-tight text-white truncate">{title}</h2>
+              {subtitle ? <p id={subtitleId} className="mt-0.5 text-xs leading-tight text-muted truncate">{subtitle}</p> : null}
             </div>
           </div>
           <button

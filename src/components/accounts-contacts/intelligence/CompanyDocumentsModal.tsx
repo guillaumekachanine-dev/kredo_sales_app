@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
 import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 
 interface CompanyDocumentsModalProps {
   open: boolean
@@ -405,7 +406,7 @@ export function CompanyDocumentsModal({
   companyName,
   isMobile = false,
   initialCategory,
-  onReturnToCockpit,
+  onReturnToCockpit: _onReturnToCockpit,
 }: CompanyDocumentsModalProps) {
   const [step, setStep] = useState<"categories" | "list" | "viewer">(initialCategory ? "list" : "categories")
   const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(initialCategory ?? null)
@@ -784,19 +785,21 @@ export function CompanyDocumentsModal({
         onClose={handleClose}
         isMobile={isMobile}
         title={step === "categories" ? "Consulter les documents" : step === "list" ? getCategoryLabel(activeCategory!) : selectedDoc?.title ?? "Consulter les documents"}
-        subtitle={companyName}
         leftPane={null}
         rightPane={null}
         headerActions={(
-          <div className="flex items-center gap-1">
-            {onReturnToCockpit ? (
-              <CockpitReturnButton onClick={onReturnToCockpit} tone="dark" className="px-1.5" />
-            ) : null}
+          <div className="flex items-center gap-2 shrink-0">
+            <CompanyLogo
+              name={companyName}
+              logoPath={companyLogoPath}
+              size="sm"
+              className="rounded-full border-0 bg-white p-0.5"
+            />
             {step !== "categories" ? (
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+                className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
                 aria-label="Retour"
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">

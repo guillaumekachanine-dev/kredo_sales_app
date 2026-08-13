@@ -855,10 +855,15 @@
    accent bronze antique repris de la palette complémentaire KREDO (remplace
    l'ambre du cockpit sur le bouton Favori). Portée : uniquement le sous-arbre
    de la modale concernée, sans effet ailleurs. */
+.pitch-modal-reading,
+.score-modal-reading,
+.cockpit-reading,
 [data-theme="cockpit"] .pitch-modal-reading,
-[data-theme="cockpit"] .score-modal-reading {
+[data-theme="cockpit"] .score-modal-reading,
+[data-theme="cockpit"] .cockpit-reading {
   background-color: #F3F7FB;
   border-color: #C7DCEC;
+  color: #33465A;
   --color-canvas: #EAF1F8;
   --color-surface: #FFFFFF;
   --color-surface-hover: #E3EDF6;
