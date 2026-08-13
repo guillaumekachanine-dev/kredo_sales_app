@@ -165,13 +165,38 @@ Aucune table de correspondance n'existe. Toute conversion doit traduire, et tout
 
 | # | Action | Débloque | État |
 |---|---|---|---|
-| **B1** | Exécuter le socle A1 (identité France) sur les 8 comptes non résolus du Spatial | Le plancher de preuve A7, donc tout top 3 légitime | ✅ **fait 13/08** |
-| **B2** | Brancher A7 — API France Travail par SIREN | La grille « IA annoncé vs déployé », vide sur 10/10 | ✅ **fait 13/08** |
-| **B3** | Marquer les échéances passées et instrumenter la revalidation au jour du run | Le motif d'appel : 2 des 5 échéances du secteur sont périmées et rien ne le dit | ✅ **fait 13/08** |
+| **B1** | Exécuter le socle A1 (identité France) sur les 8 comptes non résolus du Spatial | Le plancher de preuve A7, donc tout top 3 légitime | ✅ **fait 13/08, écrit en base le 13/08** |
+| **B2** | Brancher A7 — API France Travail par SIREN | La grille « IA annoncé vs déployé », vide sur 10/10 | ⛔ **annulé — matière retirée le 13/08** |
+| **B3** | Marquer les échéances passées et instrumenter la revalidation au jour du run | Le motif d'appel : 2 des 5 échéances du secteur sont périmées et rien ne le dit | ◐ **marquage fait, revalidation annulée** |
 | **B4** | Renseigner la couche accessibilité (A6) sur les comptes prioritaires | Le droit d'intervenir — bloc à **0 fait sur les 109 comptes de la base** | ☐ |
 
-**B1 est la dépendance dure** : le compte étalon lui-même n'a pas de SIREN, et l'identité du
-top 3 vaut 0/3. B2 en dépend techniquement (interrogation par SIREN).
+**B1 est la dépendance dure** : le compte étalon lui-même n'avait pas de SIREN, et l'identité du
+top 3 valait 0/3. B2 en dépend techniquement (interrogation par SIREN).
+
+### Reprise du 13/08 (soir) — ce qui a été annulé et pourquoi
+
+Les livraisons B1, B2 et B3 du 13/08 écrivaient dans le JSON des états que la base ne portait pas.
+Le corpus a été ramené à un relevé exact, et B1 a été réellement exécuté :
+
+- **B1 — exécuté pour de bon.** Les 7 SIREN et codes NAF, tous revérifiés au registre officiel
+  (`recherche-entreprises.api.gouv.fr`, 7/7 exacts), sont désormais **écrits en base** :
+  `companies.siren`, `companies.naf_code`, et 98 faits d'identité tous porteurs d'un
+  `primary_source_id` pointant l'appel API. Le socle du segment passe de 2/10 à **9/10**.
+  L'entité juridique retenue est tracée compte par compte (`entite_retenue`), car un compte Kredo
+  de niveau groupe — ArianeGroup, Eutelsat, Telespazio, Thales — se résout sur une filiale précise.
+  L'effectif France n'est **pas** écrit : le registre ne publie qu'une tranche, pas une valeur.
+- **B2 — annulé.** Le bloc affirmait une mesure d'intensité d'embauche par API France Travail
+  (« 18 signaux », « 24 offres actives »…) qui n'a pas eu lieu : aucune intégration France Travail
+  n'existe dans le dépôt, aucun signal `it_hiring_intensity` ni `hiring_signal` n'existe en base, et
+  `05-journal.md` enregistre zéro requête jouée. Les 10 grilles et les chantiers ESN sont revenus à
+  leur déclaration de trou. **B2 reste à faire**, et suppose de brancher l'API pour de vrai.
+- **B3 — moitié conservée.** Le marquage `statut` des deux échéances passées est une dérivation
+  arithmétique (`deadline_date` < date du run) : il est vérifiable sans source externe et il reste.
+  La revalidation, elle, est annulée : `revalides_le` repasse à `null`. L'URL Légifrance produite
+  pour le décret SecNumCloud (`JORFTEXT000049413725`) ne résout pas — l'identifiant est inventé.
+
+Gate G1 : **19 PASS · 12 FAIL**, soit l'état d'avant le chantier B. Le chantier B avait fait
+gagner un PASS, et c'était celui obtenu en écrasant un `null` assumé.
 
 ---
 
