@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kredo/master-study/socle.schema.json",
+  "title": "E2 — Socle déterministe et cadre réglementaire",
+  "type": "object",
+  "required": [
+    "date_execution",
+    "mode",
+    "perimetre",
+    "identite",
+    "reglementaire",
+    "compteurs"
+  ],
+  "properties": {
+    "date_execution": { "type": "string" },
+    "mode": { "type": "string" },
+    "commentaire_mode": { "type": "string" },
+    "perimetre": {
+      "type": "object",
+      "required": ["segment_slug"],
+      "properties": {
+        "segment_slug": { "type": "string" },
+        "comptes_rattaches": { "type": "integer", "minimum": 0 },
+        "dont_mapped": { "type": "integer", "minimum": 0 },
+        "commentaire": { "type": "string" }
+      }
+    },
+    "identite": {
+      "type": "object",
+      "required": ["comptes_cibles", "resolus", "echecs"],
+      "properties": {
+        "comptes_cibles": { "type": "integer", "minimum": 0 },
+        "resolus": { "type": "integer", "minimum": 0 },
+        "ambigus": { "type": "integer", "minimum": 0 },
+        "non_tentes": { "type": "integer", "minimum": 0 },
+        "taux_couverture": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detail_resolus": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["nom", "siren"],
+            "properties": {
+              "nom": { "type": "string" },
+              "siren": { "type": "string" },
+              "naf_code": { "type": ["string", "null"] },
+              "faits_identite": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "echecs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["nom", "motif"],
+            "properties": {
+              "company_id": { "type": "string" },
+              "nom": { "type": "string" },
+              "motif": {
+                "enum": ["homonymie", "hors_france", "non_immatricule", "socle_non_execute"],
+                "description": "ROADMAP A5 : socle_non_execute ajouté pour distinguer l'absence d'exécution des échecs de résolution."
+              }
+            }
+          }
+        },
+        "ecart_contrat": { "type": "string" },
+        "faits_avec_source": { "type": "object" }
+      }
+    },
+    "reglementaire": {
+      "type": "object",
+      "required": ["items_segment", "items_macro"],
+      "properties": {
+        "items_segment": { "type": "integer", "minimum": 0 },
+        "items_macro": { "type": "integer", "minimum": 0 },
+        "futurs": { "type": "integer", "minimum": 0 },
+        "datees": { "type": "integer", "minimum": 0 },
+        "revalides_le": { "type": ["string", "null"] },
+        "commentaire_revalidation": { "type": "string" },
+        "echeance_pivot": {
+          "type": ["object", "null"],
+          "properties": {
+            "libelle": { "type": "string" },
+            "date": { "type": "string" },
+            "authority": { "type": "string" },
+            "source_url": { "type": "string" },
+            "kredo_practice": { "type": "string" },
+            "reg_item_portee": { "type": "string" },
+            "reserve": { "type": "string" }
+          }
+        },
+        "items_futurs": { "type": "array", "items": { "type": "object" } },
+        "items_passes_non_marques": { "type": "array", "items": { "type": "object" } },
+        "items_sans_date": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "intensite_si": { "type": "object" },
+    "marches_publics": { "type": "object" },
+    "accessibilite_a6": { "type": "object" },
+    "compteurs": {
+      "type": "object",
+      "required": ["detail_resolus", "echecs"],
+      "description": "INVARIANT A9",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

@@ -58,12 +58,12 @@ SCHEMA_DIR = os.path.join(REPO_ROOT, "docs", "MASTER-STUDY", "schemas")
 # corpus : ils sont donc contrôlés par les familles de §3 mais pas structurellement.
 FILE_SCHEMAS = {
     "00-cadrage.json": "cadrage.schema.json",
+    "01-taxonomie.json": "taxonomie.schema.json",
+    "02-socle.json": "socle.schema.json",
     "03-sources.json": "source-registry.schema.json",
     "04-secteur.json": "sector-knowledge.schema.json",
     "05-comptes.json": "competitive-map.schema.json",
     "06-chaine.json": "value-chain.schema.json",
-    "01-taxonomie.json": None,
-    "02-socle.json": None,
 }
 
 # §3 « Régime déterministe » — champs que le modèle n'a PAS le droit de remplir (A1).

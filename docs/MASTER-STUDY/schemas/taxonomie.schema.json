@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kredo/master-study/taxonomie.schema.json",
+  "title": "E1 — Taxonomie sectorielle et cadrage G0",
+  "type": "object",
+  "required": [
+    "segment",
+    "comptes",
+    "corpus_existant",
+    "controles_e1",
+    "verdict_g0",
+    "compteurs"
+  ],
+  "properties": {
+    "segment": {
+      "type": "object",
+      "required": ["slug", "id", "level"],
+      "properties": {
+        "slug": { "type": "string" },
+        "id": { "type": "string" },
+        "level": { "enum": ["macro", "segment"] },
+        "macro_slug": { "type": ["string", "null"] },
+        "macro_id": { "type": ["string", "null"] },
+        "display_code": { "type": ["string", "null"] }
+      }
+    },
+    "comptes": {
+      "type": "object",
+      "required": ["total", "detail", "dans_le_perimetre_g0"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "confiance_faible": { "type": "integer", "minimum": 0 },
+        "mapped": { "type": "integer", "minimum": 0 },
+        "total_rattaches_toutes_profondeurs": { "type": "integer", "minimum": 0 },
+        "detail": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["nom", "depth_level", "relation_type"],
+            "properties": {
+              "nom": { "type": "string" },
+              "depth_level": { "type": "string" },
+              "relation_type": { "type": "string" },
+              "axes_manquants": { "type": "array", "items": { "type": "string" } },
+              "hors_cibles_de_prospection": { "type": ["string", "null"] },
+              "dans_la_cartographie": { "type": "boolean" }
+            }
+          }
+        },
+        "classifies_5_axes_obligatoires": { "type": "integer", "minimum": 0 },
+        "axes_conditionnels_nuls_non_documentes": { "type": "integer", "minimum": 0 },
+        "dans_le_perimetre_g0": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "corpus_existant": {
+      "type": "object"
+    },
+    "controles_e1": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["n", "libelle", "resultat"],
+        "properties": {
+          "n": { "type": "integer" },
+          "libelle": { "type": "string" },
+          "resultat": { "enum": ["pass", "fail", "warn", "skip"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "verdict_g0": {
+      "enum": ["go", "go_avec_reserve", "stop"]
+    },
+    "motif": { "type": "string" },
+    "reserves": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "amendements_appliques": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "compteurs": {
+      "type": "object",
+      "required": ["detail", "controles_e1"],
+      "description": "INVARIANT A9",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

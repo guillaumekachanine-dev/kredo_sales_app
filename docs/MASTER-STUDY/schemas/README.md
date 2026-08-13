@@ -12,6 +12,8 @@ Ce dossier porte les JSON Schema de chaque étape. Un livrable qui ne valide pas
 | Schéma | Étape | Consommé par |
 |---|---|---|
 | `cadrage.schema.json` | E0 | Tous les prompts suivants |
+| `taxonomie.schema.json` | E1 | Gate G0 et contrôle G1 |
+| `socle.schema.json` | E2 | Régime déterministe et contrôle G1 |
 | `source-registry.schema.json` | E3 | E4, E5, la veille |
 | `sector-knowledge.schema.json` | E4 | `sector_intelligence`, `sector_*`, E5 |
 | `competitive-map.schema.json` | E5 · V1 · V2 · V3 | `CompetitiveMapImportWizard` |
