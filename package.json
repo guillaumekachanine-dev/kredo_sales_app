@@ -15,7 +15,8 @@
     "gen:comm-manifest": "node scripts/generate-communication-manifest.mjs",
     "logos:attach": "node --env-file=.env.local scripts/attach-company-logos.mjs",
     "n8n:status": "node --env-file=.env.local scripts/n8n-status.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ft:check": "node --env-file=.env.local scripts/check-france-travail-credentials.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
