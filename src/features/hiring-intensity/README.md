@@ -78,43 +78,62 @@ Deux appels suffisent (`secteurActivite=XX` et `secteurActivite=XX&domaine=M18`)
 En dessous de quelques dizaines d'offres SI au national, A7 ne rendra rien et il vaut
 mieux le savoir avant que le corpus n'annonce un zéro.
 
-## Ce qui est livré, ce qui ne l'est pas
+## Ce qui est livré
 
 | | État |
 |---|---|
-| `hiring-intensity.types.ts` — le contrat de données | ✅ |
-| `build-search-envelope.ts` — enveloppe depuis le registre | ✅ 26 tests |
-| `classify-offer.ts` — offre → practice (slugs base) | ✅ |
-| `match-employer.ts` — appariement prudent | ✅ |
-| `compute-hiring-intensity.ts` — agrégat, seuil, couverture | ✅ |
-| Adaptateur réseau (OAuth, `/offres/search`, pagination) | ❌ **bloqué sur identifiants** |
-| Workflow n8n + écriture en base | ❌ après un appel réel |
+| `domain/hiring-intensity.types.ts` — contrat de données | ✅ |
+| `domain/build-search-envelope.ts` — enveloppe depuis le registre | ✅ |
+| `domain/classify-offer.ts` — offre → practice (slugs base) | ✅ |
+| `domain/match-employer.ts` — appariement prudent | ✅ |
+| `domain/compute-hiring-intensity.ts` — agrégat, seuil, couverture | ✅ |
+| `data/france-travail-client.ts` — OAuth, recherche, pagination | ✅ écrit contre l'API réelle |
+| 30 tests, dont 4 de régression sur intitulés réels | ✅ |
+| Écriture en `account_facts` / `account_signals` | ❌ **décision en attente** |
+| Workflow n8n | ❌ après la décision d'écriture |
 
-**Rien n'est écrit en base tant qu'un appel réel n'a pas tourné.** C'est la règle qui distingue
-cette tentative de la précédente.
+Outils :
 
-## Pourquoi l'adaptateur réseau n'est pas écrit
+```bash
+npm run ft:check     # les identifiants fonctionnent-ils ? (n'affiche aucun secret)
+npm run ft:probe     # sonde la forme de l'API
+npm run ft:measure   # mesure A7 sur les comptes du Spatial — LECTURE SEULE
+```
 
-Ses noms de paramètres, ses scopes OAuth, la forme exacte de sa réponse et ses quotas ne se
-devinent pas : ils se constatent contre l'API. Les écrire de mémoire produirait précisément le
-genre de code qui a l'air juste et ne tourne jamais. Points à établir au premier appel réel :
+## Ce que la première mesure réelle a corrigé
 
-1. Nom du paramètre de filtre secteur et granularité acceptée (division NAF sur 2 chiffres ?).
-2. Nom du paramètre département, et s'il accepte plusieurs valeurs.
-3. Champ portant le nom de l'employeur, et la façon dont l'anonymat se manifeste
-   (champ absent, `null`, ou libellé générique — le calcul de couverture en dépend).
-4. Validité du préfixe ROME `M18` contre `/referentiel/metiers` — le ROME a été renuméroté
-   en v4 et ce préfixe n'a **pas** été vérifié en ligne.
-5. Quotas réels (3 req/s annoncés, 1 150 offres maximum par requête) et pagination.
+Deux défauts du classement, invisibles hors ligne, révélés par les données réelles :
 
-## Pour reprendre
+1. **Appariement en sous-chaîne.** `ssi` matchait « mi**ssi**on », `soc` « **soc**iété »,
+   `ux` « fl**ux** » : « Technicien Méthode Microélectronique » partait en `cybersecurity`.
+   Corrigé par un appariement sur frontière de mot, avec suffixe `*` pour les préfixes
+   légitimes (`cryptograph*`, `ergonom*`).
+2. **Classement sur la description.** Elle énumère l'environnement de travail, pas le poste.
+   Un « Technicien production érosion » dont la description cite « données » partait en
+   `data-ai`. Le classement porte désormais sur le **seul intitulé** ; le rappel perdu est
+   couvert par le garde-fou ROME, qui garde l'offre dans le périmètre sans la ventiler.
+   Compter juste sans ventiler vaut mieux que ventiler faux.
 
-1. Créer une application sur francetravail.io, souscrire à « Offres d'emploi v2 ».
-2. Poser `FRANCE_TRAVAIL_CLIENT_ID` / `FRANCE_TRAVAIL_CLIENT_SECRET` dans `.env.local`
-   **et sur Vercel** (prod + preview) — l'oubli côté Vercel est le mode d'échec le plus
-   courant du projet.
-3. Jouer un appel manuel sur un SIREN du segment Spatial-Défense, constater les cinq points
-   ci-dessus, puis écrire l'adaptateur contre ce qui a été observé.
-4. Mesurer la couverture réelle sur les 9 comptes résolus. **Si elle est basse, c'est un
-   résultat, pas un échec** : il faut alors le dire dans `02-socle.json` plutôt que de
-   compenser au jugé.
+Les fixtures hors ligne étaient des intitulés courts ; la prose française ne l'est pas.
+Quatre tests de régression portent maintenant les intitulés qui ont piégé la première version.
+
+## Résultat sur le Spatial-Défense — 2026-08-13
+
+9 comptes résolus, couverture 75 à 100 %, **1 seule offre SI sur tout le segment**
+(Thales Alenia Space, « Responsable Produit Space Edge Computing », M1879).
+**0 compte sur 9** franchit le seuil de 3.
+
+À comparer aux « 18 signaux » et « 91 offres actives » qu'annonçait la version fabriquée
+du 13/08 après-midi.
+
+## Décision en attente
+
+Faut-il écrire ces neuf mesures en base ? Deux lectures défendables :
+
+- **Écrire** — la mesure est datée, sourcée et porte sa couverture ; elle évite qu'on
+  refasse le travail, et rend le canal comparable d'un segment à l'autre.
+- **Ne pas écrire** — neuf faits dont huit à zéro encombrent le compte sans rien apprendre ;
+  mieux vaut consigner dans `02-socle.json` que le canal ne convient pas à ce segment.
+
+Le tableau de densité ci-dessus plaide pour écrire : c'est ce qui permettra de dire, dans six
+mois, que le gisement a bougé.
