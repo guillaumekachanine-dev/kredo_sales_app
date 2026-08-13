@@ -214,17 +214,22 @@ relèvent de G2.
 **Écrans servis** : BI → Étude sectorielle (principal) · BI → Calendrier · Prospection →
 Playbook et Fenêtres · Cockpit → Secteur et Stratégie.
 
-### Correspondance des vocabulaires de practices (Action A6)
+### Correspondance des vocabulaires de practices & offres (Action A6)
 
-Pour les champs `practice_kredo` / `kredo_practice` des livrables et des tables `sector_*`, le mapping bi-directionnel avec les slugs de la table `offer_practices` est le suivant :
+Le catalogue KREDO s'appuie sur **8 practices** et **41 offres granulaires** (tables `offer_practices` et `offers` dans Supabase) :
 
-| `kredo_practice` (base / schema E4) | `offer_practices.slug` (base `offer_practices`) | Libellé |
-|---|---|---|
-| `data_ai` | `data-ia` (ou `data-ai`) | Data Intelligence & Artificial Intelligence |
-| `cloud_eng` | `digital-cloud` (ou `cloud-engineering`) | Digital & Cloud Engineering |
-| `cyber` | `cybersecurity` | Cybersecurity & SecOps |
-| `product` | `agile-pm` | Agile Product Management |
-| `multi` | `null` (transversal) | Transversal |
+| `kredo_practice` | `offer_practices.slug` | Nom de la practice | Nombre d'offres |
+|---|---|---|---|
+| `data_ai` | `data-ia` | Data Intelligence & Artificial Intelligence | 5 |
+| `cloud_eng` | `digital-cloud` | Digital & Cloud Engineering | 5 |
+| `cyber` | `cybersecurity` | Cybersecurity & SecOps | 5 |
+| `testing` | `qa-testing` | QA & Testing | 5 |
+| `product` | `agile-pm` | Agile Product Management & Delivery | 5 |
+| `design` | `ux-ui-design` | UX Research, Product Design & Omnichannel | 5 |
+| `apps` | `custom-apps` | Custom Business Applications & Software Architecture | 6 |
+| `legacy` | `legacy-mainframe` | Legacy Modernization, Mainframe & MCO Operations | 5 |
+
+Toutes les 41 offres granulaires (ex: `generative-ai-rag-automation`, `soc-detection-incident-response`, `cloud-migration-application-modernization`, `test-automation-continuous-quality`, etc.) sont indexées et rattachées bi-directionnellement via `src/lib/config/practices.ts` (`KREDO_OFFERS_CATALOG`) et la migration SQL `077_practice_mapping_function.sql`.
 
 **Finalité** : que le commercial tienne trois minutes de conversation métier sans être
 interchangeable, et qu'il sache pourquoi il appelle maintenant.

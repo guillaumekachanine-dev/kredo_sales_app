@@ -159,6 +159,9 @@ const PRACTICE_LOGO_BY_SLUG: Record<PracticeSlug, string> = {
   "agile-pm": "/images/practices/practice_project_management.png",
   cybersecurity: "/images/practices/practice_cybersecurite.png",
   "qa-testing": "/images/practices/practice_qa_testing.png",
+  "custom-apps": "/images/practices/practice_cloud_computing.png",
+  "ux-ui-design": "/images/practices/practice_project_management.png",
+  "legacy-mainframe": "/images/practices/practice_cloud_computing.png",
 }
 
 interface OpportunityEditFormProps {

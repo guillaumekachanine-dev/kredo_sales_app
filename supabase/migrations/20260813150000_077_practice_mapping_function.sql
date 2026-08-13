@@ -1,6 +1,6 @@
 -- 20260813150000_077_practice_mapping_function.sql
--- Table de correspondance et helper SQL (Action A6 - MASTER STUDY)
--- Mappe le vocabulaire kredo_practice (base sector_*) et offer_practices.slug
+-- Table de correspondance et helpers SQL (Action A6 - MASTER STUDY)
+-- Mappe l'ensemble des 8 practices et 44 offres KREDO (base offer_practices / offers)
 
 CREATE OR REPLACE FUNCTION public.map_kredo_practice_to_offer_practice_slug(p_practice text)
 RETURNS text
@@ -12,6 +12,10 @@ AS $$
     WHEN 'cloud_eng' THEN 'digital-cloud'
     WHEN 'cyber' THEN 'cybersecurity'
     WHEN 'product' THEN 'agile-pm'
+    WHEN 'testing' THEN 'qa-testing'
+    WHEN 'apps' THEN 'custom-apps'
+    WHEN 'design' THEN 'ux-ui-design'
+    WHEN 'legacy' THEN 'legacy-mainframe'
     WHEN 'multi' THEN NULL
     ELSE NULL
   END;
@@ -32,10 +36,13 @@ AS $$
     WHEN 'cyber' THEN 'cyber'
     WHEN 'agile-pm' THEN 'product'
     WHEN 'product' THEN 'product'
-    WHEN 'qa-testing' THEN 'multi'
+    WHEN 'qa-testing' THEN 'testing'
+    WHEN 'custom-apps' THEN 'apps'
+    WHEN 'ux-ui-design' THEN 'design'
+    WHEN 'legacy-mainframe' THEN 'legacy'
     ELSE NULL
   END;
 $$;
 
-COMMENT ON FUNCTION public.map_kredo_practice_to_offer_practice_slug(text) IS 'Action A6 MASTER STUDY : Convertit une kredo_practice (sector_*) en slug offer_practices';
+COMMENT ON FUNCTION public.map_kredo_practice_to_offer_practice_slug(text) IS 'Action A6 MASTER STUDY : Convertit une kredo_practice (sector_*) en slug offer_practices (8 practices)';
 COMMENT ON FUNCTION public.map_offer_practice_slug_to_kredo_practice(text) IS 'Action A6 MASTER STUDY : Convertit un slug offer_practices en kredo_practice';

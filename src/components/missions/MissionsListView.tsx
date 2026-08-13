@@ -59,14 +59,18 @@ interface MissionsListViewProps {
 }
 
 import { formatEuro } from "@/lib/formatters"
+import type { PracticeSlug } from "@/lib/config/practices"
 
-const PRACTICE_IMAGE_BY_SLUG = {
+const PRACTICE_IMAGE_BY_SLUG: Record<PracticeSlug, string> = {
   "data-ia": "/images/practices/practice_data_ai.png",
   "digital-cloud": "/images/practices/practice_cloud_computing.png",
   "agile-pm": "/images/practices/practice_project_management.png",
   cybersecurity: "/images/practices/practice_cybersecurite.png",
   "qa-testing": "/images/practices/practice_qa_testing.png",
-} as const
+  "custom-apps": "/images/practices/practice_cloud_computing.png",
+  "ux-ui-design": "/images/practices/practice_project_management.png",
+  "legacy-mainframe": "/images/practices/practice_cloud_computing.png",
+}
 
 function formatDayMonth(date?: string | null) {
   if (!date) return "—"
