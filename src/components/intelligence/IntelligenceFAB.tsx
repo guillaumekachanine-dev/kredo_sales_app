@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, type CSSProperties } from "react"
+import { useEffect, useState, useMemo, type CSSProperties } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -19,14 +19,14 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { COCKPIT_PANEL_INDIGO, cockpitActionIcons } from "./cockpit-action-icons"
 import {
   PitchMailDrawerContent,
-  SummaryDrawerContent,
   type PitchMailAccountContext,
 } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { getPlaybookSectors, type PlaybookSector } from "@/lib/prospection/get-playbook-sectors"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
-import { openReportGeneration } from "@/lib/reports/report-generation"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
+import { COCKPIT_RETURN_EVENT, returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
 import type { AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import {
   IntelligenceActionResultContent,
@@ -46,8 +46,16 @@ const AccountWatchSettingsDialog = dynamic(
   () => import("@/components/accounts-contacts/intelligence/AccountWatchSettingsDialog").then((module) => module.AccountWatchSettingsDialog),
   { ssr: false },
 )
+const AccountSignalsDialog = dynamic(
+  () => import("@/components/accounts-contacts/intelligence/AccountSignalsDialog").then((module) => module.AccountSignalsDialog),
+  { ssr: false },
+)
+const AccountAnalysisHub = dynamic(
+  () => import("@/components/intelligence/AccountAnalysisHub").then((module) => module.AccountAnalysisHub),
+  { ssr: false },
+)
 
-type AccountPanelAction = "analysis" | "summary" | null
+type AccountPanelAction = "analysis" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
 type RegistryButtonAction = {
   id: RegistryActionId
@@ -240,90 +248,6 @@ function EditorialResourceRow({ label, iconSrc, href, onClick }: {
   return <button type="button" onClick={onClick} className={className}>{content}</button>
 }
 
-function AnalysisHub({ companyId, onOpenSummary, onClose }: {
-  companyId: string
-  onOpenSummary: () => void
-  onClose: () => void
-}) {
-  const reportAxes = [
-    "Activité commerciale",
-    "Besoins ouverts, traités et gagnés",
-    "Typologies de besoins et profils",
-    "Pipe, chiffre d’affaires et forecast",
-    "Documents et coûts d’automatisation",
-  ]
-
-  return (
-    <div className="space-y-4">
-      <button
-        type="button"
-        onClick={onClose}
-        className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-white/80 transition-colors hover:text-white"
-      >
-        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Retour aux actions
-      </button>
-
-      <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-4 text-body">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Analyse du compte</p>
-        <h3 className="mt-1 text-lg font-bold text-heading">Rapports & synthèses</h3>
-        <p className="mt-1 text-sm text-muted">Produisez la lecture adaptée à la décision du moment.</p>
-
-        <button
-          type="button"
-          onClick={onOpenSummary}
-          className="mt-4 w-full rounded-[var(--radius-medium)] border border-primary/25 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
-        >
-          <span className="block text-sm font-bold text-heading">Fiche de synthèse du compte</span>
-          <span className="mt-1 block text-xs leading-5 text-muted">
-            Paramétrer, générer et conserver la synthèse décisionnelle du compte.
-          </span>
-          <span className="mt-3 flex flex-wrap gap-1.5">
-            {reportAxes.slice(0, 4).map((axis) => (
-              <span key={axis} className="rounded-full border border-border bg-surface px-2 py-1 text-[10px] font-semibold text-body">
-                {axis}
-              </span>
-            ))}
-          </span>
-        </button>
-
-        <div className="mt-3 grid grid-cols-1 gap-2">
-          <button
-            type="button"
-            onClick={() => openReportGeneration({ origin: "cockpit", reportType: "activity_commercial" })}
-            className="min-h-16 rounded-[var(--radius-small)] border border-border px-3 py-2.5 text-left transition-colors hover:bg-canvas"
-          >
-            <span className="block text-sm font-bold text-heading">Rapport d’activité commerciale</span>
-            <span className="mt-0.5 block text-xs text-muted">Générateur transverse disponible immédiatement.</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => openReportGeneration({ origin: "cockpit", reportType: "financial" })}
-            className="min-h-16 rounded-[var(--radius-small)] border border-border px-3 py-2.5 text-left transition-colors hover:bg-canvas"
-          >
-            <span className="block text-sm font-bold text-heading">Rapport financier</span>
-            <span className="mt-0.5 block text-xs text-muted">Indicateurs, écarts et points de vigilance.</span>
-          </button>
-          <Link
-            href={`/reports?entityType=company&entityId=${companyId}`}
-            onClick={onClose}
-            className="min-h-16 rounded-[var(--radius-small)] border border-border px-3 py-2.5 text-left transition-colors hover:bg-canvas"
-          >
-            <span className="block text-sm font-bold text-heading">Documents générés pour ce compte</span>
-            <span className="mt-0.5 block text-xs text-muted">Consulter la bibliothèque filtrée sur le compte.</span>
-          </Link>
-        </div>
-
-        <p className="mt-4 border-t border-border pt-3 text-xs text-muted">
-          {reportAxes[4]} : le récipient est prêt ; les métriques détaillées seront raccordées au lot analytique suivant.
-        </p>
-      </div>
-    </div>
-  )
-}
-
 type AccountInformationView = "menu" | "learnings"
 
 function AccountInformationDialog({
@@ -334,6 +258,7 @@ function AccountInformationDialog({
   onViewChange,
   onSignals,
   onSettings,
+  onReturnToCockpit,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -342,15 +267,16 @@ function AccountInformationDialog({
   onViewChange: (view: AccountInformationView) => void
   onSignals: () => void
   onSettings: () => void
+  onReturnToCockpit: () => void
 }) {
   return (
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
       title={view === "learnings" ? "Synthèse des enseignements" : `S’informer · ${companyName}`}
-      description={view === "learnings" ? undefined : "Consultez les signaux ou adaptez la veille de ce compte."}
       className="w-[min(calc(100vw-1rem),36rem)]"
     >
+      <CockpitReturnButton onClick={onReturnToCockpit} className="mb-2" />
       {view === "learnings" ? (
         <div className="space-y-4">
           <button type="button" onClick={() => onViewChange("menu")} className="inline-flex min-h-11 items-center text-xs font-bold text-primary">
@@ -398,34 +324,10 @@ function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, o
 
   const { company, sector } = panelData
 
-  if (activeAction === "summary") {
-    return (
-      <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setActiveAction(null)}
-          className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-white/80 transition-colors hover:text-white"
-        >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Retour
-        </button>
-        <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-4">
-          <SummaryDrawerContent
-            data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
-            variant="mobile"
-          />
-        </div>
-      </div>
-    )
-  }
-
   if (activeAction === "analysis") {
     return (
-      <AnalysisHub
-        companyId={company.id}
-        onOpenSummary={() => setActiveAction("summary")}
+      <AccountAnalysisHub
+        company={{ id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus, sectorId: company.sectorId }}
         onClose={() => setActiveAction(null)}
       />
     )
@@ -649,6 +551,7 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
 
 export function IntelligenceFAB() {
   const [isOpen, setIsOpen] = useState(false)
+  const [cockpitReturnKey, setCockpitReturnKey] = useState(0)
   const router = useRouter()
   const { entityContext, panelData } = useIntelligenceContext()
   const isAccountMode = entityContext?.entityType === "company" && panelData !== null
@@ -671,6 +574,23 @@ export function IntelligenceFAB() {
   const [informationOpen, setInformationOpen] = useState(false)
   const [informationView, setInformationView] = useState<AccountInformationView>("menu")
   const [watchSettingsOpen, setWatchSettingsOpen] = useState(false)
+  const [signalsOpen, setSignalsOpen] = useState(false)
+
+  useEffect(() => {
+    function handleReturnToCockpit() {
+      setEventTypePickerOpen(false)
+      setEventDrawerOpen(false)
+      setInformationOpen(false)
+      setWatchSettingsOpen(false)
+      setSignalsOpen(false)
+      setInformationView("menu")
+      setCockpitReturnKey((current) => current + 1)
+      setIsOpen(true)
+    }
+
+    window.addEventListener(COCKPIT_RETURN_EVENT, handleReturnToCockpit)
+    return () => window.removeEventListener(COCKPIT_RETURN_EVENT, handleReturnToCockpit)
+  }, [])
 
   const eventInitialValues = useMemo<AgendaEventDrawerInitialValues | undefined>(() => {
     if (!panelData || !selectedEventType) return undefined
@@ -857,7 +777,7 @@ export function IntelligenceFAB() {
           </div>
         ) : isAccountMode ? (
           <AccountMobileContent
-            key={`${entityContext?.entityId}-${isOpen}`}
+            key={`${entityContext?.entityId}-${isOpen}-${cockpitReturnKey}`}
             onWriteEmailClick={openComposerFromCockpit}
             onPlanClick={openPlannerFromCockpit}
             onInformClick={openInformationFromCockpit}
@@ -890,6 +810,10 @@ export function IntelligenceFAB() {
         onOpenChange={setEventTypePickerOpen}
         value={selectedEventType}
         onChange={selectEventType}
+        onReturnToCockpit={() => {
+          setEventTypePickerOpen(false)
+          returnToAccountCockpit()
+        }}
       />
 
       <AgendaEventDrawer
@@ -897,6 +821,10 @@ export function IntelligenceFAB() {
         onOpenChange={setEventDrawerOpen}
         event={null}
         initialValues={eventInitialValues}
+        onReturnToCockpit={() => {
+          setEventDrawerOpen(false)
+          returnToAccountCockpit()
+        }}
         onSaved={() => {
           setEventDrawerOpen(false)
           router.refresh()
@@ -913,18 +841,41 @@ export function IntelligenceFAB() {
             onViewChange={setInformationView}
             onSignals={() => {
               setInformationOpen(false)
-              router.push(`/veille?tab=veille&companyId=${panelData.company.id}`)
+              window.setTimeout(() => setSignalsOpen(true), 180)
             }}
             onSettings={() => {
               setInformationOpen(false)
               window.setTimeout(() => setWatchSettingsOpen(true), 180)
             }}
+            onReturnToCockpit={() => {
+              setInformationOpen(false)
+              returnToAccountCockpit()
+            }}
           />
           <AccountWatchSettingsDialog
+            key={`${panelData.company.id}-${watchSettingsOpen}`}
             open={watchSettingsOpen}
             onOpenChange={setWatchSettingsOpen}
             companyId={panelData.company.id}
             companyName={panelData.company.name}
+            onBack={() => {
+              setWatchSettingsOpen(false)
+              window.setTimeout(() => setInformationOpen(true), 180)
+            }}
+            onReturnToCockpit={() => {
+              setWatchSettingsOpen(false)
+              returnToAccountCockpit()
+            }}
+          />
+          <AccountSignalsDialog
+            open={signalsOpen}
+            onOpenChange={setSignalsOpen}
+            companyId={panelData.company.id}
+            companyName={panelData.company.name}
+            onReturnToCockpit={() => {
+              setSignalsOpen(false)
+              returnToAccountCockpit()
+            }}
           />
         </>
       ) : null}

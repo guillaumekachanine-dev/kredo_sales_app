@@ -25,6 +25,8 @@ function row(overrides: Partial<AccountWatchDetailedRow> = {}): AccountWatchDeta
     metadata: {
       monitored_categories: ["strategie", "offres", "categorie_inconnue"],
       notes: "Surveiller les annonces produit.",
+      depth: "deep",
+      manual_source_urls: ["https://example.com/news", "not-a-url", 42],
     },
     ...overrides,
   }
@@ -50,6 +52,8 @@ describe("normalizeAccountWatchDetailedSettings", () => {
       queryAliases: ["KREDO", "Kredo Conseil"],
       monitoredCategories: ["strategie", "offres"],
       notes: "Surveiller les annonces produit.",
+      depth: "deep",
+      manualSourceUrls: ["https://example.com/news"],
     })
   })
 

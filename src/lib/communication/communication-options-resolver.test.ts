@@ -101,6 +101,31 @@ describe("resolveCommunicationOptions", () => {
     expect(resolved.availableObjectives).not.toContain("escalate_issue")
   })
 
+  it("preserves an explicit cockpit scenario even when the account lifecycle suggests another family", () => {
+    const selected = brief({
+      what: {
+        ...brief().what,
+        activityCategory: "commerce_prospection",
+        scenario: "sector_rebound",
+      },
+      who: {
+        ...brief().who,
+        recipient: { ...brief().who.recipient, type: "prospect" },
+        objective: "get_meeting",
+      },
+    })
+
+    const resolved = resolveCommunicationOptions(
+      { scope: "account", hasCompany: true, recipientType: "active_client" },
+      selected,
+      { activityCategory: "user", scenario: "user", objective: "user" },
+    )
+
+    expect(resolved.normalizedBrief.what.activityCategory).toBe("commerce_prospection")
+    expect(resolved.normalizedBrief.what.scenario).toBe("sector_rebound")
+    expect(resolved.normalizedBrief.who.objective).toBe("get_meeting")
+  })
+
   it("uses only compatible tones and supports delivery, recruitment and Staff", () => {
     const delivery = resolveCommunicationOptions({ hasMission: true, recipientType: "active_client" }, brief({
       what: { ...brief().what, scenario: "project_alert_escalation", activityCategory: "delivery" },

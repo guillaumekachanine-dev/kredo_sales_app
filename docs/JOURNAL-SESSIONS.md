@@ -15,6 +15,38 @@
 
 ---
 
+### Session 44 — Cockpit Intelligence mobile : corrections du premier lot (2026-08-13)
+
+**Objet** : corriger la persistance de la rédaction, rendre les parcours cockpit réversibles et
+donner aux volets Analyser/S’informer leur structure mobile cible.
+
+**Navigation** : un événement partagé `kredo:return-to-account-cockpit` réouvre le panneau compte.
+Les sélecteurs et drawers de rédaction, d’agenda, de rapports, de documents, les signaux et les
+paramètres de veille exposent désormais « Retour au cockpit ». S’informer ouvre la liste des
+`account_signals` du compte dans une modale locale, sans navigation vers `/veille`.
+
+**Rédaction** : les sources utilisateur du triplet catégorie/scénario/objectif traversent désormais
+les deux passes de résolution du contexte. Une sélection cockpit explicite reste prioritaire sur le
+statut de cycle de vie du compte ; les objectifs restent filtrés par la registry du scénario.
+
+**Analyser** : le hub est renommé « Synthèses et analyses » et réparti en trois cadres homogènes :
+Fiches de synthèse, Rapports et Analyse, chacun avec Consulter/Générer. Les fiches distinguent
+Synthèse du compte et Synthèse account intelligence, avec inclusion/exclusion détaillée. Les
+rapports ouverts depuis ce hub sont limités aux quatre familles utiles et reçoivent le compte dans
+leur scope. L’analyse des enjeux déclenche `intel-031-issues-map`; les récipients actualité et
+tendances sectorielles sont prêts mais leurs workflows dédiés restent à raccorder.
+
+**Veille** : le paramétrage devient un wizard Type → Sources → Sujets → Précisions, avec bandeau
+navy/ambre, navigation Revenir/Suivant, profondeur (standard/équilibrée/approfondie), URLs manuelles
+et futur corpus thématique. Profondeur, catégories, URLs et notes sont normalisées dans `metadata`
+sans migration et sous RLS.
+
+**Validation** : typecheck vert · 119 fichiers / 1 174 tests verts · frontière serveur/client verte
+· lint vert · build Next 16.2.7 vert. Vérification Playwright à 390 × 844 : hub, générateur de fiche
+et étapes 1-2 de veille sans débordement horizontal ni erreur console.
+
+---
+
 ### Session 43 — Cockpit Intelligence mobile : premier lot d’actions réelles (2026-08-13)
 
 **Objet** : raccorder les quatre premières actions du panneau mobile d’un compte à leurs parcours

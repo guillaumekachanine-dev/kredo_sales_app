@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { ReportGenerationDrawer } from "@/components/reports/ReportGenerationDrawer"
 import { cn } from "@/lib/utils"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
+import { returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
 import {
   REPORT_GENERATION_EVENT,
   REPORT_GENERATION_OPTIONS,
@@ -56,6 +58,8 @@ export function ReportGenerationHost() {
   const [reportOpen, setReportOpen] = useState(false)
   const [selectedReportType, setSelectedReportType] = useState<ReportGenerationKind>("activity_commercial")
   const [suggestedReportType, setSuggestedReportType] = useState<ReportGenerationKind | null>(null)
+  const [shouldReturnToCockpit, setShouldReturnToCockpit] = useState(false)
+  const [companyId, setCompanyId] = useState<string | undefined>()
 
   useEffect(() => {
     function handleOpen(event: Event) {
@@ -63,6 +67,8 @@ export function ReportGenerationHost() {
       const request = customEvent.detail ?? { origin: "global" }
 
       setSuggestedReportType(request.reportType ?? null)
+      setShouldReturnToCockpit(request.returnToCockpit === true)
+      setCompanyId(request.companyId)
       setReportOpen(false)
       setSelectorOpen(true)
     }
@@ -96,8 +102,19 @@ export function ReportGenerationHost() {
         headerClassName={REPORT_SELECTOR_HEADER_CLASS}
         contentClassName={REPORT_SELECTOR_CONTENT_CLASS}
       >
+        {shouldReturnToCockpit ? (
+          <CockpitReturnButton
+            onClick={() => {
+              setSelectorOpen(false)
+              returnToAccountCockpit()
+            }}
+            className="mb-2"
+          />
+        ) : null}
         <div className="grid grid-cols-2 gap-3">
-          {REPORT_GENERATION_OPTIONS.map((option) => {
+          {REPORT_GENERATION_OPTIONS
+            .filter((option) => !shouldReturnToCockpit || ["activity_commercial", "activity_recruitment", "financial", "technical"].includes(option.reportType))
+            .map((option) => {
             const isSuggested = suggestedReportType === option.reportType
             const isReady = option.availability === "ready"
 
@@ -145,7 +162,12 @@ export function ReportGenerationHost() {
         open={reportOpen}
         onOpenChange={setReportOpen}
         onBack={returnToSelector}
+        onReturnToCockpit={shouldReturnToCockpit ? () => {
+          setReportOpen(false)
+          returnToAccountCockpit()
+        } : undefined}
         reportType={selectedReportType}
+        companyId={companyId}
       />
     </>
   )

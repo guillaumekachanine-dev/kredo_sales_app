@@ -15,6 +15,7 @@ import {
   resolveCommunicationOptions,
   type CommunicationAdjustment,
   type CommunicationContextFacts,
+  type CommunicationFieldSources,
   type CommunicationResolution,
 } from "./communication-options-resolver"
 
@@ -188,8 +189,9 @@ export function applyCommunicationPurposeToBrief(
   currentBrief: CommunicationBrief,
   outputKind: CommunicationPurpose,
   facts: CommunicationContextFacts = inferFactsFromBrief(currentBrief),
+  fieldSources: CommunicationFieldSources = {},
 ): ApplyCommunicationPurposeResult {
-  const baseResolution = resolveCommunicationOptions(facts, currentBrief)
+  const baseResolution = resolveCommunicationOptions(facts, currentBrief, fieldSources)
   const nextScenarioId = chooseScenarioForPurpose(
     baseResolution.normalizedBrief,
     outputKind,
@@ -221,7 +223,7 @@ export function applyCommunicationPurposeToBrief(
     },
   }
 
-  const resolution = resolveCommunicationOptions(facts, draft)
+  const resolution = resolveCommunicationOptions(facts, draft, fieldSources)
   const adjustments = [
     ...baseResolution.adjustments,
     ...resolution.adjustments,

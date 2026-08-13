@@ -35,6 +35,8 @@ import {
   getScenarioPurposeGroups,
 } from "@/lib/communication/communication-purpose"
 import { OBJECTIVE_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
+import { returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
 
 interface CompanyRecord {
   id: string
@@ -365,6 +367,7 @@ function ComposerContent({
         variant={variant}
         initialBrief={context.initialBrief}
         selectedOutputKind={outputKind}
+        communicationPreset={context.communicationPreset}
       />
     </div>
   )
@@ -393,6 +396,7 @@ function DesktopCommunicationDrawer({
   instanceKey,
   outputKind,
   onOutputKindChange,
+  onReturnToCockpit,
 }: DrawerVariantProps) {
   const clientName = context?.company?.name ?? context?.collaborator?.name
 
@@ -414,6 +418,7 @@ function DesktopCommunicationDrawer({
       headerClassName={MAIL_DRAWER_HEADER_CLASS}
       contentClassName={MAIL_DRAWER_CONTENT_CLASS}
     >
+      {onReturnToCockpit ? <CockpitReturnButton onClick={onReturnToCockpit} /> : null}
       <ComposerContent
         context={context}
         scope={scope}
@@ -442,6 +447,7 @@ function MobileCommunicationDrawer({
   instanceKey,
   outputKind,
   onOutputKindChange,
+  onReturnToCockpit,
 }: DrawerVariantProps) {
   const clientName = context?.company?.name ?? context?.collaborator?.name
 
@@ -464,6 +470,7 @@ function MobileCommunicationDrawer({
       headerClassName={MAIL_DRAWER_HEADER_CLASS}
       contentClassName={`${MAIL_DRAWER_CONTENT_CLASS} px-4`}
     >
+      {onReturnToCockpit ? <CockpitReturnButton onClick={onReturnToCockpit} /> : null}
       <ComposerContent
         context={context}
         scope={scope}
@@ -492,6 +499,7 @@ interface DrawerVariantProps {
   instanceKey: number
   outputKind: CommunicationOutputKind
   onOutputKindChange: (outputKind: CommunicationOutputKind) => void
+  onReturnToCockpit?: () => void
 }
 
 export function CommunicationComposerHost({ device }: { device: DashboardDevice }) {
@@ -1047,6 +1055,12 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     instanceKey,
     outputKind,
     onOutputKindChange: setOutputKind,
+    onReturnToCockpit: request.origin === "account_panel"
+      ? () => {
+          handleOpenChange(false)
+          returnToAccountCockpit()
+        }
+      : undefined,
   }
 
   return (
@@ -1065,6 +1079,12 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
         objectiveOptions={generalObjectiveOptions}
         objectiveValue={generalObjective}
         onSelectObjective={confirmGeneralSelection}
+        onReturnToCockpit={generalPickerRequest?.origin === "account_panel"
+          ? () => {
+              setGeneralPickerOpen(false)
+              returnToAccountCockpit()
+            }
+          : undefined}
       />
       {device === "mobile" ? (
         <MobileCommunicationDrawer {...drawerProps} />

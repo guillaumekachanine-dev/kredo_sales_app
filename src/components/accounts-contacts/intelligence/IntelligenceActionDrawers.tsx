@@ -32,6 +32,7 @@ import {
   getCommunicationPurposeOption,
 } from "@/lib/communication/communication-purpose"
 import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
+import type { CommunicationComposerPreset } from "@/lib/communication/communication-composer"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
 import { CommunicationResult } from "./CommunicationResult"
 import { PitchResult } from "./PitchResult"
@@ -164,12 +165,14 @@ export function PitchMailDrawerContent({
   initialBrief,
   contextMetaLabel = "(résolu automatiquement)",
   selectedOutputKind = "written_message",
+  communicationPreset,
 }: {
   data: PitchMailAccountContext
   variant?: "desktop" | "mobile"
   initialBrief?: CommunicationBrief
   contextMetaLabel?: string
   selectedOutputKind?: CommunicationOutputKind
+  communicationPreset?: CommunicationComposerPreset
 }) {
   const { company, collaborator, contacts } = data
   const isMobile = variant === "mobile"
@@ -181,20 +184,29 @@ export function PitchMailDrawerContent({
   const loadedCommunicationContext = data.loadedCommunicationContext ?? null
 
   const initialResolvedBrief = useMemo<ResolvedCommunicationContextBrief>(() => {
+    const presetFieldSources = communicationPreset
+      ? {
+          ...(communicationPreset.activityCategory ? { activityCategory: "user" as const } : {}),
+          ...(communicationPreset.scenario ? { scenario: "user" as const } : {}),
+          ...(communicationPreset.objective ? { objective: "user" as const } : {}),
+        }
+      : {}
     const resolvedContextBrief = resolveBriefWithLoadedContext(
       initialBrief ?? buildDefaultBrief(data, ""),
       loadedCommunicationContext,
+      presetFieldSources,
     )
     const purposeResolution = applyCommunicationPurposeToBrief(
       resolvedContextBrief.brief,
       selectedOutputKind,
       loadedCommunicationContext?.facts,
+      presetFieldSources,
     )
     return {
       brief: purposeResolution.brief,
       resolution: purposeResolution.resolution,
     }
-  }, [data, initialBrief, loadedCommunicationContext, selectedOutputKind])
+  }, [communicationPreset, data, initialBrief, loadedCommunicationContext, selectedOutputKind])
 
   const [brief, setBrief] = useState<CommunicationBrief>(() => initialResolvedBrief.brief)
   const [purposeAdjustmentNotice, setPurposeAdjustmentNotice] = useState<string | null>(null)
@@ -538,14 +550,16 @@ function buildAccountSummaryBrief(instructions: string): ReportBrief {
 export function SummaryDrawerContent({
   data,
   variant = "desktop",
+  initialInstructions = "",
 }: {
   data: AccountSummaryAccountContext
   variant?: "desktop" | "mobile"
+  initialInstructions?: string
 }) {
   const { company } = data
   const isMobile = variant === "mobile"
 
-  const [additionalInstructions, setAdditionalInstructions] = useState("")
+  const [additionalInstructions, setAdditionalInstructions] = useState(initialInstructions)
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
   const [resultId, setResultId] = useState<string | null>(null)

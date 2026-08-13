@@ -36,6 +36,7 @@ import {
   getMissionsForSelect,
 } from "@/lib/agenda/agenda-actions"
 import { cn } from "@/lib/utils"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
 
 interface AgendaEventDrawerProps {
   open: boolean
@@ -44,6 +45,7 @@ interface AgendaEventDrawerProps {
   onSaved: () => void
   initialValues?: AgendaEventDrawerInitialValues
   allowPreparatoryTask?: boolean
+  onReturnToCockpit?: () => void
 }
 
 export interface AgendaEventDrawerInitialValues {
@@ -179,6 +181,7 @@ export function AgendaEventDrawer({
   onSaved,
   initialValues,
   allowPreparatoryTask = true,
+  onReturnToCockpit,
 }: AgendaEventDrawerProps) {
   const [mode, setMode] = useState<"create" | "view" | "edit">("create")
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
@@ -524,6 +527,7 @@ export function AgendaEventDrawer({
             return next
           })
         }}
+        onReturnToCockpit={onReturnToCockpit}
       />
 
       <AppDrawer
@@ -587,6 +591,7 @@ export function AgendaEventDrawer({
         }
       >
         <div className="flex flex-col gap-5">
+          {onReturnToCockpit ? <CockpitReturnButton onClick={onReturnToCockpit} /> : null}
           {serverError && (
             <div className="rounded-md bg-danger/10 border border-danger/20 px-3 py-2 text-xs text-danger">
               {serverError}

@@ -51,6 +51,7 @@ export function QuoiHubModal({
   objectiveOptions,
   objectiveValue,
   onSelectObjective,
+  onReturnToCockpit,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -66,6 +67,7 @@ export function QuoiHubModal({
   objectiveOptions: QuoiObjectiveOption[]
   objectiveValue: CommunicationObjective
   onSelectObjective: (objective: CommunicationObjective) => void
+  onReturnToCockpit?: () => void
 }) {
   const firstStep: HubStep = showCategory ? "category" : "scenarios"
   const normalizedInitial: HubStep = !showCategory && initialStep === "category" ? "scenarios" : initialStep
@@ -177,6 +179,7 @@ export function QuoiHubModal({
       step={step}
       steps={stepsList}
       onBack={canGoBack ? handleBack : undefined}
+      onReturnToCockpit={!canGoBack ? onReturnToCockpit : undefined}
       leaving={leaving}
       variant="dark"
     >

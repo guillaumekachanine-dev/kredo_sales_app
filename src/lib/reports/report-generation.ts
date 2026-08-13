@@ -73,6 +73,8 @@ export type ReportGenerationOrigin =
 export interface ReportGenerationRequest {
   origin: ReportGenerationOrigin
   reportType?: ReportGenerationKind
+  returnToCockpit?: boolean
+  companyId?: string
 }
 
 export const REPORT_GENERATION_EVENT = "kredo:open-report-generation"

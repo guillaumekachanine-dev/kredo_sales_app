@@ -10,6 +10,7 @@ interface AgendaEventTypePickerProps {
   onOpenChange: (open: boolean) => void
   value: string
   onChange: (value: string) => void
+  onReturnToCockpit?: () => void
 }
 
 export function AgendaEventTypePicker({
@@ -17,6 +18,7 @@ export function AgendaEventTypePicker({
   onOpenChange,
   value,
   onChange,
+  onReturnToCockpit,
 }: AgendaEventTypePickerProps) {
   const [step, setStep] = useState<"category" | "type">("category")
   const [selectedCategory, setSelectedCategory] = useState<AgendaCategoryId | null>(null)
@@ -82,6 +84,7 @@ export function AgendaEventTypePicker({
       step={step}
       steps={["category", "type"]}
       onBack={step === "type" ? handleBack : undefined}
+      onReturnToCockpit={step === "category" ? onReturnToCockpit : undefined}
       leaving={leaving}
       variant="bright"
     >

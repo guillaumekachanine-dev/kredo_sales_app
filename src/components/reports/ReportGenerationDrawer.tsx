@@ -25,6 +25,7 @@ import { ActivityRecruitmentReportView } from "./ActivityRecruitmentReportView"
 import { WeeklyManagerReportView } from "./WeeklyManagerReportView"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
 import { TechnicalReportContent } from "./TechnicalReportContent"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
 type ActivityContent = ActivityCommercialContent | ActivityRecruitmentContent
@@ -122,12 +123,16 @@ export function ReportGenerationDrawer({
   open,
   onOpenChange,
   onBack,
+  onReturnToCockpit,
   reportType,
+  companyId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onBack: () => void
+  onReturnToCockpit?: () => void
   reportType: ReportGenerationKind
+  companyId?: string
 }) {
   const option = getReportGenerationOption(reportType)
   const isReadyReport =
@@ -273,7 +278,8 @@ export function ReportGenerationDrawer({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               workflowId: READY_ACTIVITY_WORKFLOW_IDS[reportType as "activity_commercial" | "activity_recruitment"],
-              entityType: "workspace",
+              entityType: companyId ? "company" : "workspace",
+              entityId: companyId,
               input: {
                 reportType,
                 period: {
@@ -281,7 +287,7 @@ export function ReportGenerationDrawer({
                   ...computePeriodRange(periodPreset, customStart, customEnd),
                   asOfDate: toISODate(new Date()),
                 },
-                scope: {},
+                scope: companyId ? { companyIds: [companyId] } : {},
                 audience: "self",
                 detailLevel: "standard",
                 outputFormats: ["web"],
@@ -422,6 +428,7 @@ export function ReportGenerationDrawer({
       showMobileCloseButton
       footer={footer}
     >
+      {onReturnToCockpit ? <CockpitReturnButton onClick={onReturnToCockpit} className="mb-2" /> : null}
       {!isReadyReport ? (
         <PlannedReportState title={option.title} />
       ) : runStatus === "loading" ? (

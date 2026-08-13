@@ -38,6 +38,8 @@ export type SaveAccountWatchDetailedSettingsInput = {
   queryAliases: string[]
   monitoredCategories: string[]
   notes: string
+  depth: string
+  manualSourceUrls: string[]
 }
 
 export async function loadAccountWatchDetailedSettings(
@@ -76,6 +78,12 @@ export async function saveAccountWatchDetailedSettings(
     .slice(0, 20)
     .map((alias) => alias.slice(0, 100))
   const notes = input.notes.trim().slice(0, 2_000)
+  const depth = input.depth === "standard" || input.depth === "deep" ? input.depth : "balanced"
+  const manualSourceUrls = Array.from(new Set(input.manualSourceUrls))
+    .map((url) => url.trim())
+    .filter((url) => /^https?:\/\//i.test(url))
+    .slice(0, 20)
+    .map((url) => url.slice(0, 500))
 
   const supabase = await createClient()
   const { data: existing, error: existingError } = await supabase
@@ -93,6 +101,8 @@ export async function saveAccountWatchDetailedSettings(
   const metadata = {
     ...existingMetadata,
     monitored_categories: monitoredCategories,
+    depth,
+    manual_source_urls: manualSourceUrls,
     notes,
   } satisfies Json
   const values = {

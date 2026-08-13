@@ -28,6 +28,7 @@ export interface ProgressivePickerModalProps {
   step: string
   steps: string[]
   onBack?: () => void
+  onReturnToCockpit?: () => void
   variant?: PickerVariant
   leaving?: boolean
   children: React.ReactNode
@@ -41,6 +42,7 @@ export function ProgressivePickerModal({
   step,
   steps,
   onBack,
+  onReturnToCockpit,
   variant = "dark",
   leaving = false,
   children,
@@ -62,7 +64,7 @@ export function ProgressivePickerModal({
         bodyClassName={isDark ? "communication-picker-modal-body" : "pt-2"}
         title={
           <div className="flex items-center gap-2">
-            {onBack && (
+            {onBack ? (
               <button
                 type="button"
                 onClick={onBack}
@@ -78,7 +80,23 @@ export function ProgressivePickerModal({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-            )}
+            ) : onReturnToCockpit ? (
+              <button
+                type="button"
+                onClick={onReturnToCockpit}
+                aria-label="Retour au cockpit"
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center rounded-full transition-colors",
+                  isDark
+                    ? "text-muted hover:bg-canvas hover:text-heading"
+                    : "text-body hover:bg-surface-hover hover:text-heading",
+                )}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            ) : null}
             <h2 className={cn("truncate font-heading text-sm font-bold", isDark ? "text-heading" : "text-heading")}>
               {title}
             </h2>

@@ -161,6 +161,10 @@ export function toAccountWatchWorkflowSettings(
 }
 
 export const ACCOUNT_WATCH_CATEGORIES = [
+  { value: "contrats", label: "Contrats remportés" },
+  { value: "reglementation", label: "Réglementation" },
+  { value: "recrutement", label: "Recrutement" },
+  { value: "communication_officielle", label: "Communication officielle" },
   { value: "strategie", label: "Stratégie & gouvernance" },
   { value: "offres", label: "Offres & innovation" },
   { value: "finance", label: "Finance & investissements" },
@@ -171,6 +175,21 @@ export const ACCOUNT_WATCH_CATEGORIES = [
 
 export type AccountWatchCategory = (typeof ACCOUNT_WATCH_CATEGORIES)[number]["value"]
 
+export const ACCOUNT_WATCH_DEPTHS = ["standard", "balanced", "deep"] as const
+export type AccountWatchDepth = (typeof ACCOUNT_WATCH_DEPTHS)[number]
+
+export const ACCOUNT_WATCH_DEPTH_LABELS: Record<AccountWatchDepth, string> = {
+  standard: "Standard",
+  balanced: "Équilibrée",
+  deep: "Approfondie",
+}
+
+export const ACCOUNT_WATCH_DEPTH_DESCRIPTIONS: Record<AccountWatchDepth, string> = {
+  standard: "Sources essentielles · coût contenu",
+  balanced: "Couverture élargie · modèle intermédiaire",
+  deep: "Recherche étendue · modèle avancé",
+}
+
 export type AccountWatchDetailedSettings = AccountWatchSettingsState & {
   includeOfficialSite: boolean
   includeNews: boolean
@@ -180,6 +199,8 @@ export type AccountWatchDetailedSettings = AccountWatchSettingsState & {
   includeJobs: boolean
   queryAliases: string[]
   monitoredCategories: AccountWatchCategory[]
+  depth: AccountWatchDepth
+  manualSourceUrls: string[]
   notes: string
 }
 
@@ -193,6 +214,8 @@ export const DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS: AccountWatchDetailedSettin
   includeJobs: false,
   queryAliases: [],
   monitoredCategories: ACCOUNT_WATCH_CATEGORIES.map((category) => category.value),
+  depth: "balanced",
+  manualSourceUrls: [],
   notes: "",
 }
 
@@ -215,6 +238,21 @@ export function normalizeAccountWatchDetailedSettings(
     (category): category is AccountWatchCategory =>
       typeof category === "string" && allowedCategories.has(category as AccountWatchCategory),
   )
+  const rawDepth = workflow.metadata.depth
+  const depth = ACCOUNT_WATCH_DEPTHS.includes(rawDepth as AccountWatchDepth)
+    ? rawDepth as AccountWatchDepth
+    : DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS.depth
+  const manualSourceUrls = Array.isArray(workflow.metadata.manual_source_urls)
+    ? workflow.metadata.manual_source_urls.filter((url): url is string => {
+        if (typeof url !== "string") return false
+        try {
+          const parsed = new URL(url)
+          return parsed.protocol === "http:" || parsed.protocol === "https:"
+        } catch {
+          return false
+        }
+      })
+    : []
 
   return {
     ...basic,
@@ -229,6 +267,8 @@ export function normalizeAccountWatchDetailedSettings(
       monitoredCategories.length > 0
         ? monitoredCategories
         : DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS.monitoredCategories,
+    depth,
+    manualSourceUrls,
     notes: typeof workflow.metadata.notes === "string" ? workflow.metadata.notes : "",
   }
 }

@@ -8,6 +8,7 @@ import type { ClientIntelligenceSignal } from "@/lib/intelligence/intelligence-d
 import { dismissAccountSignal } from "./dismiss-account-signal"
 import { createTask } from "@/lib/tasks/task-actions"
 import { AlertBlock } from "@/components/ui/AlertBlock"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
 
 type AccountSignalDetailDrawerProps = {
   signal: ClientIntelligenceSignal | null
@@ -16,6 +17,7 @@ type AccountSignalDetailDrawerProps = {
   companyId: string
   companyName: string
   onDismiss: (signalId: string) => void
+  onReturnToCockpit?: () => void
 }
 
 function formatDate(dateStr: string) {
@@ -33,6 +35,7 @@ export function AccountSignalDetailDrawer({
   companyId,
   companyName,
   onDismiss,
+  onReturnToCockpit,
 }: AccountSignalDetailDrawerProps) {
   const [isDismissing, startDismissingTransition] = useTransition()
   const [isCreatingTask, startCreatingTaskTransition] = useTransition()
@@ -99,6 +102,7 @@ export function AccountSignalDetailDrawer({
       subtitle={`Veille client rattachée au compte ${companyName}`}
     >
       <div className="space-y-6">
+        {onReturnToCockpit ? <CockpitReturnButton onClick={onReturnToCockpit} /> : null}
         {/* Résumé */}
         <div className="space-y-2">
           <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">Résumé</h3>

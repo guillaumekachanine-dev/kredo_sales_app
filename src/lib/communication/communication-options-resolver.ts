@@ -182,10 +182,20 @@ export function resolveCommunicationOptions(
   adjustment(adjustments, "scope", rawWhat.scope, scope, "scope resolved from available facts")
   adjustment(adjustments, "activityCategory", legacyCategory, category, "category incompatible with resolved scope")
 
+  const requestedDefinition = scenarioId ? getScenarioDefinition(scenarioId) : undefined
+  const preserveExplicitScenario =
+    sources.scenario === "user" &&
+    requestedDefinition?.activityCategory === category &&
+    Boolean(scope && requestedDefinition.requiredScopes.includes(scope))
   const candidates = category
     ? SCENARIO_REGISTRY.filter((scenario) => {
       if (scenario.activityCategory !== category || !scope || !scenario.requiredScopes.includes(scope)) return false
-      if (scope === "account" && facts.recipientType && !scenario.eligibleRecipientTypes.includes(facts.recipientType)) return false
+      if (
+        scope === "account" &&
+        facts.recipientType &&
+        !scenario.eligibleRecipientTypes.includes(facts.recipientType) &&
+        !(preserveExplicitScenario && scenario.id === scenarioId)
+      ) return false
       return true
     })
     : []

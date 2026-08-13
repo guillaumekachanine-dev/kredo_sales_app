@@ -24,6 +24,7 @@ import {
 } from "@/components/reports/document-display"
 import { cn } from "@/lib/utils"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
 
 interface CompanyDocumentsModalProps {
   open: boolean
@@ -31,6 +32,8 @@ interface CompanyDocumentsModalProps {
   companyId: string
   companyName: string
   isMobile?: boolean
+  initialCategory?: CategoryKey
+  onReturnToCockpit?: () => void
 }
 
 type DocumentItem = {
@@ -401,9 +404,11 @@ export function CompanyDocumentsModal({
   companyId,
   companyName,
   isMobile = false,
+  initialCategory,
+  onReturnToCockpit,
 }: CompanyDocumentsModalProps) {
-  const [step, setStep] = useState<"categories" | "list" | "viewer">("categories")
-  const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(null)
+  const [step, setStep] = useState<"categories" | "list" | "viewer">(initialCategory ? "list" : "categories")
+  const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(initialCategory ?? null)
   const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null)
   const [selectedDetail, setSelectedDetail] = useState<DocumentDetail | null>(null)
   const [documents, setDocuments] = useState<DocumentItem[]>([])
@@ -741,8 +746,8 @@ export function CompanyDocumentsModal({
   }
 
   const handleClose = () => {
-    setStep("categories")
-    setActiveCategory(null)
+    setStep(initialCategory ? "list" : "categories")
+    setActiveCategory(initialCategory ?? null)
     setSelectedDoc(null)
     setSelectedDetail(null)
     setIsEditing(false)
@@ -782,18 +787,25 @@ export function CompanyDocumentsModal({
         subtitle={companyName}
         leftPane={null}
         rightPane={null}
-        headerActions={step !== "categories" ? (
-          <button
-            type="button"
-            onClick={handleBack}
-            className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
-            aria-label="Retour"
-          >
-            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-        ) : null}
+        headerActions={(
+          <div className="flex items-center gap-1">
+            {onReturnToCockpit ? (
+              <CockpitReturnButton onClick={onReturnToCockpit} tone="dark" className="px-1.5" />
+            ) : null}
+            {step !== "categories" ? (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+                aria-label="Retour"
+              >
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+            ) : null}
+          </div>
+        )}
         content={(
         <div className="flex-1 overflow-hidden relative">
           {loading ? (
