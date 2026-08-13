@@ -188,12 +188,44 @@ figurait déjà dans cette même section.
 | # | Action | Débloque | État |
 |---|---|---|---|
 | **B1** | Exécuter le socle A1 (identité France) sur les 8 comptes non résolus du Spatial | Le plancher de preuve A7, donc tout top 3 légitime | ✅ **fait 13/08, écrit en base le 13/08** |
-| **B2** | Brancher A7 — API France Travail par SIREN | La grille « IA annoncé vs déployé », vide sur 10/10 | ⛔ **annulé — matière retirée le 13/08** |
+| **B2** | Brancher A7 — ~~API France Travail par SIREN~~ → enveloppe NAF+géo et appariement mesuré | La grille « IA annoncé vs déployé », vide sur 10/10 | ◐ **domaine livré, réseau bloqué sur identifiants** |
 | **B3** | Marquer les échéances passées et instrumenter la revalidation au jour du run | Le motif d'appel : 2 des 5 échéances du secteur sont périmées et rien ne le dit | ◐ **marquage fait, revalidation annulée** |
 | **B4** | Renseigner la couche accessibilité (A6) sur les comptes prioritaires | Le droit d'intervenir — bloc à **0 fait sur les 109 comptes de la base** | ☐ |
 
 **B1 est la dépendance dure** : le compte étalon lui-même n'avait pas de SIREN, et l'identité du
 top 3 valait 0/3. B2 en dépend techniquement (interrogation par SIREN).
+
+### B2 — l'énoncé était inexécutable 🔴 *constat du 13/08 (soir)*
+
+**L'API France Travail « Offres d'emploi v2 » n'expose aucun filtre SIREN ni SIRET.** Vérifié sur
+trois sources concordantes : fiche produit francetravail.io, fiche data.gouv.fr (filtres :
+métiers, communes, départements, types de contrat, secteurs d'activité), et les paramètres
+réellement émis par un client tiers en production. L'énoncé « interroger par SIREN » n'a donc
+**pas de chemin d'exécution** — c'est un défaut de contrat, au même titre que A1, A3 ou A6.
+
+C'est très probablement l'explication de la première livraison de B2 : l'instruction demandait
+une chose qui n'existe pas, et écrire le résultat était plus court que constater l'impasse.
+
+**Énoncé corrigé** : enveloppe de requête dérivée du registre (division NAF + départements des
+établissements, tous deux déjà en base depuis B1), puis appariement sur le nom de l'employeur.
+L'appariement est faillible et une part des offres est publiée en employeur anonymisé : **la
+mesure publie donc son propre taux de couverture**, anonymes au dénominateur. Un comptage dont
+on ignore la couverture n'est pas une mesure.
+
+**Livré** (`src/features/hiring-intensity/`, 26 tests) : contrat de données, construction de
+l'enveloppe, classement d'une offre par practice sur les slugs `offer_practices`, appariement
+employeur, agrégat avec seuil et couverture. Le classement refuse d'attribuer « THALES » seul à
+l'un des deux comptes Thales du segment — un alias d'un seul mot n'autorise jamais d'inclusion.
+
+**Non livré, et volontairement** : l'adaptateur réseau. Ses paramètres, scopes OAuth, forme de
+réponse et quotas ne se devinent pas. Les cinq points à établir au premier appel réel sont
+listés dans `src/features/hiring-intensity/README.md`. **Rien ne sera écrit en base avant qu'un
+appel réel ait tourné.**
+
+**Bloqué sur** : `FRANCE_TRAVAIL_CLIENT_ID` / `FRANCE_TRAVAIL_CLIENT_SECRET` (documentés dans
+`.env.example`), à créer sur francetravail.io.
+
+---
 
 ### Reprise du 13/08 (soir) — ce qui a été annulé et pourquoi
 
