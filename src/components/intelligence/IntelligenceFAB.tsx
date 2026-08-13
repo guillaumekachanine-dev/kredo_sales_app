@@ -384,7 +384,7 @@ function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, o
             iconSrc="/icons_set/cockpit_intelligence/dossier_pitchs.png"
             onClick={onDocumentsClick}
           />
-          <EditorialResourceRow label="Contacts" iconSrc="/icons_set/cockpit_intelligence/compte_contact.png" href={`/prospection/accounts?tab=contacts&q=${encodeURIComponent(company.name)}`} onClick={onClose} />
+          <EditorialResourceRow label="Contacts" iconSrc="/icons_set/cockpit_intelligence/compte_contact.png" href={`/prospection/accounts/${company.id}/contacts`} onClick={onClose} />
           <EditorialResourceRow label="Playbook" iconSrc={cockpitActionIcons.sectorAnalysis} href={sector.structuredSectorSlug ? `/ressources/playbook/${sector.structuredSectorSlug}` : "/prospection/approche-sectorielle"} onClick={onClose} />
         </div>
       </section>

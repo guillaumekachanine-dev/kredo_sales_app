@@ -402,15 +402,28 @@ export async function getContactIdentity(contactId: string) {
       })
       .filter((opp): opp is NonNullable<typeof opp> => opp !== null)
 
-    // Siblings query depends on contact.company_id
+    // Siblings & Active company missions query depends on contact.company_id
     let manager = null
     let reports: Array<{ id: string; fullName: string; job_title: string | null }> = []
+    let companyMissions: Array<{ id: string; title: string; status: string; tjm: number | null; start_date: string | null; end_date: string | null; practice: string | null }> = []
 
     if (contact.company_id) {
-      const { data: siblings } = await supabase
-        .from("contacts")
-        .select("id, job_title, manager_contact_id, persons (full_name, first_name, last_name, primary_email, phone)")
-        .eq("company_id", contact.company_id)
+      const [siblingsResult, missionsResult] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, job_title, manager_contact_id, persons (full_name, first_name, last_name, primary_email, phone)")
+          .eq("company_id", contact.company_id),
+        supabase
+          .from("missions")
+          .select("id, title, status, tjm, start_date, end_date, practice")
+          .eq("company_id", contact.company_id)
+          .eq("status", "active"),
+      ])
+
+      const siblings = siblingsResult.data
+      if (missionsResult.data) {
+        companyMissions = missionsResult.data
+      }
 
       if (siblings) {
         type SiblingPerson = { full_name: string | null; first_name: string | null; last_name: string | null; primary_email: string | null; phone: string | null }
@@ -452,6 +465,7 @@ export async function getContactIdentity(contactId: string) {
         calendarEvents: calendarEventsResult.data || [],
         manager,
         reports,
+        companyMissions,
       },
     }
   } catch (err) {
@@ -476,4 +490,30 @@ export async function updateContactRelationshipRole(
   revalidatePath(REVALIDATE)
   return { error: null }
 }
+
+export async function updateContactDecisionPower(
+  contactId: string,
+  decisionPower: string | null
+) {
+  const supabase = await createClient()
+  let normalizedPower: string | null = null
+  if (decisionPower) {
+    const lower = decisionPower.trim().toLowerCase()
+    if (lower === "faible" || lower === "moyen" || lower === "fort") {
+      normalizedPower = lower
+    }
+  }
+
+  const { error } = await supabase
+    .from("contacts")
+    .update({
+      decision_power: normalizedPower,
+    })
+    .eq("id", contactId)
+
+  if (error) return { error: error.message }
+  revalidatePath(REVALIDATE)
+  return { error: null }
+}
+
 

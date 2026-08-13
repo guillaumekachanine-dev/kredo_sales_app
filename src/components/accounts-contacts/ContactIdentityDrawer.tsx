@@ -4,7 +4,12 @@ import Image from "next/image"
 import { useEffect, useState, useTransition, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { getContactIdentity, toggleContactFavorite } from "@/app/(app)/prospection/accounts/actions"
+import { getContactIdentity, toggleContactFavorite, updateContactDecisionPower } from "@/app/(app)/prospection/accounts/actions"
+import { createClient as createBrowserClient } from "@/lib/supabase/client"
+import {
+  deriveContactInterestTopics,
+  type SimpleOffer,
+} from "@/lib/accounts-contacts/qualified-contacts-helpers"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { getOpportunityStageLabel } from "@/lib/opportunities/stages"
@@ -125,9 +130,18 @@ type ContactIdentityData = {
   }>
   manager: { id: string; fullName: string; job_title: string | null; email: string | null; phone: string | null } | null
   reports: Array<{ id: string; fullName: string; job_title: string | null }>
+  companyMissions?: Array<{
+    id: string
+    title: string
+    status: string
+    tjm: number | null
+    start_date: string | null
+    end_date: string | null
+    practice: string | null
+  }>
 }
 
-type TabKey = "apercu" | "activite" | "taches"
+type TabKey = "apercu" | "activite" | "taches" | "interet"
 
 function formatScore(score: number | string | null) {
   if (score === null || score === undefined) return "—"
@@ -325,6 +339,84 @@ function ManagerMiniModal({
   )
 }
 
+function CoordinateCopyModal({
+  value,
+  onClose,
+  isUrl = false,
+}: {
+  title?: string
+  value: string
+  onClose: () => void
+  isUrl?: boolean
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/85 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[320px]">
+        <SurfaceCard className="w-full p-4 border border-border/80 animate-in zoom-in-95 duration-200 flex flex-col gap-3 relative bg-surface">
+          <div className="bg-canvas/50 border border-border/50 rounded-lg p-3 text-center">
+            <span className="text-sm font-bold text-heading break-all select-all">{value}</span>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={cn(
+                "flex-1 min-h-[44px] rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5",
+                copied
+                  ? "bg-success text-success-fg"
+                  : "bg-primary text-primary-fg hover:bg-primary/90"
+              )}
+            >
+              {copied ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copié !
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copier
+                </>
+              )}
+            </button>
+
+            {isUrl && (
+              <a
+                href={value.startsWith("http") ? value : `https://${value}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-border bg-canvas px-3 text-xs font-semibold text-heading hover:bg-surface-hover"
+              >
+                Ouvrir
+              </a>
+            )}
+          </div>
+        </SurfaceCard>
+      </div>
+    </div>
+  )
+}
+
 export function ContactIdentityDrawer({
   contactId,
   open,
@@ -346,6 +438,9 @@ export function ContactIdentityDrawer({
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues | undefined>()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [favoritePending, setFavoritePending] = useState(false)
+  const [copyModalState, setCopyModalState] = useState<{ title: string; value: string; isUrl?: boolean } | null>(null)
+  const [offersCatalog, setOffersCatalog] = useState<SimpleOffer[]>([])
+  const [decisionPowerPending, setDecisionPowerPending] = useState(false)
   const [mobileViewportMatches, setMobileViewportMatches] = useState(false)
   const isMobileViewport = device ? device === "mobile" : mobileViewportMatches
   const isDesktopDrawer = device ? device !== "mobile" : !isMobileViewport
@@ -428,6 +523,17 @@ export function ContactIdentityDrawer({
       return
     }
 
+    if (offersCatalog.length === 0) {
+      const supabase = createBrowserClient()
+      supabase
+        .from("offers")
+        .select("id, name, short_description, keywords, typical_profiles, use_cases")
+        .eq("is_active", true)
+        .then(({ data: catalog }) => {
+          if (catalog) setOffersCatalog(catalog as SimpleOffer[])
+        })
+    }
+
     startTransition(async () => {
       setError(null)
       setActiveTab("apercu")
@@ -449,7 +555,7 @@ export function ContactIdentityDrawer({
       setData(null)
       setFavoritePending(false)
     }
-  }, [contactId, open])
+  }, [contactId, open, offersCatalog.length])
 
   const personRaw = data?.contact?.persons
   const person = Array.isArray(personRaw) ? personRaw[0] : personRaw
@@ -547,7 +653,16 @@ export function ContactIdentityDrawer({
         </div>
       ) : data && contact && person ? (
         <div className="flex flex-col h-full gap-5">
-          {company && isCompanyModalOpen && (
+          {copyModalState && (
+        <CoordinateCopyModal
+          title={copyModalState.title}
+          value={copyModalState.value}
+          isUrl={copyModalState.isUrl}
+          onClose={() => setCopyModalState(null)}
+        />
+      )}
+
+      {company && isCompanyModalOpen && (
             <CompanyMiniModal
               company={company}
               onClose={() => setIsCompanyModalOpen(false)}
@@ -741,11 +856,17 @@ export function ContactIdentityDrawer({
           {/* Navigation Tabs */}
           <div className="flex w-full border-b border-border gap-1 shrink-0">
             {(
-              [
-                { key: "apercu", label: "Aperçu" },
-                { key: "activite", label: `Activité (${data.interactions.length + data.calendarEvents.length + data.opportunities.length})` },
-                { key: "taches", label: `Tâches (${data.tasks.length})` },
-              ] as const
+              isMobileViewport
+                ? [
+                    { key: "apercu" as const, label: "Aperçu" },
+                    { key: "activite" as const, label: `Activité (${data.interactions.length + data.calendarEvents.length + data.opportunities.length})` },
+                    { key: "interet" as const, label: "Intérêt" },
+                  ]
+                : [
+                    { key: "apercu" as const, label: "Aperçu" },
+                    { key: "activite" as const, label: `Activité (${data.interactions.length + data.calendarEvents.length + data.opportunities.length})` },
+                    { key: "taches" as const, label: `Tâches (${data.tasks.length})` },
+                  ]
             ).map((t) => (
               <button
                 key={t.key}
@@ -772,100 +893,158 @@ export function ContactIdentityDrawer({
                     <Image src="/icons_set/contact.png" alt="" aria-hidden="true" width={28} height={28} className="object-contain opacity-60 shrink-0" />
                     Coordonnées personnelles
                   </h4>
-                  <div className={cn("grid gap-3", device === "mobile" ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
-                    {/* E-mail */}
-                    {person.primary_email ? (
-                      <a
-                        href={`mailto:${person.primary_email}`}
-                        className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3 hover:bg-canvas/50 transition-colors group"
+                  {isMobileViewport ? (
+                    <div className="grid grid-cols-3 gap-2 py-1">
+                      {/* Téléphone */}
+                      <button
+                        type="button"
+                        disabled={!person.phone}
+                        onClick={() => person.phone && setCopyModalState({ title: "Téléphone", value: person.phone })}
+                        className={cn(
+                          "flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl border p-2 transition-all active:scale-95 cursor-pointer",
+                          person.phone
+                            ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+                            : "border-border/40 bg-surface/50 opacity-40 cursor-not-allowed text-muted"
+                        )}
                       >
-                        <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">E-mail</span>
-                          <span className="text-xs font-semibold text-heading truncate block group-hover:text-primary transition-colors">{person.primary_email}</span>
-                        </div>
-                      </a>
-                    ) : (
-                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-muted">
-                          <svg className="w-4 h-4 text-muted/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">E-mail</span>
-                          <span className="text-xs font-semibold text-muted/60 block">-</span>
-                        </div>
-                      </div>
-                    )}
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span className="text-[10px] font-bold">Téléphone</span>
+                      </button>
 
-                    {/* Téléphone */}
-                    {person.phone ? (
-                      <a
-                        href={`tel:${person.phone}`}
-                        className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3 hover:bg-canvas/50 transition-colors group"
+                      {/* Mail */}
+                      <button
+                        type="button"
+                        disabled={!person.primary_email}
+                        onClick={() => person.primary_email && setCopyModalState({ title: "E-mail", value: person.primary_email })}
+                        className={cn(
+                          "flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl border p-2 transition-all active:scale-95 cursor-pointer",
+                          person.primary_email
+                            ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+                            : "border-border/40 bg-surface/50 opacity-40 cursor-not-allowed text-muted"
+                        )}
                       >
-                        <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">Téléphone</span>
-                          <span className="text-xs font-semibold text-heading truncate block group-hover:text-primary transition-colors">{person.phone}</span>
-                        </div>
-                      </a>
-                    ) : (
-                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-muted">
-                          <svg className="w-4 h-4 text-muted/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">Téléphone</span>
-                          <span className="text-xs font-semibold text-muted/60 block">-</span>
-                        </div>
-                      </div>
-                    )}
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-[10px] font-bold">Mail</span>
+                      </button>
 
-                    {person.linkedin_url && (
-                      <a
-                        href={person.linkedin_url.startsWith("http") ? person.linkedin_url : `https://${person.linkedin_url}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3 hover:bg-canvas/50 transition-colors group"
+                      {/* LinkedIn */}
+                      <button
+                        type="button"
+                        disabled={!person.linkedin_url}
+                        onClick={() => person.linkedin_url && setCopyModalState({ title: "LinkedIn", value: person.linkedin_url, isUrl: true })}
+                        className={cn(
+                          "flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl border p-2 transition-all active:scale-95 cursor-pointer",
+                          person.linkedin_url
+                            ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+                            : "border-border/40 bg-surface/50 opacity-40 cursor-not-allowed text-muted"
+                        )}
                       >
-                        <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                          </svg>
+                        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                        </svg>
+                        <span className="text-[10px] font-bold">LinkedIn</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                      {/* E-mail */}
+                      {person.primary_email ? (
+                        <a
+                          href={`mailto:${person.primary_email}`}
+                          className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3 hover:bg-canvas/50 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">E-mail</span>
+                            <span className="text-xs font-semibold text-heading truncate block group-hover:text-primary transition-colors">{person.primary_email}</span>
+                          </div>
+                        </a>
+                      ) : (
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-muted">
+                            <svg className="w-4 h-4 text-muted/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">E-mail</span>
+                            <span className="text-xs font-semibold text-muted/60 block">-</span>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">LinkedIn</span>
-                          <span className="text-xs font-semibold text-heading truncate block group-hover:text-primary transition-colors">Profil public</span>
-                        </div>
-                      </a>
-                    )}
+                      )}
 
-                    {person.location && (
-                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
+                      {/* Téléphone */}
+                      {person.phone ? (
+                        <a
+                          href={`tel:${person.phone}`}
+                          className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3 hover:bg-canvas/50 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">Téléphone</span>
+                            <span className="text-xs font-semibold text-heading truncate block group-hover:text-primary transition-colors">{person.phone}</span>
+                          </div>
+                        </a>
+                      ) : (
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-muted">
+                            <svg className="w-4 h-4 text-muted/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">Téléphone</span>
+                            <span className="text-xs font-semibold text-muted/60 block">-</span>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">Localisation</span>
-                          <span className="text-xs font-semibold text-heading truncate block">{person.location}</span>
+                      )}
+
+                      {person.linkedin_url && (
+                        <a
+                          href={person.linkedin_url.startsWith("http") ? person.linkedin_url : `https://${person.linkedin_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3 hover:bg-canvas/50 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                            </svg>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">LinkedIn</span>
+                            <span className="text-xs font-semibold text-heading truncate block group-hover:text-primary transition-colors">Profil public</span>
+                          </div>
+                        </a>
+                      )}
+
+                      {person.location && (
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-primary/5 flex items-center justify-center text-primary">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[9px] text-muted font-bold uppercase block leading-none mb-0.5">Localisation</span>
+                            <span className="text-xs font-semibold text-heading truncate block">{person.location}</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Personal notes */}
@@ -884,8 +1063,9 @@ export function ContactIdentityDrawer({
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading flex items-center gap-1.5">
                     <Image src="/icons_set/organigramme.png" alt="" aria-hidden="true" width={28} height={28} className="object-contain opacity-60 shrink-0" />
-                    {device === "mobile" ? "Département & hiérarchie" : "Organigramme & Hiérarchie"}
+                    {isMobileViewport ? "Département & hiérarchie" : "Organigramme & Hiérarchie"}
                   </h4>
+
                   <div className="bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4 flex flex-col items-center">
                     {/* N+1 Manager */}
                     {data.manager ? (
@@ -1319,6 +1499,128 @@ export function ContactIdentityDrawer({
                     </svg>
                     Ajouter une tâche
                   </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "interet" && isMobileViewport && (
+              <div className="space-y-5">
+                {/* Cible prioritaire — Placé tout en haut de l'onglet Intérêt avec teinte laiton/ambre intuitive */}
+                <label
+                  className={cn(
+                    "flex items-center justify-between rounded-xl border p-3.5 cursor-pointer transition-all",
+                    contact.is_priority === true
+                      ? "border-[#FFB812]/50 bg-[#FFB812]/10 shadow-sm"
+                      : "border-border/80 bg-surface hover:bg-surface-hover"
+                  )}
+                >
+                  <div className="flex flex-col pr-2 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <svg
+                        className={cn(
+                          "h-4 w-4 shrink-0 transition-colors",
+                          contact.is_priority === true ? "fill-[#B88000] text-[#B88000]" : "text-muted/60"
+                        )}
+                        viewBox="0 0 24 24"
+                        fill={contact.is_priority === true ? "currentColor" : "none"}
+                        stroke="currentColor"
+                        strokeWidth={1.75}
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      <span className="text-xs font-bold text-heading">Cible prioritaire</span>
+                    </div>
+                    <span className="text-[10px] text-muted mt-0.5">Faire remonter ce contact dans les listes de prospection.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={contact.is_priority === true}
+                    disabled={favoritePending}
+                    onChange={handleToggleFavorite}
+                    className="h-5 w-5 rounded border-border text-[#B88000] focus:ring-[#FFB812]/30 shrink-0"
+                  />
+                </label>
+
+                {/* Bloc 1 — Sujets à évoquer */}
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
+                    Sujets à évoquer
+                  </h4>
+                  {(() => {
+                    const interestTopics = deriveContactInterestTopics(
+                      { jobTitle: contact.job_title, department: contact.department, relationshipRole: contact.relationship_role },
+                      offersCatalog
+                    )
+
+                    if (interestTopics.length === 0) {
+                      return (
+                        <div className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted">
+                          Aucun sujet suffisamment pertinent à partir du poste renseigné.
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        {interestTopics.map((topic) => (
+                          <div key={topic.offerId} className="rounded-lg border border-border/70 bg-canvas/40 p-3">
+                            <span className="block text-xs font-bold text-heading">{topic.topicTitle}</span>
+                            <p className="mt-1 text-[11px] text-body">{topic.reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* Bloc 2 — Besoins & prestations */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                    Besoins & prestations
+                  </h4>
+
+                  {/* Besoins ouverts */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase text-muted">Besoins ouverts</span>
+                    {data.opportunities.length === 0 ? (
+                      <p className="text-xs italic text-muted">Aucun besoin ouvert directement lié à ce contact.</p>
+                    ) : (
+                      data.opportunities.map((opp) => (
+                        <div key={opp.id} className="rounded-lg border border-border/60 bg-surface p-2.5 flex items-center justify-between">
+                          <div className="flex flex-col min-w-0 pr-2">
+                            <span className="text-xs font-bold text-heading truncate">{opp.title}</span>
+                            <span className="text-[10px] text-muted capitalize">{getOpportunityStageLabel(opp.stage)}</span>
+                          </div>
+                          <span className="rounded bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary shrink-0 capitalize">
+                            {opp.opportunity_type}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Prestations en cours (Missions du compte) */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase text-muted">Prestations en cours</span>
+                      <span className="text-[9px] font-semibold text-muted bg-surface border border-border px-1.5 py-0.5 rounded">
+                        En cours sur le compte
+                      </span>
+                    </div>
+                    {(!data.companyMissions || data.companyMissions.length === 0) ? (
+                      <p className="text-xs italic text-muted">Aucune prestation en cours sur ce compte.</p>
+                    ) : (
+                      data.companyMissions.map((mission) => (
+                        <div key={mission.id} className="rounded-lg border border-border/60 bg-surface p-2.5 flex items-center justify-between">
+                          <div className="flex flex-col min-w-0 pr-2">
+                            <span className="text-xs font-bold text-heading truncate">{mission.title}</span>
+                            {mission.practice && <span className="text-[10px] text-muted">{mission.practice}</span>}
+                          </div>
+                          {mission.tjm && <span className="text-[11px] font-bold text-heading">{mission.tjm} €/j</span>}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             )}
