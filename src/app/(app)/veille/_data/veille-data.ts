@@ -396,7 +396,7 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
 
     // 2. Get signals
     const { data: signals, error: signalsError } = await supabase
-      .from("account_signals")
+      .from("v_active_account_signals")
       .select(`
         id,
         title,
@@ -415,20 +415,23 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
         intelligence_sources(id, source_name, source_url)
       `)
       .in("company_id", companyIds)
-      .neq("status", "dismissed")
       .order("global_score", { ascending: false })
       .order("detected_at", { ascending: false })
 
     if (signalsError) return { data: [], error: signalsError }
 
-    const mapped: WatchedAccountSignal[] = (signals || []).map(row => {
+    const mapped: WatchedAccountSignal[] = (signals || []).flatMap(row => {
       const companyRow = Array.isArray(row.companies) ? row.companies[0] : row.companies
       const sourceRow = Array.isArray(row.intelligence_sources) ? row.intelligence_sources[0] : row.intelligence_sources
+
+      if (!row.id || !row.company_id || !row.title || !row.detected_at || !row.status || !row.signal_category || !row.signal_type) {
+        return []
+      }
 
       const logoPath = typeof companyRow?.meta_logo_path === "string" ? companyRow.meta_logo_path : null
       const companyId = row.company_id
 
-      return {
+      return [{
         id: row.id,
         title: row.title,
         summary: row.summary,
@@ -454,7 +457,7 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
           source_name: sourceRow.source_name,
           source_url: sourceRow.source_url
         } : null
-      }
+      }]
     })
 
     return { data: mapped, error: null }

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { AccountSignalDetailDrawer } from "@/components/accounts-contacts/intelligence/AccountSignalDetailDrawer"
+import { AccountWatchHeaderActions } from "@/components/accounts-contacts/intelligence/AccountWatchHeaderActions"
 import { cn } from "@/lib/utils"
 import type { WatchedAccountSignal } from "@/app/(app)/veille/_data/veille-data"
 import { IconChevronRight } from "./icons"
@@ -36,6 +37,7 @@ export function VeilleSignalsView({
   const [openGroupId, setOpenGroupId] = useState<string | null>(initialCompanyId ?? null)
   const [detailSignal, setDetailSignal] = useState<WatchedAccountSignal | null>(null)
   const [returnGroupId, setReturnGroupId] = useState<string | null>(null)
+  const [updateFeedback, setUpdateFeedback] = useState<{ message: string; tone: "info" | "success" | "error" } | null>(null)
   const groupTriggerRef = useRef<HTMLButtonElement | null>(null)
 
   const openGroup = useMemo(
@@ -131,7 +133,7 @@ export function VeilleSignalsView({
       >
         {openGroup ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3 border-b border-border pb-4">
+            <div className="space-y-3 border-b border-border pb-4">
               <div className="min-w-0 flex-1">
                 <h2 className="font-heading text-[22px] font-bold leading-7 text-heading truncate">
                   {openGroup.companyName}
@@ -144,18 +146,30 @@ export function VeilleSignalsView({
                   {formatProducedDate(new Date().toISOString())}
                 </p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onFeedback) {
-                    onFeedback(`Signaux de ${openGroup.companyName} mis à jour.`)
-                  }
+              <AccountWatchHeaderActions
+                key={openGroup.companyId}
+                companyId={openGroup.companyId}
+                companyName={openGroup.companyName}
+                onFeedback={(message, tone) => {
+                  setUpdateFeedback({ message, tone })
+                  onFeedback?.(message)
                 }}
-                className="shrink-0 inline-flex items-center justify-center rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heading"
-              >
-                Mettre à jour
-              </button>
+              />
+              {updateFeedback ? (
+                <p
+                  role={updateFeedback.tone === "error" ? "alert" : "status"}
+                  className={cn(
+                    "border px-3 py-2 text-xs",
+                    updateFeedback.tone === "error"
+                      ? "border-danger/20 bg-danger/[0.04] text-danger"
+                      : updateFeedback.tone === "success"
+                        ? "border-success/20 bg-success/[0.04] text-success"
+                        : "border-info/20 bg-info/[0.04] text-info",
+                  )}
+                >
+                  {updateFeedback.message}
+                </p>
+              ) : null}
             </div>
             <GroupSignalList group={openGroup} onSelect={openDetail} />
           </div>

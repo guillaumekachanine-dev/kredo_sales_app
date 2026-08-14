@@ -79,9 +79,9 @@ Trois pièges récurrents, tous documentés au prix d'une session perdue :
 **Projet ID :** `jvzgmhvwirsbdkjpmvla`
 **URL :** `https://jvzgmhvwirsbdkjpmvla.supabase.co`
 
-### Migrations (149 en prod / 148 en repo au 2026-08-10)
+### Migrations (159 en prod / 158 en repo au 2026-08-14)
 > ⚠️ **Liste canonique = `supabase/migrations/` + `supabase_migrations.schema_migrations` en prod.**
-> Au 2026-08-10 : **146 versions en prod, 145 fichiers en repo** — au moins une migration appliquée
+> Au 2026-08-14 : **159 versions en prod, 158 fichiers en repo** — au moins une migration appliquée
 > live sans fichier versionné (dernière prod : `20260809213755`, dernier fichier :
 > `20260809180000`). **Réconcilier avant tout `db reset` / `migration list`.**
 >
@@ -144,6 +144,8 @@ Trois pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260812124353 | 074_competitive_map_ingestion (`competitive_map_entries`, comptes `depth_level='mapped'`) |
 | 20260812153000 | 075_competitive_map_profile_extension (`profile_json`, `accessibilite_score`) |
 | 20260813120000 | 076_master_study_document_type (`intelligence_document_type` += `master_study` — MASTER-STUDY lot 0.1) |
+| 20260813233100 | account_signal_lifecycle_actions (`detected_at` comme date métier, archivage calendaire, vue défensive, promotions traçables) |
+| 20260813234513 | index_account_signal_promotions (index couvrants des FK de promotion Playbook) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -164,8 +166,8 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 - `private.log_audit()` — trigger AFTER INSERT/UPDATE/DELETE sur les tables auditées
 - `private.set_updated_at()` — trigger BEFORE UPDATE, maintient `updated_at`
 
-### Schéma public — 74 tables + 19 vues
-> 📏 **Compteurs vérifiés live le 2026-08-12** (`information_schema`). L'inventaire détaillé
+### Schéma public — 75 tables + 20 vues
+> 📏 **Compteurs vérifiés live le 2026-08-14** (`information_schema`). L'inventaire détaillé
 > ci-dessous a été réconcilié le **2026-07-16** et n'intègre pas les changements postérieurs,
 > listés ici :
 > - **+3 tables** `value_chain_nodes` (10 lignes) / `value_chain_actors` (50) / `value_chain_links` (20) — socle chaîne de valeur, pilote BTP.
@@ -303,6 +305,7 @@ les items. Invariants assertés par `supabase/tests/069_sector_knowledge_resolut
 | `account_facts` | 22 | Faits structurés publiés (cardinality single/multi), `source_proposal_id` → traçabilité |
 | `account_signals` | 745 | Signaux d'achat — backfill FOLIO/`sector_news`/`sector_regulatory_items` (Session 21 Lot 1, migration `043_account_signals_backfill_v2`) |
 | `account_watch_settings` | 3 | Cadrage minimal de veille par compte (cadence, état du dernier run) — ne stocke ni sources ni résultats bruts |
+| `sector_playbook_signals` | 0 | Relation traçable et dédupliquée signal compte → playbook sectoriel existant ; écriture service-role après contrôle workspace |
 
 ⚠️ **RLS `intelligence_sources`/`intelligence_source_links`/`enrichment_proposals`/`account_facts`/`account_signals`** : **1 seule policy (SELECT)**, écriture exclusivement via fonctions `SECURITY DEFINER` scopées workspace (`apply_enrichment_proposal`, `decide_enrichment_proposal`, `validate_and_apply_enrichment_proposal(s)`, `import_account_scan_contacts`) — vérifié et documenté Session 26 (audit sécurité, cf. journal de sessions).
 
@@ -414,9 +417,10 @@ Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par 
 |---|---|---|
 | `weekly_brief_dismissals` | 0 | Items du brief hebdomadaire explicitement ignorés par un manager (ADR-0010) — append-only, pas de trigger `log_audit` |
 
-### Vues (17)
+### Vues (20)
 | Vue | Description |
 |---|---|
+| `v_active_account_signals` (`security_invoker`) | Défense SQL de la file à traiter : exclut `archived`/`dismissed` et tout `detected_at < CURRENT_TIMESTAMP - INTERVAL '2 months'` |
 | `v_ai_intelligence_summary` (`security_invoker`) | Par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches`), dernier run, compteurs. **Migration 060** : 2 agrégats latéraux au lieu d'un produit cartésien runs × résultats ; drapeaux FOLIO lus sur les colonnes générées `companies.meta_has_*` |
 | `v_crm_account_list` (`security_invoker`) | Vue consolidée fiche compte — contacts, `has_study`, `has_dedicated_watch`, `has_client_analysis`/`sector_analysis`/`process_diagnostic`/`roadmap`, `has_account_issues`, `has_commercial_strategy`. Source de la liste comptes `/prospection`. **Migration 060** : lit `companies.meta_*` au lieu de dérefencer `metadata` 6 fois par ligne |
 | `v_collaborator_activity_summary` (migration 025) | 1 ligne par collaborateur × mois — activité (business/billable/pto/sick/non_billable), finance (revenue, employer_cost, real_margin, real_margin_pct), marge théorique |

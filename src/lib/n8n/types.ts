@@ -17,6 +17,7 @@ export type N8nWorkflowId =
   | "intel-031-issues-map"          // ADR-0012 Lot 4 : cartographie des enjeux (étape 3 chaîne de décision)
   | "intel-032-strategy"            // ADR-0012 Lot 5 : stratégie commerciale (étape 4 chaîne de décision)
   | "intel-033-account-watch-refresh" // Veille spécifique compte : rafraîchissement manuel
+  | "intel-034-account-signal-verification" // Veille compte : vérification indépendante d'un signal
   | "intel-040-workspace-diagnostic" // ADR-0014 Lot 5 : diagnostic macro du centre de profit
   // Rapports (REPORT-001)
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
@@ -50,6 +51,7 @@ export type N8nEntityType =
   | "interaction"
   | "mission"
   | "project"
+  | "account_signal"
 
 export type N8nTriggerPayload = {
   // Traçabilité — permet à n8n de mettre à jour le bon run
@@ -163,6 +165,36 @@ export type AccountWatchRefreshWebhookPayload = {
   watchLevel: AccountWatchRefreshSettings["watchLevel"]
   settings: AccountWatchRefreshSettings
   callbackUrl: string
+}
+
+export type AccountSignalVerificationVerdict =
+  | "confirmed"
+  | "contradicted"
+  | "insufficient_evidence"
+
+export type AccountSignalVerificationResult = {
+  schemaVersion: 1
+  signalId: string
+  companyId: string
+  verdict: AccountSignalVerificationVerdict
+  rationale: string
+  checkedAt: string
+  initialSource: {
+    id: string | null
+    name: string | null
+    url: string | null
+  }
+  independentEvidence: Array<{
+    id: string
+    title: string
+    sourceName: string
+    sourceUrl: string | null
+    articleUrl: string | null
+    publishedAt: string | null
+    vector: "company_signal" | "event_terms"
+  }>
+  supportingEvidenceIds: string[]
+  contradictingEvidenceIds: string[]
 }
 
 // ─── INTEL-030 — Connaissance compte (account_knowledge) ────────────────────

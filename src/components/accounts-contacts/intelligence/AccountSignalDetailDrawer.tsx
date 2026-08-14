@@ -1,14 +1,9 @@
 "use client"
 
-import { useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { Button } from "@/components/ui/Button"
-import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import type { ClientIntelligenceSignal } from "@/lib/intelligence/intelligence-data"
-import { dismissAccountSignal } from "./dismiss-account-signal"
-import { createTask } from "@/lib/tasks/task-actions"
-import { AlertBlock } from "@/components/ui/AlertBlock"
 import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
+import { AccountSignalMobileActions } from "./AccountSignalMobileActions"
 
 type AccountSignalDetailDrawerProps = {
   signal: ClientIntelligenceSignal | null
@@ -37,61 +32,9 @@ export function AccountSignalDetailDrawer({
   onDismiss,
   onReturnToCockpit,
 }: AccountSignalDetailDrawerProps) {
-  const [isDismissing, startDismissingTransition] = useTransition()
-  const [isCreatingTask, startCreatingTaskTransition] = useTransition()
-  const [feedback, setFeedback] = useState<{ tone: "success" | "error"; message: string } | null>(null)
-
   if (!signal) return null
 
   const hasSourceUrl = !!signal.primarySource?.source_url
-
-  function handleDismiss() {
-    if (!signal) return
-    const signalId = signal.id
-    setFeedback(null)
-    startDismissingTransition(async () => {
-      const result = await dismissAccountSignal(signalId)
-      if (result.error) {
-        setFeedback({ tone: "error", message: result.error })
-      } else {
-        onDismiss(signalId)
-        onOpenChange(false)
-      }
-    })
-  }
-
-  function handleCreateTask() {
-    if (!signal) return
-    const currentSignal = signal
-    setFeedback(null)
-    startCreatingTaskTransition(async () => {
-      const priority = currentSignal.urgencyScore >= 0.8
-        ? "urgent"
-        : currentSignal.globalScore >= 0.7
-          ? "high"
-          : "normal"
-
-      const description = [
-        currentSignal.summary,
-        currentSignal.primarySource ? `Source : ${currentSignal.primarySource.source_name}` : null,
-        `Score global : ${currentSignal.globalScore}`
-      ].filter(Boolean).join("\n")
-
-      const result = await createTask({
-        title: currentSignal.recommendedAction || currentSignal.title,
-        description,
-        priority,
-        entity_type: "company",
-        entity_id: companyId,
-      })
-
-      if (result.error) {
-        setFeedback({ tone: "error", message: `Erreur : ${result.error}` })
-      } else {
-        setFeedback({ tone: "success", message: "Tâche créée avec succès et liée au compte." })
-      }
-    })
-  }
 
   return (
     <AppDrawer
@@ -160,68 +103,32 @@ export function AccountSignalDetailDrawer({
           )}
           <div className="flex items-center justify-between text-xs border-t border-border/40 pt-2.5">
             <span className="text-muted">Source principale</span>
-            <span className="font-semibold text-heading truncate max-w-[200px]" title={signal.primarySource?.source_name ?? undefined}>
-              {signal.primarySource?.source_name || "Non disponible"}
-            </span>
-          </div>
-        </div>
-
-        {/* Feedback Alert */}
-        {feedback && (
-          <AlertBlock
-            variant={feedback.tone === "success" ? "success" : "danger"}
-            title={feedback.message}
-          />
-        )}
-
-        {/* Actions de traitement */}
-        <div className="space-y-2 border-t border-border pt-5">
-          <div className="flex flex-col gap-2">
-            <ContextualCommunicationButton
-              entryPoint="signal_card"
-              companyId={companyId}
-              companyName={companyName}
-              refs={{ signalRef: signal.id }}
-              label="Générer un pitch"
-              variant="primary"
-              className="w-full justify-center py-2.5 text-xs font-bold leading-normal bg-primary text-primary-fg hover:bg-primary/90"
-              stopPropagation={false}
-            />
-
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={handleCreateTask}
-              loading={isCreatingTask}
-              loadingLabel="Création de la tâche..."
-              className="w-full justify-center py-2.5 text-xs font-bold"
-            >
-              Créer une tâche
-            </Button>
-
-            {hasSourceUrl && (
+            {hasSourceUrl ? (
               <a
                 href={signal.primarySource!.source_url!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 rounded border border-border bg-surface px-3 py-2.5 text-xs font-bold text-body hover:bg-canvas transition-colors"
+                className="max-w-[200px] truncate font-semibold text-primary underline-offset-2 hover:underline"
+                title={signal.primarySource?.source_name ?? undefined}
               >
-                Ouvrir la source
+                {signal.primarySource?.source_name || "Ouvrir la source"}
               </a>
+            ) : (
+              <span className="max-w-[200px] truncate font-semibold text-heading">{signal.primarySource?.source_name || "Non disponible"}</span>
             )}
-
-            <Button
-              variant="ghost"
-              size="md"
-              onClick={handleDismiss}
-              loading={isDismissing}
-              loadingLabel="Ignorer le signal..."
-              className="w-full justify-center py-2.5 text-xs font-bold text-muted hover:text-danger hover:bg-danger/5"
-            >
-              Ignorer le signal
-            </Button>
           </div>
         </div>
+
+        <AccountSignalMobileActions
+          key={signal.id}
+          signalId={signal.id}
+          companyId={companyId}
+          companyName={companyName}
+          onDismiss={(signalId) => {
+            onDismiss(signalId)
+            onOpenChange(false)
+          }}
+        />
       </div>
     </AppDrawer>
   )

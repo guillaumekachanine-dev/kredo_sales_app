@@ -52,7 +52,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        240,
+        480,
         300
       ],
       "retryOnFail": true,
@@ -291,6 +291,49 @@
           "name": "Supabase_Service_Role_KREDO"
         }
       }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/rpc/archive_stale_account_signals",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "n1b-archive-stale-signals",
+      "name": "Supabase: Archive Stale Account Signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -298,7 +341,7 @@
       "main": [
         [
           {
-            "node": "Supabase: Load Active Watch Settings",
+            "node": "Supabase: Archive Stale Account Signals",
             "type": "main",
             "index": 0
           }
@@ -437,6 +480,17 @@
         [
           {
             "node": "Loop Over Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Archive Stale Account Signals": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Load Active Watch Settings",
             "type": "main",
             "index": 0
           }

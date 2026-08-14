@@ -1,10 +1,11 @@
 "use client"
 
-import {useMemo, useRef, useState, useEffect} from "react"
+import {useEffect, useMemo, useRef, useState} from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { AccountSignalDesktopActions } from "@/components/accounts-contacts/intelligence/AccountSignalDesktopActions"
+import { AccountWatchHeaderActions } from "@/components/accounts-contacts/intelligence/AccountWatchHeaderActions"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
 import { Button } from "@/components/ui/Button"
@@ -273,9 +274,16 @@ type GroupedAccountSignals = {
 }
 
 function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }) {
+  const [dismissedSignalIds, setDismissedSignalIds] = useState<Set<string>>(() => new Set())
+  const [feedback, setFeedback] = useState<{ message: string; tone: "info" | "success" | "error" } | null>(null)
+  const visibleSignals = useMemo(
+    () => signals.filter((signal) => !dismissedSignalIds.has(signal.id)),
+    [dismissedSignalIds, signals],
+  )
+
   const groupedAccounts = useMemo(() => {
     const map = new Map<string, GroupedAccountSignals>()
-    for (const signal of signals) {
+    for (const signal of visibleSignals) {
       const companyId = signal.company.id
       const existing = map.get(companyId)
       if (existing) {
@@ -288,7 +296,7 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
       }
     }
     return Array.from(map.values())
-  }, [signals])
+  }, [visibleSignals])
 
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     groupedAccounts[0]?.company.id ?? null
@@ -391,14 +399,38 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
             </div>
           </div>
 
-          <Link
-            href={`/prospection/accounts/${company.id}`}
-            className="inline-flex items-center gap-2 border border-border bg-surface px-4 py-2 text-xs font-bold text-primary hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
-          >
-            <span>Voir la fiche compte</span>
-            <span aria-hidden="true">→</span>
-          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <AccountWatchHeaderActions
+              key={company.id}
+              companyId={company.id}
+              companyName={company.name}
+              onFeedback={(message, tone) => setFeedback({ message, tone })}
+            />
+            <Link
+              href={`/prospection/accounts/${company.id}`}
+              className="inline-flex h-9 items-center gap-2 border border-border bg-surface px-4 text-xs font-bold text-primary hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
+            >
+              <span>Voir la fiche compte</span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </header>
+
+        {feedback ? (
+          <p
+            role={feedback.tone === "error" ? "alert" : "status"}
+            className={cn(
+              "mt-4 border px-3 py-2 text-xs",
+              feedback.tone === "error"
+                ? "border-danger/20 bg-danger/[0.04] text-danger"
+                : feedback.tone === "success"
+                  ? "border-success/20 bg-success/[0.04] text-success"
+                  : "border-info/20 bg-info/[0.04] text-info",
+            )}
+          >
+            {feedback.message}
+          </p>
+        ) : null}
 
         {/* Section présentant l'ensemble des signaux du compte */}
         <section className="mt-8 space-y-6">
@@ -452,7 +484,7 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
                   </div>
                 </dl>
 
-                <footer className="mt-5 flex flex-wrap items-center justify-between gap-3 pt-1">
+                <footer className="mt-5 flex flex-wrap items-center gap-3 pt-1">
                   {signal.primarySource?.source_url ? (
                     <a
                       href={signal.primarySource.source_url}
@@ -462,22 +494,17 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
                     >
                       Ouvrir la source <span className="sr-only">(nouvel onglet)</span>
                     </a>
-                  ) : (
-                    <span />
-                  )}
+                  ) : null}
+                </footer>
 
-                  <ContextualCommunicationButton
-                    intent="signal_outreach"
-                    origin="veille_signal"
+                <div className="mt-4 border-t border-border pt-4">
+                  <AccountSignalDesktopActions
+                    signalId={signal.id}
                     companyId={signal.company.id}
                     companyName={signal.company.name}
-                    signalId={signal.id}
-                    refs={{ signalRef: signal.id }}
-                    label="Rédiger"
-                    variant="primary"
-                    className="h-9 border border-primary bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep"
+                    onDismiss={(signalId) => setDismissedSignalIds((current) => new Set(current).add(signalId))}
                   />
-                </footer>
+                </div>
               </article>
             ))}
           </div>

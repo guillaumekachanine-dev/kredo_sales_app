@@ -15,6 +15,32 @@
 
 ---
 
+### Session 45 — Veille ciblée comptes : cycle de vie et actions réelles (2026-08-14)
+
+**Cycle de vie** : `account_signals.detected_at`, déjà utilisé pour dater et ordonner les signaux,
+devient la référence canonique. La RPC service-role `archive_stale_account_signals()` archive
+strictement avant `CURRENT_TIMESTAMP - INTERVAL '2 months'`; le cron n8n
+`account-watch-scheduler` l'appelle avant ses rafraîchissements. La vue `v_active_account_signals`
+applique la même borne et exclut `archived`/`dismissed` en défense. Première exécution live :
+673 lignes archivées, rejeu : 0.
+
+**Actions** : Desktop et Mobile exposent exactement Vérifier, Générer un mail/pitch, Promouvoir et
+Ignorer le signal, avec logique partagée et présentations distinctes. Paramètres réutilise
+`AccountWatchSettingsDialog`; Mettre à jour appelle la route serveur existante puis
+`intel-033-account-watch-refresh`. Vérifier déclenche le nouveau workflow signé `intel-034`, qui
+consulte deux vecteurs distincts Google News/Bing News, exclut la source initiale et interdit une confirmation sans
+preuve secondaire. La génération réutilise `signal_outreach` / `intel-020-communication`.
+
+**Promotion** : `sector_news.source_account_signal_id` trace les promotions vers Signaux
+sectoriels ; `sector_playbook_signals` relie un signal au playbook de `sector_intelligence` sans
+dupliquer son contenu. Deux contraintes uniques empêchent les doublons. Les écritures restent
+service-role après validation utilisateur/workspace ; aucune policy existante n'est relâchée.
+
+**Validation** : typecheck vert · 121 fichiers / 1 222 tests verts · frontière serveur/client
+verte · lint des fichiers touchés vert (lint global toujours bloqué par 454 erreurs historiques,
+dont des worktrees `.claude`) · 19 assertions n8n vertes · build Next 16.2.7 vert. L'API n8n
+retourne 401 : import/activation VPS de `intel-034` et réimport du scheduler restent manuels.
+
 ### Session 44 — Cockpit Intelligence mobile : corrections du premier lot (2026-08-13)
 
 **Objet** : corriger la persistance de la rédaction, rendre les parcours cockpit réversibles et

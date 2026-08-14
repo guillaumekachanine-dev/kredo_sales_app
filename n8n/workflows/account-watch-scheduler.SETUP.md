@@ -3,7 +3,8 @@
 ## 1. Ce que fait ce workflow
 
 Équivalent du document `docs/n8n/INTEL-031-account-watch-scheduler.md`. Chaque
-jour à 03:00 UTC : charge les comptes avec veille active (`is_enabled=true`) et
+jour à 03:00 UTC : appelle d'abord la RPC Supabase
+`archive_stale_account_signals`, puis charge les comptes avec veille active (`is_enabled=true`) et
 échue (`next_run_at` nul ou passé), crée une ligne `ai_intelligence_runs`
 (`run_type='account_watch_refresh'`, `trigger_source='cron'`) par compte, appelle
 le webhook `intel-033-account-watch-refresh` avec une signature HMAC, puis
@@ -30,6 +31,10 @@ qui évite toute collision.
 3. Ne pas activer tout de suite (`active: false` par défaut).
 4. Credential Supabase déjà référencé (`Supabase_Service_Role_KREDO`), comme pour
    les autres workflows de ce dépôt.
+
+Le nœud `Supabase: Archive Stale Account Signals` utilise ce credential
+service-role pour appeler la RPC. La fonction n'est volontairement pas
+exécutable par les rôles navigateur `anon`/`authenticated`.
 
 ## 4. Configuration requise
 
@@ -78,13 +83,17 @@ disponible (brancher après "Error Handler — Increment Failures", condition
 
 1. Dans n8n, ouvrir le workflow → **Execute workflow** manuellement (ne pas
    attendre 03:00).
-2. Vérifier que "Supabase: Load Active Watch Settings" retourne bien les comptes
+2. Vérifier que `Supabase: Archive Stale Account Signals` renvoie un entier et
+   qu'il ne modifie ni les signaux `dismissed`, ni ceux exactement à la limite
+   de deux mois. La référence SQL est strictement
+   `detected_at < CURRENT_TIMESTAMP - INTERVAL '2 months'`.
+3. Vérifier que "Supabase: Load Active Watch Settings" retourne bien les comptes
    dont la veille est active dans KREDO (UI `/veille` ou équivalent).
-3. Vérifier dans **Executions** que chaque itération de la boucle crée un run et
+4. Vérifier dans **Executions** que chaque itération de la boucle crée un run et
    déclenche `intel-033-account-watch-refresh` sans erreur (202 attendu).
-4. Vérifier dans Supabase que `account_watch_settings.next_run_at` a bien avancé
+5. Vérifier dans Supabase que `account_watch_settings.next_run_at` a bien avancé
    selon `watch_level` de chaque compte testé.
-5. Forcer un échec (ex. couper temporairement `intel-033-account-watch-refresh`)
+6. Forcer un échec (ex. couper temporairement `intel-033-account-watch-refresh`)
    et vérifier que `metadata.consecutive_failures` s'incrémente sans interrompre
    la boucle sur les comptes suivants.
 

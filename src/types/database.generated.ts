@@ -6011,6 +6011,7 @@ export type Database = {
           relevance_score: number | null
           sector_id: string
           source: string | null
+          source_account_signal_id: string | null
           summary: string | null
           tags: string[]
           title: string
@@ -6025,6 +6026,7 @@ export type Database = {
           relevance_score?: number | null
           sector_id: string
           source?: string | null
+          source_account_signal_id?: string | null
           summary?: string | null
           tags?: string[]
           title: string
@@ -6039,6 +6041,7 @@ export type Database = {
           relevance_score?: number | null
           sector_id?: string
           source?: string | null
+          source_account_signal_id?: string | null
           summary?: string | null
           tags?: string[]
           title?: string
@@ -6066,6 +6069,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_sector_knowledge_resolved"
             referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "sector_news_source_account_signal_id_fkey"
+            columns: ["source_account_signal_id"]
+            isOneToOne: false
+            referencedRelation: "account_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_news_source_account_signal_id_fkey"
+            columns: ["source_account_signal_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_account_signals"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sector_news_workspace_id_fkey"
@@ -6140,6 +6157,83 @@ export type Database = {
           },
           {
             foreignKeyName: "sector_pain_points_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_playbook_signals: {
+        Row: {
+          account_signal_id: string
+          created_at: string
+          id: string
+          promoted_by: string
+          sector_id: string
+          workspace_id: string
+        }
+        Insert: {
+          account_signal_id: string
+          created_at?: string
+          id?: string
+          promoted_by: string
+          sector_id: string
+          workspace_id?: string
+        }
+        Update: {
+          account_signal_id?: string
+          created_at?: string
+          id?: string
+          promoted_by?: string
+          sector_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_playbook_signals_account_signal_id_fkey"
+            columns: ["account_signal_id"]
+            isOneToOne: false
+            referencedRelation: "account_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_playbook_signals_account_signal_id_fkey"
+            columns: ["account_signal_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_account_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_playbook_signals_promoted_by_fkey"
+            columns: ["promoted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_playbook_signals_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_playbook_signals_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "sector_playbook_signals_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "sector_playbook_signals_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6896,6 +6990,173 @@ export type Database = {
           },
         ]
       }
+      v_active_account_signals: {
+        Row: {
+          company_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          dedupe_key: string | null
+          detected_at: string | null
+          event_at: string | null
+          expires_at: string | null
+          global_score: number | null
+          id: string | null
+          last_evidence_at: string | null
+          potential_value_score: number | null
+          primary_source_id: string | null
+          recommended_action: string | null
+          recommended_practice_id: string | null
+          relevance_score: number | null
+          run_id: string | null
+          score_details: Json | null
+          score_justification: string | null
+          scoring_rules_version: string | null
+          signal_category: string | null
+          signal_type: string | null
+          status: string | null
+          suggested_contact_id: string | null
+          summary: string | null
+          taxonomy_version: string | null
+          title: string | null
+          updated_at: string | null
+          urgency_score: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          dedupe_key?: string | null
+          detected_at?: string | null
+          event_at?: string | null
+          expires_at?: string | null
+          global_score?: number | null
+          id?: string | null
+          last_evidence_at?: string | null
+          potential_value_score?: number | null
+          primary_source_id?: string | null
+          recommended_action?: string | null
+          recommended_practice_id?: string | null
+          relevance_score?: number | null
+          run_id?: string | null
+          score_details?: Json | null
+          score_justification?: string | null
+          scoring_rules_version?: string | null
+          signal_category?: string | null
+          signal_type?: string | null
+          status?: string | null
+          suggested_contact_id?: string | null
+          summary?: string | null
+          taxonomy_version?: string | null
+          title?: string | null
+          updated_at?: string | null
+          urgency_score?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          dedupe_key?: string | null
+          detected_at?: string | null
+          event_at?: string | null
+          expires_at?: string | null
+          global_score?: number | null
+          id?: string | null
+          last_evidence_at?: string | null
+          potential_value_score?: number | null
+          primary_source_id?: string | null
+          recommended_action?: string | null
+          recommended_practice_id?: string | null
+          relevance_score?: number | null
+          run_id?: string | null
+          score_details?: Json | null
+          score_justification?: string | null
+          scoring_rules_version?: string | null
+          signal_category?: string | null
+          signal_type?: string | null
+          status?: string | null
+          suggested_contact_id?: string | null
+          summary?: string | null
+          taxonomy_version?: string | null
+          title?: string | null
+          updated_at?: string | null
+          urgency_score?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_signals_primary_source_id_fkey"
+            columns: ["primary_source_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_recommended_practice_id_fkey"
+            columns: ["recommended_practice_id"]
+            isOneToOne: false
+            referencedRelation: "offer_practices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "account_signals_suggested_contact_id_fkey"
+            columns: ["suggested_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_ai_cost_timeline: {
         Row: {
           cost_estimate: number | null
@@ -7617,6 +7878,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      archive_stale_account_signals: { Args: never; Returns: number }
       compute_conviction_score_v1: {
         Args: { p_company_id: string }
         Returns: number

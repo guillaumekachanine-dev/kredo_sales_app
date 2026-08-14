@@ -184,6 +184,9 @@ export async function POST(request: Request) {
   if (status === "succeeded" && run.company_id) {
     try {
       revalidatePath(`/prospection/accounts/${run.company_id}`)
+      if (resultType === "account_watch_refresh") {
+        revalidatePath("/veille")
+      }
     } catch (revalidateError) {
       console.error("[callback] revalidatePath failed:", revalidateError)
     }

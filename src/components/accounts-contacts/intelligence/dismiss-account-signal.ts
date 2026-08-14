@@ -14,5 +14,6 @@ export async function dismissAccountSignal(
   if (result.error || !result.companyId) return { error: result.error ?? "Signal introuvable" }
 
   revalidatePath(`/prospection/accounts/${result.companyId}`)
+  revalidatePath("/veille")
   return { error: null }
 }

@@ -12,7 +12,7 @@ export async function loadAccountSignals(
 
   const supabase = await createClient()
   const { data, error } = await supabase
-    .from("account_signals")
+    .from("v_active_account_signals")
     .select(`
       id,
       signal_category,
@@ -33,7 +33,6 @@ export async function loadAccountSignals(
       intelligence_sources(id,source_name,source_url,published_at)
     `)
     .eq("company_id", companyId)
-    .neq("status", "dismissed")
     .order("global_score", { ascending: false })
     .order("detected_at", { ascending: false })
     .limit(100)
@@ -42,11 +41,14 @@ export async function loadAccountSignals(
 
   return {
     error: null,
-    data: (data ?? []).map((row) => {
+    data: (data ?? []).flatMap((row) => {
+      if (!row.id || !row.title || !row.detected_at || !row.status || !row.signal_category || !row.signal_type) {
+        return []
+      }
       const source = Array.isArray(row.intelligence_sources)
         ? row.intelligence_sources[0]
         : row.intelligence_sources
-      return {
+      return [{
         id: row.id,
         category: row.signal_category,
         type: row.signal_type,
@@ -56,18 +58,18 @@ export async function loadAccountSignals(
         lastEvidenceAt: row.last_evidence_at,
         expiresAt: row.expires_at,
         publishedAt: source?.published_at ?? null,
-        globalScore: row.global_score,
-        interestScore: row.relevance_score,
-        urgencyScore: row.urgency_score,
-        confidenceScore: row.confidence_score,
+        globalScore: row.global_score ?? 0,
+        interestScore: row.relevance_score ?? 0,
+        urgencyScore: row.urgency_score ?? 0,
+        confidenceScore: row.confidence_score ?? 0,
         status: row.status,
         primarySourceId: row.primary_source_id,
         recommendedAction: row.recommended_action,
         recommendedPracticeId: row.recommended_practice_id,
-        primarySource: source
+        primarySource: source?.id && source.source_name
           ? { id: source.id, source_name: source.source_name, source_url: source.source_url }
           : null,
-      }
+      }]
     }),
   }
 }
