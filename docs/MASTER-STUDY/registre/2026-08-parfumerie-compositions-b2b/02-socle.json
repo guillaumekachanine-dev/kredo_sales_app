@@ -9,11 +9,12 @@
     "commentaire": "Les 7 comptes portent le même code NAF 20.53Z (fabrication d'huiles essentielles) et ont tous leur siège en Alpes-Maritimes, 6 sur 7 à Grasse même. Le segment est un cluster industriel réel, pas une catégorie de commodité."
   },
   "identite": {
-    "comptes_cibles": 7,
-    "resolus": 7,
+    "comptes_cibles": 9,
+    "resolus": 9,
     "ambigus": 0,
     "non_tentes": 0,
     "taux_couverture": 1.0,
+    "commentaire_extension_e5": "7 comptes ci-dessous sont les comptes_rattaches du segment (perimetre.comptes_rattaches reste a 7, inchange). TechnicoFlor et V. Mane Fils sont deux acteurs decouverts par la cartographie E5 (comptes prioritaires du top 3, hors Robertet deja resolu) : leur identite a ete resolue le 14/08/2026 avec la meme methode (appel direct recherche-entreprises.api.gouv.fr), pour lever le FAIL 'non fourni par le socle' sur ces deux fiches. Ils ne sont pas des companies KREDO existantes : leur creation (depth_level='mapped') aura lieu a l'ingestion E7 via CompetitiveMapImportWizard, pas ici.",
     "detail_resolus": [
       {
         "nom": "Robertet",
@@ -84,6 +85,28 @@
         "siege_commune": "GRASSE",
         "departement": "06",
         "source": "https://recherche-entreprises.api.gouv.fr/search?q=415550029"
+      },
+      {
+        "nom": "TechnicoFlor",
+        "siren": "324073972",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "TECHNICO FLOR",
+        "siege_commune": "ALLAUCH",
+        "departement": "13",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=Technico%20Flor",
+        "origine": "extension E5 — compte prioritaire top 3, hors comptes_rattaches"
+      },
+      {
+        "nom": "V. Mane Fils (MANE)",
+        "siren": "415550284",
+        "naf_code": "20.14Z",
+        "faits_identite": 0,
+        "entite_retenue": "V. MANE FILS",
+        "siege_commune": "LE BAR-SUR-LOUP",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=V%20Mane%20Fils",
+        "origine": "extension E5 — compte prioritaire top 3, hors comptes_rattaches"
       }
     ],
     "echecs": [],
@@ -206,7 +229,7 @@
     "commentaire": "Bloc A6 non exécuté — c'est l'action B4 de la roadmap, ouverte sur les 109 comptes de la base. Il relève de E5 §4.3 et d'un travail humain de 30 à 45 min par compte prioritaire."
   },
   "compteurs": {
-    "detail_resolus": 7,
+    "detail_resolus": 9,
     "echecs": 0,
     "deux_resolutions_qui_exigeaient_un_arbitrage": 2,
     "items_passes_non_marques": 3,

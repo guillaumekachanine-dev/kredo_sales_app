@@ -884,6 +884,13 @@ def _extraire_requetes(texte):
                 candidats.add(ligne)
     for cite in re.findall(r'[«"“]([^«»"“”\n]{13,})[»"”]', texte):
         candidats.add(cite.strip())
+    # Convention tableau : une ligne « | <n° séquentiel> | `requête` | ... » — le n° en
+    # première colonne prouve que c'est une requête numérotée du journal, pas une citation
+    # de prose entre backticks (nom de fichier, identifiant) qui traînerait ailleurs.
+    for ligne in texte.splitlines():
+        if re.match(r"^\|\s*\d+\s*\|", ligne):
+            for terme in re.findall(r"`([^`\n]{13,})`", ligne):
+                candidats.add(terme.strip())
     return candidats
 
 
