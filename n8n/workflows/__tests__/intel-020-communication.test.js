@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 // Lot 10 — harnais Node : exécution réelle (pas seulement syntaxique) des
 // nœuds Code de intel-020-communication.json, avec mocks pour $(), $env,
 // this.helpers.httpRequestWithAuthentication. Pattern établi (Sessions
@@ -73,7 +75,12 @@ function runCodeNode(nodeName, { registry, env, rpcMock, mode }) {
   // an async function body runs synchronously up to its first `await`, so
   // setting globals after `fn.call()` would already be too late for any
   // reference made before that first await (e.g. Validate Brief's very first line).
-  const sandboxGlobals = { $, $env, $input };
+  // `Prepare Callback` et `Prepare Failure Callback` lisent $execution.id et
+  // $workflow.id pour tracer le run côté KREDO (lien « Ouvrir dans n8n »).
+  const $execution = { id: "exec-020" };
+  const $workflow = { id: "wf-020" };
+
+  const sandboxGlobals = { $, $env, $input, $execution, $workflow };
   const previous = {};
   for (const key of Object.keys(sandboxGlobals)) {
     previous[key] = global[key];

@@ -52,7 +52,8 @@ npm run dev                    # Next dev (Turbopack)
 npm run build                  # Build de production — la seule vraie vérification
 npm run typecheck              # tsc --noEmit
 npm run lint                   # eslint
-npm test                       # vitest run
+npm test                       # vitest run — n'inclut QUE `src/**/*.test.ts`
+npm run test:n8n               # 7 harnais n8n (309 assertions) — hors périmètre de `npm test`
 npm run check:server-boundary  # invariant : tout module important le client Supabase serveur porte `import "server-only"`
 npm run db:types               # régénère src/types/database.generated.ts depuis Supabase
 npm run n8n:status             # dérive entre n8n/workflows/ (repo) et ce qui tourne sur le VPS
@@ -64,13 +65,20 @@ python3 scripts/audit-master-study.py docs/MASTER-STUDY/registre/<run>/   # gate
 
 **Boucle de validation avant de déclarer un travail fini** — dans cet ordre :
 `typecheck` → `test` → `check:server-boundary` → `lint` (fichiers touchés) → `build`.
+**Ajouter `test:n8n` dès qu'un fichier de `n8n/workflows/` est touché** — `vitest` n'inclut que
+`src/**/*.test.ts`, donc `npm test` reste vert même quand un workflow est cassé.
 
-Trois pièges récurrents, tous documentés au prix d'une session perdue :
+Quatre pièges récurrents, tous documentés au prix d'une session perdue :
 - **`tsc` ne voit pas tout.** Un composant client important une *valeur* (pas un type) depuis un
   module `server-only` passe le typecheck et casse `next build`. Seul le build le révèle.
 - **`.next/` périmé** produit de faux `TS6200`/`TS2300` : purger avant de conclure à une régression.
 - **`build:webpack`** est la seule application réelle de la frontière serveur/client (Turbopack la
   tolère en silence) ; `check:server-boundary` en est le contrôle statique rapide.
+- **Un harnais n8n qui « passe » peut n'avoir rien exécuté.** Ces harnais sont des scripts Node
+  nus : une exception dans un nœud Code (globale n8n absente du sandbox — `$execution`,
+  `$workflow`, `$env`…) fait sauter toutes les assertions restantes. `intel-020` et `intel-040`
+  ont vécu ainsi avec 117 assertions muettes. Toujours lire le compteur final, jamais le seul
+  code de sortie.
 
 ---
 

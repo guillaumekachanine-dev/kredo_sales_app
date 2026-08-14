@@ -44,7 +44,7 @@ c'est ce qui rend la mise à jour différentielle (V3) possible et la comparaiso
 
 | Run | Segment | Variante | Snapshot | G0 | G1 | G2 | G3 | Verdict | Péremption triggers | Péremption carto |
 |---|---|---|---|:-:|:-:|:-:|:-:|---|---|---|
-| `2026-08-parfumerie-compositions-b2b` | seg-parfumerie-compositions-b2b | master | 2026-08-14 | ✅ go | ◐ 14/4 | — | — | **en cours** — E0/E1/E2 produits et exécutés en direct ; E3→E6 à jouer. Les 3 FAIL de journal sont les étapes non encore lancées ; le 4e est une question de contrat (voir ci-dessous) | 2026-11-14 | 2027-08-14 |
+| `2026-08-parfumerie-compositions-b2b` | seg-parfumerie-compositions-b2b | master | 2026-08-14 | ✅ go | ◐ 28/5 | — | ◐ partiel | **en cours** — E0→E4 produits ; E5/E6 à jouer. 5 FAIL restants : 2 hérités d'E3 (dette requêtes, question de contrat échéance pivot IFRA — voir ci-dessous), 2 attendus (`05-journal.md` absent, E5 non lancé), 1 permanent par construction (3 items réglementaires IFRA/REACH confirmés transversaux et laissés en macro — G1 signale tout item macro sans exception, la légitimité est un jugement G3, pas un état que le script peut faire passer). Arbitrage de portée (A4) rendu le 14/08 : voir ci-dessous | 2026-11-14 | 2027-08-14 |
 | `2026-08-aero-spatial-defense` | seg-aero-spatial-defense | master (conversion) | 2026-08-13 | ⚠️ | ❌ | — | — | **rejected** — 13 FAIL contre corpus v1.0, 12 contre v1.1 ; aucune ingestion. Voir `08-rapport-ecarts.md` et `ROADMAP-CORRECTIONS.md` | 2026-11-13 | 2027-08-13 |
 
 ---
@@ -85,6 +85,33 @@ Ce que E0→E2 ont établi :
    texte public équivalent. Soit la liste des autorités s'ouvre aux organismes normatifs
    sectoriels, soit ce segment n'aura jamais d'échéance pivot recevable. **Le producteur ne
    tranche pas son propre gate** (A10) : la question est posée, pas résolue.
+
+### Ce qu'E4 a établi — et l'arbitrage de portée du 14/08
+
+E4 (`04-secteur.json`, `04-secteur.md`, `04-journal.md`) a été produit par ChatGPT Deep
+Research, avec un incident notable en cours de route : **trois tours consécutifs de livrables
+fabriqués** — liens `sandbox:` non fonctionnels et sorties de contrôle (`json.loads` PASSE,
+tailles en octets, hachages SHA-256) inventées de bout en bout, avant qu'un test minimal
+(écrire puis relire un fichier trivial) ne confirme que l'outil code fonctionnait réellement
+dans le thread. Cause probable : perte de persistance du kernel Python entre les tours de
+conversation. Le run final a été produit en un seul tour (génération, écriture, lecture,
+validation), puis vérifié ici avec le schéma réel du dépôt et non sur la parole du modèle.
+
+Après validation JSON Schema et cohérence des compteurs (0 écart), G1 a soulevé le check
+`PORTEE` (A4) sur 5 items réglementaires écrits au niveau macro. Arbitrage rendu le 14/08 :
+
+- **Gardés en macro** — IFRA 52e amendement, IFRA régime permanent, REACH : authentiquement
+  transversaux à toute la parfumerie/arômes, pas propres au segment compositions/ingrédients.
+- **Reclassés en segment** — Règlement UE 2023/1545 (allergènes cosmétiques : vise le produit
+  fini, pas la fabrication B2B amont) et le cadre UE arômes alimentaires (spécifique aux
+  arômes, pas à la parfumerie).
+
+Le check `PORTEE` continuera de signaler les 3 items macro à chaque exécution de G1 — c'est
+volontaire : le script ne peut pas certifier une transversalité, seul un humain le peut. Ce
+FAIL restera visible en permanence sur ce run ; il documente une décision prise, pas un défaut
+non résolu. **Le G3 complet (§5 de `10-ETAPE-E7`) reste à faire** : cet arbitrage ne portait
+que sur la portée des items réglementaires, pas sur le test « je décrocherais le téléphone
+avec ça » ni sur la relecture du message sectoriel.
 
 ---
 

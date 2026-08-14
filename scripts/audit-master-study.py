@@ -564,7 +564,14 @@ def check_editeur(docs, checks):
     for s in doc.get("sources") or []:
         url, publisher, tier = s.get("url", ""), (s.get("publisher") or ""), s.get("tier")
         host = urlparse(url).netloc.lower()
-        officiel = host.endswith((".gouv.fr", ".europa.eu", "europa.eu")) or ".gouv." in host
+        domaines_officiels_hors_gouv = (
+            "insee.fr", "inpi.fr", "boamp.fr",  # établissements publics sans domaine .gouv.fr
+        )
+        officiel = (
+            host.endswith((".gouv.fr", ".europa.eu", "europa.eu"))
+            or ".gouv." in host
+            or host.endswith(domaines_officiels_hors_gouv)
+        )
         pretend = re.search(r"commission|conseil|minist|agence|autorit|anssi|insee|légifrance|legifrance",
                             publisher, re.IGNORECASE)
         if tier == 1 and not officiel:

@@ -1,0 +1,1366 @@
+{
+  "meta": {
+    "segment_slug": "seg-parfumerie-compositions-b2b",
+    "macro_slug": "parfumerie-aromes",
+    "date_snapshot": "2026-08-14",
+    "acces_web": "complet",
+    "confiance_plafond": "haute",
+    "auteur": "ChatGPT Deep Research",
+    "version": "1.0"
+  },
+  "perimetre": {
+    "definition": "Création, fabrication et vente B2B de compositions parfumantes et d'ingrédients aromatiques — huiles essentielles, extraits naturels, bases, concentrés et arômes formulés — à des donneurs d'ordre industriels en parfumerie-cosmétique, agroalimentaire et hygiène-entretien ; France entière, bassin de Grasse prioritaire.",
+    "hors_champ": [
+      "Marques de produits finis.",
+      "Distribution et retail de parfumerie.",
+      "Production agricole de matières premières non transformées.",
+      "Façonniers dont le métier principal est le remplissage ou le conditionnement sans activité formulatoire."
+    ],
+    "regle_comparabilite": "Aucun chiffre groupe monde n'est utilisé pour caractériser une branche France. Le segment n'étant pas isolé proprement par les statistiques publiques consultées, sa taille exacte n'est pas reconstituée ; les repères de filière restent explicitement hors TAM."
+  },
+  "theses": [
+    {
+      "id": 1,
+      "these": "La valeur commerciale du segment vient moins d'un TAM agrégé que de sa complexité opérationnelle : matières naturelles, formulation sur mesure, contraintes réglementaires et multiplicité des usages imposent une maîtrise continue du lien matière–formule–usage–client.",
+      "src_ids": [
+        7,
+        13,
+        17,
+        20,
+        21
+      ],
+      "donc_commercialement": "DONC, commercialement : ouvrir sur la maîtrise matière–formule–client, la traçabilité et la capacité de changement plutôt que sur une transformation digitale générique."
+    },
+    {
+      "id": 2,
+      "these": "Le bassin de Grasse traverse une vague visible d'investissements industriels et de montée en capacité, attestée notamment par Payan Bertrand et SFA NEROLI/Symrise, ce qui déplace le besoin vers l'intégration OT/IT, la qualité des données de production et la résilience avant ramp-up.",
+      "src_ids": [
+        8,
+        18,
+        19,
+        25
+      ],
+      "donc_commercialement": "DONC, commercialement : un site en construction ou en montée en cadence mérite une priorité supérieure à un site stabilisé ; l'ouverture se fait avec le directeur industriel, la qualité et le SI."
+    },
+    {
+      "id": 3,
+      "these": "IFRA 52 doit être traité comme un événement de données futur : la consultation est close et la notification est attendue vers la fin novembre 2026, mais aucune date exacte de notification ni aucune date de conformité propre à l'amendement 52 n'est publiée au snapshot.",
+      "src_ids": [
+        6
+      ],
+      "donc_commercialement": "DONC, commercialement : la question utile est « serez-vous capables de mesurer l'impact sur vos matières, formules, usages et clients dès la notification ? », jamais « êtes-vous prêts pour le 30 novembre ? »."
+    },
+    {
+      "id": 4,
+      "these": "Chez les leaders, la transformation data et IA touche déjà la création, la formulation, la gouvernance de données et les opérations ; cela invalide le pitch POC IA générique et remet au premier plan la qualité des données, les droits d'accès, la propriété intellectuelle et l'industrialisation.",
+      "src_ids": [
+        12,
+        22,
+        23,
+        24
+      ],
+      "donc_commercialement": "DONC, commercialement : vendre un cas d'usage métier borné avec gouvernance, sécurité et MLOps, pas une démonstration d'IA détachée du patrimoine formulation."
+    },
+    {
+      "id": 5,
+      "these": "Une « maison de composition » ne correspond pas à un modèle d'achat unique : les grands groupes publient des parcours fournisseurs et plateformes centrales structurés, alors que les maisons indépendantes exposent beaucoup moins leurs mécanismes d'achat IT.",
+      "src_ids": [
+        10,
+        16,
+        20,
+        21,
+        22
+      ],
+      "donc_commercialement": "DONC, commercialement : qualifier dès le premier échange la frontière entre autonomie locale, siège, panel, plateforme centrale et budget de site ; ne jamais supposer qu'un modèle d'achat de groupe vaut pour une maison indépendante."
+    }
+  ],
+  "message_sectoriel": "Votre fenêtre n'est pas « faire de l'IA » : c'est être capable, dès la notification IFRA 52, de relier chaque restriction aux matières, formules, usages et certificats clients, pendant que vos nouveaux sites et vos capacités de création montent en charge.",
+  "incertitudes": [
+    "Aucune source consultée n'isole proprement la taille économique exacte du segment français « Compositions & ingrédients B2B » ; le TAM reste donc non publié.",
+    "Les processus d'achat IT, panels et ESN déjà en place chez les maisons indépendantes de Grasse sont peu publics et ne peuvent pas être affirmés.",
+    "Les cas d'IA publiés par les leaders mondiaux constituent des benchmarks concurrentiels, pas une mesure du taux d'adoption des maisons ciblées du bassin de Grasse."
+  ],
+  "marche": {
+    "taille_eur_bn": null,
+    "croissance_pct": null,
+    "perimetre": "France — segment E4 non isolé statistiquement ; repères macro et de filière uniquement.",
+    "exercice": null,
+    "src_ids": [
+      7,
+      9,
+      14
+    ],
+    "lecture": "Le marché pertinent est piloté par les cycles de briefs, la capacité à sécuriser les matières, la conformité réglementaire et la montée en production. Les agrégats publics disponibles couvrent des périmètres plus larges que le segment.",
+    "donc_commercialement": "DONC, commercialement : ne pas utiliser un chiffre de filière comme accroche ; préférer une contrainte observable et datée du compte ou du segment."
+  },
+  "blocs_clients": [
+    {
+      "nom": "Marques de parfumerie et cosmétique",
+      "qui_finance": "Budgets de lancement, innovation, développement produit et achats industriels des marques ou groupes de beauté.",
+      "cycle_budgetaire": "Cadencé par les briefs, lancements, reformulations, appels d'offres fournisseurs et revues annuelles de portefeuille.",
+      "src_ids": [
+        7,
+        8,
+        22
+      ]
+    },
+    {
+      "nom": "Industriels hygiène-entretien et biens de consommation",
+      "qui_finance": "Budgets R&D, formulation, achats catégories et production des industriels aval.",
+      "cycle_budgetaire": "Arbitrages liés aux rénovations de gammes, substitution de matières, conformité et optimisation coûts/qualité.",
+      "src_ids": [
+        7,
+        20,
+        21
+      ]
+    },
+    {
+      "nom": "Industries agroalimentaires",
+      "qui_finance": "Budgets innovation produit, achats ingrédients et qualité/réglementaire des industriels alimentaires.",
+      "cycle_budgetaire": "Cycles de reformulation, innovation, référencement ingrédients et conformité des arômes.",
+      "src_ids": [
+        17,
+        29
+      ]
+    },
+    {
+      "nom": "Groupes multi-pays et plateformes d'achats centralisées",
+      "qui_finance": "Budgets locaux et centraux selon la gouvernance du groupe, avec plateformes achats et standards fournisseurs communs.",
+      "cycle_budgetaire": "Référencements groupe, budgets de transformation centraux, déploiements locaux et cycles de renouvellement fournisseurs.",
+      "src_ids": [
+        10,
+        21,
+        22,
+        23
+      ]
+    }
+  ],
+  "modeles_economiques": [
+    {
+      "nom": "Composition sur brief et co-développement",
+      "description": "Création d'une formule répondant à un brief olfactif ou aromatique, avec itérations R&D, validation réglementaire, échantillonnage puis industrialisation.",
+      "qui_signe": "Direction achats / category management du client avec influence R&D, marketing et qualité-réglementaire.",
+      "quand_le_budget_est_engage": "Au lancement du brief et surtout au passage en référencement puis industrialisation.",
+      "implication_achat_prestation": "Les prestations SI se vendent autour du time-to-brief, de la gestion des formules, du workflow d'approbation, de la traçabilité et de l'intégration laboratoire–qualité–ERP.",
+      "src_ids": [
+        7,
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : partir du cycle brief→formule→validation→industrialisation et mesurer où les données sont ressaisies ou réconciliées manuellement."
+    },
+    {
+      "nom": "Fourniture récurrente de compositions industrialisées",
+      "description": "Après qualification, la composition entre dans un cycle d'approvisionnement récurrent soumis à qualité, changements de matières, continuité et service client.",
+      "qui_signe": "Achats industriels / supply chain du client avec qualité et direction commerciale côté fournisseur.",
+      "quand_le_budget_est_engage": "Lors du référencement et des renouvellements ou changements de portefeuille.",
+      "implication_achat_prestation": "Le besoin SI se concentre sur prévision, disponibilité, qualité, gestion des changements, EDI/API, visibilité supply et continuité opérationnelle.",
+      "src_ids": [
+        20,
+        21,
+        22
+      ],
+      "donc_commercialement": "DONC, commercialement : chercher les ruptures de continuité entre supply, qualité et client plutôt qu'un projet applicatif abstrait."
+    },
+    {
+      "nom": "Ingrédients naturels, extraits et matières à variabilité forte",
+      "description": "Vente d'ingrédients naturels et extraits dont disponibilité, qualité et caractéristiques peuvent varier selon origine, récolte, fournisseur et lot.",
+      "qui_signe": "Achats matières / supply chain avec qualité, réglementaire et R&D.",
+      "quand_le_budget_est_engage": "Au référencement fournisseur, lors des campagnes d'achat et quand une matière doit être substituée ou sécurisée.",
+      "implication_achat_prestation": "Les budgets s'ouvrent sur data lineage matière–fournisseur–lot, scoring fournisseur, portails, qualité, alerting, second sourcing et gouvernance des référentiels.",
+      "src_ids": [
+        20,
+        21,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : ouvrir sur la capacité à remplacer ou requalifier une matière sans perdre la traçabilité des formules et des clients impactés."
+    },
+    {
+      "nom": "Arômes et ingrédients pour agroalimentaire",
+      "description": "Développement et fourniture d'arômes aux industriels alimentaires, avec contraintes propres de sécurité, conformité et liste de l'Union.",
+      "qui_signe": "Achats ingrédients avec R&D produit, qualité et affaires réglementaires.",
+      "quand_le_budget_est_engage": "Lors des briefs de développement, reformulations et référencements ingrédients.",
+      "implication_achat_prestation": "Les prestations portent sur référentiels réglementaires, formulation, qualité des données, documentation client et automatisation des contrôles.",
+      "src_ids": [
+        17,
+        29
+      ],
+      "donc_commercialement": "DONC, commercialement : distinguer clairement fragrance et flavour ; un argument cosmétique ne doit pas être recyclé tel quel auprès d'une BU arômes."
+    },
+    {
+      "nom": "Filiale locale d'un groupe à plateformes centrales",
+      "description": "Le site local opère création, production ou service client mais certains outils, panels, standards achats, cybersécurité et données sont gouvernés au niveau groupe.",
+      "qui_signe": "Selon le sujet : direction locale pour opérations de site, fonction centrale pour plateforme, sécurité, data ou référencement fournisseur.",
+      "quand_le_budget_est_engage": "Au budget local pour les besoins de site ; au programme groupe pour les déploiements de plateforme et standards.",
+      "implication_achat_prestation": "Une ESN doit d'abord qualifier le périmètre d'autonomie. Le bon achat peut être une intégration, un rollout, un renfort delivery ou un chantier data local plutôt qu'un remplacement de plateforme.",
+      "src_ids": [
+        10,
+        21,
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : sur une filiale, demander avant toute proposition « qu'est-ce qui est décidé ici et qu'est-ce qui est imposé par le groupe ? »."
+    }
+  ],
+  "maillons": [
+    {
+      "rang": 1,
+      "nom": "Sourcing et qualification des matières",
+      "contenu": "Sélection fournisseurs, origine, qualité, disponibilité, responsabilité et conformité des matières naturelles ou synthétiques.",
+      "acteurs_types": [
+        "Producteurs et extracteurs",
+        "Distributeurs d'ingrédients",
+        "Maisons de composition"
+      ],
+      "position_compte_etalon": "Acheteur, transformateur et formulateur de matières et ingrédients.",
+      "ou_lesn_se_branche": "Référentiels fournisseurs/matières, portails B2B, qualité de données, traçabilité et intégration achats–qualité.",
+      "qui_y_est_deja": [],
+      "src_ids": [
+        20,
+        21,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : l'ouverture la plus crédible est la maîtrise du changement matière et de sa propagation jusqu'aux formules et clients."
+    },
+    {
+      "rang": 2,
+      "nom": "Transformation et préparation des ingrédients",
+      "contenu": "Extraction, distillation, concentration, mélange, préparation et standardisation des matières avant formulation.",
+      "acteurs_types": [
+        "Maisons intégrées",
+        "Spécialistes d'extraits",
+        "Sous-traitants industriels"
+      ],
+      "position_compte_etalon": "Présent sur les ingrédients naturels et la transformation.",
+      "ou_lesn_se_branche": "MES/OT integration, collecte de données process, qualité, observabilité, maintenance applicative et résilience des interfaces.",
+      "qui_y_est_deja": [],
+      "src_ids": [
+        7,
+        16,
+        18,
+        25
+      ],
+      "donc_commercialement": "DONC, commercialement : sur un site en modernisation, qualifier la fiabilité des flux de données entre équipement, laboratoire, qualité et ERP avant la montée en cadence."
+    },
+    {
+      "rang": 3,
+      "nom": "Création, formulation et gestion du brief",
+      "contenu": "Traduction du brief client, essais, formulation, simulation, gestion des versions, propriété intellectuelle et sélection matières.",
+      "acteurs_types": [
+        "Parfumeurs",
+        "Aromaticiens",
+        "R&D formulation",
+        "Data/innovation"
+      ],
+      "position_compte_etalon": "Cœur de métier.",
+      "ou_lesn_se_branche": "PLM/formulation, data platform, IA métier gouvernée, MLOps, intégration LIMS/ERP et contrôle d'accès aux formules.",
+      "qui_y_est_deja": [],
+      "src_ids": [
+        12,
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : ne pas proposer un POC IA ; proposer un cas de formulation avec droits d'accès, lineage, évaluation et retour contrôlé vers le référentiel."
+    },
+    {
+      "rang": 4,
+      "nom": "Réglementaire, qualité et documentation client",
+      "contenu": "Application des standards et règlements, screening substances, certificats, déclarations, dossiers clients et gestion des changements.",
+      "acteurs_types": [
+        "Affaires réglementaires",
+        "Qualité",
+        "R&D",
+        "Service client"
+      ],
+      "position_compte_etalon": "Fonction critique transversale.",
+      "ou_lesn_se_branche": "Moteur de règles, référentiels substance/matière/formule/usage, workflow, audit trail, génération documentaire et BI d'impact.",
+      "qui_y_est_deja": [],
+      "src_ids": [
+        4,
+        5,
+        6,
+        13,
+        17,
+        29
+      ],
+      "donc_commercialement": "DONC, commercialement : IFRA 52 fournit un angle universel à condition de parler impact portefeuille et capacité de screening, pas échéance inventée."
+    },
+    {
+      "rang": 5,
+      "nom": "Industrialisation, production et supply",
+      "contenu": "Passage de la formule validée à la fabrication, planification, production, contrôle qualité, stockage, expédition et continuité de service.",
+      "acteurs_types": [
+        "Production",
+        "Supply chain",
+        "Qualité",
+        "Maintenance industrielle"
+      ],
+      "position_compte_etalon": "Production industrielle de compositions et ingrédients.",
+      "ou_lesn_se_branche": "Intégration ERP–atelier, tests de performance et résilience, observabilité, DataOps industriel, automatisation des échanges et support applicatif.",
+      "qui_y_est_deja": [],
+      "src_ids": [
+        18,
+        19,
+        25
+      ],
+      "donc_commercialement": "DONC, commercialement : les capex récents rendent achetables les sujets de fiabilité, intégration et montée en cadence ; le cloud seul n'est pas un motif d'appel."
+    },
+    {
+      "rang": 6,
+      "nom": "Service client, incorporation et suivi aval",
+      "contenu": "Livraison du concentré ou de l'ingrédient, support technique, documentation, changements de formule et accompagnement du client lors de l'incorporation dans le produit fini.",
+      "acteurs_types": [
+        "Service client B2B",
+        "Applications",
+        "Qualité",
+        "Industriels aval"
+      ],
+      "position_compte_etalon": "Fournisseur B2B et support technique.",
+      "ou_lesn_se_branche": "Portails clients B2B, API/EDI, gestion documentaire, traçabilité des versions et workflow de changement.",
+      "qui_y_est_deja": [],
+      "src_ids": [
+        10,
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : l'enjeu est de rendre un changement réglementaire ou matière visible immédiatement jusqu'au bon client, au bon usage et au bon document."
+    }
+  ],
+  "fronts_technologiques": [
+    {
+      "nom": "Référentiel réglementaire et formula impact",
+      "etat": "Transition active : le besoin n'est plus seulement de stocker des formules, mais de relier règles, substances, matières, formules, usages et documents clients avec versioning et audit.",
+      "zone_de_transition": true,
+      "src_ids": [
+        5,
+        6,
+        13
+      ],
+      "donc_commercialement": "DONC, commercialement : IFRA 52 doit ouvrir un chantier de data model et workflow d'impact, pas une simple veille réglementaire."
+    },
+    {
+      "nom": "Automatisation industrielle et continuité OT/IT",
+      "etat": "Transition visible dans le bassin de Grasse à travers de nouveaux sites et capacités ; la valeur se déplace vers l'intégration, la fiabilité et la donnée de production.",
+      "zone_de_transition": true,
+      "src_ids": [
+        18,
+        19,
+        25
+      ],
+      "donc_commercialement": "DONC, commercialement : cibler les sites en ramp-up avec tests de résilience, observabilité et intégration plutôt qu'une transformation d'architecture générale."
+    },
+    {
+      "nom": "IA assistée pour formulation et création",
+      "etat": "Les leaders publient des usages IA et data avancés ; la zone de transition est l'industrialisation gouvernée, l'accès aux données sensibles et la preuve de valeur métier.",
+      "zone_de_transition": true,
+      "src_ids": [
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : positionner MLOps, gouvernance et sécurité comme conditions du cas d'usage formulation, pas comme couches techniques vendues séparément."
+    },
+    {
+      "nom": "Data supply chain et traçabilité fournisseur",
+      "etat": "Les grands groupes structurent sourcing responsable, Supplier Codes et portails ; la transition porte sur la continuité de la donnée entre fournisseur, matière, lot, formule et usage.",
+      "zone_de_transition": true,
+      "src_ids": [
+        20,
+        21,
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : vendre la réduction du temps de qualification et d'impact d'un changement fournisseur, pas un portail pour le portail."
+    },
+    {
+      "nom": "Plateformes groupe, intégration et rollout local",
+      "etat": "Les grands groupes exposent des plateformes achats/data communes ; les besoins locaux se déplacent vers intégration, extension, qualité des données, support et change.",
+      "zone_de_transition": true,
+      "src_ids": [
+        10,
+        12,
+        21,
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : sur une filiale, privilégier l'intégration et le rollout conforme au standard groupe plutôt que la proposition de remplacement."
+    }
+  ],
+  "dependances_critiques": [
+    {
+      "nom": "Disponibilité et variabilité des matières naturelles",
+      "criticite": "haute",
+      "situation": "Les ingrédients naturels imposent qualification, traçabilité, qualité et capacité de substitution.",
+      "risque": "Rupture ou variation matière provoquant reformulation, requalification et impact client.",
+      "prestation_ouverte": "Construire la traçabilité matière–fournisseur–lot–formule, les alertes d'impact et les workflows de second sourcing.",
+      "practice_kredo": "data-ai",
+      "src_ids": [
+        20,
+        21,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : partir du temps nécessaire pour identifier toutes les formules et clients impactés par une matière indisponible."
+    },
+    {
+      "nom": "Évolution des règles IFRA/REACH et exigences de conformité",
+      "criticite": "haute",
+      "situation": "Le portefeuille de formules doit absorber des évolutions de règles et produire une preuve documentaire cohérente.",
+      "risque": "Screening lent, erreurs de propagation, documents incohérents et reformulations tardives.",
+      "prestation_ouverte": "Data governance réglementaire, moteur de règles, workflow d'impact, BI de portefeuille et audit trail.",
+      "practice_kredo": "data-ai",
+      "src_ids": [
+        5,
+        6,
+        13
+      ],
+      "donc_commercialement": "DONC, commercialement : IFRA 52 est l'ouverture la plus universelle du segment pour une mission data gouvernée."
+    },
+    {
+      "nom": "Montée en cadence des nouveaux sites et équipements",
+      "criticite": "haute",
+      "situation": "Des investissements récents à Grasse augmentent la surface, l'automatisation et les capacités.",
+      "risque": "Interfaces fragiles, données de production incohérentes, incidents de performance ou dépendance à des opérations manuelles.",
+      "prestation_ouverte": "Tests de performance et résilience, intégration OT/IT, observabilité, SRE industriel et gouvernance des interfaces.",
+      "practice_kredo": "quality-engineering-testing",
+      "src_ids": [
+        18,
+        19,
+        25
+      ],
+      "donc_commercialement": "DONC, commercialement : vendre la fiabilité du ramp-up, avec une cible directeur industriel + SI + qualité."
+    },
+    {
+      "nom": "Propriété intellectuelle et accès aux formules",
+      "criticite": "haute",
+      "situation": "La formule est un actif métier sensible ; l'IA et les plateformes data augmentent le nombre de flux et de consommateurs potentiels.",
+      "risque": "Exposition d'informations propriétaires, accès excessifs, absence de traçabilité et difficulté à industrialiser l'IA.",
+      "prestation_ouverte": "Architecture de sécurité, IAM/PAM, gouvernance des accès, sécurisation des pipelines data/IA et DevSecOps.",
+      "practice_kredo": "cybersecurity",
+      "src_ids": [
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : rattacher la cybersécurité à la protection du patrimoine formulation, pas à un discours générique zero trust."
+    },
+    {
+      "nom": "Fragmentation laboratoire–qualité–ERP–client",
+      "criticite": "moyenne",
+      "situation": "Le cycle métier traverse plusieurs fonctions et systèmes, avec un risque de ressaisie ou de désynchronisation.",
+      "risque": "Temps de cycle, erreurs de version, réconciliation manuelle et difficulté à prouver l'impact d'un changement.",
+      "prestation_ouverte": "Architecture d'API, intégration applicative, workflow métier et modernisation ciblée des applications B2B.",
+      "practice_kredo": "digital-business-solutions",
+      "src_ids": [
+        10,
+        12,
+        22
+      ],
+      "donc_commercialement": "DONC, commercialement : identifier un flux transverse concret avant de proposer une refonte applicative."
+    },
+    {
+      "nom": "Dépendance aux standards et plateformes d'un groupe de contrôle",
+      "criticite": "moyenne",
+      "situation": "Dans une filiale, achats, data, cyber ou ERP peuvent relever d'une gouvernance centrale.",
+      "risque": "Proposition commerciale hors périmètre local, cycle de vente inutile ou solution non conforme au standard groupe.",
+      "prestation_ouverte": "Rollout, intégration, migration ciblée, PMO, change et qualité de données autour de la plateforme imposée.",
+      "practice_kredo": "project-agile-delivery",
+      "src_ids": [
+        10,
+        21,
+        22,
+        23
+      ],
+      "donc_commercialement": "DONC, commercialement : la première qualification doit porter sur le pouvoir de décision local et la frontière avec le groupe."
+    }
+  ],
+  "regulation": [
+    {
+      "reg_item_id": null,
+      "libelle": "IFRA Standards — 52e amendement en préparation",
+      "statut": "proposition",
+      "deadline_date": null,
+      "authority": "International Fragrance Association (IFRA)",
+      "source_url": "https://ifrafragrance.org/latest-updates/ifra-news/ifra-52nd-amendment-consultation-closed",
+      "commercial_angle": "La notification est attendue vers la fin novembre 2026 sans date exacte publiée. Le chantier SI consiste à être capable de calculer rapidement l'impact d'une restriction sur substances, matières, formules, usages et clients.",
+      "kredo_practice": "data-ai",
+      "portee": "macro"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "IFRA Standards — régime permanent des standards notifiés",
+      "statut": "acquis",
+      "deadline_date": null,
+      "authority": "International Fragrance Association (IFRA)",
+      "source_url": "https://ifrafragrance.org/initiatives-positions/safe-use-fragrance-science/ifra-standards",
+      "commercial_angle": "La valeur SI est dans le versioning des règles, le screening portefeuille, la gestion des exceptions et la traçabilité des reformulations.",
+      "kredo_practice": "data-ai",
+      "portee": "macro"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "REACH — enregistrement et gestion des substances chimiques",
+      "statut": "acquis",
+      "deadline_date": null,
+      "authority": "Union européenne / autorités compétentes REACH",
+      "source_url": "https://www.ecologie.gouv.fr/politiques-publiques/reglement-reach",
+      "commercial_angle": "Maintenir des référentiels substances cohérents, relier statuts et exigences aux matières et formules, et conserver une piste d'audit.",
+      "kredo_practice": "data-ai",
+      "portee": "macro"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "Règlement UE 2023/1545 — information sur les allergènes dans les produits cosmétiques",
+      "statut": "acquis",
+      "deadline_date": null,
+      "authority": "Union européenne",
+      "source_url": "https://eur-lex.europa.eu/advanced-search-form.html",
+      "commercial_angle": "Le besoin SI porte sur la propagation fiable de l'information allergène entre ingrédients, formules, usages et documentation destinée aux clients cosmétiques.",
+      "kredo_practice": "data-ai",
+      "portee": "segment"
+    },
+    {
+      "reg_item_id": null,
+      "libelle": "Cadre UE applicable aux arômes alimentaires",
+      "statut": "acquis",
+      "deadline_date": null,
+      "authority": "Commission européenne — DG SANTE",
+      "source_url": "https://food.ec.europa.eu/food-safety/food-improvement-agents/flavourings_en",
+      "commercial_angle": "Pour les activités arômes, maintenir la séparation de périmètre entre exigences fragrance et exigences alimentaires dans les référentiels, contrôles et documents clients.",
+      "kredo_practice": "data-ai",
+      "portee": "segment"
+    }
+  ],
+  "chronologie": [
+    {
+      "date": "2023",
+      "fait": "Publication du règlement UE 2023/1545 élargissant l'information sur les allergènes de parfum pour les produits cosmétiques.",
+      "portee": "macro",
+      "src_ids": [
+        4
+      ]
+    },
+    {
+      "date": "2025",
+      "fait": "Le rapport intégré Givaudan documente la poursuite de la digitalisation, des investissements et des enjeux ESG du groupe ; benchmark de leader, non proxy du segment français indépendant.",
+      "portee": "benchmark",
+      "src_ids": [
+        22
+      ]
+    },
+    {
+      "date": "2025",
+      "fait": "Le rapport annuel dsm-firmenich documente data governance, IA, transformation technologique et sourcing responsable ; benchmark concurrentiel de leader.",
+      "portee": "benchmark",
+      "src_ids": [
+        23
+      ]
+    },
+    {
+      "date": "2025",
+      "fait": "MANE publie un besoin de responsable BI, Analytics & Data Platform autour notamment de SAP BW/BO, Power BI, Fabric, Databricks, DataOps et gouvernance data.",
+      "portee": "compte/benchmark",
+      "src_ids": [
+        12
+      ]
+    },
+    {
+      "date": "2025-11-03",
+      "fait": "Payan Bertrand annonce un investissement industriel de 12 M€ à Grasse, signal de modernisation et montée en capacité.",
+      "portee": "segment",
+      "src_ids": [
+        18
+      ]
+    },
+    {
+      "date": "2025",
+      "fait": "Symrise/SFA NEROLI ouvre un nouvel écosystème fragrance à Grasse, renforçant création et capacités locales.",
+      "portee": "segment",
+      "src_ids": [
+        8,
+        25
+      ]
+    },
+    {
+      "date": "2026-06-12",
+      "fait": "Clôture de la consultation publique sur l'amendement 52 des IFRA Standards.",
+      "portee": "macro",
+      "src_ids": [
+        6
+      ]
+    }
+  ],
+  "risques_opportunites": [
+    {
+      "risque": "Changement réglementaire impossible à propager rapidement de la substance au portefeuille de formules et clients.",
+      "opportunite": "Data model réglementaire, moteur de règles, impact analysis, workflow et audit — offre data-ai-strategy-governance.",
+      "src_ids": [
+        5,
+        6,
+        13
+      ]
+    },
+    {
+      "risque": "Montée en cadence d'un site automatisé avec interfaces OT/IT insuffisamment éprouvées.",
+      "opportunite": "Tests de performance/résilience, observabilité et intégration — offre performance-reliability-resilience-testing.",
+      "src_ids": [
+        18,
+        19,
+        25
+      ]
+    },
+    {
+      "risque": "POC IA de formulation non industrialisable faute de données, droits d'accès, évaluation et gouvernance.",
+      "opportunite": "Industrialisation IA/MLOps adossée à data governance et sécurité — offre ai-machine-learning-mlops.",
+      "src_ids": [
+        22,
+        23
+      ]
+    },
+    {
+      "risque": "Substitution d'une matière ou changement fournisseur sans visibilité immédiate sur les lots, formules et clients touchés.",
+      "opportunite": "Data platform, lineage et workflows fournisseurs — offre data-platforms-engineering-dataops.",
+      "src_ids": [
+        20,
+        21,
+        23
+      ]
+    },
+    {
+      "risque": "Proposition IT locale incompatible avec les plateformes ou panels du groupe.",
+      "opportunite": "Intégration, rollout, change et coordination programme — offres software-architecture-apis-integration et project-program-management.",
+      "src_ids": [
+        10,
+        21,
+        22,
+        23
+      ]
+    },
+    {
+      "risque": "Patrimoine formulation exposé lors de l'ouverture à des usages data et IA.",
+      "opportunite": "IAM/PAM, sécurité des architectures et DevSecOps — offres iam-pam-zero-trust et security-architecture-cloud-security.",
+      "src_ids": [
+        22,
+        23
+      ]
+    },
+    {
+      "risque": "Fragmentation des données entre laboratoire, qualité, achats, production et service client.",
+      "opportunite": "Intégration API, applications métier B2B et automatisation des processus — offres software-architecture-apis-integration et business-analysis-digital-process-design.",
+      "src_ids": [
+        10,
+        12,
+        22
+      ]
+    }
+  ],
+  "pain_points": [
+    {
+      "libelle": "Montée en capacité industrielle et modernisation de sites visible publiquement.",
+      "frequency_count": 2,
+      "acteurs_nommes": [
+        "Payan Bertrand",
+        "SFA NEROLI / Symrise"
+      ],
+      "source_company_ids": [],
+      "src_ids": [
+        18,
+        25
+      ]
+    },
+    {
+      "libelle": "Parcours fournisseurs et sourcing responsable structurés publiquement.",
+      "frequency_count": 3,
+      "acteurs_nommes": [
+        "Givaudan",
+        "MANE",
+        "dsm-firmenich"
+      ],
+      "source_company_ids": [],
+      "src_ids": [
+        10,
+        20,
+        21
+      ]
+    },
+    {
+      "libelle": "Chantiers data / analytics / gouvernance explicitement observables dans les publications ou recrutements.",
+      "frequency_count": 3,
+      "acteurs_nommes": [
+        "MANE",
+        "Givaudan",
+        "dsm-firmenich"
+      ],
+      "source_company_ids": [],
+      "src_ids": [
+        12,
+        22,
+        23
+      ]
+    },
+    {
+      "libelle": "Usage de plateformes achats ou supplier hubs structurés, ce qui impose de qualifier la gouvernance centrale avant de vendre localement.",
+      "frequency_count": 2,
+      "acteurs_nommes": [
+        "Givaudan",
+        "dsm-firmenich"
+      ],
+      "source_company_ids": [],
+      "src_ids": [
+        10,
+        21
+      ]
+    }
+  ],
+  "playbook": {
+    "personas": [
+      {
+        "fonction": "DSI / responsable SI",
+        "repond_de": "Fiabilité du SI, intégrations, cybersécurité, données et capacité de delivery.",
+        "ce_qui_le_reveille": "Un ramp-up industriel qui dépend d'interfaces fragiles, ou un besoin réglementaire exigeant de rapprocher des données dispersées."
+      },
+      {
+        "fonction": "Direction industrielle / opérations",
+        "repond_de": "Capacité, qualité, disponibilité des équipements, productivité et montée en cadence.",
+        "ce_qui_le_reveille": "Un nouveau site ou équipement qui produit mais dont les flux de données, contrôles et interfaces ne sont pas encore robustes."
+      },
+      {
+        "fonction": "Affaires réglementaires / qualité",
+        "repond_de": "Conformité des formules, preuve documentaire, gestion des changements et réponses clients.",
+        "ce_qui_le_reveille": "Une notification IFRA ou une évolution substance qu'il faut propager rapidement au bon portefeuille sans erreur."
+      },
+      {
+        "fonction": "R&D / innovation / création",
+        "repond_de": "Vitesse de formulation, qualité de création, protection de la propriété intellectuelle et adoption des outils.",
+        "ce_qui_le_reveille": "Une IA séduisante mais non industrialisable faute de qualité de données, de contrôle d'accès ou d'intégration au processus de création."
+      },
+      {
+        "fonction": "Achats / supply chain",
+        "repond_de": "Disponibilité matière, performance fournisseurs, continuité, coût et sourcing responsable.",
+        "ce_qui_le_reveille": "Une matière indisponible, un fournisseur à requalifier ou une substitution dont l'impact aval n'est pas immédiatement visible."
+      }
+    ],
+    "objections": [
+      {
+        "objection": "« IFRA, c'est le métier du réglementaire, pas du SI. »",
+        "reponse": "« Justement : la règle n'est pas le sujet SI. Le sujet SI est le temps nécessaire pour relier la règle aux matières, formules, usages, clients et documents, puis tracer ce qui a été décidé. »"
+      },
+      {
+        "objection": "« Nous avons déjà un PLM / ERP groupe. »",
+        "reponse": "« L'objectif n'est pas de le remplacer. Il faut qualifier ce qui manque entre la plateforme groupe, le laboratoire, la qualité, le site et les workflows de changement locaux. »"
+      },
+      {
+        "objection": "« Nous avons déjà testé l'IA. »",
+        "reponse": "« Le sujet n'est plus le test. Le vrai seuil est l'industrialisation : données autorisées, propriété intellectuelle, évaluation, traçabilité et retour sécurisé vers la formulation. »"
+      },
+      {
+        "objection": "« Notre usine est déjà automatisée. »",
+        "reponse": "« L'automatisation n'est pas le point de départ ; ce qui nous intéresse est la fiabilité du chemin complet équipement–donnée–qualité–ERP pendant le ramp-up. »"
+      },
+      {
+        "objection": "« Les achats IT sont gérés par le groupe. »",
+        "reponse": "« Alors le premier travail est précisément de séparer ce qui relève du standard groupe de ce qui reste achetable localement : intégration, rollout, données, qualité, support ou change. »"
+      }
+    ],
+    "entry_points": [
+      {
+        "signal": "Notification IFRA 52 attendue vers la fin novembre 2026",
+        "interlocuteur": "Affaires réglementaires / qualité + R&D + DSI/data",
+        "angle": "Être capable de mesurer l'impact portefeuille dès la notification ; data-ai-strategy-governance.",
+        "src_ids": [
+          6
+        ]
+      },
+      {
+        "signal": "Nouveau site ou modernisation industrielle",
+        "interlocuteur": "Directeur industriel + DSI + qualité",
+        "angle": "Fiabilité OT/IT, observabilité, tests de résilience et montée en cadence ; performance-reliability-resilience-testing.",
+        "src_ids": [
+          18,
+          25
+        ]
+      },
+      {
+        "signal": "IA / data appliquée à la création",
+        "interlocuteur": "R&D/innovation + data + cyber",
+        "angle": "Industrialisation gouvernée et sécurisée ; ai-machine-learning-mlops.",
+        "src_ids": [
+          22,
+          23
+        ]
+      },
+      {
+        "signal": "Tension ou changement sur matières / fournisseurs",
+        "interlocuteur": "Achats-supply + réglementaire + data",
+        "angle": "Traçabilité matière–fournisseur–lot–formule et second sourcing ; data-platforms-engineering-dataops.",
+        "src_ids": [
+          20,
+          21
+        ]
+      },
+      {
+        "signal": "Filiale intégrée à un grand groupe",
+        "interlocuteur": "Opérations locales + DSI, puis gouvernance centrale",
+        "angle": "Intégration, rollout et change autour des plateformes imposées ; software-architecture-apis-integration.",
+        "src_ids": [
+          10,
+          21,
+          22
+        ]
+      }
+    ],
+    "roi_arguments": [
+      {
+        "argument": "IFRA indique que la notification de l'amendement 52 est attendue vers la fin novembre 2026 : la valeur d'un chantier data est donc de réduire le temps nécessaire pour passer d'une nouvelle règle à la liste des matières, formules, usages et clients impactés (source : IFRA, https://ifrafragrance.org/latest-updates/ifra-news/ifra-52nd-amendment-consultation-closed).",
+        "src_ids": [
+          6
+        ]
+      },
+      {
+        "argument": "Payan Bertrand a annoncé un investissement industriel de 12 M€ : sur un site qui monte en capacité, le ROI d'une prestation de qualité/résilience se mesure d'abord en prévention des incidents d'interface et de montée en cadence, pas en économies cloud abstraites (source : Premium Beauty News, https://www.premiumbeautynews.com/en/payan-bertrand-invests-12-million%2C26601).",
+        "src_ids": [
+          18
+        ]
+      },
+      {
+        "argument": "Le recrutement MANE pour la BI, l'analytics et la data platform cite SAP BW/BO, Power BI, Fabric, Databricks, DataOps et gouvernance data : cela justifie un discours de consolidation et industrialisation du patrimoine data plutôt qu'un pitch « data lake » générique (source : MANE, https://hrs.emea.mane.com/job/job-responsable-bi-analytics-data-platform-h-f_1852.aspx).",
+        "src_ids": [
+          12
+        ]
+      },
+      {
+        "argument": "Givaudan et dsm-firmenich publient des parcours fournisseurs et environnements de sourcing structurés : sur une organisation de groupe, le ROI commercial d'une ESN commence par éviter un projet hors périmètre local et cibler intégration, rollout ou données là où l'autonomie existe réellement (sources : Givaudan Supplier Hub, https://supplier.givaudan.com/ ; dsm-firmenich Suppliers, https://www.dsm-firmenich.com/suppliers).",
+        "src_ids": [
+          10,
+          21
+        ]
+      }
+    ],
+    "market_thesis": [
+      {
+        "id": 1,
+        "these": "La valeur commerciale du segment vient moins d'un TAM agrégé que de sa complexité opérationnelle : matières naturelles, formulation sur mesure, contraintes réglementaires et multiplicité des usages imposent une maîtrise continue du lien matière–formule–usage–client.",
+        "src_ids": [
+          7,
+          13,
+          17,
+          20,
+          21
+        ],
+        "donc_commercialement": "DONC, commercialement : ouvrir sur la maîtrise matière–formule–client, la traçabilité et la capacité de changement plutôt que sur une transformation digitale générique."
+      },
+      {
+        "id": 2,
+        "these": "Le bassin de Grasse traverse une vague visible d'investissements industriels et de montée en capacité, attestée notamment par Payan Bertrand et SFA NEROLI/Symrise, ce qui déplace le besoin vers l'intégration OT/IT, la qualité des données de production et la résilience avant ramp-up.",
+        "src_ids": [
+          8,
+          18,
+          19,
+          25
+        ],
+        "donc_commercialement": "DONC, commercialement : un site en construction ou en montée en cadence mérite une priorité supérieure à un site stabilisé ; l'ouverture se fait avec le directeur industriel, la qualité et le SI."
+      },
+      {
+        "id": 3,
+        "these": "IFRA 52 doit être traité comme un événement de données futur : la consultation est close et la notification est attendue vers la fin novembre 2026, mais aucune date exacte de notification ni aucune date de conformité propre à l'amendement 52 n'est publiée au snapshot.",
+        "src_ids": [
+          6
+        ],
+        "donc_commercialement": "DONC, commercialement : la question utile est « serez-vous capables de mesurer l'impact sur vos matières, formules, usages et clients dès la notification ? », jamais « êtes-vous prêts pour le 30 novembre ? »."
+      },
+      {
+        "id": 4,
+        "these": "Chez les leaders, la transformation data et IA touche déjà la création, la formulation, la gouvernance de données et les opérations ; cela invalide le pitch POC IA générique et remet au premier plan la qualité des données, les droits d'accès, la propriété intellectuelle et l'industrialisation.",
+        "src_ids": [
+          12,
+          22,
+          23,
+          24
+        ],
+        "donc_commercialement": "DONC, commercialement : vendre un cas d'usage métier borné avec gouvernance, sécurité et MLOps, pas une démonstration d'IA détachée du patrimoine formulation."
+      },
+      {
+        "id": 5,
+        "these": "Une « maison de composition » ne correspond pas à un modèle d'achat unique : les grands groupes publient des parcours fournisseurs et plateformes centrales structurés, alors que les maisons indépendantes exposent beaucoup moins leurs mécanismes d'achat IT.",
+        "src_ids": [
+          10,
+          16,
+          20,
+          21,
+          22
+        ],
+        "donc_commercialement": "DONC, commercialement : qualifier dès le premier échange la frontière entre autonomie locale, siège, panel, plateforme centrale et budget de site ; ne jamais supposer qu'un modèle d'achat de groupe vaut pour une maison indépendante."
+      }
+    ],
+    "economic_models": [
+      {
+        "nom": "Composition sur brief et co-développement",
+        "implication_achat_prestation": "Les prestations SI se vendent autour du time-to-brief, de la gestion des formules, du workflow d'approbation, de la traçabilité et de l'intégration laboratoire–qualité–ERP.",
+        "src_ids": [
+          7,
+          22,
+          23
+        ]
+      },
+      {
+        "nom": "Fourniture récurrente de compositions industrialisées",
+        "implication_achat_prestation": "Le besoin SI se concentre sur prévision, disponibilité, qualité, gestion des changements, EDI/API, visibilité supply et continuité opérationnelle.",
+        "src_ids": [
+          20,
+          21,
+          22
+        ]
+      },
+      {
+        "nom": "Ingrédients naturels, extraits et matières à variabilité forte",
+        "implication_achat_prestation": "Les budgets s'ouvrent sur data lineage matière–fournisseur–lot, scoring fournisseur, portails, qualité, alerting, second sourcing et gouvernance des référentiels.",
+        "src_ids": [
+          20,
+          21,
+          23
+        ]
+      },
+      {
+        "nom": "Arômes et ingrédients pour agroalimentaire",
+        "implication_achat_prestation": "Les prestations portent sur référentiels réglementaires, formulation, qualité des données, documentation client et automatisation des contrôles.",
+        "src_ids": [
+          17,
+          29
+        ]
+      },
+      {
+        "nom": "Filiale locale d'un groupe à plateformes centrales",
+        "implication_achat_prestation": "Une ESN doit d'abord qualifier le périmètre d'autonomie. Le bon achat peut être une intégration, un rollout, un renfort delivery ou un chantier data local plutôt qu'un remplacement de plateforme.",
+        "src_ids": [
+          10,
+          21,
+          22,
+          23
+        ]
+      }
+    ],
+    "tech_fronts": [
+      {
+        "nom": "Référentiel réglementaire et formula impact",
+        "etat": "Transition active : le besoin n'est plus seulement de stocker des formules, mais de relier règles, substances, matières, formules, usages et documents clients avec versioning et audit.",
+        "zone_de_transition": true,
+        "src_ids": [
+          5,
+          6,
+          13
+        ]
+      },
+      {
+        "nom": "Automatisation industrielle et continuité OT/IT",
+        "etat": "Transition visible dans le bassin de Grasse à travers de nouveaux sites et capacités ; la valeur se déplace vers l'intégration, la fiabilité et la donnée de production.",
+        "zone_de_transition": true,
+        "src_ids": [
+          18,
+          19,
+          25
+        ]
+      },
+      {
+        "nom": "IA assistée pour formulation et création",
+        "etat": "Les leaders publient des usages IA et data avancés ; la zone de transition est l'industrialisation gouvernée, l'accès aux données sensibles et la preuve de valeur métier.",
+        "zone_de_transition": true,
+        "src_ids": [
+          22,
+          23
+        ]
+      },
+      {
+        "nom": "Data supply chain et traçabilité fournisseur",
+        "etat": "Les grands groupes structurent sourcing responsable, Supplier Codes et portails ; la transition porte sur la continuité de la donnée entre fournisseur, matière, lot, formule et usage.",
+        "zone_de_transition": true,
+        "src_ids": [
+          20,
+          21,
+          22,
+          23
+        ]
+      },
+      {
+        "nom": "Plateformes groupe, intégration et rollout local",
+        "etat": "Les grands groupes exposent des plateformes achats/data communes ; les besoins locaux se déplacent vers intégration, extension, qualité des données, support et change.",
+        "zone_de_transition": true,
+        "src_ids": [
+          10,
+          12,
+          21,
+          22,
+          23
+        ]
+      }
+    ],
+    "risks": [
+      {
+        "risque": "Changement réglementaire impossible à propager rapidement de la substance au portefeuille de formules et clients.",
+        "opportunite": "Data model réglementaire, moteur de règles, impact analysis, workflow et audit — offre data-ai-strategy-governance.",
+        "src_ids": [
+          5,
+          6,
+          13
+        ]
+      },
+      {
+        "risque": "Montée en cadence d'un site automatisé avec interfaces OT/IT insuffisamment éprouvées.",
+        "opportunite": "Tests de performance/résilience, observabilité et intégration — offre performance-reliability-resilience-testing.",
+        "src_ids": [
+          18,
+          19,
+          25
+        ]
+      },
+      {
+        "risque": "POC IA de formulation non industrialisable faute de données, droits d'accès, évaluation et gouvernance.",
+        "opportunite": "Industrialisation IA/MLOps adossée à data governance et sécurité — offre ai-machine-learning-mlops.",
+        "src_ids": [
+          22,
+          23
+        ]
+      },
+      {
+        "risque": "Substitution d'une matière ou changement fournisseur sans visibilité immédiate sur les lots, formules et clients touchés.",
+        "opportunite": "Data platform, lineage et workflows fournisseurs — offre data-platforms-engineering-dataops.",
+        "src_ids": [
+          20,
+          21,
+          23
+        ]
+      },
+      {
+        "risque": "Proposition IT locale incompatible avec les plateformes ou panels du groupe.",
+        "opportunite": "Intégration, rollout, change et coordination programme — offres software-architecture-apis-integration et project-program-management.",
+        "src_ids": [
+          10,
+          21,
+          22,
+          23
+        ]
+      },
+      {
+        "risque": "Patrimoine formulation exposé lors de l'ouverture à des usages data et IA.",
+        "opportunite": "IAM/PAM, sécurité des architectures et DevSecOps — offres iam-pam-zero-trust et security-architecture-cloud-security.",
+        "src_ids": [
+          22,
+          23
+        ]
+      },
+      {
+        "risque": "Fragmentation des données entre laboratoire, qualité, achats, production et service client.",
+        "opportunite": "Intégration API, applications métier B2B et automatisation des processus — offres software-architecture-apis-integration et business-analysis-digital-process-design.",
+        "src_ids": [
+          10,
+          12,
+          22
+        ]
+      }
+    ]
+  },
+  "budgets_18_36_mois": [
+    {
+      "trajectoire": "La notification IFRA 52 ouvre une vague de screening et de reformulation à absorber sans ralentir les briefs ni dégrader la preuve documentaire.",
+      "famille_de_budget": "Regulatory data & formula impact : référentiels, data lineage, moteur de règles, workflow, BI et audit.",
+      "offer_slug": "data-ai-strategy-governance"
+    },
+    {
+      "trajectoire": "Les capacités industrielles du bassin de Grasse continuent à monter avec davantage d'automatisation et de dépendance aux interfaces.",
+      "famille_de_budget": "Industrial digital backbone : tests de performance/résilience, OT/IT, observabilité et qualité des interfaces.",
+      "offer_slug": "performance-reliability-resilience-testing"
+    },
+    {
+      "trajectoire": "L'IA de création passe du benchmark de leader à des cas d'usage industrialisés et gouvernés.",
+      "famille_de_budget": "IA gouvernée pour la création : MLOps, évaluation, gouvernance data, sécurité et intégration au workflow formulation.",
+      "offer_slug": "ai-machine-learning-mlops"
+    },
+    {
+      "trajectoire": "La pression sur sourcing, responsabilité et substitutions matières augmente la valeur d'une traçabilité bout en bout.",
+      "famille_de_budget": "Supplier & traceability data : plateforme données fournisseurs, lineage matière-lot-formule, portails et alertes.",
+      "offer_slug": "data-platforms-engineering-dataops"
+    },
+    {
+      "trajectoire": "Les filiales et maisons rachetées doivent s'intégrer davantage aux plateformes et standards groupe sans perdre leur efficacité locale.",
+      "famille_de_budget": "Intégration et rollout : API, synchronisation, migration ciblée, change et coordination de programme.",
+      "offer_slug": "software-architecture-apis-integration"
+    }
+  ],
+  "trous": [
+    {
+      "rubrique": "Taille exacte du segment France",
+      "motif": "Les statistiques et fédérations consultées ne publient pas un agrégat parfaitement superposable au périmètre E4.",
+      "recherche_effectuee": "Croisement PRODAROM, Insee et Eurostat ; aucun chiffre n'a été promu en TAM faute de périmètre strictement comparable."
+    },
+    {
+      "rubrique": "Panels fournisseurs IT et ESN déjà en place",
+      "motif": "Les maisons indépendantes du bassin de Grasse publient peu leurs panels et prestataires IT.",
+      "recherche_effectuee": "Consultation des supplier hubs publics de grands groupes et des sources sectorielles ; aucun prestataire n'a été extrapolé vers les indépendants."
+    },
+    {
+      "rubrique": "Budgets IT par maison",
+      "motif": "Aucune source publique robuste n'isole les enveloppes IT des maisons ciblées.",
+      "recherche_effectuee": "Rapports, presse et recrutements ont été utilisés pour observer des chantiers, jamais pour reconstituer un budget IT."
+    },
+    {
+      "rubrique": "Taux d'adoption IA des maisons ciblées",
+      "motif": "Les preuves disponibles concernent surtout des leaders internationaux ou des recrutements ponctuels.",
+      "recherche_effectuee": "Les cas Givaudan, dsm-firmenich et MANE sont conservés comme benchmarks ; aucun taux local n'est calculé."
+    },
+    {
+      "rubrique": "Contrats clients privés",
+      "motif": "Il n'existe pas de registre public exhaustif des relations commerciales privées du segment.",
+      "recherche_effectuee": "BOAMP/TED et presse ont été examinés comme signaux ; aucune relation non publiée n'a été reconstituée."
+    }
+  ],
+  "sources": [
+    {
+      "src_id": 1,
+      "publisher": "Institut national de la propriété industrielle (INPI)",
+      "url": "https://data.inpi.fr/content/editorial/Acces_API_Entreprises",
+      "tier": 1,
+      "atteste": "Identité légale, actes/statuts et comptes annuels non confidentiels ; créations, modifications et cessations.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 2,
+      "publisher": "Direction de l'information légale et administrative (DILA)",
+      "url": "https://www.data.gouv.fr/dataservices/api-bulletin-officiel-des-annonces-civiles-et-commerciales-bodacc",
+      "tier": 1,
+      "atteste": "Annonces légales, cessions, modifications, radiations, procédures collectives et dépôts de comptes.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 3,
+      "publisher": "Ministère de la Transition écologique / Géorisques",
+      "url": "https://www.georisques.gouv.fr/doc-api?urls.primaryName=Api+de+G%C3%A9orisques+V2",
+      "tier": 1,
+      "atteste": "Existence et statut d'installations ICPE, implantations industrielles et événements administratifs.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 4,
+      "publisher": "Office des publications de l'Union européenne",
+      "url": "https://eur-lex.europa.eu/advanced-search-form.html",
+      "tier": 1,
+      "atteste": "Textes juridiquement opposables de l'Union européenne et amendements.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 5,
+      "publisher": "European Chemicals Agency (ECHA)",
+      "url": "https://echa.europa.eu/en/information-on-chemicals",
+      "tier": 1,
+      "atteste": "Statuts REACH/CLP, enregistrements, classifications et processus réglementaires.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 6,
+      "publisher": "International Fragrance Association (IFRA)",
+      "url": "https://ifrafragrance.org/latest-updates/ifra-news/ifra-52nd-amendment-consultation-closed",
+      "tier": 3,
+      "atteste": "Amendement 52 : consultation close et notification attendue vers la fin novembre 2026, sans date exacte publiée.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 7,
+      "publisher": "Syndicat National des Fabricants de Produits Aromatiques (PRODAROM)",
+      "url": "https://www.prodarom.com/nos-adherents/",
+      "tier": 3,
+      "atteste": "Longlist sectorielle française d'adhérents en extraits, ingrédients, bases et compositions parfumantes.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 8,
+      "publisher": "Allured Business Media / Perfumer & Flavorist",
+      "url": "https://www.perfumerflavorist.com/news/fragrance/news/22944774/symrise-usa-sfa-neroli-opens-new-fragrance-campus-in-grasse-france",
+      "tier": 3,
+      "atteste": "Investissements et capacités dans le secteur fragrance, notamment le nouveau campus SFA NEROLI/Symrise à Grasse.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 9,
+      "publisher": "Institut national de la statistique et des études économiques (Insee)",
+      "url": "https://www.insee.fr/fr/statistiques/serie/010771673",
+      "tier": 1,
+      "atteste": "Trajectoire macro de la fabrication de parfums et produits de toilette en France ; contexte seulement, non assimilé au segment E4.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 10,
+      "publisher": "Givaudan",
+      "url": "https://supplier.givaudan.com/",
+      "tier": 2,
+      "atteste": "Parcours fournisseurs, environnement Ariba et workflow achats indirects/services déclaré par Givaudan.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 11,
+      "publisher": "Direction de l'information légale et administrative (DILA)",
+      "url": "https://www.boamp.fr/",
+      "tier": 1,
+      "atteste": "Avis de marchés publics et attributions françaises ; canal marginal pour ce segment essentiellement privé.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 12,
+      "publisher": "V. MANE FILS / MANE",
+      "url": "https://hrs.emea.mane.com/job/job-responsable-bi-analytics-data-platform-h-f_1852.aspx",
+      "tier": 2,
+      "atteste": "Besoins SI et compétences déclarées : SAP BW/BO, Power BI, Fabric, Databricks, DataOps et gouvernance data.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 13,
+      "publisher": "Ministère de la Transition écologique",
+      "url": "https://www.ecologie.gouv.fr/politiques-publiques/reglement-reach",
+      "tier": 1,
+      "atteste": "Cadre officiel français REACH, autorités compétentes, contrôles et helpdesk.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 14,
+      "publisher": "Eurostat",
+      "url": "https://ec.europa.eu/eurostat/web/prodcom",
+      "tier": 1,
+      "atteste": "Production manufacturière par catégories de produits en Europe ; contexte macro, sans équivalence automatique avec le segment.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 15,
+      "publisher": "Institut national de la statistique et des études économiques (Insee)",
+      "url": "https://www.insee.fr/fr/information/3591226",
+      "tier": 1,
+      "atteste": "Unités légales et établissements, localisation, activité, catégories juridiques et tranches d'effectif.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 16,
+      "publisher": "Grasse Expertise",
+      "url": "https://grasse-expertise.com/en/members-presentation/",
+      "tier": 3,
+      "atteste": "Écosystème local de Grasse : maisons, sous-traitants et fournisseurs.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 17,
+      "publisher": "Commission européenne — DG SANTE",
+      "url": "https://food.ec.europa.eu/food-safety/food-improvement-agents/flavourings_en",
+      "tier": 1,
+      "atteste": "Règles de l'Union européenne sur les arômes alimentaires et renvois vers l'EFSA.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 18,
+      "publisher": "Premium Beauty Media",
+      "url": "https://www.premiumbeautynews.com/en/payan-bertrand-invests-12-million%2C26601",
+      "tier": 3,
+      "atteste": "Investissement industriel de Payan Bertrand et montée en capacité dans le bassin de Grasse.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 19,
+      "publisher": "Le Journal des Entreprises",
+      "url": "https://www.lejournaldesentreprises.com/breve/cosmo-international-fragrances-construit-une-usine-grasse-2115987",
+      "tier": 3,
+      "atteste": "Investissements, implantations et recrutements d'acteurs fragrance à Grasse.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 20,
+      "publisher": "MANE",
+      "url": "https://www.mane.com/sustainability/policies",
+      "tier": 2,
+      "atteste": "Politiques fournisseurs, achats responsables et exigences déclarées de chaîne d'approvisionnement.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 21,
+      "publisher": "dsm-firmenich",
+      "url": "https://www.dsm-firmenich.com/suppliers",
+      "tier": 2,
+      "atteste": "Supplier Code, sourcing responsable, conditions générales et environnement SAP Ariba déclarés.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 22,
+      "publisher": "Givaudan",
+      "url": "https://integratedreport.givaudan.com/",
+      "tier": 2,
+      "atteste": "Performance publiée, stratégie, digitalisation, ESG et investissements du groupe ; benchmark, pas proxy des maisons indépendantes.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 23,
+      "publisher": "dsm-firmenich",
+      "url": "https://annualreport.dsm-firmenich.com/2025/",
+      "tier": 2,
+      "atteste": "Performance, CAPEX, data governance, IA, transformation technologique et sourcing responsable du groupe.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 24,
+      "publisher": "Givaudan",
+      "url": "https://careers.givaudan.com/gb/en/contact-us",
+      "tier": 2,
+      "atteste": "Recrutements, compétences et priorités technologiques/opérationnelles déclarées.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 25,
+      "publisher": "Symrise",
+      "url": "https://www.symrise.com/newsroom/article/symrise-subsidiary-sfa-neroli-opens-a-new-fragrance-ecosystem-in-grasse/",
+      "tier": 2,
+      "atteste": "Nouveau campus fragrance SFA NEROLI à Grasse, capacités et investissement déclarés par Symrise.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 26,
+      "publisher": "France Travail",
+      "url": "https://www.francetravail.fr/",
+      "tier": 3,
+      "atteste": "Demande de compétences et tensions de recrutement du bassin de Grasse ; absence de gisement SI sectoriel local dans le socle E2.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 27,
+      "publisher": "Office des publications de l'Union européenne",
+      "url": "https://ted.europa.eu/en/about-ted",
+      "tier": 1,
+      "atteste": "Avis de marchés publics européens et fonctions de recherche/alertes ; usage marginal sur un segment privé.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 28,
+      "publisher": "État — Annuaire des Entreprises (data.gouv.fr)",
+      "url": "https://recherche-entreprises.api.gouv.fr/search?q=exemple",
+      "tier": 1,
+      "atteste": "Identité légale et existence des sociétés françaises ; source du socle déterministe, non réutilisée pour produire des champs interdits.",
+      "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 29,
+      "publisher": "European Food Safety Authority (EFSA)",
+      "url": "https://www.efsa.europa.eu/en/topics/topic/flavourings",
+      "tier": 1,
+      "atteste": "Évaluation du risque et ressources relatives aux arômes alimentaires.",
+      "consulted_at": "2026-08-14"
+    }
+  ],
+  "compteurs": {
+    "theses": 5,
+    "incertitudes": 3,
+    "blocs_clients": 4,
+    "modeles_economiques": 5,
+    "maillons": 6,
+    "fronts_technologiques": 5,
+    "dependances_critiques": 6,
+    "regulation": 5,
+    "chronologie": 7,
+    "risques_opportunites": 7,
+    "pain_points": 4,
+    "budgets_18_36_mois": 5,
+    "playbook_personas": 5,
+    "playbook_objections": 5,
+    "playbook_entry_points": 5,
+    "playbook_roi_arguments": 4,
+    "sources": 29,
+    "trous": 5
+  }
+}

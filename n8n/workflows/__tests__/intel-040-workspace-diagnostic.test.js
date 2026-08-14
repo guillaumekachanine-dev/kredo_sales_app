@@ -42,6 +42,10 @@ async function runCodeNode(name, registry, input) {
   const sandbox = {
     $input: { first: () => ({ json: input ?? registry.__input ?? {} }) },
     $: (nodeName) => ({ item: { json: registry[nodeName] } }),
+    // `Prepare Callback` et `Prepare Failure Callback` lisent $execution.id et
+    // $workflow.id pour tracer le run côté KREDO (lien « Ouvrir dans n8n »).
+    $execution: { id: "exec-040" },
+    $workflow: { id: "wf-040" },
     console,
     Date,
     Intl,
