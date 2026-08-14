@@ -342,10 +342,12 @@ export type WatchedAccountSignal = {
   urgencyScore: number
   confidenceScore: number
   detectedAt: string
+  publishedAt?: string
   status: string
   category: string
   type: string
   recommendedAction: string | null
+  analysis?: string | null
   recommendedPracticeId: string | null
   companyId: string
   company: {
@@ -405,10 +407,12 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
         urgency_score,
         confidence_score,
         detected_at,
+        event_at,
         status,
         signal_category,
         signal_type,
         recommended_action,
+        score_justification,
         recommended_practice_id,
         company_id,
         companies(id, name, website, meta_logo_path),
@@ -439,10 +443,12 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
         urgencyScore: row.urgency_score ?? 0,
         confidenceScore: row.confidence_score ?? 0,
         detectedAt: row.detected_at,
+        publishedAt: row.event_at ?? row.detected_at,
         status: row.status,
         category: row.signal_category,
         type: row.signal_type,
         recommendedAction: row.recommended_action,
+        analysis: row.score_justification,
         recommendedPracticeId: row.recommended_practice_id,
         companyId: row.company_id,
         company: companyRow ? {

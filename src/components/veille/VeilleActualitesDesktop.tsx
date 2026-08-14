@@ -376,7 +376,7 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
   const { company, signals: accountSignals } = activeGroup
 
   return (
-    <div className="grid grid-cols-[20rem_minmax(0,1fr)] border border-border bg-surface min-h-[38rem]">
+    <div className="grid grid-cols-[17rem_minmax(0,1fr)] border border-border bg-surface min-h-[38rem]">
       {/* Colonne de gauche : Comptes suivis */}
       <section className="border-r border-border bg-edito-canvas/50 p-3.5">
         <SectionHeading>Comptes suivis ({groupedAccounts.length})</SectionHeading>
@@ -429,7 +429,7 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
       </section>
 
       {/* Colonne de droite : Page de veille dédiée au compte avec tous ses signaux */}
-      <div className="paper-sheet px-8 py-8 lg:px-12 veille-scrollbar overflow-y-auto max-h-[calc(100dvh-13rem)]">
+      <div className="paper-sheet px-6 py-7 lg:px-8 veille-scrollbar overflow-y-auto max-h-[calc(100dvh-13rem)]">
         {/* Entête du compte sélectionné */}
         <header className="flex flex-wrap items-center justify-between gap-5 border-b border-border pb-6">
           <div className="flex items-center gap-4">
@@ -462,6 +462,8 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
               key={company.id}
               companyId={company.id}
               companyName={company.name}
+              companyLogoPath={company.logoPath}
+              companyWebsite={company.website}
               onFeedback={(message, tone) => setFeedback({ message, tone })}
             />
             <Link
@@ -491,79 +493,31 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
         ) : null}
 
         {/* Section présentant l'ensemble des signaux du compte */}
-        <section className="mt-8 space-y-6">
+        <section className="mt-6 space-y-4">
           <SectionHeading>
             Signaux du compte ({accountSignals.length})
           </SectionHeading>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {accountSignals.map((signal) => (
-              <article key={signal.id} className="border border-border bg-surface p-6 shadow-2xs">
-                <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
-                  <div>
-                    <span className="inline-block border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                      {signal.category} · {signal.type}
-                    </span>
-                    <p className="mt-1.5 text-[11px] text-muted">
-                      Détecté le {formatDateFr(signal.detectedAt)}
-                    </p>
-                  </div>
-                </div>
-
-                <h3 className="mt-4 font-heading text-xl font-bold leading-tight text-heading">
-                  {signal.title}
-                </h3>
-
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-body">
-                  {signal.summary || "Aucune synthèse disponible."}
-                </p>
-
-                {signal.recommendedAction ? (
-                  <div className="mt-5 border-l-3 border-brand-brass bg-edito-canvas/60 p-4">
-                    <h4 className="text-xs font-bold text-heading">Action recommandée</h4>
-                    <p className="mt-1 text-xs leading-relaxed text-body">
-                      {signal.recommendedAction}
-                    </p>
-                  </div>
-                ) : null}
-
-                <dl className="mt-5 grid grid-cols-3 divide-x divide-border border-y border-border py-3 text-center">
-                  <div>
-                    <dt className="text-[9px] font-bold uppercase tracking-wider text-muted">Score global</dt>
-                    <dd className="mt-1 text-base font-bold text-heading">{Math.round(signal.globalScore * 100)}%</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[9px] font-bold uppercase tracking-wider text-muted">Urgence</dt>
-                    <dd className="mt-1 text-base font-bold text-heading">{Math.round(signal.urgencyScore * 100)}%</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[9px] font-bold uppercase tracking-wider text-muted">Confiance</dt>
-                    <dd className="mt-1 text-base font-bold text-heading">{Math.round(signal.confidenceScore * 100)}%</dd>
-                  </div>
-                </dl>
-
-                <footer className="mt-5 flex flex-wrap items-center gap-3 pt-1">
-                  {signal.primarySource?.source_url ? (
-                    <a
-                      href={signal.primarySource.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-bold text-primary hover:underline"
-                    >
-                      Ouvrir la source <span className="sr-only">(nouvel onglet)</span>
-                    </a>
-                  ) : null}
-                </footer>
-
-                <div className="mt-4 border-t border-border pt-4">
-                  <AccountSignalDesktopActions
-                    signalId={signal.id}
-                    companyId={signal.company.id}
-                    companyName={signal.company.name}
-                    onDismiss={(signalId) => setDismissedSignalIds((current) => new Set(current).add(signalId))}
-                  />
-                </div>
-              </article>
+              <AccountSignalDesktopActions
+                key={signal.id}
+                signalId={signal.id}
+                companyId={signal.company.id}
+                companyName={signal.company.name}
+                category={signal.category}
+                title={signal.title}
+                publishedAt={formatDateFr(signal.publishedAt ?? signal.detectedAt)}
+                sourceName={signal.primarySource?.source_name ?? "Source non renseignée"}
+                sourceUrl={signal.primarySource?.source_url ?? null}
+                summary={signal.summary}
+                analysis={signal.analysis ?? null}
+                recommendedAction={signal.recommendedAction}
+                globalScore={signal.globalScore}
+                urgencyScore={signal.urgencyScore}
+                confidenceScore={signal.confidenceScore}
+                onDismiss={(signalId) => setDismissedSignalIds((current) => new Set(current).add(signalId))}
+              />
             ))}
           </div>
         </section>

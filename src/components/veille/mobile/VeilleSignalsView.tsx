@@ -150,6 +150,8 @@ export function VeilleSignalsView({
                 key={openGroup.companyId}
                 companyId={openGroup.companyId}
                 companyName={openGroup.companyName}
+                companyLogoPath={openGroup.logoPath}
+                companyWebsite={openGroup.website}
                 onFeedback={(message, tone) => {
                   setUpdateFeedback({ message, tone })
                   onFeedback?.(message)

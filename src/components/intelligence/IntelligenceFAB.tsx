@@ -875,6 +875,8 @@ export function IntelligenceFAB() {
             onOpenChange={setWatchSettingsOpen}
             companyId={panelData.company.id}
             companyName={panelData.company.name}
+            companyLogoPath={panelData.company.logoPath}
+            companyWebsite={panelData.company.website}
             onBack={() => {
               setWatchSettingsOpen(false)
               window.setTimeout(() => setInformationOpen(true), 180)

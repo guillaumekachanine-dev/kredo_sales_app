@@ -26,6 +26,7 @@ export interface AppDialogProps {
   onOpenChange: (open: boolean) => void
   title: React.ReactNode
   headerLeading?: React.ReactNode
+  headerCenter?: React.ReactNode
   description?: string
   children: React.ReactNode
   footer?: React.ReactNode
@@ -49,6 +50,7 @@ export function AppDialog({
   onOpenChange,
   title,
   headerLeading,
+  headerCenter,
   description,
   children,
   footer,
@@ -163,13 +165,18 @@ export function AppDialog({
         <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4", (hasAside || fillHeight) && "h-full", hasAside && "p-4 sm:p-6")}>
           {/* Header */}
           <div className={cn("min-w-0 shrink-0 flex flex-col gap-1.5", headerClassName)}>
-            <div className="flex items-center justify-between">
+            <div className="relative flex items-center justify-between">
               {headerLeading ? (
                 <div className="min-w-0">
                   {headerLeading}
                   <div className="sr-only">{titleContent}</div>
                 </div>
               ) : titleContent}
+              {headerCenter ? (
+                <div className="pointer-events-none absolute inset-x-10 top-1/2 flex -translate-y-1/2 justify-center">
+                  <div className="pointer-events-auto">{headerCenter}</div>
+                </div>
+              ) : null}
               <button
                 ref={closeButtonRef}
                 type="button"

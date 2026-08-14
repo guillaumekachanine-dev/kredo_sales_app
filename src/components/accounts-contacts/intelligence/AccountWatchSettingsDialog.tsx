@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import {
@@ -24,6 +25,8 @@ type AccountWatchSettingsDialogProps = {
   onOpenChange: (open: boolean) => void
   companyId: string
   companyName: string
+  companyLogoPath?: string | null
+  companyWebsite?: string | null
   onBack: () => void
   onReturnToCockpit: () => void
 }
@@ -120,7 +123,7 @@ function CompactDialogShell({ open, onOpenChange, title, children }: { open: boo
   )
 }
 
-export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, companyName, onBack, onReturnToCockpit }: AccountWatchSettingsDialogProps) {
+export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, companyName, companyLogoPath, companyWebsite, onBack, onReturnToCockpit }: AccountWatchSettingsDialogProps) {
   const [stepIndex, setStepIndex] = useState(0)
   const [settings, setSettings] = useState<AccountWatchDetailedSettings>(DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS)
   const [aliases, setAliases] = useState("")
@@ -242,26 +245,29 @@ export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, comp
         open={open}
         onOpenChange={onOpenChange}
         title={`Paramétrer la veille · ${companyName}`}
-        headerLeading={<button type="button" onClick={onReturnToCockpit} className="inline-flex min-h-9 items-center gap-2 text-xs font-bold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"><Triangle direction="left" />Retour</button>}
+        headerLeading={<button type="button" onClick={onReturnToCockpit} className="inline-flex min-h-8 items-center gap-2 text-xs font-bold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"><Triangle direction="left" />Retour</button>}
+        headerCenter={stepIndex === 0 ? <div className="flex items-center gap-2"><span className="text-[10px] font-bold leading-4 text-edito-navy sm:text-xs">Activer la veille</span><Switch label="Activer la veille" checked={settings.isEnabled} onChange={(isEnabled) => setSettings((current) => ({ ...current, isEnabled }))} /></div> : null}
         className="!h-[min(calc(100dvh-0.5rem),44rem)] !w-[min(calc(100vw-0.5rem),38rem)] !max-w-[38rem] sm:!h-[39rem]"
         maxHeightClassName="max-h-[calc(100dvh-0.5rem)] sm:max-h-[39rem]"
-        headerClassName="pb-0"
+        headerClassName="-mb-2 pb-0"
         bodyClassName="-mx-4 -mb-4 flex flex-1 flex-col overflow-hidden pr-0 sm:-mx-6 sm:-mb-6"
-        closeButtonClassName="size-9 rounded-full border border-transparent hover:border-border hover:bg-canvas"
+        closeButtonClassName="size-8 rounded-full border border-transparent hover:border-border hover:bg-canvas"
         footerClassName="hidden"
         fillHeight
       >
         <div className="shrink-0 border-y border-edito-brass/60 bg-edito-navy text-white"><WatchSteps activeIndex={stepIndex} /></div>
         <div className="flex min-h-0 flex-1 flex-col px-4 sm:px-5">
-          <div className="flex min-h-[74px] shrink-0 items-center justify-between gap-3 border-b border-border/70 py-2.5 sm:min-h-[82px] sm:py-3">
-            <div className="min-w-0">
+          <div className="flex min-h-[74px] shrink-0 items-center justify-between gap-3 border-b border-border/70 py-2 sm:min-h-[78px] sm:py-2.5">
+            <div className="min-w-0 flex-1">
               <h2 className="truncate font-heading text-lg font-bold leading-6 text-edito-navy">Paramétrer la veille</h2>
-              <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                <span className="truncate text-xs font-semibold leading-4 text-edito-muted">{companyName}</span><span className="text-edito-border" aria-hidden="true">·</span>
-                <button type="button" aria-label="Consulter les paramètres actuels" disabled={!settings.exists || status === "loading"} onClick={() => setMiniDialog("current")} className="shrink-0 text-[10px] font-bold leading-4 text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:text-primary-deep disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"><span className="sm:hidden">Paramètres actuels</span><span className="hidden sm:inline">Consulter les paramètres actuels</span></button>
-              </div>
+              <button type="button" aria-label="Consulter les paramètres actuels" disabled={!settings.exists || status === "loading"} onClick={() => setMiniDialog("current")} className="mt-1 block text-left text-[10px] font-bold leading-4 text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:text-primary-deep disabled:cursor-not-allowed disabled:text-muted disabled:no-underline sm:text-[11px]">Consulter les paramètres actuels</button>
             </div>
-            {stepIndex === 0 ? <div className="flex shrink-0 items-center gap-2.5"><span className="max-w-20 text-right text-[10px] font-bold leading-4 text-edito-navy sm:max-w-none sm:text-xs">Activer la veille</span><Switch label="Activer la veille" checked={settings.isEnabled} onChange={(isEnabled) => setSettings((current) => ({ ...current, isEnabled }))} /></div> : null}
+            <div className="flex w-16 shrink-0 flex-col items-center gap-1">
+              <div className="flex size-10 items-center justify-center rounded-[var(--radius-small)] border border-edito-border bg-edito-canvas p-1 shadow-2xs">
+                <CompanyLogo name={companyName} logoPath={companyLogoPath} website={companyWebsite} size="md" className="border-0 bg-transparent" />
+              </div>
+              <span className="w-full truncate text-center text-[9px] font-semibold leading-3 text-edito-muted" title={companyName}>{companyName}</span>
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden py-3 sm:py-4">

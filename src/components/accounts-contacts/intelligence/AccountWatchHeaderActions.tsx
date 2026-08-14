@@ -11,10 +11,14 @@ import { AccountWatchSettingsDialog } from "./AccountWatchSettingsDialog"
 export function AccountWatchHeaderActions({
   companyId,
   companyName,
+  companyLogoPath,
+  companyWebsite,
   onFeedback,
 }: {
   companyId: string
   companyName: string
+  companyLogoPath?: string | null
+  companyWebsite?: string | null
   onFeedback?: (message: string, tone: "info" | "success" | "error") => void
 }) {
   const router = useRouter()
@@ -97,6 +101,8 @@ export function AccountWatchHeaderActions({
         onOpenChange={setSettingsOpen}
         companyId={companyId}
         companyName={companyName}
+        companyLogoPath={companyLogoPath}
+        companyWebsite={companyWebsite}
         onBack={() => setSettingsOpen(false)}
         onReturnToCockpit={() => setSettingsOpen(false)}
       />
