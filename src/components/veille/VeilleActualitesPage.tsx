@@ -19,6 +19,7 @@ import type {
 interface VeilleActualitesPageProps {
   device: DashboardDevice
   digest: VeilleDigest | null
+  digestNumber: number | null
   articles: VeilleArticle[]
   /** Flux transverse aux briefings — consommé par la seule vue mobile. */
   feedArticles: VeilleArticle[]
@@ -42,6 +43,7 @@ interface VeilleActualitesPageProps {
 export function VeilleActualitesPage({
   device,
   digest,
+  digestNumber,
   articles,
   feedArticles,
   selectedDigestId,
@@ -78,6 +80,7 @@ export function VeilleActualitesPage({
   return (
     <VeilleActualitesDesktop
       digest={digest}
+      digestNumber={digestNumber}
       articles={articles}
       pastDigests={pastDigests}
       sectorNews={sectorNews}

@@ -94,7 +94,7 @@ describe("veille Desktop UI source contract", () => {
     expect(desktop).toContain("setSelectedArticle(article)")
     expect(desktop).toContain("headingRef.current?.focus()")
     expect(desktop).toContain("<ArticleRail")
-    expect(desktop).toContain("Autres articles de la semaine")
+    expect(desktop).toContain("VerticalArticleRail")
     expect(desktop).toContain("Non détecté")
   })
 

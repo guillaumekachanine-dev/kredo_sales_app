@@ -44,6 +44,7 @@ import {
 
 interface VeilleActualitesDesktopProps {
   digest: VeilleDigest | null
+  digestNumber: number | null
   articles: VeilleArticle[]
   pastDigests: VeilleDigest[]
   sectorNews: SectorNews[]
@@ -56,6 +57,18 @@ interface VeilleActualitesDesktopProps {
   latestAnalysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
   monthlyGeneration: MonthlyWatchGenerationContext
+}
+
+export function getCategoryColorClass(category?: string) {
+  if (!category) return "text-primary"
+  const lower = category.toLowerCase()
+  if (lower.includes("réglement")) return "text-danger"
+  if (lower.includes("nominat")) return "text-info"
+  if (lower.includes("marché")) return "text-brand-brass"
+  if (lower.includes("invest")) return "text-success"
+  if (lower.includes("tech")) return "text-primary"
+  if (lower.includes("concurrence")) return "text-warning"
+  return "text-primary"
 }
 
 const FILTERS = ["Tous", "Comptes", "Réglementaire", "Nominations", "Marché"] as const
@@ -98,14 +111,14 @@ function NewsFilters({
   onFilter: (value: typeof FILTERS[number]) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 border-y border-border bg-surface px-3 py-2.5" aria-label="Filtres des actualités">
-      <label className="relative min-w-[15rem] flex-1">
+    <div className="flex flex-col gap-3 p-4 border-b border-border bg-surface shrink-0" aria-label="Filtres des actualités">
+      <label className="relative w-full">
         <span className="sr-only">Rechercher un article</span>
         <input
           type="search"
           value={search}
           onChange={(event) => onSearch(event.target.value)}
-          placeholder="Rechercher un signal, un secteur, une source…"
+          placeholder="Rechercher un signal…"
           className="h-9 w-full border border-border bg-canvas/40 px-3 text-xs text-heading outline-none placeholder:text-muted focus-visible:ring-2 focus-visible:ring-heading"
         />
       </label>
@@ -117,7 +130,7 @@ function NewsFilters({
             aria-pressed={selectedFilter === filter}
             onClick={() => onFilter(filter)}
             className={cn(
-              "min-h-9 border px-3 text-[10px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
+              "border px-2 py-1 text-[9px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
               selectedFilter === filter
                 ? "border-primary bg-primary text-primary-fg"
                 : "border-border bg-surface text-body hover:bg-surface-hover",
@@ -131,12 +144,19 @@ function NewsFilters({
   )
 }
 
-function EditorialArticle({ article, headingRef }: { article: VeilleArticle; headingRef: React.RefObject<HTMLHeadingElement | null> }) {
+function EditorialArticle({ article, headingRef, isMain }: { article: VeilleArticle; headingRef: React.RefObject<HTMLHeadingElement | null>; isMain?: boolean }) {
+  const catColor = getCategoryColorClass(article.categorie)
+
   return (
     <article className="border border-border bg-edito-canvas/80 p-3 sm:p-4">
       <div className="paper-sheet border border-border/80 bg-surface px-8 py-9 lg:px-12 lg:py-11">
         <div className="mx-auto max-w-[74ch]">
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-brass">{article.categorie || "Actualité"}</p>
+          <p className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em]">
+            {isMain && (
+              <span className="inline-block bg-primary text-primary-fg px-2 py-0.5">A LA UNE</span>
+            )}
+            <span className={catColor}>{article.categorie || "Actualité"}</span>
+          </p>
           <h2 ref={headingRef} tabIndex={-1} className="mt-3 font-heading text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading">
             {article.titre_fr}
           </h2>
@@ -236,23 +256,61 @@ function ArticleRail({
   )
 }
 
-function OtherArticles({ articles, selectedId, onSelect }: { articles: VeilleArticle[]; selectedId: string; onSelect: (article: VeilleArticle) => void }) {
-  const others = getSecondaryItems(articles, selectedId, 3)
+function VerticalArticleRail({
+  articles,
+  selectedId,
+  onSelect,
+  search,
+  onSearch,
+  selectedFilter,
+  onFilter
+}: {
+  articles: VeilleArticle[]
+  selectedId: string
+  onSelect: (article: VeilleArticle) => void
+  search: string
+  onSearch: (value: string) => void
+  selectedFilter: typeof FILTERS[number]
+  onFilter: (value: typeof FILTERS[number]) => void
+}) {
   return (
-    <section className="mt-7">
-      <SectionHeading>Autres articles de la semaine</SectionHeading>
-      {others.length === 0 ? <p className="mt-4 text-xs text-muted">Aucun autre article ne correspond aux filtres.</p> : (
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          {others.map((article) => (
-            <button key={article.id} type="button" onClick={() => onSelect(article)} className="min-h-[8rem] border border-border bg-surface p-4 text-left outline-none transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
-              <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-primary">{article.categorie || article.source_name}</span>
-              <span className="mt-2 block text-[13px] font-bold leading-5 text-heading line-clamp-3">{article.titre_fr}</span>
-              <span className="mt-3 block text-[10px] text-muted">{article.source_name}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </section>
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-border bg-surface">
+      <NewsFilters search={search} onSearch={onSearch} selectedFilter={selectedFilter} onFilter={onFilter} />
+      <div className="flex-1 overflow-y-auto veille-scrollbar">
+        {articles.length === 0 ? (
+          <p className="p-4 text-xs text-muted">Aucun article ne correspond aux filtres.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {articles.map((article) => {
+              const isSelected = article.id === selectedId
+              const catColor = getCategoryColorClass(article.categorie)
+              return (
+                <button
+                  key={article.id}
+                  type="button"
+                  onClick={() => onSelect(article)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "block w-full text-left p-4 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-heading",
+                    isSelected ? "bg-primary/[0.05] border-l-2 border-l-primary" : "hover:bg-surface-hover border-l-2 border-l-transparent"
+                  )}
+                >
+                  <span className={cn("text-[9px] font-bold uppercase tracking-[0.08em]", catColor)}>
+                    {article.categorie || article.source_name}
+                  </span>
+                  <span className="mt-1.5 block text-[13px] font-bold leading-5 text-heading line-clamp-3">
+                    {article.titre_fr}
+                  </span>
+                  <span className="mt-2 block text-[10px] text-muted">
+                    {article.source_name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </aside>
   )
 }
 
@@ -1065,6 +1123,7 @@ function NewsFallback({ news, events }: { news: SectorNews[]; events: SectorEven
 
 export function VeilleActualitesDesktop({
   digest,
+  digestNumber,
   articles: initialArticles,
   pastDigests,
   sectorNews,
@@ -1151,31 +1210,44 @@ export function VeilleActualitesDesktop({
         ? <HistorySection digests={pastDigests} analyses={analysisHistory} />
         : selectedArticle
           ? (
-              <>
-                <NewsFilters search={search} onSearch={setSearch} selectedFilter={filter} onFilter={setFilter} />
-                <div className="mt-5 grid grid-cols-[minmax(0,1fr)_18rem] items-start gap-4">
-                  <EditorialArticle article={selectedArticle} headingRef={headingRef} />
-                  <ArticleRail
-                    company={matchedCompany}
-                    watched={watched}
-                    onPitch={pitch}
-                    onNote={() => requireCompany(() => setNoteOpen(true))}
-                    onQualify={() => setQualifyOpen(true)}
-                    onAddToList={() => setAddToListOpen(true)}
-                    onOpportunity={() => setOpportunityOpen(true)}
-                  />
-                </div>
-                <OtherArticles articles={filteredArticles} selectedId={selectedArticle.id} onSelect={selectArticle} />
-              </>
+              <div className="grid grid-cols-[minmax(0,1fr)_18rem] items-start gap-4">
+                <EditorialArticle article={selectedArticle} headingRef={headingRef} isMain={selectedArticle.selection_rank === 1} />
+                <ArticleRail
+                  company={matchedCompany}
+                  watched={watched}
+                  onPitch={pitch}
+                  onNote={() => requireCompany(() => setNoteOpen(true))}
+                  onQualify={() => setQualifyOpen(true)}
+                  onAddToList={() => setAddToListOpen(true)}
+                  onOpportunity={() => setOpportunityOpen(true)}
+                />
+              </div>
             )
           : <NewsFallback news={sectorNews} events={sectorEvents} />
 
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
       <VeilleLocalNavigation active={section} onChange={setSection} />
+      
+      {section === "news" && selectedArticle ? (
+        <VerticalArticleRail
+          articles={filteredArticles}
+          selectedId={selectedArticle.id}
+          onSelect={selectArticle}
+          search={search}
+          onSearch={setSearch}
+          selectedFilter={filter}
+          onFilter={setFilter}
+        />
+      ) : null}
+
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="z-20 flex min-h-[76px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6 py-4">
-          <h1 className="font-heading text-2xl font-bold tracking-[-0.02em] text-heading">Veille & actualités</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-[-0.02em] text-heading">
+            {section === "news" && digest
+              ? `Actualités - Digest n°${digestNumber || "?"} du ${formatDateFr(digest.digest_date)}`
+              : "Veille & actualités"}
+          </h1>
           <VeilleHeaderActions initialSettings={globalWatchSettings} initialHealth={globalWatchHealth} latestDigest={pastDigests[0] ?? digest} />
         </header>
         <main className="veille-scrollbar min-h-0 flex-1 overflow-y-auto">

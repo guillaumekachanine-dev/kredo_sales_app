@@ -76,6 +76,18 @@ export default async function VeillePage({
     selectedDigest = pastDigests[0] || null
   }
 
+  let digestNumber: number | null = null
+  if (selectedDigest) {
+    const supabase = await createClient()
+    const { count } = await supabase
+      .from("veille_digests")
+      .select("*", { count: "exact", head: true })
+      .lte("digest_date", selectedDigest.digest_date)
+    if (count !== null) {
+      digestNumber = count
+    }
+  }
+
   // 3. Fetch dependencies depending on whether we have a digest or empty state fallbacks
   let articles: VeilleArticle[] = []
   let feedArticles: VeilleArticle[] = []
@@ -117,6 +129,7 @@ export default async function VeillePage({
       <VeilleActualitesPage
         device={device}
         digest={selectedDigest}
+        digestNumber={digestNumber}
         articles={articles}
         feedArticles={feedArticles}
         selectedDigestId={selectedDigest?.id ?? null}
