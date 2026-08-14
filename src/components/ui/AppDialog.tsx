@@ -25,6 +25,7 @@ export interface AppDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: React.ReactNode
+  headerLeading?: React.ReactNode
   description?: string
   children: React.ReactNode
   footer?: React.ReactNode
@@ -47,6 +48,7 @@ export function AppDialog({
   open,
   onOpenChange,
   title,
+  headerLeading,
   description,
   children,
   footer,
@@ -162,7 +164,12 @@ export function AppDialog({
           {/* Header */}
           <div className={cn("min-w-0 shrink-0 flex flex-col gap-1.5", headerClassName)}>
             <div className="flex items-center justify-between">
-              {titleContent}
+              {headerLeading ? (
+                <div className="min-w-0">
+                  {headerLeading}
+                  <div className="sr-only">{titleContent}</div>
+                </div>
+              ) : titleContent}
               <button
                 ref={closeButtonRef}
                 type="button"
