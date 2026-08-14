@@ -92,27 +92,28 @@ que rien ne le signale. C'est le mode d'échec qu'on a déjà payé deux fois.
 unique) eux-mêmes, sans passer par Guillaume. Ce n'est pas le besoin actuel — mais c'est le
 signal à surveiller.
 
-### 2.5 Les skills du dépôt
+### 2.5 Le skill du dépôt
 
-Deux skills existent, `kredo-sector-intelligence` et `kredo-sources-sectorielles`. Ils sont
-bien conçus — ils portent le **comment** (l'ordre, les gates, les arrêts) et délèguent le
-**quoi** à un document de référence, ce qui est exactement la bonne séparation.
+**Un seul skill déclenche la production de connaissance commerciale : `kredo-master-study`**
+(`.agents/skills/`, établi le 14/08/2026). Il porte le **comment** — l'ordre, les gates, les
+arrêts, les refus — et délègue le **quoi** à ce corpus. Ses trois `references/` couvrent la
+chaîne E0→E7 fiche par fiche, la carte des blocs et leur destination, et l'état du chantier
+avec les requêtes pour le revérifier.
 
-🔴 **Mais `kredo-sector-intelligence` pointe vers `docs/PROCESS-ETUDE-SECTORIELLE.md`, qui
-n'existe plus** — le fichier a été déplacé dans `_legacy_kredo_(studies_v1)/` lors de la
-réorganisation d'août. La référence est cassée dans le frontmatter, dans le corps, dans deux
-fichiers de `references/` et dans `scripts/audit_fiche.py`.
+Les deux skills antérieurs, `kredo-sector-intelligence` et `kredo-sources-sectorielles`, ont
+été ramenés à des **redirections non déclenchantes**. Motif : le premier déclarait comme
+autorité `_legacy_kredo_(studies_v1)/PROCESS-ETUDE-SECTORIELLE.md`, que `README.md` §5.2 classe
+en **ARCHIVE — application interdite**, et sa règle de préséance le plaçait au-dessus de
+`CLAUDE.md`. Déclenché tel quel, il appliquait le process v1 : fiche unique, grille
+auto-administrée /100, injection SQL directe — trois choses que ce corpus interdit.
 
-**Un agent qui déclenche ce skill aujourd'hui ne trouve pas sa référence et improvise le
-schéma** — précisément le mode d'échec que le skill dit avoir payé une session entière.
+Leurs dossiers restent en place : `scripts/audit_fiche.py` et `scripts/audit_referentiel.py`
+sont les deux ancêtres de `scripts/audit-master-study.py`, et le second reste l'exécutant de la
+scorecard 24 critères (`06-ETAPE-E3…` §7).
 
-Traitement recommandé, dans cet ordre :
-1. Repointer `kredo-sector-intelligence` sur `docs/MASTER-STUDY/07-ETAPE-E4-ETUDE-SECTORIELLE.md`
-   (et non sur l'archive), en conservant sa doctrine — ses six règles sont excellentes et sont
-   reprises dans `00-DOCTRINE.md`.
-2. Repointer `kredo-sources-sectorielles` sur `06-ETAPE-E3-CORPUS-DE-SOURCES.md`, en gardant sa
-   délégation au standard `sources_intelligence_standards/`, qui reste normatif.
-3. Généraliser les deux scripts d'audit en un seul `scripts/audit-master-study.py` (G1).
+**Pourquoi un seul déclencheur** : deux skills concurrents sur le même sujet, c'est le mécanisme
+exact par lequel une référence finit par pointer un fichier disparu — chacun dérive de son côté,
+et rien ne signale lequel fait foi.
 
 ---
 
@@ -144,11 +145,11 @@ lentement.
 | # | Dette | Effet |
 |---|---|---|
 | 1 | Skills pointant vers un fichier disparu (§2.5) | Un agent improvise le schéma |
-| 2 | Le générateur de référentiels tronque au `minimum_pack` | Aucun nouveau référentiel avant correction |
+| 2 | ~~Le générateur de référentiels tronque au `minimum_pack`~~ | ✅ 14/08 — `check_packs` (G1) rend la troncature bloquante au lieu de silencieuse |
 | 3 | `slice(0, 40)` positionnel dans la veille hebdomadaire | Ajouter des sources ne change rien, silencieusement |
 | 4 | 12 workflows n8n patchés non réimportés sur le VPS, dont `intel-010-refresh` | Le bloc de classification n'est jamais produit ; `n8n:status` ne voit pas cette dérive (il compare des compteurs de nœuds) |
 | 5 | Deux variantes divergentes d'INTEL-033 en dépôt (`workflows/` 42 nœuds vs `wokflows_patchs/` 37) | On ignore laquelle tourne |
 | 6 | Apollo / Lusha non authentifiés | Le décideur SI reste manuel |
 | 7 | `Récupérer Secteurs Actifs` lit les 53 fiches sans filtre et les injecte dans le prompt système | Coûteux, faux (macro et segments mélangés), et contraire à la doctrine segment |
 
-**Les dettes 1, 2 et 3 bloquent l'exécution de ce corpus.** Les autres dégradent, sans bloquer.
+**La dette 3 bloque encore l'extension du corpus de veille.** Les dettes 1 et 2 sont levées (14/08/2026). Les autres dégradent, sans bloquer.

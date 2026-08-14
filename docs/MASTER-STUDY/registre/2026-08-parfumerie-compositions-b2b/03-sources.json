@@ -1,0 +1,1315 @@
+{
+  "meta": {
+    "segment_slug": "seg-parfumerie-compositions-b2b",
+    "secteur": "Parfumerie, Arômes & Cosmétique",
+    "geographie": "France entière (métropole + DROM), bassin de Grasse prioritaire",
+    "date_snapshot": "2026-08-14",
+    "version": "1.1",
+    "validation_status": "pending"
+  },
+  "besoins_information": [
+    {
+      "famille": "identite_juridique",
+      "statut": "couvert"
+    },
+    {
+      "famille": "financier_trajectoire",
+      "statut": "couvert"
+    },
+    {
+      "famille": "marche_concurrence",
+      "statut": "couvert"
+    },
+    {
+      "famille": "contrats_clients",
+      "statut": "partiel"
+    },
+    {
+      "famille": "reglementation_normes",
+      "statut": "couvert"
+    },
+    {
+      "famille": "technologie_si",
+      "statut": "couvert"
+    },
+    {
+      "famille": "emploi_competences",
+      "statut": "couvert"
+    },
+    {
+      "famille": "achats_accessibilite",
+      "statut": "partiel"
+    },
+    {
+      "famille": "trigger_events",
+      "statut": "couvert"
+    },
+    {
+      "famille": "reputation_signaux",
+      "statut": "partiel"
+    },
+    {
+      "famille": "ancrage_regional",
+      "statut": "couvert"
+    }
+  ],
+  "familles_sectorielles_obligatoires": {
+    "presse_professionnelle": "SRC-008",
+    "federation": "SRC-007",
+    "regulateur": "SRC-005"
+  },
+  "sources": [
+    {
+      "src_id": "SRC-001",
+      "publisher": "Institut national de la propriété industrielle (INPI)",
+      "domain": "data.inpi.fr",
+      "url": "https://data.inpi.fr/content/editorial/Acces_API_Entreprises",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 95,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 18,
+        "couverture_besoins": 20,
+        "valeur_commerciale": 12,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 10
+      },
+      "automation_fit": "high",
+      "collection_url": "https://data.inpi.fr/content/editorial/Acces_API_Entreprises",
+      "search_domain": "data.inpi.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study",
+        "account_watch"
+      ],
+      "pack": "minimal",
+      "atteste": "Identité légale, actes/statuts et comptes annuels non confidentiels; Créations, modifications et cessations",
+      "familles_couvertes": [
+        "identite_juridique",
+        "financier_trajectoire",
+        "trigger_events"
+      ],
+      "frequence_publication": "quotidienne",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Privilégier les accès API/SFTP officiels et respecter les licences/CGU Data INPI."
+    },
+    {
+      "src_id": "SRC-002",
+      "publisher": "Direction de l'information légale et administrative (DILA)",
+      "domain": "data.gouv.fr",
+      "url": "https://www.data.gouv.fr/dataservices/api-bulletin-officiel-des-annonces-civiles-et-commerciales-bodacc",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 87,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 13,
+        "couverture_besoins": 16,
+        "valeur_commerciale": 13,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 10
+      },
+      "automation_fit": "high",
+      "collection_url": "https://bodacc-datadila.opendatasoft.com/api/explore/v2.0",
+      "search_domain": "data.gouv.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study",
+        "account_watch"
+      ],
+      "pack": "minimal",
+      "atteste": "Annonces légales, cessions, modifications, radiations, procédures collectives, dépôts de comptes",
+      "familles_couvertes": [
+        "identite_juridique",
+        "financier_trajectoire",
+        "trigger_events"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "API gratuite ; respecter Licence Ouverte 2.0, CGU et règles sur les données personnelles."
+    },
+    {
+      "src_id": "SRC-003",
+      "publisher": "Ministère de la Transition écologique / Géorisques",
+      "domain": "georisques.gouv.fr",
+      "url": "https://www.georisques.gouv.fr/doc-api?urls.primaryName=Api+de+G%C3%A9orisques+V2",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 91,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 18,
+        "couverture_besoins": 16,
+        "valeur_commerciale": 14,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 8
+      },
+      "automation_fit": "high",
+      "collection_url": "https://www.georisques.gouv.fr/doc-api?urls.primaryName=Api+de+G%C3%A9orisques+V2",
+      "search_domain": "georisques.gouv.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study",
+        "account_watch"
+      ],
+      "pack": "minimal",
+      "atteste": "Existence et statut d'installations ICPE; Implantations industrielles et événements administratifs",
+      "familles_couvertes": [
+        "identite_juridique",
+        "reglementation_normes",
+        "trigger_events",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "selon mises à jour administratives",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser l'API documentée ; respecter authentification, quotas et modalités techniques."
+    },
+    {
+      "src_id": "SRC-004",
+      "publisher": "Office des publications de l'Union européenne",
+      "domain": "eur-lex.europa.eu",
+      "url": "https://eur-lex.europa.eu/advanced-search-form.html",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 89,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 17,
+        "couverture_besoins": 18,
+        "valeur_commerciale": 11,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 8
+      },
+      "automation_fit": "medium",
+      "collection_url": "https://eur-lex.europa.eu/advanced-search-form.html",
+      "search_domain": "eur-lex.europa.eu",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study",
+        "news",
+        "account_watch"
+      ],
+      "pack": "minimal",
+      "atteste": "Textes juridiquement opposables et amendements; Dates d'entrée en vigueur et transitions",
+      "familles_couvertes": [
+        "reglementation_normes",
+        "trigger_events"
+      ],
+      "frequence_publication": "continue selon JOUE",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Privilégier services officiels, recherches sauvegardées et alertes ; vérifier les règles de réutilisation avant collecte massive."
+    },
+    {
+      "src_id": "SRC-005",
+      "publisher": "European Chemicals Agency (ECHA)",
+      "domain": "echa.europa.eu",
+      "url": "https://echa.europa.eu/en/information-on-chemicals",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 87,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 19,
+        "couverture_besoins": 17,
+        "valeur_commerciale": 12,
+        "fraicheur": 14,
+        "autorite_editoriale": 20,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "echa.europa.eu",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Statuts REACH/CLP, enregistrements, classifications et processus réglementaires",
+      "familles_couvertes": [
+        "reglementation_normes",
+        "trigger_events"
+      ],
+      "frequence_publication": "continue selon processus réglementaires",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Consultation ciblée ; ne pas présumer d'un droit d'aspiration industrielle."
+    },
+    {
+      "src_id": "SRC-006",
+      "publisher": "International Fragrance Association (IFRA)",
+      "domain": "ifrafragrance.org",
+      "url": "https://ifrafragrance.org/latest-updates/ifra-news/ifra-52nd-amendment-consultation-closed",
+      "tier": 3,
+      "primary_role": "watch",
+      "utility_score": 91,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 20,
+        "couverture_besoins": 17,
+        "valeur_commerciale": 15,
+        "fraicheur": 15,
+        "autorite_editoriale": 18,
+        "automation_access": 6
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "ifrafragrance.org",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Standards privés IFRA, consultations et calendriers propres à l'IFRA; Amendement 52 : consultation close et calendrier annoncé",
+      "familles_couvertes": [
+        "reglementation_normes",
+        "trigger_events"
+      ],
+      "frequence_publication": "ad hoc",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser pages publiques/newsletter ; ne pas contourner l'espace membres."
+    },
+    {
+      "src_id": "SRC-007",
+      "publisher": "Syndicat National des Fabricants de Produits Aromatiques (PRODAROM)",
+      "domain": "prodarom.com",
+      "url": "https://www.prodarom.com/nos-adherents/",
+      "tier": 3,
+      "primary_role": "discovery",
+      "utility_score": 86,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 20,
+        "couverture_besoins": 18,
+        "valeur_commerciale": 14,
+        "fraicheur": 12,
+        "autorite_editoriale": 17,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "prodarom.com",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Longlist sectorielle française d'adhérents en extraits, ingrédients, bases et compositions parfumantes",
+      "familles_couvertes": [
+        "marche_concurrence",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "irrégulière",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Usage manuel/ponctuel ; vérifier les CGU avant toute extraction structurée."
+    },
+    {
+      "src_id": "SRC-008",
+      "publisher": "Allured Business Media / Perfumer & Flavorist",
+      "domain": "perfumerflavorist.com",
+      "url": "https://www.perfumerflavorist.com/news/fragrance/news/22944774/symrise-usa-sfa-neroli-opens-new-fragrance-campus-in-grasse-france",
+      "tier": 3,
+      "primary_role": "corroboration",
+      "utility_score": 89,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 20,
+        "couverture_besoins": 17,
+        "valeur_commerciale": 15,
+        "fraicheur": 15,
+        "autorite_editoriale": 17,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "perfumerflavorist.com",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Acquisitions, investissements, capacités, lancements, dirigeants et mouvements du secteur",
+      "familles_couvertes": [
+        "marche_concurrence",
+        "contrats_clients",
+        "technologie_si",
+        "trigger_events",
+        "reputation_signaux",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Consultation/recherche ciblée ; pas de scraping de masse sans autorisation explicite."
+    },
+    {
+      "src_id": "SRC-009",
+      "publisher": "Institut national de la statistique et des études économiques (Insee)",
+      "domain": "insee.fr",
+      "url": "https://www.insee.fr/fr/statistiques/serie/010771673",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 77,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 12,
+        "couverture_besoins": 12,
+        "valeur_commerciale": 8,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 10
+      },
+      "automation_fit": "high",
+      "collection_url": "https://www.insee.fr/fr/statistiques/serie/010771673",
+      "search_domain": "insee.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Trajectoire macro de la fabrication de parfums et produits de toilette en France",
+      "familles_couvertes": [
+        "financier_trajectoire",
+        "marche_concurrence"
+      ],
+      "frequence_publication": "mensuelle",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Privilégier téléchargements/API Insee officiels lorsque disponibles."
+    },
+    {
+      "src_id": "SRC-010",
+      "publisher": "Givaudan",
+      "domain": "supplier.givaudan.com",
+      "url": "https://supplier.givaudan.com/",
+      "tier": 2,
+      "primary_role": "proof",
+      "utility_score": 78,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 16,
+        "couverture_besoins": 13,
+        "valeur_commerciale": 15,
+        "fraicheur": 13,
+        "autorite_editoriale": 17,
+        "automation_access": 4
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "supplier.givaudan.com",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Parcours fournisseurs, ressources achats, CGA, environnement Ariba et achats indirects/services déclarés par Givaudan",
+      "familles_couvertes": [
+        "achats_accessibilite"
+      ],
+      "frequence_publication": "irrégulière",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Consulter uniquement les pages/documents publics ; ne pas automatiser les zones authentifiées."
+    },
+    {
+      "src_id": "SRC-011",
+      "publisher": "Direction de l'information légale et administrative (DILA)",
+      "domain": "boamp.fr",
+      "url": "https://www.boamp.fr/",
+      "tier": 1,
+      "primary_role": "watch",
+      "utility_score": 72,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 8,
+        "couverture_besoins": 10,
+        "valeur_commerciale": 11,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 8
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "boamp.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Avis de marchés publics et attributions françaises",
+      "familles_couvertes": [
+        "contrats_clients",
+        "achats_accessibilite",
+        "trigger_events"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Privilégier moteur/alertes officiels ; vérifier les interfaces de réutilisation avant automatisation."
+    },
+    {
+      "src_id": "SRC-012",
+      "publisher": "V. MANE FILS / MANE",
+      "domain": "hrs.emea.mane.com",
+      "url": "https://hrs.emea.mane.com/job/job-responsable-bi-analytics-data-platform-h-f_1852.aspx",
+      "tier": 2,
+      "primary_role": "discovery",
+      "utility_score": 84,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 18,
+        "couverture_besoins": 15,
+        "valeur_commerciale": 15,
+        "fraicheur": 15,
+        "autorite_editoriale": 15,
+        "automation_access": 6
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "hrs.emea.mane.com",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "minimal",
+      "atteste": "Besoins SI et compétences déclarées : SAP BW/BO, Power BI, Fabric, Databricks, DataOps, gouvernance data",
+      "familles_couvertes": [
+        "technologie_si",
+        "emploi_competences",
+        "trigger_events"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser les mécanismes officiels d'alerte/flux uniquement après validation de leur endpoint et de leurs conditions."
+    },
+    {
+      "src_id": "SRC-013",
+      "publisher": "Ministère de la Transition écologique",
+      "domain": "ecologie.gouv.fr",
+      "url": "https://www.ecologie.gouv.fr/politiques-publiques/reglement-reach",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 78,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 17,
+        "couverture_besoins": 14,
+        "valeur_commerciale": 8,
+        "fraicheur": 14,
+        "autorite_editoriale": 20,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "ecologie.gouv.fr",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Cadre officiel français REACH, autorités compétentes, contrôles et helpdesk",
+      "familles_couvertes": [
+        "reglementation_normes"
+      ],
+      "frequence_publication": "irrégulière",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Consultation ciblée ; pas de collecte industrielle présumée."
+    },
+    {
+      "src_id": "SRC-014",
+      "publisher": "Eurostat",
+      "domain": "ec.europa.eu",
+      "url": "https://ec.europa.eu/eurostat/web/prodcom",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 72,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 11,
+        "couverture_besoins": 12,
+        "valeur_commerciale": 7,
+        "fraicheur": 13,
+        "autorite_editoriale": 20,
+        "automation_access": 9
+      },
+      "automation_fit": "high",
+      "collection_url": "https://ec.europa.eu/eurostat/web/prodcom",
+      "search_domain": "ec.europa.eu",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Production manufacturière par catégories de produits en Europe",
+      "familles_couvertes": [
+        "financier_trajectoire",
+        "marche_concurrence"
+      ],
+      "frequence_publication": "annuelle",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Privilégier les téléchargements/API Eurostat officiels."
+    },
+    {
+      "src_id": "SRC-015",
+      "publisher": "Institut national de la statistique et des études économiques (Insee)",
+      "domain": "insee.fr",
+      "url": "https://www.insee.fr/fr/information/3591226",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 87,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 14,
+        "couverture_besoins": 17,
+        "valeur_commerciale": 11,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 10
+      },
+      "automation_fit": "high",
+      "collection_url": "https://portail-api.insee.fr/",
+      "search_domain": "insee.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study",
+        "account_watch"
+      ],
+      "pack": "enrichi",
+      "atteste": "Unités légales et établissements, localisation, activité, catégories juridiques, tranches d'effectif",
+      "familles_couvertes": [
+        "identite_juridique",
+        "marche_concurrence",
+        "emploi_competences",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "quotidienne",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser API Sirene/fichiers open data officiels."
+    },
+    {
+      "src_id": "SRC-016",
+      "publisher": "Grasse Expertise",
+      "domain": "grasse-expertise.com",
+      "url": "https://grasse-expertise.com/en/members-presentation/",
+      "tier": 3,
+      "primary_role": "discovery",
+      "utility_score": 79,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 19,
+        "couverture_besoins": 15,
+        "valeur_commerciale": 14,
+        "fraicheur": 12,
+        "autorite_editoriale": 15,
+        "automation_access": 4
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "grasse-expertise.com",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Écosystème local de Grasse : maisons, sous-traitants et fournisseurs",
+      "familles_couvertes": [
+        "marche_concurrence",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "irrégulière",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Usage manuel ponctuel ; pas de veille automatisée agressive."
+    },
+    {
+      "src_id": "SRC-017",
+      "publisher": "Commission européenne — DG SANTE",
+      "domain": "food.ec.europa.eu",
+      "url": "https://food.ec.europa.eu/food-safety/food-improvement-agents/flavourings_en",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 86,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 18,
+        "couverture_besoins": 17,
+        "valeur_commerciale": 12,
+        "fraicheur": 14,
+        "autorite_editoriale": 20,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "food.ec.europa.eu",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Règles UE sur les arômes alimentaires, liste de l'Union et renvois vers l'EFSA",
+      "familles_couvertes": [
+        "reglementation_normes",
+        "trigger_events"
+      ],
+      "frequence_publication": "selon évolutions réglementaires",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Consultation des pages/listes officielles ; aucune aspiration industrielle présumée."
+    },
+    {
+      "src_id": "SRC-018",
+      "publisher": "Premium Beauty Media",
+      "domain": "premiumbeautynews.com",
+      "url": "https://www.premiumbeautynews.com/en/payan-bertrand-invests-12-million%2C26601",
+      "tier": 3,
+      "primary_role": "corroboration",
+      "utility_score": 80,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 16,
+        "couverture_besoins": 14,
+        "valeur_commerciale": 14,
+        "fraicheur": 15,
+        "autorite_editoriale": 16,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "premiumbeautynews.com",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Investissements, capacités, innovation, réglementation et mouvements d'entreprises beauté/parfumerie",
+      "familles_couvertes": [
+        "marche_concurrence",
+        "contrats_clients",
+        "technologie_si",
+        "trigger_events",
+        "reputation_signaux",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Newsletter possible ; pas de collecte de masse sans autorisation explicite."
+    },
+    {
+      "src_id": "SRC-019",
+      "publisher": "Le Journal des Entreprises",
+      "domain": "lejournaldesentreprises.com",
+      "url": "https://www.lejournaldesentreprises.com/breve/cosmo-international-fragrances-construit-une-usine-grasse-2115987",
+      "tier": 3,
+      "primary_role": "corroboration",
+      "utility_score": 68,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 12,
+        "couverture_besoins": 11,
+        "valeur_commerciale": 13,
+        "fraicheur": 14,
+        "autorite_editoriale": 16,
+        "automation_access": 2
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "lejournaldesentreprises.com",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Investissements, implantations, recrutements et dirigeants de PME/mid-market régionales",
+      "familles_couvertes": [
+        "financier_trajectoire",
+        "marche_concurrence",
+        "emploi_competences",
+        "trigger_events",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Consultation humaine uniquement ; conditions de réutilisation industrielle non vérifiées."
+    },
+    {
+      "src_id": "SRC-020",
+      "publisher": "MANE",
+      "domain": "mane.com",
+      "url": "https://www.mane.com/sustainability/policies",
+      "tier": 2,
+      "primary_role": "proof",
+      "utility_score": 70,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 16,
+        "couverture_besoins": 11,
+        "valeur_commerciale": 15,
+        "fraicheur": 10,
+        "autorite_editoriale": 15,
+        "automation_access": 3
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "mane.com",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Politiques fournisseurs/achats responsables et exigences déclarées de chaîne d'approvisionnement",
+      "familles_couvertes": [
+        "reglementation_normes",
+        "achats_accessibilite",
+        "reputation_signaux"
+      ],
+      "frequence_publication": "irrégulière",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Consulter/télécharger uniquement les documents publics."
+    },
+    {
+      "src_id": "SRC-021",
+      "publisher": "dsm-firmenich",
+      "domain": "dsm-firmenich.com",
+      "url": "https://www.dsm-firmenich.com/suppliers",
+      "tier": 2,
+      "primary_role": "proof",
+      "utility_score": 75,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 16,
+        "couverture_besoins": 12,
+        "valeur_commerciale": 15,
+        "fraicheur": 12,
+        "autorite_editoriale": 17,
+        "automation_access": 3
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "dsm-firmenich.com",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Supplier Code, sourcing responsable, conditions générales et environnement SAP Ariba déclarés",
+      "familles_couvertes": [
+        "achats_accessibilite",
+        "reputation_signaux"
+      ],
+      "frequence_publication": "irrégulière",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Ne collecter que les pages/documents publics ; ne pas automatiser ni contourner SAP Ariba."
+    },
+    {
+      "src_id": "SRC-022",
+      "publisher": "Givaudan",
+      "domain": "integratedreport.givaudan.com",
+      "url": "https://integratedreport.givaudan.com/",
+      "tier": 2,
+      "primary_role": "corroboration",
+      "utility_score": 87,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 17,
+        "couverture_besoins": 18,
+        "valeur_commerciale": 13,
+        "fraicheur": 15,
+        "autorite_editoriale": 17,
+        "automation_access": 7
+      },
+      "automation_fit": "medium",
+      "collection_url": "https://integratedreport.givaudan.com/",
+      "search_domain": "integratedreport.givaudan.com",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Performance financière publiée, stratégie, digitalisation, ESG et investissements du groupe",
+      "familles_couvertes": [
+        "financier_trajectoire",
+        "marche_concurrence",
+        "technologie_si",
+        "emploi_competences",
+        "trigger_events",
+        "reputation_signaux"
+      ],
+      "frequence_publication": "annuelle",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser les téléchargements/services officiels ; pas de scraping massif sans vérification des conditions."
+    },
+    {
+      "src_id": "SRC-023",
+      "publisher": "dsm-firmenich",
+      "domain": "annualreport.dsm-firmenich.com",
+      "url": "https://annualreport.dsm-firmenich.com/2025/",
+      "tier": 2,
+      "primary_role": "corroboration",
+      "utility_score": 86,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 17,
+        "couverture_besoins": 18,
+        "valeur_commerciale": 13,
+        "fraicheur": 15,
+        "autorite_editoriale": 17,
+        "automation_access": 6
+      },
+      "automation_fit": "medium",
+      "collection_url": "https://annualreport.dsm-firmenich.com/2025/",
+      "search_domain": "annualreport.dsm-firmenich.com",
+      "content_temporality": "static",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Performance, CAPEX, data governance, IA, transformation technologique et sourcing responsable du groupe",
+      "familles_couvertes": [
+        "financier_trajectoire",
+        "marche_concurrence",
+        "technologie_si",
+        "emploi_competences",
+        "trigger_events",
+        "reputation_signaux"
+      ],
+      "frequence_publication": "annuelle",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Privilégier pages/téléchargements du rapport ; vérifier les conditions avant extraction structurée."
+    },
+    {
+      "src_id": "SRC-024",
+      "publisher": "Givaudan",
+      "domain": "careers.givaudan.com",
+      "url": "https://careers.givaudan.com/gb/en/contact-us",
+      "tier": 2,
+      "primary_role": "discovery",
+      "utility_score": 76,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 15,
+        "couverture_besoins": 12,
+        "valeur_commerciale": 14,
+        "fraicheur": 15,
+        "autorite_editoriale": 15,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "careers.givaudan.com",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Recrutements, compétences et priorités technologiques/opérationnelles déclarées",
+      "familles_couvertes": [
+        "technologie_si",
+        "emploi_competences",
+        "trigger_events"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser moteurs/alertes officiels lorsqu'ils sont prouvés ; ne pas collecter de données personnelles."
+    },
+    {
+      "src_id": "SRC-025",
+      "publisher": "Symrise",
+      "domain": "symrise.com",
+      "url": "https://www.symrise.com/newsroom/article/symrise-subsidiary-sfa-neroli-opens-a-new-fragrance-ecosystem-in-grasse/",
+      "tier": 2,
+      "primary_role": "watch",
+      "utility_score": 82,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 18,
+        "couverture_besoins": 14,
+        "valeur_commerciale": 15,
+        "fraicheur": 15,
+        "autorite_editoriale": 15,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "symrise.com",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Acquisitions, consolidation de maisons, nouveaux campus, capacités et investissements déclarés par Symrise",
+      "familles_couvertes": [
+        "marche_concurrence",
+        "technologie_si",
+        "trigger_events",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Privilégier newsroom/newsletters officiels ; aucune aspiration industrielle présumée."
+    },
+    {
+      "src_id": "SRC-026",
+      "publisher": "France Travail",
+      "domain": "francetravail.fr",
+      "url": "https://www.francetravail.fr/",
+      "tier": 3,
+      "primary_role": "discovery",
+      "utility_score": 77,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 12,
+        "couverture_besoins": 13,
+        "valeur_commerciale": 14,
+        "fraicheur": 15,
+        "autorite_editoriale": 18,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "francetravail.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Demande de compétences et tensions de recrutement du bassin de Grasse",
+      "familles_couvertes": [
+        "emploi_competences",
+        "trigger_events",
+        "ancrage_regional"
+      ],
+      "frequence_publication": "continue",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser fonctions officielles de recherche/alerte ; vérifier API/CGU avant toute collecte automatisée."
+    },
+    {
+      "src_id": "SRC-027",
+      "publisher": "Office des publications de l'Union européenne",
+      "domain": "ted.europa.eu",
+      "url": "https://ted.europa.eu/en/about-ted",
+      "tier": 1,
+      "primary_role": "watch",
+      "utility_score": 70,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 7,
+        "couverture_besoins": 10,
+        "valeur_commerciale": 10,
+        "fraicheur": 15,
+        "autorite_editoriale": 20,
+        "automation_access": 8
+      },
+      "automation_fit": "high",
+      "collection_url": "https://ted.europa.eu/en/about-ted",
+      "search_domain": "ted.europa.eu",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study",
+        "news",
+        "account_watch"
+      ],
+      "pack": "enrichi",
+      "atteste": "Avis de marchés publics européens, recherches sectorielles et alertes/RSS personnalisés",
+      "familles_couvertes": [
+        "contrats_clients",
+        "achats_accessibilite",
+        "trigger_events"
+      ],
+      "frequence_publication": "quotidienne les jours ouvrés",
+      "consulted_at": "2026-08-14",
+      "validation_status": "verified",
+      "conditions_utilisation": "Utiliser recherche/alertes/RSS officielles et respecter les conditions de réutilisation."
+    },
+    {
+      "src_id": "SRC-028",
+      "publisher": "État — Annuaire des Entreprises (data.gouv.fr)",
+      "domain": "annuaire-entreprises.data.gouv.fr",
+      "url": "https://recherche-entreprises.api.gouv.fr/search?q=exemple",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 80,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 15,
+        "couverture_besoins": 15,
+        "valeur_commerciale": 10,
+        "fraicheur": 10,
+        "autorite_editoriale": 20,
+        "automation_access": 10
+      },
+      "automation_fit": "high",
+      "collection_url": "https://recherche-entreprises.api.gouv.fr/search?q=exemple",
+      "search_domain": "annuaire-entreprises.data.gouv.fr",
+      "content_temporality": "continuous",
+      "usage_scopes": [
+        "study",
+        "account_watch"
+      ],
+      "pack": "enrichi",
+      "atteste": "Identité légale et existence des sociétés françaises, recherche par dénomination ou SIREN",
+      "familles_couvertes": [],
+      "frequence_publication": "quotidienne",
+      "consulted_at": "2026-08-14",
+      "validation_status": "pending",
+      "conditions_utilisation": "API ouverte"
+    },
+    {
+      "src_id": "SRC-029",
+      "publisher": "European Food Safety Authority (EFSA)",
+      "domain": "efsa.europa.eu",
+      "url": "https://www.efsa.europa.eu/en/topics/topic/flavourings",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 80,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 20,
+        "couverture_besoins": 15,
+        "valeur_commerciale": 10,
+        "fraicheur": 10,
+        "autorite_editoriale": 20,
+        "automation_access": 5
+      },
+      "automation_fit": "low",
+      "collection_url": "https://www.efsa.europa.eu/en/topics/topic/flavourings",
+      "search_domain": "efsa.europa.eu",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Évaluation du risque et liste de l'Union des arômes alimentaires, distincte de la fonction réglementaire de la DG SANTE",
+      "familles_couvertes": [],
+      "frequence_publication": "mensuelle",
+      "consulted_at": "2026-08-14",
+      "validation_status": "pending",
+      "conditions_utilisation": "consultation manuelle recommandee"
+    }
+  ],
+  "pack_minimal": [
+    "SRC-001",
+    "SRC-002",
+    "SRC-003",
+    "SRC-004",
+    "SRC-005",
+    "SRC-006",
+    "SRC-007",
+    "SRC-008",
+    "SRC-009",
+    "SRC-010",
+    "SRC-011",
+    "SRC-012"
+  ],
+  "pack_enrichi": [
+    "SRC-013",
+    "SRC-014",
+    "SRC-015",
+    "SRC-016",
+    "SRC-017",
+    "SRC-018",
+    "SRC-019",
+    "SRC-020",
+    "SRC-021",
+    "SRC-022",
+    "SRC-023",
+    "SRC-024",
+    "SRC-025",
+    "SRC-026",
+    "SRC-027",
+    "SRC-028",
+    "SRC-029"
+  ],
+  "matrice_couverture": [
+    {
+      "famille": "identite_juridique",
+      "src_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-015"
+      ]
+    },
+    {
+      "famille": "financier_trajectoire",
+      "src_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-009",
+        "SRC-014",
+        "SRC-022",
+        "SRC-023"
+      ]
+    },
+    {
+      "famille": "marche_concurrence",
+      "src_ids": [
+        "SRC-007",
+        "SRC-008",
+        "SRC-009",
+        "SRC-014",
+        "SRC-015",
+        "SRC-016",
+        "SRC-018",
+        "SRC-019",
+        "SRC-022",
+        "SRC-023",
+        "SRC-025"
+      ]
+    },
+    {
+      "famille": "contrats_clients",
+      "src_ids": [
+        "SRC-008",
+        "SRC-011",
+        "SRC-018",
+        "SRC-027"
+      ]
+    },
+    {
+      "famille": "reglementation_normes",
+      "src_ids": [
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006",
+        "SRC-013",
+        "SRC-017",
+        "SRC-020"
+      ]
+    },
+    {
+      "famille": "technologie_si",
+      "src_ids": [
+        "SRC-008",
+        "SRC-012",
+        "SRC-018",
+        "SRC-022",
+        "SRC-023",
+        "SRC-024",
+        "SRC-025"
+      ]
+    },
+    {
+      "famille": "emploi_competences",
+      "src_ids": [
+        "SRC-012",
+        "SRC-015",
+        "SRC-019",
+        "SRC-022",
+        "SRC-023",
+        "SRC-024",
+        "SRC-026"
+      ]
+    },
+    {
+      "famille": "achats_accessibilite",
+      "src_ids": [
+        "SRC-010",
+        "SRC-011",
+        "SRC-020",
+        "SRC-021",
+        "SRC-027"
+      ]
+    },
+    {
+      "famille": "trigger_events",
+      "src_ids": [
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006",
+        "SRC-008",
+        "SRC-011",
+        "SRC-012",
+        "SRC-017",
+        "SRC-018",
+        "SRC-019",
+        "SRC-022",
+        "SRC-023",
+        "SRC-024",
+        "SRC-025",
+        "SRC-026",
+        "SRC-027"
+      ]
+    },
+    {
+      "famille": "reputation_signaux",
+      "src_ids": [
+        "SRC-008",
+        "SRC-018",
+        "SRC-020",
+        "SRC-021",
+        "SRC-022",
+        "SRC-023",
+        "SRC-025"
+      ]
+    },
+    {
+      "famille": "ancrage_regional",
+      "src_ids": [
+        "SRC-003",
+        "SRC-007",
+        "SRC-008",
+        "SRC-015",
+        "SRC-016",
+        "SRC-018",
+        "SRC-019",
+        "SRC-025",
+        "SRC-026"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "famille": "contrats_clients",
+      "motif": "Il n'existe pas de registre public exhaustif des contrats et clients privés des maisons de composition. Traitement retenu : Ne retenir que les relations publiées par une partie, un avis officiel ou une source professionnelle crédible ; ne jamais reconstituer un portefeuille privé par ingénierie sociale.",
+      "recherches_effectuees": [
+        "site:boamp.fr parfum huiles essentielles marché public",
+        "site:ted.europa.eu search procurement API RSS official TED"
+      ]
+    },
+    {
+      "famille": "achats_accessibilite",
+      "motif": "Les grands groupes publient parfois des Supplier Hubs, mais plusieurs maisons mid-market ne publient ni portail ni procédure détaillée. Traitement retenu : Chercher pages fournisseurs, CGA, chartes achats responsables et rapports de durabilité sur les domaines officiels ; sinon noter non trouvé.",
+      "recherches_effectuees": [
+        "Givaudan suppliers procurement supplier code official",
+        "dsm-firmenich supplier portal supplier code official",
+        "MANE supplier code responsible purchasing procurement official",
+        "site:iff.com suppliers procurement supplier code"
+      ]
+    },
+    {
+      "famille": "financier_trajectoire",
+      "motif": "Certains comptes annuels sont confidentiels ou absents selon la forme/situation. Traitement retenu : Ne pas contourner la confidentialité ; utiliser actes, publications corporate et presse avec leur tier propre.",
+      "recherches_effectuees": [
+        "site:inpi.fr Registre national des entreprises comptes annuels",
+        "site:data.gouv.fr BODACC API annonces commerciales"
+      ]
+    },
+    {
+      "famille": "marche_concurrence",
+      "motif": "La NAF 20.42 inclut des produits finis et ne coïncide pas avec le segment B2B ; la nomenclature évolue au 1er janvier 2027. Traitement retenu : Construire la longlist par métier ; n'utiliser Insee/Eurostat que comme contexte macro avec mapping documenté.",
+      "recherches_effectuees": [
+        "site:insee.fr NAF 20.42 fabrication parfums produits toilette statistiques",
+        "site:ec.europa.eu/eurostat essential oils PRODCOM France fragrance"
+      ]
+    },
+    {
+      "famille": "reglementation_normes",
+      "motif": "Les dossiers ECHA comprennent des informations soumises par les déclarants et ne valent pas validation scientifique indépendante de chaque propriété. Traitement retenu : Utiliser ECHA pour statut/enregistrement/processus ; pour une conclusion toxicologique, consulter l'évaluation ou décision correspondante.",
+      "recherches_effectuees": [
+        "site:echa.europa.eu fragrances REACH CLP essential oils"
+      ]
+    },
+    {
+      "famille": "contrats_clients",
+      "motif": "(famille combinée : Contrats et clients / Achats et accessibilité commerciale) Les marchés publics ne couvrent qu'une fraction marginale des relations commerciales privées du secteur. Traitement retenu : BOAMP/TED servent de watch/opportunités publiques, jamais de proxy des portefeuilles clients ou panels privés.",
+      "recherches_effectuees": [
+        "site:boamp.fr parfum huiles essentielles marché public",
+        "site:ted.europa.eu search procurement API RSS official TED"
+      ]
+    }
+  ],
+  "compteurs": {
+    "sources": 29,
+    "pack_minimal": 12,
+    "pack_enrichi": 17,
+    "requetes": 0
+  },
+  "note_normalisation": "Fusion mécanique de deux corpus E3 produits en parallèle (ChatGPT Deep Research, Gemini Deep Research), le 2026-08-14, sans nouvelle recherche. Base : le corpus ChatGPT (27 sources, 100% avec URL, meilleure couverture tier 1-2), dont les champs anglais/hors-contrat (information_needs, minimum_pack, extended_pack, coverage_matrix, mandatory_sector_sources, sector_relevance...) ont été renommés contre le schéma sans toucher au contenu. Deux sources Gemini non redondantes (domaines absents du corpus ChatGPT) et porteuses d'une URL réelle ont été ajoutées en pack enrichi : SRC-028, SRC-029. Huit autres domaines Gemini non redondants ont été écartés faute d'URL vérifiable dans le JSON source (ANSM, Coptis PLM, Innov'Alliance, InnovaGrasse, Robertet achats, SNIAA, Welcome to the Jungle) — inventer une URL aurait violé A2. Le verdict auto-déclaré du corpus ChatGPT (`usable_with_caveats`) a été retiré : A10 interdit au producteur de juger son propre livrable. AUCUN journal de recherche réellement rejoué n'accompagne ce fichier — G1 échouera sur ce point tant qu'aucun 03-journal.md n'est produit, et c'est le comportement attendu."
+}

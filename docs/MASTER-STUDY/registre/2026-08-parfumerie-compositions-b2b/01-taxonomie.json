@@ -1,0 +1,161 @@
+{
+  "segment": {
+    "slug": "seg-parfumerie-compositions-b2b",
+    "id": "db34f8a0-9d9e-4585-acd6-2fbbdd1baad6",
+    "level": "segment",
+    "macro_slug": "parfumerie-aromes",
+    "macro_id": "e3950aea-5e32-40df-8565-3366ec8a5cc6",
+    "display_code": "1.1"
+  },
+  "comptes": {
+    "total": 7,
+    "confiance_faible": 0,
+    "mapped": 0,
+    "total_rattaches_toutes_profondeurs": 7,
+    "detail": [
+      {
+        "nom": "Robertet",
+        "depth_level": "active",
+        "relation_type": "client",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": "client — exclu des cibles de prospection sous objectif ouverture",
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "Argeville",
+        "depth_level": "noted",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "Aromatech Group",
+        "depth_level": "noted",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "Expressions Parfumees",
+        "depth_level": "noted",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "Jean Niel",
+        "depth_level": "noted",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "PARFEX",
+        "depth_level": "noted",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "Payan Bertrand",
+        "depth_level": "noted",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      }
+    ],
+    "classifies_5_axes_obligatoires": 7,
+    "axes_conditionnels_nuls_non_documentes": 0,
+    "dans_le_perimetre_g0": 7
+  },
+  "corpus_existant": {
+    "regulatory_items_segment": 0,
+    "regulatory_items_macro": 5,
+    "regulatory_items_futurs": 1,
+    "regulatory_items_sans_source_url": 5,
+    "pain_points_segment": 0,
+    "pain_points_macro": 8,
+    "events_segment": 0,
+    "events_macro": 5,
+    "playbook_segment_cles_remplies": 0,
+    "playbook_macro_cles": 4,
+    "description_segment": false,
+    "description_macro": true,
+    "competitive_map_entries": 0,
+    "commentaire": "Fracture macro/segment à l'état pur : le segment ne porte AUCUNE connaissance propre, le macro en porte 18 items. E4 reçoit donc ces 18 items en entrée et ne repart pas d'une page blanche — mais il écrit au segment (A4). Les 5 items réglementaires sont tous SANS source_url : aucun n'est citable en l'état."
+  },
+  "controles_e1": [
+    {
+      "n": 1,
+      "libelle": "Le macro est le parent_id du segment",
+      "resultat": "pass",
+      "note": "parent_id = e3950aea… = parfumerie-aromes, cohérent sur les 7 comptes"
+    },
+    {
+      "n": 2,
+      "libelle": "regime_achat, modele_eco et tier renseignés ensemble",
+      "resultat": "pass",
+      "note": "7/7 — prive + industriel sur les 7 ; tier grand_compte×1, eti×1, pme×5"
+    },
+    {
+      "n": 3,
+      "libelle": "classification_note présente si confiance faible",
+      "resultat": "pass",
+      "note": "aucune confiance faible : les 7 comptes portent classification_confiance = haute"
+    },
+    {
+      "n": 4,
+      "libelle": "Aucun sector_id divergent de segment.parent_id",
+      "resultat": "pass",
+      "note": "projection cohérente — écrite par apply_account_classification() seule"
+    },
+    {
+      "n": 5,
+      "libelle": "Aucun segment créé sans les 3 conditions cumulatives",
+      "resultat": "pass",
+      "note": "segment préexistant (display_code 1.1), aucune création dans ce run"
+    },
+    {
+      "n": 6,
+      "libelle": "Aucun compte mapped dans les compteurs",
+      "resultat": "pass",
+      "note": "0 compte mapped sur ce segment"
+    },
+    {
+      "n": 7,
+      "libelle": "Axes conditionnels : renseignés ou légitimement NULL",
+      "resultat": "pass",
+      "note": "moment NULL sur 7/7 — conforme au référentiel §5.5, qui interdit de le renseigner sans fait daté sourçable. vertical_client NULL sur 2 (Expressions Parfumées, PARFEX), renseigné agroalimentaire sur 5. Aucun NULL inventé."
+    }
+  ],
+  "verdict_g0": "go",
+  "motif": "Les six conditions de G0 sont tenues : le segment existe en level='segment' avec un parent_id, 7 comptes y sont rattachés (seuil 3), les 5 axes toujours renseignables le sont à 100 %, les 2 axes conditionnels sont NULL de façon conforme au référentiel, un objectif commercial est déclaré, et E3 est planifié. C'est le segment le mieux doté des 38 : 7 comptes contre 3 pour les cinq autres segments G0-propres.",
+  "reserves": [
+    "Le corpus réglementaire du macro est inexploitable en l'état : 5 items sur 5 sans source_url, donc aucun n'est opposable devant un prospect. E2 en revalide un ; les quatre autres restent à sourcer.",
+    "Un compte client (Robertet) est dans le périmètre d'étude et dans la cartographie, mais hors des cibles de prospection puisque objectif_commercial = ouverture. C'est l'amendement du 13/08/2026."
+  ],
+  "amendements_appliques": [
+    {
+      "ref": "A1",
+      "objet": "G0 distingue 5 axes toujours renseignables et 2 conditionnels",
+      "effet": "le run est franchissable ; sous la règle antérieure des 7 axes à 100 %, moment=NULL sur 7/7 l'aurait bloqué"
+    },
+    {
+      "ref": "A2",
+      "objet": "un compte client compte dans le seuil et figure dans la cartographie",
+      "effet": "le segment compte 7 comptes et non 6"
+    }
+  ],
+  "compteurs": {
+    "detail": 7,
+    "controles_e1": 7,
+    "reserves": 2,
+    "amendements_appliques": 2
+  }
+}

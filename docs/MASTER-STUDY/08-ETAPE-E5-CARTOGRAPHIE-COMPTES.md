@@ -277,11 +277,11 @@ parler, et si KREDO a le droit d'intervenir.
 | Battle cards | Markdown, 1 page par compte prioritaire | `registre/<run>/05-battlecards.md` |
 | Journal de recherche | Markdown horodaté | `registre/<run>/05-journal.md` |
 
-> 🔴 **Défaut ouvert au 13/08/2026 — roadmap A4.** Le parseur ne lit **aucune** des six clés de
-> `profil_compte` décrites ci-dessus (`couche_esn`, `grilles`, `traduction_commerciale`,
-> `metier_chaine_valeur`, `contrats_majeurs`, `maillon`). Elles sont perdues **silencieusement**
-> à l'ingestion. Ne pas produire de couche ESN destinée à l'import avant que
-> [`registre/ROADMAP-CORRECTIONS.md`](registre/ROADMAP-CORRECTIONS.md) **A4** soit fait.
+> ✅ **Roadmap A4 — corrigé le 13/08/2026** (commit `149d3e98`). Le parseur lit désormais les six
+> clés de `profil_compte` qui portent la valeur commerciale : `couche_esn`, `grilles`,
+> `traduction_commerciale`, `metier_chaine_valeur`, `contrats_majeurs`, `maillon`. **La couche ESN
+> peut donc être produite et importée** — elle ne l'était pas avant cette date, et les dix
+> `competitive_map_entries` du Spatial, qui pèsent 40 à 73 octets, en gardent la trace.
 >
 > **Le contrat normatif de ce livrable est le code**, pas le schéma :
 > `src/features/competitive-map/domain/competitive-map-output.ts`. Il tolère déjà les écarts

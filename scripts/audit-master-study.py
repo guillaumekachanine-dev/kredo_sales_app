@@ -80,7 +80,13 @@ VOCABULAIRE_INTERDIT = [
 # hypothèse qualifiée est acceptée. Traité séparément, sur le périmètre du top 3.
 NON_VERIFIE_RE = re.compile(r"non\s+v[ée]rifi[ée]|non\s+renseign[ée]|non\s+audit[ée]", re.IGNORECASE)
 
-SEUIL_JOURNAL = {"03-journal.md": 15, "04-journal.md": 25, "05-journal.md": 25}
+# Un journal par étape qui CHERCHE. E2 en a un aussi, et son absence était un défaut de
+# contrat : `05-ETAPE-E2` §1 impose de revalider chaque échéance au jour du run, et le
+# contrôle de revalidation ci-dessous exige des requêtes jouées pour l'accepter — or aucun
+# fichier ne permettait de les consigner. `revalides_le` ne pouvait donc jamais être
+# légitimement non-null sur un run où seul E2 a tourné. Seuil bas : la revalidation vise
+# quelques échéances connues, elle ne découvre pas un corpus.
+SEUIL_JOURNAL = {"02-journal.md": 3, "03-journal.md": 15, "04-journal.md": 25, "05-journal.md": 25}
 
 
 class Check:
@@ -363,6 +369,88 @@ def check_sources(docs, checks, verifier_urls):
                                 None, "non exécuté — relancer avec --check-urls", bloquant=True))
 
 
+def check_packs(docs, checks):
+    """E3 — la troncature COHÉRENTE, celle que les compteurs ne voient pas.
+
+    `check_compteurs` attrape un livrable qui annonce 15 sources et en porte 7. Il ne
+    voit rien quand le générateur tronque ET ajuste son compteur : le JSON devient
+    self-cohérent, et seul le markdown continue d'annoncer 15. C'est exactement ce
+    qui est arrivé aux deux référentiels de 2026-08.
+
+    Ce qui rend la troncature indétachable, c'est que `pack_minimal` et `pack_enrichi`
+    sont des listes de `src_id` : couper les sources sans couper les packs laisse des
+    identifiants qui ne résolvent plus. Et si le générateur coupe les deux, ce sont les
+    sources restantes qui cessent de couvrir les packs. Les deux sens sont contrôlés ici.
+
+    E3 §4.1 point 7 : les deux packs sont DISJOINTS et COUVRANTS.
+    """
+    doc = docs.get("03-sources.json")
+    if doc is None:
+        return
+
+    sources = [s for s in doc.get("sources") or [] if isinstance(s, dict)]
+    connus = {s.get("src_id") for s in sources if s.get("src_id")}
+    minimal = [x for x in doc.get("pack_minimal") or [] if isinstance(x, str)]
+    enrichi = [x for x in doc.get("pack_enrichi") or [] if isinstance(x, str)]
+
+    orphelins = sorted((set(minimal) | set(enrichi)) - connus)
+    checks.append(Check(
+        "packs", "03-sources.json : chaque src_id des packs existe dans sources[]",
+        not orphelins,
+        "{} id(s) de pack sans source : {}".format(len(orphelins), ", ".join(orphelins[:8]))
+        if orphelins else "{} sources, {} minimal + {} enrichi".format(
+            len(sources), len(minimal), len(enrichi))))
+
+    doublons = sorted(set(minimal) & set(enrichi))
+    checks.append(Check(
+        "packs", "03-sources.json : les deux packs sont disjoints",
+        not doublons,
+        "{} id(s) dans les deux packs : {}".format(len(doublons), ", ".join(doublons[:8]))
+        if doublons else "aucun recouvrement"))
+
+    non_couvertes = sorted(connus - (set(minimal) | set(enrichi)))
+    checks.append(Check(
+        "packs", "03-sources.json : les packs couvrent toutes les sources",
+        not non_couvertes,
+        "{} source(s) dans aucun pack : {}".format(
+            len(non_couvertes), ", ".join(non_couvertes[:8]))
+        if non_couvertes else "les {} source(s) sont toutes rattachées à un pack".format(
+            len(connus))))
+
+    # Le champ `pack` de chaque source doit dire la même chose que les deux listes.
+    # Deux sources de vérité pour la même information finissent toujours par diverger ;
+    # ici la divergence est le symptôme direct d'une coupure partielle.
+    incoherents = []
+    for s in sources:
+        sid, declare = s.get("src_id"), s.get("pack")
+        if not sid or declare not in ("minimal", "enrichi"):
+            continue
+        reel = "minimal" if sid in set(minimal) else ("enrichi" if sid in set(enrichi) else None)
+        if reel and reel != declare:
+            incoherents.append("{} dit '{}', listé en '{}'".format(sid, declare, reel))
+    checks.append(Check(
+        "packs", "03-sources.json : le champ `pack` concorde avec les listes",
+        not incoherents,
+        "; ".join(incoherents[:5]) if incoherents else "concordant"))
+
+    # Trois familles obligatoires (E3 §1) : chacune pointe un src_id réel, ou déclare
+    # explicitement son absence. Une famille simplement omise est indistinguable d'une
+    # recherche non faite — c'est le défaut du référentiel Tourisme, qui ignorait le
+    # régulateur de son propre secteur.
+    familles = doc.get("familles_sectorielles_obligatoires") or {}
+    manquantes = []
+    for cle in ("presse_professionnelle", "federation", "regulateur"):
+        val = (familles.get(cle) or "").strip()
+        if not val:
+            manquantes.append("{} : absente".format(cle))
+        elif val.startswith("SRC-") and val not in connus:
+            manquantes.append("{} : {} ne résout pas".format(cle, val))
+    checks.append(Check(
+        "packs", "03-sources.json : presse pro · fédération · régulateur, résolus ou déclarés absents",
+        not manquantes,
+        " | ".join(manquantes) if manquantes else "les trois familles sont renseignées"))
+
+
 def check_urls_reglementaires(docs, checks, verifier_urls):
     """Les URLs réglementaires du socle sont des références opposables.
 
@@ -393,20 +481,76 @@ def check_urls_reglementaires(docs, checks, verifier_urls):
                         ok, detail if not ok else "{} URL(s) vérifiée(s)".format(len(urls))))
 
 
-def _head_all(sources):
+# Ce que ce contrôle doit attraper : une URL INVENTÉE. Le cas réel est un identifiant
+# Légifrance fabriqué (`JORFTEXT000049413725`) qui ne résout pas — une échéance qu'on
+# aurait prononcée devant un DSI en ouvrant une page vide.
+#
+# Ce qu'il ne doit PAS faire : déclarer morte une source vivante. Deux causes de faux
+# positif, toutes deux constatées le 14/08/2026 sur une URL parfaitement valide :
+#   · l'agent `Python-urllib/3.x` est filtré par la plupart des CDN → 403 ;
+#   · beaucoup de serveurs refusent HEAD tout en servant GET → 403/405.
+# Un gate qui rejette les sources réelles pousse à ne plus les citer : il produit
+# exactement le comportement qu'il existe pour empêcher.
+UA_LECTEUR = "Mozilla/5.0 (compatible; KredoMasterStudyGate/1.0; +audit-master-study.py)"
+
+
+def _suivre_chaine(url, methode, timeout, hops=0):
+    """Résout une URL avec UNE méthode HTTP fixe sur toute la chaîne de redirections.
+
+    `urllib` ne suit automatiquement que 301/302/303/307 sur cette version de
+    Python — pas 308 (Permanent Redirect), que plusieurs domaines `.gouv.fr`
+    émettent couramment. Le suivi est donc manuel, et volontairement borné à
+    une seule méthode par tentative : certains serveurs redirigent HEAD et GET
+    vers des chemins DIFFÉRENTS pour la même URL (constaté sur l'API Recherche
+    d'Entreprises — HEAD boucle sur un chemin qui répond 404, GET traverse un
+    domaine différent jusqu'à 200). Mélanger les méthodes en cours de chaîne
+    fait échouer une URL vivante ; `_url_resout` relance donc la chaîne
+    entière en GET si la chaîne HEAD échoue, plutôt que de changer de méthode
+    au milieu du parcours."""
+    import urllib.error
     import urllib.request
+    import urllib.parse
+
+    if hops > 5:
+        return False, "trop de redirections"
+    req = urllib.request.Request(url, method=methode, headers={"User-Agent": UA_LECTEUR})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if 200 <= resp.status < 300:
+                return True, None
+            return False, "HTTP {}".format(resp.status)
+    except urllib.error.HTTPError as exc:
+        if 300 <= exc.code < 400:
+            cible = exc.headers.get("Location") if exc.headers else None
+            if cible:
+                return _suivre_chaine(urllib.parse.urljoin(url, cible), methode, timeout, hops + 1)
+            return False, "HTTP {} sans Location".format(exc.code)
+        return False, "HTTP {}".format(exc.code)
+    except Exception as exc:  # noqa: BLE001 — DNS, TLS, timeout : la source ne résout pas
+        return False, type(exc).__name__
+
+
+def _url_resout(url, timeout=10):
+    """(ok, detail). Tente la chaîne en HEAD, retombe sur la chaîne en GET
+    quand HEAD échoue — deux tentatives indépendantes, jamais un mélange."""
+    ok, detail = _suivre_chaine(url, "HEAD", timeout)
+    if ok:
+        return True, None
+    ok, detail = _suivre_chaine(url, "GET", timeout)
+    if ok:
+        return True, None
+    return False, detail
+
+
+def _head_all(sources):
     ko = []
     for s in sources:
         url = s.get("url") if isinstance(s, dict) else None
         if not url:
             continue
-        try:
-            req = urllib.request.Request(url, method="HEAD")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if not 200 <= resp.status < 400:
-                    ko.append("{} -> {}".format(url, resp.status))
-        except Exception as exc:  # noqa: BLE001 — toute erreur réseau est un échec de résolution
-            ko.append("{} -> {}".format(url, type(exc).__name__))
+        ok, detail = _url_resout(url)
+        if not ok:
+            ko.append("{} -> {}".format(url, detail))
     return (not ko), ("{} URL en échec".format(len(ko)) + ("\n" + "\n".join("      · " + k for k in ko) if ko else ""))
 
 
@@ -802,6 +946,7 @@ def build(run_dir, today, verifier_urls):
     check_compteurs(docs, checks)
     check_schemas(docs, checks)
     check_sources(docs, checks, verifier_urls)
+    check_packs(docs, checks)
     check_urls_reglementaires(docs, checks, verifier_urls)
     check_editeur(docs, checks)
     check_arithmetique(docs, checks)

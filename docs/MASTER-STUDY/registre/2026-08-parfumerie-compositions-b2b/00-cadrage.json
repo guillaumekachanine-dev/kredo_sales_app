@@ -1,0 +1,103 @@
+{
+  "version": "1.0",
+  "date_snapshot": "2026-08-14",
+  "variante": "master",
+  "segment": {
+    "slug": "seg-parfumerie-compositions-b2b",
+    "nom": "Compositions & ingrédients B2B",
+    "sector_intelligence_id": "db34f8a0-9d9e-4585-acd6-2fbbdd1baad6",
+    "macro_slug": "parfumerie-aromes"
+  },
+  "definition_du_marche": "La création, la fabrication et la vente de compositions parfumantes et d'ingrédients aromatiques — huiles essentielles, extraits naturels, bases et concentrés — à des donneurs d'ordre industriels : marques de parfumerie et de cosmétique, industriels de l'agroalimentaire et de l'hygiène-entretien. Périmètre France, avec une concentration structurelle sur le bassin de Grasse.",
+  "hors_champ": [
+    "Les marques de produits finis, qui achètent ces compositions et relèvent du segment seg-parfumerie-marques-produits-finis",
+    "La distribution et le retail de parfumerie",
+    "La production agricole de matières premières non transformées (culture de plantes à parfum)",
+    "Les façonniers de remplissage et de conditionnement, dont le métier est industriel et non formulatoire"
+  ],
+  "geographie": "France entière (métropole + DROM)",
+  "compte_etalon": {
+    "nom": "Robertet",
+    "company_id": "67b346ff-68c8-4f36-a510-13024955856f",
+    "motif_du_choix": "Seul client du segment, donc le seul compte dont on peut confronter la fiche à ce qu'on sait déjà. C'est aussi le plus gros (2 400 salariés déclarés au CRM, siège à Grasse) et le seul grand_compte : s'il est mal caractérisé, la méthode est fausse et l'étude s'arrête."
+  },
+  "quotas": {
+    "leaders": 3,
+    "challengers": 3,
+    "mid_market": 3,
+    "outsiders_emergents": 2,
+    "outsiders_niche": 3
+  },
+  "profondeur_historique_ans": 10,
+  "exercice_de_reference": "dernier exercice clos publié",
+  "objectif_commercial": "ouverture",
+  "offre_kredo": {
+    "practices": [
+      "cloud-engineering",
+      "cybersecurity",
+      "data-ai",
+      "digital-business-solutions",
+      "digital-experience",
+      "legacy-systems-mainframe",
+      "project-agile-delivery",
+      "quality-engineering-testing"
+    ],
+    "offers": [
+      "agile-at-scale-release-coordination",
+      "agile-delivery-scrum-kanban",
+      "ai-machine-learning-mlops",
+      "application-management-productive-tma",
+      "application-modernization-legacy-refactoring",
+      "application-security-devsecops-offensive-testing",
+      "bi-analytics-decision-intelligence",
+      "business-analysis-digital-process-design",
+      "change-management-adoption",
+      "cloud-migration-application-modernization",
+      "cloud-operations-sre-observability",
+      "cloud-strategy-assessment-landing-zones",
+      "connected-products-iot-embedded-software",
+      "custom-business-applications-b2b-portals",
+      "cyber-strategy-grc-compliance",
+      "data-ai-strategy-governance",
+      "data-platforms-engineering-dataops",
+      "digital-product-management-optimization",
+      "finops-greenops-cloud-optimization",
+      "functional-api-integration-testing",
+      "generative-ai-rag-automation",
+      "iam-pam-zero-trust",
+      "legacy-estate-assessment-risk-reduction",
+      "legacy-infrastructure-mco-expert-operations",
+      "legacy-modernization-knowledge-transfer",
+      "legacy-performance-reliability-major-incidents",
+      "mainframe-application-maintenance-evolution",
+      "mobile-accessibility-experience-quality",
+      "mobile-applications-omnichannel-services",
+      "performance-reliability-resilience-testing",
+      "platform-engineering-devops-kubernetes",
+      "pmo-portfolio-transformation-governance",
+      "product-design-ui-design-systems",
+      "project-program-management",
+      "quality-strategy-test-governance",
+      "security-architecture-cloud-security",
+      "soc-detection-incident-response",
+      "software-architecture-apis-integration",
+      "test-automation-continuous-quality",
+      "ux-research-service-design",
+      "web-experiences-portals-ecommerce"
+    ],
+    "lu_en_base_le": "2026-08-14"
+  },
+  "comptes_exclus": [
+    {
+      "nom": "Robertet",
+      "motif": "client"
+    }
+  ],
+  "ce_que_j_en_ferai": "Ouvrir les six maisons de composition du bassin de Grasse qui ne sont pas encore clientes, sur la fenêtre réglementaire IFRA 52 dont la notification tombe fin novembre 2026 — et vérifier, sur Robertet, que la méthode décrit correctement un compte qu'on connaît déjà.",
+  "compteurs": {
+    "hors_champ": 4,
+    "comptes_exclus": 1,
+    "offre_kredo_practices": 8,
+    "offre_kredo_offers": 41
+  }
+}

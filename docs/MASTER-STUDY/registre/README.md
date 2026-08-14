@@ -3,9 +3,11 @@
 **Une ligne par run.** Ce registre répond à la seule question de gouvernance qui compte au
 quotidien : *« sur quels segments sommes-nous crédibles aujourd'hui, et jusqu'à quand ? »*
 
-> 🔴 **Vous reprenez le chantier ?** Commencez par
+> ✅ **Vous reprenez le chantier ?** Commencez par
 > **[`ROADMAP-CORRECTIONS.md`](ROADMAP-CORRECTIONS.md)** — autoportant, aucun historique requis.
-> Trois défauts de contrat bloquent tout run futur, sur n'importe quel segment.
+> Au 14/08/2026, **plus aucun défaut de contrat ne bloque un run** : les six corrections A1-A6
+> sont appliquées et le gel d'E3 est levé. Le déclencheur unique est le skill
+> `kredo-master-study`.
 
 ---
 
@@ -42,7 +44,47 @@ c'est ce qui rend la mise à jour différentielle (V3) possible et la comparaiso
 
 | Run | Segment | Variante | Snapshot | G0 | G1 | G2 | G3 | Verdict | Péremption triggers | Péremption carto |
 |---|---|---|---|:-:|:-:|:-:|:-:|---|---|---|
+| `2026-08-parfumerie-compositions-b2b` | seg-parfumerie-compositions-b2b | master | 2026-08-14 | ✅ go | ◐ 14/4 | — | — | **en cours** — E0/E1/E2 produits et exécutés en direct ; E3→E6 à jouer. Les 3 FAIL de journal sont les étapes non encore lancées ; le 4e est une question de contrat (voir ci-dessous) | 2026-11-14 | 2027-08-14 |
 | `2026-08-aero-spatial-defense` | seg-aero-spatial-defense | master (conversion) | 2026-08-13 | ⚠️ | ❌ | — | — | **rejected** — 13 FAIL contre corpus v1.0, 12 contre v1.1 ; aucune ingestion. Voir `08-rapport-ecarts.md` et `ROADMAP-CORRECTIONS.md` | 2026-11-13 | 2027-08-13 |
+
+---
+
+## Run en cours — `2026-08-parfumerie-compositions-b2b`
+
+**Premier run produit sous le corpus complet, et le premier qui cherche réellement.** Le
+segment a été choisi sur mesure en base : 7 comptes rattachés — le mieux doté des 38 —, les
+5 axes obligatoires à 100 %, et un macro qui porte déjà 18 items de connaissance.
+
+Ce que E0→E2 ont établi :
+
+- **G0 : `go`**, sans réserve sur les axes.
+- **Identité France : 7/7 résolues** au registre Sirene, toutes en NAF 20.53Z, sièges en
+  Alpes-Maritimes, 6 sur 7 à Grasse. Le segment est un cluster industriel réel.
+  Deux résolutions exigeaient un arbitrage humain et le script a refusé de les promouvoir :
+  « Jean Niel » rend trois homonymes à similarité 1,0 (enseignement sportif dans les
+  Hautes-Alpes, immobilier à Lisieux), et « Aromatech Group » n'existe pas au registre sous ce
+  nom. Les deux sont désormais tracées dans `02-socle.json`.
+- **A7 : gisement vide, et mesuré avant de dépenser.** 4 offres SI dans toute la division NAF 20
+  (chimie) en France, 0 dans l'enveloppe du segment — alors que le département 06 en porte 173
+  tous secteurs confondus. Le canal ne rendra rien ici ; cinq appels ont suffi à l'établir.
+- **S7 : l'échéance pivot du corpus était fausse.** La base datait l'amendement IFRA 52 au
+  31/12/2026. IFRA elle-même annonce sa **notification pour fin novembre 2026**, et fixe ses
+  délais de conformité *en relatif* à cette notification (+2 et +13 mois pour un standard
+  prohibitif). La date en base n'est donc pas une échéance de conformité, et elle n'a pas de
+  source. Trois autres items du macro portent une échéance **dépassée** sans que rien ne le
+  signale, dont un expiré 14 jours avant le run et toujours marqué `critical`.
+
+**Deux décisions attendent Guillaume** :
+
+1. **L'écriture en base** des 7 identités (`companies.siren`, `naf_code`, `account_facts`). Elle
+   n'a pas eu lieu : `faits_identite` vaut 0 partout, et `02-socle.json` le déclare
+   explicitement en `ecart_contrat`. C'est un arrêt de méthode, pas un oubli.
+2. **La question de contrat que G1 a soulevée** : le gate n'accepte comme source officielle
+   d'une échéance que `.gouv.fr` et `europa.eu`. L'IFRA est une association privée, mais ses
+   Standards sont la norme opposable de cette filière — et pour ce segment, il n'existe aucun
+   texte public équivalent. Soit la liste des autorités s'ouvre aux organismes normatifs
+   sectoriels, soit ce segment n'aura jamais d'échéance pivot recevable. **Le producteur ne
+   tranche pas son propre gate** (A10) : la question est posée, pas résolue.
 
 ---
 
@@ -57,14 +99,18 @@ dans le corpus, aucune collecte ne les réparera) de **six manques de matière**
 six premières corrections listées en §4 ne demandent aucune recherche et lèvent la moitié des
 échecs de G1.
 
-Trois d'entre elles bloquent tout run futur, sur n'importe quel segment :
+Trois d'entre elles bloquaient tout run futur, sur n'importe quel segment. **Les trois sont
+corrigées** — le run `2026-08-parfumerie-compositions-b2b` est la preuve qu'on peut désormais
+franchir G0 et produire :
 
-1. **G0 est inpassable par construction** — sa condition « 7 axes à 100 % » contredit le
-   `REFERENTIEL-CLASSIFICATION.md`, qu'il déclare pourtant normatif.
-2. **Le parseur E5 ne lit pas la couche ESN** que le schéma déclare obligatoire : elle est perdue
-   à l'import, silencieusement, et les `profile_json` de 46 octets en base le prouvent.
-3. **A9 et `cadrage.schema.json` s'excluent** : le bloc `compteurs` est exigé par l'axiome et
-   interdit par le schéma.
+1. ✅ **G0 était inpassable par construction** — sa condition « 7 axes à 100 % » contredisait le
+   `REFERENTIEL-CLASSIFICATION.md`, qu'il déclare pourtant normatif. Corrigé : 5 axes
+   obligatoires, 2 conditionnels dont le NULL se documente.
+2. ✅ **Le parseur E5 ne lisait pas la couche ESN** que le schéma déclare obligatoire : elle était
+   perdue à l'import, silencieusement, et les `profile_json` de 46 octets en base le prouvent.
+   Corrigé le 13/08 (commit `149d3e98`).
+3. ✅ **A9 et `cadrage.schema.json` s'excluaient** : le bloc `compteurs` était exigé par l'axiome
+   et interdit par le schéma.
 
 ---
 
@@ -87,10 +133,11 @@ défauts identifiés et non corrigés — les réutiliser sans correction reprod
 
 ## Ce qu'il faut faire des études existantes
 
-**Ne pas les rejouer sous ce corpus tant que les trois dettes bloquantes ne sont pas levées**
-(`12-OUTILLAGE-ET-PROJETS-LLM.md` §4) : les skills pointant vers un fichier disparu, le
-générateur de référentiels qui tronque au pack minimal, et la troncature positionnelle du
-collecteur de veille.
+**Deux des trois dettes bloquantes sont levées** (`12-OUTILLAGE-ET-PROJETS-LLM.md` §4) : les
+skills pointent désormais tous vers `kredo-master-study`, et la troncature du générateur de
+référentiels est devenue un FAIL bloquant de G1 au lieu d'un silence. Reste la **troncature
+positionnelle du collecteur de veille** (`slice(0, 40)`), qui n'empêche pas de produire une
+étude mais rend inutile toute extension du corpus de sources côté veille.
 
 En revanche, **les deux référentiels de sources sont réparables sans nouvelle recherche** : les
 objets manquants sont partiellement transcriptibles depuis les tableaux markdown des mêmes

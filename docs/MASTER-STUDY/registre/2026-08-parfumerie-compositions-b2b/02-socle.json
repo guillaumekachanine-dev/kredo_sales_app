@@ -1,0 +1,216 @@
+{
+  "date_execution": "2026-08-14",
+  "mode": "socle A1 et A7 exécutés en direct contre les API publiques",
+  "commentaire_mode": "Aucune conversion, aucune reprise d'étude antérieure : chaque valeur de ce fichier provient d'un appel joué le 14/08/2026, dont l'URL est portée par le champ `source` de la ligne concernée. La résolution d'identité a été produite par `scripts/resolve-account-identity.mjs`, en lecture seule.",
+  "perimetre": {
+    "segment_slug": "seg-parfumerie-compositions-b2b",
+    "comptes_rattaches": 7,
+    "dont_mapped": 0,
+    "commentaire": "Les 7 comptes portent le même code NAF 20.53Z (fabrication d'huiles essentielles) et ont tous leur siège en Alpes-Maritimes, 6 sur 7 à Grasse même. Le segment est un cluster industriel réel, pas une catégorie de commodité."
+  },
+  "identite": {
+    "comptes_cibles": 7,
+    "resolus": 7,
+    "ambigus": 0,
+    "non_tentes": 0,
+    "taux_couverture": 1.0,
+    "detail_resolus": [
+      {
+        "nom": "Robertet",
+        "siren": "415750660",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "ROBERTET SA",
+        "siege_commune": "GRASSE",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=415750660"
+      },
+      {
+        "nom": "Argeville",
+        "siren": "415550227",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "ARGEVILLE",
+        "siege_commune": "VALBONNE",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=415550227"
+      },
+      {
+        "nom": "Aromatech Group",
+        "siren": "339899486",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "AROMATECH",
+        "siege_commune": "SAINT-CEZAIRE-SUR-SIAGNE",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=339899486"
+      },
+      {
+        "nom": "Expressions Parfumees",
+        "siren": "323871426",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "EXPRESSIONS PARFUMEES",
+        "siege_commune": "GRASSE",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=323871426"
+      },
+      {
+        "nom": "Jean Niel",
+        "siren": "415750306",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "SOC NIEL JEAN",
+        "siege_commune": "GRASSE",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=415750306"
+      },
+      {
+        "nom": "PARFEX",
+        "siren": "333974657",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "PARFEX",
+        "siege_commune": "GRASSE",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=333974657"
+      },
+      {
+        "nom": "Payan Bertrand",
+        "siren": "415550029",
+        "naf_code": "20.53Z",
+        "faits_identite": 0,
+        "entite_retenue": "PAYAN BERTRAND",
+        "siege_commune": "GRASSE",
+        "departement": "06",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=415550029"
+      }
+    ],
+    "echecs": [],
+    "ecart_contrat": "Les 7 identités sont RÉSOLUES au registre mais PAS ENCORE ÉCRITES en base : `faits_identite` vaut 0 partout, et c'est un relevé exact, pas une omission. L'écriture (companies.siren, companies.naf_code, account_facts) est un arrêt où Guillaume décide — elle n'a pas eu lieu au moment où ce fichier est produit. L'erreur inverse a déjà été commise une fois : des compteurs de faits annoncés dans le JSON sans aucune ligne en base.",
+    "faits_avec_source": {
+      "total": 0,
+      "commentaire": "0 fait écrit — voir ecart_contrat. À l'écriture, chaque fait portera `primary_source_id` pointant l'appel registre de sa ligne."
+    },
+    "deux_resolutions_qui_exigeaient_un_arbitrage": [
+      {
+        "compte": "Jean Niel",
+        "piege": "Une recherche sur la raison sociale d'affichage rend TROIS homonymes avec une similarité de 1,0 : deux établissements à Vallouise-Pelvoux (Hautes-Alpes) en NAF 85.51Z « enseignement de disciplines sportives » et 85.59B, et un à Lisieux en 68.20B « location de biens immobiliers ». Aucun n'est une maison de composition.",
+        "retenu": "SOC NIEL JEAN, SIREN 415750306, NAF 20.53Z, siège Grasse 06130, créée en 1957 — cohérent avec jeanniel.com et avec les six autres comptes du segment.",
+        "lecon": "Le script a marqué le compte `ambiguous` et refusé de promouvoir. Une promotion automatique sur la similarité de nom aurait écrit une fausse identité, et le plancher de preuve aurait ensuite été calculé dessus."
+      },
+      {
+        "compte": "Aromatech Group",
+        "piege": "La recherche sur « Aromatech Group » ne rend aucun établissement actif : le suffixe commercial n'existe pas au registre.",
+        "retenu": "AROMATECH, SIREN 339899486, NAF 20.53Z, siège Saint-Cézaire-sur-Siagne 06530, créée en 1987.",
+        "lecon": "Un `not_found` n'est pas une absence d'entreprise, c'est une dénomination d'usage qui diffère de la raison sociale."
+      }
+    ],
+    "effectif_non_ecrit": "Le registre ne publie qu'une TRANCHE d'effectif, jamais une valeur. Aucun effectif n'est donc écrit depuis cette source."
+  },
+  "reglementaire": {
+    "items_segment": 0,
+    "items_macro": 5,
+    "futurs": 1,
+    "datees": 4,
+    "revalides_le": "2026-08-14",
+    "commentaire_revalidation": "Revalidation partielle et déclarée comme telle : SEUL l'item futur a été revalidé à la source, parce que c'est lui qui porte le motif d'appel. Les quatre autres restent non sourcés et non revalidés. Aucun des 5 items du macro ne porte de `source_url` en base — aucun n'est donc opposable devant un prospect en l'état.",
+    "echeance_pivot": {
+      "libelle": "Notification de l'amendement 52 aux IFRA Standards",
+      "date": "2026-11-30",
+      "authority": "International Fragrance Association (IFRA)",
+      "source_url": "https://ifrafragrance.org/latest-updates/ifra-news/ifra-52nd-amendment-consultation-closed",
+      "kredo_practice": "data-ai",
+      "reg_item_portee": "macro — s'impose à toute la famille parfumerie-aromes, pas au seul segment",
+      "reserve": "La date est ANNONCÉE par IFRA (« expected towards the end of November 2026 »), pas fixée par un texte. Elle se prononce comme telle : « la notification est attendue fin novembre », jamais « le 30 novembre ». Ce qui est certain et daté, c'est la clôture de la consultation publique le 12/06/2026 (source ci-dessus, page publiée le 15/06/2026)."
+    },
+    "correction_a_porter_en_base": {
+      "item": "IFRA 52e Amendement",
+      "valeur_en_base": "deadline_date = 2026-12-31, sans source_url",
+      "constat": "Ce n'est pas une échéance de conformité. IFRA fixe ses délais DANS la lettre de notification, en relatif : standard prohibitif, +2 mois pour les créations nouvelles et +13 mois pour les existantes ; standard restrictif ou de spécification, +9 et +28 mois. Tant que la notification n'est pas publiée, aucune date de conformité n'existe.",
+      "source": "https://ifrafragrance.org/initiatives-positions/safe-use-fragrance-science/ifra-standards",
+      "consequence_commerciale": "C'est une meilleure accroche que la date approximative, pas une moins bonne : la fenêtre s'ouvre à la notification. Une maison de composition découvre ce jour-là quelles formules de son portefeuille sont à reformuler, et dispose de 13 mois sur l'existant en cas de prohibition. Le besoin de screening est donc daté, borné, et il tombe dans environ trois mois et demi."
+    },
+    "items_passes_non_marques": [
+      {
+        "nom": "Règlement UE 2023/1545 — Étiquetage des allergènes",
+        "deadline_date": "2026-07-31",
+        "constat": "échéance dépassée depuis 14 jours au moment du run, urgency encore à 'critical' en base, is_commercial_window encore à true. Rien ne le signale."
+      },
+      {
+        "nom": "CSRD — Reporting de durabilité",
+        "deadline_date": "2026-01-01",
+        "constat": "dépassée"
+      },
+      {
+        "nom": "IFRA 51e Amendement",
+        "deadline_date": "2025-10-30",
+        "constat": "dépassée"
+      }
+    ],
+    "items_sans_date": [
+      {
+        "nom": "REACH — Enregistrement des substances",
+        "constat": "aucune deadline_date ; régime permanent, pas une échéance"
+      }
+    ]
+  },
+  "intensite_si": {
+    "comptes_mesures": 7,
+    "signaux_emis": 0,
+    "seuil": 3,
+    "offres_si_dans_l_enveloppe": 0,
+    "enveloppe": {
+      "secteur_activite": "20",
+      "departement": "06",
+      "commentaire": "Division NAF 20 (industrie chimique) — les 7 comptes portent 20.53Z. Département 06 — les 7 sièges y sont."
+    },
+    "gisement_mesure_avant_execution": [
+      {
+        "requete": "secteurActivite=20",
+        "offres": 367,
+        "lecture": "toutes offres de la division chimie, France entière"
+      },
+      {
+        "requete": "secteurActivite=20&domaine=M18",
+        "offres": 4,
+        "lecture": "offres SI de la division chimie, France entière — densité 1,1 %"
+      },
+      {
+        "requete": "secteurActivite=20&departement=06",
+        "offres": 13,
+        "lecture": "l'enveloppe exacte du segment"
+      },
+      {
+        "requete": "secteurActivite=20&departement=06&domaine=M18",
+        "offres": 0,
+        "lecture": "offres SI dans l'enveloppe"
+      },
+      {
+        "requete": "departement=06&domaine=M18",
+        "offres": 173,
+        "lecture": "témoin : le bassin n'est pas mort, mais son SI ne se recrute pas depuis la chimie"
+      }
+    ],
+    "verdict": "Absence de gisement, pas échec de mesure. Quatre offres SI dans TOUTE la division chimie française : le canal A7 ne rendra rien sur ce segment, et deux appels ont suffi à l'établir avant d'engager le budget de pagination.",
+    "consequence_methode": "La grille « IA annoncé vs déployé » de E5 devra être renseignée par les communiqués et les références éditeurs, pas par les offres d'emploi. Le sous-bloc reste obligatoire ; c'est son canal d'acquisition qui change.",
+    "source": "API France Travail Offres d'emploi v2, domaine ROME M18, mesuré le 2026-08-14"
+  },
+  "marches_publics": {
+    "comptes_avec_attribution": 0,
+    "source": null,
+    "commentaire": "Non exécuté. Le segment est intégralement privé (regime_achat = prive sur 7/7) : TED et BOAMP n'ont structurellement rien à rendre. C'est un non-lancement motivé, pas un trou."
+  },
+  "accessibilite_a6": {
+    "faits": 0,
+    "commentaire": "Bloc A6 non exécuté — c'est l'action B4 de la roadmap, ouverte sur les 109 comptes de la base. Il relève de E5 §4.3 et d'un travail humain de 30 à 45 min par compte prioritaire."
+  },
+  "compteurs": {
+    "detail_resolus": 7,
+    "echecs": 0,
+    "deux_resolutions_qui_exigeaient_un_arbitrage": 2,
+    "items_passes_non_marques": 3,
+    "items_sans_date": 1,
+    "gisement_mesure_avant_execution": 5
+  }
+}

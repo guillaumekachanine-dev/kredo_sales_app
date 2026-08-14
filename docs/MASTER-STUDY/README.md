@@ -198,11 +198,11 @@ aucune production ne le remplira jamais.
    Corollaire tranché au passage : **un compte client compte dans le seuil et figure dans la
    cartographie** — `comptes_exclus` d'E0 signifie « hors cibles de prospection ». → roadmap
    **A1**, **A2**.
-2. 🔴 **Le parseur E5 ne lit pas la couche ESN** que le schéma déclare obligatoire. Il ne projette
-   que onze clés dans `profile_json`, et aucune des six qui portent la valeur commerciale. La
-   perte est **silencieuse** — aucune erreur levée — et la preuve est en base : les dix
-   `competitive_map_entries` du Spatial pèsent **40 à 73 octets**. Conséquence directe : toute
-   collecte d'accessibilité faite avant cette correction est jetée à l'ingestion. → roadmap **A4**.
+2. ✅ **Le parseur E5 ne lisait pas la couche ESN** que le schéma déclare obligatoire : il ne
+   projetait que onze clés dans `profile_json`, aucune des six qui portent la valeur commerciale,
+   et la perte était **silencieuse**. La preuve en base : les dix `competitive_map_entries` du
+   Spatial pèsent **40 à 73 octets**. **Corrigé** le 13/08/2026 (commit `149d3e98`) — les six clés
+   sont lues, la couche ESN est produisible et importable. → roadmap **A4**.
 3. ✅ **A9 et `cadrage.schema.json` s'excluaient** : le bloc `compteurs` était exigé par l'axiome
    et interdit par `additionalProperties: false`. **Corrigé.** → roadmap **A3**.
 

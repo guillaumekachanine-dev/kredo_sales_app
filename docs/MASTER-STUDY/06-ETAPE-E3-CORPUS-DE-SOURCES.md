@@ -115,7 +115,15 @@ dont le domaine est celui d'un cabinet privé, **dans le pack minimal d'un livra
 - Le JSON sort du markdown : fichier `.json` versionné à côté, ou NDJSON (un objet par ligne).
 - `len(sources) == len(minimum_pack) + len(extended_pack)` est vérifié par script.
 - `publisher` doit être cohérent avec `domain`. Un écart = dégradation automatique du tier.
-- **Aucun nouveau référentiel n'est généré tant que le générateur n'est pas corrigé.**
+- ✅ **Gel levé le 14/08/2026.** Le générateur — un modèle, pas du code — tronquera encore ;
+  ce qui a changé, c'est que sa troncature n'est plus silencieuse. `check_packs` de
+  `scripts/audit-master-study.py` contrôle que chaque `src_id` de `pack_minimal` et
+  `pack_enrichi` résout dans `sources[]`, que les deux packs sont disjoints et couvrants, que
+  le champ `pack` de chaque source concorde avec les listes, et que les trois familles
+  obligatoires pointent un `src_id` réel. Une coupure à la frontière du pack minimal laisse
+  des identifiants orphelins : elle est désormais un FAIL bloquant, pas un silence.
+  **Le gel portait sur l'invisibilité du défaut, pas sur le défaut lui-même.** Produire,
+  passer G1, régénérer si le gate refuse — c'est une boucle, et elle fonctionne.
 
 ---
 

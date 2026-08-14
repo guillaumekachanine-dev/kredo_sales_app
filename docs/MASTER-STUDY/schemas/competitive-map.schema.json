@@ -83,7 +83,7 @@
           },
           "profil_compte": {
             "type": "object",
-            "description": "Blocs B2 a B5. AUCUN chiffre source ici (ADR-0019 D-4) : CA et effectif vont dans account_facts. /!\\ DEFAUT OUVERT AU 13/08/2026 (roadmap A4) : le parseur normatif competitive-map-output.ts ne lit AUCUNE des cles ci-dessous. Il ne projette que proposition_valeur, modele_economique, a_ne_pas_dire, dependances_cles, differenciateurs, priorites_strategiques, chantiers_technologiques, chaine_valeur, trigger_events, trous, sources. Tout ce bloc est donc PERDU SILENCIEUSEMENT a l ingestion — les competitive_map_entries du Spatial pesent 40 a 73 octets. Ne pas produire de couche ESN pour import tant que registre/ROADMAP-CORRECTIONS.md A4 n est pas fait.",
+            "description": "Blocs B2 a B5. AUCUN chiffre source ici (ADR-0019 D-4) : CA et effectif vont dans account_facts. Roadmap A4 CORRIGE le 13/08/2026 (commit 149d3e98) : le parseur normatif competitive-map-output.ts lit desormais les six cles qui portent la valeur commerciale (metier_chaine_valeur, maillon, contrats_majeurs, grilles, couche_esn, traduction_commerciale) en plus des onze d origine. La couche ESN est produisible et importable.",
             "properties": {
               "metier_chaine_valeur": { "type": "string" },
               "maillon": { "type": "string" },

@@ -1,0 +1,115 @@
+==============================================================================
+G1 — CONFORMITÉ · 2026-08-parfumerie-compositions-b2b
+MASTER-STUDY 10-ETAPE-E7 §3 · exécuté le 2026-08-14
+==============================================================================
+
+── PARSABILITE ───────────────────────────────────────────────────────────────
+  [PASS] Chaque .json du run charge
+      4 fichier(s) JSON, 0 illisible(s)
+
+  [PASS] Aucun JSON collé dans un markdown
+      aucun
+
+── INVARIANT A9 ──────────────────────────────────────────────────────────────
+  [PASS] 00-cadrage.json : compteurs == len(listes)
+      4 compteur(s) — sans liste correspondante : offre_kredo_practices, offre_kredo_offers
+
+  [PASS] 01-taxonomie.json : compteurs == len(listes)
+      4 compteur(s)
+
+  [PASS] 02-socle.json : compteurs == len(listes)
+      6 compteur(s)
+
+  [PASS] 03-sources.json : compteurs == len(listes)
+      4 compteur(s) — sans liste correspondante : requetes
+
+── SCHEMA ────────────────────────────────────────────────────────────────────
+  [PASS] 00-cadrage.json valide contre son schéma
+      conforme contre cadrage.schema.json
+
+  [PASS] 01-taxonomie.json valide contre son schéma
+      conforme contre taxonomie.schema.json
+
+  [PASS] 02-socle.json valide contre son schéma
+      conforme contre socle.schema.json
+
+  [FAIL] 03-sources.json valide contre son schéma
+      1 violation(s) contre source-registry.schema.json
+      · $.compteurs.requetes: 0 < minimum 15
+
+── SOURCES ───────────────────────────────────────────────────────────────────
+  [PASS] 03-sources.json : chaque src_id cité existe dans sources[]
+      29 source(s) déclarée(s), 0 référence(s) orpheline(s)
+
+  [PASS] 03-sources.json : aucun bloc sans source
+      0 bloc(s) portent un src_ids VIDE
+
+  [PASS] 03-sources.json : chaque source porte une URL
+      0 source(s) sans URL
+
+  [FAIL] 03-sources.json : chaque URL répond (HEAD 2xx/3xx)
+      3 URL en échec
+      · https://data.inpi.fr/content/editorial/Acces_API_Entreprises -> HTTP 403
+      · https://echa.europa.eu/en/information-on-chemicals -> HTTP 403
+      · https://www.perfumerflavorist.com/news/fragrance/news/22944774/symrise-usa-sfa-neroli-opens-new-fragrance-campus-in-grasse-france -> HTTP 403
+
+── PACKS ─────────────────────────────────────────────────────────────────────
+  [PASS] 03-sources.json : chaque src_id des packs existe dans sources[]
+      29 sources, 12 minimal + 17 enrichi
+
+  [PASS] 03-sources.json : les deux packs sont disjoints
+      aucun recouvrement
+
+  [PASS] 03-sources.json : les packs couvrent toutes les sources
+      les 29 source(s) sont toutes rattachées à un pack
+
+  [PASS] 03-sources.json : le champ `pack` concorde avec les listes
+      concordant
+
+  [PASS] 03-sources.json : presse pro · fédération · régulateur, résolus ou déclarés absents
+      les trois familles sont renseignées
+
+── SOURCES ───────────────────────────────────────────────────────────────────
+  [PASS] 02-socle.json : chaque URL réglementaire répond (HEAD 2xx/3xx)
+      1 URL(s) vérifiée(s)
+
+── INVARIANT A9 ──────────────────────────────────────────────────────────────
+  [PASS] 02-socle.json : total des faits = somme du détail
+      0 faits sur 7 comptes résolus, tous sourcés
+
+── JOURNAL ───────────────────────────────────────────────────────────────────
+  [PASS] 02-journal.md : ≥ 3 requêtes distinctes
+      24 requête(s) jouée(s)
+
+  [FAIL] 03-journal.md : ≥ 15 requêtes distinctes
+      fichier absent
+
+  [FAIL] 04-journal.md : ≥ 25 requêtes distinctes
+      fichier absent
+
+  [FAIL] 05-journal.md : ≥ 25 requêtes distinctes
+      fichier absent
+
+── ECHEANCE PIVOT ────────────────────────────────────────────────────────────
+  [FAIL] echeance_pivot datée, future et sourcée officiellement
+      « Notification de l'amendement 52 aux IFRA Standards » · 2026-11-30 · future · source NON OFFICIELLE (ifrafragrance.org)
+
+  [PASS] échéances revalidées le jour du run
+      revalides_le = '2026-08-14', run du 2026-08-14, 24 requête(s) jouée(s)
+
+── VOCABULAIRE ───────────────────────────────────────────────────────────────
+  [PASS] aucune inférence non marquée (A11)
+      aucune occurrence de « besoins SI probables » ou équivalent
+
+── PORTEE ────────────────────────────────────────────────────────────────────
+  [PASS] toute écriture sectorielle porte le segment (A4)
+      segment seg-parfumerie-compositions-b2b cohérent sur tous les fichiers
+
+==============================================================================
+  PASS 23   FAIL 6   NON EXÉCUTÉ 0
+
+  VERDICT G1 : FAIL
+
+  Bloquant. Les contrôles en échec ne se corrigent pas dans le JSON :
+  ils se corrigent dans la matière, ou le contrat est faux.
+==============================================================================

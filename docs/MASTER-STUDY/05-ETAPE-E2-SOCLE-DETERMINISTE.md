@@ -180,7 +180,20 @@ décidable en donnant un plancher de preuve à chaque compte.
 ## 8. Livrables et formalisme
 
 E2 ne produit pas de document : **il produit des lignes en base**. Son livrable de run est un
-rapport de couverture.
+rapport de couverture, accompagné du journal de sa revalidation.
+
+| Livrable | Forme | Emplacement |
+|---|---|---|
+| Rapport de couverture | **`.json` validé** contre `schemas/socle.schema.json` | `registre/<run>/02-socle.json` |
+| Journal de revalidation | Markdown horodaté, **≥ 3 requêtes** | `registre/<run>/02-journal.md` |
+
+> **Pourquoi E2 a un journal** (ajouté le 14/08/2026). §1 impose de revalider chaque échéance
+> **au jour du run**, et G1 exige des requêtes jouées avant d'accepter `revalides_le`. Aucun
+> fichier ne permettait de les consigner : `revalides_le` ne pouvait donc jamais être
+> légitimement renseigné sur un run où seul E2 avait tourné. Défaut de contrat de la même
+> famille que A1 — une obligation dont la preuve n'avait pas d'emplacement. Le seuil est bas
+> parce que la revalidation vise quelques échéances déjà connues ; elle ne découvre pas un
+> corpus, c'est le travail de E3.
 
 **Fichier** : `registre/<run>/02-socle.json`
 

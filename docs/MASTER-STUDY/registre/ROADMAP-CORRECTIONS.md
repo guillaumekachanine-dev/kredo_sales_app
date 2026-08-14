@@ -4,10 +4,12 @@
 historique : lisez ce fichier en entier, il est autoportant. Vous n'avez besoin de rien d'autre
 pour savoir quoi faire, dans quel ordre, et pourquoi.
 
-Dernière mise à jour : **13/08/2026**, après le run `2026-08-aero-spatial-defense` et l'application de A1-A2-A3.
+Dernière mise à jour : **14/08/2026**. Les six défauts de contrat A1-A6 sont corrigés, le gel
+d'E3 est levé, et `kredo-master-study` est le seul déclencheur autorisé.
 
-**Prochaine action : A4** — le parseur E5. C'est le seul bloquant restant, et celui qui fait perdre
-la collecte si on l'attaque dans le mauvais ordre.
+**Prochaine action : produire.** Plus aucun défaut de contrat ne bloque un run. Ce qui reste est
+de la matière — **B4** (accessibilité, 0 fait sur 109 comptes) — et le choix du segment, que
+`.agents/skills/kredo-master-study/references/etat-du-chantier.md` §5 tranche sur mesure en base.
 
 ---
 
@@ -86,7 +88,7 @@ L'axiome A9 impose un bloc `compteurs` sur **tout** livrable. `cadrage.schema.js
 fichier, ne pas l'ajouter le fait échouer à G1. Les deux contrôles ne peuvent pas passer
 ensemble.
 
-### A4 — Le parseur E5 ne lit pas la couche ESN 🔴 — **le plus coûteux, et le plus rentable**
+### A4 — Le parseur E5 ne lisait pas la couche ESN ✅ *corrigé le 13/08, commit `149d3e98`*
 
 `competitive-map.schema.json` définit `profil_compte` avec `metier_chaine_valeur`, `maillon`,
 `contrats_majeurs`, `grilles` (dont `ia_annonce_vs_deploye`, **déclaré obligatoire**),
@@ -278,8 +280,11 @@ gagner un PASS, et c'était celui obtenu en écrasant un `null` assumé.
 - **Les deux skills `.agents/skills/`** pointent toujours vers `docs/PROCESS-ETUDE-SECTORIELLE.md`,
   chemin qui n'existe plus. Un agent qui les déclenche improvise le schéma. À repointer sur
   `07-ETAPE-E4…`.
-- **Le générateur de référentiels de sources tronque au pack minimal** — deux référentiels
-  annoncent 15 et 13 sources et en contiennent 7 et 5. E3 reste inexécutable de façon fiable.
+- ✅ **E3 est redevenu exécutable le 14/08/2026.** Le générateur tronque toujours — c'est un
+  modèle — mais `check_packs` (G1) attrape la coupure : les `src_id` du pack enrichi restent
+  listés alors que leurs sources ont disparu, donc orphelins, donc FAIL bloquant. Le contrôle
+  a été éprouvé sur une reconstitution de la panne réelle (15 sources annoncées, 7 livrées,
+  compteur ajusté pour rester cohérent — le cas que `check_compteurs` ne voyait pas).
 
 ---
 
