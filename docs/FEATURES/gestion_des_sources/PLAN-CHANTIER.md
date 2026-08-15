@@ -1,8 +1,11 @@
 # Gestion des sources — plan de chantier
 
-> **Statut : proposition, soumise à Guillaume. Rien n'est écrit en base, en repo ni sur n8n.**
-> Audit code + base réalisé le 2026-08-14 contre la base live (`jvzgmhvwirsbdkjpmvla`) et `main`
-> au commit `c1114a64`. Tout chiffre de ce document est mesuré, pas repris d'une doc.
+> **Statut au 2026-08-15 : Lot 0 et Lot 1 livrés et appliqués en production. Lot 2 livré en
+> repo, non déployé sur le VPS.** Ce document reste la référence d'architecture (§3) et de
+> décisions (§2, §7) ; son tableau de statut d'origine (§4, "rien n'est écrit") est périmé —
+> voir `HANDOFF-LOT0.md` et `HANDOFF-LOT2.md` pour l'état réel par lot.
+> Audit code + base initial réalisé le 2026-08-14 contre la base live (`jvzgmhvwirsbdkjpmvla`) et
+> `main` au commit `c1114a64`. Tout chiffre de ce document est mesuré, pas repris d'une doc.
 
 ---
 
@@ -431,8 +434,8 @@ Nettoyage : suppression des champs **Familles de sources** et **Catégories surv
 | Lot | Périmètre | Gate de sortie | Valeur si on s'arrête là |
 |---|---|---|---|
 | **0 — Débloquer le collecteur** ✅ **LIVRÉ 2026-08-14** | n8n veille hebdo seul : tourniquet par source, dédup douce sur titre, `nb_sources_actives` honnête, déplacement sous `n8n/workflows/`. **Aucune table, aucune UI.** → `HANDOFF-LOT0.md` | Harnais Node 29/29 ; contre-épreuve : ancien code 2/14 sources, nouveau 14/14 | ✅ La veille actuelle s'améliore immédiatement |
-| **1 — Socle base** | 3 tables + vue + RLS + RPC d'ingestion + seed des 14 + `include_sector_corpus` + `veille_articles.source_catalog_id` + `db:types` | Assertions SQL, advisors sécurité/perf, isolation workspace | Rien de visible |
-| **2 — Branchement veille hebdo** | Le workflow lit la vue. Toujours aucune UI. | Run : 14 socle, source en erreur isolée, échec si 0 ligne | ✅ Les sources sont pilotées par la base |
+| **1 — Socle base** ✅ **LIVRÉ, appliqué en prod (migrations 077/078)** | 3 tables + vue + RLS + RPC d'ingestion + seed des 14 + `include_sector_corpus` + `veille_articles.source_catalog_id` + `db:types` | Assertions SQL, advisors sécurité/perf, isolation workspace | 14 sources en base, vue `v_effective_watch_sources` = 14 lignes `news` |
+| **2 — Branchement veille hebdo** ✅ **LIVRÉ en repo 2026-08-15, non déployé sur le VPS** → `HANDOFF-LOT2.md` | Le workflow lit la vue (`rss` + `site_search`), déballe la provenance Google News, re-clé le tourniquet sur `source_id`, propage `source_catalog_id`, rend `Créer Digest` idempotent (`on_conflict`), échoue explicitement si 0 source. Toujours aucune UI. | Harnais Node 57/57 ; typecheck/test/server-boundary/lint/build verts ; smoke VPS **restant à faire** | ✅ Les sources sont pilotées par la base — après réimport VPS |
 | **3 — UI Gérer les sources** | Launcher, dialog Desktop, drawer Mobile, source manuelle, activation/modulation corpus, nettoyage des champs morts | typecheck · test · server-boundary · lint · build ; QA 1440×900 et 390×844 (Guillaume) | ✅ La demande 1→5 est livrée |
 | **4 — Import de corpus** | Parseur E3, résolution lecture seule, wizard 3 étapes, RPC | Import du corpus parfumerie : 29 sources, 21 collectables, 8 `static` exclues et expliquées | ✅ Demandes 6 et 7 |
 | **5 — INTEL-033 sectoriel** | `include_sector_corpus`, branche corpus, tourniquet re-clé, filtre administratif | Compte avec segment / fallback macro / sans corpus ; 0 item ; erreur isolée | ✅ Héritage sectoriel |
