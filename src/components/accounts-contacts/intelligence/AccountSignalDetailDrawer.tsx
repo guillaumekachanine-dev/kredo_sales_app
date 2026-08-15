@@ -109,12 +109,12 @@ export function AccountSignalDetailDrawer({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="max-w-[200px] truncate font-semibold text-primary underline-offset-2 hover:underline"
-                title={signal.primarySource?.source_name ?? undefined}
+                title={signal.primarySource?.source_name || signal.primarySourceId || undefined}
               >
-                {signal.primarySource?.source_name || "Ouvrir la source"}
+                {signal.primarySource?.source_name || signal.primarySourceId || "Ouvrir la source"}
               </a>
             ) : (
-              <span className="max-w-[200px] truncate font-semibold text-heading">{signal.primarySource?.source_name || "Non disponible"}</span>
+              <span className="max-w-[200px] truncate font-semibold text-heading">{signal.primarySource?.source_name || signal.primarySourceId || "Non disponible"}</span>
             )}
           </div>
         </div>

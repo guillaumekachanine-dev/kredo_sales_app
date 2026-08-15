@@ -196,7 +196,7 @@ export function VeilleSignalsView({
             urgencyScore: detailSignal.urgencyScore,
             confidenceScore: detailSignal.confidenceScore,
             status: detailSignal.status,
-            primarySourceId: detailSignal.primarySource?.id ?? null,
+            primarySourceId: detailSignal.primarySourceId ?? detailSignal.primarySource?.source_name ?? null,
             recommendedAction: detailSignal.recommendedAction,
             recommendedPracticeId: detailSignal.recommendedPracticeId,
             primarySource: detailSignal.primarySource,

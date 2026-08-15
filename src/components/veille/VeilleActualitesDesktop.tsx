@@ -4,7 +4,7 @@ import {useEffect, useMemo, useRef, useState} from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { AccountSignalDesktopActions } from "@/components/accounts-contacts/intelligence/AccountSignalDesktopActions"
+import { AccountSignalDetailDrawer } from "@/components/accounts-contacts/intelligence/AccountSignalDetailDrawer"
 import { AccountWatchHeaderActions } from "@/components/accounts-contacts/intelligence/AccountWatchHeaderActions"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
@@ -34,7 +34,6 @@ import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
 import { extractMatchedCompany, getRelativeTimeFr } from "./veille-utils"
 import {
   MONTHLY_WATCH_WORKFLOW_ID,
-  getSecondaryItems,
   type GlobalWatchSettings,
   type GlobalWatchWorkflowHealth,
   type MonthlyWatchGenerationContext,
@@ -331,8 +330,81 @@ type GroupedAccountSignals = {
   signals: WatchedAccountSignal[]
 }
 
+function formatSignalDayMonth(value: string | Date | null | undefined): string {
+  if (!value) return "—"
+  const date = typeof value === "string" ? new Date(value) : value
+  if (isNaN(date.getTime())) return "—"
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(date)
+}
+
+type SignalCategoryStyle = {
+  text: string
+  bg: string
+  border: string
+  dot: string
+}
+
+function getSignalCategoryStyle(category?: string): SignalCategoryStyle {
+  if (!category) {
+    return {
+      text: "text-primary",
+      bg: "bg-primary/5",
+      border: "border-primary/20",
+      dot: "bg-primary",
+    }
+  }
+  const lower = category.toLowerCase()
+  if (lower.includes("réglement") || lower.includes("reglement") || lower.includes("legal") || lower.includes("juridique") || lower.includes("risque")) {
+    return {
+      text: "text-danger",
+      bg: "bg-danger/10",
+      border: "border-danger/25",
+      dot: "bg-danger",
+    }
+  }
+  if (lower.includes("nominat") || lower.includes("rh") || lower.includes("recrutement") || lower.includes("organis")) {
+    return {
+      text: "text-info",
+      bg: "bg-info/10",
+      border: "border-info/25",
+      dot: "bg-info",
+    }
+  }
+  if (lower.includes("financ") || lower.includes("invest") || lower.includes("levée") || lower.includes("levee") || lower.includes("croissance") || lower.includes("m&a")) {
+    return {
+      text: "text-success",
+      bg: "bg-success/10",
+      border: "border-success/25",
+      dot: "bg-success",
+    }
+  }
+  if (lower.includes("marché") || lower.includes("marche") || lower.includes("stratégie") || lower.includes("strategie") || lower.includes("concurr")) {
+    return {
+      text: "text-brand-brass",
+      bg: "bg-brand-brass/10",
+      border: "border-brand-brass/25",
+      dot: "bg-brand-brass",
+    }
+  }
+  if (lower.includes("tech") || lower.includes("ia") || lower.includes("data") || lower.includes("digital") || lower.includes("cloud") || lower.includes("projet") || lower.includes("transfo")) {
+    return {
+      text: "text-primary",
+      bg: "bg-primary/10",
+      border: "border-primary/25",
+      dot: "bg-primary",
+    }
+  }
+  return {
+    text: "text-primary",
+    bg: "bg-primary/5",
+    border: "border-primary/20",
+    dot: "bg-primary",
+  }
+}
+
 function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }) {
   const [dismissedSignalIds, setDismissedSignalIds] = useState<Set<string>>(() => new Set())
+  const [selectedDetailSignal, setSelectedDetailSignal] = useState<WatchedAccountSignal | null>(null)
   const [feedback, setFeedback] = useState<{ message: string; tone: "info" | "success" | "error" } | null>(null)
   const visibleSignals = useMemo(
     () => signals.filter((signal) => !dismissedSignalIds.has(signal.id)),
@@ -376,59 +448,64 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
   const { company, signals: accountSignals } = activeGroup
 
   return (
-    <div className="grid grid-cols-[17rem_minmax(0,1fr)] border border-border bg-surface min-h-[38rem]">
-      {/* Colonne de gauche : Comptes suivis */}
-      <section className="border-r border-border bg-edito-canvas/50 p-3.5">
-        <SectionHeading>Comptes suivis ({groupedAccounts.length})</SectionHeading>
-        <div className="mt-3.5 max-h-[calc(100dvh-13rem)] space-y-2.5 overflow-y-auto veille-scrollbar">
-          {groupedAccounts.map((group) => {
-            const isSelected = group.company.id === activeGroup.company.id
-            const signalCount = group.signals.length
-            const signalLabel = signalCount === 1 ? "1 signal détecté" : `${signalCount} signaux détectés`
-            const cadenceLabel = formatAccountWatchCadence(group.company.cadence)
-
-            return (
-              <button
-                key={group.company.id}
-                type="button"
-                onClick={() => setSelectedAccountId(group.company.id)}
-                aria-pressed={isSelected}
-                className={cn(
-                  "flex w-full items-center gap-3.5 border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading rounded-md",
-                  isSelected
-                    ? "border-brand-brass bg-primary/[0.05]"
-                    : "border-border bg-surface hover:bg-surface-hover"
-                )}
-              >
-                {/* Logo en grand carré aligné sur la gauche */}
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-edito-canvas p-1">
-                  <CompanyLogo
-                    name={group.company.name}
-                    logoPath={group.company.logoPath}
-                    website={group.company.website}
-                    size="lg"
-                  />
-                </div>
-
-                {/* Informations du compte */}
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <p className="truncate font-heading text-xs font-bold text-heading">
-                    {group.company.name}
-                  </p>
-                  <p className="text-[10px] text-muted">
-                    Veille {cadenceLabel}
-                  </p>
-                  <p className="text-[11px] font-bold text-brand-brass">
-                    {signalLabel}
-                  </p>
-                </div>
-              </button>
-            )
-          })}
+    <div className="grid grid-cols-[280px_minmax(0,1fr)] border border-border bg-surface min-h-[38rem]">
+      {/* Colonne de gauche : Comptes suivis (design & mise en page identiques aux articles du digest) */}
+      <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-border bg-surface">
+        <div className="p-4 border-b border-border bg-surface shrink-0">
+          <SectionHeading>Comptes suivis ({groupedAccounts.length})</SectionHeading>
         </div>
-      </section>
+        <div className="flex-1 overflow-y-auto veille-scrollbar">
+          <div className="divide-y divide-border">
+            {groupedAccounts.map((group) => {
+              const isSelected = group.company.id === activeGroup.company.id
+              const signalCount = group.signals.length
+              const signalLabel = signalCount === 1 ? "1 signal détecté" : `${signalCount} signaux détectés`
+              const cadenceLabel = formatAccountWatchCadence(group.company.cadence)
 
-      {/* Colonne de droite : Page de veille dédiée au compte avec tous ses signaux */}
+              return (
+                <button
+                  key={group.company.id}
+                  type="button"
+                  onClick={() => setSelectedAccountId(group.company.id)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "flex w-full items-center gap-3 text-left p-4 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-heading",
+                    isSelected
+                      ? "bg-primary/[0.05] border-l-2 border-l-primary"
+                      : "hover:bg-surface-hover border-l-2 border-l-transparent"
+                  )}
+                >
+                  {/* Logo de l'entreprise */}
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-edito-canvas p-1">
+                    <CompanyLogo
+                      name={group.company.name}
+                      logoPath={group.company.logoPath}
+                      website={group.company.website}
+                      size="lg"
+                      className="size-full"
+                    />
+                  </div>
+
+                  {/* Informations du compte */}
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-primary">
+                      Veille {cadenceLabel}
+                    </span>
+                    <span className="mt-1 block text-[13px] font-bold leading-snug text-heading line-clamp-2">
+                      {group.company.name}
+                    </span>
+                    <span className="mt-1.5 block text-[10px] text-muted">
+                      {signalLabel}
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </aside>
+
+      {/* Colonne de droite : Page de veille dédiée au compte avec tous ses signaux en timeline */}
       <div className="paper-sheet px-6 py-7 lg:px-8 veille-scrollbar overflow-y-auto max-h-[calc(100dvh-13rem)]">
         {/* Entête du compte sélectionné */}
         <header className="flex flex-wrap items-center justify-between gap-5 border-b border-border pb-6">
@@ -492,36 +569,104 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
           </p>
         ) : null}
 
-        {/* Section présentant l'ensemble des signaux du compte */}
+        {/* Section présentant l'ensemble des signaux du compte en timeline */}
         <section className="mt-6 space-y-4">
           <SectionHeading>
             Signaux du compte ({accountSignals.length})
           </SectionHeading>
 
-          <div className="space-y-4">
-            {accountSignals.map((signal) => (
-              <AccountSignalDesktopActions
-                key={signal.id}
-                signalId={signal.id}
-                companyId={signal.company.id}
-                companyName={signal.company.name}
-                category={signal.category}
-                title={signal.title}
-                publishedAt={formatDateFr(signal.publishedAt ?? signal.detectedAt)}
-                sourceName={signal.primarySource?.source_name ?? "Source non renseignée"}
-                sourceUrl={signal.primarySource?.source_url ?? null}
-                summary={signal.summary}
-                analysis={signal.analysis ?? null}
-                recommendedAction={signal.recommendedAction}
-                globalScore={signal.globalScore}
-                urgencyScore={signal.urgencyScore}
-                confidenceScore={signal.confidenceScore}
-                onDismiss={(signalId) => setDismissedSignalIds((current) => new Set(current).add(signalId))}
-              />
-            ))}
-          </div>
+          <ul className="mt-6 space-y-0" aria-label={`Signaux du compte ${company.name}`}>
+            {accountSignals.map((signal, index) => {
+              const isLast = index === accountSignals.length - 1
+              const sourceName = signal.primarySource?.source_name ?? signal.primarySourceId ?? "Source non renseignée"
+              const dateLabel = formatSignalDayMonth(signal.publishedAt ?? signal.detectedAt)
+              const catStyle = getSignalCategoryStyle(signal.category)
+
+              return (
+                <li key={signal.id} className="relative flex items-start gap-4">
+                  {/* Date à gauche de la timeline au format JJ mois */}
+                  <div className="w-20 shrink-0 text-right pt-0.5">
+                    <span className="text-xs font-semibold text-muted">{dateLabel}</span>
+                  </div>
+
+                  {/* Axe vertical + Point sur la timeline (avec couleur sobre de la catégorie) */}
+                  <div className="relative flex flex-col items-center self-stretch shrink-0">
+                    <span className={cn("relative z-10 mt-1.5 size-2.5 rounded-full ring-4 ring-surface", catStyle.dot)} aria-hidden="true" />
+                    {!isLast && <span className="absolute top-3.5 bottom-0 w-px bg-border" aria-hidden="true" />}
+                  </div>
+
+                  {/* Section du signal (sans cadre fermé) */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDetailSignal(signal)}
+                    className="group mb-6 flex flex-1 items-center justify-between gap-4 -mt-0.5 rounded-md px-3 py-1.5 -ml-1 text-left transition-colors hover:bg-surface-hover/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heading"
+                  >
+                    <div className="min-w-0 flex-1 space-y-1">
+                      {/* Ligne 1 : Titre du signal (à hauteur de la date et du point) */}
+                      <h3 className="font-heading text-sm font-bold leading-5 text-heading transition-colors group-hover:text-primary">
+                        {signal.title}
+                      </h3>
+
+                      {/* Ligne 2 : source : XXX (source_name provenant de intelligence_sources) */}
+                      <p className="text-xs text-muted leading-4">
+                        source : <span className="font-medium text-heading">{sourceName}</span>
+                      </p>
+
+                      {/* Ligne 3 : Pastille de catégorie sous la source */}
+                      <div className="pt-0.5">
+                        <span className={cn("inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]", catStyle.text, catStyle.bg, catStyle.border)}>
+                          {signal.category.replaceAll("_", " ")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Flèche triangulaire pointant à droite, centrée en hauteur */}
+                    <div className="flex shrink-0 items-center justify-center pl-2 text-muted transition-transform duration-150 group-hover:translate-x-1 group-hover:text-primary" aria-hidden="true">
+                      <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5.14v13.72a1 1 0 001.57.82l10.29-6.86a1 1 0 000-1.64L9.57 4.32A1 1 0 008 5.14z" />
+                      </svg>
+                    </div>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
         </section>
       </div>
+
+      {selectedDetailSignal ? (
+        <AccountSignalDetailDrawer
+          open={selectedDetailSignal !== null}
+          onOpenChange={(next) => {
+            if (!next) setSelectedDetailSignal(null)
+          }}
+          signal={{
+            id: selectedDetailSignal.id,
+            category: selectedDetailSignal.category,
+            type: selectedDetailSignal.type,
+            title: selectedDetailSignal.title,
+            summary: selectedDetailSignal.summary,
+            detectedAt: selectedDetailSignal.detectedAt,
+            expiresAt: null,
+            publishedAt: selectedDetailSignal.publishedAt ?? null,
+            globalScore: selectedDetailSignal.globalScore,
+            interestScore: selectedDetailSignal.globalScore,
+            urgencyScore: selectedDetailSignal.urgencyScore,
+            confidenceScore: selectedDetailSignal.confidenceScore,
+            status: selectedDetailSignal.status,
+            primarySourceId: selectedDetailSignal.primarySourceId ?? selectedDetailSignal.primarySource?.source_name ?? null,
+            recommendedAction: selectedDetailSignal.recommendedAction,
+            recommendedPracticeId: selectedDetailSignal.recommendedPracticeId,
+            primarySource: selectedDetailSignal.primarySource,
+          }}
+          companyId={company.id}
+          companyName={company.name}
+          onDismiss={(signalId) => {
+            setDismissedSignalIds((current) => new Set(current).add(signalId))
+            setSelectedDetailSignal(null)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

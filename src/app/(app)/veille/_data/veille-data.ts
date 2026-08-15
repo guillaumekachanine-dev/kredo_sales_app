@@ -350,6 +350,7 @@ export type WatchedAccountSignal = {
   analysis?: string | null
   recommendedPracticeId: string | null
   companyId: string
+  primarySourceId?: string | null
   company: {
     id: string
     name: string
@@ -415,6 +416,7 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
         score_justification,
         recommended_practice_id,
         company_id,
+        primary_source_id,
         companies(id, name, website, meta_logo_path),
         intelligence_sources(id, source_name, source_url)
       `)
@@ -451,6 +453,7 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
         analysis: row.score_justification,
         recommendedPracticeId: row.recommended_practice_id,
         companyId: row.company_id,
+        primarySourceId: row.primary_source_id ?? null,
         company: companyRow ? {
           id: companyRow.id,
           name: companyRow.name,
