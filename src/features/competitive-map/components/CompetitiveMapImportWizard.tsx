@@ -954,7 +954,7 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
         "border border-edito-border bg-edito-canvas transition-all duration-300",
         isMobile
           ? "!inset-0 !m-0 !h-[100dvh] !max-h-[100dvh] !w-screen !max-w-none !rounded-none !border-0"
-          : "w-full rounded-xl sm:!h-[min(86vh,800px)] sm:!w-[92vw] sm:!max-w-[1240px]",
+          : "w-full rounded-xl sm:!h-[min(74vh,660px)] sm:!w-[92vw] sm:!max-w-[1200px]",
       )}
       fillHeight
       maxHeightClassName={isMobile ? "max-h-[100dvh]" : undefined}
