@@ -59,9 +59,9 @@ export function PropositionB({
   const selectedHistory = MOCK_HISTORY.find((h) => h.id === selectedHistoryId)
 
   return (
-    <div className="mx-auto flex h-[640px] w-full max-w-[1220px] overflow-hidden rounded-xl border border-slate-300 bg-slate-100 font-sans shadow-xl">
+    <div className="mx-auto flex h-[640px] w-full max-w-[1020px] overflow-hidden rounded-xl border border-slate-300 bg-slate-100 font-sans shadow-xl">
       {/* ── RAIL GAUCHE : COBALT WORKSPACE CONTROL TOWER ─────────────── */}
-      <aside className="flex w-[230px] shrink-0 flex-col justify-between border-r border-slate-700 bg-[#162650] p-5 text-white">
+      <aside className="flex w-[195px] shrink-0 flex-col justify-between border-r border-slate-700 bg-[#162650] p-5 text-white">
         {/* Timeline centrée horizontalement */}
         <div className="flex flex-col items-center pt-2 text-center">
           <p className="mb-6 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#63A6E8]">

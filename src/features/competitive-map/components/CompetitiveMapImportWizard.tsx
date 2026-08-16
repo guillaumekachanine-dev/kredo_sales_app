@@ -954,7 +954,7 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
         "border border-edito-border bg-edito-canvas transition-all duration-300",
         isMobile
           ? "!inset-0 !m-0 !h-[100dvh] !max-h-[100dvh] !w-screen !max-w-none !rounded-none !border-0"
-          : "w-full rounded-xl sm:!h-[min(74vh,660px)] sm:!w-[92vw] sm:!max-w-[1200px]",
+          : "w-full rounded-xl sm:!h-[min(74vh,660px)] sm:!w-[88vw] sm:!max-w-[1020px]",
       )}
       fillHeight
       maxHeightClassName={isMobile ? "max-h-[100dvh]" : undefined}
@@ -968,7 +968,7 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
       closeButtonClassName={isMobile ? "-mr-2 size-11 rounded-full text-white/75 hover:bg-white/10 hover:text-white" : "size-10 rounded-md text-edito-muted hover:bg-edito-chip hover:text-edito-navy"}
       bodyClassName="-mx-4 -mb-4 -mt-4 min-h-0 flex-1 overflow-hidden bg-edito-canvas sm:-mx-6 sm:-mb-6 sm:-mt-4"
     >
-      <div className={cn("h-full min-h-0", isMobile ? "flex flex-col" : "grid grid-cols-[220px_minmax(0,1fr)]")}>
+      <div className={cn("h-full min-h-0", isMobile ? "flex flex-col" : "grid grid-cols-[195px_minmax(0,1fr)]")}>
         <aside className={cn("shrink-0 bg-edito-navy text-white", isMobile ? "px-4 py-2.5" : "flex min-h-0 flex-col overflow-y-auto px-5 py-6")}>
           {progress}
           {!isMobile ? (
