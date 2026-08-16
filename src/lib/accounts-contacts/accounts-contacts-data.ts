@@ -112,6 +112,7 @@ type QueryResult<T> = { data: T[] | null; error: SupabaseError | null; count: nu
 
 type ReadQuery<T> = PromiseLike<QueryResult<T>> & {
   eq(column: string, value: string | number | boolean): ReadQuery<T>
+  in(column: string, values: (string | number)[]): ReadQuery<T>
   order(column: string, options?: { ascending?: boolean; nullsFirst?: boolean }): ReadQuery<T>
   limit(count: number): ReadQuery<T>
   not(column: string, operator: string, value: string): ReadQuery<T>
@@ -426,6 +427,77 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   // (stats, sectors, studyIds, filtres URL) reste implicitement propre.
   const accounts = allAccounts.filter((account) => account.depthLevel !== "mapped")
   const mappedAccounts = allAccounts.filter((account) => account.depthLevel === "mapped")
+
+  if (mappedAccounts.length > 0) {
+    const mappedIds = mappedAccounts.map((a) => a.id)
+    const [entriesRes, factsRes] = await Promise.all([
+      supabase
+        .from<{ company_id: string; category: string; profile_json: Record<string, unknown> }>("competitive_map_entries")
+        .select("company_id, category, profile_json")
+        .in("company_id", mappedIds),
+      supabase
+        .from<{ target_id: string; fact_type: string; value_json: Record<string, unknown>; value_text: string }>("account_facts")
+        .select("target_id, fact_type, value_json, value_text")
+        .eq("target_type", "company")
+        .eq("is_current", true)
+        .in("target_id", mappedIds),
+    ])
+
+    const entriesByCompany = new Map<string, { category: string; profile_json: Record<string, unknown> }>()
+    if (entriesRes.data) {
+      for (const e of entriesRes.data) {
+        if (!entriesByCompany.has(e.company_id)) {
+          entriesByCompany.set(e.company_id, e)
+        }
+      }
+    }
+
+    const factsByCompany = new Map<string, { revenueMeur?: number | null }>()
+    if (factsRes.data) {
+      for (const f of factsRes.data) {
+        if (f.fact_type === "revenue_estimate" && f.value_json) {
+          const meur = (f.value_json as { amountMeur?: number | null })?.amountMeur
+          factsByCompany.set(f.target_id, { revenueMeur: meur })
+        }
+      }
+    }
+
+    for (const acc of mappedAccounts) {
+      const entry = entriesByCompany.get(acc.id)
+      const fact = factsByCompany.get(acc.id)
+      const profileJson = entry?.profile_json ?? {}
+
+      // 1. Catégorie (tier)
+      if (!acc.tier || acc.tier === "Non renseigné") {
+        if (entry?.category) {
+          acc.tier = entry.category
+        } else if (profileJson.categorie) {
+          acc.tier = String(profileJson.categorie)
+        }
+      }
+
+      // 2. Chiffre d'affaires (revenue)
+      if (!acc.revenue || acc.revenue === "Non renseigné") {
+        if (fact?.revenueMeur !== null && fact?.revenueMeur !== undefined) {
+          acc.revenue = `${fact.revenueMeur.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} M€`
+        } else if (profileJson.ca_meur) {
+          acc.revenue = `${Number(profileJson.ca_meur).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} M€`
+        }
+      }
+
+      // 3. Siège (location)
+      if (!acc.location || acc.location === "Non renseigné") {
+        const loc =
+          (profileJson.siege as string) ||
+          (profileJson.location as string) ||
+          (profileJson.branche_retenue as string) ||
+          (profileJson.groupe as string)
+        if (loc) {
+          acc.location = loc.length > 40 ? `${loc.slice(0, 37)}...` : loc
+        }
+      }
+    }
+  }
 
   const contacts = rawContacts
     .map((row) => buildContact(row, companyById))

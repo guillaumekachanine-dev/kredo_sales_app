@@ -16,6 +16,7 @@ import {
   parseFilters,
   filterAccounts,
   filterContacts,
+  matchContactByQuery,
 } from "@/lib/accounts-contacts/accounts-contacts-filters"
 import { relationshipRoleAccentColor, relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants"
 import { useUrlFilters } from "@/lib/search/use-url-filters"
@@ -172,14 +173,21 @@ function displayRevenue(revenue: string | null | undefined) {
 
 function displayTier(tier: string | null | undefined) {
   if (!tier) return "-"
-  switch (tier) {
+  switch (tier.toLowerCase()) {
     case "grand_compte": return "Grand compte"
     case "eti": return "ETI"
     case "pme": return "PME"
     case "tpe": return "TPE"
     case "cac40": return "CAC40"
     case "etablissement_public": return "Établissement public"
-    default: return tier
+    case "leader": return "Leader"
+    case "challenger": return "Challenger"
+    case "outsider": return "Outsider"
+    case "niche":
+    case "outsider_niche": return "Acteur de niche"
+    case "mid_market": return "Mid-Market"
+    case "outsider_emergent": return "Outsider émergent"
+    default: return tier.charAt(0).toUpperCase() + tier.slice(1)
   }
 }
 
@@ -904,106 +912,39 @@ function DeleteConfirmModal({
   )
 }
 
-
-
 // ─────────────────────────────────────────────────────────────────────────────
-//  Comptes cartographiés — ADR-0019 Lot 6 (D-3)
-//
-//  Sous-section volontairement séparée et repliable, un seul composant
-//  responsive plutôt qu'un couple Desktop/Mobile : c'est une liste simple
-//  (ADR-0006 amende la règle d'adaptive plein pour ce cas), pas un tableau
-//  dense. Clique = même drawer que les comptes réels (`onOpenIdentity`) ;
-//  celui-ci bascule automatiquement en variante minimale sur `depth_level`.
-// ─────────────────────────────────────────────────────────────────────────────
-
-function MappedAccountsSection({
-  accounts,
-  onOpenIdentity,
-}: {
-  accounts: AccountRow[]
-  onOpenIdentity: (id: string) => void
-}) {
-  const [expanded, setExpanded] = useState(true)
-
-  if (accounts.length === 0) return null
-
-  return (
-    <SurfaceCard className="mt-4 overflow-hidden p-0">
-      <button
-        type="button"
-        onClick={() => setExpanded((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 p-4 text-left"
-        aria-expanded={expanded}
-      >
-        <div className="min-w-0">
-          <h3 className="font-heading text-sm font-bold text-heading">Comptes cartographiés</h3>
-          <p className="mt-0.5 text-[11px] text-muted">
-            Citations issues des cartographies concurrentielles — non qualifiées, exclues des statistiques et des
-            sélecteurs commerciaux tant qu’elles ne sont pas converties.
-          </p>
-        </div>
-        <span className="flex shrink-0 items-center gap-2">
-          <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[11px] font-bold text-muted">
-            {accounts.length}
-          </span>
-          <svg
-            className={cn("h-4 w-4 text-muted transition-transform", expanded && "rotate-180")}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </span>
-      </button>
-      {expanded && (
-        <div className="divide-y divide-border/60 border-t border-border/60">
-          {accounts.map((account) => (
-            <button
-              key={account.id}
-              type="button"
-              onClick={() => onOpenIdentity(account.id)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover"
-            >
-              <CompanyLogo
-                name={account.name}
-                logoPath={account.logoPath}
-                website={account.website}
-                size="sm"
-                className="h-8 w-8 shrink-0 rounded-full"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-heading">{account.name}</p>
-                <p className="truncate text-[11px] text-muted">
-                  {[account.sector, account.segment].filter(Boolean).join(" · ") || "Secteur non renseigné"}
-                </p>
-              </div>
-              <svg className="h-4 w-4 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          ))}
-        </div>
-      )}
-    </SurfaceCard>
-  )
+function getCompanyInitials(name: string): string {
+  if (!name) return "--"
+  const clean = name.replace(/^(SA|SAS|SARL|EURL|INC|LTD|GMBH)\s+/i, "").trim()
+  const capitals = clean.match(/[A-Z]/g)
+  if (capitals && capitals.length >= 2) {
+    return (capitals[0] + capitals[1]).toUpperCase()
+  }
+  const words = clean.split(/[\s\-_]+/).filter(Boolean)
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase()
+  }
+  return clean.slice(0, 2).toUpperCase()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Accounts Sub-views
 // ─────────────────────────────────────────────────────────────────────────────
 
-function AccountsDesktop({
+export function AccountsDesktop({
   accounts,
+  mappedAccounts = [],
   contacts,
+  searchQuery,
   onOpenIdentity,
   onOpenIntelligence,
   onOpenContactIdentity,
   onEditCompany,
 }: {
   accounts: AccountRow[]
+  mappedAccounts?: AccountRow[]
   contacts: ContactRow[]
+  searchQuery?: string
   onOpenIdentity: (id: string) => void
   onOpenIntelligence: (account: AccountRow) => void
   onOpenContactIdentity: (id: string) => void
@@ -1040,16 +981,27 @@ function AccountsDesktop({
   }
 
   const groupedBySector = useMemo(() => {
-    const map = new Map<string, AccountRow[]>()
+    const map = new Map<string, { full: AccountRow[]; mapped: AccountRow[] }>()
     accounts.forEach((acc) => {
       const sector = acc.sector || "Non renseigné"
       if (!map.has(sector)) {
-        map.set(sector, [])
+        map.set(sector, { full: [], mapped: [] })
       }
-      map.get(sector)!.push(acc)
+      map.get(sector)!.full.push(acc)
     })
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [accounts])
+    mappedAccounts.forEach((acc) => {
+      const sector = acc.sector || "Non renseigné"
+      if (!map.has(sector)) {
+        map.set(sector, { full: [], mapped: [] })
+      }
+      map.get(sector)!.mapped.push(acc)
+    })
+    return Array.from(map.entries())
+      .filter(([_, g]) => g.full.length > 0 || g.mapped.length > 0)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+  }, [accounts, mappedAccounts])
+
+  const activeQuery = searchQuery?.trim() ?? ""
 
   return (
     <SurfaceCard className="overflow-visible">
@@ -1069,8 +1021,9 @@ function AccountsDesktop({
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {groupedBySector.map(([sector, sectorAccounts]) => {
+            {groupedBySector.map(([sector, group]) => {
               const isSectorCollapsed = collapsedSectors[sector] === true
+              const totalSectorCount = group.full.length + group.mapped.length
 
               return (
                 <Fragment key={sector}>
@@ -1098,16 +1051,20 @@ function AccountsDesktop({
                         </svg>
                         <span>{sector}</span>
                         <span className="text-[10px] font-semibold text-white/70 ml-1 normal-case font-sans">
-                          ({sectorAccounts.length} compte{sectorAccounts.length > 1 ? "s" : ""})
+                          ({totalSectorCount} compte{totalSectorCount > 1 ? "s" : ""})
                         </span>
                       </button>
                     </td>
                   </tr>
 
-                  {/* Sector Accounts Rows */}
-                  {!isSectorCollapsed && sectorAccounts.map((account) => {
-                    const isContactsExpanded = expandedAccounts[account.id] === true
-                    const accountContacts = contacts.filter((c) => c.companyId === account.id)
+                  {/* Sector Full CRM Accounts Rows */}
+                  {!isSectorCollapsed && group.full.map((account) => {
+                    const allAccountContacts = contacts.filter((c) => c.companyId === account.id)
+                    const hasMatchingContact = activeQuery.length > 0 && allAccountContacts.some((c) => matchContactByQuery(c, activeQuery, account))
+                    const isContactsExpanded = expandedAccounts[account.id] === true || hasMatchingContact
+                    const accountContacts = activeQuery.length > 0 && hasMatchingContact
+                      ? allAccountContacts.filter((c) => matchContactByQuery(c, activeQuery, account))
+                      : allAccountContacts
 
                     return (
                       <Fragment key={account.id}>
@@ -1115,7 +1072,10 @@ function AccountsDesktop({
                         <tr
                           id={`account-row-${account.id}`}
                           onClick={() => onOpenIntelligence(account)}
-                          className="kredo-hover-reference border-b border-border/40 cursor-pointer hover:bg-canvas/30 transition-colors"
+                          className={cn(
+                            "kredo-hover-reference border-b border-border/40 cursor-pointer hover:bg-canvas/30 transition-colors",
+                            actionsMenuOpenAccountId === account.id ? "relative z-30 bg-canvas/40" : "relative z-0"
+                          )}
                         >
                           {/* 1. Compte (Name, Logo, Eye icon for Drawer, Collapse toggle) */}
                           <td className="px-5 py-3 truncate">
@@ -1195,11 +1155,22 @@ function AccountsDesktop({
 
                           {/* 11. Actions (Round blue button with 3 vertical dots) */}
                           <td className="px-5 py-3 text-center">
-                            <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
+                            <div
+                              className="relative inline-block text-left"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                e.nativeEvent.stopImmediatePropagation()
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation()
+                                e.nativeEvent.stopImmediatePropagation()
+                              }}
+                            >
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  e.nativeEvent.stopImmediatePropagation()
                                   setActionsMenuOpenAccountId(actionsMenuOpenAccountId === account.id ? null : account.id)
                                 }}
                                 className="inline-flex size-8 items-center justify-center rounded-full bg-[#0047AB] text-white hover:bg-[#003C96] transition-colors focus:outline-none cursor-pointer shadow-sm"
@@ -1212,39 +1183,62 @@ function AccountsDesktop({
                               </button>
                               {actionsMenuOpenAccountId === account.id && (
                                 <div
-                                  className="absolute right-0 z-50 mt-1 w-48 rounded-md border border-border bg-surface shadow-lg py-1 text-xs text-heading animate-in fade-in zoom-in-95 duration-100"
-                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute right-0 z-[100] mt-1 w-56 rounded-md border border-border bg-surface dark:bg-[#1E293B] shadow-2xl py-1 text-xs text-heading dark:text-white animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    e.nativeEvent.stopImmediatePropagation()
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation()
+                                    e.nativeEvent.stopImmediatePropagation()
+                                  }}
                                 >
                                   <button
                                     type="button"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      e.nativeEvent.stopImmediatePropagation()
                                       setActionsMenuOpenAccountId(null)
                                       onOpenIntelligence(account)
                                     }}
-                                    className="flex w-full items-center px-3 py-2 text-left hover:bg-canvas transition-colors font-medium"
+                                    className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-heading dark:text-white hover:bg-canvas dark:hover:bg-slate-800 transition-colors font-medium cursor-pointer"
                                   >
-                                    Cockpit Intelligence
+                                    <svg className="size-4 text-[#0047AB] dark:text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <span>Cockpit Intelligence</span>
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      e.nativeEvent.stopImmediatePropagation()
                                       setActionsMenuOpenAccountId(null)
                                       onOpenIdentity(account.id)
                                     }}
-                                    className="flex w-full items-center px-3 py-2 text-left hover:bg-canvas transition-colors"
+                                    className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-heading dark:text-white hover:bg-canvas dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                   >
-                                    Fiche d&apos;identité (Drawer)
+                                    <svg className="size-4 text-muted dark:text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <span>Fiche d&apos;identité (Drawer)</span>
                                   </button>
                                   {onEditCompany && (
                                     <button
                                       type="button"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        e.nativeEvent.stopImmediatePropagation()
                                         setActionsMenuOpenAccountId(null)
                                         onEditCompany(account)
                                       }}
-                                      className="flex w-full items-center px-3 py-2 text-left hover:bg-canvas transition-colors"
+                                      className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-heading dark:text-white hover:bg-canvas dark:hover:bg-slate-800 transition-colors cursor-pointer border-t border-border/40 dark:border-slate-700/60"
                                     >
-                                      Éditer le compte
+                                      <svg className="size-4 text-muted dark:text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      <span>Éditer le compte</span>
                                     </button>
                                   )}
                                 </div>
@@ -1373,6 +1367,142 @@ function AccountsDesktop({
                       </Fragment>
                     )
                   })}
+
+                  {/* Sector Mapped Accounts Rows (under CRM full accounts, marked visual design) */}
+                  {!isSectorCollapsed && group.mapped.map((account) => (
+                    <tr
+                      key={account.id}
+                      id={`account-row-${account.id}`}
+                      onClick={() => onOpenIdentity(account.id)}
+                      className={cn(
+                        "kredo-hover-reference border-b border-[#7C3AED]/25 bg-[#7C3AED]/5 hover:bg-[#7C3AED]/12 border-l-4 border-l-[#7C3AED] transition-colors cursor-pointer",
+                        actionsMenuOpenAccountId === account.id ? "relative z-30 bg-[#7C3AED]/15" : "relative z-0"
+                      )}
+                    >
+                      {/* 1. Compte (Initials Avatar, Name) */}
+                      <td className="px-5 py-2.5 truncate">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-7 w-7 rounded-full bg-[#7C3AED]/20 text-[#7C3AED] dark:text-purple-300 font-bold text-xs flex items-center justify-center border border-[#7C3AED]/30 shrink-0 shadow-sm">
+                            {getCompanyInitials(account.name)}
+                          </div>
+                          <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                            <span className="font-bold text-[13px] text-heading truncate" title={account.name}>
+                              {account.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onOpenIdentity(account.id)
+                              }}
+                              className="p-1 text-[#7C3AED] hover:text-[#5B21B6] transition-colors rounded hover:bg-[#7C3AED]/10 shrink-0"
+                              title="Ouvrir la fiche d'identité (drawer)"
+                              aria-label={`Ouvrir la fiche d'identité de ${account.name}`}
+                            >
+                              <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 2. Segment */}
+                      <td className="px-3 py-2.5 text-body truncate" title={account.segment}>{account.segment.replace(/^[\d]+[.\s\-]+/, '')}</td>
+
+                      {/* 3. Siège */}
+                      <td className="px-3 py-2.5 text-body truncate" title={account.location || "-"}>{account.location || "-"}</td>
+
+                      {/* 4. CA */}
+                      <td className="px-3 py-2.5 text-center font-semibold text-heading">{displayRevenue(account.revenue)}</td>
+
+                      {/* 5. Catégorie */}
+                      <td className="px-3 py-2.5 text-center text-body truncate" title={displayTier(account.tier)}>{displayTier(account.tier)}</td>
+
+                      {/* 6. Statut */}
+                      <td className="px-3 py-2.5 text-center font-bold text-[#7C3AED] dark:text-purple-300 text-xs truncate">Compte identifié</td>
+
+                      {/* 7. Priorité : ne rien afficher (cellule vide / dash) pour les comptes cartographiés */}
+                      <td className="px-3 py-2.5 text-center text-muted/60">—</td>
+
+                      {/* 8. Actions (Bouton d'actions violet 3 points avec menu déroulant) */}
+                      <td className="px-5 py-2.5 text-center">
+                        <div
+                          className="relative inline-block text-left"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            e.nativeEvent.stopImmediatePropagation()
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation()
+                            e.nativeEvent.stopImmediatePropagation()
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.nativeEvent.stopImmediatePropagation()
+                              setActionsMenuOpenAccountId(actionsMenuOpenAccountId === account.id ? null : account.id)
+                            }}
+                            className="inline-flex size-8 items-center justify-center rounded-full bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-colors focus:outline-none cursor-pointer shadow-sm"
+                            aria-label={`Actions pour ${account.name}`}
+                            title="Actions"
+                          >
+                            <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                          </button>
+                          {actionsMenuOpenAccountId === account.id && (
+                            <div
+                              className="absolute right-0 z-[100] mt-1 w-64 rounded-md border border-border bg-surface dark:bg-[#1E293B] shadow-2xl py-1 text-xs text-heading dark:text-white animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                e.nativeEvent.stopImmediatePropagation()
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation()
+                                e.nativeEvent.stopImmediatePropagation()
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  e.nativeEvent.stopImmediatePropagation()
+                                  setActionsMenuOpenAccountId(null)
+                                  const targetSegment = account.segmentId || account.segment
+                                  router.push(`/intelligence?tab=competitive_env&competitiveSegment=${encodeURIComponent(targetSegment)}`)
+                                }}
+                                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-heading dark:text-white hover:bg-canvas dark:hover:bg-slate-800 transition-colors font-medium cursor-pointer"
+                              >
+                                <svg className="size-4 text-[#7C3AED] dark:text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6413 16h-1v-4a1 1 0 00-1-1h-2a1 1 0 00-1 1v4" />
+                                </svg>
+                                <span>Consulter l&apos;étude sectorielle</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  e.nativeEvent.stopImmediatePropagation()
+                                  setActionsMenuOpenAccountId(null)
+                                  onOpenIdentity(account.id)
+                                }}
+                                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-emerald-700 dark:text-emerald-400 hover:bg-canvas dark:hover:bg-slate-800 transition-colors font-bold cursor-pointer border-t border-border/40 dark:border-slate-700/60"
+                              >
+                                <svg className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Convertir dans le CRM</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </Fragment>
               )
             })}
@@ -1398,29 +1528,48 @@ function AccountsDesktop({
 
 function AccountsMobile({
   accounts,
+  mappedAccounts = [],
   contacts,
   onOpenIdentity,
   onOpenContactIdentity,
 }: {
   accounts: AccountRow[]
+  mappedAccounts?: AccountRow[]
   contacts: ContactRow[]
   onOpenIdentity: (id: string) => void
   onOpenContactIdentity: (id: string) => void
 }) {
   const [collapsedSectors, setCollapsedSectors] = useState<Record<string, boolean>>({})
   const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({})
+  const [mobileActionsMenuOpenAccountId, setMobileActionsMenuOpenAccountId] = useState<string | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    const onClick = () => setMobileActionsMenuOpenAccountId(null)
+    document.addEventListener("click", onClick)
+    return () => document.removeEventListener("click", onClick)
+  }, [])
 
   const groupedBySector = useMemo(() => {
-    const map = new Map<string, AccountRow[]>()
+    const map = new Map<string, { full: AccountRow[]; mapped: AccountRow[] }>()
     accounts.forEach((account) => {
       const sector = account.sector || "Non renseigné"
       if (!map.has(sector)) {
-        map.set(sector, [])
+        map.set(sector, { full: [], mapped: [] })
       }
-      map.get(sector)!.push(account)
+      map.get(sector)!.full.push(account)
     })
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [accounts])
+    mappedAccounts.forEach((account) => {
+      const sector = account.sector || "Non renseigné"
+      if (!map.has(sector)) {
+        map.set(sector, { full: [], mapped: [] })
+      }
+      map.get(sector)!.mapped.push(account)
+    })
+    return Array.from(map.entries())
+      .filter(([_, g]) => g.full.length > 0 || g.mapped.length > 0)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+  }, [accounts, mappedAccounts])
 
   const contactsByCompanyId = useMemo(() => {
     const map = new Map<string, ContactRow[]>()
@@ -1438,8 +1587,9 @@ function AccountsMobile({
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-large)] border border-border/60 bg-surface">
-      {groupedBySector.map(([sector, sectorAccounts]) => {
+      {groupedBySector.map(([sector, group]) => {
         const isSectorCollapsed = collapsedSectors[sector] === true
+        const totalSectorCount = group.full.length + group.mapped.length
 
         return (
           <Fragment key={sector}>
@@ -1466,12 +1616,13 @@ function AccountsMobile({
                 </svg>
                 <span className="text-[11px] uppercase tracking-wider">{sector}</span>
                 <span className="ml-1 text-[10px] font-semibold normal-case text-white/70">
-                  ({sectorAccounts.length} compte{sectorAccounts.length > 1 ? "s" : ""})
+                  ({totalSectorCount} compte{totalSectorCount > 1 ? "s" : ""})
                 </span>
               </button>
             </div>
 
-            {!isSectorCollapsed && sectorAccounts.map((account) => {
+            {/* Sector CRM Full Accounts */}
+            {!isSectorCollapsed && group.full.map((account) => {
               const roleRank = (role: string | null) =>
                 role === "decideur" ? 0 : role === "prescripteur" ? 1 : 2
               const accountContacts = (contactsByCompanyId.get(account.id) ?? []).slice().sort((a, b) => {
@@ -1587,6 +1738,101 @@ function AccountsMobile({
                 </Fragment>
               )
             })}
+
+            {/* Sector Mapped Accounts (under CRM full accounts, marked visual design) */}
+            {!isSectorCollapsed && group.mapped.map((account) => (
+              <div
+                key={account.id}
+                id={`account-row-${account.id}`}
+                onClick={() => onOpenIdentity(account.id)}
+                className="flex items-center gap-3 px-3.5 py-3 border-b border-[#7C3AED]/25 bg-[#7C3AED]/5 hover:bg-[#7C3AED]/10 border-l-4 border-l-[#7C3AED] transition-colors cursor-pointer"
+              >
+                <div className="h-8 w-8 rounded-full bg-[#7C3AED]/20 text-[#7C3AED] dark:text-purple-300 font-bold text-xs flex items-center justify-center border border-[#7C3AED]/30 shrink-0">
+                  {getCompanyInitials(account.name)}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-bold leading-tight text-heading flex items-center gap-1.5">
+                    <span>{account.name}</span>
+                  </div>
+                  <div className="mt-0.5 truncate text-[11px] text-muted">
+                    {account.segment || "Segment non renseigné"} - <span className="font-semibold text-[#7C3AED] dark:text-purple-300">Compte identifié</span>
+                  </div>
+                </div>
+
+                <div
+                  className="relative inline-block text-left"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.nativeEvent.stopImmediatePropagation()
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                    e.nativeEvent.stopImmediatePropagation()
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.nativeEvent.stopImmediatePropagation()
+                      setMobileActionsMenuOpenAccountId(mobileActionsMenuOpenAccountId === account.id ? null : account.id)
+                    }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#7C3AED] text-white cursor-pointer"
+                    title="Actions"
+                  >
+                    <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  </button>
+                  {mobileActionsMenuOpenAccountId === account.id && (
+                    <div
+                      className="absolute right-0 z-[100] mt-1 w-60 rounded-md border border-border bg-surface dark:bg-[#1E293B] shadow-2xl py-1 text-xs text-heading dark:text-white animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.nativeEvent.stopImmediatePropagation()
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        e.nativeEvent.stopImmediatePropagation()
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          e.nativeEvent.stopImmediatePropagation()
+                          setMobileActionsMenuOpenAccountId(null)
+                          const targetSegment = account.segmentId || account.segment
+                          router.push(`/intelligence?tab=competitive_env&competitiveSegment=${encodeURIComponent(targetSegment)}`)
+                        }}
+                        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-heading dark:text-white hover:bg-canvas dark:hover:bg-slate-800 transition-colors font-medium cursor-pointer"
+                      >
+                        <svg className="size-4 text-[#7C3AED] dark:text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6413 16h-1v-4a1 1 0 00-1-1h-2a1 1 0 00-1 1v4" />
+                        </svg>
+                        <span>Consulter l&apos;étude sectorielle</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          e.nativeEvent.stopImmediatePropagation()
+                          setMobileActionsMenuOpenAccountId(null)
+                          onOpenIdentity(account.id)
+                        }}
+                        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-emerald-700 dark:text-emerald-400 hover:bg-canvas dark:hover:bg-slate-800 transition-colors font-bold cursor-pointer border-t border-border/40 dark:border-slate-700/60"
+                      >
+                        <svg className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Convertir dans le CRM</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </Fragment>
         )
       })}
@@ -1904,22 +2150,40 @@ export function ProspectionAccountsView({
     return Math.max(12, longestLabelLength + 3)
   }, [sectorOptions])
 
+  const contactsByAccountId = useMemo(() => {
+    const map = new Map<string, ContactRow[]>()
+    data.contacts.forEach((contact) => {
+      if (!contact.companyId) return
+      const list = map.get(contact.companyId) ?? []
+      list.push(contact)
+      map.set(contact.companyId, list)
+    })
+    return map
+  }, [data.contacts])
+
+  const accountsById = useMemo(() => {
+    const map = new Map<string, AccountRow>()
+    data.accounts.forEach((acc) => map.set(acc.id, acc))
+    data.mappedAccounts.forEach((acc) => map.set(acc.id, acc))
+    return map
+  }, [data.accounts, data.mappedAccounts])
+
   const filteredAccounts = useMemo(
-    () => filterAccounts(data.accounts, { ...filters, q: deferredQuery }, studyIds),
-    // studyIds est une référence stable (Set créé une fois côté serveur, rerçu en prop)
+    () => filterAccounts(data.accounts, { ...filters, q: deferredQuery }, studyIds, contactsByAccountId),
+    // studyIds est une référence stable (Set créé une fois côté serveur, reçu en prop)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.accounts, filters, deferredQuery]
+    [data.accounts, filters, deferredQuery, contactsByAccountId]
   )
   // ADR-0019 D-3 — mêmes filtres/recherche que la liste principale, mais un
   // tableau à part : ces comptes ne comptent jamais dans totalFiltered/totalAll.
   const filteredMappedAccounts = useMemo(
-    () => filterAccounts(data.mappedAccounts, { ...filters, q: deferredQuery }, studyIds),
+    () => filterAccounts(data.mappedAccounts, { ...filters, q: deferredQuery }, studyIds, contactsByAccountId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.mappedAccounts, filters, deferredQuery]
+    [data.mappedAccounts, filters, deferredQuery, contactsByAccountId]
   )
   const filteredContacts = useMemo(
-    () => filterContacts(data.contacts, { ...filters, q: deferredQuery }),
-    [data.contacts, filters, deferredQuery]
+    () => filterContacts(data.contacts, { ...filters, q: deferredQuery }, accountsById),
+    [data.contacts, filters, deferredQuery, accountsById]
   )
 
   // Mobile-only client-side sort applied after filtering.
@@ -2183,9 +2447,14 @@ export function ProspectionAccountsView({
             <button
               type="button"
               onClick={() => setCompetitiveMapOpen(true)}
-              className="rounded border border-border bg-canvas px-3 py-1.5 text-xs font-semibold text-heading shadow-sm transition-colors hover:bg-border/10 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
+              style={{ backgroundColor: "#708090" }}
+              title="Importer une cartographie sectorielle"
             >
-              Importer une cartographie
+              <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>Importer</span>
             </button>
             <button
               onClick={() => setContactModal({ open: true })}
@@ -2256,7 +2525,7 @@ export function ProspectionAccountsView({
           totalAll={totalAll}
           mobileCompact={isMobileSearch}
           resultLabel={isMobileAccounts ? "comptes" : isMobileContacts ? "contacts" : undefined}
-          placeholder={subTab === "accounts" ? "Rechercher un compte, secteur…" : "Rechercher un contact, email…"}
+          placeholder={subTab === "accounts" ? "Rechercher un compte, contact, secteur, ville, email…" : "Rechercher un contact, email, poste, compte, secteur…"}
           onQueryChange={(value) => setParam("q", value)}
           onReset={() => clearAll(["tab"])}
           hideReset={isMobileSearch}
@@ -2337,6 +2606,7 @@ export function ProspectionAccountsView({
         device === "mobile" ? (
           <AccountsMobile
             accounts={displayAccounts}
+            mappedAccounts={filteredMappedAccounts}
             contacts={data.contacts}
             onOpenIdentity={openCompanyDrawer}
             onOpenContactIdentity={openContactDrawer}
@@ -2344,7 +2614,9 @@ export function ProspectionAccountsView({
         ) : (
           <AccountsDesktop
             accounts={displayAccounts}
+            mappedAccounts={filteredMappedAccounts}
             contacts={data.contacts}
+            searchQuery={filters.q}
             onOpenIdentity={openCompanyDrawer}
             onOpenIntelligence={(account) =>
               openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
@@ -2353,10 +2625,6 @@ export function ProspectionAccountsView({
             onEditCompany={(account) => setCompanyModal({ open: true, editing: account })}
           />
         )
-      )}
-
-      {subTab === "accounts" && (
-        <MappedAccountsSection accounts={filteredMappedAccounts} onOpenIdentity={openCompanyDrawer} />
       )}
 
       {subTab === "contacts" && (

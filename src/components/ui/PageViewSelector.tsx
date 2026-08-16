@@ -15,6 +15,7 @@ export type PageViewSelectorProps = {
   onChange: (value: string) => void
   ariaLabel: string
   className?: string
+  activeClassName?: string
 }
 
 export function PageViewSelector({
@@ -23,13 +24,14 @@ export function PageViewSelector({
   onChange,
   ariaLabel,
   className,
+  activeClassName,
 }: PageViewSelectorProps) {
   return (
     <div
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex items-center rounded-[var(--radius-medium)] border border-border bg-surface p-0.5",
+        "inline-flex items-center rounded-lg border border-border bg-surface p-1 shadow-inner shadow-black/[0.02]",
         className,
       )}
     >
@@ -43,14 +45,16 @@ export function PageViewSelector({
             aria-pressed={isActive}
             onClick={() => onChange(item.value)}
             className={cn(
-              "inline-flex h-7 items-center rounded-[calc(var(--radius-medium)-1px)] px-3",
-              "text-[length:var(--font-size-label-sm)] font-semibold whitespace-nowrap",
-              "transition-[background-color,color] duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)]",
-              "outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]",
-              "focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-canvas)]",
+              "inline-flex h-8 items-center rounded-md px-3.5",
+              "text-xs font-semibold whitespace-nowrap cursor-pointer",
+              "transition-all duration-150 ease-out",
+              "outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               isActive
-                ? "bg-primary text-primary-fg"
-                : "text-body hover:bg-surface-hover hover:text-heading",
+                ? cn(
+                    "bg-gradient-to-b from-[#2554B8] to-[#1D47A2] text-white font-bold shadow-sm shadow-blue-950/20 border border-white/20 scale-[1.01]",
+                    activeClassName
+                  )
+                : "text-body hover:bg-canvas hover:text-heading",
             )}
           >
             {item.label}

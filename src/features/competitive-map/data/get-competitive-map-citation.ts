@@ -25,6 +25,7 @@ export type CompetitiveMapEntrySnapshot = {
   appetenceProvisoire: boolean
   confiance: string
   studySnapshotDate: string
+  profileJson: Record<string, unknown> | null
 }
 
 export type CompetitiveMapAccountFacts = {
@@ -52,7 +53,7 @@ export async function getCompetitiveMapCitation(companyId: string): Promise<Comp
     supabase
       .from("competitive_map_entries")
       .select(
-        "category, positioning, forces, vulnerabilite, angle_entree, empreinte_metier, maturite_numerique, appetence_score, appetence_provisoire, confiance, study_snapshot_date"
+        "category, positioning, forces, vulnerabilite, angle_entree, empreinte_metier, maturite_numerique, appetence_score, appetence_provisoire, confiance, study_snapshot_date, profile_json"
       )
       .eq("company_id", companyId)
       .order("study_snapshot_date", { ascending: false })
@@ -84,6 +85,7 @@ export async function getCompetitiveMapCitation(companyId: string): Promise<Comp
         appetenceProvisoire: entryRow.appetence_provisoire,
         confiance: entryRow.confiance,
         studySnapshotDate: entryRow.study_snapshot_date,
+        profileJson: (entryRow.profile_json as Record<string, unknown> | null) ?? null,
       }
     : null
 

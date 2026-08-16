@@ -60,7 +60,13 @@ export const getCompetitiveMapWorkspace = cache(async (
     return { state: "empty", catalog: [], allSegments, selectedSegmentId: null, snapshot: null, error: null }
   }
 
-  const catalogItem = catalog.find((item) => item.segmentId === requestedSegmentId) ?? catalog[0]
+  const catalogItem =
+    catalog.find(
+      (item) =>
+        item.segmentId === requestedSegmentId ||
+        item.segmentSlug === requestedSegmentId ||
+        item.segmentName.toLowerCase() === requestedSegmentId?.toLowerCase(),
+    ) ?? catalog[0]
   const entriesResult = await supabase
     .from("competitive_map_entries")
     .select(

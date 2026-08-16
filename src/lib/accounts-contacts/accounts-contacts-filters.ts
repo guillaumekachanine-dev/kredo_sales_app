@@ -120,7 +120,8 @@ function parseRevenueToMillions(revenueStr: string | null): number | null {
 export function filterAccounts(
   accounts: AccountRow[],
   filters: AccountsContactsFilters,
-  studyIds: ReadonlySet<string>
+  studyIds: ReadonlySet<string>,
+  contactsByAccountId?: Map<string, ContactRow[]>
 ): AccountRow[] {
   const needle = fold(filters.q)
   return accounts.filter((account) => {
@@ -132,7 +133,7 @@ export function filterAccounts(
     if (filters.missingEmail && account.emailCount > 0) return false
     if (filters.hasStudy && !studyIds.has(account.id)) return false
     
-    // Revenue Filter (Chiffre affaire)
+    // Revenue Filter (Chiffre d'affaires)
     if (filters.includeRevenue.length > 0) {
       const rev = parseRevenueToMillions(account.revenue)
       if (rev === null) {
@@ -171,8 +172,19 @@ export function filterAccounts(
     }
 
     if (needle.length > 0) {
+      // Collect search string from all contacts associated with this account
+      let contactHaystack = ""
+      if (contactsByAccountId) {
+        const accountContacts = contactsByAccountId.get(account.id)
+        if (accountContacts && accountContacts.length > 0) {
+          contactHaystack = accountContacts
+            .map((c) => `${c.fullName} ${c.email ?? ""} ${c.phone ?? ""} ${c.jobTitle ?? ""} ${c.relationshipRole ?? ""}`)
+            .join(" ")
+        }
+      }
+
       const haystack = fold(
-        `${account.name} ${account.sector} ${account.location} ${account.segment} ${account.summary}`
+        `${account.name} ${account.sector} ${account.location ?? ""} ${account.segment ?? ""} ${account.summary ?? ""} ${account.description ?? ""} ${account.tier ?? ""} ${account.status ?? ""} ${account.priority ?? ""} ${account.revenue ?? ""} ${account.website ?? ""} ${contactHaystack}`
       )
       if (!haystack.includes(needle)) return false
     }
@@ -180,8 +192,31 @@ export function filterAccounts(
   })
 }
 
-export function filterContacts(contacts: ContactRow[], filters: AccountsContactsFilters): ContactRow[] {
-  const needle = fold(filters.q)
+export function matchContactByQuery(
+  contact: ContactRow,
+  query: string,
+  parentAcc?: AccountRow
+): boolean {
+  const needle = fold(query)
+  if (!needle) return true
+
+  let accountHaystack = ""
+  if (parentAcc) {
+    accountHaystack = `${parentAcc.name} ${parentAcc.sector} ${parentAcc.location ?? ""} ${parentAcc.segment ?? ""} ${parentAcc.tier ?? ""} ${parentAcc.status ?? ""} ${parentAcc.priority ?? ""} ${parentAcc.revenue ?? ""} ${parentAcc.website ?? ""}`
+  }
+
+  const haystack = fold(
+    `${contact.fullName} ${contact.firstName ?? ""} ${contact.lastName ?? ""} ${contact.email ?? ""} ${contact.phone ?? ""} ${contact.jobTitle ?? ""} ${contact.relationshipRole ?? ""} ${contact.companyName} ${contact.companySector} ${accountHaystack}`
+  )
+
+  return haystack.includes(needle)
+}
+
+export function filterContacts(
+  contacts: ContactRow[],
+  filters: AccountsContactsFilters,
+  accountsById?: Map<string, AccountRow>
+): ContactRow[] {
   return contacts.filter((contact) => {
     const role = contact.relationshipRole ?? ""
     if (filters.includeRole.length > 0 && !filters.includeRole.includes(role)) return false
@@ -189,11 +224,10 @@ export function filterContacts(contacts: ContactRow[], filters: AccountsContacts
     if (filters.hasEmail && !contact.email) return false
     if (filters.missingEmail && contact.email) return false
     if (filters.hasPhone && !contact.phone) return false
-    if (needle.length > 0) {
-      const haystack = fold(
-        `${contact.fullName} ${contact.email ?? ""} ${contact.jobTitle} ${contact.companyName} ${contact.companySector}`
-      )
-      if (!haystack.includes(needle)) return false
+    
+    if (filters.q.trim().length > 0) {
+      const parentAcc = accountsById && contact.companyId ? accountsById.get(contact.companyId) : undefined
+      if (!matchContactByQuery(contact, filters.q, parentAcc)) return false
     }
     return true
   })

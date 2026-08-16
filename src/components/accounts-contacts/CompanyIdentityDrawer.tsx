@@ -580,7 +580,11 @@ export function CompanyIdentityDrawer({
       ) : data ? (
         data.company.depth_level === "mapped" ? (
           <div className="flex h-full flex-col gap-5 overflow-y-auto pr-1">
-            <CompanyIdentityDrawerMappedView company={data.company} onConverted={handleMappedConverted} />
+            <CompanyIdentityDrawerMappedView
+              company={data.company}
+              onConverted={handleMappedConverted}
+              onOpenScan={() => setIsScanDialogOpen(true)}
+            />
           </div>
         ) : (
         <div className="flex flex-col h-full gap-5">
