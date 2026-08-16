@@ -50,14 +50,16 @@ export function AutomationMetricsCosts({
 
   return (
     <div className={`space-y-4 p-4 sm:p-6 w-full max-w-full overflow-x-hidden touch-pan-y animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none motion-reduce:duration-0 ${appearance === "light" ? "bg-canvas" : ""}`}>
-      <div className="flex flex-col items-stretch justify-between gap-3 min-[520px]:flex-row min-[520px]:items-end w-full max-w-full min-w-0">
-        <div className="min-w-0 flex-1">
-          <h3 className={`text-sm font-semibold break-words ${appearance === "light" ? "text-heading" : "text-white"}`}>Coûts et efficacité par workflow</h3>
-          <p className={`mt-1 text-[11px] break-words ${appearance === "light" ? "text-muted" : "text-white/45"}`}>Dépense mesurée et coût nécessaire pour obtenir un résultat réussi</p>
-        </div>
-        <div role="group" className={`grid grid-cols-2 shrink-0 rounded-lg border p-0.5 text-[10px] max-w-full ${appearance === "light" ? "border-border bg-surface" : "border-white/10"}`} aria-label="Afficher les coûts par">
-          <button type="button" onClick={() => setSort("costPerSuccess")} aria-pressed={sort === "costPerSuccess"} className={`min-h-11 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "costPerSuccess" ? (appearance === "light" ? "bg-primary text-white" : "bg-white/10 text-white") : (appearance === "light" ? "text-muted hover:bg-surface-hover" : "text-white/50")}`}>Coût par succès</button>
-          <button type="button" onClick={() => setSort("measuredCost")} aria-pressed={sort === "measuredCost"} className={`min-h-11 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "measuredCost" ? (appearance === "light" ? "bg-primary text-white" : "bg-white/10 text-white") : (appearance === "light" ? "text-muted hover:bg-surface-hover" : "text-white/50")}`}>Coût total</button>
+      <div className={`flex flex-col items-stretch justify-between gap-3 min-[520px]:flex-row min-[520px]:items-end w-full max-w-full min-w-0 ${appearance === "light" ? "pt-1" : ""}`}>
+        {appearance !== "light" && (
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold break-words text-white">Coûts et efficacité par workflow</h3>
+            <p className="mt-1 text-[11px] break-words text-white/45">Dépense mesurée et coût nécessaire pour obtenir un résultat réussi</p>
+          </div>
+        )}
+        <div role="group" className={`grid grid-cols-2 shrink-0 rounded-lg border p-0.5 text-[10px] max-w-full ${appearance === "light" ? "border-border bg-surface w-full min-[520px]:w-auto" : "border-white/10"}`} aria-label="Afficher les coûts par">
+          <button type="button" onClick={() => setSort("costPerSuccess")} aria-pressed={sort === "costPerSuccess"} className={`min-h-10 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "costPerSuccess" ? (appearance === "light" ? "bg-primary text-white font-semibold" : "bg-white/10 text-white font-semibold") : (appearance === "light" ? "text-muted hover:bg-surface-hover" : "text-white/50")}`}>Coût par succès</button>
+          <button type="button" onClick={() => setSort("measuredCost")} aria-pressed={sort === "measuredCost"} className={`min-h-10 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "measuredCost" ? (appearance === "light" ? "bg-primary text-white font-semibold" : "bg-white/10 text-white font-semibold") : (appearance === "light" ? "text-muted hover:bg-surface-hover" : "text-white/50")}`}>Coût total</button>
         </div>
       </div>
 

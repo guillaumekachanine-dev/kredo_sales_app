@@ -165,13 +165,15 @@ export function AppDialog({
         <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4", (hasAside || fillHeight) && "h-full", hasAside && "p-4 sm:p-6")}>
           {/* Header */}
           <div className={cn("min-w-0 shrink-0 flex flex-col gap-1.5", headerClassName)}>
-            <div className="relative flex items-center justify-between">
+            <div className="relative flex items-start justify-between gap-3">
               {headerLeading ? (
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   {headerLeading}
                   <div className="sr-only">{titleContent}</div>
                 </div>
-              ) : titleContent}
+              ) : (
+                <div className="min-w-0 flex-1">{titleContent}</div>
+              )}
               {headerCenter ? (
                 <div className="pointer-events-none absolute inset-x-10 top-1/2 flex -translate-y-1/2 justify-center">
                   <div className="pointer-events-auto">{headerCenter}</div>
@@ -182,7 +184,7 @@ export function AppDialog({
                 type="button"
                 onClick={() => onOpenChange(false)}
                 className={cn(
-                  "inline-flex shrink-0 items-center justify-center text-muted transition-colors hover:text-heading",
+                  "inline-flex shrink-0 items-center justify-center p-1 -mr-1 -mt-1 rounded-md text-muted transition-colors hover:text-heading hover:bg-surface-hover/80",
                   closeButtonClassName,
                 )}
                 aria-label="Fermer"

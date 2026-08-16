@@ -6,7 +6,7 @@ import { StatusPill } from "@/components/ui/StatusPill"
 import { formatDateTime } from "@/lib/formatters"
 import type { RunJournalRow } from "@/lib/automations/automations-data"
 import { fetchFilteredRunJournal } from "@/lib/automations/run-journal-actions"
-import { workflowLabelForRunType, workflowNomenclatureForRunType } from "@/lib/automations/workflow-labels"
+import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
 import {
   formatCostEstimate,
   formatDurationMs,
@@ -52,7 +52,6 @@ export function WorkflowExecutionsModal({
   const [selectedRun, setSelectedRun] = useState<RunJournalRow | null>(null)
 
   const resolvedLabel = workflowLabel || (workflowId ? workflowLabelForRunType(workflowId) : "")
-  const resolvedNomenclature = workflowId ? workflowNomenclatureForRunType(workflowId) : ""
 
   // Charger les exécutions complètes du workflow sur la plage de date à l'ouverture
   useEffect(() => {
@@ -88,7 +87,6 @@ export function WorkflowExecutionsModal({
   }, [open, workflowId, dateRange.from, dateRange.to])
 
   const failedCount = useMemo(() => runs.filter((r) => r.status === "failed").length, [runs])
-  const succeededCount = useMemo(() => runs.filter((r) => r.status === "succeeded").length, [runs])
 
   const displayedRuns = useMemo(() => {
     if (filterMode === "failed") {
@@ -107,30 +105,23 @@ export function WorkflowExecutionsModal({
         className="w-[min(calc(100vw-1.5rem),44rem)] sm:max-w-2xl"
         maxHeightClassName="max-h-[min(calc(100dvh-2rem),46rem)]"
         title={
-          <div className="flex flex-col gap-1 w-full text-left">
+          <div className="flex flex-col gap-1 w-full text-left pr-6">
             <div className="flex items-center gap-2">
-              <span className="inline-flex size-2 bg-brand-brass rounded-full" />
+              <span className="inline-flex size-2 bg-brand-brass rounded-full shrink-0" />
               <span className="font-bold text-heading text-base sm:text-lg leading-tight truncate">
                 {resolvedLabel}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <div className="flex items-center gap-2 pt-0.5">
               <span className="font-mono text-[10px] text-muted bg-white/[0.04] px-1.5 py-0.5 rounded border border-border/40">
                 {workflowId}
-              </span>
-              <span className="text-[10px] text-muted font-medium">
-                {resolvedNomenclature}
-              </span>
-              <span className="text-[10px] text-muted/60">·</span>
-              <span className="text-[10px] text-muted font-medium bg-canvas px-2 py-0.5 rounded-full border border-border/40">
-                {periodLabel}
               </span>
             </div>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          {/* Barre de contrôle : Sélecteur Toggle Tout / Échecs & Statistiques */}
+          {/* Barre de contrôle : Sélecteur Toggle Tout / Échecs & Pastille Période */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-3">
             <div
               className="inline-flex items-center rounded-lg border border-border/60 bg-canvas/90 p-1 shadow-2xs"
@@ -180,19 +171,14 @@ export function WorkflowExecutionsModal({
               </button>
             </div>
 
-            {/* Indicateur de santé rapide */}
-            <div className="flex items-center gap-2 text-xs text-muted">
+            {/* Pastille indiquant la période (ex : 7 derniers jours) */}
+            <div className="flex items-center gap-2">
               {isLoading ? (
-                <span className="text-[11px] text-brand-brass animate-pulse">Chargement…</span>
-              ) : (
-                <>
-                  <span className="text-success font-medium">{succeededCount} succès</span>
-                  <span>·</span>
-                  <span className={failedCount > 0 ? "text-danger font-medium" : "text-muted"}>
-                    {failedCount} échec{failedCount > 1 ? "s" : ""}
-                  </span>
-                </>
-              )}
+                <span className="text-[10px] text-brand-brass animate-pulse">Chargement…</span>
+              ) : null}
+              <span className="text-[11px] text-muted font-semibold bg-canvas px-3 py-1 rounded-full border border-border/60 shadow-2xs">
+                {periodLabel}
+              </span>
             </div>
           </div>
 
