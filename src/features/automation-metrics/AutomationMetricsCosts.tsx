@@ -35,13 +35,21 @@ function MetricCard({ label, value, detail, comparison, appearance = "dark" }: {
   )
 }
 
-export function AutomationMetricsCosts({ snapshot, appearance = "dark" }: { snapshot: AutomationMetricsSnapshot; appearance?: "dark" | "light" }) {
+export function AutomationMetricsCosts({
+  snapshot,
+  appearance = "dark",
+  onSelectWorkflow,
+}: {
+  snapshot: AutomationMetricsSnapshot
+  appearance?: "dark" | "light"
+  onSelectWorkflow?: (workflowId: string) => void
+}) {
   const [sort, setSort] = useState<AutomationMetricsCostSort>("costPerSuccess")
   const workflows = useMemo(() => sortWorkflowCosts(snapshot.workflowCosts, sort), [snapshot.workflowCosts, sort])
   const summary = snapshot.costsSummary
 
   return (
-    <div className={`space-y-5 p-4 sm:p-6 w-full max-w-full overflow-x-hidden touch-pan-y animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none motion-reduce:duration-0 ${appearance === "light" ? "bg-canvas" : ""}`}>
+    <div className={`space-y-4 p-4 sm:p-6 w-full max-w-full overflow-x-hidden touch-pan-y animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none motion-reduce:duration-0 ${appearance === "light" ? "bg-canvas" : ""}`}>
       <div className="flex flex-col items-stretch justify-between gap-3 min-[520px]:flex-row min-[520px]:items-end w-full max-w-full min-w-0">
         <div className="min-w-0 flex-1">
           <h3 className={`text-sm font-semibold break-words ${appearance === "light" ? "text-heading" : "text-white"}`}>Coûts et efficacité par workflow</h3>
@@ -53,13 +61,20 @@ export function AutomationMetricsCosts({ snapshot, appearance = "dark" }: { snap
         </div>
       </div>
 
-      <div className="grid gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3 [&>*:last-child]:min-[420px]:col-span-2 [&>*:last-child]:sm:col-span-1 w-full max-w-full min-w-0">
-        <MetricCard label="Coût mesuré" value={cost(summary.measuredCost)} comparison={delta(summary.measuredCostDeltaPct, "neutral")} detail="Dépense connue sur la période sélectionnée" appearance={appearance} />
-        <MetricCard label="Coût par succès" value={cost(summary.costPerSuccess)} comparison={delta(summary.costPerSuccessDeltaPct, "efficiency")} detail={summary.costPerSuccess === null ? "Aucun succès ou coût mesuré" : "Dépense mesurée totale divisée par les succès"} appearance={appearance} />
-        <MetricCard label="Couverture des coûts" value={summary.costCoveragePct === null ? "—" : `${rounded(summary.costCoveragePct)} %`} detail={summary.costCoveragePct === null ? "Aucune exécution" : `${summary.measuredRuns} run${summary.measuredRuns > 1 ? "s" : ""} mesuré${summary.measuredRuns > 1 ? "s" : ""} sur ${summary.executions}`} appearance={appearance} />
-      </div>
+      {appearance !== "light" && (
+        <div className="grid gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3 [&>*:last-child]:min-[420px]:col-span-2 [&>*:last-child]:sm:col-span-1 w-full max-w-full min-w-0">
+          <MetricCard label="Coût mesuré" value={cost(summary.measuredCost)} comparison={delta(summary.measuredCostDeltaPct, "neutral")} detail="Dépense connue sur la période sélectionnée" appearance={appearance} />
+          <MetricCard label="Coût par succès" value={cost(summary.costPerSuccess)} comparison={delta(summary.costPerSuccessDeltaPct, "efficiency")} detail={summary.costPerSuccess === null ? "Aucun succès ou coût mesuré" : "Dépense mesurée totale divisée par les succès"} appearance={appearance} />
+          <MetricCard label="Couverture des coûts" value={summary.costCoveragePct === null ? "—" : `${rounded(summary.costCoveragePct)} %`} detail={summary.costCoveragePct === null ? "Aucune exécution" : `${summary.measuredRuns} run${summary.measuredRuns > 1 ? "s" : ""} mesuré${summary.measuredRuns > 1 ? "s" : ""} sur ${summary.executions}`} appearance={appearance} />
+        </div>
+      )}
 
-      <AutomationWorkflowCostChart workflows={workflows} mode={sort} appearance={appearance} />
+      <AutomationWorkflowCostChart
+        workflows={workflows}
+        mode={sort}
+        appearance={appearance}
+        onSelectWorkflow={onSelectWorkflow}
+      />
       <p className={`text-[10px] leading-relaxed break-words ${appearance === "light" ? "text-muted" : "text-white/40"}`}>Le coût par succès inclut tous les coûts mesurés, y compris ceux des runs échoués. Une couverture incomplète laisse la dépense et le coût par succès partiels.</p>
     </div>
   )

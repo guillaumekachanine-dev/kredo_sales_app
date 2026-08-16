@@ -20,14 +20,17 @@ function comparison(value: number | null, meaning: "neutral" | "efficiency"): { 
   return { text: `${value > 0 ? "+" : ""}${rounded(value)} %`, color: positive ? "text-success" : meaning === "efficiency" ? "text-danger" : "text-white/55" }
 }
 
-function coverage(workflow: AutomationWorkflowCostEfficiency): string {
-  if (workflow.costCoveragePct === null) return "Aucune exécution"
-  if (workflow.measuredRuns === 0) return "Coûts non mesurés"
-  if (workflow.costCoveragePct < 100) return `Mesure partielle : ${rounded(workflow.costCoveragePct)} %`
-  return "Mesure complète : 100 %"
-}
-
-export function AutomationWorkflowCostChart({ workflows, mode, appearance = "dark" }: { workflows: AutomationWorkflowCostEfficiency[]; mode: AutomationMetricsCostSort; appearance?: "dark" | "light" }) {
+export function AutomationWorkflowCostChart({
+  workflows,
+  mode,
+  appearance = "dark",
+  onSelectWorkflow,
+}: {
+  workflows: AutomationWorkflowCostEfficiency[]
+  mode: AutomationMetricsCostSort
+  appearance?: "dark" | "light"
+  onSelectWorkflow?: (workflowId: string) => void
+}) {
   if (workflows.length === 0) {
     return <p className={`rounded-xl border p-4 text-xs ${appearance === "light" ? "border-border bg-surface text-muted" : "border-white/10 bg-white/[0.025] text-white/50"}`}>Aucun workflow sur la période active ou précédente.</p>
   }
@@ -36,42 +39,95 @@ export function AutomationWorkflowCostChart({ workflows, mode, appearance = "dar
 
   return (
     <div className="space-y-3 w-full max-w-full overflow-x-hidden touch-pan-y" role="list" aria-label={`Coûts par workflow, classés par ${mode === "measuredCost" ? "coût total" : "coût par succès"}`}>
-      <div className={`flex flex-wrap gap-x-4 gap-y-2 text-[10px] ${appearance === "light" ? "text-muted" : "text-white/60"}`} aria-hidden="true">
-        <span className="inline-flex items-center gap-1.5"><i className={`size-2 rounded-sm ${mode === "measuredCost" ? (appearance === "light" ? "bg-brand-brass" : "bg-brand-brass") : "bg-primary"}`} />{mode === "measuredCost" ? "Coût mesuré" : "Coût par succès"}</span>
-        <span className="break-words max-w-full">Les barres commencent à zéro et les coûts absents ne créent pas de barre.</span>
-      </div>
       {workflows.map((workflow) => {
         const value = mode === "measuredCost" ? workflow.measuredCost : workflow.costPerSuccess
         const hasValue = value !== null
         const width = hasValue && maximum > 0 ? Math.max(1.5, (value / maximum) * 100) : 0
         const delta = comparison(mode === "measuredCost" ? workflow.measuredCostDeltaPct : workflow.costPerSuccessDeltaPct, mode === "measuredCost" ? "neutral" : "efficiency")
+        const isClickable = Boolean(onSelectWorkflow)
 
         return (
-          <article key={workflow.runType} role="listitem" className={`rounded-xl border px-3 py-3 w-full max-w-full min-w-0 overflow-hidden ${appearance === "light" ? "border-border bg-surface shadow-sm" : "border-white/8 bg-white/[0.025]"}`}>
-            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 min-w-0">
+          <article
+            key={workflow.runType}
+            role="listitem"
+            tabIndex={isClickable ? 0 : undefined}
+            onClick={isClickable ? () => onSelectWorkflow?.(workflow.runType) : undefined}
+            onKeyDown={
+              isClickable
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      onSelectWorkflow?.(workflow.runType)
+                    }
+                  }
+                : undefined
+            }
+            className={`group rounded-xl border p-3 w-full max-w-full min-w-0 overflow-hidden transition-all ${
+              isClickable ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60" : ""
+            } ${
+              appearance === "light"
+                ? `border-border bg-surface shadow-sm ${isClickable ? "hover:border-brand-brass/60 hover:shadow-md hover:bg-surface-hover/60" : ""}`
+                : `border-white/8 bg-white/[0.025] ${isClickable ? "hover:border-white/20 hover:bg-white/[0.04]" : ""}`
+            }`}
+          >
+            {/* Haut de la carte : Nom du workflow à gauche, Valeur principale en haut à droite */}
+            <div className="flex items-start justify-between gap-2 min-w-0">
               <div className="min-w-0 flex-1">
-                <p className={`break-words text-xs font-semibold ${appearance === "light" ? "text-heading" : "text-white"}`}>{workflowLabelForRunType(workflow.runType)}</p>
-                <p className={`mt-0.5 break-all font-mono text-[9px] ${appearance === "light" ? "text-muted" : "text-white/35"}`}>{workflow.runType}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className={`break-words text-xs font-semibold ${appearance === "light" ? "text-heading" : "text-white"}`}>
+                    {workflowLabelForRunType(workflow.runType)}
+                  </p>
+                  {isClickable && (
+                    <svg
+                      className={`size-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+                        appearance === "light" ? "text-muted" : "text-white/40"
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </div>
+                <p className={`mt-0.5 break-all font-mono text-[9px] ${appearance === "light" ? "text-muted" : "text-white/35"}`}>
+                  {workflow.runType}
+                </p>
               </div>
-              <div className="flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[10px] min-[520px]:w-auto min-[520px]:justify-end min-w-0">
-                <strong className={`font-heading text-lg tabular-nums ${appearance === "light" ? "text-heading" : "text-white"}`}>{hasValue ? cost(value) : "—"}</strong>
-                <span className={`font-semibold tabular-nums shrink-0 ${delta.color === "text-white/35" && appearance === "light" ? "text-muted" : delta.color === "text-white/55" && appearance === "light" ? "text-muted" : delta.color}`}>{delta.text} vs période précédente</span>
-              </div>
+
+              {/* Valeur principale dans le coin supérieur droit */}
+              <strong className={`font-heading text-lg leading-none tabular-nums shrink-0 ml-2 ${appearance === "light" ? "text-heading" : "text-white"}`}>
+                {hasValue ? cost(value) : "—"}
+              </strong>
             </div>
+
+            {/* Au-dessus de la barre graphique à gauche : Variation vs période précédente */}
+            <div className="mt-1.5">
+              <span className={`text-[10px] font-semibold tabular-nums ${delta.color === "text-white/35" && appearance === "light" ? "text-muted" : delta.color === "text-white/55" && appearance === "light" ? "text-muted" : delta.color}`}>
+                {delta.text} vs période précédente
+              </span>
+            </div>
+
+            {/* Barre graphique */}
             {hasValue ? (
-              <div className={`mt-3 h-3 overflow-hidden rounded-full ${appearance === "light" ? "bg-surface-hover" : "bg-white/[0.08]"}`} aria-label={`${mode === "measuredCost" ? "Coût total" : "Coût par succès"} ${cost(value)}`}>
+              <div className={`mt-1.5 h-2.5 overflow-hidden rounded-full ${appearance === "light" ? "bg-surface-hover" : "bg-white/[0.08]"}`} aria-label={`${mode === "measuredCost" ? "Coût total" : "Coût par succès"} ${cost(value)}`}>
                 <span className={`block h-full rounded-full ${mode === "measuredCost" ? "bg-brand-brass" : "bg-primary"}`} style={{ width: `${width}%` }} />
               </div>
-            ) : <p className={`mt-3 rounded-md border border-dashed px-2 py-1.5 text-[10px] ${appearance === "light" ? "border-border text-muted" : "border-white/15 text-white/40"}`}>Coûts non mesurés</p>}
-            <div className={`mt-2 grid gap-1 text-[10px] sm:grid-cols-2 min-w-0 ${appearance === "light" ? "text-muted" : "text-white/50"}`}>
-              <span className="break-words">Coût total : {cost(workflow.measuredCost)} · Moyen / run : {cost(workflow.averageCostPerMeasuredRun)}</span>
-              {appearance !== "light" && (
-                <>
-                  <span className="break-words">Coût / succès : {cost(workflow.costPerSuccess)} · {workflow.succeeded} succès</span>
-                  <span className={`break-words ${workflow.costCoveragePct !== null && workflow.costCoveragePct < 100 ? "text-brand-brass" : ""}`}>{coverage(workflow)}</span>
-                  <span className="break-words">{workflow.measuredRuns} coût{workflow.measuredRuns > 1 ? "s" : ""} mesuré{workflow.measuredRuns > 1 ? "s" : ""} · {workflow.executions} exécution{workflow.executions > 1 ? "s" : ""}</span>
-                </>
-              )}
+            ) : (
+              <p className={`mt-1.5 rounded-md border border-dashed px-2 py-1 text-[9px] ${appearance === "light" ? "border-border text-muted" : "border-white/15 text-white/40"}`}>
+                Coûts non mesurés
+              </p>
+            )}
+
+            {/* Sous la barre graphique : Gauche = Moyen/run : X,XX$ | Droite = Coût total : X,XX$ */}
+            <div className={`mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] min-w-0 ${appearance === "light" ? "text-muted" : "text-white/50"}`}>
+              <span className="truncate">
+                Moyen/run : <strong className={`font-semibold tabular-nums ${appearance === "light" ? "text-heading" : "text-white/80"}`}>{cost(workflow.averageCostPerMeasuredRun)}</strong>
+              </span>
+              <span className="truncate text-right">
+                Coût total : <strong className={`font-semibold tabular-nums ${appearance === "light" ? "text-heading" : "text-white/80"}`}>{cost(workflow.measuredCost)}</strong>
+              </span>
             </div>
           </article>
         )

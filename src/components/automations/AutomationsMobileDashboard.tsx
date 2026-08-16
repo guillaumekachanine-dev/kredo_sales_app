@@ -352,7 +352,16 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
             {snapshot?.workflowCosts.length === 0 && !pending ? (
               <div className="py-12 text-center text-sm text-muted">Aucune donnée de coût mesurée sur cette période.</div>
             ) : snapshot ? (
-              <AutomationMetricsCosts snapshot={snapshot} appearance="light" />
+              <AutomationMetricsCosts
+                snapshot={snapshot}
+                appearance="light"
+                onSelectWorkflow={(wfId) =>
+                  setSelectedWorkflowForModal({
+                    runType: wfId,
+                    label: workflowLabelForRunType(wfId),
+                  })
+                }
+              />
             ) : null}
           </div>
         ) : null}

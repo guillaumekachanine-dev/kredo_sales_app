@@ -125,7 +125,17 @@ export function AutomationMetricsModal({
       : section === "performance"
         ? <AutomationMetricsPerformance snapshot={snapshot} />
         : section === "costs"
-          ? <AutomationMetricsCosts snapshot={snapshot} />
+          ? (
+              <AutomationMetricsCosts
+                snapshot={snapshot}
+                onSelectWorkflow={(wfId) =>
+                  setSelectedWorkflowForModal({
+                    runType: wfId,
+                    label: workflowLabelForRunType(wfId),
+                  })
+                }
+              />
+            )
           : section === "incidents"
             ? <AutomationMetricsIncidents snapshot={snapshot} />
         : <AutomationMetricsOverview snapshot={snapshot} />
