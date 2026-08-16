@@ -39,10 +39,17 @@ describe("veille Desktop contracts", () => {
   })
 
   it("validates and bounds the workspace watch settings", () => {
-    expect(validateGlobalWatchSettings({ enabled: true, cadence: "weekly", sourceFamilies: ["Presse"], categories: ["Marché"], maxArticles: 40 })).toMatchObject({ success: true })
-    expect(validateGlobalWatchSettings({ enabled: true, cadence: "daily", sourceFamilies: [], categories: [], maxArticles: 40 })).toMatchObject({ success: false })
-    expect(validateGlobalWatchSettings({ enabled: true, cadence: "weekly", sourceFamilies: [], categories: [], maxArticles: 101 })).toMatchObject({ success: false })
-    expect(parseGlobalWatchSettings({ veille: { enabled: false, cadence: "weekly", sourceFamilies: ["Institutionnel"], categories: [], maxArticles: 999 } })).toMatchObject({ enabled: false, maxArticles: 100 })
+    expect(validateGlobalWatchSettings({ enabled: true, cadence: "weekly", maxArticles: 40 })).toMatchObject({ success: true })
+    expect(validateGlobalWatchSettings({ enabled: true, cadence: "daily", maxArticles: 40 })).toMatchObject({ success: false })
+    expect(validateGlobalWatchSettings({ enabled: true, cadence: "weekly", maxArticles: 101 })).toMatchObject({ success: false })
+    expect(parseGlobalWatchSettings({ veille: { enabled: false, cadence: "weekly", maxArticles: 999 } })).toMatchObject({ enabled: false, maxArticles: 100 })
+  })
+
+  it("no longer exposes the dead sourceFamilies/categories fields", () => {
+    const settings = parseGlobalWatchSettings(null)
+    expect(settings).not.toHaveProperty("sourceFamilies")
+    expect(settings).not.toHaveProperty("categories")
+    expect(Object.keys(settings).sort()).toEqual(["cadence", "enabled", "maxArticles"])
   })
 
   it("uses the complete previous calendar month", () => {

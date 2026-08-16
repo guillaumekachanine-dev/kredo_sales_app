@@ -10,6 +10,8 @@ import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { cn } from "@/lib/utils"
 import { saveGlobalWatchSettingsAction } from "@/app/(app)/veille/_actions/veille-actions"
 import type { VeilleDigest } from "@/app/(app)/veille/_data/veille-data"
+import { SourceManagementLauncher } from "@/features/source-management/components/SourceManagementLauncher"
+import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
 import type {
   GlobalWatchSettings,
   GlobalWatchWorkflowHealth,
@@ -101,10 +103,12 @@ export function VeilleHeaderActions({
   initialSettings,
   initialHealth,
   latestDigest,
+  sourceManagementSnapshot,
 }: {
   initialSettings: GlobalWatchSettings
   initialHealth: GlobalWatchWorkflowHealth
   latestDigest: VeilleDigest | null
+  sourceManagementSnapshot: SourceManagementSnapshot
 }) {
   const router = useRouter()
   const [refreshOpen, setRefreshOpen] = useState(false)
@@ -147,14 +151,11 @@ export function VeilleHeaderActions({
 
 
   const activeParameters = useMemo(() => {
-    const values = [
+    return [
       settings.enabled ? "veille active" : "veille suspendue",
       "cadence hebdomadaire",
       `${settings.maxArticles} articles maximum`,
     ]
-    if (settings.sourceFamilies.length > 0) values.push(`${settings.sourceFamilies.length} familles de sources`)
-    if (settings.categories.length > 0) values.push(`${settings.categories.length} catégories`)
-    return values
   }, [settings])
 
   const triggerRefresh = async () => {
@@ -210,6 +211,7 @@ export function VeilleHeaderActions({
         <Button variant="secondary" size="md" onClick={() => { setDraft(settings); setError(null); setSettingsOpen(true) }}>
           Configurer la veille
         </Button>
+        <SourceManagementLauncher variant="desktop" snapshot={sourceManagementSnapshot} />
         <WorkflowHealth health={health} />
       </div>
 
@@ -266,14 +268,6 @@ export function VeilleHeaderActions({
             <select value={draft.cadence} disabled className="h-10 w-full border border-border bg-surface px-3 text-heading disabled:opacity-70">
               <option value="weekly">Hebdomadaire</option>
             </select>
-          </label>
-          <label className="block space-y-2">
-            <span className="font-bold text-heading">Familles de sources</span>
-            <input value={draft.sourceFamilies.join(", ")} onChange={(event) => setDraft((current) => ({ ...current, sourceFamilies: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) }))} placeholder="Presse, institutions, analystes" className="h-10 w-full border border-border bg-surface px-3 text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading" />
-          </label>
-          <label className="block space-y-2">
-            <span className="font-bold text-heading">Catégories surveillées</span>
-            <input value={draft.categories.join(", ")} onChange={(event) => setDraft((current) => ({ ...current, categories: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) }))} placeholder="Marché, réglementation, nominations" className="h-10 w-full border border-border bg-surface px-3 text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading" />
           </label>
           <label className="block space-y-2">
             <span className="font-bold text-heading">Volume maximum</span>

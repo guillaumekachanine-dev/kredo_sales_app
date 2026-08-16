@@ -10,16 +10,12 @@ export type GlobalWatchCadence = "weekly"
 export type GlobalWatchSettings = {
   enabled: boolean
   cadence: GlobalWatchCadence
-  sourceFamilies: string[]
-  categories: string[]
   maxArticles: number
 }
 
 export const DEFAULT_GLOBAL_WATCH_SETTINGS: GlobalWatchSettings = {
   enabled: true,
   cadence: "weekly",
-  sourceFamilies: [],
-  categories: [],
   maxArticles: 40,
 }
 
@@ -101,12 +97,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
-function stringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    : []
-}
-
 export function parseGlobalWatchSettings(settings: Json | null | undefined): GlobalWatchSettings {
   if (!isRecord(settings) || !isRecord(settings.veille)) return DEFAULT_GLOBAL_WATCH_SETTINGS
   const veille = settings.veille
@@ -117,8 +107,6 @@ export function parseGlobalWatchSettings(settings: Json | null | undefined): Glo
   return {
     enabled: typeof veille.enabled === "boolean" ? veille.enabled : DEFAULT_GLOBAL_WATCH_SETTINGS.enabled,
     cadence: "weekly",
-    sourceFamilies: stringArray(veille.sourceFamilies),
-    categories: stringArray(veille.categories),
     maxArticles,
   }
 }
@@ -129,9 +117,6 @@ export function validateGlobalWatchSettings(value: unknown):
   if (!isRecord(value)) return { success: false, error: "Configuration invalide." }
   if (typeof value.enabled !== "boolean") return { success: false, error: "État de la veille invalide." }
   if (value.cadence !== "weekly") return { success: false, error: "Cadence non prise en charge." }
-  if (!Array.isArray(value.sourceFamilies) || !Array.isArray(value.categories)) {
-    return { success: false, error: "Sources ou catégories invalides." }
-  }
   if (typeof value.maxArticles !== "number" || !Number.isInteger(value.maxArticles) || value.maxArticles < 5 || value.maxArticles > 100) {
     return { success: false, error: "Le volume doit être compris entre 5 et 100 articles." }
   }
@@ -140,8 +125,6 @@ export function validateGlobalWatchSettings(value: unknown):
     data: {
       enabled: value.enabled,
       cadence: "weekly",
-      sourceFamilies: stringArray(value.sourceFamilies),
-      categories: stringArray(value.categories),
       maxArticles: value.maxArticles,
     },
   }

@@ -40,6 +40,7 @@ import {
   type StrategicWatchAnalysis,
   type VeilleSection,
 } from "./veille-desktop-contracts"
+import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
 
 interface VeilleActualitesDesktopProps {
   digest: VeilleDigest | null
@@ -56,6 +57,7 @@ interface VeilleActualitesDesktopProps {
   latestAnalysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
   monthlyGeneration: MonthlyWatchGenerationContext
+  sourceManagementSnapshot: SourceManagementSnapshot
 }
 
 export function getCategoryColorClass(category?: string) {
@@ -1235,6 +1237,7 @@ export function VeilleActualitesDesktop({
   latestAnalysis,
   analysisHistory,
   monthlyGeneration,
+  sourceManagementSnapshot,
 }: VeilleActualitesDesktopProps) {
   const [section, setSection] = useState<VeilleSection>("news")
   const [articles, setArticles] = useState(initialArticles)
@@ -1347,7 +1350,12 @@ export function VeilleActualitesDesktop({
               ? `Actualités - Digest n°${digestNumber || "?"} du ${formatDateFr(digest.digest_date)}`
               : "Veille & actualités"}
           </h1>
-          <VeilleHeaderActions initialSettings={globalWatchSettings} initialHealth={globalWatchHealth} latestDigest={pastDigests[0] ?? digest} />
+          <VeilleHeaderActions
+            initialSettings={globalWatchSettings}
+            initialHealth={globalWatchHealth}
+            latestDigest={pastDigests[0] ?? digest}
+            sourceManagementSnapshot={sourceManagementSnapshot}
+          />
         </header>
         <main className="veille-scrollbar min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[1480px] px-6 py-6">{content}</div>

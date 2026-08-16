@@ -799,6 +799,7 @@ export type Database = {
           include_news: boolean
           include_official_site: boolean
           include_public_records: boolean
+          include_sector_corpus: boolean
           include_social_manual: boolean
           include_tenders: boolean
           is_enabled: boolean
@@ -821,6 +822,7 @@ export type Database = {
           include_news?: boolean
           include_official_site?: boolean
           include_public_records?: boolean
+          include_sector_corpus?: boolean
           include_social_manual?: boolean
           include_tenders?: boolean
           is_enabled?: boolean
@@ -843,6 +845,7 @@ export type Database = {
           include_news?: boolean
           include_official_site?: boolean
           include_public_records?: boolean
+          include_sector_corpus?: boolean
           include_social_manual?: boolean
           include_tenders?: boolean
           is_enabled?: boolean
@@ -6359,6 +6362,283 @@ export type Database = {
           },
         ]
       }
+      source_catalog: {
+        Row: {
+          collection_url: string | null
+          content_temporality: Database["public"]["Enums"]["source_content_temporality"]
+          created_at: string
+          created_by: string | null
+          domain: string | null
+          family: string | null
+          homepage_url: string | null
+          id: string
+          is_active: boolean
+          is_locked: boolean
+          kredo_category: string | null
+          last_error: string | null
+          last_verified_at: string | null
+          name: string
+          origin: Database["public"]["Enums"]["source_origin"]
+          publisher: string | null
+          search_domain: string
+          source_key: string
+          updated_at: string
+          usage_scopes: string[]
+          validation_status: string
+          workspace_id: string
+        }
+        Insert: {
+          collection_url?: string | null
+          content_temporality?: Database["public"]["Enums"]["source_content_temporality"]
+          created_at?: string
+          created_by?: string | null
+          domain?: string | null
+          family?: string | null
+          homepage_url?: string | null
+          id?: string
+          is_active?: boolean
+          is_locked?: boolean
+          kredo_category?: string | null
+          last_error?: string | null
+          last_verified_at?: string | null
+          name: string
+          origin?: Database["public"]["Enums"]["source_origin"]
+          publisher?: string | null
+          search_domain: string
+          source_key: string
+          updated_at?: string
+          usage_scopes?: string[]
+          validation_status?: string
+          workspace_id?: string
+        }
+        Update: {
+          collection_url?: string | null
+          content_temporality?: Database["public"]["Enums"]["source_content_temporality"]
+          created_at?: string
+          created_by?: string | null
+          domain?: string | null
+          family?: string | null
+          homepage_url?: string | null
+          id?: string
+          is_active?: boolean
+          is_locked?: boolean
+          kredo_category?: string | null
+          last_error?: string | null
+          last_verified_at?: string | null
+          name?: string
+          origin?: Database["public"]["Enums"]["source_origin"]
+          publisher?: string | null
+          search_domain?: string
+          source_key?: string
+          updated_at?: string
+          usage_scopes?: string[]
+          validation_status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_catalog_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_catalog_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_corpora: {
+        Row: {
+          activation_state: Database["public"]["Enums"]["corpus_activation_state"]
+          created_at: string
+          enabled_for_account_watch: boolean
+          enabled_for_news: boolean
+          gaps: Json | null
+          id: string
+          is_current: boolean
+          metadata: Json | null
+          quality_verdict: Database["public"]["Enums"]["corpus_quality_verdict"]
+          scope_kind: Database["public"]["Enums"]["corpus_scope_kind"]
+          sector_id: string | null
+          slug: string
+          snapshot_date: string
+          source_document_hash: string | null
+          source_document_path: string | null
+          updated_at: string
+          version: string
+          workspace_id: string
+        }
+        Insert: {
+          activation_state?: Database["public"]["Enums"]["corpus_activation_state"]
+          created_at?: string
+          enabled_for_account_watch?: boolean
+          enabled_for_news?: boolean
+          gaps?: Json | null
+          id?: string
+          is_current?: boolean
+          metadata?: Json | null
+          quality_verdict?: Database["public"]["Enums"]["corpus_quality_verdict"]
+          scope_kind: Database["public"]["Enums"]["corpus_scope_kind"]
+          sector_id?: string | null
+          slug: string
+          snapshot_date: string
+          source_document_hash?: string | null
+          source_document_path?: string | null
+          updated_at?: string
+          version: string
+          workspace_id?: string
+        }
+        Update: {
+          activation_state?: Database["public"]["Enums"]["corpus_activation_state"]
+          created_at?: string
+          enabled_for_account_watch?: boolean
+          enabled_for_news?: boolean
+          gaps?: Json | null
+          id?: string
+          is_current?: boolean
+          metadata?: Json | null
+          quality_verdict?: Database["public"]["Enums"]["corpus_quality_verdict"]
+          scope_kind?: Database["public"]["Enums"]["corpus_scope_kind"]
+          sector_id?: string | null
+          slug?: string
+          snapshot_date?: string
+          source_document_hash?: string | null
+          source_document_path?: string | null
+          updated_at?: string
+          version?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_corpora_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_corpora_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "source_corpora_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "source_corpora_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_corpus_items: {
+        Row: {
+          account_watch_eligible: boolean
+          atteste: string | null
+          automation_fit:
+            | Database["public"]["Enums"]["corpus_automation_fit"]
+            | null
+          corpus_id: string
+          created_at: string
+          exclusion_reason: string | null
+          external_src_id: string | null
+          familles_couvertes: string[]
+          id: string
+          is_enabled: boolean
+          news_eligible: boolean
+          pack: Database["public"]["Enums"]["corpus_pack_type"]
+          primary_role: Database["public"]["Enums"]["corpus_source_role"] | null
+          source_id: string
+          tier: string | null
+          updated_at: string
+          utility_score: number | null
+          workspace_id: string
+        }
+        Insert: {
+          account_watch_eligible?: boolean
+          atteste?: string | null
+          automation_fit?:
+            | Database["public"]["Enums"]["corpus_automation_fit"]
+            | null
+          corpus_id: string
+          created_at?: string
+          exclusion_reason?: string | null
+          external_src_id?: string | null
+          familles_couvertes?: string[]
+          id?: string
+          is_enabled?: boolean
+          news_eligible?: boolean
+          pack: Database["public"]["Enums"]["corpus_pack_type"]
+          primary_role?:
+            | Database["public"]["Enums"]["corpus_source_role"]
+            | null
+          source_id: string
+          tier?: string | null
+          updated_at?: string
+          utility_score?: number | null
+          workspace_id?: string
+        }
+        Update: {
+          account_watch_eligible?: boolean
+          atteste?: string | null
+          automation_fit?:
+            | Database["public"]["Enums"]["corpus_automation_fit"]
+            | null
+          corpus_id?: string
+          created_at?: string
+          exclusion_reason?: string | null
+          external_src_id?: string | null
+          familles_couvertes?: string[]
+          id?: string
+          is_enabled?: boolean
+          news_eligible?: boolean
+          pack?: Database["public"]["Enums"]["corpus_pack_type"]
+          primary_role?:
+            | Database["public"]["Enums"]["corpus_source_role"]
+            | null
+          source_id?: string
+          tier?: string | null
+          updated_at?: string
+          utility_score?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_corpus_items_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "source_corpora"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_corpus_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "source_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_corpus_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
@@ -6668,6 +6948,7 @@ export type Database = {
           secteur_principal: string
           secteur_secondaire: string
           selection_rank: number
+          source_catalog_id: string | null
           source_name: string
           tags: string[]
           titre_fr: string
@@ -6689,6 +6970,7 @@ export type Database = {
           secteur_principal?: string
           secteur_secondaire?: string
           selection_rank: number
+          source_catalog_id?: string | null
           source_name: string
           tags?: string[]
           titre_fr: string
@@ -6710,6 +6992,7 @@ export type Database = {
           secteur_principal?: string
           secteur_secondaire?: string
           selection_rank?: number
+          source_catalog_id?: string | null
           source_name?: string
           tags?: string[]
           titre_fr?: string
@@ -6752,6 +7035,13 @@ export type Database = {
             columns: ["digest_id"]
             isOneToOne: false
             referencedRelation: "veille_digests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veille_articles_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "source_catalog"
             referencedColumns: ["id"]
           },
           {
@@ -7538,6 +7828,27 @@ export type Database = {
           },
         ]
       }
+      v_effective_watch_sources: {
+        Row: {
+          collection_mode: string | null
+          collection_url: string | null
+          company_id: string | null
+          corpus_id: string | null
+          domain: string | null
+          family: string | null
+          kredo_category: string | null
+          origin: Database["public"]["Enums"]["source_origin"] | null
+          priority: number | null
+          publisher: string | null
+          search_domain: string | null
+          source_id: string | null
+          source_key: string | null
+          source_name: string | null
+          usage_scope: string | null
+          utility_score: number | null
+        }
+        Relationships: []
+      }
       v_financial_model_activity_rates: {
         Row: {
           billable_days: number | null
@@ -8033,6 +8344,10 @@ export type Database = {
         Args: { p_decisions: Json; p_reason?: string }
         Returns: Json
       }
+      ingest_source_corpus: {
+        Args: { p_payload: Json; p_reason: string; p_segment_slug: string }
+        Returns: Json
+      }
       kredo_normalize_company_name: { Args: { txt: string }; Returns: string }
       promote_financial_model_to_reference: {
         Args: { p_model_id: string }
@@ -8170,6 +8485,15 @@ export type Database = {
         | "failed"
         | "cancelled"
       ai_run_status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
+      corpus_activation_state: "draft" | "active"
+      corpus_automation_fit: "high" | "medium" | "low" | "manual_only"
+      corpus_pack_type: "minimal" | "enrichi"
+      corpus_quality_verdict:
+        | "production_ready"
+        | "usable_with_caveats"
+        | "rejected"
+      corpus_scope_kind: "system" | "sector"
+      corpus_source_role: "proof" | "corroboration" | "discovery" | "watch"
       intelligence_document_status: "draft" | "ready" | "used" | "archived"
       intelligence_document_type:
         | "communication"
@@ -8219,6 +8543,8 @@ export type Database = {
       project_ref_status: "not_reference" | "draft" | "approved" | "archived"
       project_ref_visibility: "named" | "anonymized" | "confidential"
       project_status: "draft" | "active" | "delivered" | "closed" | "cancelled"
+      source_content_temporality: "static" | "periodic" | "continuous"
+      source_origin: "system" | "manual" | "corpus"
     }
     CompositeTypes: {
       proposal_operation_result: {
@@ -8401,6 +8727,16 @@ export const Constants = {
         "cancelled",
       ],
       ai_run_status: ["queued", "running", "succeeded", "failed", "cancelled"],
+      corpus_activation_state: ["draft", "active"],
+      corpus_automation_fit: ["high", "medium", "low", "manual_only"],
+      corpus_pack_type: ["minimal", "enrichi"],
+      corpus_quality_verdict: [
+        "production_ready",
+        "usable_with_caveats",
+        "rejected",
+      ],
+      corpus_scope_kind: ["system", "sector"],
+      corpus_source_role: ["proof", "corroboration", "discovery", "watch"],
       intelligence_document_status: ["draft", "ready", "used", "archived"],
       intelligence_document_type: [
         "communication",
@@ -8454,6 +8790,8 @@ export const Constants = {
       project_ref_status: ["not_reference", "draft", "approved", "archived"],
       project_ref_visibility: ["named", "anonymized", "confidential"],
       project_status: ["draft", "active", "delivered", "closed", "cancelled"],
+      source_content_temporality: ["static", "periodic", "continuous"],
+      source_origin: ["system", "manual", "corpus"],
     },
   },
 } as const

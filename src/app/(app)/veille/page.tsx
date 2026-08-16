@@ -22,6 +22,7 @@ import {
   type SectorEvent
 } from "./_data/veille-data"
 import { VeilleActualitesPage } from "@/components/veille/VeilleActualitesPage"
+import { getSourceManagementSnapshot } from "@/features/source-management/data/get-source-management-snapshot"
 
 export default async function VeillePage({
   searchParams,
@@ -44,6 +45,7 @@ export default async function VeillePage({
     latestAnalysis,
     analysisHistory,
     monthlyGeneration,
+    sourceManagementSnapshot,
   ] = await Promise.all([
     getDashboardDevice(),
     getCompaniesContextStats(),
@@ -55,6 +57,7 @@ export default async function VeillePage({
     getLatestStrategicWatchAnalysis(),
     getStrategicWatchAnalysisHistory(12),
     getMonthlyWatchGenerationContext(),
+    getSourceManagementSnapshot(),
   ])
 
   const pastDigests = pastDigestsResult.data || []
@@ -144,6 +147,7 @@ export default async function VeillePage({
         latestAnalysis={latestAnalysis}
         analysisHistory={analysisHistory}
         monthlyGeneration={monthlyGeneration}
+        sourceManagementSnapshot={sourceManagementSnapshot}
         initialMobileTab={initialTab}
         initialMobileCompanyId={initialCompanyId}
       />

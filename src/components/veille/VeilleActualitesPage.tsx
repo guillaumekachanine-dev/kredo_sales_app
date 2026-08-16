@@ -15,6 +15,7 @@ import type {
   MonthlyWatchGenerationContext,
   StrategicWatchAnalysis,
 } from "./veille-desktop-contracts"
+import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
 
 interface VeilleActualitesPageProps {
   device: DashboardDevice
@@ -36,6 +37,7 @@ interface VeilleActualitesPageProps {
   latestAnalysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
   monthlyGeneration: MonthlyWatchGenerationContext
+  sourceManagementSnapshot: SourceManagementSnapshot
   initialMobileTab?: "veille"
   initialMobileCompanyId?: string
 }
@@ -58,6 +60,7 @@ export function VeilleActualitesPage({
   latestAnalysis,
   analysisHistory,
   monthlyGeneration,
+  sourceManagementSnapshot,
   initialMobileTab,
   initialMobileCompanyId,
 }: VeilleActualitesPageProps) {
@@ -71,6 +74,7 @@ export function VeilleActualitesPage({
         companies={companies}
         watchedSignals={watchedSignals}
         analyses={analysisHistory}
+        sourceManagementSnapshot={sourceManagementSnapshot}
         initialTab={initialMobileTab}
         initialCompanyId={initialMobileCompanyId}
       />
@@ -93,6 +97,7 @@ export function VeilleActualitesPage({
       latestAnalysis={latestAnalysis}
       analysisHistory={analysisHistory}
       monthlyGeneration={monthlyGeneration}
+      sourceManagementSnapshot={sourceManagementSnapshot}
     />
   )
 }
