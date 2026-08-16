@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/Button"
 import { ManualSourceForm } from "./ManualSourceForm"
 import { SourceBaseList } from "./SourceBaseList"
 import { SourceCorpusCard } from "./SourceCorpusCard"
+import { SourceCorpusImportWizard } from "./SourceCorpusImportWizard"
 import type { SourceCatalogEntry, SourceManagementSnapshot } from "../domain/source-management-contracts"
 
-type PanelView = { kind: "list" } | { kind: "create" } | { kind: "edit"; source: SourceCatalogEntry }
+type PanelView = { kind: "list" } | { kind: "create" } | { kind: "edit"; source: SourceCatalogEntry } | { kind: "import" }
 
 export interface SourceManagementDrawerMobileProps {
   open: boolean
@@ -25,7 +26,11 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
   }
 
   const catalogSources = [...snapshot.systemSources, ...snapshot.manualSources]
-  const title = view.kind === "create" ? "Ajouter une source" : view.kind === "edit" ? "Modifier la source" : "Gérer les sources"
+  const title =
+    view.kind === "create" ? "Ajouter une source" :
+    view.kind === "edit" ? "Modifier la source" :
+    view.kind === "import" ? "Importer un corpus" :
+    "Gérer les sources"
 
   return (
     <AppDrawer
@@ -53,6 +58,8 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
           onCancel={() => setView({ kind: "list" })}
           onSuccess={() => setView({ kind: "list" })}
         />
+      ) : view.kind === "import" ? (
+        <SourceCorpusImportWizard variant="mobile" onClose={() => setView({ kind: "list" })} />
       ) : (
         <div className="space-y-8">
           <section className="space-y-3">
@@ -77,13 +84,15 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-heading text-sm font-bold text-heading">Sources veille sectorielle</h3>
-              <Button variant="secondary" size="sm" disabled title="Import de corpus — Lot 4">
-                Importer
-              </Button>
+              {snapshot.canManage ? (
+                <Button variant="secondary" size="sm" onClick={() => setView({ kind: "import" })}>
+                  Importer
+                </Button>
+              ) : null}
             </div>
             {snapshot.sectorCorpora.length === 0 ? (
               <p className="border border-dashed border-border p-4 text-center text-xs text-muted">
-                Aucun corpus sectoriel importé pour l’instant — l’import arrive au Lot 4.
+                Aucun corpus sectoriel importé pour l’instant. Utilisez « Importer » pour charger un registre E3.
               </p>
             ) : (
               <div className="space-y-2">

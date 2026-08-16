@@ -97,22 +97,35 @@ describe("ManualSourceForm — duplicate handling and reactivation", () => {
   })
 })
 
-describe("Corpus import — explicitly disabled, no fake success (Lot 3 does not import corpora)", () => {
+describe("Corpus import — wired to the Lot 4 wizard, gated on canManage", () => {
   const desktop = read("src/features/source-management/components/SourceManagementDialogDesktop.tsx")
   const mobile = read("src/features/source-management/components/SourceManagementDrawerMobile.tsx")
 
   for (const [label, source] of [["Desktop", desktop], ["Mobile", mobile]] as const) {
-    it(`${label}: the "Importer un corpus" CTA is disabled and never simulated`, () => {
-      expect(source).toContain("disabled")
-      expect(source).toContain("Import de corpus — Lot 4")
-      expect(source).not.toContain("SourceCorpusImportWizard")
-      expect(source).not.toContain("resolve-source-corpus-import")
+    it(`${label}: the "Importer un corpus" CTA opens the wizard and is gated on canManage`, () => {
+      expect(source).toContain("SourceCorpusImportWizard")
+      expect(source).toContain('kind: "import"')
+      expect(source).toContain("snapshot.canManage")
     })
 
     it(`${label}: shows a clean empty state when no sector corpus exists`, () => {
       expect(source).toContain("snapshot.sectorCorpora.length === 0")
     })
+
+    it(`${label}: the wizard is an internal shell state, never a nested dialog`, () => {
+      const wizardSource = read("src/features/source-management/components/SourceCorpusImportWizard.tsx")
+      expect(wizardSource).not.toContain("AppDialog")
+      expect(wizardSource).not.toContain("AppDrawer")
+    })
   }
+
+  it("Desktop mounts the wizard with variant=\"desktop\"", () => {
+    expect(desktop).toContain('<SourceCorpusImportWizard variant="desktop"')
+  })
+
+  it("Mobile mounts the wizard with variant=\"mobile\"", () => {
+    expect(mobile).toContain('<SourceCorpusImportWizard variant="mobile"')
+  })
 })
 
 describe("Desktop/Mobile shells stay two distinct components (ADR-0006 adaptive)", () => {

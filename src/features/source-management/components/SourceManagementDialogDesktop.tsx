@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/Button"
 import { ManualSourceForm } from "./ManualSourceForm"
 import { SourceBaseList } from "./SourceBaseList"
 import { SourceCorpusCard } from "./SourceCorpusCard"
+import { SourceCorpusImportWizard } from "./SourceCorpusImportWizard"
 import type { SourceCatalogEntry, SourceManagementSnapshot } from "../domain/source-management-contracts"
 
-type PanelView = { kind: "list" } | { kind: "create" } | { kind: "edit"; source: SourceCatalogEntry }
+type PanelView = { kind: "list" } | { kind: "create" } | { kind: "edit"; source: SourceCatalogEntry } | { kind: "import" }
 
 export interface SourceManagementDialogDesktopProps {
   open: boolean
@@ -44,6 +45,8 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
           onCancel={() => setView({ kind: "list" })}
           onSuccess={() => setView({ kind: "list" })}
         />
+      ) : view.kind === "import" ? (
+        <SourceCorpusImportWizard variant="desktop" onClose={() => setView({ kind: "list" })} />
       ) : (
         <div className="space-y-8">
           <section className="space-y-3">
@@ -71,14 +74,17 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
                 <h3 className="font-heading text-sm font-bold text-heading">Sources veille sectorielle</h3>
                 <p className="text-[11px] text-muted">Corpus versionnés issus du processus MASTER-STUDY / E3</p>
               </div>
-              <Button variant="secondary" size="sm" disabled title="Import de corpus — Lot 4">
-                Importer un corpus
-              </Button>
+              {snapshot.canManage ? (
+                <Button variant="secondary" size="sm" onClick={() => setView({ kind: "import" })}>
+                  Importer un corpus
+                </Button>
+              ) : null}
             </div>
             {snapshot.sectorCorpora.length === 0 ? (
               <p className="border border-dashed border-border p-4 text-center text-xs text-muted">
-                Aucun corpus sectoriel importé pour l’instant. L’import de corpus (JSON E3) arrive au Lot 4 —
-                cette section affichera alors les corpus par segment, leur qualité documentaire et leur activation.
+                Aucun corpus sectoriel importé pour l’instant. Utilisez « Importer un corpus » pour charger un
+                registre de sources produit par MASTER-STUDY / E3 — cette section affichera alors les corpus par
+                segment, leur qualité documentaire et leur activation.
               </p>
             ) : (
               <div className="space-y-2">
