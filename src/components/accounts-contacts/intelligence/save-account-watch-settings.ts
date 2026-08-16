@@ -24,7 +24,7 @@ type SaveAccountWatchSettingsInput = {
 const SELECT_COLUMNS =
   "is_enabled,watch_level,cadence,last_run_at,next_run_at,last_status,last_error,updated_at"
 
-const DETAILED_SELECT_COLUMNS = `${SELECT_COLUMNS},include_official_site,include_news,include_public_records,include_tenders,include_social_manual,include_jobs,query_aliases,metadata`
+const DETAILED_SELECT_COLUMNS = `${SELECT_COLUMNS},include_official_site,include_news,include_public_records,include_tenders,include_social_manual,include_jobs,include_sector_corpus,query_aliases,metadata`
 
 export type SaveAccountWatchDetailedSettingsInput = {
   isEnabled: boolean

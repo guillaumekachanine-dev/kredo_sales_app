@@ -250,3 +250,75 @@ ne doit pas renvoyer 500 à n8n, qui rejouerait le callback.
 2. **Comportement attendu 0 signal** : Si un run aboutit à 0 item qualifié, le `Finalize Run Summary` converge correctement. Il produit un callback de succès contenant `signalsCreated: 0`, et met à jour `account_watch_settings` avec `last_status = succeeded`. Le run ne meurt plus silencieusement.
 3. **Convergence centralisée** : `Finalize Run Summary` est l'unique source de vérité lue par les deux nœuds aval (`Update Watch Settings -> Succeeded` et `Prepare Callback`). 
 4. **Traçabilité de version** : La version du workflow (`2026-08-07.1`) est émise dans le callback et stockée dans `ai_intelligence_runs.config`.
+
+## 13. Lot 5 (2026-08-16) — veille compte enrichie par le corpus sectoriel
+
+**Chantier** : `docs/FEATURES/gestion_des_sources/` (Gestion des sources), Lot 5/6. Handoff complet :
+`docs/FEATURES/gestion_des_sources/HANDOFF-LOT5.md`.
+
+**Objectif** : faire consommer à ce workflow les sources du corpus sectoriel effectif du compte
+(`v_effective_watch_sources`, `usage_scope='account_watch'`), en plus des 4 collecteurs
+historiques, sans régresser aucune des garanties de convergence des correctifs §8/§9/§12.
+
+**Nouveau paramètre** : `settings.includeSectorCorpus` (défaut `true` si absent — compatibilité
+ascendante avec un ancien appelant). `Validate Payload` l'accepte désormais.
+
+**Nouveaux nœuds** (13), insérés après `Shape+Accumulate: Tenders` et avant
+`Normalize & Dedup Items` :
+- `IF — Include Sector Corpus?` — gate AVANT toute requête réseau (si `false`, aucun coût réseau
+  corpus, branche `Skip Sector Corpus`).
+- `Load Effective Sector Sources` — `GET v_effective_watch_sources?usage_scope=eq.account_watch
+  &company_id=eq.<id>&order=priority.asc,utility_score.desc`. **Seule source du corpus** — jamais
+  de lecture directe de `source_corpora`/`source_corpus_items`/`source_catalog`, jamais de
+  réimplémentation de la résolution segment→macro en JS (la vue l'encode déjà).
+- `Shape Sector Sources` — plafond **strict à 12 sources** (`sortie déjà triée
+  priority ASC, utility_score DESC` par la vue ; `pack` n'est pas exposé par la vue live —
+  vérifié le 2026-08-16 — donc pas de tri par pack, l'ordre `priority` l'encode déjà : minimal
+  avant enrichi, `manual_only` déprioritisé). Ne retourne jamais `[]` (placeholder si 0 source).
+- `Loop Over Sector Sources` (`splitInBatches`, batch=1) → `Build Sector Corpus Query` →
+  `Collect: Sector Corpus Source` (Google News RSS `site:<search_domain>
+  ("Nom1" OR "Nom2")`, mêmes 2 premiers `nameVariants` que les autres collecteurs) →
+  `Shape Sector Corpus Item` (déballe l'éditeur réel, jamais `news.google.com`) /
+  `Ignore Sector Corpus Source Error` (erreur sur une source → les 11 autres continuent) →
+  boucle. Mécanisme identique et déjà éprouvé à celui de
+  `n8n/workflows/veille-hebdomadaire-kredo.json` (`Loop Over Items — 1 Source` +
+  `$('NodeName').item.json` pour résoudre sans ambiguïté la source en cours).
+- `Accumulate Sector Corpus Items` (sortie "done" de la boucle) / `Skip Sector Corpus` (branche
+  désactivée) → `Merge Collected Items` — point de convergence unique avant
+  `Normalize & Dedup Items` : aucune deuxième pipeline parallèle jusqu'à la DB.
+
+**Tourniquet re-clé** (`Normalize & Dedup Items`) : la clé de répartition round-robin passe de
+`sourceType` seul à `sourceCatalogId ?? sourceKey ?? sourceName ?? sourceType`
+(`roundRobinKey()`). Avec le corpus sectoriel, jusqu'à 12 domaines distincts partagent tous
+`sourceType='sector_corpus'` — les grouper sur ce seul champ les aurait fait s'écraser entre eux
+dans une file unique, écrasant jusqu'à 11 sources sur 12. **Le plafond de 40 candidats par run
+est inchangé** — ce correctif change *quels* 40 items, jamais *combien*.
+
+**Filtre administratif déterministe** (`Filter Administrative Static Items`, nouveau nœud entre
+`Normalize & Dedup Items` et `IF — Has Items to Qualify?`) : exclut avant dépense LLM un item qui
+ne porte QUE du vocabulaire administratif stable (SIREN/SIRET/NAF/siège/capital social/forme
+juridique) sans aucun verbe événementiel détectable (transfert, nomination, fusion, acquisition,
+cession, liquidation, radiation, redressement, capital, création/fermeture d'établissement,
+attribution de marché, nouveau contrat/partenariat…). La présence de vocabulaire administratif ne
+suffit jamais seule à exclure. Compteur `excludedStaticCount` remonté au callback.
+
+**Provenance** : `intelligence_sources.technical_metadata` porte désormais aussi
+`sourceCatalogId`/`corpusId` (en plus de `collectedVia` déjà existant) pour les items issus du
+corpus.
+
+**Observabilité additive dans `contentJson`** (callback) : `excludedStaticCount`,
+`sectorSourcesLoaded`, `sectorSourcesQueried`, `sectorItemsCollected`, `sectorItemsAfterDedup`.
+Champs additifs — aucun champ existant renommé ou supprimé.
+
+**Cas 0 corpus / corpus désactivé / erreur isolée** : tous testés par le harnais
+`n8n/workflows/__tests__/intel-033-account-watch-refresh.test.js` (créé à ce lot — aucun harnais
+INTEL-033 n'existait avant, malgré la doc de reprise du chantier qui supposait son existence).
+Voir `HANDOFF-LOT5.md` pour le détail des scénarios de convergence couverts.
+
+**Contrat inchangé** : `settings.includePublicRecords`/`includeTenders`/etc, les 4 collecteurs
+historiques, le plafond LLM de 40, la convergence `Finalize Run Summary`, tous les correctifs
+§8/§9/§12 — non touchés par ce lot. `workflowVersion` passe de `2026-08-07.1` à `2026-08-16.1`.
+
+**Non fait à ce lot (hors périmètre)** : import/activation VPS (voir protocole de déploiement
+dans `HANDOFF-LOT5.md`), UI de configuration `includeSectorCorpus` (reste au défaut `true`, pas
+d'exposition utilisateur — voir `HANDOFF-LOT5.md` §Écarts), scoring V2 des sources.

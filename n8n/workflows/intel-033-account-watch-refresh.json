@@ -44,7 +44,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\n\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) \u2014 requ\u00eate rejet\u00e9e');\n}\n\nconst required = ['runId', 'workspaceId', 'companyId', 'userId', 'settings', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nconst settings = body.settings || {};\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workspaceId: body.workspaceId,\n    companyId: body.companyId,\n    userId: body.userId,\n    triggerMode: body.triggerMode || 'manual',\n    watchLevel: body.watchLevel || settings.watchLevel || 'standard',\n    settings: {\n      isEnabled: settings.isEnabled !== false,\n      watchLevel: settings.watchLevel || 'standard',\n      cadence: settings.cadence || 'weekly',\n      includeOfficialSite: settings.includeOfficialSite !== false,\n      includeNews: settings.includeNews !== false,\n      includePublicRecords: settings.includePublicRecords === true,\n      includeTenders: settings.includeTenders === true,\n      includeSocialManual: settings.includeSocialManual === true,\n      queryAliases: Array.isArray(settings.queryAliases) ? settings.queryAliases.filter((v) => typeof v === 'string') : [],\n    },\n    callbackUrl: body.callbackUrl,\n  }\n}];"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\n\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) \u2014 requ\u00eate rejet\u00e9e');\n}\n\nconst required = ['runId', 'workspaceId', 'companyId', 'userId', 'settings', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nconst settings = body.settings || {};\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workspaceId: body.workspaceId,\n    companyId: body.companyId,\n    userId: body.userId,\n    triggerMode: body.triggerMode || 'manual',\n    watchLevel: body.watchLevel || settings.watchLevel || 'standard',\n    settings: {\n      isEnabled: settings.isEnabled !== false,\n      watchLevel: settings.watchLevel || 'standard',\n      cadence: settings.cadence || 'weekly',\n      includeOfficialSite: settings.includeOfficialSite !== false,\n      includeNews: settings.includeNews !== false,\n      includePublicRecords: settings.includePublicRecords === true,\n      includeTenders: settings.includeTenders === true,\n      includeSocialManual: settings.includeSocialManual === true,\n      includeSectorCorpus: typeof settings.includeSectorCorpus === 'boolean' ? settings.includeSectorCorpus : true,\n      queryAliases: Array.isArray(settings.queryAliases) ? settings.queryAliases.filter((v) => typeof v === 'string') : [],\n    },\n    callbackUrl: body.callbackUrl,\n  }\n}];"
       },
       "id": "n2-validate",
       "name": "Validate Payload",
@@ -344,7 +344,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const ctx = $input.first().json;\nconst items = Array.isArray(ctx.collectedItems) ? ctx.collectedItems : [];\nconst existingKeys = new Set(ctx.existingDedupeKeys || []);\n\nconst MAX_AGE_DAYS = 120;\nconst MAX_ITEMS = 40;\n\nfunction simpleHash(str) {\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) - hash) + str.charCodeAt(i);\n    hash |= 0;\n  }\n  return Math.abs(hash).toString(36);\n}\n\nfunction normalizeTitle(t) {\n  return (t || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim();\n}\n\nconst seenKeys = new Set();\nconst seenTitles = new Set();\nconst kept = [];\n\nfor (const it of items) {\n  if (!it.url || !it.title) continue;\n\n  // Au-dela de 120 jours, freshness() vaut deja 0 : l'item consomme du budget\n  // LLM sans jamais pouvoir peser dans le score. Un item sans date est garde\n  // (traite en fraicheur moyenne plus bas dans le scoring).\n  if (it.publishedAt) {\n    const d = new Date(it.publishedAt);\n    if (!isNaN(d) && (Date.now() - d.getTime()) / 86400000 > MAX_AGE_DAYS) continue;\n  }\n\n  const dedupeKey = `${it.sourceType}:${simpleHash(it.url)}`;\n  if (existingKeys.has(dedupeKey) || seenKeys.has(dedupeKey)) continue;\n\n  // Dedup douce sur le titre normalise : un meme evenement (depeche AFP,\n  // communique) est repris a l'identique par plusieurs editeurs. On garde la\n  // premiere occurrence. Comparaison sur titre EXACT normalise seulement \u2014\n  // deux angles differents sur le meme fait restent deux signaux distincts.\n  const titleKey = normalizeTitle(it.title);\n  if (titleKey && seenTitles.has(titleKey)) continue;\n\n  seenKeys.add(dedupeKey);\n  if (titleKey) seenTitles.add(titleKey);\n  kept.push({ ...it, dedupeKey });\n}\n\n// Garde-fou cout LLM (40 candidats max), reparti en TOURNIQUET entre\n// collecteurs et par fraicheur decroissante. Un simple slice(0, 40) sur l'ordre\n// de collecte laissait la centaine d'actualites saturer tout le budget : les\n// signaux de recrutement et d'appels d'offres \u2014 les plus actionnables pour une\n// ESN \u2014 n'etaient jamais qualifies.\nconst byType = new Map();\nfor (const it of kept) {\n  if (!byType.has(it.sourceType)) byType.set(it.sourceType, []);\n  byType.get(it.sourceType).push(it);\n}\nfor (const group of byType.values()) {\n  group.sort((a, b) => {\n    const da = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;\n    const db = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;\n    return db - da;\n  });\n}\n\nconst queues = Array.from(byType.values());\nconst capped = [];\nlet progress = true;\nwhile (capped.length < MAX_ITEMS && progress) {\n  progress = false;\n  for (const queue of queues) {\n    if (queue.length === 0) continue;\n    capped.push(queue.shift());\n    progress = true;\n    if (capped.length >= MAX_ITEMS) break;\n  }\n}\n\ncapped.forEach((it, idx) => { it.id = `item_${idx}`; });\n\nreturn [{\n  json: {\n    runId: ctx.runId,\n    workspaceId: ctx.workspaceId,\n    companyId: ctx.companyId,\n    callbackUrl: ctx.callbackUrl,\n    company: ctx.company,\n    normalizedItems: capped,\n    itemsCollectedTotal: items.length,\n    itemsAfterDedup: capped.length,\n  }\n}];"
+        "jsCode": "const ctx = $input.first().json;\nconst items = Array.isArray(ctx.collectedItems) ? ctx.collectedItems : [];\nconst existingKeys = new Set(ctx.existingDedupeKeys || []);\n\nconst MAX_AGE_DAYS = 120;\nconst MAX_ITEMS = 40;\n\nfunction simpleHash(str) {\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) - hash) + str.charCodeAt(i);\n    hash |= 0;\n  }\n  return Math.abs(hash).toString(36);\n}\n\nfunction normalizeTitle(t) {\n  return (t || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim();\n}\n\nconst seenKeys = new Set();\nconst seenTitles = new Set();\nconst kept = [];\n\nfor (const it of items) {\n  if (!it.url || !it.title) continue;\n\n  // Au-dela de 120 jours, freshness() vaut deja 0 : l'item consomme du budget\n  // LLM sans jamais pouvoir peser dans le score. Un item sans date est garde\n  // (traite en fraicheur moyenne plus bas dans le scoring).\n  if (it.publishedAt) {\n    const d = new Date(it.publishedAt);\n    if (!isNaN(d) && (Date.now() - d.getTime()) / 86400000 > MAX_AGE_DAYS) continue;\n  }\n\n  const dedupeKey = `${it.sourceType}:${simpleHash(it.url)}`;\n  if (existingKeys.has(dedupeKey) || seenKeys.has(dedupeKey)) continue;\n\n  // Dedup douce sur le titre normalise : un meme evenement (depeche AFP,\n  // communique) est repris a l'identique par plusieurs editeurs. On garde la\n  // premiere occurrence. Comparaison sur titre EXACT normalise seulement \u2014\n  // deux angles differents sur le meme fait restent deux signaux distincts.\n  const titleKey = normalizeTitle(it.title);\n  if (titleKey && seenTitles.has(titleKey)) continue;\n\n  seenKeys.add(dedupeKey);\n  if (titleKey) seenTitles.add(titleKey);\n  kept.push({ ...it, dedupeKey });\n}\n\n// Garde-fou cout LLM (40 candidats max), reparti en TOURNIQUET entre\n// collecteurs et par fraicheur decroissante. Un simple slice(0, 40) sur l'ordre\n// de collecte laissait la centaine d'actualites saturer tout le budget : les\n// signaux de recrutement et d'appels d'offres \u2014 les plus actionnables pour une\n// ESN \u2014 n'etaient jamais qualifies.\n// TOURNIQUET \u2014 cle par SOURCE EFFECTIVE, jamais par sourceType seul : avec le\n// corpus sectoriel (Lot 5), jusqu'a 12 domaines distincts passent tous par\n// sourceType='sector_corpus' et s'ecraseraient entre eux dans une seule file.\nfunction roundRobinKey(it) {\n  if (it.sourceCatalogId) return `id:${it.sourceCatalogId}`;\n  if (it.sourceKey) return `key:${it.sourceKey}`;\n  if (it.sourceName) return `name:${it.sourceName.toLowerCase().trim()}`;\n  return `type:${it.sourceType}`;\n}\n\nconst byKey = new Map();\nfor (const it of kept) {\n  const key = roundRobinKey(it);\n  if (!byKey.has(key)) byKey.set(key, []);\n  byKey.get(key).push(it);\n}\nfor (const group of byKey.values()) {\n  group.sort((a, b) => {\n    const da = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;\n    const db = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;\n    return db - da;\n  });\n}\n\nconst queues = Array.from(byKey.values());\nconst capped = [];\nlet progress = true;\nwhile (capped.length < MAX_ITEMS && progress) {\n  progress = false;\n  for (const queue of queues) {\n    if (queue.length === 0) continue;\n    capped.push(queue.shift());\n    progress = true;\n    if (capped.length >= MAX_ITEMS) break;\n  }\n}\n\ncapped.forEach((it, idx) => { it.id = `item_${idx}`; });\n\nreturn [{\n  json: {\n    runId: ctx.runId,\n    workspaceId: ctx.workspaceId,\n    companyId: ctx.companyId,\n    callbackUrl: ctx.callbackUrl,\n    company: ctx.company,\n    normalizedItems: capped,\n    itemsCollectedTotal: items.length,\n    itemsAfterDedup: capped.length,\n    sectorSourcesLoaded: ctx.sectorSourcesLoaded ?? 0,\n    sectorSourcesQueried: ctx.sectorSourcesQueried ?? 0,\n    sectorItemsCollected: ctx.sectorItemsCollected ?? 0,\n    sectorItemsAfterDedup: ctx.sectorItemsAfterDedup ?? 0,\n  }\n}];"
       },
       "id": "n12-normalize-dedup",
       "name": "Normalize & Dedup Items",
@@ -446,7 +446,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const data = $input.first().json;\n\nfunction canonicalUrl(url) {\n  try {\n    const u = new URL(url);\n    u.search = '';\n    u.hash = '';\n    return u.toString();\n  } catch (e) {\n    return url;\n  }\n}\n\nconst bySourceKey = new Map();\nfor (const it of data.scoredItems) {\n  const sourceKey = `account_watch:${it.sourceType}:${it.dedupeKey}`;\n  if (bySourceKey.has(sourceKey)) continue;\n  bySourceKey.set(sourceKey, {\n    workspace_id: data.workspaceId,\n    source_type: it.sourceType,\n    source_name: it.sourceName,\n    source_url: it.url,\n    canonical_url: canonicalUrl(it.url),\n    published_at: it.publishedAt || null,\n    source_key: sourceKey,\n    evidence_excerpt: (it.snippet || it.summary || '').slice(0, 500),\n    reliability_score: it.reliability,\n    collection_method: it.collectionMethod,\n    technical_metadata: { collector: 'intel-033-account-watch-refresh', collectedVia: it.collectedVia || null, runId: data.runId },\n  });\n}\n\nconst sourcesPayload = Array.from(bySourceKey.values());\nconst sourceKeys = Array.from(bySourceKey.keys());\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    scoredItems: data.scoredItems,\n    sourcesPayload,\n    sourceKeys,\n    noisySourcesCapped: data.noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n  }\n}];"
+        "jsCode": "const data = $input.first().json;\n\nfunction canonicalUrl(url) {\n  try {\n    const u = new URL(url);\n    u.search = '';\n    u.hash = '';\n    return u.toString();\n  } catch (e) {\n    return url;\n  }\n}\n\nconst bySourceKey = new Map();\nfor (const it of data.scoredItems) {\n  const sourceKey = `account_watch:${it.sourceType}:${it.dedupeKey}`;\n  if (bySourceKey.has(sourceKey)) continue;\n  bySourceKey.set(sourceKey, {\n    workspace_id: data.workspaceId,\n    source_type: it.sourceType,\n    source_name: it.sourceName,\n    source_url: it.url,\n    canonical_url: canonicalUrl(it.url),\n    published_at: it.publishedAt || null,\n    source_key: sourceKey,\n    evidence_excerpt: (it.snippet || it.summary || '').slice(0, 500),\n    reliability_score: it.reliability,\n    collection_method: it.collectionMethod,\n    technical_metadata: { collector: 'intel-033-account-watch-refresh', collectedVia: it.collectedVia || null, runId: data.runId, sourceCatalogId: it.sourceCatalogId || null, corpusId: it.corpusId || null },\n  });\n}\n\nconst sourcesPayload = Array.from(bySourceKey.values());\nconst sourceKeys = Array.from(bySourceKey.keys());\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    scoredItems: data.scoredItems,\n    sourcesPayload,\n    sourceKeys,\n    noisySourcesCapped: data.noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n  }\n}];"
       },
       "id": "n17-build-sources-payload",
       "name": "Build Sources Payload",
@@ -693,7 +693,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const data = $('Finalize Run Summary').first().json;\n\nconst contentJson = {\n  companyName: data.company?.name || null,\n  itemsCollectedTotal: data.itemsCollectedTotal,\n  itemsAfterDedup: data.itemsAfterDedup,\n  signalsScored: data.signalsScored,\n  rejectedOffTopic: data.rejectedOffTopic,\n  signalsCreated: data.signalsWritten,\n  signalsByCategory: data.signalsByCategory,\n  noisySourcesCapped: data.noisySourcesCapped,\n  workflowId: data.workflowId || 'intel-033-account-watch-refresh',\n  workflowVersion: data.workflowVersion || '2026-08-07.1',\n  definitionCommit: data.definitionCommit || null,\n};\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_watch_refresh',\n  status: 'succeeded',\n  contentJson,\n  contentText: `Veille compte ${data.company?.name || ''} : ${data.signalsWritten} signal(aux) cr\u00e9e(s) sur ${data.signalsScored} qualifi\u00e9(s), ${data.itemsAfterDedup} \u00e9l\u00e9ment(s) retenu(s) sur ${data.itemsCollectedTotal} collect\u00e9(s).`,\n  title: `Veille \u2014 ${data.company?.name || 'Compte'}`,\n  modelProvider: data.llmModel ? 'anthropic' : null,\n  modelUsed: data.llmModel,\n  tokensInput: data.llmTokensInput,\n  tokensOutput: data.llmTokensOutput,\n  contextSnapshot: { itemsAfterDedup: data.itemsAfterDedup, signalsCreated: data.signalsWritten },\n  sourceRefs: [],\n  qaFlags: [],\n};\n\nreturn [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+        "jsCode": "const data = $('Finalize Run Summary').first().json;\n\nconst contentJson = {\n  companyName: data.company?.name || null,\n  itemsCollectedTotal: data.itemsCollectedTotal,\n  itemsAfterDedup: data.itemsAfterDedup,\n  signalsScored: data.signalsScored,\n  rejectedOffTopic: data.rejectedOffTopic,\n  signalsCreated: data.signalsWritten,\n  signalsByCategory: data.signalsByCategory,\n  noisySourcesCapped: data.noisySourcesCapped,\n  excludedStaticCount: data.excludedStaticCount ?? 0,\n  sectorSourcesLoaded: data.sectorSourcesLoaded ?? 0,\n  sectorSourcesQueried: data.sectorSourcesQueried ?? 0,\n  sectorItemsCollected: data.sectorItemsCollected ?? 0,\n  sectorItemsAfterDedup: data.sectorItemsAfterDedup ?? 0,\n  workflowId: data.workflowId || 'intel-033-account-watch-refresh',\n  workflowVersion: data.workflowVersion || '2026-08-07.1',\n  definitionCommit: data.definitionCommit || null,\n};\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_watch_refresh',\n  status: 'succeeded',\n  contentJson,\n  contentText: `Veille compte ${data.company?.name || ''} : ${data.signalsWritten} signal(aux) cr\u00e9e(s) sur ${data.signalsScored} qualifi\u00e9(s), ${data.itemsAfterDedup} \u00e9l\u00e9ment(s) retenu(s) sur ${data.itemsCollectedTotal} collect\u00e9(s).`,\n  title: `Veille \u2014 ${data.company?.name || 'Compte'}`,\n  modelProvider: data.llmModel ? 'anthropic' : null,\n  modelUsed: data.llmModel,\n  tokensInput: data.llmTokensInput,\n  tokensOutput: data.llmTokensOutput,\n  contextSnapshot: { itemsAfterDedup: data.itemsAfterDedup, signalsCreated: data.signalsWritten },\n  sourceRefs: [],\n  qaFlags: [],\n};\n\nreturn [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
       },
       "id": "n25-prepare-callback",
       "name": "Prepare Callback",
@@ -905,7 +905,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Aucun element collecte (ou tout deja connu) : on court-circuite l'appel LLM\n// \u2014 zero token depense pour qualifier une liste vide \u2014 et on produit\n// directement la forme de sortie attendue par \"Compute Scores & Apply Rules\".\nconst upstream = $('Normalize & Dedup Items').first().json;\n\nreturn [{\n  json: {\n    runId: upstream.runId,\n    workspaceId: upstream.workspaceId,\n    companyId: upstream.companyId,\n    callbackUrl: upstream.callbackUrl,\n    company: upstream.company,\n    itemsCollectedTotal: upstream.itemsCollectedTotal,\n    itemsAfterDedup: upstream.itemsAfterDedup,\n    qualifiedItems: [],\n    llmModel: null,\n    llmTokensInput: null,\n    llmTokensOutput: null,\n  }\n}];"
+        "jsCode": "// Aucun element collecte (ou tout deja connu) : on court-circuite l'appel LLM\n// \u2014 zero token depense pour qualifier une liste vide \u2014 et on produit\n// directement la forme de sortie attendue par \"Compute Scores & Apply Rules\".\nconst upstream = $('Filter Administrative Static Items').first().json;\n\nreturn [{\n  json: {\n    runId: upstream.runId,\n    workspaceId: upstream.workspaceId,\n    companyId: upstream.companyId,\n    callbackUrl: upstream.callbackUrl,\n    company: upstream.company,\n    itemsCollectedTotal: upstream.itemsCollectedTotal,\n    itemsAfterDedup: upstream.itemsAfterDedup,\n    qualifiedItems: [],\n    llmModel: null,\n    llmTokensInput: null,\n    llmTokensOutput: null,\n  }\n}];"
       },
       "id": "b1f0a2c4-0002-4a10-9b01-2f0e5a7c1102",
       "name": "Skip Qualification",
@@ -984,7 +984,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Pivot stable de fin de run : lit \"Compute Scores & Apply Rules\", seul noeud\n// traverse par TOUTES les branches (avec ou sans signal a ecrire). Ne jamais\n// referencer ici un noeud d'ecriture Supabase sans garde : selon la branche\n// empruntee il peut n'avoir jamais ete execute, et la reference leve alors.\nconst data = $('Compute Scores & Apply Rules').first().json;\n\nconst byCategory = {};\nfor (const s of data.scoredItems) {\n  byCategory[s.category] = (byCategory[s.category] || 0) + 1;\n}\n\nlet signalsWritten = 0;\ntry {\n  signalsWritten = $('Supabase: Upsert Signals').all().filter((i) => i.json && i.json.id).length;\n} catch (e) {\n  signalsWritten = 0;\n}\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    signalsScored: data.scoredItems.length,\n    rejectedOffTopic: data.rejectedOffTopic ?? 0,\n    signalsWritten,\n    signalsByCategory: byCategory,\n    noisySourcesCapped: data.noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n    workflowId: 'intel-033-account-watch-refresh',\n    workflowVersion: '2026-08-07.1',\n    definitionCommit: '<short git sha>'\n  }\n}];"
+        "jsCode": "// Pivot stable de fin de run : lit \"Compute Scores & Apply Rules\", seul noeud\n// traverse par TOUTES les branches (avec ou sans signal a ecrire). Ne jamais\n// referencer ici un noeud d'ecriture Supabase sans garde : selon la branche\n// empruntee il peut n'avoir jamais ete execute, et la reference leve alors.\nconst data = $('Compute Scores & Apply Rules').first().json;\n// Lot 5 \u2014 ces compteurs existent quel que soit le chemin emprunte (LLM ou\n// Skip Qualification) : on les lit directement sur le noeud du filtre\n// administratif plutot que de les faire traverser toute la chaine de\n// qualification (moins de noeuds a toucher, meme risque).\nconst adminFilterData = $('Filter Administrative Static Items').first().json;\n\nconst byCategory = {};\nfor (const s of data.scoredItems) {\n  byCategory[s.category] = (byCategory[s.category] || 0) + 1;\n}\n\nlet signalsWritten = 0;\ntry {\n  signalsWritten = $('Supabase: Upsert Signals').all().filter((i) => i.json && i.json.id).length;\n} catch (e) {\n  signalsWritten = 0;\n}\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    signalsScored: data.scoredItems.length,\n    rejectedOffTopic: data.rejectedOffTopic ?? 0,\n    signalsWritten,\n    signalsByCategory: byCategory,\n    noisySourcesCapped: data.noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n    excludedStaticCount: adminFilterData.excludedStaticCount ?? 0,\n    sectorSourcesLoaded: adminFilterData.sectorSourcesLoaded ?? 0,\n    sectorSourcesQueried: adminFilterData.sectorSourcesQueried ?? 0,\n    sectorItemsCollected: adminFilterData.sectorItemsCollected ?? 0,\n    sectorItemsAfterDedup: adminFilterData.sectorItemsAfterDedup ?? 0,\n    workflowId: 'intel-033-account-watch-refresh',\n    workflowVersion: '2026-08-16.1',\n    definitionCommit: '<short git sha>'\n  }\n}];"
       },
       "id": "b1f0a2c4-0005-4a10-9b01-2f0e5a7c1105",
       "name": "Finalize Run Summary",
@@ -1033,6 +1033,219 @@
       "position": [
         2500,
         600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $('Shape+Accumulate: Tenders').first().json.settings.includeSectorCorpus }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "sc01-if-include-sector-corpus",
+      "name": "IF \u2014 Include Sector Corpus?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2500,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/v_effective_watch_sources",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "usage_scope",
+              "value": "eq.account_watch"
+            },
+            {
+              "name": "company_id",
+              "value": "=eq.{{ $('Shape+Accumulate: Tenders').first().json.companyId }}"
+            },
+            {
+              "name": "order",
+              "value": "priority.asc,utility_score.desc"
+            },
+            {
+              "name": "select",
+              "value": "usage_scope,company_id,source_id,source_key,source_name,publisher,domain,search_domain,collection_url,collection_mode,family,kredo_category,origin,corpus_id,utility_score,priority"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "sc02-load-sector-sources",
+      "name": "Load Effective Sector Sources",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2740,
+        800
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// v_effective_watch_sources est l'UNIQUE source du corpus sectoriel effectif\n// (segment, sinon fallback macro, jamais les deux \u2014 encode par la vue elle-meme,\n// jamais reimplemente ici). Plafond STRICT a 12 sources (\u00a76 du prompt Lot 5) :\n// la vue trie deja priority ASC, utility_score DESC (pack minimal avant enrichi,\n// manual_only deja depriorise), on ne fait que reprendre cet ordre et couper.\nconst raw = $input.all().map((i) => i.json).filter((r) => r && !r.error && r.source_id);\n\nconst sorted = [...raw].sort((a, b) => {\n  const pa = a.priority ?? 0;\n  const pb = b.priority ?? 0;\n  if (pa !== pb) return pa - pb;\n  return (b.utility_score ?? 0) - (a.utility_score ?? 0);\n});\nconst capped = sorted.slice(0, 12);\n\nconst sectorSourcesLoaded = raw.length;\nconst sectorSourcesQueried = capped.length;\n\n// IMPORTANT : ne jamais retourner [] ici (\u00a719/\u00a7Lot 0 : un noeud sans item de\n// sortie arrete l'execution n8n entiere). 0 source corpus est un cas normal\n// (\u00a717) \u2014 on emet un placeholder qui traversera la boucle sans jamais\n// declencher de requete reseau utile, et sera filtre naturellement en aval.\nif (capped.length === 0) {\n  return [{ json: { placeholder: true, sectorSourcesLoaded, sectorSourcesQueried: 0 } }];\n}\n\nreturn capped.map((r) => ({\n  json: {\n    sourceCatalogId: r.source_id,\n    sourceKey: r.source_key,\n    sourceName: r.publisher || r.source_name,\n    searchDomain: r.search_domain,\n    corpusId: r.corpus_id,\n    sectorSourcesLoaded,\n    sectorSourcesQueried,\n  },\n}));"
+      },
+      "id": "sc03-shape-sector-sources",
+      "name": "Shape Sector Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2980,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "sc04-loop-sector-sources",
+      "name": "Loop Over Sector Sources",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3220,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Une requete par source (jamais par variante) : plafond de 12 requetes\n// reseau au total pour le corpus sectoriel (\u00a77 du prompt). Les alias de\n// compte (query_aliases / nameVariants deja resolus par Build Targeted\n// Queries) sont combines en OR DANS la meme requete, pas en requetes\n// separees.\nconst s = $json;\nif (s.placeholder) {\n  return { json: { ...s, feedUrl: null } };\n}\n\nconst ctx = $('Shape+Accumulate: Tenders').first().json;\nconst names = (ctx.nameVariants || []).slice(0, 2).map((n) => '\"' + n + '\"').join(' OR ');\nconst query = names ? `site:${s.searchDomain} (${names})` : `site:${s.searchDomain}`;\nconst feedUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=fr&gl=FR&ceid=FR:fr`;\n\nreturn { json: { ...s, feedUrl } };"
+      },
+      "id": "sc05-build-sector-corpus-query",
+      "name": "Build Sector Corpus Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3460,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.feedUrl }}",
+        "options": {
+          "ignoreSSL": true
+        }
+      },
+      "id": "sc06-collect-sector-corpus-source",
+      "name": "Collect: Sector Corpus Source",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        3700,
+        700
+      ],
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Boucle a 1 source en cours (Loop Over Sector Sources, batch=1) : $json est\n// l'article RSS courant, la reference nommee au noeud de boucle resout sans\n// ambiguite la SEULE source en cours de traitement \u2014 meme mecanisme deja\n// eprouve par veille-hebdomadaire-kredo.json (Enrichir avec Metadonnees Source).\nconst source = $('Loop Over Sector Sources').item.json;\nconst item = $json;\n\nfunction extractPublisher(entry, fallback) {\n  const src = entry.source;\n  const fromField = typeof src === 'string' ? src : ((src && (src.title || src.name)) || null);\n  if (fromField && String(fromField).trim()) return String(fromField).trim();\n  const t = entry.title || '';\n  const sep = t.lastIndexOf(' - ');\n  if (sep > 0) {\n    const suffix = t.slice(sep + 3).trim();\n    if (suffix && suffix.length <= 60) return suffix;\n  }\n  return fallback;\n}\n\nfunction stripPublisher(title, publisher) {\n  if (!title || !publisher) return title;\n  const suffix = ' - ' + publisher;\n  return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title;\n}\n\nif (source.placeholder || !item.title || !item.link) {\n  return { json: { skipped: true, sourceCatalogId: source.sourceCatalogId || null, sourceKey: source.sourceKey || null } };\n}\n\nconst publisher = extractPublisher(item, source.sourceName);\n\nreturn {\n  json: {\n    title: stripPublisher(item.title, publisher),\n    url: item.link,\n    publishedAt: item.isoDate || item.pubDate || null,\n    snippet: (item.contentSnippet || item.content || '').slice(0, 600),\n    sourceType: 'sector_corpus',\n    sourceName: publisher,\n    sourceCatalogId: source.sourceCatalogId,\n    corpusId: source.corpusId,\n    sourceKey: source.sourceKey,\n    searchDomain: source.searchDomain,\n    collectedVia: 'sector_corpus',\n    collectionMethod: 'scrape',\n  },\n};"
+      },
+      "id": "sc07-shape-sector-corpus-item",
+      "name": "Shape Sector Corpus Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3940,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Une source corpus en erreur (flux inaccessible, domaine mal indexe par\n// Google News) ne stoppe jamais la boucle sur les autres sources \u2014 meme regle\n// que \u00a719/\u00a727 du prompt Lot 5 et que le collecteur historique News Media.\nconst source = $('Loop Over Sector Sources').item.json;\nconst first = $input.first().json;\nconst err = (first && first.error) || first;\n\nconsole.log(\n  `[INTEL-033] Source corpus en erreur, ignoree : ${source.sourceName || 'source inconnue'} (${source.searchDomain || 'domaine inconnu'}) \u2014 ${JSON.stringify(err).slice(0, 300)}`\n);\n\nreturn [{ json: { skipped: true, sourceCatalogId: source.sourceCatalogId || null, sourceKey: source.sourceKey || null } }];"
+      },
+      "id": "sc08-ignore-sector-corpus-error",
+      "name": "Ignore Sector Corpus Source Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3940,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const ctx = $('Shape+Accumulate: Tenders').first().json;\nconst shapeMeta = $('Shape Sector Sources').first().json;\nconst raw = $input.all().map((i) => i.json);\n\nconst collected = raw.filter((it) => it.url && it.title && !it.skipped);\n\nfunction normalizeTitle(t) {\n  return (t || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim();\n}\n\nconst seenUrls = new Set();\nconst seenTitles = new Set();\nconst deduped = [];\nfor (const it of collected) {\n  if (seenUrls.has(it.url)) continue;\n  const titleKey = normalizeTitle(it.title);\n  if (titleKey && seenTitles.has(titleKey)) continue;\n  seenUrls.add(it.url);\n  if (titleKey) seenTitles.add(titleKey);\n  deduped.push(it);\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    sectorItems: deduped,\n    sectorSourcesLoaded: shapeMeta.sectorSourcesLoaded ?? 0,\n    sectorSourcesQueried: shapeMeta.sectorSourcesQueried ?? 0,\n    sectorItemsCollected: collected.length,\n    sectorItemsAfterDedup: deduped.length,\n  }\n}];"
+      },
+      "id": "sc09-accumulate-sector-corpus-items",
+      "name": "Accumulate Sector Corpus Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// includeSectorCorpus === false : condition verifiee AVANT toute requete\n// reseau (\u00a718 du prompt Lot 5) \u2014 aucun cout reseau corpus, collecteurs\n// historiques inchanges.\nconst ctx = $input.first().json;\nreturn [{\n  json: {\n    ...ctx,\n    sectorItems: [],\n    sectorSourcesLoaded: 0,\n    sectorSourcesQueried: 0,\n    sectorItemsCollected: 0,\n    sectorItemsAfterDedup: 0,\n  }\n}];"
+      },
+      "id": "sc10-skip-sector-corpus",
+      "name": "Skip Sector Corpus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2740,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Point de convergence unique avant Normalize & Dedup Items \u2014 les sources\n// corpus doivent converger AVANT la qualification (\u00a71 du prompt), jamais une\n// deuxieme pipeline parallele jusqu'a la DB.\nconst data = $input.first().json;\nconst sectorCollected = (data.sectorItems || []).map((it) => ({ ...it, sourceType: it.sourceType || 'sector_corpus' }));\n\nreturn [{\n  json: {\n    ...data,\n    collectedItems: [...(data.collectedItems || []), ...sectorCollected],\n  }\n}];"
+      },
+      "id": "sc11-merge-collected-items",
+      "name": "Merge Collected Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Filtre administratif deterministe (\u00a712-15 du prompt Lot 5) \u2014 exclut AVANT\n// depense LLM une information qui ne porte QUE du contenu administratif\n// statique (SIREN/SIRET/NAF/siege/capital social/forme juridique) sans aucun\n// verbe ou motif evenementiel detectable. La presence de vocabulaire\n// administratif ne suffit JAMAIS a exclure a elle seule : un evenement\n// (transfert de siege, nomination, fusion, acquisition, cession, liquidation,\n// radiation, redressement, capital, creation/fermeture d'etablissement,\n// attribution de marche, nouveau contrat/partenariat...) prime toujours.\n// Favorise les faux negatifs : en cas de doute, on conserve.\nfunction isAdministrativeStaticItem(item) {\n  const raw = `${item.title || ''} ${item.snippet || ''}`.toLowerCase();\n  const text = raw.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n\n  const ADMINISTRATIVE_VOCAB = [\n    'siren', 'siret', 'code naf', 'code ape', 'siege social', 'adresse du siege',\n    'capital social', 'forme juridique', 'coordonnees administratives',\n    'numero de tva', 'identifiant unique',\n  ];\n  const hasAdministrativeVocab = ADMINISTRATIVE_VOCAB.some((term) => text.includes(term));\n  if (!hasAdministrativeVocab) return false;\n\n  const EVENT_VOCAB = [\n    'transfert', 'changement de dirigeant', 'nomination', 'depart', 'demission',\n    'fusion', 'acquisition', 'cession', 'liquidation', 'radiation', 'redressement',\n    'augmentation de capital', 'reduction de capital',\n    \"creation d'etablissement\", 'creation d etablissement',\n    \"fermeture d'etablissement\", 'fermeture d etablissement',\n    'ouverture', 'attribution de marche', \"appel d'offres\", 'appel d offres',\n    'nouveau contrat', 'nouveau partenariat', 'remporte', 'marche public',\n  ];\n  const hasEventVocab = EVENT_VOCAB.some((term) => text.includes(term));\n\n  return !hasEventVocab;\n}\n\nconst data = $input.first().json;\nconst before = data.normalizedItems || [];\nconst filtered = before.filter((it) => !isAdministrativeStaticItem(it));\nconst excludedStaticCount = before.length - filtered.length;\n\nreturn [{\n  json: {\n    ...data,\n    normalizedItems: filtered,\n    excludedStaticCount,\n  }\n}];"
+      },
+      "id": "af01-filter-administrative-static-items",
+      "name": "Filter Administrative Static Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4560,
+        300
       ]
     }
   ],
@@ -1251,7 +1464,7 @@
       "main": [
         [
           {
-            "node": "Normalize & Dedup Items",
+            "node": "IF \u2014 Include Sector Corpus?",
             "type": "main",
             "index": 0
           }
@@ -1262,7 +1475,7 @@
       "main": [
         [
           {
-            "node": "IF \u2014 Has Items to Qualify?",
+            "node": "Filter Administrative Static Items",
             "type": "main",
             "index": 0
           }
@@ -1632,6 +1845,166 @@
         [
           {
             "node": "Shape+Accumulate: Tenders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF \u2014 Include Sector Corpus?": {
+      "main": [
+        [
+          {
+            "node": "Load Effective Sector Sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Sector Corpus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Effective Sector Sources": {
+      "main": [
+        [
+          {
+            "node": "Shape Sector Sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Shape Sector Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Sector Sources": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Sector Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Sector Sources": {
+      "main": [
+        [
+          {
+            "node": "Accumulate Sector Corpus Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Sector Corpus Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sector Corpus Query": {
+      "main": [
+        [
+          {
+            "node": "Collect: Sector Corpus Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect: Sector Corpus Source": {
+      "main": [
+        [
+          {
+            "node": "Shape Sector Corpus Item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignore Sector Corpus Source Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Sector Corpus Item": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Sector Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ignore Sector Corpus Source Error": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Sector Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accumulate Sector Corpus Items": {
+      "main": [
+        [
+          {
+            "node": "Merge Collected Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Sector Corpus": {
+      "main": [
+        [
+          {
+            "node": "Merge Collected Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Collected Items": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Dedup Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Administrative Static Items": {
+      "main": [
+        [
+          {
+            "node": "IF \u2014 Has Items to Qualify?",
             "type": "main",
             "index": 0
           }

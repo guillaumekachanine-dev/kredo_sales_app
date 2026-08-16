@@ -43,6 +43,7 @@ export type AccountWatchSettingsWorkflowRow = Pick<
   | "include_tenders"
   | "include_social_manual"
   | "include_jobs"
+  | "include_sector_corpus"
   | "query_aliases"
   | "metadata"
 >
@@ -69,6 +70,7 @@ export type AccountWatchWorkflowSettings = {
   includeTenders: boolean
   includeSocialManual: boolean
   includeJobs: boolean
+  includeSectorCorpus: boolean
   queryAliases: string[]
   metadata: Record<string, unknown>
 }
@@ -95,6 +97,7 @@ export const DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS: AccountWatchWorkflowSettin
   includeTenders: false,
   includeSocialManual: true,
   includeJobs: false,
+  includeSectorCorpus: true,
   queryAliases: [],
   metadata: {},
 }
@@ -152,6 +155,7 @@ export function toAccountWatchWorkflowSettings(
     includeTenders: row.include_tenders,
     includeSocialManual: row.include_social_manual,
     includeJobs: row.include_jobs,
+    includeSectorCorpus: row.include_sector_corpus,
     queryAliases: Array.isArray(row.query_aliases) ? row.query_aliases.filter((value): value is string => typeof value === "string") : [],
     metadata:
       row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)

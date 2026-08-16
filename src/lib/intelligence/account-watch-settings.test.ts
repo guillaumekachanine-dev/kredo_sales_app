@@ -21,6 +21,7 @@ function row(overrides: Partial<AccountWatchDetailedRow> = {}): AccountWatchDeta
     include_tenders: true,
     include_social_manual: false,
     include_jobs: true,
+    include_sector_corpus: true,
     query_aliases: ["KREDO", "Kredo Conseil"],
     metadata: {
       monitored_categories: ["strategie", "offres", "categorie_inconnue"],

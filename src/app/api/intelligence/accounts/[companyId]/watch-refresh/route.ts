@@ -18,7 +18,7 @@ type AccountWatchRouteRow = Pick<
   AccountWatchSettingsWorkflowRow
 
 const SETTINGS_SELECT =
-  "id,is_enabled,watch_level,cadence,include_official_site,include_news,include_public_records,include_tenders,include_social_manual,query_aliases,metadata"
+  "id,is_enabled,watch_level,cadence,include_official_site,include_news,include_public_records,include_tenders,include_social_manual,include_sector_corpus,query_aliases,metadata"
 
 const WATCH_REFRESH_WORKFLOW_ID = "intel-033-account-watch-refresh"
 const WATCH_REFRESH_RUN_TYPE = "account_watch_refresh"

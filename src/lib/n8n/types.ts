@@ -152,6 +152,7 @@ export type AccountWatchRefreshSettings = {
   includePublicRecords: boolean
   includeTenders: boolean
   includeSocialManual: boolean
+  includeSectorCorpus: boolean
   queryAliases: string[]
   metadata: Record<string, unknown>
 }
