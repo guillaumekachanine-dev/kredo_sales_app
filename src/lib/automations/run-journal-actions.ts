@@ -60,7 +60,13 @@ export async function refreshRunJournal(): Promise<RefreshRunJournalResult> {
   return { ok: true, rows }
 }
 
-export async function fetchFilteredRunJournal(filters: { from: string; to: string; workflow: string; status: string }): Promise<RefreshRunJournalResult> {
+export async function fetchFilteredRunJournal(filters: {
+  from: string
+  to: string
+  workflow: string
+  status: string
+  limit?: number
+}): Promise<RefreshRunJournalResult> {
   const { user } = await requireUser()
   if (!user) return { ok: false, error: "Session expirée — recharge la page." }
 

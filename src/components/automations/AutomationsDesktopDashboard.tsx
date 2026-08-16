@@ -78,7 +78,15 @@ function TechKpiCard({ label, value, subtext, statusDot = "none", statusDotPulse
   )
 }
 
-function WorkflowHealthCard({ workflow }: { workflow: WorkflowHealthRow }) {
+import { WorkflowExecutionsModal } from "./WorkflowExecutionsModal"
+
+function WorkflowHealthCard({
+  workflow,
+  onClick,
+}: {
+  workflow: WorkflowHealthRow
+  onClick?: () => void
+}) {
   const severity = workflowSeverity(workflow)
   const stuckTotal = workflow.stuckRunningNow + workflow.stuckQueuedNow
 
@@ -88,18 +96,27 @@ function WorkflowHealthCard({ workflow }: { workflow: WorkflowHealthRow }) {
     <SurfaceCard
       accent={severity === "critical" ? "danger" : severity === "attention" ? "warning" : "none"}
       padding="compact"
-      className="border-border/60 shadow-2xs"
+      className={cn(
+        "border-border/60 shadow-2xs group transition-all",
+        onClick && "cursor-pointer hover:border-brand-brass/60 hover:shadow-md hover:bg-surface-hover/50"
+      )}
+      onClick={onClick}
     >
       <div className="flex items-start justify-between gap-3 border-b border-border/30 pb-2.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className={cn("inline-flex size-2 rounded-full shrink-0", dotColorClass, severity !== "healthy" && "animate-pulse")} />
-            <p className="truncate text-xs font-bold text-heading">{workflow.label}</p>
+            <p className="truncate text-xs font-bold text-heading group-hover:text-brand-brass transition-colors">{workflow.label}</p>
+            {onClick && (
+              <svg className="size-3 text-muted opacity-0 group-hover:opacity-100 transition-opacity shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            )}
           </div>
           <p className="mt-0.5 font-mono text-[9px] text-muted tracking-tight truncate">{workflow.runType}</p>
         </div>
         <span className={cn(
-          "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+          "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
           severity === "critical" ? "bg-danger/10 text-danger" : severity === "attention" ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
         )}>
           {severityLabel(severity)}
@@ -190,6 +207,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
   const [dialogOpen, setDialogOpen] = useState(Boolean(initialRun))
   const [metricsOpen, setMetricsOpen] = useState(false)
   const [simulatorModalOpen, setSimulatorModalOpen] = useState(false)
+  const [selectedWorkflowForModal, setSelectedWorkflowForModal] = useState<{ runType: string; label: string } | null>(null)
   const [sort, setSort] = useState<DataTableSort | null>({ columnId: "createdAt", direction: "desc" })
 
   // Filtres d'affichage du Journal d'exécution
@@ -197,6 +215,23 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [companyFilter, setCompanyFilter] = useState<string>("all")
   const [showAllJournalRows, setShowAllJournalRows] = useState(false)
+
+  // Plage temporelle pour la modale d'exécutions du workflow
+  const modalDateRange = useMemo(() => {
+    const now = new Date()
+    const days = periodFilter === "24h" ? 1 : periodFilter === "7d" ? 7 : periodFilter === "30d" ? 30 : 365
+    const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
+    const to = now.toISOString()
+    return { from, to }
+  }, [periodFilter])
+
+  const periodLabelText = useMemo(() => {
+    if (periodFilter === "24h") return "Dernières 24h"
+    if (periodFilter === "7d") return "7 derniers jours"
+    if (periodFilter === "30d") return "30 derniers jours"
+    if (periodFilter === "1y") return "1 an"
+    return "30 derniers jours"
+  }, [periodFilter])
 
   // Filtres de période pour la section Coûts
   const [costPeriod, setCostPeriod] = useState<"7d" | "14d" | "30d" | "60d" | "all">("60d")
@@ -686,7 +721,11 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {data.workflows.map((workflow) => (
-                      <WorkflowHealthCard key={workflow.runType} workflow={workflow} />
+                      <WorkflowHealthCard
+                        key={workflow.runType}
+                        workflow={workflow}
+                        onClick={() => setSelectedWorkflowForModal({ runType: workflow.runType, label: workflow.label })}
+                      />
                     ))}
                   </div>
                 </div>
@@ -719,15 +758,16 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
                         return (
                           <div
                             key={workflow.runType}
+                            onClick={() => setSelectedWorkflowForModal({ runType: workflow.runType, label: workflow.label })}
                             className={cn(
-                              "flex flex-col gap-1.5 p-3.5 rounded-lg border-l-4 border bg-surface shadow-2xs",
+                              "flex flex-col gap-1.5 p-3.5 rounded-lg border-l-4 border bg-surface shadow-2xs cursor-pointer hover:bg-surface-hover/60 hover:shadow-md transition-all group",
                               isCritical
                                 ? "border-danger/30 border-l-danger"
                                 : "border-warning/30 border-l-warning",
                             )}
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-bold text-heading truncate">{workflow.label}</span>
+                              <span className="text-xs font-bold text-heading truncate group-hover:text-brand-brass transition-colors">{workflow.label}</span>
                               <span
                                 className={cn(
                                   "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
@@ -834,6 +874,17 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onRetried={() => setDialogOpen(false)}
+      />
+      <WorkflowExecutionsModal
+        open={selectedWorkflowForModal !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedWorkflowForModal(null)
+        }}
+        workflowId={selectedWorkflowForModal?.runType ?? null}
+        workflowLabel={selectedWorkflowForModal?.label ?? null}
+        periodLabel={periodLabelText}
+        dateRange={modalDateRange}
+        initialRuns={journal}
       />
       {metricsOpen ? (
         <AutomationMetricsModal open={metricsOpen} onClose={() => setMetricsOpen(false)} displayMode="desktop" />

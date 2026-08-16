@@ -58,6 +58,8 @@ function toMetricsFilterState(
   return { preset: mobilePreset as AutomationMetricsPeriodPreset, from: range.from.toISOString(), to: range.to.toISOString(), workflow }
 }
 
+import { WorkflowExecutionsModal } from "./WorkflowExecutionsModal"
+
 function costKpiLabel(preset: MobilePreset) {
   switch (preset) {
     case "today": return { main: "Coûts (aujourd'hui)", vs: "vs veille" }
@@ -77,6 +79,7 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
   const [workflow, setWorkflow] = useState<string>("all")
   const [status, setStatus] = useState<string>("all")
   const [customRange] = useState({ from: "", to: "" }) 
+  const [selectedWorkflowForModal, setSelectedWorkflowForModal] = useState<{ runType: string; label: string } | null>(null)
 
   const handleSectionChange = (sec: MobileSection) => {
     setActiveSection(sec)
@@ -97,6 +100,18 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   
   const filters = useMemo(() => toMetricsFilterState(preset, workflow, customRange), [preset, workflow, customRange])
+
+  const mobilePeriodLabel = useMemo(() => {
+    const map: Record<MobilePreset, string> = {
+      today: "Aujourd'hui",
+      "7d": "7 derniers jours",
+      "30d": "30 derniers jours",
+      "12w": "12 dernières semaines",
+      year: "Cette année",
+      custom: "Période personnalisée",
+    }
+    return map[preset] ?? "Période active"
+  }, [preset])
   
   useEffect(() => {
     let active = true
@@ -320,7 +335,16 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
             {snapshot?.workflowReliability.length === 0 && !pending ? (
               <div className="py-12 text-center text-sm text-muted">Aucune donnée de fiabilité sur cette période.</div>
             ) : snapshot ? (
-              <AutomationMetricsReliability snapshot={snapshot} appearance="light" />
+              <AutomationMetricsReliability
+                snapshot={snapshot}
+                appearance="light"
+                onSelectWorkflow={(wfId) =>
+                  setSelectedWorkflowForModal({
+                    runType: wfId,
+                    label: workflowLabelForRunType(wfId),
+                  })
+                }
+              />
             ) : null}
           </div>
         ) : activeSection === "costs" ? (
@@ -339,6 +363,18 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         open={selectedRunId !== null}
         onOpenChange={(open) => { if (!open) setSelectedRunId(null) }}
         onRetried={() => setSelectedRunId(null)}
+      />
+
+      <WorkflowExecutionsModal
+        open={selectedWorkflowForModal !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedWorkflowForModal(null)
+        }}
+        workflowId={selectedWorkflowForModal?.runType ?? null}
+        workflowLabel={selectedWorkflowForModal?.label ?? null}
+        periodLabel={mobilePeriodLabel}
+        dateRange={{ from: filters.from, to: filters.to }}
+        initialRuns={journal}
       />
 
       <AppDialog

@@ -21,7 +21,15 @@ function sampleLabel(workflow: AutomationWorkflowReliability): string {
   return `${workflow.decided} runs décidés`
 }
 
-export function AutomationWorkflowReliabilityChart({ workflows, appearance = "dark" }: { workflows: AutomationWorkflowReliability[]; appearance?: "dark" | "light" }) {
+export function AutomationWorkflowReliabilityChart({
+  workflows,
+  appearance = "dark",
+  onSelectWorkflow,
+}: {
+  workflows: AutomationWorkflowReliability[]
+  appearance?: "dark" | "light"
+  onSelectWorkflow?: (workflowId: string) => void
+}) {
   if (workflows.length === 0) {
     return <p className={`rounded-xl border p-4 text-xs ${appearance === "light" ? "border-border bg-surface text-muted" : "border-white/10 bg-white/[0.025] text-white/50"}`}>Aucun workflow sur la période active ou précédente.</p>
   }
@@ -32,12 +40,52 @@ export function AutomationWorkflowReliabilityChart({ workflows, appearance = "da
         const delta = comparison(workflow.successRateDeltaPoints)
         const rate = workflow.successRatePct === null ? "—" : `${round(workflow.successRatePct)} %`
         const limited = workflow.sampleState === "limited"
+        const isClickable = Boolean(onSelectWorkflow)
 
         return (
-          <article key={workflow.runType} role="listitem" className={`rounded-xl border p-3 w-full max-w-full min-w-0 overflow-hidden ${appearance === "light" ? "border-border bg-surface shadow-sm" : "border-white/8 bg-white/[0.025]"}`}>
+          <article
+            key={workflow.runType}
+            role="listitem"
+            tabIndex={isClickable ? 0 : undefined}
+            onClick={isClickable ? () => onSelectWorkflow?.(workflow.runType) : undefined}
+            onKeyDown={
+              isClickable
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      onSelectWorkflow?.(workflow.runType)
+                    }
+                  }
+                : undefined
+            }
+            className={`group rounded-xl border p-3 w-full max-w-full min-w-0 overflow-hidden transition-all ${
+              isClickable ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60" : ""
+            } ${
+              appearance === "light"
+                ? `border-border bg-surface shadow-sm ${isClickable ? "hover:border-brand-brass/60 hover:shadow-md hover:bg-surface-hover/60" : ""}`
+                : `border-white/8 bg-white/[0.025] ${isClickable ? "hover:border-white/20 hover:bg-white/[0.04]" : ""}`
+            }`}
+          >
             <div className="flex items-start justify-between gap-2 min-w-0">
               <div className="min-w-0 flex-1">
-                <p className={`break-words text-xs font-semibold ${appearance === "light" ? "text-heading" : "text-white"}`}>{workflowLabelForRunType(workflow.runType)}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className={`break-words text-xs font-semibold ${appearance === "light" ? "text-heading" : "text-white"}`}>
+                    {workflowLabelForRunType(workflow.runType)}
+                  </p>
+                  {isClickable && (
+                    <svg
+                      className={`size-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+                        appearance === "light" ? "text-muted" : "text-white/40"
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </div>
                 <p className={`mt-0.5 break-all font-mono text-[9px] ${appearance === "light" ? "text-muted" : "text-white/35"}`}>{workflow.runType}</p>
               </div>
               <strong className={`font-heading text-lg leading-none tabular-nums shrink-0 ml-2 ${appearance === "light" ? "text-heading" : "text-white"}`}>{rate}</strong>

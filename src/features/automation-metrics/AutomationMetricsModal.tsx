@@ -19,6 +19,9 @@ import type {
   AutomationMetricsWorkflow,
 } from "./automation-metrics-types"
 
+import { WorkflowExecutionsModal } from "@/components/automations/WorkflowExecutionsModal"
+import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
+
 const DAY_MS = 86_400_000
 
 function toDateInput(date: Date): string {
@@ -66,6 +69,7 @@ export function AutomationMetricsModal({
   const [section, setSection] = useState<AutomationMetricsSectionId>("overview")
   const [workflow, setWorkflow] = useState<AutomationMetricsWorkflow>("all")
   const [customRange, setCustomRange] = useState(initialCustomRange)
+  const [selectedWorkflowForModal, setSelectedWorkflowForModal] = useState<{ runType: string; label: string } | null>(null)
   const [snapshot, setSnapshot] = useState<AutomationMetricsSnapshot | null>(null)
   const [workflowOptions, setWorkflowOptions] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +111,17 @@ export function AutomationMetricsModal({
   const initialLoading = snapshot === null && error === null
   const panel = snapshot
     ? section === "reliability"
-      ? <AutomationMetricsReliability snapshot={snapshot} />
+      ? (
+          <AutomationMetricsReliability
+            snapshot={snapshot}
+            onSelectWorkflow={(wfId) =>
+              setSelectedWorkflowForModal({
+                runType: wfId,
+                label: workflowLabelForRunType(wfId),
+              })
+            }
+          />
+        )
       : section === "performance"
         ? <AutomationMetricsPerformance snapshot={snapshot} />
         : section === "costs"
@@ -152,16 +166,28 @@ export function AutomationMetricsModal({
   )
 
   return (
-    <IntelligenceSplitModalShell
-      open={open}
-      onClose={onClose}
-      title="Analyse des métriques"
-      subtitle="Évolution de la fiabilité, des performances et des coûts"
-      leftPaneWidth="38%"
-      leftPane={<AutomationMetricsNavigation section={section} onChange={setSection} />}
-      rightPane={desktopContent}
-      content={displayMode === "mobile" ? mobileContent : undefined}
-      isMobile={displayMode === "mobile"}
-    />
+    <>
+      <IntelligenceSplitModalShell
+        open={open}
+        onClose={onClose}
+        title="Analyse des métriques"
+        subtitle="Évolution de la fiabilité, des performances et des coûts"
+        leftPaneWidth="38%"
+        leftPane={<AutomationMetricsNavigation section={section} onChange={setSection} />}
+        rightPane={desktopContent}
+        content={displayMode === "mobile" ? mobileContent : undefined}
+        isMobile={displayMode === "mobile"}
+      />
+      <WorkflowExecutionsModal
+        open={selectedWorkflowForModal !== null}
+        onOpenChange={(openState) => {
+          if (!openState) setSelectedWorkflowForModal(null)
+        }}
+        workflowId={selectedWorkflowForModal?.runType ?? null}
+        workflowLabel={selectedWorkflowForModal?.label ?? null}
+        periodLabel={preset}
+        dateRange={{ from: filters.from, to: filters.to }}
+      />
+    </>
   )
 }

@@ -271,7 +271,13 @@ export async function getLatestRunJournalRows(): Promise<RunJournalRow[] | null>
   return mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
 }
 
-export async function getFilteredRunJournalRows(filters: { from: string; to: string; workflow: string; status: string }): Promise<RunJournalRow[] | null> {
+export async function getFilteredRunJournalRows(filters: {
+  from: string
+  to: string
+  workflow: string
+  status: string
+  limit?: number
+}): Promise<RunJournalRow[] | null> {
   const supabase = await createClient()
 
   let query = supabase
@@ -280,10 +286,16 @@ export async function getFilteredRunJournalRows(filters: { from: string; to: str
     .gte("created_at", filters.from)
     .lt("created_at", filters.to)
     .order("created_at", { ascending: false })
-    .limit(JOURNAL_LIMIT)
+    .limit(filters.limit ?? JOURNAL_LIMIT)
 
   if (filters.workflow !== "all") {
-    query = query.eq("run_type", filters.workflow)
+    if (filters.workflow === "veille-hebdomadaire-kredo" || filters.workflow === "global-watch" || filters.workflow === "global_watch") {
+      query = query.in("run_type", ["veille-hebdomadaire-kredo", "global-watch", "global_watch", "KREDO — Veille Hebdomadaire IA & Marché"])
+    } else if (filters.workflow === "account_watch_refresh" || filters.workflow === "intel-033-account-watch-refresh") {
+      query = query.in("run_type", ["account_watch_refresh", "intel-033-account-watch-refresh"])
+    } else {
+      query = query.eq("run_type", filters.workflow)
+    }
   }
   if (filters.status !== "all") {
     query = query.eq("status", filters.status as "succeeded" | "failed" | "queued" | "running" | "cancelled")
@@ -306,7 +318,50 @@ export async function getFilteredRunJournalRows(filters: { from: string; to: str
 
   if (costsRes.error) console.error("[automations] getFilteredRunJournalRows (coûts):", costsRes.error.message)
 
-  return mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
+  let rows = mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
+
+  // Pour la veille hebdomadaire, si aucun run unitaire n'est dans ai_intelligence_runs, on lit veille_digests
+  if (
+    (filters.workflow === "veille-hebdomadaire-kredo" || filters.workflow === "global-watch" || filters.workflow === "global_watch") &&
+    rows.length === 0 &&
+    filters.status !== "failed"
+  ) {
+    const digestsRes = await supabase
+      .from("veille_digests")
+      .select("id, created_at, digest_date, titre_digest, super_short_summary")
+      .gte("created_at", filters.from)
+      .lt("created_at", filters.to)
+      .order("digest_date", { ascending: false })
+      .limit(filters.limit ?? JOURNAL_LIMIT)
+
+    if (digestsRes.data && digestsRes.data.length > 0) {
+      rows = digestsRes.data.map((d) => ({
+        id: d.id,
+        runType: "veille-hebdomadaire-kredo",
+        runTypeLabel: "Veille hebdomadaire IA & Marché",
+        status: "succeeded",
+        createdAt: d.created_at || d.digest_date,
+        startedAt: d.created_at || d.digest_date,
+        completedAt: d.created_at || d.digest_date,
+        failedAt: null,
+        errorMessage: null,
+        companyId: null,
+        companyName: d.titre_digest || "Digest hebdomadaire IA & Marché",
+        primaryEntityType: "workspace",
+        primaryEntityId: null,
+        ownerName: "Système / cron",
+        ownerEmail: null,
+        triggerSource: "cron",
+        durationMs: null,
+        costEstimate: null,
+        hasPricingGap: false,
+        hasTokensGap: false,
+        config: null,
+      }))
+    }
+  }
+
+  return rows
 }
 
 export async function getAutomationsDashboardData(): Promise<AutomationsDashboardData> {
