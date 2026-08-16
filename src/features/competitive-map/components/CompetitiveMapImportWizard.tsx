@@ -2,17 +2,12 @@
 
 // ADR-0019 Lot 5 — wizard mono-session d'ingestion d'une cartographie
 // concurrentielle : Upload/Coller -> Résolution & Arbitrage -> Confirmation.
-//
-// Responsive CSS (ADR-0006, écran de saisie/revue) — pas d'adaptive plein.
-// Aucune écriture avant l'étape 3 : les étapes 1-2 ne font que du parsing
-// local et une résolution en LECTURE SEULE (resolveCompetitiveMapEntries).
+// Refonte graphique Éditorial / Intelligence (Proposition A canonique).
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { AppDialog } from "@/components/ui/AppDialog"
-import { StatusPill } from "@/components/ui/StatusPill"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { CompetitiveMapImportReportContent } from "@/components/reports/CompetitiveMapImportReportContent"
 import {
   parseCompetitiveMapOutput,
@@ -42,10 +37,10 @@ export type CompetitiveMapSegmentOption = {
 
 type WizardStep = "upload" | "arbitrate" | "confirm"
 
-const WIZARD_STEPS: { id: WizardStep; index: string; label: string; detail: string }[] = [
-  { id: "upload", index: "01", label: "Préparer", detail: "Fichier, segment et date" },
-  { id: "arbitrate", index: "02", label: "Arbitrer", detail: "Résolution des comptes" },
-  { id: "confirm", index: "03", label: "Finaliser", detail: "Bilan de l’import" },
+const WIZARD_STEPS: { id: WizardStep; index: string; label: string }[] = [
+  { id: "upload", index: "01", label: "Préparer" },
+  { id: "arbitrate", index: "02", label: "Arbitrer" },
+  { id: "confirm", index: "03", label: "Finaliser" },
 ]
 
 type ArbitrationState = {
@@ -101,7 +96,7 @@ type CompetitiveMapImportWizardProps = {
   embedded?: boolean
   onStepChange?: (step: WizardStep) => void
   onClose?: () => void
-  /** Appelé une fois l'import CRM confirmé avec succès (indépendamment du succès de l'archivage) — sert à rafraîchir la section « Historique » du dialogue. */
+  /** Appelé une fois l'import CRM confirmé avec succès — sert à rafraîchir l'historique. */
   onImported?: () => void
 }
 
@@ -127,6 +122,7 @@ export function CompetitiveMapImportWizard({
   const [resolveError, setResolveError] = useState<string | null>(null)
   const [entries, setEntries] = useState<CompetitiveMapEntryPreview[]>([])
   const [arbitration, setArbitration] = useState<Record<number, ArbitrationState>>({})
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
 
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -185,6 +181,7 @@ export function CompetitiveMapImportWizard({
     const initial: Record<number, ArbitrationState> = {}
     for (const entry of resolved) initial[entry.index] = initialArbitration(entry)
     setArbitration(initial)
+    setExpandedIndex(null) // Tous repliés par défaut (§10)
     changeStep("arbitrate")
   }
 
@@ -218,9 +215,6 @@ export function CompetitiveMapImportWizard({
           maturiteNumerique: input.maturiteNumerique,
           appetenceScore: input.appetenceScore,
           accessibiliteScore: input.accessibiliteScore,
-          // ADR-0019 D-4 : le score reste provisoire tant que l'accessibilité
-          // n'a pas été auditée compte par compte. Une accessibilité livrée
-          // par l'étude n'est pas un audit — le drapeau ne tombe pas ici.
           appetenceProvisoire: true,
           isBenchmarkAccount: input.estCompteEtalon,
           profileJson: input.profil,
@@ -258,121 +252,136 @@ export function CompetitiveMapImportWizard({
   const skippedCount = entries.filter((e) => arbitration[e.index]?.skip).length
 
   return (
-    <div className={cn("mx-auto flex w-full max-w-4xl flex-col gap-5", embedded ? "px-5 py-6 sm:px-8 sm:py-8" : "px-6 py-6")}>
-      {embedded && (
-        <header className="border-b border-edito-border pb-5">
-          <p className="text-[9px] font-black uppercase tracking-[0.12em] text-edito-brass">Étape {WIZARD_STEPS.findIndex((item) => item.id === step) + 1} sur 3</p>
-          <h2 className="mt-1 font-heading text-xl font-black tracking-tight text-edito-navy">
-            {step === "upload" ? "Préparer le fichier" : step === "arbitrate" ? "Résoudre les comptes" : "Import terminé"}
-          </h2>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-edito-muted">
-            {step === "upload"
-              ? "Chargez l’export JSON, puis vérifiez son segment de rattachement et sa date de référence."
-              : step === "arbitrate"
-                ? "Validez les rapprochements proposés, créez les citations absentes ou excluez une ligne."
-                : "La cartographie est désormais reliée aux comptes concernés dans le CRM."}
+    <div className={cn("mx-auto flex w-full flex-col gap-4 font-sans text-edito-body", embedded ? "px-6 py-5" : "px-6 py-6")}>
+      {!embedded && (
+        <header className="border-b border-edito-border pb-3">
+          <h1 className="font-heading text-xl font-black tracking-tight text-edito-navy">
+            Importer une cartographie concurrentielle
+          </h1>
+          <p className="mt-1 text-xs text-edito-muted">
+            Rapprochement et ingestion d&apos;une étude sectorielle contre le référentiel CRM KREDO.
           </p>
         </header>
       )}
 
-      {!embedded && <div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
-          Importer une cartographie concurrentielle
-        </h1>
-        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
-          ADR-0019 Lot 5 — chaque compte cité est résolu contre le CRM (rattachement) ou créé en profondeur{" "}
-          <code className="rounded bg-canvas px-1 py-0.5 text-[10px]">mapped</code> (citation, sans donnée
-          canonique). Les chiffres restent des faits sourcés, jamais écrits dans les colonnes du compte.
-        </p>
-      </div>}
-
-      {!embedded && <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted">
-        <span className={cn(step === "upload" && "text-heading")}>1. Upload</span>
-        <span>→</span>
-        <span className={cn(step === "arbitrate" && "text-heading")}>2. Résolution &amp; arbitrage</span>
-        <span>→</span>
-        <span className={cn(step === "confirm" && "text-heading")}>3. Confirmation</span>
-      </div>}
-
+      {/* ÉTAPE 1 : PRÉPARER LE FICHIER */}
       {step === "upload" && (
-        <SurfaceCard padding="default" className="space-y-5 border-edito-border bg-white shadow-none">
-          <label className="group block cursor-pointer rounded-xl border border-dashed border-edito-border bg-edito-canvas px-6 py-7 text-center transition-colors hover:border-edito-brass hover:bg-edito-chip/35">
-            <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-edito-navy/10 text-lg font-bold text-edito-navy transition-transform group-hover:-translate-y-0.5" aria-hidden="true">↑</span>
-            <span className="mt-3 block text-sm font-black text-edito-navy">Déposer un export JSON</span>
-            <span className="mt-1 block text-[10px] text-edito-muted">ou parcourir les fichiers de cet appareil</span>
-            <input
-              type="file"
-              accept="application/json"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) void handleFile(file)
-              }}
-              className="sr-only"
-            />
-          </label>
+        <div className="space-y-4">
+          {/* Entrées côte à côte compactes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Déposer un export JSON */}
+            <label className="group flex flex-col items-center justify-center rounded-lg border border-dashed border-edito-border bg-white p-4 text-center cursor-pointer transition-all hover:border-edito-brass hover:bg-edito-chip/40">
+              <span className="mb-2 flex size-8 items-center justify-center rounded-full bg-edito-navy/10 text-edito-navy transition-transform group-hover:-translate-y-0.5">
+                ↑
+              </span>
+              <span className="text-xs font-bold text-edito-navy">Déposer un export JSON</span>
+              <span className="mt-0.5 text-[10px] text-edito-muted">ou parcourir cet appareil</span>
+              <input
+                type="file"
+                accept="application/json"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleFile(file)
+                }}
+                className="sr-only"
+              />
+            </label>
 
-          <div>
-            <div className="flex items-center gap-3"><span className="h-px flex-1 bg-edito-border" /><label className="text-[9px] font-black uppercase tracking-wider text-edito-muted" htmlFor="competitive-map-json">ou coller le contenu</label><span className="h-px flex-1 bg-edito-border" /></div>
-            <textarea
-              id="competitive-map-json"
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              rows={8}
-              placeholder='{"meta": {...}, "comptes": [...]}'
-              className="mt-4 w-full resize-y rounded-lg border border-edito-border bg-white p-3 font-mono text-[11px] leading-relaxed text-edito-body outline-none transition-shadow focus:border-edito-navy focus:ring-2 focus:ring-edito-navy/10"
-            />
+            {/* Coller le contenu */}
+            <div className="flex flex-col rounded-lg border border-edito-border bg-white p-3">
+              <label htmlFor="prod-json-input" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                Coller le contenu JSON
+              </label>
+              <textarea
+                id="prod-json-input"
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                rows={4}
+                placeholder='{"secteur": "...", "comptes": [...]}'
+                className="w-full flex-1 resize-none rounded border border-edito-border bg-edito-canvas p-2 font-mono text-[10px] leading-relaxed text-edito-ink outline-none focus:border-edito-navy"
+              />
+            </div>
           </div>
 
           {parseErrors.length > 0 && (
-            <ul className="space-y-1 rounded border border-danger/30 bg-danger/5 px-3 py-2">
-              {parseErrors.map((message, index) => (
-                <li key={index} className="text-[11px] leading-relaxed text-danger">
-                  {message}
-                </li>
+            <ul className="space-y-1 rounded border border-red-300 bg-red-50 p-2.5 text-[11px] text-red-700">
+              {parseErrors.map((m, i) => (
+                <li key={i}>• {m}</li>
               ))}
             </ul>
           )}
 
-          <button
-            type="button"
-            onClick={handleParse}
-            disabled={!rawText.trim()}
-            className="min-h-10 rounded-md border border-edito-brass bg-edito-navy px-5 text-xs font-bold text-white transition-colors hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted"
-          >
-            Analyser le fichier
-          </button>
+          {/* Signature Action Bar: « Analyser le fichier » */}
+          <div className="flex items-center justify-between rounded-lg border border-edito-brass/40 bg-gradient-to-r from-edito-navy via-[#243B63] to-edito-navy p-3 text-white shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded border border-edito-brass/50 bg-edito-brass/20 text-edito-brass text-xs">
+                ⚙
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">Analyseur de cartographie sectorielle</p>
+                <p className="text-[10px] text-white/60">Contrôle de validité du JSON et extraction des métadonnées.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleParse}
+              disabled={!rawText.trim()}
+              className="flex items-center gap-2 rounded border border-edito-brass bg-edito-brass px-4 py-1.5 text-xs font-black text-edito-navy transition-all hover:bg-white disabled:opacity-40"
+            >
+              <span>Analyser le fichier</span>
+              <span>→</span>
+            </button>
+          </div>
 
+          {/* Étape 1 — APRÈS ANALYSE : Synthèse analytique compacte sans scroll */}
           {parsed && (
-            <div className="space-y-4 border-t border-border pt-4">
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-body">
-                <span>
-                  Secteur : <strong className="text-heading">{parsed.secteur}</strong>
+            <div className="space-y-3 rounded-lg border border-edito-border bg-white p-4 shadow-sm animate-in fade-in-50">
+              <div className="flex items-center justify-between border-b border-edito-border pb-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-edito-brass">
+                  Synthèse de l&apos;analyse
                 </span>
-                <span>
-                  {parsed.comptes.length} compte(s) cité(s)
+                <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                  ✓ JSON Conforme
                 </span>
-                {parsed.compteEtalon && <span>Compte étalon : {parsed.compteEtalon}</span>}
+              </div>
+
+              {/* Micro-KPIs en grille horizontale */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className="rounded border border-edito-border/60 bg-edito-canvas p-2">
+                  <span className="block text-[9px] uppercase font-bold text-edito-muted">Secteur détecté</span>
+                  <span className="font-bold text-edito-navy">{parsed.secteur}</span>
+                </div>
+                <div className="rounded border border-edito-border/60 bg-edito-canvas p-2">
+                  <span className="block text-[9px] uppercase font-bold text-edito-muted">Comptes cités</span>
+                  <span className="font-bold text-edito-navy">{parsed.comptes.length} entreprise(s)</span>
+                </div>
+                <div className="rounded border border-edito-border/60 bg-edito-canvas p-2">
+                  <span className="block text-[9px] uppercase font-bold text-edito-muted">Compte étalon</span>
+                  <span className="font-bold text-edito-brass">{parsed.compteEtalon ?? "Non spécifié"}</span>
+                </div>
+                <div className="rounded border border-edito-border/60 bg-edito-canvas p-2">
+                  <span className="block text-[9px] uppercase font-bold text-edito-muted">Avertissements</span>
+                  <span className="font-bold text-edito-body">{warnings.length} avertissement(s)</span>
+                </div>
               </div>
 
               {warnings.map((w, i) => (
-                <p key={i} className="text-[10px] text-muted">
-                  {w}
+                <p key={i} className="text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-1 border border-amber-200">
+                  ⚠️ {w}
                 </p>
               ))}
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              {/* Rattachement Segment & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="text-xs font-bold text-heading">
-                    Segment cible <span className="text-danger">*</span>
+                  <label htmlFor="prod-segment-select" className="block text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                    Segment cible dans le référentiel <span className="text-red-500">*</span>
                   </label>
-                  <p className="mt-0.5 text-[10px] leading-relaxed text-muted">
-                    Libellé brut de l&apos;étude : « {parsed.segmentLabel} ». Un segment ne se crée jamais à la
-                    volée (§9 REFERENTIEL) — choisir le plus proche dans le référentiel existant.
-                  </p>
                   <select
+                    id="prod-segment-select"
                     value={segmentSlug}
                     onChange={(e) => setSegmentSlug(e.target.value)}
-                    className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
+                    className="mt-1 w-full rounded border border-edito-border bg-white px-2.5 py-1.5 text-xs text-edito-navy outline-none focus:border-edito-navy"
                   >
                     <option value="">— Choisir un segment —</option>
                     {segments.map((s) => (
@@ -382,117 +391,153 @@ export function CompetitiveMapImportWizard({
                     ))}
                   </select>
                 </div>
-
                 <div>
-                  <label className="text-xs font-bold text-heading">
-                    Date de la cartographie <span className="text-danger">*</span>
+                  <label htmlFor="prod-date-input" className="block text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                    Date de la cartographie <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="prod-date-input"
                     type="date"
                     value={studyDate}
                     onChange={(e) => setStudyDate(e.target.value)}
-                    className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
+                    className="mt-1 w-full rounded border border-edito-border bg-white px-2.5 py-1.5 text-xs text-edito-navy outline-none focus:border-edito-navy"
                   />
                 </div>
               </div>
 
               {resolveError && (
-                <p className="rounded border border-danger/30 bg-danger/5 px-3 py-2 text-[11px] text-danger">
+                <p className="rounded border border-red-300 bg-red-50 p-2 text-[11px] text-red-700">
                   {resolveError}
                 </p>
               )}
 
-              <button
-                type="button"
-                onClick={handleStartResolution}
-                disabled={!segmentSlug || !studyDate || resolving}
-                className="min-h-9 rounded border border-primary bg-primary px-4 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {resolving ? "Résolution en cours…" : "Continuer vers la résolution"}
-              </button>
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleStartResolution}
+                  disabled={!segmentSlug || !studyDate || resolving}
+                  className="flex items-center gap-2 rounded border border-edito-navy bg-edito-navy px-5 py-2 text-xs font-bold text-white transition-colors hover:bg-edito-heading disabled:opacity-50"
+                >
+                  <span>{resolving ? "Résolution en cours…" : "Continuer vers la résolution"}</span>
+                  <span>→</span>
+                </button>
+              </div>
             </div>
           )}
-        </SurfaceCard>
+        </div>
       )}
 
+      {/* ÉTAPE 2 : RÉSOUDRE LES COMPTES */}
       {step === "arbitrate" && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-body">
-            <span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-edito-border pb-2 text-[11px]">
+            <span className="font-bold text-edito-navy">
               {entries.length} compte(s) — {entries.filter((e) => e.status === "resolved").length} résolu(s),{" "}
               {entries.filter((e) => e.status === "ambiguous").length} ambigu(s),{" "}
               {entries.filter((e) => e.status === "not_found").length} introuvable(s)
               {skippedCount > 0 ? `, ${skippedCount} exclu(s)` : ""}
             </span>
-            {selectedSegment && <StatusPill variant="info" label={selectedSegment.name} />}
+            {selectedSegment && (
+              <span className="rounded bg-edito-chip px-2 py-0.5 font-mono text-[10px] font-bold text-edito-brass">
+                {selectedSegment.name}
+              </span>
+            )}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {entries.map((entry) => {
               const state = arbitration[entry.index]
               if (!state) return null
+              const isExpanded = expandedIndex === entry.index
+
               return (
-                <SurfaceCard key={entry.index} padding="default" className={cn(state.skip && "opacity-50")}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-bold text-heading">{entry.input.nom}</span>
-                        {entry.input.estCompteEtalon && <StatusPill variant="info" label="Compte étalon" />}
-                        <StatusPill
-                          variant={
-                            entry.status === "resolved"
-                              ? "success"
-                              : entry.status === "ambiguous"
-                                ? "warning"
-                                : "neutral"
-                          }
-                          label={
-                            entry.status === "resolved"
-                              ? "Résolu"
-                              : entry.status === "ambiguous"
-                                ? "Ambigu"
-                                : "Introuvable"
-                          }
-                        />
-                        <span className="text-[10px] text-muted">
-                          {COMPETITIVE_MAP_CATEGORY_LABELS[entry.input.categorie]}
+                <div
+                  key={entry.index}
+                  className={cn(
+                    "rounded-lg border bg-white transition-all duration-200",
+                    isExpanded
+                      ? "border-edito-brass/60 shadow-md ring-1 ring-edito-brass/30"
+                      : "border-edito-border hover:border-edito-navy/40",
+                    state.skip && "opacity-50 bg-slate-50",
+                  )}
+                >
+                  {/* Header Accordion Clickable */}
+                  <div
+                    onClick={() => setExpandedIndex(isExpanded ? null : entry.index)}
+                    className="cursor-pointer p-3"
+                  >
+                    {/* LIGNE 1 : Nom + Statut (Rectangulaire angles modérés) */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-heading text-sm font-black text-edito-navy">
+                          {entry.input.nom}
                         </span>
+                        {entry.input.estCompteEtalon && (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-900 border border-amber-300">
+                            Étalon
+                          </span>
+                        )}
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted">
-                        <span>CA {moneyLabel(entry.input.caMeur)}</span>
-                        {entry.input.effectifFrance !== null && (
-                          <span>{entry.input.effectifFrance.toLocaleString("fr-FR")} pers. France</span>
-                        )}
-                        {entry.input.appetenceScore !== null && (
-                          <span>Appétence {entry.input.appetenceScore}/35</span>
-                        )}
-                        {/* Absente = « Non positionné » sur la matrice, jamais une valeur substituée (§7.2). */}
-                        <span>
-                          Accessibilité{" "}
-                          {entry.input.accessibiliteScore !== null
-                            ? `${entry.input.accessibiliteScore}/5`
-                            : "non renseignée"}
+
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={cn(
+                            "rounded-sm px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider",
+                            entry.status === "resolved" && "bg-emerald-100 text-emerald-900 border border-emerald-300",
+                            entry.status === "ambiguous" && "bg-amber-100 text-amber-900 border border-amber-300",
+                            entry.status === "not_found" && "bg-slate-100 text-slate-800 border border-slate-300",
+                          )}
+                        >
+                          {entry.status === "resolved"
+                            ? "RÉSOLU"
+                            : entry.status === "ambiguous"
+                              ? "AMBIGU"
+                              : "INTROUVABLE"}
                         </span>
-                        <span>Confiance {entry.input.confiance}</span>
+
+                        <span className="text-edito-muted text-xs transition-transform duration-200">
+                          {isExpanded ? "▲" : "▼"}
+                        </span>
                       </div>
                     </div>
-                    <label className="flex items-center gap-1.5 text-[10px] font-semibold text-muted">
-                      <input
-                        type="checkbox"
-                        checked={state.skip}
-                        onChange={(e) => updateArbitration(entry.index, { skip: e.target.checked })}
-                        className="size-3.5 accent-primary"
-                      />
-                      Exclure de l&apos;import
-                    </label>
-                  </div>
 
-                  {!state.skip && (
-                    <div className="mt-3 space-y-3 border-t border-border pt-3">
-                      <div>
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                          Rattachement
-                        </label>
+                    {/* LIGNE 2 : Données analytiques (Dense 1 ligne desktop) */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 text-[10px] text-edito-body">
+                      <span className="font-bold uppercase tracking-wide text-edito-navy">
+                        {COMPETITIVE_MAP_CATEGORY_LABELS[entry.input.categorie]}
+                      </span>
+                      <span className="text-edito-border">|</span>
+                      <span>
+                        <strong className="text-edito-muted font-normal">CA</strong>{" "}
+                        <span className="font-semibold text-edito-ink">
+                          {moneyLabel(entry.input.caMeur)}
+                        </span>
+                      </span>
+                      <span className="text-edito-border">|</span>
+                      <span>
+                        <strong className="text-edito-muted font-normal">APPÉTENCE</strong>{" "}
+                        <span className="font-semibold text-edito-ink">
+                          {entry.input.appetenceScore !== null ? `${entry.input.appetenceScore}/35` : "—"}
+                        </span>
+                      </span>
+                      <span className="text-edito-border">|</span>
+                      <span>
+                        <strong className="text-edito-muted font-normal">ACCESSIBILITÉ</strong>{" "}
+                        <span className="font-semibold text-edito-ink">
+                          {entry.input.accessibiliteScore !== null ? `${entry.input.accessibiliteScore}/5` : "non renseignée"}
+                        </span>
+                      </span>
+                      <span className="text-edito-border">|</span>
+                      <span>
+                        <strong className="text-edito-muted font-normal">CONFIANCE</strong>{" "}
+                        <span className="font-semibold text-edito-ink">{entry.input.confiance}</span>
+                      </span>
+                    </div>
+
+                    {/* LIGNE 3 : Rattachement sur la même ligne */}
+                    <div className="mt-2 flex items-center justify-between border-t border-edito-border/50 pt-2 text-[10px]">
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <span className="font-bold text-edito-navy">Rattachement :</span>
                         <select
                           value={state.mode === "attach" ? state.selectedCandidateId ?? "" : "__create__"}
                           onChange={(e) => {
@@ -503,7 +548,7 @@ export function CompetitiveMapImportWizard({
                               updateArbitration(entry.index, { mode: "attach", selectedCandidateId: value })
                             }
                           }}
-                          className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
+                          className="rounded border border-edito-border bg-edito-chip px-2 py-0.5 font-semibold text-edito-heading outline-none focus:border-edito-navy"
                         >
                           <option value="__create__">
                             Créer un nouveau compte « mapped » — {state.name}
@@ -517,126 +562,158 @@ export function CompetitiveMapImportWizard({
                         </select>
                       </div>
 
-                      {state.mode === "create" && (
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                            Nom du compte à créer
-                          </label>
-                          <input
-                            type="text"
-                            value={state.name}
-                            onChange={(e) => updateArbitration(entry.index, { name: e.target.value })}
-                            className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
-                          />
-                        </div>
-                      )}
+                      <label
+                        className="flex items-center gap-1.5 text-[10px] font-medium text-edito-muted hover:text-edito-navy cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={state.skip}
+                          onChange={(e) => updateArbitration(entry.index, { skip: e.target.checked })}
+                          className="size-3.5 accent-edito-navy"
+                        />
+                        Exclure de l&apos;import
+                      </label>
+                    </div>
+                  </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                            Positionnement
-                          </label>
-                          <textarea
-                            value={state.positioning}
-                            onChange={(e) => updateArbitration(entry.index, { positioning: e.target.value })}
-                            rows={2}
-                            className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
-                          />
+                  {/* ZONE DÉPLIÉE — 4 RUBRIQUES DENSE HAUT CONTRASTE */}
+                  {isExpanded && !state.skip && (
+                    <div className="border-t border-edito-border bg-edito-canvas/70 p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-edito-brass">
+                          Détail analytique du compte
+                        </span>
+                        <span className="text-[10px] text-edito-muted">
+                          Édition directe des informations
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+                        {/* 1. Activités */}
+                        <div className="rounded border border-edito-border bg-white p-3">
+                          <div className="mb-1 text-[9px] font-black uppercase tracking-wider text-edito-navy">
+                            Activités &amp; Empreinte Métier
+                          </div>
+                          <p className="leading-snug text-edito-body font-medium">
+                            {entry.input.empreinteMetier || "Non renseigné"}
+                          </p>
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                            Angle d&apos;entrée
-                          </label>
+
+                        {/* 2. Angle d'approche */}
+                        <div className="rounded border border-edito-border bg-white p-3">
+                          <div className="mb-1 text-[9px] font-black uppercase tracking-wider text-edito-navy">
+                            Angle d&apos;approche
+                          </div>
                           <textarea
                             value={state.angleEntree}
                             onChange={(e) => updateArbitration(entry.index, { angleEntree: e.target.value })}
                             rows={2}
-                            className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
+                            className="w-full resize-none rounded border border-edito-border bg-edito-canvas p-1.5 text-[10px] leading-snug text-edito-ink outline-none focus:border-edito-navy"
                           />
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">
+
+                        {/* 3. Forces */}
+                        <div className="rounded border border-emerald-200 bg-emerald-50/50 p-3">
+                          <div className="mb-1 text-[9px] font-black uppercase tracking-wider text-emerald-900">
                             Forces
-                          </label>
+                          </div>
                           <textarea
                             value={state.forces}
                             onChange={(e) => updateArbitration(entry.index, { forces: e.target.value })}
                             rows={2}
-                            className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
+                            className="w-full resize-none rounded border border-emerald-300 bg-white p-1.5 text-[10px] leading-snug text-emerald-950 outline-none focus:border-emerald-700"
                           />
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                            Vulnérabilité
-                          </label>
+
+                        {/* 4. Faiblesses */}
+                        <div className="rounded border border-amber-200 bg-amber-50/50 p-3">
+                          <div className="mb-1 text-[9px] font-black uppercase tracking-wider text-amber-900">
+                            Faiblesses
+                          </div>
                           <textarea
                             value={state.vulnerabilite}
                             onChange={(e) => updateArbitration(entry.index, { vulnerabilite: e.target.value })}
                             rows={2}
-                            className="mt-1 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs text-body"
+                            className="w-full resize-none rounded border border-amber-300 bg-white p-1.5 text-[10px] leading-snug text-amber-950 outline-none focus:border-amber-700"
                           />
                         </div>
                       </div>
                     </div>
                   )}
-                </SurfaceCard>
+                </div>
               )
             })}
           </div>
 
           {submitError && (
-            <p className="rounded border border-danger/30 bg-danger/5 px-3 py-2 text-[11px] text-danger">
+            <p className="rounded border border-red-300 bg-red-50 p-2 text-[11px] text-red-700">
               {submitError}
             </p>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+          <div className="flex items-center justify-between border-t border-edito-border pt-3">
             <button
               type="button"
               onClick={() => changeStep("upload")}
-              className="text-[10px] font-bold uppercase tracking-wider text-muted hover:text-body"
+              className="text-xs font-bold text-edito-muted hover:text-edito-navy"
             >
-              Retour
+              ← Retour à la préparation
             </button>
             <button
               type="button"
               onClick={handleConfirm}
               disabled={decisionsToSubmit.length === 0 || submitting}
-              className="min-h-9 rounded border border-primary bg-primary px-4 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded border border-edito-brass bg-edito-brass px-5 py-2 text-xs font-black text-edito-navy transition-colors hover:bg-white disabled:opacity-50"
             >
-              {submitting ? "Import en cours…" : `Confirmer l'import (${decisionsToSubmit.length})`}
+              {submitting ? "Importation en cours…" : `Confirmer l'import (${decisionsToSubmit.length})`}
             </button>
           </div>
         </div>
       )}
 
+      {/* ÉTAPE 3 : FINALISER */}
       {step === "confirm" && result && (
-        <SurfaceCard padding="default" className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <StatusPill variant="success" label={`${result.created.length} créé(s)`} />
-            <StatusPill variant="info" label={`${result.attached.length} rattaché(s)`} />
-            {result.errors.length > 0 && (
-              <StatusPill variant="danger" label={`${result.errors.length} en erreur`} />
-            )}
+        <div className="space-y-4 rounded-lg border border-edito-border bg-white p-5 shadow-sm">
+          <div className="border-b border-edito-border pb-3">
+            <span className="text-[9px] font-black uppercase tracking-widest text-edito-brass">
+              Fiche de clôture d&apos;import
+            </span>
+            <h2 className="font-heading text-lg font-black text-edito-navy">
+              Importation terminée avec succès
+            </h2>
           </div>
 
-          {result.reportError && (
-            <p className="rounded border border-warning/30 bg-warning/5 px-3 py-2 text-[11px] text-warning">
-              Import terminé, mais le rapport d&apos;archive n&apos;a pas pu être créé.
-            </p>
-          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+            <div className="rounded border border-edito-border bg-edito-canvas p-3">
+              <span className="block text-[9px] uppercase font-bold text-edito-muted">Secteur</span>
+              <span className="font-bold text-edito-navy">{parsed?.secteur ?? selectedSegment?.name}</span>
+            </div>
+            <div className="rounded border border-edito-border bg-edito-canvas p-3">
+              <span className="block text-[9px] uppercase font-bold text-edito-muted">Date étude</span>
+              <span className="font-bold text-edito-navy">{studyDate}</span>
+            </div>
+            <div className="rounded border border-edito-border bg-edito-canvas p-3">
+              <span className="block text-[9px] uppercase font-bold text-edito-muted">Rattachés</span>
+              <span className="font-bold text-emerald-700">{result.attached.length} compte(s)</span>
+            </div>
+            <div className="rounded border border-edito-border bg-edito-canvas p-3">
+              <span className="block text-[9px] uppercase font-bold text-edito-muted">Créés (mapped)</span>
+              <span className="font-bold text-edito-brass">{result.created.length} compte(s)</span>
+            </div>
+          </div>
 
           {result.created.length > 0 && (
             <div>
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">Comptes créés</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Comptes créés</h3>
               <ul className="mt-1 space-y-1">
                 {result.created.map((c) => (
                   <li key={c.companyId}>
                     <Link
                       href={`/prospection/accounts/${c.companyId}`}
-                      className="text-xs font-semibold text-primary hover:underline"
+                      className="text-xs font-semibold text-edito-navy hover:underline"
                     >
-                      {c.name}
+                      • {c.name}
                     </Link>
                   </li>
                 ))}
@@ -646,15 +723,15 @@ export function CompetitiveMapImportWizard({
 
           {result.attached.length > 0 && (
             <div>
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">Comptes rattachés</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Comptes rattachés</h3>
               <ul className="mt-1 space-y-1">
                 {result.attached.map((a) => (
                   <li key={a.companyId}>
                     <Link
                       href={`/prospection/accounts/${a.companyId}`}
-                      className="text-xs font-semibold text-primary hover:underline"
+                      className="text-xs font-semibold text-edito-navy hover:underline"
                     >
-                      Voir la fiche
+                      • Voir la fiche compte
                     </Link>
                   </li>
                 ))}
@@ -664,10 +741,10 @@ export function CompetitiveMapImportWizard({
 
           {result.errors.length > 0 && (
             <div>
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-danger">Erreurs</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-red-600">Erreurs</h3>
               <ul className="mt-1 space-y-1">
                 {result.errors.map((e, i) => (
-                  <li key={i} className="text-[11px] text-danger">
+                  <li key={i} className="text-[11px] text-red-600">
                     {e.name ?? "?"} — {e.code}
                   </li>
                 ))}
@@ -675,23 +752,25 @@ export function CompetitiveMapImportWizard({
             </div>
           )}
 
-          {onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-block min-h-9 rounded border border-border bg-canvas px-4 py-2 text-xs font-bold text-heading transition-colors hover:bg-border/10"
-            >
-              Fermer et revenir aux comptes
-            </button>
-          ) : (
-            <Link
-              href="/prospection/accounts"
-              className="inline-block min-h-9 rounded border border-border bg-canvas px-4 py-2 text-xs font-bold text-heading transition-colors hover:bg-border/10"
-            >
-              Retour à la liste des comptes
-            </Link>
-          )}
-        </SurfaceCard>
+          <div className="flex justify-end gap-3 pt-2">
+            {onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded border border-edito-navy bg-edito-navy px-4 py-2 text-xs font-bold text-white hover:bg-edito-heading"
+              >
+                Fermer et consulter les comptes
+              </button>
+            ) : (
+              <Link
+                href="/prospection/accounts"
+                className="rounded border border-edito-navy bg-edito-navy px-4 py-2 text-xs font-bold text-white hover:bg-edito-heading"
+              >
+                Retour à la liste des comptes
+              </Link>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
@@ -713,16 +792,16 @@ function CompetitiveMapImportHistoryList({ history, loading, onSelect }: Competi
   }
 
   return (
-    <ul className="mt-3 space-y-1">
-      {history.map((item) => (
+    <ul className="mt-2.5 space-y-1">
+      {history.slice(0, 5).map((item) => (
         <li key={item.documentId}>
           <button
             type="button"
             onClick={() => onSelect(item.documentId)}
-            className="flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors hover:bg-white/10"
+            className="flex min-h-8 w-full items-center justify-between rounded px-2 py-1 text-left transition-colors hover:bg-white/10"
           >
             <span className="shrink-0 font-mono text-[9px] text-white/50">{formatShortDateFR(item.createdAt)}</span>
-            <span className="min-w-0 flex-1 truncate text-[10px] text-white/80">{item.sectorName}</span>
+            <span className="min-w-0 flex-1 truncate pl-2 text-[10px] text-white/80">{item.sectorName}</span>
           </button>
         </li>
       ))}
@@ -763,14 +842,14 @@ function CompetitiveMapImportHistoryDetail({
       <button
         type="button"
         onClick={onBack}
-        className="self-start text-[10px] font-bold uppercase tracking-wider text-muted hover:text-body"
+        className="self-start text-[10px] font-bold uppercase tracking-wider text-edito-muted hover:text-edito-navy"
       >
         ← Retour
       </button>
       {state.status === "loading" ? (
-        <p className="text-xs text-muted">Chargement de l’import…</p>
+        <p className="text-xs text-edito-muted">Chargement de l’import…</p>
       ) : state.status === "error" ? (
-        <p className="rounded border border-danger/30 bg-danger/5 px-3 py-2 text-[11px] text-danger">
+        <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-[11px] text-red-700">
           Impossible de charger le détail de cet import.
         </p>
       ) : (
@@ -796,10 +875,6 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
 
   const [view, setView] = useState<DialogView>({ kind: "import" })
   const [history, setHistory] = useState<CompetitiveMapImportHistoryItem[]>([])
-  // `true` dès le montage : le premier chargement affiche "Chargement…" sans
-  // setState synchrone dans l'effet d'ouverture (react-hooks/set-state-in-effect).
-  // Un refresh ultérieur (post-import) laisse la liste précédente visible
-  // jusqu'à la résolution — même doctrine que DocumentMobileDetail.
   const [historyLoading, setHistoryLoading] = useState(true)
 
   const refreshHistory = useCallback(() => {
@@ -813,9 +888,6 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
     refreshHistory()
   }, [open, refreshHistory])
 
-  // Repart sur l'étape d'upload à la prochaine ouverture — réinitialisé à la
-  // fermeture (geste utilisateur) plutôt que dans l'effet d'ouverture, pour
-  // ne jamais faire de setState synchrone en tête d'effet.
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (!next) setView({ kind: "import" })
@@ -824,43 +896,60 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
     [onOpenChange],
   )
 
+  {/* TIMELINE VERTICALE CENTRÉE HORIZONTALEMENT */}
   const progress = (
-    <ol className={cn(isMobile ? "grid grid-cols-3 gap-1" : "space-y-5")} aria-label="Étapes de l’import">
-      {WIZARD_STEPS.map((item, index) => {
-        const active = item.id === step
-        const complete = index < activeStepIndex
-        return (
-          <li key={item.id} className="relative">
-            {!isMobile && index < WIZARD_STEPS.length - 1 ? (
-              <span className="absolute left-[13px] top-8 h-8 w-px bg-white/15" aria-hidden="true" />
-            ) : null}
-            <div className={cn("flex", isMobile ? "justify-center" : "items-start gap-3")}>
-              <span className={cn(
-                "relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border text-[9px] font-black transition-colors",
-                active && "border-edito-brass bg-edito-brass text-edito-navy",
-                complete && "border-white/35 bg-white/10 text-white",
-                !active && !complete && "border-white/20 text-white/50",
-              )}>
-                {complete ? "✓" : item.index}
-              </span>
-              {!isMobile ? (
-                <span className="min-w-0">
-                  <span className={cn("block text-[11px] font-black", active || complete ? "text-white" : "text-white/55")}>{item.label}</span>
-                  <span className="mt-0.5 block text-[9px] leading-snug text-white/45">{item.detail}</span>
+    <div className="flex flex-col items-center text-center">
+      <p className="mb-6 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-edito-brass">
+        Espace Import
+      </p>
+      <ol className={cn("relative flex w-full flex-col items-center gap-6")} aria-label="Étapes de l’import">
+        {WIZARD_STEPS.map((item, index) => {
+          const active = item.id === step
+          const complete = index < activeStepIndex
+          return (
+            <li key={item.id} className="relative flex w-full flex-col items-center">
+              {index < WIZARD_STEPS.length - 1 && (
+                <div
+                  className={cn(
+                    "absolute left-1/2 top-7 h-6 w-px -translate-x-1/2 transition-colors",
+                    complete ? "bg-edito-brass/70" : "bg-white/15",
+                  )}
+                  aria-hidden="true"
+                />
+              )}
+              <div className="flex flex-col items-center">
+                <span
+                  className={cn(
+                    "relative z-10 flex size-7 items-center justify-center rounded-full text-[10px] font-black transition-all duration-200",
+                    active &&
+                      "border-2 border-edito-brass bg-edito-brass text-edito-navy shadow-[0_0_12px_rgba(216,155,22,0.35)]",
+                    complete && "border border-edito-brass/60 bg-edito-brass/20 text-edito-brass",
+                    !active && !complete && "border border-white/20 bg-white/5 text-white/40",
+                  )}
+                >
+                  {complete ? "✓" : item.index}
                 </span>
-              ) : null}
-            </div>
-          </li>
-        )
-      })}
-    </ol>
+                <span
+                  className={cn(
+                    "mt-1.5 text-[11px] font-bold tracking-tight transition-colors",
+                    active ? "text-white" : complete ? "text-white/80" : "text-white/45",
+                  )}
+                >
+                  {item.label}
+                </span>
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
   )
 
   return (
     <AppDialog
       open={open}
       onOpenChange={handleOpenChange}
-      title={<span className="text-sm font-black">Importer une cartographie</span>}
+      title={<span className="text-sm font-black text-edito-navy">Importer une cartographie</span>}
       className={cn(
         "border border-edito-border bg-edito-canvas transition-all duration-300",
         isMobile
@@ -880,26 +969,27 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
       bodyClassName="-mx-4 -mb-4 -mt-4 min-h-0 flex-1 overflow-hidden bg-edito-canvas sm:-mx-6 sm:-mb-6 sm:-mt-4"
     >
       <div className={cn("h-full min-h-0", isMobile ? "flex flex-col" : "grid grid-cols-[220px_minmax(0,1fr)]")}>
-        <aside className={cn("shrink-0 bg-edito-navy text-white", isMobile ? "px-4 py-2.5" : "flex min-h-0 flex-col overflow-y-auto px-6 py-7")}>
+        <aside className={cn("shrink-0 bg-edito-navy text-white", isMobile ? "px-4 py-2.5" : "flex min-h-0 flex-col overflow-y-auto px-5 py-6")}>
           {progress}
           {!isMobile ? (
             <>
-              <div className="my-6 border-t border-white/10" />
-              <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/55">Historique</p>
+              <div className="my-5 border-t border-white/10" />
+              <div className="flex items-center justify-between px-1">
+                <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/50">Historique</p>
+                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold text-edito-brass">
+                  {history.length}
+                </span>
+              </div>
               <CompetitiveMapImportHistoryList
                 history={history}
                 loading={historyLoading}
                 onSelect={(documentId) => setView({ kind: "history-detail", documentId })}
               />
-              <div className="mt-auto border-t border-white/10 pt-5">
-                <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/55">Format attendu</p>
-                <p className="mt-2 text-[10px] leading-relaxed text-white/65">Export JSON produit par le processus de cartographie sectorielle KREDO.</p>
-              </div>
             </>
           ) : (
             <details className="mt-2.5">
               <summary className="cursor-pointer text-[9px] font-black uppercase tracking-[0.1em] text-white/55">
-                Historique
+                Historique ({history.length})
               </summary>
               <CompetitiveMapImportHistoryList
                 history={history}
