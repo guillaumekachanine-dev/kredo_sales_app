@@ -7,7 +7,7 @@ import {
   type VeilleCadence,
   type VeilleSimulatorBaseline,
 } from "./veille-cadence"
-import { workflowLabelForRunType } from "./workflow-labels"
+import { isLegacyWorkflow, workflowLabelForRunType } from "./workflow-labels"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Automatisations — couche données (Monitoring IA, Lots 1-2)
@@ -323,8 +323,9 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
 
   // Requêtes indépendantes en parallèle (pas de cascade) : santé par workflow,
   // stats de coût par workflow, journal des runs récents, compteur de runs
-  // repris par le reaper, timeline de coût complète, réglages de veille actifs.
-  const [healthRes, costStatsRes, journalRunsRes, reapedRes, timelineRes, watchSettingsRes, watchRefreshStuckRes] = await Promise.all([
+  // repris par le reaper, timeline de coût complète, réglages de veille actifs,
+  // et digests récents de la veille hebdomadaire.
+  const [healthRes, costStatsRes, journalRunsRes, reapedRes, timelineRes, watchSettingsRes, watchRefreshStuckRes, veilleDigestsRes] = await Promise.all([
     supabase.from("v_workflow_health").select("*"),
     supabase.from("v_workflow_cost_stats").select("run_type, avg_cost_30d, total_cost_30d, has_pricing_gap, has_tokens_gap, avg_cost_all_time"),
     supabase
@@ -351,9 +352,14 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
     supabase
       .from("ai_intelligence_runs")
       .select("id", { count: "exact", head: true })
-      .eq("run_type", "account_watch_refresh")
+      .in("run_type", ["account_watch_refresh", "intel-033-account-watch-refresh"])
       .eq("status", "running")
       .lt("started_at", new Date(Date.now() - 5 * 60 * 1000).toISOString()),
+    supabase
+      .from("veille_digests")
+      .select("id, created_at, digest_date, nb_sources_actives, nb_candidats_evalues")
+      .order("digest_date", { ascending: false })
+      .limit(10),
   ])
 
   collectError("Santé des workflows", healthRes.error)
@@ -363,6 +369,7 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
   collectError("Timeline de coût", timelineRes.error)
   collectError("Réglages de veille", watchSettingsRes.error)
   collectError("Stuck runs veille", watchRefreshStuckRes.error)
+  collectError("Digests de veille", veilleDigestsRes.error)
 
   const runRows = (journalRunsRes.data ?? []) as unknown as JournalRunRow[]
   const runIds = runRows.map((r) => r.id)
@@ -378,31 +385,72 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
 
   const journal = mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
 
-  const workflows: WorkflowHealthRow[] = (healthRes.data ?? [])
-    .map((h) => ({
-      runType: h.run_type as string,
-      label: workflowLabelForRunType(h.run_type as string),
-      runs30d: h.runs_30d ?? 0,
-      succeeded30d: h.succeeded_30d ?? 0,
-      failed30d: h.failed_30d ?? 0,
-      successRatePct30d: h.success_rate_pct_30d,
-      stuckRunningNow: h.run_type === "account_watch_refresh" ? (watchRefreshStuckRes.count ?? 0) : (h.stuck_running_now ?? 0),
-      stuckQueuedNow: h.stuck_queued_now ?? 0,
-      lastRunAt: h.last_run_at,
-      lastFailureAt: h.last_failure_at,
-      p50DurationMs: h.p50_duration_ms,
-      p95DurationMs: h.p95_duration_ms,
-      avgCost30d: null as number | null,
-      totalCost30d: null as number | null,
+  // Workflows actifs uniquement (exclusion des workflows legacy inactifs)
+  const activeHealthRows = (healthRes.data ?? []).filter((h) => !isLegacyWorkflow(h.run_type as string))
+  const workflows: WorkflowHealthRow[] = activeHealthRows.map((h) => ({
+    runType: h.run_type as string,
+    label: workflowLabelForRunType(h.run_type as string),
+    runs30d: h.runs_30d ?? 0,
+    succeeded30d: h.succeeded_30d ?? 0,
+    failed30d: h.failed_30d ?? 0,
+    successRatePct30d: h.success_rate_pct_30d,
+    stuckRunningNow: (h.run_type === "account_watch_refresh" || h.run_type === "intel-033-account-watch-refresh") ? (watchRefreshStuckRes.count ?? 0) : (h.stuck_running_now ?? 0),
+    stuckQueuedNow: h.stuck_queued_now ?? 0,
+    lastRunAt: h.last_run_at,
+    lastFailureAt: h.last_failure_at,
+    p50DurationMs: h.p50_duration_ms,
+    p95DurationMs: h.p95_duration_ms,
+    avgCost30d: null as number | null,
+    totalCost30d: null as number | null,
+    hasPricingGap: false,
+    hasTokensGap: false,
+  }))
+
+  // Intégration de la veille hebdomadaire IA & Marché si non déjà présente via ai_intelligence_runs
+  const hasVeilleWorkflow = workflows.some((w) =>
+    w.runType === "veille-hebdomadaire-kredo" ||
+    w.runType === "global-watch" ||
+    w.runType === "global_watch" ||
+    w.runType === "KREDO — Veille Hebdomadaire IA & Marché"
+  )
+  if (!hasVeilleWorkflow) {
+    const thirtyDaysAgoTime = now.getTime() - 30 * 24 * 60 * 60 * 1000
+    const allDigests = veilleDigestsRes.data ?? []
+    const digests30d = allDigests.filter((d) => {
+      const dateVal = d.created_at || d.digest_date
+      return dateVal && new Date(dateVal).getTime() >= thirtyDaysAgoTime
+    })
+    const latestDigest = allDigests[0]
+    const runsCount = digests30d.length > 0 ? digests30d.length : (latestDigest ? 1 : 0)
+
+    workflows.push({
+      runType: "veille-hebdomadaire-kredo",
+      label: "Veille hebdomadaire IA & Marché",
+      runs30d: runsCount,
+      succeeded30d: runsCount,
+      failed30d: 0,
+      successRatePct30d: runsCount > 0 ? 100 : null,
+      stuckRunningNow: 0,
+      stuckQueuedNow: 0,
+      lastRunAt: latestDigest?.created_at ?? latestDigest?.digest_date ?? null,
+      lastFailureAt: null,
+      p50DurationMs: null,
+      p95DurationMs: null,
+      avgCost30d: null,
+      totalCost30d: null,
       hasPricingGap: false,
       hasTokensGap: false,
-    }))
-    .sort(
-      (a, b) =>
-        b.failed30d + b.stuckRunningNow + b.stuckQueuedNow - (a.failed30d + a.stuckRunningNow + a.stuckQueuedNow)
-    )
+    })
+  }
 
-  const costStatsByRunType = new Map((costStatsRes.data ?? []).map((c) => [c.run_type, c]))
+  workflows.sort(
+    (a, b) =>
+      b.failed30d + b.stuckRunningNow + b.stuckQueuedNow - (a.failed30d + a.stuckRunningNow + a.stuckQueuedNow) ||
+      b.runs30d - a.runs30d ||
+      a.label.localeCompare(b.label, "fr")
+  )
+
+  const costStatsByRunType = new Map((costStatsRes.data ?? []).filter((c) => !isLegacyWorkflow(c.run_type)).map((c) => [c.run_type, c]))
   for (const workflow of workflows) {
     const stats = costStatsByRunType.get(workflow.runType)
     if (stats) {

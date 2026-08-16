@@ -3,6 +3,7 @@
 import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
+import { isLegacyWorkflow } from "@/lib/automations/workflow-labels"
 import { buildAutomationMetricsSnapshot } from "./automation-metrics-model"
 import type { AutomationMetricsFilters, AutomationMetricsIncidentRun, AutomationMetricsRun } from "./automation-metrics-types"
 
@@ -40,6 +41,7 @@ export async function loadAutomationMetricsSnapshot(filters: AutomationMetricsFi
 
   const runs: AutomationMetricsRun[] = (costsResult.data ?? [])
     .filter((row) => row.run_id !== null && row.run_type !== null && row.created_at !== null && row.status !== null)
+    .filter((row) => !isLegacyWorkflow(row.run_type as string))
     .map((row) => ({
       id: row.run_id as string,
       runType: row.run_type as string,
@@ -51,12 +53,13 @@ export async function loadAutomationMetricsSnapshot(filters: AutomationMetricsFi
 
   const incidents: AutomationMetricsIncidentRun[] = (incidentsResult.data ?? [])
     .filter((row) => row.id !== null && row.run_type !== null && row.created_at !== null)
+    .filter((row) => !isLegacyWorkflow(row.run_type as string))
     .map((row) => ({
       id: row.id,
       runType: row.run_type,
       createdAt: row.created_at,
       errorMessage: row.error_message,
     }))
-
   return buildAutomationMetricsSnapshot(runs, incidents, filters)
 }
+
