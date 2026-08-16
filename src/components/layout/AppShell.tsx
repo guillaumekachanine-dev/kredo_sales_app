@@ -19,7 +19,7 @@ export async function AppShell({ device, children }: AppShellProps) {
     return (
       <div className="flex min-h-[100dvh] min-w-0 max-w-full flex-col overflow-x-clip bg-canvas">
         <main
-          className="flex-1 overflow-y-auto overflow-x-clip pt-[var(--space-3)] pb-[var(--layout-mobile-content-bottom-offset)] min-w-0 max-w-full"
+          className="flex-1 flex flex-col overflow-y-auto overflow-x-clip pt-[var(--space-3)] pb-[var(--layout-mobile-content-bottom-offset)] min-w-0 max-w-full"
         >
           {children}
         </main>
@@ -42,7 +42,7 @@ export async function AppShell({ device, children }: AppShellProps) {
         <AppHeader />
 
         <div className="flex-1 flex min-h-0 overflow-hidden">
-          <main className="flex-1 overflow-y-auto min-w-0">
+          <main className="flex-1 flex flex-col overflow-y-auto min-w-0">
             {children}
           </main>
 

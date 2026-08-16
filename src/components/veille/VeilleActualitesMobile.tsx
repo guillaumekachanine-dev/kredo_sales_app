@@ -8,7 +8,6 @@ import { buildCommunicationEntryPreset } from "@/lib/communication/communication
 import { cn } from "@/lib/utils"
 import { AddToListExplanationDialog, CreateCommercialWindowDialog, QualifySignalDialog } from "./SignalDialogs"
 import { extractMatchedCompany } from "./veille-utils"
-import { LinkSignalDialog } from "./mobile/LinkSignalDialog"
 import { VeilleAnalysesTab } from "./mobile/VeilleAnalysesTab"
 import { VeilleArchivesTab } from "./mobile/VeilleArchivesTab"
 import { VeilleArticleReader, type ArticleAction } from "./mobile/VeilleArticleReader"
@@ -210,7 +209,7 @@ export function VeilleActualitesMobile({
   )
 
   return (
-    <div className="flex h-[calc(100dvh-var(--layout-mobile-content-bottom-offset)-var(--space-3))] min-h-0 flex-col overflow-hidden bg-canvas text-body">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-canvas text-body">
       <div className="shrink-0 bg-surface px-4 pb-3 pt-4">
         <MobilePageHeader
           title="Veille & actualités"
@@ -243,9 +242,7 @@ export function VeilleActualitesMobile({
         })}
       </nav>
 
-      {/* La hauteur du conteneur réserve déjà la barre de navigation basse :
-          on n'ajoute ici que la safe-area, sans quoi un bandeau mort apparaît. */}
-      <main className="min-h-0 flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
+      <main className="min-h-0 flex-1 overflow-hidden w-full max-w-full touch-pan-y">
         {activeTab === "actualites" ? (
           openArticle ? (
             <VeilleArticleReader

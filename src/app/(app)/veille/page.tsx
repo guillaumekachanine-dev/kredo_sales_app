@@ -124,7 +124,7 @@ export default async function VeillePage({
   return (
     <div
       data-theme="edito-bright-veille"
-      className={device === "mobile" ? "min-h-screen bg-canvas text-body" : "h-full min-h-0 bg-canvas text-body"}
+      className="h-full min-h-0 w-full flex flex-col overflow-hidden bg-canvas text-body"
     >
       <VeilleActualitesPage
         device={device}

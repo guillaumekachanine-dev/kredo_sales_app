@@ -27,20 +27,20 @@ export function AutomationWorkflowReliabilityChart({ workflows, appearance = "da
   }
 
   return (
-    <div className="space-y-3" role="list" aria-label="Fiabilité par workflow">
+    <div className="space-y-3 w-full max-w-full overflow-x-hidden touch-pan-y" role="list" aria-label="Fiabilité par workflow">
       {workflows.map((workflow) => {
         const delta = comparison(workflow.successRateDeltaPoints)
         const rate = workflow.successRatePct === null ? "—" : `${round(workflow.successRatePct)} %`
         const limited = workflow.sampleState === "limited"
 
         return (
-          <article key={workflow.runType} role="listitem" className={`rounded-xl border p-3 ${appearance === "light" ? "border-border bg-surface shadow-sm" : "border-white/8 bg-white/[0.025]"}`}>
-            <div className="flex items-start justify-between gap-2">
+          <article key={workflow.runType} role="listitem" className={`rounded-xl border p-3 w-full max-w-full min-w-0 overflow-hidden ${appearance === "light" ? "border-border bg-surface shadow-sm" : "border-white/8 bg-white/[0.025]"}`}>
+            <div className="flex items-start justify-between gap-2 min-w-0">
               <div className="min-w-0 flex-1">
                 <p className={`break-words text-xs font-semibold ${appearance === "light" ? "text-heading" : "text-white"}`}>{workflowLabelForRunType(workflow.runType)}</p>
                 <p className={`mt-0.5 break-all font-mono text-[9px] ${appearance === "light" ? "text-muted" : "text-white/35"}`}>{workflow.runType}</p>
               </div>
-              <strong className={`font-heading text-lg leading-none tabular-nums shrink-0 ${appearance === "light" ? "text-heading" : "text-white"}`}>{rate}</strong>
+              <strong className={`font-heading text-lg leading-none tabular-nums shrink-0 ml-2 ${appearance === "light" ? "text-heading" : "text-white"}`}>{rate}</strong>
             </div>
 
             <div className="mt-1.5">
@@ -58,9 +58,9 @@ export function AutomationWorkflowReliabilityChart({ workflows, appearance = "da
                 <span className="absolute inset-y-0 right-0 bg-danger/75" style={{ width: `${100 - (workflow.successRatePct ?? 0)}%` }} />
               </div>
             )}
-            <div className={`mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] ${appearance === "light" ? "text-muted" : "text-white/50"}`}>
-              <span>{workflow.succeeded} succès · {workflow.failed} échec{workflow.failed > 1 ? "s" : ""}</span>
-              <span className={workflow.sampleState === "limited" ? "text-brand-brass" : ""}>{sampleLabel(workflow)}</span>
+            <div className={`mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] min-w-0 ${appearance === "light" ? "text-muted" : "text-white/50"}`}>
+              <span className="truncate max-w-full">{workflow.succeeded} succès · {workflow.failed} échec{workflow.failed > 1 ? "s" : ""}</span>
+              <span className={`truncate max-w-full ${workflow.sampleState === "limited" ? "text-brand-brass" : ""}`}>{sampleLabel(workflow)}</span>
             </div>
           </article>
         )

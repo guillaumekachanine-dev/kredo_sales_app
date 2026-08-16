@@ -6,7 +6,7 @@ import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { cn } from "@/lib/utils"
 import { loadAutomationMetricsSnapshot } from "@/features/automation-metrics/automation-metrics-actions"
-import type { AutomationMetricsFilters, AutomationMetricsSnapshot } from "@/features/automation-metrics/automation-metrics-types"
+import type { AutomationMetricsFilters, AutomationMetricsPeriodPreset, AutomationMetricsSnapshot } from "@/features/automation-metrics/automation-metrics-types"
 import { fetchFilteredRunJournal } from "@/lib/automations/run-journal-actions"
 import type { AutomationsDashboardData, RunJournalRow } from "@/lib/automations/automations-data"
 import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
@@ -55,7 +55,7 @@ function toMetricsFilterState(
   if (mobilePreset === "today") {
     return { preset: "custom", from: range.from.toISOString(), to: range.to.toISOString(), workflow }
   }
-  return { preset: mobilePreset as any, from: range.from.toISOString(), to: range.to.toISOString(), workflow }
+  return { preset: mobilePreset as AutomationMetricsPeriodPreset, from: range.from.toISOString(), to: range.to.toISOString(), workflow }
 }
 
 function costKpiLabel(preset: MobilePreset) {
@@ -76,7 +76,14 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
   const [preset, setPreset] = useState<MobilePreset>("30d")
   const [workflow, setWorkflow] = useState<string>("all")
   const [status, setStatus] = useState<string>("all")
-  const [customRange, setCustomRange] = useState({ from: "", to: "" }) 
+  const [customRange] = useState({ from: "", to: "" }) 
+
+  const handleSectionChange = (sec: MobileSection) => {
+    setActiveSection(sec)
+    if (sec !== "logs") {
+      setStatus("all")
+    }
+  }
   
   const [snapshot, setSnapshot] = useState<AutomationMetricsSnapshot | null>(null)
   const [journal, setJournal] = useState<RunJournalRow[]>([])
@@ -122,12 +129,6 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
     })
     return () => { active = false }
   }, [filters, status, data.workflows, refreshKey])
-
-  useEffect(() => {
-    if (activeSection !== "logs" && status !== "all") {
-      setStatus("all")
-    }
-  }, [activeSection, status])
 
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const selectedRun = useMemo(() => journal.find(r => r.id === selectedRunId) ?? null, [journal, selectedRunId])
@@ -205,8 +206,8 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
   }
 
   return (
-    <div className="flex h-[calc(100dvh-var(--layout-mobile-content-bottom-offset)-var(--space-3))] min-h-0 flex-col overflow-hidden bg-canvas text-body">
-      <div className="shrink-0 bg-surface px-4 pb-3 pt-4">
+    <div className="flex h-[calc(100dvh-var(--layout-mobile-content-bottom-offset)-var(--space-3))] min-h-0 flex-col overflow-x-hidden w-full max-w-full touch-pan-y bg-canvas text-body">
+      <div className="shrink-0 bg-surface px-4 pb-3 pt-4 w-full max-w-full overflow-x-hidden">
         <MobilePageHeader
           title="Automatisations"
           className="gap-0 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-7"
@@ -233,14 +234,14 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         />
       </div>
 
-      <nav className="grid shrink-0 grid-cols-3 border-y border-border bg-surface" aria-label="Navigation Automatisations">
+      <nav className="grid shrink-0 grid-cols-3 border-y border-border bg-surface w-full max-w-full" aria-label="Navigation Automatisations">
         {MOBILE_SECTIONS.map((sec) => {
           const active = activeSection === sec.id
           return (
             <button
               key={sec.id}
               type="button"
-              onClick={() => setActiveSection(sec.id)}
+              onClick={() => handleSectionChange(sec.id)}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative min-h-12 px-2 text-sm font-semibold text-heading outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
@@ -253,15 +254,15 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         })}
       </nav>
 
-      <div className="shrink-0 border-b border-border bg-surface px-4 py-2 flex items-center justify-center">
+      <div className="shrink-0 border-b border-border bg-surface px-4 py-2 flex items-center justify-center w-full max-w-full">
         <span className="text-[11px] text-muted font-medium">mis à jour le {formatLastUpdate(lastUpdated)}</span>
       </div>
 
-      <div className="shrink-0 border-b border-border bg-surface">
+      <div className="shrink-0 border-b border-border bg-surface w-full max-w-full">
         {renderKpi()}
       </div>
 
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface relative" aria-busy={pending}>
+      <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain bg-surface relative w-full max-w-full touch-pan-y" aria-busy={pending}>
         {pending && <div className="absolute inset-0 z-10 bg-surface/50 transition-opacity duration-200" />}
         {error ? (
           <div className="p-4"><ErrorState title="Erreur" message={error} /></div>
@@ -315,7 +316,7 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
             )}
           </div>
         ) : activeSection === "reliability" ? (
-          <div className="pb-[calc(80px+env(safe-area-inset-bottom))]">
+          <div className="pb-[calc(80px+env(safe-area-inset-bottom))] w-full max-w-full overflow-x-hidden touch-pan-y">
             {snapshot?.workflowReliability.length === 0 && !pending ? (
               <div className="py-12 text-center text-sm text-muted">Aucune donnée de fiabilité sur cette période.</div>
             ) : snapshot ? (
@@ -323,7 +324,7 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
             ) : null}
           </div>
         ) : activeSection === "costs" ? (
-          <div className="pb-[calc(80px+env(safe-area-inset-bottom))]">
+          <div className="pb-[calc(80px+env(safe-area-inset-bottom))] w-full max-w-full overflow-x-hidden touch-pan-y">
             {snapshot?.workflowCosts.length === 0 && !pending ? (
               <div className="py-12 text-center text-sm text-muted">Aucune donnée de coût mesurée sur cette période.</div>
             ) : snapshot ? (

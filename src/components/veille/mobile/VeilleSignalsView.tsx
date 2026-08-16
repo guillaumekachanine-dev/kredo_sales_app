@@ -68,8 +68,8 @@ export function VeilleSignalsView({
   const totalSignals = signals.length
 
   return (
-    <div className="veille-scrollbar h-full overflow-y-auto overscroll-contain bg-surface">
-      <header className="border-b border-border px-4 py-4">
+    <div className="flex h-full min-h-0 flex-col bg-surface">
+      <header className="shrink-0 border-b border-border px-4 py-4">
         <h2 className="text-[17px] font-bold leading-6 text-heading">
           Signaux & actualités
         </h2>
@@ -78,52 +78,54 @@ export function VeilleSignalsView({
         </p>
       </header>
 
-      {groups.length === 0 ? (
-        <p className="px-8 py-16 text-center text-sm text-muted">
-          Aucun signal de compte surveillé pour le moment.
-        </p>
-      ) : (
-        <>
-          <ul aria-label={`${groups.length} comptes surveillés`}>
-            {groups.map((group) => (
-              <li key={group.companyId} className="border-b border-border">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    groupTriggerRef.current = event.currentTarget
-                    setOpenGroupId(group.companyId)
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
-                >
-                  <span className="shrink-0">
-                    <CompanyLogo
-                      name={group.companyName}
-                      logoPath={group.logoPath}
-                      website={group.website}
-                      size="lg"
-                    />
-                  </span>
-
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[16px] font-bold leading-6 text-heading">
-                      {group.companyName}
+      <div className="veille-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface">
+        {groups.length === 0 ? (
+          <p className="px-8 py-16 text-center text-sm text-muted">
+            Aucun signal de compte surveillé pour le moment.
+          </p>
+        ) : (
+          <div>
+            <ul aria-label={`${groups.length} comptes surveillés`}>
+              {groups.map((group) => (
+                <li key={group.companyId} className="border-b border-border">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      groupTriggerRef.current = event.currentTarget
+                      setOpenGroupId(group.companyId)
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
+                  >
+                    <span className="shrink-0">
+                      <CompanyLogo
+                        name={group.companyName}
+                        logoPath={group.logoPath}
+                        website={group.website}
+                        size="lg"
+                      />
                     </span>
-                    <span className="block text-xs font-semibold text-primary">
-                      {group.signals.length} {group.signals.length > 1 ? "signaux" : "signal"}
+
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[16px] font-bold leading-6 text-heading">
+                        {group.companyName}
+                      </span>
+                      <span className="block text-xs font-semibold text-primary">
+                        {group.signals.length} {group.signals.length > 1 ? "signaux" : "signal"}
+                      </span>
                     </span>
-                  </span>
 
-                  <span className="shrink-0 text-heading">
-                    <IconChevronRight className="size-5" />
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <span className="shrink-0 text-heading">
+                      <IconChevronRight className="size-5" />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
 
-          <p className="px-4 py-4 text-xs text-muted">Tri : urgence, score global, puis fraîcheur</p>
-        </>
-      )}
+            <p className="px-4 py-4 text-xs text-muted">Tri : urgence, score global, puis fraîcheur</p>
+          </div>
+        )}
+      </div>
 
       <AppDrawer
         open={openGroup !== null}
