@@ -1,0 +1,11 @@
+-- Gestion des sources — Lot 6 · historique des imports de cartographie.
+--
+-- Une cartographie importée doit produire un document archivable, listable
+-- dans /reports et référençable depuis la section « Historique » du wizard
+-- (docs/FEATURES/gestion_des_sources/). Même doctrine que la migration
+-- 076_master_study_document_type : `intelligence_documents` porte déjà tout
+-- ce qu'il faut (scope_json + current_content_json + current_content_text),
+-- aucune table nouvelle n'est nécessaire.
+--
+-- Additif et idempotent : un rejeu ne duplique ni ne casse.
+ALTER TYPE public.intelligence_document_type ADD VALUE IF NOT EXISTS 'competitive_map_import';

@@ -7,12 +7,13 @@
 // Aucune écriture avant l'étape 3 : les étapes 1-2 ne font que du parsing
 // local et une résolution en LECTURE SEULE (resolveCompetitiveMapEntries).
 
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { CompetitiveMapImportReportContent } from "@/components/reports/CompetitiveMapImportReportContent"
 import {
   parseCompetitiveMapOutput,
   COMPETITIVE_MAP_CATEGORY_LABELS,
@@ -26,6 +27,11 @@ import {
   type CompetitiveMapIngestionDecision,
   type ConfirmCompetitiveMapIngestionResult,
 } from "../actions/ingest-competitive-map"
+import {
+  getCompetitiveMapImportDetail,
+  getCompetitiveMapImportHistory,
+  type CompetitiveMapImportHistoryItem,
+} from "../data/get-competitive-map-import-history"
 
 export type CompetitiveMapSegmentOption = {
   slug: string
@@ -83,12 +89,20 @@ function moneyLabel(value: number | null): string {
   return `${value.toLocaleString("fr-FR")} M€`
 }
 
+function formatShortDateFR(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return "—"
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
 type CompetitiveMapImportWizardProps = {
   segments: CompetitiveMapSegmentOption[]
   initialSegmentSlug?: string | null
   embedded?: boolean
   onStepChange?: (step: WizardStep) => void
   onClose?: () => void
+  /** Appelé une fois l'import CRM confirmé avec succès (indépendamment du succès de l'archivage) — sert à rafraîchir la section « Historique » du dialogue. */
+  onImported?: () => void
 }
 
 export function CompetitiveMapImportWizard({
@@ -97,10 +111,12 @@ export function CompetitiveMapImportWizard({
   embedded = false,
   onStepChange,
   onClose,
+  onImported,
 }: CompetitiveMapImportWizardProps) {
   const [step, setStep] = useState<WizardStep>("upload")
 
   const [rawText, setRawText] = useState("")
+  const [sourceFileName, setSourceFileName] = useState("JSON collé")
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [parsed, setParsed] = useState<CompetitiveMapOutput | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
@@ -126,6 +142,7 @@ export function CompetitiveMapImportWizard({
   async function handleFile(file: File) {
     const text = await file.text()
     setRawText(text)
+    setSourceFileName(file.name)
   }
 
   function handleParse() {
@@ -223,6 +240,7 @@ export function CompetitiveMapImportWizard({
     setSubmitError(null)
     const outcome = await confirmCompetitiveMapIngestion(
       decisionsToSubmit,
+      { sourceFileName, rawText },
       parsed ? `Import cartographie — ${parsed.secteur}` : undefined,
     )
     setSubmitting(false)
@@ -234,6 +252,7 @@ export function CompetitiveMapImportWizard({
 
     setResult(outcome)
     changeStep("confirm")
+    onImported?.()
   }
 
   const skippedCount = entries.filter((e) => arbitration[e.index]?.skip).length
@@ -601,6 +620,12 @@ export function CompetitiveMapImportWizard({
             )}
           </div>
 
+          {result.reportError && (
+            <p className="rounded border border-warning/30 bg-warning/5 px-3 py-2 text-[11px] text-warning">
+              Import terminé, mais le rapport d&apos;archive n&apos;a pas pu être créé.
+            </p>
+          )}
+
           {result.created.length > 0 && (
             <div>
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">Comptes créés</h3>
@@ -672,6 +697,89 @@ export function CompetitiveMapImportWizard({
   )
 }
 
+type CompetitiveMapImportHistoryListProps = {
+  history: CompetitiveMapImportHistoryItem[]
+  loading: boolean
+  onSelect: (documentId: string) => void
+}
+
+function CompetitiveMapImportHistoryList({ history, loading, onSelect }: CompetitiveMapImportHistoryListProps) {
+  if (loading) {
+    return <p className="mt-3 text-[10px] leading-relaxed text-white/45">Chargement…</p>
+  }
+
+  if (history.length === 0) {
+    return <p className="mt-3 text-[10px] leading-relaxed text-white/45">Aucun import archivé pour l’instant.</p>
+  }
+
+  return (
+    <ul className="mt-3 space-y-1">
+      {history.map((item) => (
+        <li key={item.documentId}>
+          <button
+            type="button"
+            onClick={() => onSelect(item.documentId)}
+            className="flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors hover:bg-white/10"
+          >
+            <span className="shrink-0 font-mono text-[9px] text-white/50">{formatShortDateFR(item.createdAt)}</span>
+            <span className="min-w-0 flex-1 truncate text-[10px] text-white/80">{item.sectorName}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function CompetitiveMapImportHistoryDetail({
+  documentId,
+  onBack,
+  embedded,
+}: {
+  documentId: string
+  onBack: () => void
+  embedded: boolean
+}) {
+  const [state, setState] = useState<
+    { status: "loading" } | { status: "ready"; content: unknown } | { status: "error" }
+  >({ status: "loading" })
+
+  useEffect(() => {
+    let cancelled = false
+    void getCompetitiveMapImportDetail(documentId)
+      .then((content) => {
+        if (cancelled) return
+        setState(content ? { status: "ready", content } : { status: "error" })
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: "error" })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [documentId])
+
+  return (
+    <div className={cn("mx-auto flex w-full max-w-4xl flex-col gap-5", embedded ? "px-5 py-6 sm:px-8 sm:py-8" : "px-6 py-6")}>
+      <button
+        type="button"
+        onClick={onBack}
+        className="self-start text-[10px] font-bold uppercase tracking-wider text-muted hover:text-body"
+      >
+        ← Retour
+      </button>
+      {state.status === "loading" ? (
+        <p className="text-xs text-muted">Chargement de l’import…</p>
+      ) : state.status === "error" ? (
+        <p className="rounded border border-danger/30 bg-danger/5 px-3 py-2 text-[11px] text-danger">
+          Impossible de charger le détail de cet import.
+        </p>
+      ) : (
+        <CompetitiveMapImportReportContent contentJson={state.content} />
+      )}
+    </div>
+  )
+}
+
 type CompetitiveMapImportDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -680,9 +788,41 @@ type CompetitiveMapImportDialogProps = {
   isMobile: boolean
 }
 
+type DialogView = { kind: "import" } | { kind: "history-detail"; documentId: string }
+
 export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initialSegmentSlug, isMobile }: CompetitiveMapImportDialogProps) {
   const [step, setStep] = useState<WizardStep>("upload")
   const activeStepIndex = WIZARD_STEPS.findIndex((item) => item.id === step)
+
+  const [view, setView] = useState<DialogView>({ kind: "import" })
+  const [history, setHistory] = useState<CompetitiveMapImportHistoryItem[]>([])
+  // `true` dès le montage : le premier chargement affiche "Chargement…" sans
+  // setState synchrone dans l'effet d'ouverture (react-hooks/set-state-in-effect).
+  // Un refresh ultérieur (post-import) laisse la liste précédente visible
+  // jusqu'à la résolution — même doctrine que DocumentMobileDetail.
+  const [historyLoading, setHistoryLoading] = useState(true)
+
+  const refreshHistory = useCallback(() => {
+    void getCompetitiveMapImportHistory()
+      .then(setHistory)
+      .finally(() => setHistoryLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    refreshHistory()
+  }, [open, refreshHistory])
+
+  // Repart sur l'étape d'upload à la prochaine ouverture — réinitialisé à la
+  // fermeture (geste utilisateur) plutôt que dans l'effet d'ouverture, pour
+  // ne jamais faire de setState synchrone en tête d'effet.
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) setView({ kind: "import" })
+      onOpenChange(next)
+    },
+    [onOpenChange],
+  )
 
   const progress = (
     <ol className={cn(isMobile ? "grid grid-cols-3 gap-1" : "space-y-5")} aria-label="Étapes de l’import">
@@ -719,7 +859,7 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
   return (
     <AppDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={<span className="text-sm font-black">Importer une cartographie</span>}
       className={cn(
         "border border-edito-border bg-edito-canvas transition-all duration-300",
@@ -745,27 +885,47 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initi
           {!isMobile ? (
             <>
               <div className="my-6 border-t border-white/10" />
-              <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/55">À retenir</p>
-              <ul className="mt-3 space-y-3 text-[10px] leading-relaxed text-white/65">
-                <li className="flex gap-2"><span className="text-edito-brass">◆</span><span>Aucune donnée n’est écrite avant votre confirmation.</span></li>
-                <li className="flex gap-2"><span className="text-edito-brass">◆</span><span>Chaque compte est rapproché du CRM pour éviter les doublons.</span></li>
-                <li className="flex gap-2"><span className="text-edito-brass">◆</span><span>CA et effectifs restent des faits provisoires et sourcés.</span></li>
-              </ul>
+              <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/55">Historique</p>
+              <CompetitiveMapImportHistoryList
+                history={history}
+                loading={historyLoading}
+                onSelect={(documentId) => setView({ kind: "history-detail", documentId })}
+              />
               <div className="mt-auto border-t border-white/10 pt-5">
                 <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/55">Format attendu</p>
                 <p className="mt-2 text-[10px] leading-relaxed text-white/65">Export JSON produit par le processus de cartographie sectorielle KREDO.</p>
               </div>
             </>
-          ) : null}
+          ) : (
+            <details className="mt-2.5">
+              <summary className="cursor-pointer text-[9px] font-black uppercase tracking-[0.1em] text-white/55">
+                Historique
+              </summary>
+              <CompetitiveMapImportHistoryList
+                history={history}
+                loading={historyLoading}
+                onSelect={(documentId) => setView({ kind: "history-detail", documentId })}
+              />
+            </details>
+          )}
         </aside>
         <main className="min-h-0 min-w-0 overflow-y-auto bg-edito-canvas">
-          <CompetitiveMapImportWizard
-            segments={segments}
-            initialSegmentSlug={initialSegmentSlug}
-            embedded
-            onStepChange={setStep}
-            onClose={() => onOpenChange(false)}
-          />
+          {view.kind === "history-detail" ? (
+            <CompetitiveMapImportHistoryDetail
+              documentId={view.documentId}
+              onBack={() => setView({ kind: "import" })}
+              embedded
+            />
+          ) : (
+            <CompetitiveMapImportWizard
+              segments={segments}
+              initialSegmentSlug={initialSegmentSlug}
+              embedded
+              onStepChange={setStep}
+              onClose={() => handleOpenChange(false)}
+              onImported={refreshHistory}
+            />
+          )}
         </main>
       </div>
     </AppDialog>

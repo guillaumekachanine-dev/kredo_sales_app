@@ -8517,6 +8517,7 @@ export type Database = {
         | "commercial_quote"
         | "strategic_watch_analysis"
         | "master_study"
+        | "competitive_map_import"
       intelligence_document_version_origin:
         | "generated"
         | "regenerated"
@@ -8760,6 +8761,7 @@ export const Constants = {
         "commercial_quote",
         "strategic_watch_analysis",
         "master_study",
+        "competitive_map_import",
       ],
       intelligence_document_version_origin: [
         "generated",

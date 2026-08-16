@@ -11,6 +11,7 @@ import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummary
 import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
 import { FinancialReportContent } from "@/components/reports/financial/FinancialReportContent"
 import { TechnicalReportContent } from "@/components/reports/TechnicalReportContent"
+import { CompetitiveMapImportReportContent } from "@/components/reports/CompetitiveMapImportReportContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -49,6 +50,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   commercial_quote: "Devis commercial",
   strategic_watch_analysis: "Analyse stratégique de la veille",
   master_study: "Master Study sectorielle",
+  competitive_map_import: "Import de cartographie",
 }
 
 const STATUS_LABELS: Record<DocumentDetail["status"], string> = {
@@ -308,6 +310,10 @@ export function DocumentMobileDetail({
                     />
                   ) : (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "technical") ? (
                     <TechnicalReportContent
+                      contentJson={document.currentContentJson}
+                    />
+                  ) : document.documentType === "competitive_map_import" ? (
+                    <CompetitiveMapImportReportContent
                       contentJson={document.currentContentJson}
                     />
                   ) : isPitch ? (

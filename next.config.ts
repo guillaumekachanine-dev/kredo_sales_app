@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
     // Gain marginal aujourd'hui (dépendances client minimales) mais pose le
     // pattern : ajouter ici toute future lib volumineuse (icônes, date, ui-kit).
     optimizePackageImports: ["zustand"],
+    // Défaut Next = 1 Mo. `confirmCompetitiveMapIngestion` envoie en un seul
+    // appel les décisions arbitrées ET le JSON source complet de la
+    // cartographie (nécessaire pour ré-analyser côté serveur et archiver le
+    // rapport, cf. `CompetitiveMapImportContext`) — un export réel peut
+    // dépasser 1 Mo avant même la limite d'archivage de 400 Ko appliquée par
+    // l'action elle-même.
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
   },
   images: {
     // AVIF d'abord (≈20-30 % plus léger que WebP à qualité égale, gain mobile),
