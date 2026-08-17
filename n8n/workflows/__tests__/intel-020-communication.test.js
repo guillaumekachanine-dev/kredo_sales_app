@@ -55,7 +55,12 @@ function runCodeNode(nodeName, { registry, env, rpcMock, mode }) {
     httpRequest: async (options) => {
       calls.push({ options });
       const rpcName = options.url.split("/rpc/")[1];
-      const fixture = rpcMock(rpcName, options.body);
+      // 3e paramètre (url) ajouté pour Lot 4 (listes personnelles) : les appels
+      // REST table (`/rest/v1/<table>?...`, pas `/rpc/<fn>`) n'ont pas de nom de
+      // RPC à extraire — le mock a besoin de l'URL complète pour les distinguer.
+      // Rétrocompatible : tout rpcMock existant qui ignore ce 3e argument continue
+      // de fonctionner à l'identique.
+      const fixture = rpcMock(rpcName, options.body, options.url);
       return fixture;
     },
   };
@@ -366,6 +371,63 @@ async function main() {
     check("11. isolation workspace — chaque appel RPC est scopé au workspace du run (p_workspace_id)", calls.every((c) => c.options.body.p_workspace_id === "workspace-42"), JSON.stringify(calls.map((c) => c.options.body.p_workspace_id)));
   }
 
+  // ── 13. Listes personnelles (content_collections, Lot 4) ───────────────
+  {
+    const brief = mergeBrief(makeValidateBriefInput({ body: {} }).body.input, {
+      context: { preferredCollectionIds: ["col-1", "col-2"] },
+    });
+    const vb = await runValidateBrief({ body: { input: brief } });
+    check("13. listes personnelles — preferredCollectionIds absent de activeSources (jamais une CommunicationContextSourceId)", !vb.activeSources.includes("col-1") && !vb.activeSources.includes("col-2"));
+
+    const registry = { "Validate Brief": vb };
+    const personalCollectionsRpcMock = (rpcName, body, url) => {
+      if (url && url.includes("/rest/v1/content_collection_items")) {
+        check("13. listes personnelles — requête memberships filtrée par workspace_id", url.includes(`workspace_id=eq.${vb.workspaceId}`), url);
+        check("13. listes personnelles — requête memberships filtrée par les 2 collection_id demandés", url.includes("collection_id=in.(col-1,col-2)"), url);
+        // art-1 référencé par col-1 ET col-2 (même contenu dans 2 listes sélectionnées) : le
+        // resolver doit dédupliquer avant d'interroger veille_articles (command §4.4).
+        return [
+          { content_type: "veille_article", content_id: "art-1" },
+          { content_type: "veille_article", content_id: "art-1" },
+          { content_type: "veille_article", content_id: "art-2" },
+        ];
+      }
+      if (url && url.includes("/rest/v1/veille_articles")) {
+        check("13. listes personnelles — requête articles filtrée par workspace_id", url.includes(`workspace_id=eq.${vb.workspaceId}`), url);
+        check("13. listes personnelles — requête articles avec les 2 id dédupliqués (pas 3)", url.includes("id=in.(art-1,art-2)"), url);
+        return [
+          { id: "art-1", titre_fr: "Signal A", resume: "Résumé A", published_at: "2026-08-01", source_name: "Source A", url: "https://a" },
+          { id: "art-2", titre_fr: "Signal B", resume: "Résumé B", published_at: "2026-08-02", source_name: "Source B", url: "https://b" },
+        ];
+      }
+      return baseRpcMock()(rpcName, body);
+    };
+    const { result } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: personalCollectionsRpcMock });
+    const personalCollections = result[0].json.personalCollections;
+    check("13. listes personnelles — ctx.personalCollections résolu et dédupliqué (2 entrées, pas 3)", Array.isArray(personalCollections) && personalCollections.length === 2, JSON.stringify(personalCollections));
+    check("13. listes personnelles — titres réels injectés (pas seulement le nom de la liste)", Boolean(personalCollections) && personalCollections.some((p) => p.title === "Signal A") && personalCollections.some((p) => p.title === "Signal B"));
+
+    // Assemble Prompt doit injecter les contenus réels (pas juste "2 listes sélectionnées").
+    const assembleRegistry = {
+      "Validate Brief": vb,
+      "Hydrate Context": { personalCollections },
+      "Resolve Sender": { full_name: "Guillaume K." },
+    };
+    const { result: assembleResult } = await runCodeNode("Assemble Prompt", { registry: assembleRegistry, env: {}, rpcMock: baseRpcMock() });
+    const up13 = assembleResult[0].json.userPrompt;
+    check("13. listes personnelles — section dédiée présente dans le prompt", /Listes personnelles/.test(up13));
+    check("13. listes personnelles — contenu réel des articles injecté (pas juste le nom de liste)", /Signal A/.test(up13) && /Signal B/.test(up13), up13.slice(0, 400));
+  }
+
+  // ── 14. Aucune liste sélectionnée — zéro appel REST supplémentaire ─────
+  {
+    const vb = await runValidateBrief({ body: {} });
+    const registry = { "Validate Brief": vb };
+    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
+    check("14. sans liste sélectionnée — aucun appel REST vers content_collection_items", !calls.some((c) => c.options.url.includes("content_collection_items")), JSON.stringify(calls.map((c) => c.options.url)));
+    check("14. sans liste sélectionnée — ctx.personalCollections vide", Array.isArray(result[0].json.personalCollections) && result[0].json.personalCollections.length === 0);
+  }
+
   // ── Offer scenario set drift fix (extra, high-value regression) ────────
   {
     for (const scenario of ["offer_introduction", "cross_sell", "proposal_defense_pitch", "cold_call_pitch", "meeting_prep_cross_sell", "renewal_pitch"]) {
@@ -506,6 +568,31 @@ async function main() {
   }
 
   const writtenBrief = { what: { length: "standard", channel: "email" }, who: { objective: "get_meeting", recipient: { displayName: "Jean Dupont" } }, how: { formality: "vous", language: "fr", tone: "direct" }, context: {} };
+
+  // ── 15. Traçabilité (Lot 5) — source_refs ne conserve que le contenu de liste
+  // réellement mobilisé par le LLM, jamais la collection entière ──────────────
+  // Exemple de la commande : collection "Veille Carrefour" avec Article A et
+  // Article B ; seul A est cité par le LLM → source_refs référence A, pas B.
+  // context_snapshot (traçabilité complète pré-filtrage) conserve les deux —
+  // c'est le comportement existant et générique pour toutes les sections de
+  // contexte (company, missions, etc.), pas une règle spéciale aux collections.
+  {
+    const CTX_WITH_COLLECTIONS = {
+      personalCollections: [
+        { contentType: "veille_article", title: "Signal A", summary: "Résumé A", publishedAt: "2026-08-01" },
+        { contentType: "veille_article", title: "Signal B", summary: "Résumé B", publishedAt: "2026-08-02" },
+      ],
+    };
+    const up = makeUpstream({ brief: writtenBrief, scenario: "signal_outreach", outputKind: "written_message", activityCategory: "commerce_prospection", resolvedContext: CTX_WITH_COLLECTIONS });
+    const out = { subjects: ["Signal A"], body: "Bonjour Dupont, j'ai vu Signal A récemment ; disponible pour un échange de 20 minutes cette semaine ?", key_points: ["Signal A"], source_refs: ["Signal A"], warnings: [] };
+    const r = await runQaChain(up, out);
+
+    check("15. traçabilité — génération réussie", r.callbackBody.status === "succeeded", JSON.stringify(r.qa.qaFlags));
+    check("15. traçabilité — context_snapshot conserve les 2 articles de la sélection (traçabilité complète pré-filtrage)", r.callbackBody.contextSnapshot.personalCollections.length === 2);
+    check("15. traçabilité — source_refs référence le contenu réellement utilisé (Signal A)", r.callbackBody.sourceRefs.some((s) => /Signal A/.test(s.label)), JSON.stringify(r.callbackBody.sourceRefs));
+    check("15. traçabilité — source_refs NE référence PAS le contenu non mobilisé (Signal B)", !r.callbackBody.sourceRefs.some((s) => /Signal B/.test(s.label)), JSON.stringify(r.callbackBody.sourceRefs));
+    check("15. traçabilité — chaque source_ref porte un entityType (motif générique, pas de traitement spécial collection_id)", r.callbackBody.sourceRefs.every((s) => s.entityType === "context"));
+  }
 
   // ── L11.G Email prospection valide + ancré → succeeded ─────────────────────
   {

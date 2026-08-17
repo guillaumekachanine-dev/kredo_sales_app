@@ -52,6 +52,10 @@ import type {
 } from "@/lib/communication/communication-context-mappers"
 import { loadCommunicationContextForCurrentUser } from "@/lib/communication/communication-context-actions"
 import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
+import { fetchCollectionsSummary } from "@/features/content-collections/data/content-collections-client-queries"
+import type { CollectionSummary } from "@/features/content-collections/domain/content-collections-contracts"
+import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
+import { ManageCollectionsMobile } from "@/features/content-collections/components/ManageCollectionsMobile"
 import { ContactSelector } from "./ContactSelector"
 import { EntityRefSelect } from "./EntityRefSelect"
 import { OfferPicker } from "./OfferPicker"
@@ -382,6 +386,11 @@ export function CommunicationBriefForm({
   const { selectCls, textareaCls } = useFieldClasses(isMobile)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [structuralNotice, setStructuralNotice] = useState<string | null>(null)
+  // Listes personnelles (content_collections) — séparées de CommunicationContextSourceId
+  // (§4.2) : un champ additif propre, jamais mélangé aux familles de sources fixes.
+  const [personalCollections, setPersonalCollections] = useState<CollectionSummary[]>([])
+  const [personalCollectionsLoaded, setPersonalCollectionsLoaded] = useState(false)
+  const [manageListsOpen, setManageListsOpen] = useState(false)
   // Hub "Quoi" : une seule modale ouverte à l'étape choisie par la ligne cliquée.
   const [quoiHub, setQuoiHub] = useState<{ open: boolean; step: "category" | "scenarios" | "objective" }>({
     open: false,
@@ -541,6 +550,23 @@ export function CommunicationBriefForm({
     void checkRelation(contactId)
     return () => { cancelled = true }
   }, [brief.who.recipient.contactId])
+
+  // Chargement paresseux des listes personnelles : seulement à la première
+  // ouverture de la modale "Sources", jamais au montage du formulaire.
+  useEffect(() => {
+    if (!advancedOpen || personalCollectionsLoaded) return
+    let cancelled = false
+    fetchCollectionsSummary().then((data) => {
+      if (cancelled) return
+      setPersonalCollections(data)
+      setPersonalCollectionsLoaded(true)
+    })
+    return () => { cancelled = true }
+  }, [advancedOpen, personalCollectionsLoaded])
+
+  function refreshPersonalCollections() {
+    fetchCollectionsSummary().then(setPersonalCollections)
+  }
 
   // ── Cascade centrale (handoff §10.4, command §4) — toute modification
   //    structurante repasse par le résolveur, applique les defaults registry,
@@ -714,7 +740,8 @@ export function CommunicationBriefForm({
   const loadedReferenceCount = effectiveReferences
     ? Object.values(effectiveReferences).filter(Boolean).length
     : undefined
-  const contextSourcesAriaLabel = `Sources contextuelles (${activeOptionalCount}/${optionalSourceCount} optionnelles actives, ${loadedReferenceCount ?? 0} références chargées)`
+  const selectedPersonalCollectionCount = brief.context.preferredCollectionIds?.length ?? 0
+  const contextSourcesAriaLabel = `Sources contextuelles (${activeOptionalCount}/${optionalSourceCount} optionnelles actives, ${loadedReferenceCount ?? 0} références chargées, ${selectedPersonalCollectionCount} liste(s) personnelle(s) sélectionnée(s))`
 
   function toggleContextSource(sourceId: CommunicationContextSourceId, visibility: string) {
     if (visibility === "locked_on" || visibility === "unavailable") return
@@ -736,6 +763,18 @@ export function CommunicationBriefForm({
       .filter((source) => source.visibility === "optional_on" || source.visibility === "optional_off")
       .map((source) => source.id)
     updateContext({ disabledContextSources: toggleable.length > 0 ? toggleable : undefined })
+  }
+
+  // Listes personnelles : champ additif propre (§4.2), jamais mêlé aux
+  // CommunicationContextSourceId ci-dessus — sélection multiple indépendante.
+  const preferredCollectionIds = brief.context.preferredCollectionIds ?? []
+  const preferredCollectionIdSet = new Set(preferredCollectionIds)
+
+  function toggleCollection(collectionId: string) {
+    const next = preferredCollectionIdSet.has(collectionId)
+      ? preferredCollectionIds.filter((id) => id !== collectionId)
+      : [...preferredCollectionIds, collectionId]
+    updateContext({ preferredCollectionIds: next.length > 0 ? next : undefined })
   }
 
   // ── Champs — un bloc par field, réassemblés différemment sur desktop (4
@@ -1106,7 +1145,8 @@ export function CommunicationBriefForm({
       >
         <span className="min-w-0 truncate">Sources</span>
         <span className="shrink-0 text-[9px] font-medium text-primary">
-          {activeOptionalCount}/{optionalSourceCount} optionnelles actives
+          {activeOptionalCount}/{optionalSourceCount}
+          {preferredCollectionIds.length > 0 ? ` + ${preferredCollectionIds.length} liste${preferredCollectionIds.length > 1 ? "s" : ""}` : ""}
         </span>
       </button>
 
@@ -1194,7 +1234,78 @@ export function CommunicationBriefForm({
             )
           })}
         </div>
+
+        <div className="mt-4 space-y-2 border-t border-border/35 pt-4">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-heading">
+            Listes personnelles
+          </span>
+          {personalCollections.length === 0 ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border/45 px-3 py-2.5">
+              <span className="text-[11px] text-muted">Aucune liste créée</span>
+              <button
+                type="button"
+                onClick={() => setManageListsOpen(true)}
+                className="shrink-0 text-[10px] font-bold text-primary hover:underline"
+              >
+                Créer une liste
+              </button>
+            </div>
+          ) : (
+            personalCollections.map((collection) => {
+              const checked = preferredCollectionIdSet.has(collection.id)
+              return (
+                <label
+                  key={collection.id}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+                    checked ? "border-primary/35 bg-primary/8" : "border-border/35 bg-surface/20 hover:bg-surface/35",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleCollection(collection.id)}
+                    className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[11px] font-bold leading-4 text-heading">
+                      {collection.name}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] leading-4 text-muted">
+                      {collection.itemCount} élément(s)
+                    </span>
+                  </span>
+                </label>
+              )
+            })
+          )}
+          <button
+            type="button"
+            onClick={() => setManageListsOpen(true)}
+            className="w-full rounded-lg border border-dashed border-border/45 px-3 py-2 text-center text-[10px] font-semibold text-primary transition-colors hover:bg-surface-hover/40"
+          >
+            + Gérer les listes
+          </button>
+        </div>
       </AppDialog>
+
+      {isMobile ? (
+        <ManageCollectionsMobile
+          open={manageListsOpen}
+          onOpenChange={(next) => {
+            setManageListsOpen(next)
+            if (!next) refreshPersonalCollections()
+          }}
+        />
+      ) : (
+        <ManageCollectionsDesktop
+          open={manageListsOpen}
+          onOpenChange={(next) => {
+            setManageListsOpen(next)
+            if (!next) refreshPersonalCollections()
+          }}
+        />
+      )}
     </>
   )
 

@@ -24,11 +24,12 @@ import type {
   WatchedAccountSignal,
 } from "@/app/(app)/veille/_data/veille-data"
 import {
-  AddToListExplanationDialog,
   CreateAccountNoteDialog,
   CreateCommercialWindowDialog,
   QualifySignalDialog,
 } from "./SignalDialogs"
+import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
+import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
 import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
 import { extractMatchedCompany, getRelativeTimeFr } from "./veille-utils"
@@ -1248,6 +1249,7 @@ export function VeilleActualitesDesktop({
   const [qualifyOpen, setQualifyOpen] = useState(false)
   const [opportunityOpen, setOpportunityOpen] = useState(false)
   const [addToListOpen, setAddToListOpen] = useState(false)
+  const [manageListsOpen, setManageListsOpen] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
@@ -1366,7 +1368,14 @@ export function VeilleActualitesDesktop({
       {selectedArticle ? (
         <>
           <QualifySignalDialog open={qualifyOpen} onOpenChange={setQualifyOpen} article={selectedArticle} onSuccess={(updated) => { setArticles((current) => current.map((article) => article.id === updated.id ? updated : article)); setSelectedArticle(updated); setMessage("Signal qualifié et mis à jour.") }} />
-          <AddToListExplanationDialog open={addToListOpen} onOpenChange={setAddToListOpen} />
+          <AddToListDialogDesktop
+            open={addToListOpen}
+            onOpenChange={setAddToListOpen}
+            contentType="veille_article"
+            contentId={selectedArticle.id}
+            onManageLists={() => setManageListsOpen(true)}
+          />
+          <ManageCollectionsDesktop open={manageListsOpen} onOpenChange={setManageListsOpen} />
           <CreateCommercialWindowDialog open={opportunityOpen} onOpenChange={setOpportunityOpen} article={selectedArticle} companyId={matchedCompany?.id} companyName={matchedCompany?.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage("Fenêtre commerciale créée avec succès.")} />
           {matchedCompany ? (
             <CreateAccountNoteDialog open={noteOpen} onOpenChange={setNoteOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Note ajoutée pour ${matchedCompany.name}.`)} />

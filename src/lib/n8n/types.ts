@@ -795,6 +795,11 @@ export interface CommunicationBrief {
     // Sources explicitement désactivées par l'utilisateur dans les paramètres
     // avancés du drawer. Absence ou tableau vide = toutes les sources actives.
     disabledContextSources?: CommunicationContextSourceId[]
+    // Lot 4 (listes personnelles, content_collections) — additif et séparé de
+    // CommunicationContextSourceId : ids de content_collections.id choisis
+    // explicitement par l'utilisateur, jamais des identifiants de source fixe.
+    // Résolu côté n8n (nœud "Hydrate Context") en contenus canoniques dédupliqués.
+    preferredCollectionIds?: string[]
   }
 }
 

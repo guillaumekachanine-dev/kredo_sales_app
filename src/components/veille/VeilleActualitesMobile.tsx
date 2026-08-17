@@ -8,7 +8,9 @@ import type { SourceManagementSnapshot } from "@/features/source-management/doma
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
 import { cn } from "@/lib/utils"
-import { AddToListExplanationDialog, CreateCommercialWindowDialog, QualifySignalDialog } from "./SignalDialogs"
+import { CreateCommercialWindowDialog, QualifySignalDialog } from "./SignalDialogs"
+import { AddToListSheetMobile } from "@/features/content-collections/components/AddToListSheetMobile"
+import { ManageCollectionsMobile } from "@/features/content-collections/components/ManageCollectionsMobile"
 import { extractMatchedCompany } from "./veille-utils"
 import { VeilleAnalysesTab } from "./mobile/VeilleAnalysesTab"
 import { VeilleArchivesTab } from "./mobile/VeilleArchivesTab"
@@ -84,6 +86,7 @@ export function VeilleActualitesMobile({
   const [isOpportunityOpen, setIsOpportunityOpen] = useState(false)
   const [isQualifyOpen, setIsQualifyOpen] = useState(false)
   const [isAddToListOpen, setIsAddToListOpen] = useState(false)
+  const [isManageListsOpen, setIsManageListsOpen] = useState(false)
 
   const resolvedArticles = useMemo(
     () => allArticles.map((article) => articleOverrides[article.id] ?? article),
@@ -314,9 +317,12 @@ export function VeilleActualitesMobile({
             }}
           />
 
-          <AddToListExplanationDialog
+          <AddToListSheetMobile
             open={isAddToListOpen}
             onOpenChange={setIsAddToListOpen}
+            contentType="veille_article"
+            contentId={openArticle.id}
+            onManageLists={() => setIsManageListsOpen(true)}
           />
 
           <CreateCommercialWindowDialog
@@ -330,6 +336,8 @@ export function VeilleActualitesMobile({
           />
         </>
       ) : null}
+
+      <ManageCollectionsMobile open={isManageListsOpen} onOpenChange={setIsManageListsOpen} />
     </div>
   )
 }
