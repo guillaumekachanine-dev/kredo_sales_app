@@ -1,18 +1,18 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getFinanceDashboardData } from "@/lib/finance/finance-data"
+import { getFinanceMobileDashboardData } from "@/lib/finance/finance-mobile-data"
 import { FinanceDesktopDashboard } from "./FinanceDesktopDashboard"
 import { FinanceMobileDashboard } from "./FinanceMobileDashboard"
 
-// Server Component: sniffs device and loads dataset in parallel (ADR-0006)
+// Server Component: le device décide du loader avant toute requête Finance.
 export async function SyntheseFinanceSection() {
-  const [device, data] = await Promise.all([
-    getDashboardDevice(),
-    getFinanceDashboardData(),
-  ])
+  const device = await getDashboardDevice()
 
-  return device === "desktop" ? (
-    <FinanceDesktopDashboard data={data} />
-  ) : (
-    <FinanceMobileDashboard data={data} />
-  )
+  if (device === "desktop") {
+    const data = await getFinanceDashboardData()
+    return <FinanceDesktopDashboard data={data} />
+  }
+
+  const data = await getFinanceMobileDashboardData()
+  return <FinanceMobileDashboard data={data} />
 }

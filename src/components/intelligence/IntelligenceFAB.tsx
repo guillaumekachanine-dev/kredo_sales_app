@@ -26,7 +26,7 @@ import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-s
 import { getPlaybookSectors, type PlaybookSector } from "@/lib/prospection/get-playbook-sectors"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
-import { COCKPIT_RETURN_EVENT, returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
+import { COCKPIT_OPEN_EVENT, COCKPIT_RETURN_EVENT, returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
 import type { AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import {
   IntelligenceActionResultContent,
@@ -600,7 +600,12 @@ export function IntelligenceFAB() {
     }
 
     window.addEventListener(COCKPIT_RETURN_EVENT, handleReturnToCockpit)
-    return () => window.removeEventListener(COCKPIT_RETURN_EVENT, handleReturnToCockpit)
+    const handleOpenCockpit = () => setIsOpen(true)
+    window.addEventListener(COCKPIT_OPEN_EVENT, handleOpenCockpit)
+    return () => {
+      window.removeEventListener(COCKPIT_RETURN_EVENT, handleReturnToCockpit)
+      window.removeEventListener(COCKPIT_OPEN_EVENT, handleOpenCockpit)
+    }
   }, [])
 
   const eventInitialValues = useMemo<AgendaEventDrawerInitialValues | undefined>(() => {

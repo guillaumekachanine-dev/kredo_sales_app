@@ -6,14 +6,15 @@ const read = (path: string) => readFileSync(path, "utf8")
 describe("Business Intelligence atelier analytique", () => {
   it("affiche la frise Desktop de cinq jalons et conserve les modales exhaustives", () => {
     const desktop = read("src/features/business-intelligence/desktop/BusinessIntelligenceDesktop.tsx")
+    const prospectionDesktop = read("src/features/prospection-intelligence/desktop/ProspectionIntelligenceDesktop.tsx")
 
-    expect(desktop).toContain("<AccountPriorityBoard")
-    expect(desktop).toContain("limit={5}")
+    expect(prospectionDesktop).toContain("<AccountPriorityBoard")
+    expect(prospectionDesktop).toContain("limit={5}")
     expect(desktop).toContain("<SectorWindowsTimeline")
     expect(desktop).toContain("onShowAll={() => setIsWindowsOpen(true)}")
     expect(desktop).toContain("windows={snapshot.windows}")
     expect(desktop).not.toContain("SectorWindowsLedger")
-    expect(desktop).toContain("<PriorityAccountsModal")
+    expect(prospectionDesktop).toContain("<PriorityAccountsModal")
     expect(desktop).toContain("<SectorWindowsModal")
     expect(desktop).not.toContain("SectorPanorama")
   })

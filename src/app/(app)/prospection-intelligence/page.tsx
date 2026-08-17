@@ -1,4 +1,6 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
+import { getBusinessIntelligenceSnapshot } from "@/features/business-intelligence/data/get-business-intelligence-snapshot"
+import { buildBusinessIntelligenceDesktopModel } from "@/features/business-intelligence/presenters/build-business-intelligence-desktop-model"
 import { ProspectionIntelligenceDesktop } from "@/features/prospection-intelligence/desktop/ProspectionIntelligenceDesktop"
 
 export default async function ProspectionIntelligencePage() {
@@ -15,9 +17,12 @@ export default async function ProspectionIntelligencePage() {
     )
   }
 
+  const snapshot = await getBusinessIntelligenceSnapshot()
+  const viewModel = buildBusinessIntelligenceDesktopModel(snapshot)
+
   return (
     <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
-      <ProspectionIntelligenceDesktop />
+      <ProspectionIntelligenceDesktop viewModel={viewModel} snapshot={snapshot} />
     </div>
   )
 }
