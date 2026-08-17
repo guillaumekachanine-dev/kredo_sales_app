@@ -113,4 +113,10 @@ describe("veille Desktop UI source contract", () => {
     expect(distributor.slice(mobileBranch, desktopBranch)).toContain("<VeilleActualitesMobile")
     expect(distributor.slice(mobileBranch, desktopBranch)).not.toContain("globalWatchHealth=")
   })
+
+  it("resets desktop reader on digest change and switches to news section on history digest click", () => {
+    expect(distributor).toContain('key={digest?.id ?? "veille-no-digest"}')
+    expect(desktop).toContain('onOpenDigest={() => setSection("news")}')
+    expect(desktop).toContain("onClick={() => onOpenDigest?.()}")
+  })
 })

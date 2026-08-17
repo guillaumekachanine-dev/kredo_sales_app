@@ -711,6 +711,136 @@ async function main() {
     check("L11.Q tons métier — les 5 nouveaux tons sont injectés en instruction", allInjected, miss ? `manquant: ${miss}` : "");
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // Correctif INTEL-020 — Structured Outputs & Validation Stricte
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ── Test A — schéma written_message ─────────────────────────────────────
+  {
+    const entry = MANIFEST.find((x) => x.defaultOutputKind === "written_message");
+    const out = await runAssembleFor(entry);
+    check("Test A — schema written_message présent", Boolean(out.outputSchema));
+    check("Test A — schema written_message a les 5 champs requis", Array.isArray(out.outputSchema.required) && ["subjects", "body", "key_points", "source_refs", "warnings"].every((k) => out.outputSchema.required.includes(k)));
+    check("Test A — Call LLM jsonBody inclut output_config.format.type = json_schema", nodesByName["Call LLM"].parameters.jsonBody.includes("json_schema") && nodesByName["Call LLM"].parameters.jsonBody.includes("outputSchema"));
+  }
+
+  // ── Test B — schéma spoken_pitch ────────────────────────────────────────
+  {
+    const entry = MANIFEST.find((x) => x.defaultOutputKind === "spoken_pitch");
+    const out = await runAssembleFor(entry);
+    check("Test B — schema spoken_pitch présent", Boolean(out.outputSchema));
+    check("Test B — schema spoken_pitch kind enum spoken_pitch", out.outputSchema.properties.kind && out.outputSchema.properties.kind.enum && out.outputSchema.properties.kind.enum[0] === "spoken_pitch");
+    check("Test B — schema spoken_pitch a hook, ask, word_count", out.outputSchema.required.includes("hook") && out.outputSchema.required.includes("ask") && out.outputSchema.required.includes("word_count"));
+  }
+
+  // ── Test C — schéma structured_briefing ────────────────────────────────
+  {
+    const entryCommercial = MANIFEST.find((x) => x.defaultOutputKind === "structured_briefing" && (x.category === "commerce_prospection" || x.category === "commerce_actif"));
+    const outComm = await runAssembleFor(entryCommercial);
+    check("Test C — schema briefing commercial présent", Boolean(outComm.outputSchema));
+    check("Test C — schema briefing commercial kind enum meeting_briefing", outComm.outputSchema.properties.kind.enum[0] === "meeting_briefing");
+    check("Test C — schema briefing commercial n'a pas postures requis", !outComm.outputSchema.required.includes("postures"));
+
+    const entryNonComm = MANIFEST.find((x) => x.defaultOutputKind === "structured_briefing" && x.category === "management_consultants");
+    const outNonComm = await runAssembleFor(entryNonComm);
+    check("Test C — schema briefing non commercial contient postures/emotional_context/power_dynamic", outNonComm.outputSchema.required.includes("postures") && outNonComm.outputSchema.required.includes("emotional_context") && outNonComm.outputSchema.required.includes("power_dynamic"));
+  }
+
+  // ── Test D — parsing écrit valide (fixture officielle) ─────────────────
+  {
+    const up = makeUpstream({ brief: writtenBrief, scenario: "signal_outreach", outputKind: "written_message", activityCategory: "commerce_prospection", resolvedContext: RICH_CTX });
+    const fixtureWritten = {
+      subjects: ["Objet 1", "Objet 2", "Objet 3"],
+      body: "Message valide suffisamment long pour la validation.",
+      key_points: ["Point 1"],
+      source_refs: ["Source 1"],
+      warnings: [],
+    };
+    const r = await runQaChain(up, fixtureWritten);
+    check("Test D — parsing écrit valide réussi", r.parse && r.parse.generatedOutput.body === fixtureWritten.body);
+  }
+
+  // ── Test E — contrat métier invalide (JSON valide mais champ requis manquant) ─
+  {
+    const up = makeUpstream({ brief: writtenBrief, scenario: "signal_outreach", outputKind: "written_message", activityCategory: "commerce_prospection", resolvedContext: RICH_CTX });
+    // Invalide: sans body
+    const invalidWrittenNoBody = { subjects: ["Subject"], key_points: [], source_refs: [], warnings: [] };
+    let threwBody = false;
+    try {
+      const registry = { "Assemble Prompt": up, __input: llmResponse(invalidWrittenNoBody) };
+      await runCodeNode("Parse & Validate Output", { registry, env: {}, rpcMock: baseRpcMock() });
+    } catch (e) {
+      threwBody = true;
+      check("Test E — written_message sans body rejeté par le parser", /body absent ou trop court/.test(e.message), e.message);
+    }
+    check("Test E — written_message sans body a bien levé une erreur", threwBody);
+
+    // Invalide: body trop court (< 20 car)
+    const invalidWrittenShort = { subjects: ["Subject"], body: "Court", key_points: [], source_refs: [], warnings: [] };
+    let threwShort = false;
+    try {
+      const registry = { "Assemble Prompt": up, __input: llmResponse(invalidWrittenShort) };
+      await runCodeNode("Parse & Validate Output", { registry, env: {}, rpcMock: baseRpcMock() });
+    } catch (e) {
+      threwShort = true;
+    }
+    check("Test E — written_message body trop court rejeté", threwShort);
+  }
+
+  // ── Test F — compatibilité trois finalités (fixtures complètes) ──────────
+  {
+    // Fixture written_message
+    const upW = makeUpstream({ brief: writtenBrief, scenario: "signal_outreach", outputKind: "written_message", activityCategory: "commerce_prospection", resolvedContext: RICH_CTX });
+    const fixW = { subjects: ["S1"], body: "Corps de message écrit suffisamment long pour le test.", key_points: ["K1"], source_refs: ["Voyage Privé"], warnings: [] };
+    const rW = await runQaChain(upW, fixW);
+    check("Test F — written_message fixture complète passe", rW.parse && rW.parse.generatedOutput.body === fixW.body);
+
+    // Fixture spoken_pitch
+    const briefS = { what: { length: "ultra_short", channel: "spoken_pitch_30s" }, who: { objective: "get_meeting", recipient: { displayName: "Client" } }, how: { formality: "vous", language: "fr", tone: "direct" }, context: {} };
+    const upS = makeUpstream({ brief: briefS, scenario: "cold_call_pitch", outputKind: "spoken_pitch", activityCategory: "commerce_prospection", resolvedContext: RICH_CTX });
+    const fixS = { kind: "spoken_pitch", hook: "Accroche rapide", problem_recognition: "Problème identifié", offer_link: "Lien offre", ask: "Disponibilité mardi ?", alt_close: "Sinon jeudi", word_count: 50, tone_notes: ["Direct"], source_refs: ["Voyage Privé"], warnings: [] };
+    const rS = await runQaChain(upS, fixS);
+    check("Test F — spoken_pitch fixture complète passe", rS.parse && rS.parse.generatedOutput.hook === fixS.hook);
+
+    // Fixture structured_briefing
+    const briefB = { what: { length: "standard", channel: "meeting_briefing" }, who: { objective: "prepare_meeting", recipient: { displayName: "Client" } }, how: { formality: "vous", language: "fr", tone: "diplomatic" }, context: {} };
+    const upB = makeUpstream({ brief: briefB, scenario: "quarterly_business_review", outputKind: "structured_briefing", activityCategory: "commerce_actif", resolvedContext: RICH_CTX });
+    const fixB = { kind: "meeting_briefing", objective: "Bilan trimestriel", key_message: "Accélération du projet", arguments: [{ title: "Perf", evidence: "Migration réussie", source_ref: "Voyage Privé" }], expected_objections: [{ objection: "Coût", response: "ROI démontré", fallback: "Phase 2" }], cross_sell_hypotheses: ["Cyber"], data_points_to_mention: ["100k€ ROI"], close_options: ["Validation Q3"], do_not_say: ["Retards"], source_refs: ["Voyage Privé"], warnings: [] };
+    const rB = await runQaChain(upB, fixB);
+    check("Test F — structured_briefing fixture complète passe", rB.parse && rB.parse.generatedOutput.objective === fixB.objective);
+  }
+
+  // ── Test des deux cas réels de production (Run #83351 et Run #83338) ─────
+  {
+    // Cas 1 — Run #83351 : scenario = signal_outreach, outputKind = written_message, tone = business_roi, scope = account
+    const run1Brief = {
+      what: { channel: "email", scenario: "signal_outreach", outputKind: "written_message", length: "standard", activityCategory: "commerce_prospection", scope: "account" },
+      who: { sender: { role: "business_manager", name: "Guillaume" }, recipient: { type: "prospect", persona: "other", relation: "warm", displayName: "Décideur Tech" }, objective: "get_meeting" },
+      how: { tone: "business_roi", formality: "vous", language: "fr" },
+      context: {},
+    };
+    const vb1 = await runValidateBrief({ body: { input: run1Brief } });
+    check("Cas 1 (#83351) — Validate Brief valide scope account et outputKind written_message", vb1.scope === "account" && vb1.outputKind === "written_message");
+    const reg1 = { "Validate Brief": vb1 };
+    await runCodeNode("Hydrate Context", { registry: reg1, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
+    const { result: ap1 } = await runCodeNode("Assemble Prompt", { registry: reg1, env: {}, rpcMock: baseRpcMock() });
+    check("Cas 1 (#83351) — Assemble Prompt produit le schema written_message et le ton business_roi", ap1[0].json.outputSchema && ap1[0].json.outputSchema.properties.body && /Business\/ROI/.test(ap1[0].json.userPrompt));
+
+    // Cas 2 — Run #83338 : scenario = performance_feedback_follow_up, outputKind = written_message, tone = pedagogical, scope = collaborator
+    const run2Brief = {
+      what: { channel: "internal_note", scenario: "performance_feedback_follow_up", outputKind: "written_message", length: "standard", activityCategory: "management_consultants", scope: "collaborator" },
+      who: { sender: { role: "business_manager", name: "Guillaume" }, recipient: { type: "collaborator", persona: "other", relation: "unknown", collaboratorId: "collab-1", displayName: "Consultant Antoine" }, objective: "provide_feedback" },
+      how: { tone: "pedagogical", formality: "tu", language: "fr" },
+      context: { collaboratorRef: "collab-1" },
+    };
+    const vb2 = await runValidateBrief({ body: { entityType: "collaborator", entityId: "collab-1", input: run2Brief } });
+    check("Cas 2 (#83338) — Validate Brief valide scope collaborator et outputKind written_message", vb2.scope === "collaborator" && vb2.outputKind === "written_message");
+    const reg2 = { "Validate Brief": vb2 };
+    await runCodeNode("Hydrate Context", { registry: reg2, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
+    const { result: ap2 } = await runCodeNode("Assemble Prompt", { registry: reg2, env: {}, rpcMock: baseRpcMock() });
+    check("Cas 2 (#83338) — Assemble Prompt produit le schema written_message et le ton pedagogical", ap2[0].json.outputSchema && ap2[0].json.outputSchema.properties.body && /Pédagogue/.test(ap2[0].json.userPrompt));
+  }
+
   console.log(`\n${passed} passed, ${failures} failed`);
   if (failures > 0) process.exit(1);
 }

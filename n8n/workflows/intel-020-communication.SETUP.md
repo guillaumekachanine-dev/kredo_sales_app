@@ -221,3 +221,12 @@ The function "helpers.httpRequestWithAuthentication" is not supported in the Cod
 3. Rejouer un scénario `account` simple (ex. `signal_outreach`) et vérifier que `Hydrate Context` s'exécute sans passer par la branche d'échec.
 
 **Validation réalisée dans cette session** : harnais Node (`node n8n/workflows/__tests__/intel-020-communication.test.js`) mis à jour pour mocker `this.helpers.httpRequest` (plus `httpRequestWithAuthentication.call`) et pour exiger `SUPABASE_SERVICE_ROLE_KEY` dans l'environnement de test → **81 passed, 0 failed** (inchangé). `node --check` sur le nœud modifié → OK. JSON du workflow rechargé, 16 nœuds, connexions intactes. Aucun autre nœud Code de ce workflow ni d'aucun autre workflow du repo n'utilise `httpRequestWithAuthentication` (grep confirmé) — bug contenu à ce seul nœud.
+
+## 14. Resolution des échecs récurrents « JSON invalide et non réparable » (Structured Outputs)
+
+- **Cause des erreurs JSON intermittentes** : Le nœud `Call LLM` s'appuyait uniquement sur des consignes textuelles dans le prompt pour demander du JSON. Sur certaines générations (notamment `written_message`), le LLM produisait de la syntaxe malformée (guillemets internes mal échappés, newlines brutes dans des strings, etc.), entraînant l'échec bloquant `JSON invalide et non réparable` dans `Parse & Validate Output`.
+- **Passage à Structured Outputs / JSON Schema** : L'appel LLM (`Call LLM`) est désormais contraint directement au niveau de l'API Anthropic via `output_config: { format: { type: "json_schema", schema: $json.outputSchema } }`. Le schéma `outputSchema` est construit dynamiquement par `Assemble Prompt` pour chacun des trois `outputKind` (`written_message`, `spoken_pitch`, `structured_briefing`), garantissant une sortie 100% conforme à la grammaire JSON.
+- **Maintien d'un parser métier strict** : Le nœud `Parse & Validate Output` conserve `JSON.parse()`, le nettoyage défensif des fences Markdown, et toutes les validations métier strictes par `outputKind`. Aucune librairie de réparation complexe ou retry caché n'a été ajouté. Le diagnostic de parsing est enrichi pour remonter explicitement `stop_reason=max_tokens` ou l'absence de bloc textuel.
+- **Absence de migration Supabase** : Aucune table, colonne ou RPC n'a été ajoutée ou modifiée.
+- **Absence de changement de contrat UI** : La structure des objets JSON produits et consommés par KREDO reste strictement inchangée.
+

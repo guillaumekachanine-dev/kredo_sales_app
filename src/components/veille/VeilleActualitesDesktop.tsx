@@ -1177,14 +1177,27 @@ function StrategicAnalysisSection({
   )
 }
 
-function HistorySection({ digests, analyses }: { digests: VeilleDigest[]; analyses: StrategicWatchAnalysis[] }) {
+function HistorySection({
+  digests,
+  analyses,
+  onOpenDigest,
+}: {
+  digests: VeilleDigest[]
+  analyses: StrategicWatchAnalysis[]
+  onOpenDigest?: () => void
+}) {
   return (
     <div className="grid grid-cols-2 gap-6">
       <section>
         <SectionHeading>Digests de veille</SectionHeading>
         <div className="mt-3 divide-y divide-border border border-border bg-surface">
           {digests.length === 0 ? <p className="p-5 text-xs text-muted">Aucun digest disponible.</p> : digests.map((digest) => (
-            <Link key={digest.id} href={`/veille?digestId=${digest.id}`} className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
+            <Link
+              key={digest.id}
+              href={`/veille?digestId=${digest.id}`}
+              onClick={() => onOpenDigest?.()}
+              className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
+            >
               <p className="text-[10px] text-muted">{formatDateFr(digest.digest_date)}</p>
               <h3 className="mt-1 text-sm font-bold text-heading">{digest.titre_digest}</h3>
               <p className="mt-1 line-clamp-2 text-xs leading-5 text-body">{digest.super_short_summary || digest.resume_hebdo}</p>
@@ -1311,7 +1324,7 @@ export function VeilleActualitesDesktop({
     : section === "strategic-analysis"
       ? <StrategicAnalysisSection analysis={latestAnalysis} analysisHistory={analysisHistory} generation={monthlyGeneration} />
       : section === "history"
-        ? <HistorySection digests={pastDigests} analyses={analysisHistory} />
+        ? <HistorySection digests={pastDigests} analyses={analysisHistory} onOpenDigest={() => setSection("news")} />
         : selectedArticle
           ? (
               <div className="grid grid-cols-[minmax(0,1fr)_18rem] items-start gap-4">

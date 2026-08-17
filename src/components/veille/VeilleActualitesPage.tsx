@@ -83,6 +83,7 @@ export function VeilleActualitesPage({
 
   return (
     <VeilleActualitesDesktop
+      key={digest?.id ?? "veille-no-digest"}
       digest={digest}
       digestNumber={digestNumber}
       articles={articles}
