@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
+import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import type { ReportsFilterState, ReportsListData } from "@/app/(app)/reports/_data/reports-types"
 
@@ -272,11 +273,11 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
                 <label htmlFor="mobile-search-doctype-select" className="block text-xs font-semibold text-heading mb-1.5">
                   Type de document
                 </label>
-                <select
+                <Select
                   id="mobile-search-doctype-select"
                   value={modalDocType}
                   onChange={(event) => setModalDocType(event.target.value)}
-                  className="w-full min-h-10 rounded border border-border bg-surface px-3 text-xs font-medium text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heading"
+                  fullWidth
                 >
                   <option value="all">Tous les types</option>
                   {Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => (
@@ -284,7 +285,7 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
                       {label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-border">

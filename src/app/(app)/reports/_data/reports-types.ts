@@ -802,7 +802,8 @@ export interface ManagerSummaryTriggerInput {
 }
 
 export interface ManagerSummaryNarrative {
-  summary: string;
+  executiveSummary: string;
+  summary?: string;
   commercialCommentary: string;
   recruitmentCommentary: string;
   signatureConvictionCommentary: string;

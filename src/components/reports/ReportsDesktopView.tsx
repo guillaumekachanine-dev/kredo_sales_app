@@ -65,15 +65,6 @@ const LOCAL_SECTIONS: Array<{ id: ReportsSection; label: string }> = [
   { id: "generation", label: "Génération" },
 ]
 
-const DOCUMENT_CATEGORIES = [
-  { label: "Tous", value: "all" },
-  { label: "Rapports", value: "financial" },
-  { label: "Synthèses", value: "client_summary" },
-  { label: "Pitchs", value: "commercial_pitch" },
-  { label: "Prises de parole", value: "prise_de_parole" },
-  { label: "Mails", value: "communication" },
-]
-
 const STATUS_LABELS: Record<DocumentListItem["status"], string> = {
   draft: "Brouillon",
   ready: "Prêt",
@@ -437,17 +428,14 @@ export function ReportsDesktopView({
               <div className="shrink-0 border-b border-border px-4 py-4">
                 <h2 id="reports-library-title" className="text-xs font-bold text-heading">Bibliothèque de documents</h2>
                 <div className="mt-3 flex items-center justify-between gap-2">
-                  <select
-                    className="min-h-8 rounded border border-border bg-surface px-2.5 text-[11px] font-semibold text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  <PageFilterSelect
+                    id="reports-library-doctype-filter"
+                    label="Type de document"
                     value={activeDocType}
-                    onChange={(e) => handleFilterChange("documentType", e.target.value)}
-                  >
-                    {DOCUMENT_CATEGORIES.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => handleFilterChange("documentType", value)}
+                    options={[{ value: "all", label: "Tous" }, ...Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => ({ value, label }))]}
+                    className="min-w-0 w-auto sm:min-w-0 sm:w-auto"
+                  />
                   <span className="text-[10px] text-muted font-medium shrink-0">
                     {reportsData.totalCount} document{reportsData.totalCount > 1 ? "s" : ""}
                   </span>

@@ -242,7 +242,7 @@ export function KnowledgeSpaceDesktop() {
               </div>
             </div>
           ) : (
-            <Button size="sm" variant="secondary" fullWidth onClick={() => setCreatingOpen(true)}>
+            <Button size="sm" fullWidth onClick={() => setCreatingOpen(true)}>
               {kindFilter === "corpus" ? "+ Créer un corpus" : "+ Créer une liste"}
             </Button>
           )}

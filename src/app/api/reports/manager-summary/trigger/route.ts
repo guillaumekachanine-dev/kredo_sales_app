@@ -95,19 +95,47 @@ export async function POST(request: Request) {
   // Persistance / récupération du strategic_focus dans performance_plans
   let activeStrategicFocus: string | null = body.strategicFocus?.trim() || null
   if (body.strategicFocus !== undefined && body.strategicFocus.trim().length > 0) {
-    await serviceClient
+    const focusVal = body.strategicFocus.trim()
+    activeStrategicFocus = focusVal
+
+    const { data: updatedPlans } = await serviceClient
       .from("performance_plans")
-      .update({ strategic_focus: body.strategicFocus.trim(), updated_at: new Date().toISOString() })
+      .update({ strategic_focus: focusVal, updated_at: new Date().toISOString() })
       .eq("workspace_id", profile.workspace_id)
       .eq("owner_profile_id", user.id)
       .eq("status", "active")
+      .select("id")
+
+    if (!updatedPlans || updatedPlans.length === 0) {
+      const { data: anyUpdated } = await serviceClient
+        .from("performance_plans")
+        .update({ strategic_focus: focusVal, updated_at: new Date().toISOString() })
+        .eq("workspace_id", profile.workspace_id)
+        .eq("owner_profile_id", user.id)
+        .select("id")
+
+      if (!anyUpdated || anyUpdated.length === 0) {
+        const currentYear = new Date().getFullYear()
+        await serviceClient.from("performance_plans").insert({
+          workspace_id: profile.workspace_id,
+          owner_profile_id: user.id,
+          fiscal_year: currentYear,
+          period_start: `${currentYear}-01-01`,
+          period_end: `${currentYear}-12-31`,
+          fixed_salary_amount: 0,
+          target_variable_amount: 0,
+          role_title: "Manager",
+          status: "active",
+          strategic_focus: focusVal,
+        })
+      }
+    }
   } else {
     const { data: activePlan } = await serviceClient
       .from("performance_plans")
       .select("strategic_focus")
       .eq("workspace_id", profile.workspace_id)
       .eq("owner_profile_id", user.id)
-      .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()

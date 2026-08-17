@@ -1,12 +1,5 @@
--- Migration pour le compte-rendu Manager (manager_summary)
+-- Fix get_manager_summary_facts RPC: commercial event_type whitelist without candidate_id IS NULL condition
 
--- 1. Ajout de l'enum si elle n'existe pas
-ALTER TYPE intelligence_document_type ADD VALUE IF NOT EXISTS 'manager_summary';
-
--- 2. Ajout de strategic_focus
-ALTER TABLE public.performance_plans ADD COLUMN IF NOT EXISTS strategic_focus text;
-
--- 3. RPC get_manager_summary_facts
 CREATE OR REPLACE FUNCTION public.get_manager_summary_facts(
   p_workspace_id uuid,
   p_owner_id uuid,
