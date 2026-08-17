@@ -12,6 +12,7 @@ type QuarterlyGridRow = {
   label: string
   quarters: Record<QuarterKey, FinanceQuarterAmount>
   activityWarnings: Set<QuarterKey>
+  overdueWarnings: Set<QuarterKey>
 }
 
 const QUARTERS: ReadonlyArray<readonly [QuarterKey, string]> = [
@@ -39,11 +40,19 @@ function rowTotal(row: FinanceMobileDashboardData["productionByClient"][number])
 
 export function buildQuarterlyGridRows(data: FinanceMobileDashboardData): QuarterlyGridRow[] {
   const warningByClient = new Map<string, Set<QuarterKey>>()
+  const overdueByClient = new Map<string, Set<QuarterKey>>()
   for (const risk of data.risksAndGaps) {
-    if (risk.kind !== "activity" || !risk.context?.clientId || !risk.context.month) continue
-    const warnings = warningByClient.get(risk.context.clientId) ?? new Set<QuarterKey>()
-    warnings.add(quarterFromMonth(risk.context.month))
-    warningByClient.set(risk.context.clientId, warnings)
+    if (!risk.context?.clientId || !risk.context.month) continue
+    if (risk.kind === "activity") {
+      const warnings = warningByClient.get(risk.context.clientId) ?? new Set<QuarterKey>()
+      warnings.add(quarterFromMonth(risk.context.month))
+      warningByClient.set(risk.context.clientId, warnings)
+    }
+    if (risk.kind === "mission-ending" && risk.severity === "critical") {
+      const warnings = overdueByClient.get(risk.context.clientId) ?? new Set<QuarterKey>()
+      warnings.add(quarterFromMonth(risk.context.month))
+      overdueByClient.set(risk.context.clientId, warnings)
+    }
   }
 
   const sorted = [...data.productionByClient].sort((a, b) => rowTotal(b) - rowTotal(a))
@@ -52,6 +61,7 @@ export function buildQuarterlyGridRows(data: FinanceMobileDashboardData): Quarte
     label: row.clientName,
     quarters: row.quarters,
     activityWarnings: row.clientId ? warningByClient.get(row.clientId) ?? new Set<QuarterKey>() : new Set<QuarterKey>(),
+    overdueWarnings: row.clientId ? overdueByClient.get(row.clientId) ?? new Set<QuarterKey>() : new Set<QuarterKey>(),
   }))
   const rest = sorted.slice(5)
 
@@ -62,6 +72,7 @@ export function buildQuarterlyGridRows(data: FinanceMobileDashboardData): Quarte
     label: "Autres",
     quarters: { q1: emptyQuarter(), q2: emptyQuarter(), q3: emptyQuarter(), q4: emptyQuarter() },
     activityWarnings: new Set<QuarterKey>(),
+    overdueWarnings: new Set<QuarterKey>(),
   }
   for (const row of rest) {
     for (const [quarter] of QUARTERS) {
@@ -70,6 +81,7 @@ export function buildQuarterlyGridRows(data: FinanceMobileDashboardData): Quarte
     }
     if (row.clientId) {
       for (const warning of warningByClient.get(row.clientId) ?? []) other.activityWarnings.add(warning)
+      for (const warning of overdueByClient.get(row.clientId) ?? []) other.overdueWarnings.add(warning)
     }
   }
   return [...top, other]
@@ -116,7 +128,7 @@ export function QuarterlyProductionGrid({ data }: { data: FinanceMobileDashboard
                       <span
                         key={quarter}
                         role="gridcell"
-                        aria-label={`${row.label}, ${label}, ${formatEuroCompact(cell.actual)} réalisé, ${formatEuroCompact(cell.projected)} projeté${row.activityWarnings.has(quarter) ? ", activité sous cible" : ""}${quarter === first || quarter === last ? ", début ou fin de production" : ""}`}
+                        aria-label={`${row.label}, ${label}, ${formatEuroCompact(cell.actual)} réalisé, ${formatEuroCompact(cell.projected)} projeté${row.activityWarnings.has(quarter) ? ", activité sous cible" : ""}${quarter === first || quarter === last ? ", début ou fin de production" : ""}${row.overdueWarnings.has(quarter) ? ", retard actif" : ""}`}
                         className={cn(
                           "relative flex min-h-12 items-center justify-center overflow-hidden rounded-[var(--radius-small)] border text-center font-mono text-[8px] font-bold",
                           level === 0 && "border-border bg-canvas text-muted",
@@ -125,6 +137,7 @@ export function QuarterlyProductionGrid({ data }: { data: FinanceMobileDashboard
                           level === 3 && "border-primary/40 bg-primary/[0.38] text-heading",
                           level === 4 && "border-primary bg-primary text-primary-fg",
                           projected && "border-dashed border-primary",
+                          row.overdueWarnings.has(quarter) && "border-2 border-danger",
                         )}
                       >
                         {projected ? (
@@ -151,6 +164,7 @@ export function QuarterlyProductionGrid({ data }: { data: FinanceMobileDashboard
         <span><i className="mr-1 inline-block size-1.5 rounded-full bg-warning" />activité sous cible</span>
         <span><i className="mr-1 inline-block h-2 w-0.5 bg-brand-brass" />début / fin</span>
         <span><i className="mr-1 inline-block size-2 border border-dashed border-primary bg-primary/[0.08]" />projection</span>
+        <span><i className="mr-1 inline-block size-2 border-2 border-danger" />retard actif</span>
       </div>
 
       <p className="sr-only">La grille comporte quatre colonnes Q1, Q2, Q3 et Q4 projeté. L’intensité représente la production. Un point signale une activité sous cible et un repère vertical le début ou la fin de production.</p>

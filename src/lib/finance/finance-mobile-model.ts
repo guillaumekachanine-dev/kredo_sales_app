@@ -668,7 +668,20 @@ export function buildFinanceMobileDashboardData(
   for (const mission of input.missions) {
     if (!mission.end_date || mission.status !== "active") continue
     const endTime = Date.parse(mission.end_date)
-    if (endTime >= asOfTime && endTime <= thirtyDaysAfter) {
+    if (endTime < asOfTime) {
+      risksAndGaps.push({
+        id: `mission-ending-overdue-${mission.id}`,
+        kind: "mission-ending",
+        severity: "critical",
+        title: "Mission active au-delà de sa date de fin",
+        detail: `${mission.title} est toujours active après le ${mission.end_date}.`,
+        context: {
+          missionId: mission.id,
+          clientId: mission.company_id ?? undefined,
+          month: monthKey(mission.end_date),
+        },
+      })
+    } else if (endTime <= thirtyDaysAfter) {
       risksAndGaps.push({
         id: `mission-ending-${mission.id}`,
         kind: "mission-ending",
@@ -678,6 +691,7 @@ export function buildFinanceMobileDashboardData(
         context: {
           missionId: mission.id,
           clientId: mission.company_id ?? undefined,
+          month: monthKey(mission.end_date),
         },
       })
     }

@@ -294,6 +294,31 @@ describe("buildFinanceMobileDashboardData", () => {
       data.distributions.practices.items.find((item) => item.id === "non-attribue"),
     ).toMatchObject({ label: "Non attribué", amount: 350 })
   })
+
+  it("signale une mission encore active après sa date de fin", () => {
+    const input = buildInput()
+    input.missions.push({
+      id: "mission-overdue",
+      title: "Mission en retard",
+      company_id: "company-a",
+      opportunity_id: null,
+      practice: "Data",
+      status: "active",
+      start_date: "2025-12-01",
+      end_date: "2026-01-15",
+      gross_margin_pct: 25,
+    })
+
+    const risk = buildFinanceMobileDashboardData(input).risksAndGaps.find(
+      (item) => item.id === "mission-ending-overdue-mission-overdue",
+    )
+
+    expect(risk).toMatchObject({
+      kind: "mission-ending",
+      severity: "critical",
+      context: { clientId: "company-a", month: "2026-01-01" },
+    })
+  })
 })
 
 describe("normalisations Finance mobile", () => {

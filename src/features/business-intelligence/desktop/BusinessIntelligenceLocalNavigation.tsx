@@ -71,11 +71,15 @@ function BiSidebarIcon({ name }: { name: BiTabKey }) {
 interface BusinessIntelligenceLocalNavigationProps {
   active: BiTabKey
   onChange: (tab: BiTabKey) => void
+  onStudiesClick?: () => void
+  onPlaybooksClick?: () => void
 }
 
 export function BusinessIntelligenceLocalNavigation({
   active,
   onChange,
+  onStudiesClick,
+  onPlaybooksClick,
 }: BusinessIntelligenceLocalNavigationProps) {
   return (
     <nav
@@ -115,7 +119,65 @@ export function BusinessIntelligenceLocalNavigation({
               </button>
             )
           })}
-          <div className="my-2 border-t border-edito-border/50" />
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-edito-border pt-4">
+        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
+          Modules
+        </p>
+        <div className="mt-2 space-y-1">
+          <button
+            type="button"
+            onClick={onStudiesClick}
+            className={cn(
+              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
+            )}
+          >
+            <span className="text-edito-navy opacity-75">
+              <svg
+                className="size-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+              </svg>
+            </span>
+            <span className="truncate">Études sectorielles</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onPlaybooksClick}
+            className={cn(
+              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
+            )}
+          >
+            <span className="text-edito-navy opacity-75">
+              <svg
+                className="size-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+              </svg>
+            </span>
+            <span className="truncate">Playbooks</span>
+          </button>
+
           <button
             type="button"
             onClick={() => useCrmAccountLauncherStore.getState().open()}

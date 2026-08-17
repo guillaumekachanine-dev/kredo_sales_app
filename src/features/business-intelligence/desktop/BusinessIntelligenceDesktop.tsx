@@ -35,6 +35,14 @@ const CompetitiveEnvironmentWorkspace = dynamic(
 )
 
 
+const TAB_HEADER_TITLES: Record<BiTabKey, string> = {
+  priorities: "Business Intelligence",
+  windows: "Fenêtres",
+  sectors: "Analyse sectorielle",
+  value_chain: "Chaîne de valeur",
+  competitive_env: "Environnement concurrentiel",
+}
+
 interface BusinessIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
   snapshot: BusinessIntelligenceSnapshot
@@ -83,10 +91,18 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalo
 
   return (
     <div className="flex h-screen min-h-0 overflow-hidden bg-canvas">
-      <BusinessIntelligenceLocalNavigation active={activeTab} onChange={setActiveTab} />
+      <BusinessIntelligenceLocalNavigation
+        active={activeTab}
+        onChange={setActiveTab}
+        onStudiesClick={() => setIsStudiesOpen(true)}
+        onPlaybooksClick={() => setIsPlaybooksOpen(true)}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <BusinessIntelligenceHeader minimal={activeTab === "competitive_env"} onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
+        <BusinessIntelligenceHeader
+          title={TAB_HEADER_TITLES[activeTab]}
+          minimal={activeTab === "competitive_env"}
+        />
 
         <div className="flex-1 overflow-y-auto">
           {activeTab !== "priorities" && activeTab !== "value_chain" && activeTab !== "competitive_env" ? (
@@ -122,7 +138,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalo
             </div>
           ) : null}
 
-          <main className={`mx-auto w-full ${activeTab === "competitive_env" ? "max-w-none p-0" : activeTab === "value_chain" ? "max-w-[1600px] space-y-6 px-4 py-4 lg:px-6 lg:py-5" : "max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8"}`}>
+          <main className={`mx-auto w-full ${activeTab === "competitive_env" ? "max-w-none p-0" : activeTab === "value_chain" ? "max-w-[1600px] space-y-4 px-4 py-4 lg:px-6 lg:py-4" : "max-w-[1600px] space-y-4 px-4 py-4 lg:px-8 lg:py-5"}`}>
             {viewModel.hasDemoData && activeTab !== "priorities" && activeTab !== "value_chain" && activeTab !== "competitive_env" && (
               <div className="flex items-center rounded-lg border border-border/40 bg-surface/30 px-4 py-2 text-xs text-muted">
                 <span className="mr-2 size-2 shrink-0 rounded-full bg-muted" />
