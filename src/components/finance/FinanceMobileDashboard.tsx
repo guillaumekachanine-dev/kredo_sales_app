@@ -27,6 +27,16 @@ const FinanceRiskSheet = dynamic(() =>
   import("./mobile/FinanceRiskSheet").then((module) => module.FinanceRiskSheet),
   { loading: DetailLoading },
 )
+const FinanceCockpitPanel = dynamic(() =>
+  import("./mobile/FinanceCockpitPanel").then((module) => module.FinanceCockpitPanel),
+  { loading: DetailLoading },
+)
+const FinancialModelingMobileFlow = dynamic(() =>
+  import("@/features/financial-modeling/components/mobile/FinancialModelingMobileFlow").then(
+    (module) => module.FinancialModelingMobileFlow,
+  ),
+  { loading: DetailLoading },
+)
 
 type FinanceDetail = "monthly" | "structure" | "production" | "risks"
 
@@ -65,6 +75,10 @@ function RiskIcon() {
   return <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3 2.8 19h18.4L12 3Zm0 5v5m0 3h.01" /></svg>
 }
 
+function CockpitBriefIcon() {
+  return <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
+}
+
 function FinanceEntry({
   title,
   description,
@@ -97,6 +111,8 @@ function FinanceEntry({
 
 export function FinanceMobileDashboard({ data }: { data: FinanceMobileDashboardData }) {
   const [activeDetail, setActiveDetail] = useState<FinanceDetail | null>(null)
+  const [cockpitOpen, setCockpitOpen] = useState(false)
+  const [modelingOpen, setModelingOpen] = useState(false)
   const riskCount = data.risksAndGaps.filter((risk) => risk.severity !== "info").length
   const topClient = data.distributions.clients.items.find((item) => item.id !== "non-attribue")
 
@@ -107,15 +123,26 @@ export function FinanceMobileDashboard({ data }: { data: FinanceMobileDashboardD
           <MobilePageHeader
             title={<span className="text-base font-black uppercase tracking-[0.16em]">Finance</span>}
             actions={
-              <IconButton
-                aria-label="Ouvrir Cockpit Intelligence"
-                variant="secondary"
-                size="md"
-                onClick={openCockpit}
-                className="size-11 rounded-[var(--radius-small)] border-brand-brass/35 text-primary"
-              >
-                <SparkleIcon />
-              </IconButton>
+              <div className="flex items-center gap-2">
+                <IconButton
+                  aria-label="Ouvrir Cockpit Intelligence"
+                  variant="secondary"
+                  size="md"
+                  onClick={openCockpit}
+                  className="size-11 rounded-[var(--radius-small)] border-brand-brass/35 text-primary"
+                >
+                  <SparkleIcon />
+                </IconButton>
+                <IconButton
+                  aria-label="Ouvrir le Brief Cockpit Finance"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setCockpitOpen(true)}
+                  className="size-11 rounded-[var(--radius-small)] border-brand-brass/35 text-primary"
+                >
+                  <CockpitBriefIcon />
+                </IconButton>
+              </div>
             }
           />
         }
@@ -166,6 +193,30 @@ export function FinanceMobileDashboard({ data }: { data: FinanceMobileDashboardD
         {activeDetail === "production" ? <QuarterlyProductionGrid data={data} /> : null}
         {activeDetail === "risks" ? <FinanceRiskSheet data={data} /> : null}
       </AppDrawer>
+
+      <AppDrawer
+        open={cockpitOpen}
+        onOpenChange={setCockpitOpen}
+        side="bottom"
+        title={<span className="text-base font-bold leading-7 tracking-tight text-white">Cockpit Intelligence — Brief Finance</span>}
+        eyebrow={`Finance · ${data.period.fiscalYear}`}
+        showMobileCloseButton
+        className="sm:hidden border-t border-white/15 bg-primary text-white"
+        headerClassName="border-b border-white/15 text-white [--color-muted:rgba(255,255,255,0.72)] [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"
+        contentClassName="bg-primary text-white [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"
+      >
+        {cockpitOpen ? (
+          <FinanceCockpitPanel
+            data={data}
+            onOpenModeling={() => {
+              setCockpitOpen(false)
+              setModelingOpen(true)
+            }}
+          />
+        ) : null}
+      </AppDrawer>
+
+      {modelingOpen ? <FinancialModelingMobileFlow open={modelingOpen} onOpenChange={setModelingOpen} /> : null}
     </>
   )
 }
