@@ -5,14 +5,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { DocumentCard } from "@/components/reports/DocumentCard"
 import { DocumentMobileDetail } from "@/components/reports/DocumentMobileDetail"
 import { DOCUMENT_OBJECT_LABELS } from "@/components/reports/document-display"
-import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
+import { REPORT_SUPPORTS, ReportSupportIcon } from "@/components/reports/report-supports-config"
 import { IconSearch } from "@/components/cockpit/mobile/icons"
 import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
-import { openReportGeneration } from "@/lib/reports/report-generation"
-import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { cn } from "@/lib/utils"
 import type { ReportsFilterState, ReportsListData } from "@/app/(app)/reports/_data/reports-types"
 
@@ -223,23 +221,25 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
 
         {activeSection === "generate" ? (
           <section className="reports-scrollbar h-full overflow-y-auto bg-surface px-4 py-5" aria-labelledby="reports-mobile-generate-title">
-            <div className="border-b border-border pb-4">
+            <div className="border-b border-border pb-3 mb-4">
               <h2 id="reports-mobile-generate-title" className="text-base font-bold text-heading">Créer un document</h2>
-              <p className="mt-1 text-xs leading-5 text-muted">Choisissez un flux déjà disponible dans KREDO.</p>
             </div>
-            <div className="divide-y divide-border">
-              <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { channel: "email" } })} className="flex min-h-20 w-full items-center gap-4 px-1 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset">
-                <span className="inline-flex size-10 shrink-0 items-center justify-center border border-border bg-canvas text-primary"><IntelligenceIcon name="write_email" className="size-5" preferVector /></span>
-                <span><span className="block text-sm font-bold text-heading">Rédiger un mail</span><span className="mt-0.5 block text-xs text-muted">Composer une communication assistée.</span></span>
-              </button>
-              <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { scenario: "signal_outreach" } })} className="flex min-h-20 w-full items-center gap-4 px-1 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset">
-                <span className="inline-flex size-10 shrink-0 items-center justify-center border border-border bg-canvas text-primary"><IntelligenceIcon name="generate_pitch" className="size-5" preferVector /></span>
-                <span><span className="block text-sm font-bold text-heading">Préparer un pitch</span><span className="mt-0.5 block text-xs text-muted">Réutiliser le flux de rédaction existant.</span></span>
-              </button>
-              <button type="button" onClick={() => openReportGeneration({ origin: "reports_library" })} className="flex min-h-20 w-full items-center gap-4 px-1 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset">
-                <span className="inline-flex size-10 shrink-0 items-center justify-center border border-border bg-canvas text-primary"><IntelligenceIcon name="report" className="size-5" preferVector /></span>
-                <span><span className="block text-sm font-bold text-heading">Générer un rapport</span><span className="mt-0.5 block text-xs text-muted">Ouvrir les paramètres de génération disponibles.</span></span>
-              </button>
+            <div className="grid grid-cols-2 gap-2.5">
+              {REPORT_SUPPORTS.map((support) => (
+                <button
+                  key={support.id}
+                  type="button"
+                  onClick={support.onClick}
+                  className="flex min-h-12 w-full items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2 text-left outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading"
+                >
+                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-canvas text-primary">
+                    <ReportSupportIcon iconType={support.iconType} className="size-4" />
+                  </span>
+                  <span className="truncate text-xs font-bold text-heading">
+                    {support.mobileLabel}
+                  </span>
+                </button>
+              ))}
             </div>
           </section>
         ) : null}

@@ -32,6 +32,7 @@ import {
   getDocumentTypeLabel,
   getFinancialReferenceDocumentSummary,
 } from "./document-display"
+import { REPORT_SUPPORTS, ReportSupportIcon } from "./report-supports-config"
 import { ClientSummaryDocumentContent } from "./ClientSummaryDocumentContent"
 import { PitchDocumentContent } from "./PitchDocumentContent"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
@@ -562,13 +563,30 @@ export function ReportsDesktopView({
 
         {activeSection === "generation" ? (
           <div className="reports-scrollbar min-h-0 flex-1 overflow-y-auto bg-surface px-8 py-7">
-            <div className="mx-auto max-w-3xl">
+            <div className="mx-auto max-w-4xl">
               <h2 className="text-lg font-bold text-heading">Génération</h2>
-              <p className="mt-1 text-xs text-muted">Accédez aux flux de rédaction et de génération déjà disponibles.</p>
-              <div className="mt-7 divide-y divide-border border-y border-border">
-                <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { channel: "email" } })} className="flex min-h-24 w-full items-center gap-4 px-3 py-5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"><span className="inline-flex size-11 items-center justify-center border border-border bg-edito-canvas text-primary"><IntelligenceIcon name="write_email" className="size-5" preferVector /></span><span><span className="block text-sm font-bold text-heading">Rédiger un mail</span><span className="mt-1 block text-xs text-muted">Composer une communication assistée depuis le flux existant.</span></span></button>
-                <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { scenario: "signal_outreach" } })} className="flex min-h-24 w-full items-center gap-4 px-3 py-5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"><span className="inline-flex size-11 items-center justify-center border border-border bg-edito-canvas text-primary"><IntelligenceIcon name="generate_pitch" className="size-5" preferVector /></span><span><span className="block text-sm font-bold text-heading">Préparer un pitch</span><span className="mt-1 block text-xs text-muted">Réutiliser la rédaction assistée pour une prise de parole.</span></span></button>
-                <button type="button" onClick={() => openReportGeneration({ origin: "reports_library" })} className="flex min-h-24 w-full items-center gap-4 px-3 py-5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"><span className="inline-flex size-11 items-center justify-center border border-border bg-edito-canvas text-primary"><IntelligenceIcon name="report" className="size-5" preferVector /></span><span><span className="block text-sm font-bold text-heading">Générer un rapport</span><span className="mt-1 block text-xs text-muted">Ouvrir les types et paramètres du moteur de génération actuel.</span></span></button>
+              <p className="mt-1 text-xs text-muted">Accédez aux flux de rédaction et de génération disponibles.</p>
+              <div className="mt-7 grid grid-cols-2 gap-4">
+                {REPORT_SUPPORTS.map((support) => (
+                  <button
+                    key={support.id}
+                    type="button"
+                    onClick={support.onClick}
+                    className="group flex min-h-24 w-full items-start gap-4 rounded-xl border border-border bg-surface p-4 text-left outline-none transition-colors hover:border-primary/40 hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
+                  >
+                    <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-edito-canvas text-primary">
+                      <ReportSupportIcon iconType={support.iconType} className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-heading transition-colors group-hover:text-primary">
+                        {support.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted">
+                        {support.description}
+                      </span>
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
