@@ -4,12 +4,12 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { useAddToListState } from "./use-add-to-list"
-import type { CollectionContentType } from "../domain/content-collections-contracts"
+import type { AddableContentType } from "../domain/content-collections-contracts"
 
 export interface AddToListDialogDesktopProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  contentType: CollectionContentType
+  contentType: AddableContentType
   contentId: string
   onManageLists: () => void
 }
@@ -35,13 +35,14 @@ export function AddToListDialogDesktop({
     toggle,
     handleCreate,
     isPending,
+    pluralLabel,
   } = useAddToListState(open, contentType, contentId)
 
   return (
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Ajouter à une liste"
+      title="Ajouter à…"
       className="sm:max-w-sm"
       footer={
         <Button
@@ -69,7 +70,7 @@ export function AddToListDialogDesktop({
         {isLoading ? (
           <p className="py-4 text-center text-xs text-muted">Chargement des listes…</p>
         ) : collections.length === 0 && !creatingOpen ? (
-          <p className="py-2 text-xs text-muted">Aucune liste pour l&apos;instant. Créez-en une pour commencer.</p>
+          <p className="py-2 text-xs text-muted">Aucune liste de {pluralLabel} ni corpus pour l&apos;instant. Créez-en un pour commencer.</p>
         ) : (
           <ul className="max-h-64 space-y-0.5 overflow-y-auto">
             {collections.map((collection) => {

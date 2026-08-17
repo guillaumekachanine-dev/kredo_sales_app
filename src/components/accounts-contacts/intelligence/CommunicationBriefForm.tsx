@@ -1253,29 +1253,50 @@ export function CommunicationBriefForm({
           ) : (
             personalCollections.map((collection) => {
               const checked = preferredCollectionIdSet.has(collection.id)
+              const isActiveScope = brief.context.knowledgeScope?.collectionId === collection.id
               return (
-                <label
+                <div
                   key={collection.id}
                   className={cn(
-                    "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+                    "flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
                     checked ? "border-primary/35 bg-primary/8" : "border-border/35 bg-surface/20 hover:bg-surface/35",
                   )}
                 >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleCollection(collection.id)}
-                    className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[11px] font-bold leading-4 text-heading">
-                      {collection.name}
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleCollection(collection.id)}
+                      className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11px] font-bold leading-4 text-heading">
+                        {collection.name}
+                      </span>
+                      <span className="mt-0.5 block text-[10px] leading-4 text-muted">
+                        {collection.itemCount} élément(s)
+                      </span>
                     </span>
-                    <span className="mt-0.5 block text-[10px] leading-4 text-muted">
-                      {collection.itemCount} élément(s)
-                    </span>
-                  </span>
-                </label>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateContext({
+                        knowledgeScope: {
+                          collectionId: collection.id,
+                          kind: collection.kind,
+                          name: collection.name,
+                          itemCount: collection.itemCount,
+                        },
+                      })
+                      setAdvancedOpen(false)
+                    }}
+                    disabled={isActiveScope}
+                    className="shrink-0 self-center text-[10px] font-bold text-primary hover:underline disabled:text-muted disabled:no-underline"
+                  >
+                    {isActiveScope ? "Contexte actif" : "Utiliser comme contexte"}
+                  </button>
+                </div>
               )
             })
           )}
@@ -1315,12 +1336,46 @@ export function CommunicationBriefForm({
     </p>
   ) : null
 
+  // ADR-0012bis Lot 4 — indication compacte du Knowledge Scope actif (Liste ou
+  // Corpus sélectionné depuis l'onglet Connaissances via « Utiliser comme
+  // contexte »). La gestion complète des collections reste dans Connaissances ;
+  // ici on ne fait qu'afficher/retirer/changer le périmètre déjà choisi.
+  const knowledgeScope = brief.context.knowledgeScope
+  const knowledgeScopeBlock = knowledgeScope ? (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2.5">
+      <div className="min-w-0">
+        <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-primary">
+          Contexte actif · {knowledgeScope.kind === "corpus" ? "Corpus" : "Liste"}
+        </span>
+        <span className="block truncate text-xs font-bold text-heading">{knowledgeScope.name}</span>
+        <span className="block text-[10px] text-muted">{knowledgeScope.itemCount} élément(s)</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen(true)}
+          className="text-[10px] font-bold text-primary hover:underline"
+        >
+          Changer
+        </button>
+        <button
+          type="button"
+          onClick={() => updateContext({ knowledgeScope: undefined })}
+          className="text-[10px] font-bold text-muted hover:underline"
+        >
+          Retirer
+        </button>
+      </div>
+    </div>
+  ) : null
+
   if (isMobile) {
     // Parcours condensé : intention, cible et contrainte d'écriture en premier.
     // Les réglages de sortie restent accessibles mais ne bloquent pas l'action.
     return (
       <div className="space-y-5">
         <div className="space-y-3">
+          {knowledgeScopeBlock}
           {structuralNoticeBlock}
           {/* Lot 8 command §8 — mobile : consultant en premier, avant même le
               scénario, pour les briefs collaborator. */}
@@ -1426,6 +1481,7 @@ export function CommunicationBriefForm({
       <SectionRail />
 
       <div className="min-w-0 space-y-5">
+        {knowledgeScopeBlock}
         {structuralNoticeBlock}
         <details open className="group border-b border-border/30 pb-5">
           <SectionHeading number="01" title="Quoi" />

@@ -14,6 +14,7 @@ import "server-only"
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { triggerN8nRun } from "@/lib/n8n/trigger-run"
+import { resolveKnowledgeScope } from "@/features/content-collections/data/resolve-knowledge-scope"
 import type {
   N8nEntityType,
   N8nWorkflowId,
@@ -105,6 +106,33 @@ export async function POST(request: Request) {
           { error: "Le SIREN fourni doit contenir exactement 9 chiffres" },
           { status: 400 }
         )
+      }
+    }
+  }
+
+  // ── 3ter. Résolution du Knowledge Scope (ADR-0012bis Lot 4) ─────────────────
+  // Le serveur repart toujours du seul collectionId : un `refs` éventuellement
+  // fourni par le navigateur est écrasé ici, jamais transmis tel quel à n8n.
+  if (workflowId === "intel-020-communication") {
+    const context = (input as { context?: { knowledgeScope?: { collectionId?: unknown } } }).context
+    const collectionId = context?.knowledgeScope?.collectionId
+    if (typeof collectionId === "string" && collectionId) {
+      const resolved = await resolveKnowledgeScope(supabase, collectionId)
+      if ("error" in resolved) {
+        return NextResponse.json<TriggerErrorResponse>(
+          { error: `Périmètre de connaissance introuvable : ${resolved.error}` },
+          { status: 400 }
+        )
+      }
+      ;(input as { context?: Record<string, unknown> }).context = {
+        ...context,
+        knowledgeScope: {
+          collectionId: resolved.collectionId,
+          kind: resolved.kind,
+          name: resolved.name,
+          itemCount: resolved.itemCount,
+          refs: resolved.refs,
+        },
       }
     }
   }

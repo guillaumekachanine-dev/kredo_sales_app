@@ -14,6 +14,7 @@ import { TechnicalReportContent } from "@/components/reports/TechnicalReportCont
 import { CompetitiveMapImportReportContent } from "@/components/reports/CompetitiveMapImportReportContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
+import { AddToListSheetMobile } from "@/features/content-collections/components/AddToListSheetMobile"
 import {
   fetchDocumentDetail,
   setDocumentFavorite,
@@ -26,6 +27,8 @@ type DocumentMobileDetailProps = {
   documentId: string
   open: boolean
   onClose: () => void
+  /** Bascule vers l'onglet Connaissances — lien « Gérer les listes » du tiroir « Ajouter à… ». */
+  onManageLists?: () => void
 }
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
@@ -76,11 +79,13 @@ export function DocumentMobileDetail({
   documentId,
   open,
   onClose,
+  onManageLists,
 }: DocumentMobileDetailProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isEditing, setIsEditing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [addToListOpen, setAddToListOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const [loadState, setLoadState] = useState<LoadState>({
@@ -182,6 +187,7 @@ export function DocumentMobileDetail({
   }
 
   return (
+    <>
     <AppDialog
       open={open}
       onOpenChange={(nextOpen) => {
@@ -226,6 +232,14 @@ export function DocumentMobileDetail({
             className="min-w-0"
           >
             {document.isFavorite ? "Retirer favori" : "Ajouter favori"}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setAddToListOpen(true)}
+            className="col-span-3 w-full"
+          >
+            Ajouter à…
           </Button>
           {document.status !== "archived" ? (
             <Button
@@ -365,5 +379,20 @@ export function DocumentMobileDetail({
         </div>
       ) : null}
     </AppDialog>
+
+    {document ? (
+      <AddToListSheetMobile
+        open={addToListOpen}
+        onOpenChange={setAddToListOpen}
+        contentType="intelligence_document"
+        contentId={document.id}
+        onManageLists={() => {
+          setAddToListOpen(false)
+          onClose()
+          onManageLists?.()
+        }}
+      />
+    ) : null}
+    </>
   )
 }

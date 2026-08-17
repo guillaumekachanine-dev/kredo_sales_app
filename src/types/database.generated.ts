@@ -2973,6 +2973,7 @@ export type Database = {
           content_type: string
           created_at: string
           id: string
+          position: number | null
           workspace_id: string
         }
         Insert: {
@@ -2982,6 +2983,7 @@ export type Database = {
           content_type: string
           created_at?: string
           id?: string
+          position?: number | null
           workspace_id?: string
         }
         Update: {
@@ -2991,6 +2993,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           id?: string
+          position?: number | null
           workspace_id?: string
         }
         Relationships: [
@@ -3023,6 +3026,8 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          item_type: string | null
+          kind: string
           name: string
           updated_at: string
           workspace_id: string
@@ -3032,6 +3037,8 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          item_type?: string | null
+          kind?: string
           name: string
           updated_at?: string
           workspace_id?: string
@@ -3041,6 +3048,8 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          item_type?: string | null
+          kind?: string
           name?: string
           updated_at?: string
           workspace_id?: string
@@ -8894,4 +8903,3 @@ export const Constants = {
     },
   },
 } as const
-

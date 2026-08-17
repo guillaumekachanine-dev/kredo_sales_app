@@ -63,6 +63,8 @@ export function CollectionPickerDialog({
       }
       const created: CollectionSummary = {
         id: result.id,
+        kind: "list",
+        itemType: "veille_article",
         name: name.trim(),
         description: null,
         itemCount: 0,

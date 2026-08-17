@@ -10,16 +10,23 @@ import {
   createCollectionAction,
   removeItemFromCollectionAction,
 } from "../actions/content-collections-actions"
-import type { CollectionContentType, CollectionSummary } from "../domain/content-collections-contracts"
+import { getContentTypeRegistryEntry } from "../domain/content-type-registry"
+import type { AddableContentType, CollectionSummary } from "../domain/content-collections-contracts"
 
 const FEEDBACK_DURATION_MS = 2500
 
 /**
- * État et logique partagés entre `AddToListDialogDesktop` et `AddToListSheetMobile`.
- * Les deux composants restent des arbres de rendu distincts (ADR-0006) : seule
- * la logique — fetch, toggle optimiste, création inline — est mutualisée ici.
+ * État et logique partagés entre `AddToListDialogDesktop` et `AddToListSheetMobile`
+ * — l'action transversale « Ajouter à… » (Lot 3). Les deux composants restent
+ * des arbres de rendu distincts (ADR-0006) : seule la logique — fetch, toggle
+ * optimiste, création inline — est mutualisée ici.
+ *
+ * Filtre affiché : Listes dont `item_type === contentType` (une Liste est
+ * homogène) + tous les Corpus (hétérogènes par nature). Appliqué côté client
+ * pour l'UX ; `addItemToCollectionAction` réapplique la même règle côté
+ * serveur (défense en profondeur).
  */
-export function useAddToListState(open: boolean, contentType: CollectionContentType, contentId: string) {
+export function useAddToListState(open: boolean, contentType: AddableContentType, contentId: string) {
   const [isLoading, setIsLoading] = useState(true)
   const [collections, setCollections] = useState<CollectionSummary[]>([])
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set())
@@ -42,7 +49,11 @@ export function useAddToListState(open: boolean, contentType: CollectionContentT
     Promise.all([fetchCollectionsSummary(), fetchMembershipForContent(contentType, contentId)]).then(
       ([collectionsData, memberSet]) => {
         if (cancelled) return
-        setCollections(collectionsData)
+        setCollections(
+          collectionsData.filter(
+            (collection) => collection.kind === "corpus" || collection.itemType === contentType,
+          ),
+        )
         setMemberIds(memberSet)
         setIsLoading(false)
       },
@@ -100,13 +111,15 @@ export function useAddToListState(open: boolean, contentType: CollectionContentT
     setError(null)
     const name = newName
     startTransition(async () => {
-      const result = await createCollectionAction(name)
+      const result = await createCollectionAction(name, undefined, contentType)
       if (!result.success) {
         setError(result.error)
         return
       }
       const created: CollectionSummary = {
         id: result.id,
+        kind: "list",
+        itemType: contentType,
         name: name.trim(),
         description: null,
         itemCount: 0,
@@ -136,5 +149,6 @@ export function useAddToListState(open: boolean, contentType: CollectionContentT
     toggle,
     handleCreate,
     isPending,
+    pluralLabel: getContentTypeRegistryEntry(contentType).pluralLabel,
   }
 }

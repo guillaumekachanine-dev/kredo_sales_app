@@ -6,6 +6,7 @@ import { DocumentCard } from "@/components/reports/DocumentCard"
 import { DocumentMobileDetail } from "@/components/reports/DocumentMobileDetail"
 import { DOCUMENT_OBJECT_LABELS } from "@/components/reports/document-display"
 import { REPORT_SUPPORTS, ReportSupportIcon } from "@/components/reports/report-supports-config"
+import { KnowledgeSpaceMobile } from "@/features/content-collections/components/knowledge-space/KnowledgeSpaceMobile"
 import { IconSearch } from "@/components/cockpit/mobile/icons"
 import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
@@ -20,11 +21,11 @@ type ReportsMobileViewProps = {
   listError?: string | null
 }
 
-type ReportsSection = "documents" | "history" | "generate"
+type ReportsSection = "documents" | "knowledge" | "generate"
 
 const MOBILE_SECTIONS: Array<{ id: ReportsSection; label: string }> = [
   { id: "documents", label: "Documents" },
-  { id: "history", label: "Historique" },
+  { id: "knowledge", label: "Connaissances" },
   { id: "generate", label: "Générer" },
 ]
 
@@ -35,14 +36,6 @@ const DOCUMENT_CATEGORIES = [
   { label: "Pitchs", value: "commercial_pitch" },
   { label: "Mails", value: "communication" },
 ]
-
-function formatHistoryDate(value: string) {
-  return new Date(value).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  })
-}
 
 export function ReportsMobileView({ reportsData, filters, listError }: ReportsMobileViewProps) {
   const router = useRouter()
@@ -195,29 +188,7 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
           </div>
         ) : null}
 
-        {activeSection === "history" ? (
-          <section className="reports-scrollbar h-full overflow-y-auto bg-surface px-4 py-5" aria-labelledby="reports-mobile-history-title">
-            <div className="mb-4 border-b border-border pb-3">
-              <h2 id="reports-mobile-history-title" className="text-base font-bold text-heading">Historique des documents</h2>
-              <p className="mt-1 text-xs text-muted">Modifications disponibles dans la bibliothèque actuelle.</p>
-            </div>
-            {reportsData.items.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted">Aucun historique disponible.</p>
-            ) : (
-              <ol className="border-l border-border pl-4">
-                {reportsData.items.map((document) => (
-                  <li key={document.id} className="relative border-b border-border py-4 last:border-b-0">
-                    <span className="absolute -left-[19px] top-[23px] size-2 rounded-full border-2 border-surface bg-brand-brass" aria-hidden="true" />
-                    <button type="button" onClick={(event) => openDocument(document.id, event.currentTarget)} className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-heading">
-                      <span className="block text-sm font-bold leading-5 text-heading">{document.title}</span>
-                      <span className="mt-1 block text-xs text-muted">Version {document.versionNumber} · {formatHistoryDate(document.updatedAt)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-        ) : null}
+        {activeSection === "knowledge" ? <KnowledgeSpaceMobile /> : null}
 
         {activeSection === "generate" ? (
           <section className="reports-scrollbar h-full overflow-y-auto bg-surface px-4 py-5" aria-labelledby="reports-mobile-generate-title">
@@ -251,6 +222,7 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
           documentId={selectedDocumentId}
           open
           onClose={closeDocument}
+          onManageLists={() => setActiveSection("knowledge")}
         />
       ) : null}
 

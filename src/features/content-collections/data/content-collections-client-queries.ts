@@ -7,18 +7,23 @@
 import { createClient } from "@/lib/supabase/client"
 import {
   COLLECTION_CONTENT_TYPE_LABELS,
+  isAddableContentType,
   isCollectionContentType,
+  sortResolvedItems,
+  type AddableContentType,
   type CollectionContentType,
+  type CollectionKind,
   type CollectionSummary,
   type ResolvedCollectionItem,
 } from "../domain/content-collections-contracts"
+import { getContentTypeRegistryEntry, type ResolvedContentMeta } from "../domain/content-type-registry"
 
 export async function fetchCollectionsSummary(): Promise<CollectionSummary[]> {
   const supabase = createClient()
   const [{ data: collections, error: collectionsError }, { data: items }] = await Promise.all([
     supabase
       .from("content_collections")
-      .select("id, name, description, created_by, created_at, updated_at")
+      .select("id, kind, item_type, name, description, created_by, created_at, updated_at")
       .order("created_at", { ascending: false }),
     supabase.from("content_collection_items").select("collection_id"),
   ])
@@ -32,6 +37,8 @@ export async function fetchCollectionsSummary(): Promise<CollectionSummary[]> {
 
   return collections.map((row) => ({
     id: row.id,
+    kind: row.kind as CollectionKind,
+    itemType: row.item_type as AddableContentType | null,
     name: row.name,
     description: row.description,
     createdBy: row.created_by,
@@ -57,62 +64,100 @@ export async function fetchMembershipForContent(
 }
 
 /**
- * Résout chaque membership vers son contenu canonique. Un seul `content_type`
- * est supporté aujourd'hui (`veille_article`) : ajouter une branche ici en
- * même temps qu'une nouvelle valeur au CHECK de `content_collection_items`
- * en base et au trigger `private.validate_content_collection_item`.
+ * Résout chaque membership vers son contenu canonique. Deux mécanismes :
+ * - types "ajoutables" (`AddableContentType`) : résolus génériquement via le
+ *   registre `content-type-registry.ts` — ajouter un type = ajouter une
+ *   entrée au registre + une branche au trigger
+ *   `private.validate_content_collection_item`, rien à changer ici ;
+ * - `knowledge_list` (Liste incluse dans un Corpus) : cas particulier
+ *   structurel du modèle collection, résolu à part (référence une autre
+ *   `content_collections`, pas un objet métier).
+ * Tri : `sortResolvedItems` (ordre manuel via `position`, fallback sur
+ * l'ordre historique created_at desc).
  */
 export async function fetchResolvedCollectionItems(collectionId: string): Promise<ResolvedCollectionItem[]> {
   const supabase = createClient()
   const { data: memberships, error } = await supabase
     .from("content_collection_items")
-    .select("id, content_type, content_id, created_at")
+    .select("id, content_type, content_id, created_at, position")
     .eq("collection_id", collectionId)
     .order("created_at", { ascending: false })
 
   if (error || !memberships || memberships.length === 0) return []
 
-  const veilleArticleIds = memberships
-    .filter((row) => row.content_type === "veille_article")
-    .map((row) => row.content_id)
-
-  const articlesById = new Map<
-    string,
-    { titre_fr: string; published_at: string | null; resume: string | null; url: string | null }
-  >()
-
-  if (veilleArticleIds.length > 0) {
-    const { data: articles } = await supabase
-      .from("veille_articles")
-      .select("id, titre_fr, published_at, resume, url")
-      .in("id", veilleArticleIds)
-    for (const article of articles ?? []) {
-      articlesById.set(article.id, article)
+  const idsByType = new Map<AddableContentType, string[]>()
+  const knowledgeListIds: string[] = []
+  for (const row of memberships) {
+    if (row.content_type === "knowledge_list") {
+      knowledgeListIds.push(row.content_id)
+      continue
     }
+    if (!isAddableContentType(row.content_type)) continue
+    const ids = idsByType.get(row.content_type) ?? []
+    ids.push(row.content_id)
+    idsByType.set(row.content_type, ids)
   }
 
-  return memberships.flatMap((row) => {
+  const metaByType = new Map<AddableContentType, Map<string, ResolvedContentMeta>>()
+  const listsById = new Map<string, { name: string; description: string | null }>()
+
+  await Promise.all([
+    ...Array.from(idsByType.entries()).map(async ([contentType, ids]) => {
+      const meta = await getContentTypeRegistryEntry(contentType).resolveMany(supabase, ids)
+      metaByType.set(contentType, meta)
+    }),
+    knowledgeListIds.length > 0
+      ? supabase
+          .from("content_collections")
+          .select("id, name, description")
+          .in("id", knowledgeListIds)
+          .then(({ data }) => {
+            for (const list of data ?? []) listsById.set(list.id, list)
+          })
+      : Promise.resolve(),
+  ])
+
+  const resolved = memberships.flatMap((row): ResolvedCollectionItem[] => {
     if (!isCollectionContentType(row.content_type)) return []
 
-    if (row.content_type === "veille_article") {
-      const article = articlesById.get(row.content_id)
-      // Contenu supprimé depuis (article de veille purgé) : membership orphelin, masqué.
-      if (!article) return []
+    if (row.content_type === "knowledge_list") {
+      const list = listsById.get(row.content_id)
+      // Liste supprimée depuis : membership orphelin, masqué.
+      if (!list) return []
       return [
         {
           membershipId: row.id,
           contentType: row.content_type,
           contentId: row.content_id,
           addedAt: row.created_at,
-          title: article.titre_fr,
-          typeLabel: COLLECTION_CONTENT_TYPE_LABELS.veille_article,
-          date: article.published_at,
-          preview: article.resume,
-          url: article.url,
+          position: row.position,
+          title: list.name,
+          typeLabel: COLLECTION_CONTENT_TYPE_LABELS.knowledge_list,
+          date: null,
+          preview: list.description,
+          url: null,
         },
       ]
     }
 
-    return []
+    const meta = metaByType.get(row.content_type)?.get(row.content_id)
+    // Contenu supprimé depuis (article purgé, document supprimé…) : membership orphelin, masqué.
+    if (!meta) return []
+    return [
+      {
+        membershipId: row.id,
+        contentType: row.content_type,
+        contentId: row.content_id,
+        addedAt: row.created_at,
+        position: row.position,
+        title: meta.title,
+        typeLabel: COLLECTION_CONTENT_TYPE_LABELS[row.content_type],
+        date: meta.date,
+        preview: meta.preview,
+        url: getContentTypeRegistryEntry(row.content_type).buildUrl(row.content_id),
+      },
+    ]
   })
+
+  return sortResolvedItems(resolved)
 }

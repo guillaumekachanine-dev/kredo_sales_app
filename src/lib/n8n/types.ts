@@ -800,6 +800,20 @@ export interface CommunicationBrief {
     // explicitement par l'utilisateur, jamais des identifiants de source fixe.
     // Résolu côté n8n (nœud "Hydrate Context") en contenus canoniques dédupliqués.
     preferredCollectionIds?: string[]
+    // ADR-0012bis Lot 4 (Knowledge Scope) — Liste OU Corpus unique sélectionné
+    // depuis l'onglet Connaissances via « Utiliser comme contexte ». Distinct de
+    // preferredCollectionIds (multi-sélection libre, non affectée). Le front ne
+    // pose ici que collectionId/kind/name/itemCount (métadonnées d'affichage +
+    // traçabilité) ; `refs` est TOUJOURS recalculé côté serveur au déclenchement
+    // (/api/n8n/trigger, resolveKnowledgeScope) à partir du seul collectionId —
+    // un `refs` fourni par le client n'est jamais pris en compte.
+    knowledgeScope?: {
+      collectionId: string
+      kind: "list" | "corpus"
+      name: string
+      itemCount: number
+      refs?: Array<{ contentType: "veille_article" | "intelligence_document"; contentId: string }>
+    }
   }
 }
 

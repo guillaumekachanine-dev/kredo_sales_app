@@ -4,6 +4,8 @@ import { useRef, useState, useTransition, useEffect, type FormEvent } from "reac
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 import { Button } from "@/components/ui/Button"
+import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
+import { KnowledgeSpaceDesktop } from "@/features/content-collections/components/knowledge-space/KnowledgeSpaceDesktop"
 import { IconChevron } from "@/components/cockpit/mobile/icons"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import { ErrorState } from "@/components/ui/ErrorState"
@@ -52,12 +54,12 @@ type ReportsDesktopViewProps = {
   listError?: string | null
 }
 
-type ReportsSection = "documents" | "history" | "generation"
+type ReportsSection = "documents" | "knowledge" | "generation"
 type PendingAction = "copy" | "duplicate" | "favorite" | "archive" | null
 
 const LOCAL_SECTIONS: Array<{ id: ReportsSection; label: string }> = [
   { id: "documents", label: "Bibliothèque" },
-  { id: "history", label: "Historique" },
+  { id: "knowledge", label: "Connaissances" },
   { id: "generation", label: "Génération" },
 ]
 
@@ -138,8 +140,9 @@ function ReportsSidebarIcon({ name }: { name: ReportsSection }) {
   }
   return (
     <svg {...commonProps}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <rect x="3" y="10" width="11" height="4" rx="1" />
+      <rect x="3" y="16" width="14" height="4" rx="1" />
     </svg>
   )
 }
@@ -271,6 +274,7 @@ export function ReportsDesktopView({
   const [isEditing, setIsEditing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [addToListOpen, setAddToListOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState<PendingAction>(null)
   const [zoomLevel, setZoomLevel] = useState(100)
 
@@ -391,6 +395,7 @@ export function ReportsDesktopView({
   }
 
   return (
+    <>
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas">
       <ReportsLocalNavigation active={activeSection} onChange={setActiveSection} />
 
@@ -533,6 +538,7 @@ export function ReportsDesktopView({
                       <Button variant="secondary" size="sm" onClick={handleCopy} disabled={!selectedDocument.currentContentText} loading={actionLoading === "copy"}>{copied ? "Copié" : "Copier"}</Button>
                       <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>Modifier</Button>
                       <Button variant="secondary" size="sm" onClick={handleDuplicate} loading={actionLoading === "duplicate"}>Adapter à un autre contexte</Button>
+                      <Button variant="secondary" size="sm" onClick={() => setAddToListOpen(true)}>Ajouter à…</Button>
                       <Button variant={selectedDocument.isFavorite ? "brass" : "secondary"} size="sm" onClick={handleToggleFavorite} loading={actionLoading === "favorite"}>{selectedDocument.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}</Button>
                       {selectedDocument.status !== "archived" ? <Button variant="ghost" size="sm" onClick={handleArchive} loading={actionLoading === "archive"}>Archiver</Button> : null}
                       <DocumentCommunicationActions document={selectedDocument} layout="stack" presentation="buttons" buttonClassName="w-full" />
@@ -544,22 +550,7 @@ export function ReportsDesktopView({
           </div>
         ) : null}
 
-        {activeSection === "history" ? (
-          <div className="reports-scrollbar min-h-0 flex-1 overflow-y-auto bg-surface px-8 py-7">
-            <div className="mx-auto max-w-4xl">
-              <h2 className="text-lg font-bold text-heading">Historique des documents</h2>
-              <p className="mt-1 text-xs text-muted">Versions et modifications disponibles dans le périmètre chargé.</p>
-              <div className="mt-6 grid grid-cols-[minmax(0,1fr)_280px] gap-8">
-                <ol className="border-l border-border pl-6">
-                  {reportsData.items.length === 0 ? <li className="py-10 text-sm text-muted">Aucun historique disponible.</li> : reportsData.items.map((document) => (
-                    <li key={document.id} className="relative border-b border-border py-4 last:border-0"><span className="absolute -left-[29px] top-6 size-2 rounded-full border-2 border-surface bg-brand-brass" aria-hidden="true" /><button type="button" onClick={() => { handleSelectDocument(document.id); setActiveSection("documents") }} className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-heading"><span className="block text-sm font-bold text-heading">{document.title}</span><span className="mt-1 block text-xs text-muted">Version {document.versionNumber} · Modifié le {formatLongDate(document.updatedAt)} · {document.ownerName}</span></button></li>
-                  ))}
-                </ol>
-                <aside className="border-l border-border pl-5"><h3 className="text-xs font-bold text-heading">Versions du document actif</h3><div className="mt-4">{selectedDocument ? <DocumentVersionHistory versions={selectedDocument.versions} /> : <p className="text-xs text-muted">Sélectionnez un document depuis la bibliothèque pour consulter ses versions.</p>}</div></aside>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {activeSection === "knowledge" ? <KnowledgeSpaceDesktop /> : null}
 
         {activeSection === "generation" ? (
           <div className="reports-scrollbar min-h-0 flex-1 overflow-y-auto bg-surface px-8 py-7">
@@ -593,5 +584,19 @@ export function ReportsDesktopView({
         ) : null}
       </section>
     </div>
+
+    {selectedDocument ? (
+      <AddToListDialogDesktop
+        open={addToListOpen}
+        onOpenChange={setAddToListOpen}
+        contentType="intelligence_document"
+        contentId={selectedDocument.id}
+        onManageLists={() => {
+          setAddToListOpen(false)
+          setActiveSection("knowledge")
+        }}
+      />
+    ) : null}
+    </>
   )
 }

@@ -4,12 +4,12 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { useAddToListState } from "./use-add-to-list"
-import type { CollectionContentType } from "../domain/content-collections-contracts"
+import type { AddableContentType } from "../domain/content-collections-contracts"
 
 export interface AddToListSheetMobileProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  contentType: CollectionContentType
+  contentType: AddableContentType
   contentId: string
   onManageLists: () => void
 }
@@ -35,6 +35,7 @@ export function AddToListSheetMobile({
     toggle,
     handleCreate,
     isPending,
+    pluralLabel,
   } = useAddToListState(open, contentType, contentId)
 
   return (
@@ -42,7 +43,7 @@ export function AddToListSheetMobile({
       open={open}
       onOpenChange={onOpenChange}
       side="bottom"
-      title="Ajouter à une liste"
+      title="Ajouter à…"
       showMobileCloseButton
       footer={
         <div className="flex w-full flex-col gap-2.5">
@@ -73,7 +74,7 @@ export function AddToListSheetMobile({
         {isLoading ? (
           <p className="py-6 text-center text-sm text-muted">Chargement des listes…</p>
         ) : collections.length === 0 && !creatingOpen ? (
-          <p className="py-4 text-sm text-muted">Aucune liste pour l&apos;instant. Créez-en une pour commencer.</p>
+          <p className="py-4 text-sm text-muted">Aucune liste de {pluralLabel} ni corpus pour l&apos;instant. Créez-en un pour commencer.</p>
         ) : (
           <ul className="divide-y divide-border">
             {collections.map((collection) => {
