@@ -70,6 +70,7 @@ const RESULT_DOCUMENT_TYPE_BY_RESULT_TYPE: Record<string, IntelligenceDocumentTy
   activity_commercial: "activity_commercial",
   activity_recruitment: "activity_recruitment",
   weekly_manager: "weekly_manager",
+  manager_summary: "manager_summary",
   workspace_diagnostic: "workspace_diagnostic",
   strategic_watch_analysis: "strategic_watch_analysis",
 } satisfies Record<string, IntelligenceDocumentType>
@@ -85,6 +86,7 @@ const FALLBACK_TITLE_BY_DOCUMENT_TYPE = {
   activity_commercial: "Rapport d'activite commerciale",
   activity_recruitment: "Rapport d'activite recrutement",
   weekly_manager: "Brief hebdomadaire",
+  manager_summary: "Compte-rendu Manager",
   planning_deadlines: "Planning & echeances",
   financial: "Rapport financier",
   quarterly_review: "Business review trimestrielle",

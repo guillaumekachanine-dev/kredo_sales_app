@@ -57,7 +57,7 @@ export const REPORT_GENERATION_OPTIONS: ReportGenerationOption[] = [
     title: "Compte-rendu Manager",
     description: "Synthèse périodique d'activité et de performance pour les managers d'équipe.",
     badge: "Management",
-    availability: "planned",
+    availability: "ready",
   },
 ]
 

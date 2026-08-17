@@ -14,6 +14,7 @@ import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
 import { FinancialReportContent } from "@/components/reports/financial/FinancialReportContent"
 import { TechnicalReportContent } from "@/components/reports/TechnicalReportContent"
 import { CompetitiveMapImportReportContent } from "@/components/reports/CompetitiveMapImportReportContent"
+import { ManagerSummaryReportView } from "@/components/reports/manager-summary/ManagerSummaryReportView"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -21,7 +22,7 @@ import {
   setDocumentFavorite,
   setDocumentStatus,
 } from "@/app/(app)/reports/_data/reports-actions"
-import type { DocumentDetail } from "@/app/(app)/reports/_data/reports-types"
+import type { DocumentDetail, ManagerSummaryContent } from "@/app/(app)/reports/_data/reports-types"
 import {
   DOCUMENT_OBJECT_LABELS,
   getDocumentCategory,
@@ -325,6 +326,8 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
                 <CompetitiveMapImportReportContent
                   contentJson={document.currentContentJson}
                 />
+              ) : document.documentType === "manager_summary" && document.currentContentJson && typeof document.currentContentJson === "object" && "facts" in document.currentContentJson ? (
+                <ManagerSummaryReportView content={document.currentContentJson as unknown as ManagerSummaryContent} />
               ) : isPitch ? (
                 <PitchDocumentContent
                   contentJson={document.currentContentJson}

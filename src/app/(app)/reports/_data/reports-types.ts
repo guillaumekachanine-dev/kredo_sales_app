@@ -167,6 +167,7 @@ export type ReportType =
   | "activity_commercial"
   | "activity_recruitment"
   | "weekly_manager"
+  | "manager_summary"
   | "planning_deadlines"
   | "financial"
   | "quarterly_review"
@@ -736,4 +737,79 @@ export type TechnicalReportDocumentContent = {
   title: string
   generatedAt: string
   facts: TechnicalReportFacts
+}
+
+// ============================================================
+// REPORT-001 — Compte-rendu Manager (manager_summary)
+// ============================================================
+
+export interface ManagerSummaryFacts {
+  period: {
+    startDate: string;
+    endDate: string;
+    asOfDate: string;
+  };
+  owner: {
+    id: string;
+    name: string;
+  };
+  commercial: {
+    meetingsCompletedCount: number;
+    meetingsDistribution: Record<string, number>;
+    topActiveClients: Array<{ companyId: string; name: string; activityCount: number }>;
+    staffingNeedsOpenedCount: number;
+    treatedNeedsCount: number;
+    topRequestedSkills: Array<{ skill: string; count: number }>;
+    candidatesProposedCount: number;
+    newOpportunitiesCount: number;
+    signatureConviction: {
+      opportunityId: string;
+      title: string;
+      companyName: string;
+      probability: number;
+      weightedGain: number;
+      nextAction: string | null;
+    } | null;
+  };
+  recruitment: {
+    interviewsCompletedCount: number;
+    topCandidatesToKeep: Array<{ candidateId: string; name: string; practice: string | null }>;
+    jobOffersMadeCount: number;
+  };
+  nextWeek: {
+    priorities: Array<{
+      title: string;
+      description: string;
+      nextAction: string | null;
+    }>;
+  };
+  declared: {
+    difficulties?: string;
+    specificRequests?: string;
+  };
+  strategy: {
+    strategicFocus: string | null;
+  };
+  dataCutoffAt: string;
+  caveats: string[];
+}
+
+export interface ManagerSummaryTriggerInput {
+  reportType: "manager_summary";
+  period: { startDate: string; endDate: string; asOfDate: string };
+  scope: { ownerId: string; isWorkspaceWide: boolean };
+  facts: ManagerSummaryFacts;
+}
+
+export interface ManagerSummaryNarrative {
+  summary: string;
+  commercialCommentary: string;
+  recruitmentCommentary: string;
+  signatureConvictionCommentary: string;
+  strategyProgression: string;
+}
+
+export interface ManagerSummaryContent {
+  facts: ManagerSummaryFacts;
+  narrative: ManagerSummaryNarrative;
 }

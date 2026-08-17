@@ -929,3 +929,28 @@ export async function setDocumentStatus(
   revalidateReports()
   return { success: true, documentId }
 }
+
+export async function getActiveStrategicFocus(): Promise<{ strategicFocus: string | null }> {
+  const auth = await requireAuthenticatedClient()
+  if ("error" in auth) return { strategicFocus: null }
+
+  const { data: profile } = await auth.supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", auth.userId)
+    .single()
+
+  if (!profile?.workspace_id) return { strategicFocus: null }
+
+  const { data: plan } = await auth.supabase
+    .from("performance_plans")
+    .select("strategic_focus")
+    .eq("workspace_id", profile.workspace_id)
+    .eq("owner_profile_id", auth.userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return { strategicFocus: (plan as { strategic_focus?: string | null } | null)?.strategic_focus ?? null }
+}

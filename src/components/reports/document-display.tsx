@@ -7,6 +7,7 @@ type ReportDocumentType =
   | "activity_commercial"
   | "activity_recruitment"
   | "weekly_manager"
+  | "manager_summary"
   | "planning_deadlines"
   | "financial"
   | "quarterly_review"
@@ -60,8 +61,9 @@ export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
   campaign: "Campagne",
   internal_note: "Note interne",
   activity_commercial: "Activité commerciale",
-  activity_recruitment: "Activité recrutement",
-  weekly_manager: "Rapport hebdo manager",
+  activity_recruitment: "Rapport d'activité recrutement",
+  weekly_manager: "Brief hebdomadaire",
+  manager_summary: "Compte-rendu Manager",
   planning_deadlines: "Planning & échéances",
   financial: "Rapport financier",
   quarterly_review: "Business review trimestrielle",
@@ -87,6 +89,7 @@ const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentTyp
   activity_commercial: "rapport",
   activity_recruitment: "rapport",
   weekly_manager: "rapport",
+  manager_summary: "rapport",
   planning_deadlines: "rapport",
   financial: "rapport",
   quarterly_review: "rapport",
@@ -207,6 +210,7 @@ export function getDocumentIcon(documentType: string, className = "size-4 shrink
       )
     case "planning_deadlines":
     case "weekly_manager":
+    case "manager_summary":
     case "quarterly_review":
     default:
       return (

@@ -12,6 +12,7 @@ import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
 import { FinancialReportContent } from "@/components/reports/financial/FinancialReportContent"
 import { TechnicalReportContent } from "@/components/reports/TechnicalReportContent"
 import { CompetitiveMapImportReportContent } from "@/components/reports/CompetitiveMapImportReportContent"
+import { ManagerSummaryReportView } from "@/components/reports/manager-summary/ManagerSummaryReportView"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import { AddToListSheetMobile } from "@/features/content-collections/components/AddToListSheetMobile"
@@ -20,7 +21,7 @@ import {
   setDocumentFavorite,
   setDocumentStatus,
 } from "@/app/(app)/reports/_data/reports-actions"
-import type { DocumentDetail } from "@/app/(app)/reports/_data/reports-types"
+import type { DocumentDetail, ManagerSummaryContent } from "@/app/(app)/reports/_data/reports-types"
 import { getFinancialReferenceDocumentSummary, getPitchBriefLabel } from "@/components/reports/document-display"
 
 type DocumentMobileDetailProps = {
@@ -40,8 +41,9 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   campaign: "Campagne",
   internal_note: "Note interne",
   activity_commercial: "Activité commerciale",
-  activity_recruitment: "Activité recrutement",
-  weekly_manager: "Rapport hebdo manager",
+  activity_recruitment: "Rapport d'activité recrutement",
+  weekly_manager: "Brief hebdomadaire",
+  manager_summary: "Compte-rendu Manager",
   planning_deadlines: "Planning & échéances",
   financial: "Rapport financier",
   quarterly_review: "Business review trimestrielle",
@@ -330,6 +332,8 @@ export function DocumentMobileDetail({
                     <CompetitiveMapImportReportContent
                       contentJson={document.currentContentJson}
                     />
+                  ) : document.documentType === "manager_summary" && document.currentContentJson && typeof document.currentContentJson === "object" && "facts" in document.currentContentJson ? (
+                    <ManagerSummaryReportView content={document.currentContentJson as unknown as ManagerSummaryContent} />
                   ) : isPitch ? (
                     <PitchDocumentContent
                       contentJson={document.currentContentJson}

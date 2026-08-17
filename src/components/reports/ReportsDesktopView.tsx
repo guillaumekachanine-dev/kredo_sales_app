@@ -27,6 +27,7 @@ import type {
   ReportsFilterState,
   ReportsKpis,
   ReportsListData,
+  ManagerSummaryContent,
 } from "@/app/(app)/reports/_data/reports-types"
 import {
   DOCUMENT_OBJECT_LABELS,
@@ -39,6 +40,7 @@ import { ClientSummaryDocumentContent } from "./ClientSummaryDocumentContent"
 import { PitchDocumentContent } from "./PitchDocumentContent"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
 import { TechnicalReportContent } from "./TechnicalReportContent"
+import { ManagerSummaryReportView } from "./manager-summary/ManagerSummaryReportView"
 import { DocumentCommunicationActions } from "./DocumentCommunicationActions"
 import { DocumentEditor } from "./DocumentEditor"
 import { DocumentGenerationParameters } from "./DocumentGenerationParameters"
@@ -243,6 +245,10 @@ function DocumentContent({ document }: { document: DocumentDetail }) {
 
   if (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "technical") {
     return <TechnicalReportContent contentJson={document.currentContentJson} />
+  }
+
+  if (document.documentType === "manager_summary" && document.currentContentJson && typeof document.currentContentJson === "object" && "facts" in document.currentContentJson) {
+    return <ManagerSummaryReportView content={document.currentContentJson as unknown as ManagerSummaryContent} />
   }
 
   if (document.documentType === "commercial_pitch" || document.documentType === "prise_de_parole") {

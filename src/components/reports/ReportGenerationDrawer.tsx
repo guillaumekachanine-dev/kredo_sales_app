@@ -1,15 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { AlertBlock } from "@/components/ui/AlertBlock"
 import { Button } from "@/components/ui/Button"
 import { Select } from "@/components/ui/Select"
+import { getActiveStrategicFocus } from "@/app/(app)/reports/_data/reports-actions"
 import { saveResultAsDocument } from "@/components/accounts-contacts/intelligence/save-as-document"
 import type {
   ActivityCommercialContent,
   ActivityRecruitmentContent,
+  ManagerSummaryContent,
   ReportBrief,
   ReportPeriodPreset,
   WeeklyManagerContent,
@@ -23,6 +25,7 @@ import { getWeekStartDateKey } from "@/lib/agenda/agenda-temporal"
 import { ActivityCommercialReportView } from "./ActivityCommercialReportView"
 import { ActivityRecruitmentReportView } from "./ActivityRecruitmentReportView"
 import { WeeklyManagerReportView } from "./WeeklyManagerReportView"
+import { ManagerSummaryReportView } from "./manager-summary/ManagerSummaryReportView"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
 import { TechnicalReportContent } from "./TechnicalReportContent"
 import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
@@ -139,9 +142,11 @@ export function ReportGenerationDrawer({
     reportType === "activity_commercial" ||
     reportType === "activity_recruitment" ||
     reportType === "weekly_manager" ||
+    reportType === "manager_summary" ||
     reportType === "financial" ||
     reportType === "technical"
   const isWeeklyManager = reportType === "weekly_manager"
+  const isManagerSummary = reportType === "manager_summary"
 
   const [periodPreset, setPeriodPreset] = useState<ReportPeriodPreset>("month")
   const [customStart, setCustomStart] = useState("")
@@ -149,6 +154,11 @@ export function ReportGenerationDrawer({
   const [additionalInstructions, setAdditionalInstructions] = useState("")
   const [weeklyPeriodChoice, setWeeklyPeriodChoice] = useState<"current" | "next">("current")
   const [weeklyIsWorkspaceWide, setWeeklyIsWorkspaceWide] = useState(false)
+
+  const [managerPeriodChoice, setManagerPeriodChoice] = useState<"current" | "previous">("current")
+  const [managerDeclaredDifficulties, setManagerDeclaredDifficulties] = useState("")
+  const [managerSpecificRequests, setManagerSpecificRequests] = useState("")
+  const [managerStrategicFocus, setManagerStrategicFocus] = useState("")
 
   const [financialYearChoice, setFinancialYearChoice] = useState<number>(new Date().getFullYear())
   const [financialAsOfChoice, setFinancialAsOfChoice] = useState<string>(new Date().toISOString().split("T")[0])
@@ -179,9 +189,23 @@ export function ReportGenerationDrawer({
     setWeeklyIsWorkspaceWide(false)
     setFinancialYearChoice(new Date().getFullYear())
     setFinancialAsOfChoice(new Date().toISOString().split("T")[0])
+    setManagerPeriodChoice("current")
+    setManagerDeclaredDifficulties("")
+    setManagerSpecificRequests("")
+    setManagerStrategicFocus("")
     setGeneratedDocumentId(null)
     resetExecutionState()
   }
+
+  useEffect(() => {
+    if (open && isManagerSummary) {
+      void getActiveStrategicFocus().then((res) => {
+        if (res.strategicFocus) {
+          setManagerStrategicFocus(res.strategicFocus)
+        }
+      })
+    }
+  }, [open, isManagerSummary])
 
   // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
   // relance périodique en garantie.
@@ -256,6 +280,38 @@ export function ReportGenerationDrawer({
         setGeneratedDocumentId(data.documentId)
         setContent(data.content)
         setRunStatus("done")
+        return
+      }
+
+      // manager_summary a son propre endpoint
+      if (isManagerSummary) {
+        const today = new Date();
+        const monday = new Date(today);
+        const day = today.getDay();
+        monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+        if (managerPeriodChoice === "previous") {
+          monday.setDate(monday.getDate() - 7);
+        }
+        const periodStart = toISODate(monday);
+
+        const res = await fetch("/api/reports/manager-summary/trigger", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            periodStart,
+            declaredDifficulties: managerDeclaredDifficulties.trim() || undefined,
+            specificRequests: managerSpecificRequests.trim() || undefined,
+            strategicFocus: managerStrategicFocus.trim() || undefined,
+          }),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+          throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+        }
+
+        const { runId: newRunId } = await res.json() as { runId: string }
+        setRunId(newRunId)
         return
       }
 
@@ -471,6 +527,8 @@ export function ReportGenerationDrawer({
           </div>
         ) : isWeeklyManager ? (
           <WeeklyManagerReportView content={content as WeeklyManagerContent} />
+        ) : isManagerSummary ? (
+          <ManagerSummaryReportView content={content as ManagerSummaryContent} />
         ) : reportType === "activity_commercial" ? (
           <ActivityCommercialReportView content={content as ActivityCommercialContent} />
         ) : (
@@ -516,6 +574,72 @@ export function ReportGenerationDrawer({
           <div className="rounded-lg border border-border bg-canvas/30 p-3 text-[11px] text-muted">
             Génération déterministe synchrone (sans LLM ni n8n). Les calculs rapprochent en direct les CRA et les jalons de facturation du P&L.
           </div>
+        </div>
+      ) : isManagerSummary ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-heading">Période</span>
+            <div className="inline-flex rounded-[var(--radius-medium)] border border-border bg-canvas p-0.5 w-fit">
+              {(["current", "previous"] as const).map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  onClick={() => setManagerPeriodChoice(choice)}
+                  className={cn(
+                    "rounded-[calc(var(--radius-medium)-4px)] px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 ease-in-out cursor-pointer",
+                    managerPeriodChoice === choice
+                      ? "bg-surface text-heading shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                      : "text-muted hover:text-heading",
+                  )}
+                  aria-pressed={managerPeriodChoice === choice}
+                >
+                  {choice === "current" ? "Cette semaine" : "Semaine précédente"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="manager-difficulties" className="text-xs font-semibold text-heading">
+              Difficultés rencontrées (Optionnel)
+            </label>
+            <textarea
+              id="manager-difficulties"
+              value={managerDeclaredDifficulties}
+              onChange={(event) => setManagerDeclaredDifficulties(event.target.value)}
+              className="min-h-[60px] w-full rounded border border-border bg-surface px-3 py-2 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="manager-requests" className="text-xs font-semibold text-heading">
+              Demandes spécifiques (Optionnel)
+            </label>
+            <textarea
+              id="manager-requests"
+              value={managerSpecificRequests}
+              onChange={(event) => setManagerSpecificRequests(event.target.value)}
+              className="min-h-[60px] w-full rounded border border-border bg-surface px-3 py-2 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="manager-strategy" className="text-xs font-semibold text-heading">
+              Objectif stratégique en cours (Optionnel)
+            </label>
+            <textarea
+              id="manager-strategy"
+              value={managerStrategicFocus}
+              onChange={(event) => setManagerStrategicFocus(event.target.value)}
+              className="min-h-[60px] w-full rounded border border-border bg-surface px-3 py-2 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+          </div>
+
+          {runStatus === "error" && errorMsg ? (
+            <div className="rounded border border-danger/30 bg-danger/5 px-3 py-2.5 text-xs text-danger">
+              {errorMsg}
+            </div>
+          ) : null}
         </div>
       ) : isWeeklyManager ? (
         <div className="flex flex-col gap-4">

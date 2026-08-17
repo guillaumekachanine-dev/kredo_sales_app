@@ -5280,6 +5280,7 @@ export type Database = {
           role_title: string
           source: string
           status: string
+          strategic_focus: string | null
           target_variable_amount: number
           updated_at: string
           workspace_id: string
@@ -5298,6 +5299,7 @@ export type Database = {
           role_title: string
           source?: string
           status?: string
+          strategic_focus?: string | null
           target_variable_amount: number
           updated_at?: string
           workspace_id?: string
@@ -5316,6 +5318,7 @@ export type Database = {
           role_title?: string
           source?: string
           status?: string
+          strategic_focus?: string | null
           target_variable_amount?: number
           updated_at?: string
           workspace_id?: string
@@ -8424,6 +8427,15 @@ export type Database = {
         Args: { p_sector_id: string; p_workspace_id: string }
         Returns: Json
       }
+      get_manager_summary_facts: {
+        Args: {
+          p_workspace_id: string
+          p_owner_id: string
+          p_start_date: string
+          p_end_date: string
+        }
+        Returns: Json
+      }
       get_weekly_business_facts: {
         Args: {
           p_as_of_date?: string
@@ -8610,6 +8622,7 @@ export type Database = {
         | "activity_commercial"
         | "activity_recruitment"
         | "weekly_manager"
+        | "manager_summary"
         | "planning_deadlines"
         | "financial"
         | "quarterly_review"
@@ -8854,6 +8867,7 @@ export const Constants = {
         "activity_commercial",
         "activity_recruitment",
         "weekly_manager",
+        "manager_summary",
         "planning_deadlines",
         "financial",
         "quarterly_review",
@@ -8903,3 +8917,4 @@ export const Constants = {
     },
   },
 } as const
+

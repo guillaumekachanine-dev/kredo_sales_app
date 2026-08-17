@@ -42,8 +42,9 @@ const OPTION_LABELS: Record<string, string> = {
 const REPORT_TYPE_LABELS: Record<string, string> = {
   client_summary: "Synthèse client",
   activity_commercial: "Activité commerciale",
-  activity_recruitment: "Activité recrutement",
-  weekly_manager: "Rapport hebdo manager",
+  activity_recruitment: "Rapport d'activité recrutement",
+  weekly_manager: "Brief hebdomadaire",
+  manager_summary: "Compte-rendu Manager",
   planning_deadlines: "Planning & échéances",
   financial: "Rapport financier",
   quarterly_review: "Business review trimestrielle",
