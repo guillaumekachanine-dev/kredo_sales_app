@@ -6,8 +6,8 @@ import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 export type BiTabKey = "priorities" | "windows" | "sectors" | "value_chain" | "competitive_env"
 
 const SECTIONS: Array<{ id: BiTabKey; label: string; icon: BiTabKey }> = [
-  { id: "priorities", label: "Brief stratégique", icon: "priorities" },
-  { id: "windows", label: "Fenêtres", icon: "windows" },
+  { id: "priorities", label: "Accueil", icon: "priorities" },
+  { id: "windows", label: "Calendrier réglementaire", icon: "windows" },
   { id: "sectors", label: "Analyse sectorielle", icon: "sectors" },
   { id: "value_chain", label: "Chaîne de valeur", icon: "value_chain" },
   { id: "competitive_env", label: "Environnement concurrentiel", icon: "competitive_env" },
@@ -105,17 +105,17 @@ export function BusinessIntelligenceLocalNavigation({
                 onClick={() => onChange(section.id)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 px-3 text-left text-xs font-semibold transition-colors",
+                  "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 px-3 py-1.5 text-left text-xs font-semibold transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
                   isActive
                     ? "border-l-edito-brass bg-edito-surface text-edito-navy"
                     : "border-l-transparent text-edito-muted hover:bg-edito-surface/70 hover:text-edito-body",
                 )}
               >
-                <span className={cn("text-edito-navy", !isActive && "opacity-75")}>
+                <span className={cn("text-edito-navy shrink-0", !isActive && "opacity-75")}>
                   <BiSidebarIcon name={section.icon} />
                 </span>
-                <span className="truncate">{section.label}</span>
+                <span className="leading-[1.15] break-words">{section.label}</span>
               </button>
             )
           })}

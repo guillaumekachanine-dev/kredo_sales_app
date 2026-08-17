@@ -37,7 +37,7 @@ const CompetitiveEnvironmentWorkspace = dynamic(
 
 const TAB_HEADER_TITLES: Record<BiTabKey, string> = {
   priorities: "Business Intelligence",
-  windows: "Fenêtres",
+  windows: "Calendrier réglementaire",
   sectors: "Analyse sectorielle",
   value_chain: "Chaîne de valeur",
   competitive_env: "Environnement concurrentiel",
