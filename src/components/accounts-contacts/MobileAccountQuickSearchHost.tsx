@@ -14,6 +14,7 @@ import {
   useMobileAccountQuickSearch,
   type MobileAccountQuickSearchPreset,
 } from "@/hooks/use-mobile-account-quick-search"
+import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 
 const PRESET_OPTIONS: Array<{ id: MobileAccountQuickSearchPreset; label: string }> = [
   { id: "list", label: "Liste" },
@@ -60,6 +61,7 @@ export function MobileAccountQuickSearchHost() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [customListNotice, setCustomListNotice] = useState<string | null>(null)
+  const { openTab } = useCrmTabStore()
   const {
     isOpen,
     query,
@@ -256,7 +258,12 @@ export function MobileAccountQuickSearchHost() {
                       type="button"
                       onClick={() => {
                         close()
-                        router.push(`/prospection/accounts/${entry.id}`)
+                        openTab({
+                          entityType: "company-intelligence",
+                          entityId: entry.id,
+                          title: entry.name,
+                        })
+                        router.push("/prospection/accounts")
                       }}
                       className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >

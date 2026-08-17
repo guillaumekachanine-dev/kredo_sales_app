@@ -7,6 +7,7 @@ import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { CrmSectionTabBar } from "./CrmSectionTabBar"
 import { CrmEntityPanel } from "./CrmEntityPanel"
+import { CrmMobileAccountTabs } from "./CrmMobileAccountTabs"
 
 const ACCOUNTS_PREFIX = "/prospection/accounts"
 
@@ -17,7 +18,7 @@ interface CrmTabbedShellProps {
 
 export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellProps) {
   const pathname = usePathname()
-  const { tabs, activeTabId, setActiveTab } = useCrmTabStore()
+  const { tabs, activeTabId } = useCrmTabStore()
   const isAccountsSection = pathname === ACCOUNTS_PREFIX || pathname.startsWith(ACCOUNTS_PREFIX + "/")
   const isDirectCockpit = pathname.startsWith(ACCOUNTS_PREFIX + "/")
   const isCockpitActive = isAccountsSection && (isDirectCockpit || activeTabId !== "home")
@@ -40,19 +41,8 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
       if (activeTab) {
         return (
           <div className="flex flex-col h-full bg-canvas overflow-y-auto">
-            <div className="sticky top-0 bg-surface border-b border-border z-10 px-4 py-3 flex items-center gap-3 select-none">
-              <button
-                onClick={() => setActiveTab("home")}
-                className="flex items-center gap-1 text-xs font-bold text-primary hover:opacity-80 transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-                Retour
-              </button>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-xs font-bold text-heading truncate">{activeTab.title}</h2>
-              </div>
+            <div className="sticky top-0 z-10">
+              <CrmMobileAccountTabs />
             </div>
             <div className="flex-1">
               <CrmEntityPanel tab={activeTab} isMobile />
