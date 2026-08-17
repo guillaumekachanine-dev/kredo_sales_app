@@ -16,6 +16,7 @@ import type {
   GlobalWatchSettings,
   GlobalWatchWorkflowHealth,
 } from "./veille-desktop-contracts"
+import { GlobalWatchSettingsDialog } from "./GlobalWatchSettingsDialog"
 
 function VeilleActionDialog({
   open,
@@ -57,47 +58,7 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value))
 }
 
-function WorkflowHealth({ health }: { health: GlobalWatchWorkflowHealth }) {
-  const href = health.runId ? `/automations?run=${health.runId}` : "/automations"
-  const title = health.state === "succeeded"
-    ? `Dernière exécution réussie : ${formatDateTime(health.lastSucceededAt)}`
-    : health.errorMessage ?? `Dernier run : ${formatDateTime(health.lastRunAt)}`
-  const running = health.state === "queued" || health.state === "running"
-
-  if (health.state === "succeeded") {
-    return (
-      <span
-        aria-live="polite"
-        title={title}
-        className="inline-flex h-10 items-center gap-2 border border-success/30 bg-success/[0.06] px-3 text-xs font-bold text-success"
-      >
-        <span className="size-2 rounded-full bg-success" aria-hidden="true" />
-        OK
-      </span>
-    )
-  }
-
-  return (
-    <Link
-      href={href}
-      aria-live="polite"
-      title={title}
-      className={cn(
-        "inline-flex h-10 items-center gap-2 border px-3 text-xs font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
-        running
-          ? "border-brand-brass/40 bg-brand-brass/[0.07] text-heading"
-          : "border-danger/30 bg-danger/[0.05] text-danger",
-      )}
-    >
-      {running ? (
-        <span className="size-3 animate-spin rounded-full border-2 border-brand-brass/30 border-t-brand-brass motion-reduce:animate-none" aria-hidden="true" />
-      ) : (
-        <IntelligenceIcon name="detect_risks" preferVector className="size-4" />
-      )}
-      {health.label}
-    </Link>
-  )
-}
+// Removed WorkflowHealth
 
 export function VeilleHeaderActions({
   initialSettings,
@@ -205,14 +166,13 @@ export function VeilleHeaderActions({
   return (
     <>
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="secondary" size="md" onClick={() => { setError(null); setRefreshOpen(true) }} leftIcon={<IntelligenceIcon name="search_news" preferVector />}>
+        <Button variant="secondary" size="sm" onClick={() => { setError(null); setRefreshOpen(true) }} leftIcon={<svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>}>
           Actualiser
         </Button>
-        <Button variant="secondary" size="md" onClick={() => { setDraft(settings); setError(null); setSettingsOpen(true) }}>
+        <Button variant="secondary" size="sm" onClick={() => { setDraft(settings); setError(null); setSettingsOpen(true) }} leftIcon={<svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}>
           Configurer la veille
         </Button>
         <SourceManagementLauncher variant="desktop" snapshot={sourceManagementSnapshot} />
-        <WorkflowHealth health={health} />
       </div>
 
       <VeilleActionDialog
@@ -246,36 +206,12 @@ export function VeilleHeaderActions({
         {error ? <p role="alert" className="mt-4 text-danger">{error}</p> : null}
       </VeilleActionDialog>
 
-      <VeilleActionDialog
+      <GlobalWatchSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
-        title="Configurer la veille"
-        description="Ces réglages sont enregistrés dans le workspace sans écraser les autres paramètres."
-        footer={(
-          <>
-            <Button variant="secondary" onClick={() => setSettingsOpen(false)}>Annuler</Button>
-            <Button variant="brass" onClick={saveSettings} loading={isPending} loadingLabel="Enregistrement">Enregistrer</Button>
-          </>
-        )}
-      >
-        <div className="space-y-5">
-          <label className="flex min-h-10 items-center justify-between gap-4 border-b border-border pb-4">
-            <span><span className="block font-bold text-heading">Veille active</span><span className="text-[11px] text-muted">Autorise la collecte planifiée et manuelle.</span></span>
-            <input type="checkbox" checked={draft.enabled} onChange={(event) => setDraft((current) => ({ ...current, enabled: event.target.checked }))} className="size-4 accent-primary" />
-          </label>
-          <label className="block space-y-2">
-            <span className="font-bold text-heading">Cadence</span>
-            <select value={draft.cadence} disabled className="h-10 w-full border border-border bg-surface px-3 text-heading disabled:opacity-70">
-              <option value="weekly">Hebdomadaire</option>
-            </select>
-          </label>
-          <label className="block space-y-2">
-            <span className="font-bold text-heading">Volume maximum</span>
-            <input type="number" min={5} max={100} value={draft.maxArticles} onChange={(event) => setDraft((current) => ({ ...current, maxArticles: Number(event.target.value) }))} className="h-10 w-32 border border-border bg-surface px-3 text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading" />
-          </label>
-          {error ? <p role="alert" className="text-danger">{error}</p> : null}
-        </div>
-      </VeilleActionDialog>
+        initialSettings={settings}
+        sourceManagementSnapshot={sourceManagementSnapshot}
+      />
     </>
   )
 }

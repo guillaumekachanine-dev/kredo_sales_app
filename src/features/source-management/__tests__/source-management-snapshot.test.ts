@@ -15,8 +15,8 @@ describe("source management snapshot loader", () => {
     expect(source).not.toMatch(/const\s+.*sources\s*=\s*\[/i)
   })
 
-  it("only reads sector-scoped corpora, never the system corpus", () => {
-    expect(source).toContain('.eq("scope_kind", "sector")')
+  it("only reads current active corpora", () => {
+    expect(source).toContain('.in("scope_kind", ["sector", "system"])')
   })
 
   it("reuses v_effective_watch_sources for accounts-fed instead of reimplementing segment→macro inheritance", () => {

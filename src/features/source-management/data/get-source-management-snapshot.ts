@@ -65,7 +65,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
     supabase
       .from("source_corpora")
       .select("*")
-      .eq("scope_kind", "sector")
+      .in("scope_kind", ["sector", "system"])
       .eq("is_current", true)
       .order("snapshot_date", { ascending: false }),
   ])

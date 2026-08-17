@@ -44,8 +44,8 @@ export type SaveAccountWatchDetailedSettingsInput = {
 
 export async function loadAccountWatchDetailedSettings(
   companyId: string,
-): Promise<{ error: string | null; data: AccountWatchDetailedSettings | null }> {
-  if (!companyId) return { error: "Compte introuvable", data: null }
+): Promise<{ error: string | null; data: AccountWatchDetailedSettings | null; sourcesByFamily?: Record<string, string[]> }> {
+  if (!companyId) return { error: "Compte introuvable", data: null, sourcesByFamily: {} }
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -54,8 +54,23 @@ export async function loadAccountWatchDetailedSettings(
     .eq("company_id", companyId)
     .maybeSingle()
 
-  if (error) return { error: error.message, data: null }
-  return { error: null, data: normalizeAccountWatchDetailedSettings(data) }
+  if (error) return { error: error.message, data: null, sourcesByFamily: {} }
+
+  const { data: sourcesData } = await supabase
+    .from("v_effective_watch_sources")
+    .select("source_name, family")
+    .eq("company_id", companyId)
+
+  const sourcesByFamily: Record<string, string[]> = {}
+  if (sourcesData) {
+    for (const row of sourcesData) {
+      const family = row.family ?? "Autre"
+      if (!sourcesByFamily[family]) sourcesByFamily[family] = []
+      if (row.source_name) sourcesByFamily[family].push(row.source_name)
+    }
+  }
+
+  return { error: null, data: normalizeAccountWatchDetailedSettings(data), sourcesByFamily }
 }
 
 export async function saveAccountWatchDetailedSettings(

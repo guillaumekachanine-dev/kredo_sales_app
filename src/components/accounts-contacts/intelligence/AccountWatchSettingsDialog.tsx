@@ -6,6 +6,17 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import {
+  Triangle,
+  Switch,
+  WatchSteps,
+  SectionLabel,
+  CompactActionTile,
+  LargeActionTile,
+  CompactDialogShell,
+} from "@/components/intelligence/WatchSettingsDialogShell"
+import { CompactCorpusImport } from "@/components/intelligence/CompactCorpusImport"
+
+import {
   ACCOUNT_WATCH_CADENCE_LABELS,
   ACCOUNT_WATCH_CATEGORIES,
   ACCOUNT_WATCH_DEPTH_LABELS,
@@ -73,59 +84,12 @@ const CORPUS_PRESETS = [
   { value: "talent", label: "Talents & transformation", sources: ["includeOfficialSite", "includeNews", "includeSocialManual", "includeJobs"] satisfies SourceKey[] },
 ] as const
 
-function Triangle({ direction }: { direction: "left" | "right" }) {
-  return <span aria-hidden="true" className={cn("block size-0 border-y-[4px] border-y-transparent", direction === "left" ? "border-r-[7px] border-r-current" : "border-l-[7px] border-l-current")} />
-}
-
-function Switch({ checked, onChange, disabled = false, label }: { checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean; label: string }) {
-  return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={() => onChange(!checked)} className={cn("relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40", checked ? "border-primary bg-primary" : "border-border-strong bg-border", disabled && "cursor-not-allowed opacity-50")}>
-      <span className={cn("block size-[18px] rounded-full bg-surface shadow-sm transition-transform duration-200 motion-reduce:transition-none", checked ? "translate-x-[21px]" : "translate-x-0.5")} />
-    </button>
-  )
-}
-
-function WatchSteps({ activeIndex }: { activeIndex: number }) {
-  return (
-    <ol className="grid h-[68px] grid-cols-4 px-3 pt-3 sm:h-[74px] sm:px-5 sm:pt-3.5" aria-label="Étapes de paramétrage de la veille">
-      {STEPS.map((step, index) => {
-        const reached = index <= activeIndex
-        return (
-          <li key={step.id} className="relative flex min-w-0 flex-col items-center gap-1">
-            {index > 0 ? <span className={cn("absolute right-1/2 top-[11px] h-px w-full", reached ? "bg-edito-brass" : "bg-white/25")} aria-hidden="true" /> : null}
-            <span className={cn("relative z-10 flex size-[23px] items-center justify-center rounded-full border text-[10px] font-black leading-none", reached ? "border-edito-brass bg-edito-brass text-edito-ink" : "border-white/55 bg-edito-navy text-white/70")}>{index < activeIndex ? "✓" : index + 1}</span>
-            <span className={cn("relative z-10 max-w-full truncate text-[8px] font-bold leading-3 sm:text-[9px]", reached ? "text-edito-brass" : "text-white/65")}>{step.label}</span>
-          </li>
-        )
-      })}
-    </ol>
-  )
-}
-
-function SectionLabel({ children }: { children: ReactNode }) {
-  return <h3 className="text-[10px] font-bold uppercase leading-4 tracking-[0.12em] text-edito-heading">{children}</h3>
-}
-
-function ActionTile({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="group flex h-[92px] flex-col items-center justify-center gap-1.5 rounded-[var(--radius-small)] border border-edito-border bg-edito-surface text-edito-navy transition-[border-color,background-color,transform] duration-200 hover:border-primary/50 hover:bg-primary/[0.035] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 sm:h-[104px]">
-      <span className="text-[32px] font-light leading-none text-primary transition-transform duration-200 group-hover:scale-110">+</span>
-      <span className="text-xs font-bold leading-4">{label}</span>
-    </button>
-  )
-}
-
-function CompactDialogShell({ open, onOpenChange, title, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; children: ReactNode }) {
-  return (
-    <AppDialog open={open} onOpenChange={onOpenChange} title={title} className="w-[min(calc(100vw-1.5rem),25rem)]" maxHeightClassName="max-h-[min(calc(100dvh-2rem),34rem)]" headerClassName="border-b border-border pb-3" bodyClassName="pr-0">
-      {children}
-    </AppDialog>
-  )
-}
+// Components extracted to WatchSettingsDialogShell.tsx
 
 export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, companyName, companyLogoPath, companyWebsite, onBack, onReturnToCockpit }: AccountWatchSettingsDialogProps) {
   const [stepIndex, setStepIndex] = useState(0)
   const [settings, setSettings] = useState<AccountWatchDetailedSettings>(DEFAULT_ACCOUNT_WATCH_DETAILED_SETTINGS)
+  const [sourcesByFamily, setSourcesByFamily] = useState<Record<string, string[]>>({})
   const [aliases, setAliases] = useState("")
   const [manualSourceName, setManualSourceName] = useState("")
   const [manualUrl, setManualUrl] = useState("")
@@ -147,6 +111,7 @@ export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, comp
         return
       }
       setSettings(result.data)
+      setSourcesByFamily(result.sourcesByFamily ?? {})
       setAliases(result.data.queryAliases.join(", "))
       setStatus("idle")
     })
@@ -238,29 +203,52 @@ export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, comp
   const cadence = cadenceForWatchLevel(settings.watchLevel)
   const enabledSourceCount = SOURCE_OPTIONS.filter(({ key }) => settings[key]).length
   const activeInterestCount = settings.monitoredCategories.length
+  const [manualFamily, setManualFamily] = useState("Autre")
+  const [expandedDepth, setExpandedDepth] = useState<AccountWatchDepth | null>(settings.depth ?? "balanced")
+
+  const DEPTH_CONFIG: Record<AccountWatchDepth, { label: string; subtitle: string; details: string }> = {
+    standard: {
+      label: "Légère",
+      subtitle: "Détecter et catégoriser les signaux essentiels",
+      details: "Jusqu'à 15 sources consultées + production d'un court résumé de chaque signal détecté",
+    },
+    balanced: {
+      label: "Standard",
+      subtitle: "Convertir les signaux en opportunités",
+      details: 'Jusqu\'à 25 sources consultées + production des sections "Pourquoi c\'est important" et "Lecture commerciale"',
+    },
+    deep: {
+      label: "Approfondie",
+      subtitle: "Identifier et comprendre les forces en mouvement",
+      details: "Jusqu'à 40 sources consultées + production d'une analyse approfondie paramétrable",
+    },
+  }
 
   return (
     <>
       <AppDialog
         open={open}
         onOpenChange={onOpenChange}
-        title={`Paramétrer la veille · ${companyName}`}
-        headerLeading={<button type="button" onClick={onReturnToCockpit} className="inline-flex min-h-8 items-center gap-2 text-xs font-bold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"><Triangle direction="left" />Retour</button>}
-        headerCenter={stepIndex === 0 ? <div className="flex items-center gap-2"><span className="text-[10px] font-bold leading-4 text-edito-navy sm:text-xs">Activer la veille</span><Switch label="Activer la veille" checked={settings.isEnabled} onChange={(isEnabled) => setSettings((current) => ({ ...current, isEnabled }))} /></div> : null}
-        className="!h-[min(calc(100dvh-0.5rem),44rem)] !w-[min(calc(100vw-0.5rem),38rem)] !max-w-[38rem] sm:!h-[39rem]"
+        title={`Paramétrer la veille du compte · ${companyName}`}
+        headerLeading={miniDialog === "corpus" ? null : <button type="button" onClick={onReturnToCockpit} className="inline-flex min-h-8 items-center gap-2 text-xs font-bold text-primary transition-colors hover:text-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"><Triangle direction="left" />Retour</button>}
+        headerCenter={stepIndex === 0 && miniDialog !== "corpus" ? <div className="flex items-center gap-2"><span className="text-[10px] font-bold leading-4 text-edito-navy sm:text-xs">Activer la veille</span><Switch label="Activer la veille" checked={settings.isEnabled} onChange={(isEnabled) => setSettings((current) => ({ ...current, isEnabled }))} /></div> : null}
+        className={cn("!h-[min(calc(100dvh-0.5rem),44rem)] !w-[min(calc(100vw-0.5rem),38rem)] !max-w-[38rem] sm:!h-[39rem]", miniDialog === "corpus" && "sm:!w-[48rem] sm:!max-w-[48rem]")}
         maxHeightClassName="max-h-[calc(100dvh-0.5rem)] sm:max-h-[39rem]"
-        headerClassName="-mb-2 pb-0"
-        bodyClassName="-mx-4 -mb-4 flex flex-1 flex-col overflow-hidden pr-0 sm:-mx-6 sm:-mb-6"
-        closeButtonClassName="size-8 rounded-full border border-transparent hover:border-border hover:bg-canvas"
+        headerClassName={miniDialog === "corpus" ? "hidden" : "-mb-2 pb-0"}
+        bodyClassName={cn(miniDialog === "corpus" ? "p-0 flex flex-1 flex-col overflow-hidden" : "-mx-4 -mb-4 flex flex-1 flex-col overflow-hidden pr-0 sm:-mx-6 sm:-mb-6")}
+        closeButtonClassName={miniDialog === "corpus" ? "hidden" : "size-8 rounded-full border border-transparent hover:border-border hover:bg-canvas"}
         footerClassName="hidden"
         fillHeight
       >
-        <div className="shrink-0 border-y border-edito-brass/60 bg-edito-navy text-white"><WatchSteps activeIndex={stepIndex} /></div>
-        <div className="flex min-h-0 flex-1 flex-col px-4 sm:px-5">
-          <div className="flex min-h-[74px] shrink-0 items-center justify-between gap-3 border-b border-border/70 py-2 sm:min-h-[78px] sm:py-2.5">
+        {miniDialog === "corpus" ? (
+          <CompactCorpusImport onBack={() => setMiniDialog(null)} />
+        ) : (
+          <>
+            <div className="shrink-0 border-y border-edito-brass/60 bg-edito-navy text-white"><WatchSteps activeIndex={stepIndex} steps={STEPS} /></div>
+            <div className="flex min-h-0 flex-1 flex-col px-4 sm:px-5">
+          <div className="flex min-h-[64px] shrink-0 items-center justify-between gap-3 border-b border-border/70 py-2 sm:min-h-[70px]">
             <div className="min-w-0 flex-1">
-              <h2 className="truncate font-heading text-lg font-bold leading-6 text-edito-navy">Paramétrer la veille</h2>
-              <button type="button" aria-label="Consulter les paramètres actuels" disabled={!settings.exists || status === "loading"} onClick={() => setMiniDialog("current")} className="mt-1 block text-left text-[10px] font-bold leading-4 text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:text-primary-deep disabled:cursor-not-allowed disabled:text-muted disabled:no-underline sm:text-[11px]">Consulter les paramètres actuels</button>
+              <h2 className="truncate font-heading text-lg font-bold leading-6 text-edito-navy">Paramétrer la veille du compte</h2>
             </div>
             <div className="flex w-16 shrink-0 flex-col items-center gap-1">
               <div className="flex size-10 items-center justify-center rounded-[var(--radius-small)] border border-edito-border bg-edito-canvas p-1 shadow-2xs">
@@ -270,48 +258,113 @@ export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, comp
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden py-3 sm:py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto veille-scrollbar py-3 pr-1 sm:py-4">
             {status === "loading" ? <div className="flex h-full items-center justify-center"><p className="text-sm font-semibold text-muted">Chargement des paramètres…</p></div> : (
-              <div key={stepIndex} className="h-full animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none">
+              <div key={stepIndex} className="animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none">
                 {stepIndex === 0 ? (
-                  <fieldset disabled={!settings.isEnabled} className="h-full space-y-3 disabled:opacity-45 sm:space-y-4">
+                  <fieldset disabled={!settings.isEnabled} className="space-y-3 disabled:opacity-45 sm:space-y-4">
                     <section className="space-y-1.5">
                       <SectionLabel>Fréquence</SectionLabel>
                       <Select id="account-watch-level" value={settings.watchLevel} onChange={(event) => setSettings((current) => ({ ...current, watchLevel: event.target.value as AccountWatchLevel }))} fullWidth className="min-h-10">
                         {ACCOUNT_WATCH_LEVELS.map((level) => <option key={level} value={level}>{ACCOUNT_WATCH_LEVEL_LABELS[level]} · {ACCOUNT_WATCH_CADENCE_LABELS[cadenceForWatchLevel(level)]}</option>)}
                       </Select>
                     </section>
-                    <section className="space-y-1.5">
+                    <section className="space-y-2">
                       <SectionLabel>Profondeur</SectionLabel>
                       <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                         {ACCOUNT_WATCH_DEPTHS.map((depth) => {
                           const selected = settings.depth === depth
-                          return <button key={depth} type="button" onClick={() => setSettings((current) => ({ ...current, depth }))} className={cn("relative min-h-[76px] rounded-[var(--radius-small)] border px-2 py-2 text-left transition-colors sm:min-h-[84px] sm:px-3", selected ? "border-edito-brass bg-edito-brass/[0.055]" : "border-edito-border bg-edito-surface hover:border-primary/35")}><span className={cn("mb-1 block size-3 rounded-full border", selected ? "border-[3px] border-edito-brass" : "border-edito-border")} /><span className="block truncate text-[11px] font-bold leading-4 text-edito-navy sm:text-xs">{ACCOUNT_WATCH_DEPTH_LABELS[depth]}</span><span className="block text-[9px] font-semibold leading-3 text-edito-muted sm:text-[10px]">{DEPTH_SOURCE_RANGES[depth]}</span></button>
+                          const active = expandedDepth === depth
+                          const config = DEPTH_CONFIG[depth]
+                          return (
+                            <button
+                              key={depth}
+                              type="button"
+                              onClick={() => {
+                                setSettings((current) => ({ ...current, depth }))
+                                setExpandedDepth((prev) => (prev === depth ? null : depth))
+                              }}
+                              className={cn(
+                                "relative flex flex-col justify-between min-h-[85px] rounded-[var(--radius-small)] border px-2.5 py-2.5 text-left transition-colors sm:min-h-[92px] sm:px-3",
+                                active || selected ? "border-edito-brass bg-edito-brass/[0.055]" : "border-edito-border bg-edito-surface hover:border-primary/35"
+                              )}
+                            >
+                              <div>
+                                <span className={cn("mb-1.5 block size-3 rounded-full border", selected ? "border-[3px] border-edito-brass" : "border-edito-border")} />
+                                <span className="block truncate text-[11px] font-bold leading-4 text-edito-navy sm:text-xs">{config.label}</span>
+                              </div>
+                              <span className="mt-1 block text-[9px] font-medium leading-3 text-edito-muted sm:text-[10px]">{config.subtitle}</span>
+                            </button>
+                          )
                         })}
                       </div>
+                      {expandedDepth && DEPTH_CONFIG[expandedDepth] ? (
+                        <div className="animate-in fade-in slide-in-from-top-1 duration-150 rounded-[var(--radius-small)] border border-edito-brass/40 bg-edito-brass/[0.04] p-3 text-xs text-edito-navy">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-edito-brass mb-0.5">Détails du niveau {DEPTH_CONFIG[expandedDepth].label}</p>
+                          <p className="text-[11px] font-normal leading-4 text-edito-body">{DEPTH_CONFIG[expandedDepth].details}</p>
+                        </div>
+                      ) : null}
                     </section>
-                    <div className="flex items-center justify-between rounded-[var(--radius-small)] bg-edito-chip px-3 py-2 text-[10px] font-semibold leading-4 text-edito-body"><span>Cadence appliquée</span><strong className="text-edito-navy">{ACCOUNT_WATCH_CADENCE_LABELS[cadence]}</strong></div>
                   </fieldset>
                 ) : null}
 
                 {stepIndex === 1 ? (
-                  <div className="grid h-full grid-rows-[auto_1fr] gap-3 sm:gap-4">
-                    <section className="space-y-1.5">
+                  <div className="flex flex-col gap-4">
+                    <section className="space-y-2">
                       <div className="flex items-center justify-between"><SectionLabel>Sources existantes</SectionLabel><span className="text-[10px] font-bold text-edito-navy">{enabledSourceCount} actives</span></div>
-                      <div className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-small)] border border-edito-border bg-edito-surface">
-                        {SOURCE_OPTIONS.map((source, index) => <div key={source.key} className={cn("flex min-h-10 items-center justify-between gap-2 px-2.5 py-1.5", index < SOURCE_OPTIONS.length - 2 && "border-b border-edito-border/70", index % 2 === 0 && "border-r border-edito-border/70")}><span className="min-w-0 truncate text-[10px] font-semibold leading-4 text-edito-navy sm:text-[11px]">{source.label}</span><Switch label={source.label} checked={settings[source.key]} onChange={(checked) => updateBoolean(source.key, checked)} /></div>)}
+                      
+                      {/* 2-column Grid with single-line family header */}
+                      <div className="overflow-hidden rounded-[var(--radius-small)] border border-edito-border bg-edito-surface">
+                        <div className="grid grid-cols-2 divide-x divide-y divide-edito-border">
+                          {SOURCE_OPTIONS.map((source) => {
+                            const familySources = sourcesByFamily[source.label] ?? []
+                            const count = familySources.length
+                            return (
+                              <div key={source.key} className="p-3">
+                                <details className="group [&>summary::-webkit-details-marker]:hidden [&[open]>summary>div>svg]:rotate-90">
+                                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 outline-none">
+                                    <div className="flex min-w-0 items-center gap-1.5">
+                                      <svg className="size-3 shrink-0 text-edito-muted transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                      <span className="truncate text-xs font-bold text-edito-navy">{source.label}</span>
+                                      <span className="shrink-0 text-[11px] font-semibold text-edito-muted">({count})</span>
+                                    </div>
+                                    <div onClick={(e) => e.stopPropagation()}>
+                                      <Switch label={source.label} checked={settings[source.key]} onChange={(checked) => updateBoolean(source.key, checked)} />
+                                    </div>
+                                  </summary>
+                                  <div className="mt-2.5 border-t border-edito-border/60 pt-2">
+                                    {count > 0 ? (
+                                      <ul className="max-h-24 space-y-1 overflow-y-auto veille-scrollbar pr-1">
+                                        {familySources.map((srcName, idx) => (
+                                          <li key={idx} className="flex items-start gap-1.5 text-[9px] text-edito-body">
+                                            <span className="mt-1 size-1 shrink-0 rounded-full bg-edito-muted/50" />
+                                            <span className="leading-tight">{srcName}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-[9px] italic text-edito-muted">Aucune source détaillée</p>
+                                    )}
+                                  </div>
+                                </details>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     </section>
-                    <section className="grid min-h-0 grid-cols-2 content-start gap-2 sm:gap-3">
-                      <ActionTile label="Source" onClick={() => setMiniDialog("source")} /><ActionTile label="Corpus" onClick={() => setMiniDialog("corpus")} />
-                      {settings.manualSourceUrls.length > 0 ? <div className="col-span-2 flex min-h-8 items-center gap-2 overflow-x-auto rounded-[var(--radius-small)] bg-edito-chip px-2.5 py-1.5"><span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-edito-heading">Ajoutées</span>{settings.manualSourceUrls.slice(0, 2).map((url) => <button key={url} type="button" title={url} onClick={() => setSettings((current) => ({ ...current, manualSourceUrls: current.manualSourceUrls.filter((item) => item !== url) }))} className="max-w-36 truncate rounded-full bg-surface px-2 py-1 text-[9px] font-semibold text-edito-body hover:text-danger">{manualSourceNames[url] ?? new URL(url).hostname} ×</button>)}{settings.manualSourceUrls.length > 2 ? <span className="shrink-0 text-[9px] font-bold text-edito-muted">+{settings.manualSourceUrls.length - 2}</span> : null}</div> : null}
+
+                    {/* 2 Large Action Cards: + Source and + Corpus */}
+                    <section className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <LargeActionTile label="Source" onClick={() => setMiniDialog("source")} />
+                      <LargeActionTile label="Corpus" onClick={() => setMiniDialog("corpus")} />
                     </section>
                   </div>
                 ) : null}
 
                 {stepIndex === 2 ? (
-                  <section className="h-full">
-                    <div className="mb-2 flex items-center justify-between"><SectionLabel>Intérêts</SectionLabel><span className="text-[10px] font-bold text-edito-navy">{activeInterestCount} actifs</span></div>
+                  <section className="space-y-2">
+                    <div className="flex items-center justify-between"><SectionLabel>Intérêts</SectionLabel><span className="text-[10px] font-bold text-edito-navy">{activeInterestCount} actifs</span></div>
                     <div className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-small)] border-y border-edito-border bg-edito-surface">
                       {ACCOUNT_WATCH_CATEGORIES.map((category, index) => <div key={category.value} className={cn("relative flex min-h-[43px] items-center justify-between gap-2 border-edito-border/70 px-2.5 py-1.5 pl-3.5", index < ACCOUNT_WATCH_CATEGORIES.length - 2 && "border-b", index % 2 === 0 && "border-r")}><span className="absolute inset-y-2 left-0 w-0.5 bg-edito-brass" aria-hidden="true" /><span className="min-w-0 text-[10px] font-semibold leading-3 text-edito-navy sm:text-[11px] sm:leading-4">{category.label}</span><Switch label={category.label} checked={settings.monitoredCategories.includes(category.value)} onChange={() => toggleCategory(category.value)} /></div>)}
                     </div>
@@ -319,9 +372,9 @@ export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, comp
                 ) : null}
 
                 {stepIndex === 3 ? (
-                  <div className="grid h-full grid-rows-2 gap-3 sm:gap-4">
-                    <section className="flex min-h-0 flex-col gap-1.5"><label htmlFor="account-watch-aliases" className="text-[10px] font-bold uppercase leading-4 tracking-[0.12em] text-edito-heading">Précisions de contexte et de l’objectif</label><textarea id="account-watch-aliases" value={aliases} onChange={(event) => setAliases(event.target.value)} placeholder="Contexte, objectif et termes associés…" className="min-h-0 flex-1 resize-none rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 py-2.5 text-xs leading-5 text-edito-ink outline-none placeholder:text-edito-muted focus:border-primary" /></section>
-                    <section className="flex min-h-0 flex-col gap-1.5"><label htmlFor="account-watch-notes" className="text-[10px] font-bold uppercase leading-4 tracking-[0.12em] text-edito-heading">Sujets à exclure</label><textarea id="account-watch-notes" value={settings.notes} onChange={(event) => setSettings((current) => ({ ...current, notes: event.target.value }))} maxLength={2_000} placeholder="Thèmes, signaux ou angles à ignorer…" className="min-h-0 flex-1 resize-none rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 py-2.5 text-xs leading-5 text-edito-ink outline-none placeholder:text-edito-muted focus:border-primary" /></section>
+                  <div className="space-y-4">
+                    <section className="flex flex-col gap-1.5"><label htmlFor="account-watch-aliases" className="text-[10px] font-bold uppercase leading-4 tracking-[0.12em] text-edito-heading">Intention & finalité</label><textarea id="account-watch-aliases" value={aliases} onChange={(event) => setAliases(event.target.value)} rows={3} placeholder="Clarifier l’intention et la finalité de la veille, orienter les recherches et l’analyse…" className="min-h-[90px] w-full resize-y rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 py-2.5 text-xs leading-5 text-edito-ink outline-none placeholder:text-edito-muted focus:border-primary" /></section>
+                    <section className="flex flex-col gap-1.5"><label htmlFor="account-watch-notes" className="text-[10px] font-bold uppercase leading-4 tracking-[0.12em] text-edito-heading">Sujets à exclure</label><textarea id="account-watch-notes" value={settings.notes} onChange={(event) => setSettings((current) => ({ ...current, notes: event.target.value }))} rows={3} maxLength={2_000} placeholder="Thèmes, signaux ou angles à ignorer…" className="min-h-[90px] w-full resize-y rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 py-2.5 text-xs leading-5 text-edito-ink outline-none placeholder:text-edito-muted focus:border-primary" /></section>
                   </div>
                 ) : null}
               </div>
@@ -334,20 +387,16 @@ export function AccountWatchSettingsDialog({ open, onOpenChange, companyId, comp
             {stepIndex < STEPS.length - 1 ? <button type="button" onClick={goNext} disabled={status === "loading"} className="inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-small)] bg-primary px-4 text-xs font-bold text-primary-fg transition-colors hover:bg-primary-deep active:scale-[0.98] disabled:opacity-50">Suivant<Triangle direction="right" /></button> : <button type="button" onClick={handleSave} disabled={isSaving || status === "loading"} className="min-h-10 rounded-[var(--radius-small)] bg-primary px-4 text-xs font-bold text-primary-fg transition-colors hover:bg-primary-deep active:scale-[0.98] disabled:opacity-50">{isSaving ? "Enregistrement…" : "Enregistrer"}</button>}
           </div>
         </div>
+          </>
+        )}
       </AppDialog>
 
       <CompactDialogShell open={miniDialog === "source"} onOpenChange={(isOpen) => setMiniDialog(isOpen ? "source" : null)} title="Ajouter une source">
         <div className="space-y-4">
           <label className="block space-y-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-edito-heading">Nom de la source<input value={manualSourceName} onChange={(event) => setManualSourceName(event.target.value)} className="mt-1 min-h-11 w-full rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 text-sm font-normal normal-case tracking-normal text-edito-ink outline-none focus:border-primary" /></label>
+          <label className="block space-y-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-edito-heading">Famille<select value={manualFamily} onChange={(event) => setManualFamily(event.target.value)} className="mt-1 min-h-11 w-full rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 text-sm font-normal normal-case tracking-normal text-edito-ink outline-none focus:border-primary">{SOURCE_OPTIONS.map((opt) => <option key={opt.key} value={opt.label}>{opt.label}</option>)}<option value="Autre">Autre</option></select></label>
           <label className="block space-y-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-edito-heading">URL<input type="url" value={manualUrl} onChange={(event) => setManualUrl(event.target.value)} placeholder="https://…" className="mt-1 min-h-11 w-full rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 text-sm font-normal normal-case tracking-normal text-edito-ink outline-none placeholder:text-edito-muted focus:border-primary" /></label>
           <div className="flex justify-end gap-2 border-t border-border pt-3"><button type="button" onClick={() => setMiniDialog(null)} className="min-h-10 rounded-[var(--radius-small)] bg-cockpit-cobalt-soft px-4 text-xs font-bold text-primary">Annuler</button><button type="button" onClick={addManualSource} className="min-h-10 rounded-[var(--radius-small)] bg-primary px-4 text-xs font-bold text-primary-fg">Valider</button></div>
-        </div>
-      </CompactDialogShell>
-
-      <CompactDialogShell open={miniDialog === "corpus"} onOpenChange={(isOpen) => setMiniDialog(isOpen ? "corpus" : null)} title="Ajouter un corpus">
-        <div className="space-y-4">
-          <label className="block space-y-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-edito-heading">Corpus thématique<select value={selectedCorpus} onChange={(event) => setSelectedCorpus(event.target.value as (typeof CORPUS_PRESETS)[number]["value"])} className="mt-1 min-h-11 w-full rounded-[var(--radius-small)] border border-edito-border bg-edito-surface px-3 text-sm font-normal normal-case tracking-normal text-edito-ink outline-none focus:border-primary">{CORPUS_PRESETS.map((corpus) => <option key={corpus.value} value={corpus.value}>{corpus.label}</option>)}</select></label>
-          <div className="flex justify-end gap-2 border-t border-border pt-3"><button type="button" onClick={() => setMiniDialog(null)} className="min-h-10 rounded-[var(--radius-small)] bg-cockpit-cobalt-soft px-4 text-xs font-bold text-primary">Annuler</button><button type="button" onClick={applyCorpus} className="min-h-10 rounded-[var(--radius-small)] bg-primary px-4 text-xs font-bold text-primary-fg">Valider</button></div>
         </div>
       </CompactDialogShell>
 

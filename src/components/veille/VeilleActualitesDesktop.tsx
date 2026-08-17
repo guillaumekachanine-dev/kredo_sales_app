@@ -1360,11 +1360,18 @@ export function VeilleActualitesDesktop({
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="z-20 flex min-h-[76px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6 py-4">
-          <h1 className="font-heading text-2xl font-bold tracking-[-0.02em] text-heading">
-            {section === "news" && digest
-              ? `Actualités - Digest n°${digestNumber || "?"} du ${formatDateFr(digest.digest_date)}`
-              : "Veille & actualités"}
-          </h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate whitespace-nowrap font-heading text-2xl font-bold tracking-[-0.02em] text-heading">
+              {section === "news" && digest
+                ? `Actualités - Digest n°${digestNumber || "?"} du ${formatDateFr(digest.digest_date)}`
+                : "Veille & actualités"}
+            </h1>
+            {section === "news" && digest ? (
+              <p className="mt-1 truncate whitespace-nowrap text-xs font-medium text-muted">
+                {articles.length} articles - {digest.nb_sources_actives ?? 15} sources consultées
+              </p>
+            ) : null}
+          </div>
           <VeilleHeaderActions
             initialSettings={globalWatchSettings}
             initialHealth={globalWatchHealth}

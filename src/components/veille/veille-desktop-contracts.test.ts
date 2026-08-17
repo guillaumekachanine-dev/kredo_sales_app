@@ -49,7 +49,16 @@ describe("veille Desktop contracts", () => {
     const settings = parseGlobalWatchSettings(null)
     expect(settings).not.toHaveProperty("sourceFamilies")
     expect(settings).not.toHaveProperty("categories")
-    expect(Object.keys(settings).sort()).toEqual(["cadence", "enabled", "maxArticles"])
+    expect(Object.keys(settings).sort()).toEqual([
+      "cadence",
+      "depth",
+      "enabled",
+      "exclusions",
+      "intention",
+      "interestTopics",
+      "maxArticles",
+      "sourceFamilyOverrides",
+    ])
   })
 
   it("uses the complete previous calendar month", () => {
@@ -97,7 +106,7 @@ describe("veille Desktop UI source contract", () => {
 
   it("contains both accessible dialogs and the editorial synchronization path", () => {
     expect(header).toContain('title="Actualiser la veille"')
-    expect(header).toContain('title="Configurer la veille"')
+    expect(header).toContain("<GlobalWatchSettingsDialog")
     expect(desktop).toContain("setSelectedArticle(article)")
     expect(desktop).toContain("headingRef.current?.focus()")
     expect(desktop).toContain("<ArticleRail")

@@ -11,12 +11,22 @@ export type GlobalWatchSettings = {
   enabled: boolean
   cadence: GlobalWatchCadence
   maxArticles: number
+  depth: "standard" | "balanced" | "deep"
+  sourceFamilyOverrides: Record<string, boolean>
+  interestTopics: string[]
+  intention?: string
+  exclusions?: string
 }
 
 export const DEFAULT_GLOBAL_WATCH_SETTINGS: GlobalWatchSettings = {
   enabled: true,
   cadence: "weekly",
   maxArticles: 40,
+  depth: "balanced",
+  sourceFamilyOverrides: {},
+  interestTopics: [],
+  intention: "",
+  exclusions: "",
 }
 
 export type GlobalWatchWorkflowHealth = {
@@ -104,10 +114,27 @@ export function parseGlobalWatchSettings(settings: Json | null | undefined): Glo
     ? Math.min(100, Math.max(5, Math.round(veille.maxArticles)))
     : DEFAULT_GLOBAL_WATCH_SETTINGS.maxArticles
 
+  const depth = (veille.depth === "standard" || veille.depth === "deep") ? veille.depth : "balanced"
+  const intention = typeof veille.intention === "string" ? veille.intention : ""
+  const exclusions = typeof veille.exclusions === "string" ? veille.exclusions : ""
+
+  const sourceFamilyOverrides = isRecord(veille.sourceFamilyOverrides) 
+    ? Object.fromEntries(Object.entries(veille.sourceFamilyOverrides).filter(([_, v]) => typeof v === "boolean")) as Record<string, boolean>
+    : DEFAULT_GLOBAL_WATCH_SETTINGS.sourceFamilyOverrides
+
+  const interestTopics = Array.isArray(veille.interestTopics)
+    ? veille.interestTopics.filter((t) => typeof t === "string")
+    : DEFAULT_GLOBAL_WATCH_SETTINGS.interestTopics
+
   return {
     enabled: typeof veille.enabled === "boolean" ? veille.enabled : DEFAULT_GLOBAL_WATCH_SETTINGS.enabled,
     cadence: "weekly",
     maxArticles,
+    depth,
+    sourceFamilyOverrides,
+    interestTopics,
+    intention,
+    exclusions,
   }
 }
 
@@ -120,12 +147,30 @@ export function validateGlobalWatchSettings(value: unknown):
   if (typeof value.maxArticles !== "number" || !Number.isInteger(value.maxArticles) || value.maxArticles < 5 || value.maxArticles > 100) {
     return { success: false, error: "Le volume doit être compris entre 5 et 100 articles." }
   }
+
+  const depth = (value.depth === "standard" || value.depth === "deep") ? value.depth : "balanced"
+  const intention = typeof value.intention === "string" ? value.intention : ""
+  const exclusions = typeof value.exclusions === "string" ? value.exclusions : ""
+
+  const sourceFamilyOverrides = isRecord(value.sourceFamilyOverrides) 
+    ? Object.fromEntries(Object.entries(value.sourceFamilyOverrides).filter(([_, v]) => typeof v === "boolean")) as Record<string, boolean>
+    : {}
+
+  const interestTopics = Array.isArray(value.interestTopics)
+    ? value.interestTopics.filter((t) => typeof t === "string")
+    : []
+
   return {
     success: true,
     data: {
       enabled: value.enabled,
       cadence: "weekly",
       maxArticles: value.maxArticles,
+      depth,
+      sourceFamilyOverrides,
+      interestTopics,
+      intention,
+      exclusions,
     },
   }
 }

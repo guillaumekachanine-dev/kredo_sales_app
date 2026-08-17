@@ -29,7 +29,7 @@ export function SourceManagementLauncher({ variant, snapshot }: SourceManagement
   if (variant === "desktop") {
     return (
       <>
-        <Button variant="secondary" size="md" onClick={() => setOpen(true)} leftIcon={<SourceParametersIcon />}>
+        <Button variant="secondary" size="sm" onClick={() => setOpen(true)} leftIcon={<SourceParametersIcon />}>
           Gérer les sources
         </Button>
         <SourceManagementDialogDesktop open={open} onOpenChange={setOpen} snapshot={snapshot} />
