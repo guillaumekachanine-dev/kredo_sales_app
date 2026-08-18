@@ -867,7 +867,6 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
         "jsCode": "const item = $input.first().json;\nreturn [\n  {\n    json: {\n      status: \"no_qualifying_articles\",\n      candidateCount: item.candidateCount || 0,\n      selectedCount: 0,\n      digestUpdated: false,\n    },\n  },\n];"
       },
       "id": "c1a1a008-1111-4a11-8a11-000000000008",
