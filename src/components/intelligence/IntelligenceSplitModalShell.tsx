@@ -12,6 +12,7 @@ export type IntelligenceSplitModalShellProps = {
   leftPane: ReactNode
   rightPane: ReactNode
   headerActions?: ReactNode
+  headerRightActions?: ReactNode
   leftPaneWidth?: string
   /** Preserves the full-width category screen used by the Documents modal. */
   content?: ReactNode
@@ -42,6 +43,7 @@ export function IntelligenceSplitModalShell({
   leftPane,
   rightPane,
   headerActions,
+  headerRightActions,
   leftPaneWidth = "38%",
   content,
   isMobile = false,
@@ -130,17 +132,20 @@ export function IntelligenceSplitModalShell({
               {subtitle ? <p id={subtitleId} className="mt-0.5 text-xs leading-tight text-muted truncate">{subtitle}</p> : null}
             </div>
           </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60 motion-reduce:transition-none"
-            aria-label="Fermer la modale"
-          >
-            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {headerRightActions}
+            <button
+              ref={closeButtonRef}
+              type="button"
+              onClick={onClose}
+              className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60 motion-reduce:transition-none"
+              aria-label="Fermer la modale"
+            >
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </header>
 
         {content ? (
