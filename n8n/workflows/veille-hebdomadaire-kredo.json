@@ -334,7 +334,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all().map(i => i.json);\nconst blocContexteKredo = $('Build Contexte KREDO').first().json.blocContexteKredo;\nconst secteursActifs = $('Build Contexte KREDO').first().json.secteursActifs;\nconst dateRun = new Date().toISOString().slice(0, 10);\n\nconst articlesBlock = items.map(a =>\n  `id: ${a.id}\\ntitre: ${a.title}\\nsource: ${a.source}\\ndate: ${a.publishedAt || 'inconnue'}\\nchapo: ${a.summary}`\n).join('\\n\\n---\\n\\n');\n\nconst promptClassement = `${blocContexteKredo}\n\n# TÂCHE\nVoici une liste d'articles candidats de la semaine. Évalue CHACUN selon la grille\nci-dessous, puis renvoie UNIQUEMENT les 5 meilleurs, classés par score décroissant.\n\n# FILTRE PRÉALABLE OBLIGATOIRE\nDate de référence : ${dateRun}.\nÉcarte immédiatement, avant tout scoring, tout article publié il y a plus de 7 jours.\nLa veille est HEBDOMADAIRE : un article ancien n'a pas sa place, même s'il est bon.\n\n# GRILLE DE SCORING (0 à 100)\n- Actionnabilité commerciale (0-40) : l'article fournit-il un angle, un déclencheur\n  ou un argument qu'un commercial peut réellement utiliser ? (le critère roi)\n- Pertinence pour le lecteur ESN (0-25) : parle-t-il d'IA appliquée, de tendance\n  décideur, de réglementation créatrice de besoin ?\n- Alignement secteur KREDO (0-20) : touche-t-il un secteur de ${secteursActifs} ?\n  (0 si transverse, mais un article transverse fort reste éligible)\n- Crédibilité & fraîcheur (0-15) : source fiable, information récente et non éculée.\n- PÉNALITÉS : retire des points pour buzz creux, technique non traduit, doublon\n  thématique évident, contenu promotionnel.\n\n# CONTRAINTE DE DIVERSITÉ\nÀ pertinence comparable, privilégie la diversité des catégories et des secteurs dans\nle top 5. Évite de retenir 5 articles de la même catégorie ou du même acteur.\n\n# FORMAT DE SORTIE\nRéponds UNIQUEMENT avec un JSON valide, une seule ligne, sans backticks, sans texte\navant ou après, structure exacte :\n{\"top5\":[{\"id\":\"art_0\",\"score\":87,\"categorie\":\"ia-appliquee\",\"secteur_principal\":\"banque-finance\",\"secteur_secondaire\":\"\",\"justification\":\"...\"}]}\n\n# ARTICLES CANDIDATS\n${articlesBlock}`;\n\nreturn [{\n  json: {\n    promptClassement,\n    candidatesById: Object.fromEntries(items.map(a => [a.id, a])),\n  }\n}];"
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst blocContexteKredo = $('Build Contexte KREDO').first().json.blocContexteKredo;\nconst secteursActifs = $('Build Contexte KREDO').first().json.secteursActifs;\nconst dateRun = new Date().toISOString().slice(0, 10);\n\nconst articlesBlock = items.map(a =>\n  `id: ${a.id}\\ntitre: ${a.title}\\nsource: ${a.source}\\ndate: ${a.publishedAt || 'inconnue'}\\nchapo: ${a.summary}`\n).join('\\n\\n---\\n\\n');\n\nconst promptClassement = `${blocContexteKredo}\n\n# TÂCHE\nVoici une liste d'articles candidats de la semaine. Évalue CHACUN selon la grille\nci-dessous, puis renvoie jusqu'à 5 articles classés par score décroissant.\n\nTu peux retourner moins de 5 articles si le nombre de candidats ou leur qualité\nne justifie pas une sélection complète.\n\nSi AUCUN article ne constitue une munition commerciale suffisamment exploitable,\nretourne exactement :\n\n{\"top5\":[]}\n\nN'invente jamais un article ou un identifiant.\n\n# FILTRE PRÉALABLE OBLIGATOIRE\nDate de référence : ${dateRun}.\nÉcarte immédiatement, avant tout scoring, tout article publié il y a plus de 7 jours.\nLa veille est HEBDOMADAIRE : un article ancien n'a pas sa place, même s'il est bon.\n\n# GRILLE DE SCORING (0 à 100)\n- Actionnabilité commerciale (0-40) : l'article fournit-il un angle, un déclencheur\n  ou un argument qu'un commercial peut réellement utiliser ? (le critère roi)\n- Pertinence pour le lecteur ESN (0-25) : parle-t-il d'IA appliquée, de tendance\n  décideur, de réglementation créatrice de besoin ?\n- Alignement secteur KREDO (0-20) : touche-t-il un secteur de ${secteursActifs} ?\n  (0 si transverse, mais un article transverse fort reste éligible)\n- Crédibilité & fraîcheur (0-15) : source fiable, information récente et non éculée.\n- PÉNALITÉS : retire des points pour buzz creux, technique non traduit, doublon\n  thématique évident, contenu promotionnel.\n\n# CONTRAINTE DE DIVERSITÉ\nÀ pertinence comparable, privilégie la diversité des catégories et des secteurs dans\nle top 5. Évite de retenir 5 articles de la même catégorie ou du même acteur.\n\n# FORMAT DE SORTIE\nRéponds UNIQUEMENT avec un JSON valide, une seule ligne, sans backticks, sans aucun texte\navant ou après, structure exacte :\n{\"top5\":[{\"id\":\"art_0\",\"score\":87,\"categorie\":\"ia-appliquee\",\"secteur_principal\":\"banque-finance\",\"secteur_secondaire\":\"\",\"justification\":\"...\"}]}\n\n# ARTICLES CANDIDATS\n${articlesBlock}`;\n\nreturn [{\n  json: {\n    promptClassement,\n    candidatesById: Object.fromEntries(items.map(a => [a.id, a])),\n  }\n}];"
       },
       "id": "b52c1cd1-5927-489e-82f3-acc5ceffd15e",
       "name": "Construire Prompt Classement",
@@ -387,7 +387,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst textBlock = (response.content || []).find(b => b.type === 'text');\nconst rawText = textBlock?.text || '';\nconst candidatesById = $('Construire Prompt Classement').first().json.candidatesById;\n\nfunction extractJson(text) {\n  const fenced = text.match(/^```(?:json)?\\s*([\\s\\S]*?)\\s*```$/i);\n  if (fenced) return fenced[1].trim();\n  const first = text.indexOf('{');\n  const last = text.lastIndexOf('}');\n  if (first >= 0 && last > first) return text.slice(first, last + 1);\n  return text;\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(extractJson(rawText));\n} catch (e) {\n  throw new Error('Le classement Haiku n a pas renvoye un JSON exploitable : ' + rawText.slice(0, 300));\n}\n\nconst top5 = (parsed.top5 || []).slice(0, 5).map(t => {\n  const candidate = candidatesById[t.id];\n  if (!candidate) return null;\n  return {\n    ...candidate,\n    score: t.score,\n    categorie: t.categorie || candidate.categorieDefaut,\n    secteurPrincipal: t.secteur_principal || candidate.secteurDefaut,\n    secteurSecondaire: t.secteur_secondaire || '',\n    justification: t.justification || '',\n  };\n}).filter(Boolean);\n\nif (top5.length === 0) {\n  throw new Error('Aucun article valide dans le top 5 retourne par le classement.');\n}\n\nreturn top5.map(a => ({ json: a }));"
+        "jsCode": "const response = $input.first().json;\nconst textBlock = (response.content || []).find(b => b.type === 'text');\nconst rawText = textBlock?.text || '';\nconst promptNodeJson = $('Construire Prompt Classement').first().json;\nconst candidatesById = promptNodeJson.candidatesById || {};\nconst candidateCount = Object.keys(candidatesById).length;\n\nfunction extractJson(text) {\n  const fenced = text.match(/^```(?:json)?\\s*([\\s\\S]*?)\\s*```$/i);\n  if (fenced) return fenced[1].trim();\n  const first = text.indexOf('{');\n  const last = text.lastIndexOf('}');\n  if (first >= 0 && last > first) return text.slice(first, last + 1);\n  return text;\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(extractJson(rawText));\n} catch (e) {\n  throw new Error('Le classement Haiku n a pas renvoye un JSON exploitable : ' + rawText.slice(0, 300));\n}\n\nif (!parsed || !Array.isArray(parsed.top5)) {\n  throw new Error('Le classement Haiku n a pas renvoye un objet avec la cle top5 : ' + rawText.slice(0, 300));\n}\n\nconst top5 = (parsed.top5 || []).slice(0, 5).map(t => {\n  if (!t || typeof t !== 'object' || !t.id) return null;\n  const candidate = candidatesById[t.id];\n  if (!candidate) return null;\n  return {\n    ...candidate,\n    score: t.score,\n    categorie: t.categorie || candidate.categorieDefaut,\n    secteurPrincipal: t.secteur_principal || candidate.secteurDefaut,\n    secteurSecondaire: t.secteur_secondaire || '',\n    justification: t.justification || '',\n  };\n}).filter(Boolean);\n\nif (top5.length === 0) {\n  return [\n    {\n      json: {\n        emptySelection: true,\n        status: \"no_qualifying_articles\",\n        candidateCount,\n        selectedCount: 0,\n        digestUpdated: false,\n      },\n    },\n  ];\n}\n\nreturn top5.map(a => ({ json: a }));"
       },
       "id": "8c51eed7-2ff5-46b1-aeec-070e64947e29",
       "name": "Parser Top 5",
@@ -697,6 +697,52 @@
         7424,
         1328
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1a1a007-1111-4a11-8a11-000000000007",
+              "leftValue": "={{ $json.emptySelection }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1a1a007-1111-4a11-8a11-000000000007",
+      "name": "Router Articles Sélectionnés",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6100,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.first().json;\nreturn [\n  {\n    json: {\n      status: \"no_qualifying_articles\",\n      candidateCount: item.candidateCount || 0,\n      selectedCount: 0,\n      digestUpdated: false,\n    },\n  },\n];"
+      },
+      "id": "c1a1a008-1111-4a11-8a11-000000000008",
+      "name": "No-Op Aucune Sélection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6340,
+        1500
+      ]
     }
   ],
   "pinData": {},
@@ -969,7 +1015,7 @@
       "main": [
         [
           {
-            "node": "Charger Comptes",
+            "node": "Router Articles Sélectionnés",
             "type": "main",
             "index": 0
           }
@@ -1036,6 +1082,24 @@
         [
           {
             "node": "Créer Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Articles Sélectionnés": {
+      "main": [
+        [
+          {
+            "node": "No-Op Aucune Sélection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Charger Comptes",
             "type": "main",
             "index": 0
           }

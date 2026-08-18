@@ -980,5 +980,148 @@ check(
   outLowContextOnly[0].articles[0].convergences.evidenceRefs[0].id === "comp_1",
 )
 
+// --- LOT 2.4 : Gestion propre d'une sélection vide & No-Op ---
+
+const PARSER_TOP_5 = "Parser Top 5"
+const NO_OP_SELECTION = "No-Op Aucune Sélection"
+
+const candidatesFixture = {
+  art_1: { id: "art_1", title: "Titre 1", source: "S1", url: "https://1.com", summary: "Sum 1" },
+  art_2: { id: "art_2", title: "Titre 2", source: "S2", url: "https://2.com", summary: "Sum 2" },
+  art_3: { id: "art_3", title: "Titre 3", source: "S3", url: "https://3.com", summary: "Sum 3" },
+  art_4: { id: "art_4", title: "Titre 4", source: "S4", url: "https://4.com", summary: "Sum 4" },
+  art_5: { id: "art_5", title: "Titre 5", source: "S5", url: "https://5.com", summary: "Sum 5" },
+  art_6: { id: "art_6", title: "Titre 6", source: "S6", url: "https://6.com", summary: "Sum 6" },
+}
+
+// Cas A : 2 candidats faibles -> Haiku {"top5":[]}
+const responseHaikuEmpty = {
+  content: [{ type: "text", text: '{"top5":[]} Justification libre après JSON.' }]
+}
+const outParserEmpty = runCodeNode(PARSER_TOP_5, {
+  input: [responseHaikuEmpty],
+  registry: {
+    "Construire Prompt Classement": [{ candidatesById: { art_1: candidatesFixture.art_1, art_2: candidatesFixture.art_2 } }]
+  }
+}).map(i => i.json)
+
+check(
+  "lot2.4 — Cas A: Haiku top5: [] renvoie l'item no-op sans lever d'exception",
+  outParserEmpty.length === 1 &&
+  outParserEmpty[0].emptySelection === true &&
+  outParserEmpty[0].status === "no_qualifying_articles" &&
+  outParserEmpty[0].candidateCount === 2 &&
+  outParserEmpty[0].selectedCount === 0 &&
+  outParserEmpty[0].digestUpdated === false,
+)
+
+const outNoOpNode = runCodeNode(NO_OP_SELECTION, {
+  input: outParserEmpty,
+}).map(i => i.json)
+
+check(
+  "lot2.4 — Cas A: le noeud No-Op produit la sortie finale conforme",
+  outNoOpNode.length === 1 &&
+  outNoOpNode[0].status === "no_qualifying_articles" &&
+  outNoOpNode[0].candidateCount === 2 &&
+  outNoOpNode[0].selectedCount === 0 &&
+  outNoOpNode[0].digestUpdated === false,
+)
+
+// Cas B : 2 candidats dont 1 valide
+const responseHaiku1Valide = {
+  content: [{ type: "text", text: '{"top5":[{"id":"art_1","score":78,"categorie":"ia-appliquee","secteur_principal":"transverse"}]}' }]
+}
+const outParser1Valide = runCodeNode(PARSER_TOP_5, {
+  input: [responseHaiku1Valide],
+  registry: {
+    "Construire Prompt Classement": [{ candidatesById: { art_1: candidatesFixture.art_1, art_2: candidatesFixture.art_2 } }]
+  }
+}).map(i => i.json)
+
+check(
+  "lot2.4 — Cas B: 1 seul article sélectionné sur 2 candidats est valide",
+  outParser1Valide.length === 1 &&
+  outParser1Valide[0].id === "art_1" &&
+  outParser1Valide[0].emptySelection !== true,
+)
+
+// Cas C : 3 candidats valides
+const responseHaiku3Valides = {
+  content: [{ type: "text", text: '{"top5":[{"id":"art_1"},{"id":"art_2"},{"id":"art_3"}]}' }]
+}
+const outParser3Valides = runCodeNode(PARSER_TOP_5, {
+  input: [responseHaiku3Valides],
+  registry: {
+    "Construire Prompt Classement": [{ candidatesById: candidatesFixture }]
+  }
+}).map(i => i.json)
+
+check(
+  "lot2.4 — Cas C: 3 candidats valides sont correctement retenus",
+  outParser3Valides.length === 3 &&
+  outParser3Valides.map(a => a.id).join(",") === "art_1,art_2,art_3",
+)
+
+// Cas D : 6 candidats -> plafonné à 5
+const responseHaiku6Valides = {
+  content: [{ type: "text", text: '{"top5":[{"id":"art_1"},{"id":"art_2"},{"id":"art_3"},{"id":"art_4"},{"id":"art_5"},{"id":"art_6"}]}' }]
+}
+const outParser6Valides = runCodeNode(PARSER_TOP_5, {
+  input: [responseHaiku6Valides],
+  registry: {
+    "Construire Prompt Classement": [{ candidatesById: candidatesFixture }]
+  }
+}).map(i => i.json)
+
+check(
+  "lot2.4 — Cas D: 5+ candidats retenus par Haiku sont tronqués à 5 maximum",
+  outParser6Valides.length === 5 &&
+  outParser6Valides.map(a => a.id).join(",") === "art_1,art_2,art_3,art_4,art_5",
+)
+
+// Cas E : JSON Haiku réellement invalide
+let throwsTechnicalError = false
+try {
+  runCodeNode(PARSER_TOP_5, {
+    input: [{ content: [{ type: "text", text: "ceci n est pas du json du tout" }] }],
+    registry: {
+      "Construire Prompt Classement": [{ candidatesById: candidatesFixture }]
+    }
+  })
+} catch (e) {
+  throwsTechnicalError = e.message.includes("n a pas renvoye un JSON exploitable")
+}
+
+check(
+  "lot2.4 — Cas E: un JSON Haiku réellement invalide déclenche une erreur technique",
+  throwsTechnicalError,
+)
+
+// Vérification du chaînage des nouveaux noeuds dans n8n
+check(
+  "lot2.4 — chaînage: 'Parser Top 5' pointe vers 'Router Articles Sélectionnés'",
+  workflow.connections["Parser Top 5"]?.main?.[0]?.[0]?.node === "Router Articles Sélectionnés",
+)
+
+check(
+  "lot2.4 — chaînage: branch 0 (vide) pointe vers 'No-Op Aucune Sélection' et branch 1 (non-vide) traverse 'Charger Comptes'",
+  workflow.connections["Router Articles Sélectionnés"]?.main?.[0]?.[0]?.node === "No-Op Aucune Sélection" &&
+  workflow.connections["Router Articles Sélectionnés"]?.main?.[1]?.[0]?.node === "Charger Comptes",
+)
+
+check(
+  "lot2.4 — chaînage séquentiel obligatoire: Charger Comptes -> Charger Enjeux -> Charger Playbooks -> Pré-filtrage Déterministe",
+  workflow.connections["Charger Comptes"]?.main?.[0]?.[0]?.node === "Charger Enjeux" &&
+  workflow.connections["Charger Enjeux"]?.main?.[0]?.[0]?.node === "Charger Playbooks" &&
+  workflow.connections["Charger Playbooks"]?.main?.[0]?.[0]?.node === "Pré-filtrage Déterministe",
+)
+
+check(
+  "lot2.4 — sécurité de câblage: aucune connexion directe entre Router et Pré-filtrage Déterministe",
+  !workflow.connections["Router Articles Sélectionnés"]?.main?.[1]?.some(c => c.node === "Pré-filtrage Déterministe"),
+)
+
 console.log(`\n${passed} ok · ${failed} échec(s)`)
 process.exit(failed === 0 ? 0 : 1)
+
