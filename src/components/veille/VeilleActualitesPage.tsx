@@ -22,6 +22,8 @@ interface VeilleActualitesPageProps {
   digest: VeilleDigest | null
   digestNumber: number | null
   articles: VeilleArticle[]
+  /** Ensemble complet du corpus d'articles pour recherche avancée desktop. */
+  allArticles?: VeilleArticle[]
   /** Flux transverse aux briefings — consommé par la seule vue mobile. */
   feedArticles: VeilleArticle[]
   /** Digest retenu côté serveur (contrat `?digestId=`) — vue mobile seule. */
@@ -47,6 +49,7 @@ export function VeilleActualitesPage({
   digest,
   digestNumber,
   articles,
+  allArticles,
   feedArticles,
   selectedDigestId,
   pastDigests,
@@ -87,6 +90,7 @@ export function VeilleActualitesPage({
       digest={digest}
       digestNumber={digestNumber}
       articles={articles}
+      allArticles={allArticles}
       pastDigests={pastDigests}
       sectorNews={sectorNews}
       sectorEvents={sectorEvents}

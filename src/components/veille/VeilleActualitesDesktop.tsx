@@ -11,7 +11,7 @@ import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-regist
 import { Button } from "@/components/ui/Button"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
-import { formatDateFr } from "@/lib/formatters"
+import { formatDateFr, formatDateNumeric } from "@/lib/formatters"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
 import { cn } from "@/lib/utils"
@@ -32,7 +32,7 @@ import { AddToListDialogDesktop } from "@/features/content-collections/component
 import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
 import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
-import { extractMatchedCompany, getRelativeTimeFr } from "./veille-utils"
+import { extractMatchedCompany } from "./veille-utils"
 import {
   MONTHLY_WATCH_WORKFLOW_ID,
   type GlobalWatchSettings,
@@ -42,11 +42,17 @@ import {
   type VeilleSection,
 } from "./veille-desktop-contracts"
 import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
+import {
+  VeilleAdvancedSearchPopover,
+  DEFAULT_ADVANCED_SEARCH,
+  type AdvancedSearchState,
+} from "./VeilleAdvancedSearchPopover"
 
 interface VeilleActualitesDesktopProps {
   digest: VeilleDigest | null
   digestNumber: number | null
   articles: VeilleArticle[]
+  allArticles?: VeilleArticle[]
   pastDigests: VeilleDigest[]
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
@@ -72,8 +78,6 @@ export function getCategoryColorClass(category?: string) {
   if (lower.includes("concurrence")) return "text-warning"
   return "text-primary"
 }
-
-const FILTERS = ["Tous", "Comptes", "Réglementaire", "Nominations", "Marché"] as const
 
 function confidenceLabel(rank: number) {
   return rank <= 2 ? "élevée" : rank <= 4 ? "moyenne" : "faible"
@@ -101,105 +105,58 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-function NewsFilters({
-  search,
-  onSearch,
-  selectedFilter,
-  onFilter,
-}: {
-  search: string
-  onSearch: (value: string) => void
-  selectedFilter: typeof FILTERS[number]
-  onFilter: (value: typeof FILTERS[number]) => void
-}) {
-  return (
-    <div className="flex flex-col gap-3 p-4 border-b border-border bg-surface shrink-0" aria-label="Filtres des actualités">
-      <label className="relative w-full">
-        <span className="sr-only">Rechercher un article</span>
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => onSearch(event.target.value)}
-          placeholder="Rechercher un signal…"
-          className="h-9 w-full border border-border bg-canvas/40 px-3 text-xs text-heading outline-none placeholder:text-muted focus-visible:ring-2 focus-visible:ring-heading"
-        />
-      </label>
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Catégorie">
-        {FILTERS.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            aria-pressed={selectedFilter === filter}
-            onClick={() => onFilter(filter)}
-            className={cn(
-              "border px-2 py-1 text-[9px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
-              selectedFilter === filter
-                ? "border-primary bg-primary text-primary-fg"
-                : "border-border bg-surface text-body hover:bg-surface-hover",
-            )}
-          >
-            {filter}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function EditorialArticle({ article, headingRef, isMain }: { article: VeilleArticle; headingRef: React.RefObject<HTMLHeadingElement | null>; isMain?: boolean }) {
   const catColor = getCategoryColorClass(article.categorie)
 
   return (
-    <article className="border border-border bg-edito-canvas/80 p-3 sm:p-4">
-      <div className="paper-sheet border border-border/80 bg-surface px-8 py-9 lg:px-12 lg:py-11">
-        <div className="mx-auto max-w-[74ch]">
-          <p className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em]">
-            {isMain && (
-              <span className="inline-block bg-primary text-primary-fg px-2 py-0.5">A LA UNE</span>
-            )}
-            <span className={catColor}>{article.categorie || "Actualité"}</span>
-          </p>
-          <h2 ref={headingRef} tabIndex={-1} className="mt-3 font-heading text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading">
-            {article.titre_fr}
-          </h2>
-          <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-            <span>{getRelativeTimeFr(article.published_at)}</span><span aria-hidden="true">·</span>
-            <span>Confiance {confidenceLabel(article.selection_rank)}</span><span aria-hidden="true">·</span>
-            <span>via {article.source_name}</span>
-          </div>
-          <p className="mt-8 text-[15px] leading-[1.72] text-body">{article.resume}</p>
-
-          {article.analyse_kredo ? (
-            <section className="mt-9 border-t border-border pt-6">
-              <h3 className="flex items-center gap-2 font-heading text-[15px] font-bold text-heading">
-                <IntelligenceIcon name="recommendations" preferVector className="size-4 text-brand-brass" />
-                Pourquoi c’est important
-              </h3>
-              <p className="mt-3 text-[14px] leading-[1.72] text-body">{article.analyse_kredo}</p>
-            </section>
-          ) : null}
-
-          {article.action_commerciale ? (
-            <section className="mt-7 border-t border-border pt-6">
-              <h3 className="flex items-center gap-2 font-heading text-[15px] font-bold text-heading">
-                <IntelligenceIcon name="generate_pitch" preferVector className="size-4 text-primary" />
-                Lecture commerciale
-              </h3>
-              <p className="mt-3 text-[14px] leading-[1.72] text-body">{article.action_commerciale}</p>
-            </section>
-          ) : null}
-
-          <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
-            <div className="flex flex-wrap gap-1.5">
-              {article.tags.map((tag) => <span key={tag} className="border border-border bg-edito-chip px-2 py-1 text-[9px] text-body">#{tag}</span>)}
-            </div>
-            {article.url ? (
-              <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-heading">
-                Lire la source <span className="sr-only">(nouvel onglet)</span>
-              </a>
-            ) : null}
-          </footer>
+    <article className="paper-sheet border border-border bg-surface px-6 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
+      <div className="mx-auto max-w-[74ch]">
+        <p className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em]">
+          {isMain && (
+            <span className="inline-block bg-primary text-primary-fg px-2 py-0.5">A LA UNE</span>
+          )}
+          <span className={catColor}>{article.categorie || "Actualité"}</span>
+        </p>
+        <h2 ref={headingRef} tabIndex={-1} className="mt-3 font-heading text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading">
+          {article.titre_fr}
+        </h2>
+        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+          <span>{formatDateFr(article.published_at)}</span><span aria-hidden="true">·</span>
+          <span>Confiance {confidenceLabel(article.selection_rank)}</span><span aria-hidden="true">·</span>
+          <span>via {article.source_name}</span>
         </div>
+        <p className="mt-8 text-[15px] leading-[1.72] text-body">{article.resume}</p>
+
+        {article.analyse_kredo ? (
+          <section className="mt-9 border-t border-border pt-6">
+            <h3 className="flex items-center gap-2 font-heading text-[15px] font-bold text-heading">
+              <IntelligenceIcon name="recommendations" preferVector className="size-4 text-brand-brass" />
+              Pourquoi c’est important
+            </h3>
+            <p className="mt-3 text-[14px] leading-[1.72] text-body">{article.analyse_kredo}</p>
+          </section>
+        ) : null}
+
+        {article.action_commerciale ? (
+          <section className="mt-7 border-t border-border pt-6">
+            <h3 className="flex items-center gap-2 font-heading text-[15px] font-bold text-heading">
+              <IntelligenceIcon name="generate_pitch" preferVector className="size-4 text-primary" />
+              Lecture commerciale
+            </h3>
+            <p className="mt-3 text-[14px] leading-[1.72] text-body">{article.action_commerciale}</p>
+          </section>
+        ) : null}
+
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+          <div className="flex flex-wrap gap-1.5">
+            {article.tags.map((tag) => <span key={tag} className="border border-border bg-edito-chip px-2 py-1 text-[9px] text-body">#{tag}</span>)}
+          </div>
+          {article.url ? (
+            <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-heading">
+              Lire la source <span className="sr-only">(nouvel onglet)</span>
+            </a>
+          ) : null}
+        </footer>
       </div>
     </article>
   )
@@ -259,32 +216,128 @@ function ArticleRail({
 }
 
 function VerticalArticleRail({
+  digestNumber,
+  pastDigests,
+  currentDigestId,
   articles,
   selectedId,
   onSelect,
   search,
   onSearch,
-  selectedFilter,
-  onFilter
+  isAdvancedSearchOpen,
+  onToggleAdvancedSearch,
+  isAdvancedSearchActive,
+  categories,
+  advancedSearchState,
+  onApplyAdvancedSearch,
+  onResetAdvancedSearch,
 }: {
+  digestNumber: number | null
+  pastDigests: VeilleDigest[]
+  currentDigestId: string | null
   articles: VeilleArticle[]
   selectedId: string
   onSelect: (article: VeilleArticle) => void
   search: string
   onSearch: (value: string) => void
-  selectedFilter: typeof FILTERS[number]
-  onFilter: (value: typeof FILTERS[number]) => void
+  isAdvancedSearchOpen: boolean
+  onToggleAdvancedSearch: () => void
+  isAdvancedSearchActive: boolean
+  categories: string[]
+  advancedSearchState: AdvancedSearchState
+  onApplyAdvancedSearch: (state: AdvancedSearchState, resolvedArticleIds: string[] | null) => void
+  onResetAdvancedSearch: () => void
 }) {
+  const router = useRouter()
+  const currentIdx = pastDigests.findIndex((d) => d.id === currentDigestId)
+  const hasOlder = currentIdx >= 0 && currentIdx < pastDigests.length - 1
+  const hasNewer = currentIdx > 0
+  const olderDigestId = hasOlder ? pastDigests[currentIdx + 1]?.id : null
+  const newerDigestId = hasNewer ? pastDigests[currentIdx - 1]?.id : null
+
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-border bg-surface">
-      <NewsFilters search={search} onSearch={onSearch} selectedFilter={selectedFilter} onFilter={onFilter} />
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-border bg-surface select-none">
+      {/* C. Chapeau Digest */}
+      <div className="flex items-center justify-between border-b border-border bg-edito-canvas/70 px-3 py-2 text-xs font-bold text-heading shrink-0">
+        <button
+          type="button"
+          disabled={!hasOlder}
+          onClick={() => olderDigestId && router.push(`/veille?digestId=${olderDigestId}`)}
+          className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border/80 bg-surface font-bold text-heading shadow-2xs transition-all hover:border-primary hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-25 disabled:pointer-events-none"
+          title="Digest précédent"
+        >
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+        <span className="font-heading text-xs font-bold tracking-tight">
+          Digest #{digestNumber ?? "?"}
+        </span>
+        <button
+          type="button"
+          disabled={!hasNewer}
+          onClick={() => newerDigestId && router.push(`/veille?digestId=${newerDigestId}`)}
+          className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border/80 bg-surface font-bold text-heading shadow-2xs transition-all hover:border-primary hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-25 disabled:pointer-events-none"
+          title="Digest suivant"
+        >
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </button>
+      </div>
+
+      {/* D & E. Barre de recherche et Recherche Avancée */}
+      <div className="relative border-b border-border bg-surface p-2.5 shrink-0">
+        <div className="flex items-center gap-1.5">
+          <label className="relative flex-1 min-w-0">
+            <span className="sr-only">Rechercher un article</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => onSearch(event.target.value)}
+              placeholder="Rechercher un article…"
+              className="h-8 w-full border border-border bg-canvas/40 px-2.5 text-xs text-heading outline-none placeholder:text-muted focus-visible:ring-2 focus-visible:ring-heading"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={onToggleAdvancedSearch}
+            aria-pressed={isAdvancedSearchOpen || isAdvancedSearchActive}
+            title="Recherche avancée"
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-heading",
+              isAdvancedSearchActive
+                ? "border-primary bg-primary text-primary-fg"
+                : isAdvancedSearchOpen
+                  ? "border-heading bg-heading text-primary-fg"
+                  : "border-border bg-surface text-body hover:bg-surface-hover",
+            )}
+          >
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+          </button>
+        </div>
+
+        <VeilleAdvancedSearchPopover
+          open={isAdvancedSearchOpen}
+          onClose={onToggleAdvancedSearch}
+          categories={categories}
+          currentState={advancedSearchState}
+          onApply={onApplyAdvancedSearch}
+          onReset={onResetAdvancedSearch}
+        />
+      </div>
+
+      {/* F. Liste des articles */}
       <div className="flex-1 overflow-y-auto veille-scrollbar">
         {articles.length === 0 ? (
-          <p className="p-4 text-xs text-muted">Aucun article ne correspond aux filtres.</p>
+          <p className="p-4 text-xs text-muted">Aucun article ne correspond aux critères.</p>
         ) : (
           <div className="divide-y divide-border">
             {articles.map((article) => {
               const isSelected = article.id === selectedId
+              const isMain = article.selection_rank === 1
               const catColor = getCategoryColorClass(article.categorie)
               return (
                 <button
@@ -293,18 +346,27 @@ function VerticalArticleRail({
                   onClick={() => onSelect(article)}
                   aria-pressed={isSelected}
                   className={cn(
-                    "block w-full text-left p-4 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-heading",
-                    isSelected ? "bg-primary/[0.05] border-l-2 border-l-primary" : "hover:bg-surface-hover border-l-2 border-l-transparent"
+                    "block w-full text-left p-3 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-heading",
+                    isSelected ? "bg-primary/[0.05] border-l-2 border-l-primary" : "hover:bg-surface-hover border-l-2 border-l-transparent",
                   )}
                 >
-                  <span className={cn("text-[9px] font-bold uppercase tracking-[0.08em]", catColor)}>
-                    {article.categorie || article.source_name}
-                  </span>
-                  <span className="mt-1.5 block text-[13px] font-bold leading-5 text-heading line-clamp-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {isMain && (
+                      <span className="inline-block bg-primary text-primary-fg px-1.5 py-0.5 text-[8px] font-bold tracking-wider uppercase">
+                        À LA UNE
+                      </span>
+                    )}
+                    <span className={cn("text-[9px] font-bold uppercase tracking-[0.08em]", catColor)}>
+                      {article.categorie || "Actualité"}
+                    </span>
+                  </div>
+
+                  <span className="mt-2 block text-xs font-bold leading-snug text-heading line-clamp-2">
                     {article.titre_fr}
                   </span>
-                  <span className="mt-2 block text-[10px] text-muted">
-                    {article.source_name}
+
+                  <span className="mt-1.5 block text-[10px] text-muted">
+                    {article.source_name} {article.published_at ? `· ${formatDateFr(article.published_at)}` : ""}
                   </span>
                 </button>
               )
@@ -1240,6 +1302,7 @@ export function VeilleActualitesDesktop({
   digest,
   digestNumber,
   articles: initialArticles,
+  allArticles = [],
   pastDigests,
   sectorNews,
   sectorEvents,
@@ -1255,9 +1318,11 @@ export function VeilleActualitesDesktop({
 }: VeilleActualitesDesktopProps) {
   const [section, setSection] = useState<VeilleSection>("news")
   const [articles, setArticles] = useState(initialArticles)
-  const [selectedArticle, setSelectedArticle] = useState(initialArticles[0] ?? null)
+  const [selectedArticle, setSelectedArticle] = useState<VeilleArticle | null>(initialArticles[0] ?? null)
   const [search, setSearch] = useState("")
-  const [filter, setFilter] = useState<typeof FILTERS[number]>("Tous")
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false)
+  const [advancedSearch, setAdvancedSearch] = useState<AdvancedSearchState>(DEFAULT_ADVANCED_SEARCH)
+  const [resolvedCollectionArticleIds, setResolvedCollectionArticleIds] = useState<string[] | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [qualifyOpen, setQualifyOpen] = useState(false)
   const [opportunityOpen, setOpportunityOpen] = useState(false)
@@ -1272,16 +1337,65 @@ export function VeilleActualitesDesktop({
     return () => useSidebarCollapse.getState().requestRestore()
   }, [])
 
-  const filteredArticles = useMemo(() => articles.filter((article) => {
-    const haystack = `${article.titre_fr} ${article.resume} ${article.secteur_principal} ${article.source_name}`.toLocaleLowerCase("fr")
-    if (!haystack.includes(search.trim().toLocaleLowerCase("fr"))) return false
-    if (filter === "Tous") return true
-    if (filter === "Comptes") return Boolean(extractMatchedCompany(article.titre_fr, article.resume, companies))
-    const category = article.categorie.toLocaleLowerCase("fr")
-    if (filter === "Réglementaire") return category.includes("réglement")
-    if (filter === "Nominations") return category.includes("nominat")
-    return category.includes("marché") || category.includes("invest")
-  }), [articles, companies, filter, search])
+  const availableCategories = useMemo(() => {
+    const source = allArticles.length > 0 ? allArticles : initialArticles
+    const set = new Set<string>()
+    for (const a of source) {
+      if (a.categorie) set.add(a.categorie)
+    }
+    return Array.from(set).sort()
+  }, [allArticles, initialArticles])
+
+  const isAdvancedSearchActive = useMemo(() => {
+    return (
+      advancedSearch.periodMode !== "none" ||
+      Boolean(advancedSearch.category) ||
+      Boolean(advancedSearch.collectionId)
+    )
+  }, [advancedSearch])
+
+  const filteredArticles = useMemo(() => {
+    const sourceList = (isAdvancedSearchActive && allArticles.length > 0) ? allArticles : articles
+
+    return sourceList.filter((article) => {
+      // 1. Text search
+      if (search.trim()) {
+        const query = search.trim().toLocaleLowerCase("fr")
+        const haystack = `${article.titre_fr} ${article.resume} ${article.secteur_principal} ${article.source_name} ${article.categorie} ${(article.tags || []).join(" ")}`.toLocaleLowerCase("fr")
+        if (!haystack.includes(query)) return false
+      }
+
+      if (!isAdvancedSearchActive) return true
+
+      // 2. Period filter
+      if (advancedSearch.periodMode === "month" && advancedSearch.monthYear) {
+        if (!article.published_at || !article.published_at.startsWith(advancedSearch.monthYear)) return false
+      } else if (advancedSearch.periodMode === "range") {
+        if (advancedSearch.startDate && article.published_at && article.published_at < advancedSearch.startDate) return false
+        if (advancedSearch.endDate && article.published_at && article.published_at > `${advancedSearch.endDate}T23:59:59`) return false
+      }
+
+      // 3. Category filter
+      if (advancedSearch.category) {
+        if (article.categorie !== advancedSearch.category) return false
+      }
+
+      // 4. Collection filter
+      if (advancedSearch.collectionId && resolvedCollectionArticleIds !== null) {
+        if (!resolvedCollectionArticleIds.includes(article.id)) return false
+      }
+
+      return true
+    })
+  }, [articles, allArticles, search, isAdvancedSearchActive, advancedSearch, resolvedCollectionArticleIds])
+
+  const [prevFiltered, setPrevFiltered] = useState(filteredArticles)
+  if (filteredArticles !== prevFiltered) {
+    setPrevFiltered(filteredArticles)
+    if (filteredArticles.length > 0 && (!selectedArticle || !filteredArticles.some((a) => a.id === selectedArticle.id))) {
+      setSelectedArticle(filteredArticles[0])
+    }
+  }
 
   const matchedCompany = selectedArticle ? extractMatchedCompany(selectedArticle.titre_fr, selectedArticle.resume, companies) : null
   const watched = Boolean(matchedCompany && watchedCompanyIds.includes(matchedCompany.id))
@@ -1327,7 +1441,7 @@ export function VeilleActualitesDesktop({
         ? <HistorySection digests={pastDigests} analyses={analysisHistory} onOpenDigest={() => setSection("news")} />
         : selectedArticle
           ? (
-              <div className="grid grid-cols-[minmax(0,1fr)_18rem] items-start gap-4">
+              <div className="grid grid-cols-[minmax(0,1fr)_16rem] items-start gap-4">
                 <EditorialArticle article={selectedArticle} headingRef={headingRef} isMain={selectedArticle.selection_rank === 1} />
                 <ArticleRail
                   company={matchedCompany}
@@ -1345,30 +1459,24 @@ export function VeilleActualitesDesktop({
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
       <VeilleLocalNavigation active={section} onChange={setSection} />
-      
-      {section === "news" && selectedArticle ? (
-        <VerticalArticleRail
-          articles={filteredArticles}
-          selectedId={selectedArticle.id}
-          onSelect={selectArticle}
-          search={search}
-          onSearch={setSearch}
-          selectedFilter={filter}
-          onFilter={setFilter}
-        />
-      ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="z-20 flex min-h-[76px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6 py-4">
           <div className="min-w-0 flex-1">
             <h1 className="truncate whitespace-nowrap font-heading text-2xl font-bold tracking-[-0.02em] text-heading">
-              {section === "news" && digest
-                ? `Actualités - Digest n°${digestNumber || "?"} du ${formatDateFr(digest.digest_date)}`
-                : "Veille & actualités"}
+              {section === "news"
+                ? digest
+                  ? `Sélection du ${formatDateNumeric(digest.digest_date)}`
+                  : "Sélection du JJ/MM/AAAA"
+                : section === "watched-accounts"
+                  ? "Veille des comptes"
+                  : section === "strategic-analysis"
+                    ? "Analyses stratégiques"
+                    : "Historique de la veille"}
             </h1>
             {section === "news" && digest ? (
               <p className="mt-1 truncate whitespace-nowrap text-xs font-medium text-muted">
-                {articles.length} articles - {digest.nb_sources_actives ?? 15} sources consultées
+                {filteredArticles.length} article{filteredArticles.length > 1 ? "s" : ""} · {digest.nb_sources_actives ?? 15} sources consultées
               </p>
             ) : null}
           </div>
@@ -1379,9 +1487,41 @@ export function VeilleActualitesDesktop({
             sourceManagementSnapshot={sourceManagementSnapshot}
           />
         </header>
-        <main className="veille-scrollbar min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1480px] px-6 py-6">{content}</div>
-        </main>
+
+        {section === "news" ? (
+          <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
+            <VerticalArticleRail
+              digestNumber={digestNumber}
+              pastDigests={pastDigests}
+              currentDigestId={digest?.id ?? null}
+              articles={filteredArticles}
+              selectedId={selectedArticle?.id ?? ""}
+              onSelect={selectArticle}
+              search={search}
+              onSearch={setSearch}
+              isAdvancedSearchOpen={advancedSearchOpen}
+              onToggleAdvancedSearch={() => setAdvancedSearchOpen((prev) => !prev)}
+              isAdvancedSearchActive={isAdvancedSearchActive}
+              categories={availableCategories}
+              advancedSearchState={advancedSearch}
+              onApplyAdvancedSearch={(newState, resolvedIds) => {
+                setAdvancedSearch(newState)
+                setResolvedCollectionArticleIds(resolvedIds)
+              }}
+              onResetAdvancedSearch={() => {
+                setAdvancedSearch(DEFAULT_ADVANCED_SEARCH)
+                setResolvedCollectionArticleIds(null)
+              }}
+            />
+            <div className="veille-scrollbar min-w-0 flex-1 overflow-y-auto p-6">
+              {content}
+            </div>
+          </div>
+        ) : (
+          <main className="veille-scrollbar min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[1480px] px-6 py-6">{content}</div>
+          </main>
+        )}
       </div>
 
       {message ? <div role="status" className="fixed bottom-5 right-5 z-50 max-w-sm border border-border bg-heading px-4 py-3 text-xs font-semibold text-primary-fg"><button type="button" onClick={() => setMessage(null)} className="mr-3 underline" aria-label="Fermer">Fermer</button>{message}</div> : null}

@@ -40,6 +40,7 @@ function makeArticle(overrides: Partial<VeilleArticle> & { id: string }): Veille
     secteur_secondaire: "",
     categorie: overrides.categorie ?? "Réglementation",
     company_id: overrides.company_id ?? null,
+    convergences: overrides.convergences ?? null,
     source_catalog_id: null,
     tags: [],
     created_at: "2026-07-29T08:00:00Z",

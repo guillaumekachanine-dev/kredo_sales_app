@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import {
   getVeilleArticles,
   getVeilleArticlesForDigests,
+  getAllVeilleArticles,
   getPastVeilleDigests,
   getSectorNews,
   getSectorEvents,
@@ -94,31 +95,40 @@ export default async function VeillePage({
   // 3. Fetch dependencies depending on whether we have a digest or empty state fallbacks
   let articles: VeilleArticle[] = []
   let feedArticles: VeilleArticle[] = []
+  let allArticles: VeilleArticle[] = []
   let sectorNews: SectorNews[] = []
   let sectorEvents: SectorEvent[] = []
 
-  if (selectedDigest) {
-    if (device === "mobile") {
-      // Le flux « Actualités » mobile est transverse aux briefings : un seul
-      // appel couvre à la fois le flux et les articles du digest courant.
-      // `selectedDigest` peut venir d'un `digestId` plus ancien que les 10
-      // derniers briefings : on l'ajoute explicitement au lot.
+  if (device === "mobile") {
+    if (selectedDigest) {
       const feedDigestIds = Array.from(new Set([...pastDigests.map((d) => d.id), selectedDigest.id]))
-      const { data: allArticles } = await getVeilleArticlesForDigests(feedDigestIds)
-      feedArticles = allArticles || []
+      const { data: allArticlesData } = await getVeilleArticlesForDigests(feedDigestIds)
+      feedArticles = allArticlesData || []
       articles = feedArticles.filter((article) => article.digest_id === selectedDigest.id)
     } else {
-      const { data: articlesData } = await getVeilleArticles(selectedDigest.id)
-      articles = articlesData || []
+      const [newsResult, eventsResult] = await Promise.all([
+        getSectorNews(5),
+        getSectorEvents(5)
+      ])
+      sectorNews = newsResult.data || []
+      sectorEvents = eventsResult.data || []
     }
   } else {
-    // Empty state fallback - load recent sector news and events
-    const [newsResult, eventsResult] = await Promise.all([
-      getSectorNews(5),
-      getSectorEvents(5)
+    const [articlesResult, allArticlesResult] = await Promise.all([
+      selectedDigest ? getVeilleArticles(selectedDigest.id) : Promise.resolve({ data: [] as VeilleArticle[], error: null }),
+      getAllVeilleArticles(),
     ])
-    sectorNews = newsResult.data || []
-    sectorEvents = eventsResult.data || []
+    articles = articlesResult.data || []
+    allArticles = allArticlesResult.data || []
+
+    if (!selectedDigest && (allArticles.length === 0)) {
+      const [newsResult, eventsResult] = await Promise.all([
+        getSectorNews(5),
+        getSectorEvents(5)
+      ])
+      sectorNews = newsResult.data || []
+      sectorEvents = eventsResult.data || []
+    }
   }
 
   const companies = companiesResult.data || []
@@ -134,6 +144,7 @@ export default async function VeillePage({
         digest={selectedDigest}
         digestNumber={digestNumber}
         articles={articles}
+        allArticles={allArticles}
         feedArticles={feedArticles}
         selectedDigestId={selectedDigest?.id ?? null}
         pastDigests={pastDigests}

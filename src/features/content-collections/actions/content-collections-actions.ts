@@ -12,6 +12,7 @@ import {
   type CollectionKind,
   type MutationResult,
 } from "../domain/content-collections-contracts"
+import { resolveKnowledgeScope } from "../data/resolve-knowledge-scope"
 
 const UNIQUE_CONSTRAINT_TARGET = "collection_id,content_type,content_id"
 
@@ -289,3 +290,26 @@ export async function moveItemsToCollectionAction(
   if (!addResult.success) return addResult
   return removeItemsByIdAction(itemIds)
 }
+
+export type ResolveCollectionArticleIdsResult =
+  | { success: true; articleIds: string[] }
+  | { success: false; error: string }
+
+export async function resolveCollectionArticleIdsAction(
+  collectionId: string,
+): Promise<ResolveCollectionArticleIdsResult> {
+  const acting = await resolveAuthenticatedClient()
+  if (!acting.ok) return { success: false, error: acting.error }
+
+  const result = await resolveKnowledgeScope(acting.supabase, collectionId)
+  if ("error" in result) {
+    return { success: false, error: result.error }
+  }
+
+  const articleIds = result.refs
+    .filter((ref) => ref.contentType === "veille_article")
+    .map((ref) => ref.contentId)
+
+  return { success: true, articleIds }
+}
+

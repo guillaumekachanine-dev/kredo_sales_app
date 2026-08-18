@@ -203,6 +203,18 @@ export async function getVeilleArticles(digestId: string) {
   return { data: (data || []) as VeilleArticle[], error }
 }
 
+export async function getAllVeilleArticles() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("veille_articles")
+    .select("*")
+    .order("published_at", { ascending: false })
+    .order("selection_rank", { ascending: true })
+
+  return { data: (data || []) as VeilleArticle[], error }
+}
+
+
 /**
  * Articles de plusieurs briefings en un seul appel — le flux « Actualités »
  * mobile est transverse aux digests, contrairement au lecteur desktop qui reste

@@ -7049,6 +7049,7 @@ export type Database = {
           analyse_kredo: string
           categorie: string
           company_id: string | null
+          convergences: Json | null
           created_at: string
           digest_id: string
           id: string
@@ -7071,6 +7072,7 @@ export type Database = {
           analyse_kredo: string
           categorie: string
           company_id?: string | null
+          convergences?: Json | null
           created_at?: string
           digest_id: string
           id?: string
@@ -7093,6 +7095,7 @@ export type Database = {
           analyse_kredo?: string
           categorie?: string
           company_id?: string | null
+          convergences?: Json | null
           created_at?: string
           digest_id?: string
           id?: string
