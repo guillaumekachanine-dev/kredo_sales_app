@@ -1,0 +1,13 @@
+-- ADR-0020 « Missions d'intelligence » — lot L3 (callback).
+--
+-- M-7 : une mission produit TOUJOURS le contrat `MissionReportV1` et le type
+-- documentaire `mission_report`. Ni l'un ni l'autre n'est configurable par un
+-- preset : le callback les impose lui-même à partir du préfixe `mission:` de
+-- `ai_intelligence_runs.run_type`.
+--
+-- Cette valeur d'enum est la SEULE écriture de schéma du lot L3 : un run de
+-- mission est une ligne `ai_intelligence_runs` ordinaire (M-3), aucune table ni
+-- colonne nouvelle.
+--
+-- Additif et idempotent : un rejeu ne duplique ni ne casse.
+ALTER TYPE public.intelligence_document_type ADD VALUE IF NOT EXISTS 'mission_report';

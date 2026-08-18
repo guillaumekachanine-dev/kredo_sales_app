@@ -1,6 +1,6 @@
 # KREDO — Journal des sessions
 
-> Historique détaillé des sessions de développement (Sessions 6 → 34, juin → août 2026).
+> Historique détaillé des sessions de développement (Sessions 6 → 48, juin → août 2026).
 > **Extrait de `CLAUDE.md` le 2026-08-10** : ce journal pesait 164 Ko sur les 197 Ko du fichier,
 > soit ~83 % du contexte chargé à chaque session pour de l'historique rarement consulté.
 > Contenu conservé à l'identique, aucune ligne supprimée.
@@ -12,6 +12,110 @@
 > ⚠️ Ce journal est **daté par construction**. Les faits qu'il énonce (compteurs de lignes,
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
+
+---
+
+### Session 48 — Missions d'intelligence, correctif d'aiguillage post-L3 (2026-08-18)
+
+Suivi immédiat de la Session 47. La revue `feature-dev:code-reviewer` déclenchée en sortie du
+lot L3 avait trouvé un résidu **latent** (documenté au moment même, pas découvert plus tard) :
+l'imposition `resultType`/`phase` du bloc mission ne portait que sur `persistedPayload`, pas sur
+les `const resultType`/`phase` destructurées du payload — que les blocs 5 à 9 continuaient de
+lire. Deux scénarios concrets : un run de mission avec `payload.resultType = "account_knowledge"`
+se faisait rejeter par le bloc 4 bis *avant* d'atteindre le validateur mission (perte silencieuse
+d'un rapport valide) ; avec `payload.resultType = "account_issues_map"`, le rapport était validé
+et persisté correctement, PUIS `materializeAccountIssues` recevait le `contentJson` brut de la
+mission, échouait sur son contrôle `schema_version`, et faisait répondre 500 à n8n après un
+succès complet.
+
+**Correctif** : `resultType`/`phase` sont devenus des `let`, réassignés dans le bloc mission au
+même moment que `persistedPayload` — tout ce qui suit (matérialisation `account_issues`, chemin
+document, revalidation `account_watch_refresh`, `updateRunStatus`) lit désormais la valeur
+imposée. Le bloc `account_knowledge` (4 bis), qui s'exécute AVANT le portail mission, exclut
+symétriquement `isMissionRunType(run.run_type)`.
+
+Diff : `route.ts` **+93 / −3** (les 3 lignes « supprimées » sont les 3 lignes réécrites pour
+introduire les `let` et l'exclusion — aucune ligne des 4 chemins existants n'a changé de
+comportement pour un run NON-mission, `isMissionRunType` y étant toujours `false`). Deux
+scénarios ajoutés aux tests (A : `account_knowledge` sur un run de mission ; B : renforcement du
+test « dispatche sur run_type » avec assertion `materializeAccountIssues` jamais appelé) —
+**13 tests dans le fichier, les 6 tests `account_knowledge V3` préexistants inchangés au
+caractère près** (vérifié par les hunks du diff : aucun ne touche l'intérieur de leur `describe`).
+
+**Vérification par mutation** : retirer l'exclusion `isMissionRunType` du bloc 4 bis → le
+scénario A repasse rouge ; retirer la réassignation `resultType`/`phase` dans le bloc mission → le
+test de dispatch repasse rouge. Les deux mutations ciblent exactement le test censé les attraper.
+
+Boucle complète : typecheck ✅ · **1521 tests / 150 fichiers, 0 échec** (1520 avant, +1 net —
+un test renforcé plutôt que dupliqué, un test ajouté) · server-boundary ✅ · lint ✅ 0 problème ·
+build ✅ exit 0, 64/64 pages après `rm -rf .next`.
+
+---
+
+### Session 47 — Missions d'intelligence, lot L3 : le portail de callback (2026-08-18)
+
+ADR-0020. L0 a posé les contrats, L1 l'hydratation, L2 le workflow. **L3 est le premier lot du
+chantier qui modifie un fichier en production** : `src/app/api/n8n/callback/route.ts`, point
+d'arrivée unique des 12 workflows n8n. D'où la contrainte de forme : **additions uniquement**.
+Diff final = 61 lignes ajoutées + **1 ligne modifiée**, la liste de colonnes du SELECT du run
+(`run_type`, `input_snapshot`), la seule que le cahier des charges autorisait. Aucune ligne des
+4 chemins existants (`account_knowledge`, `account_issues_map`, document générique,
+`account_watch_refresh`) n'a été touchée ; leurs 6 tests préexistants passent inchangés.
+
+**Les deux règles de sécurité du lot, et pourquoi elles ne sont pas décoratives.** Le dispatch se
+fait sur `run.run_type` — écrit par la gateway de lancement, donc par du code Kredo — et jamais sur
+`payload.resultType`, qui vient de n8n. Une fois la mission reconnue, `resultType` et `phase` sont
+**imposés** (`mission_report`, 1). Sans cette imposition, une intention rédigée en texte libre dans
+un preset pourrait choisir son `resultType` et faire écrire un LLM dans le CRM par le chemin
+`account_issues_map`, qui matérialise N lignes `account_issues` en service-role.
+
+**Le validateur refuse, il ne répare jamais.** `JSON.parse` strict (pas de retrait de balises
+Markdown, pas de troncature au dernier `}` équilibré) ; énumérations closes ; et surtout : toute
+citation dont le triplet `ref.kind`/`ref.table`/`ref.id` ne correspond pas à une entrée `kept: true`
+de `input_snapshot.trace` **rejette le rapport ENTIER**, jamais la seule citation — un rapport
+adossé à une source absente du corpus a le même défaut de confiance qu'un rapport qui invente un
+chiffre. Les `title`/`provenance` de chaque citation sont **reconstruits depuis la trace** : ce que
+le modèle a écrit dans ces deux champs n'est jamais retenu (il pourrait renommer une source pour la
+faire dire autre chose). Le rapport est reconstruit champ par champ : aucune clé étrangère au
+contrat n'atteint `content_json`.
+
+**Deux choix assumés, contre la doctrine `account_knowledge` :** `evidence: []` est accepté sur un
+constat (un rapport de mission est un livrable lu par un humain et n'écrit rien dans le CRM —
+l'invariant qui compte est « aucune citation invérifiable », pas « aucun énoncé non cité » ; refuser
+le rapport entier pour un constat de synthèse ferait échouer le pilote L5 sur une sortie légitime),
+et `horizon: null` vaut absence (idiome JSON, aucune interprétation possible, rien d'invalide
+persisté).
+
+**Le piège de l'enum, mesuré.** `ALTER TYPE intelligence_document_type ADD VALUE 'mission_report'`
+casse le `typecheck` — mais `tsc` ne désigne franchement que 4 des 8 sites à patcher. Un est désigné
+indirectement (TS7053 au site d'appel), et **deux ne le sont jamais** : le type `ReportDocumentType`
+et le `Set REPORT_DOCUMENT_TYPES` de `document-display.tsx`. Oublier le `Set` classe le nouveau type
+en `"communication"` au lieu de `"report"`, sans une erreur de compilation. Détail complet dans
+`CLAUDE.md` § enum `intelligence_document_type`.
+
+**Vérification par mutation** (la seule qui vaille pour une garde) : dispatcher sur
+`payload.resultType` → 1 test rouge ; retirer l'imposition `resultType`/`phase` → 1 rouge ; recopier
+le `title` d'une citation depuis le JSON du modèle → 2 rouges ; élaguer une citation absente au lieu
+de rejeter → 5 rouges ; accepter une entrée `kept: false` → 1 rouge.
+
+Boucle complète : typecheck ✅ · **1520 tests / 150 fichiers, 0 échec** (1485 avant, +35) ·
+server-boundary ✅ · lint ✅ 0 problème sur les 10 fichiers du lot · build ✅ exit 0, 64/64 pages
+après `rm -rf .next`. L'`ENOTEMPTY` sur `.next/server` s'est bien produit — au **second** build
+consécutif, pas au premier : purger avant chaque build, pas seulement quand ça casse.
+
+**Ce qui reste à observer en usage réel** : qu'un vrai run de mission arrive jusqu'ici dépend de
+l'import VPS de `mission-001-run` (manuel, Guillaume) et d'un lancement depuis
+`intelligence-registry.ts`. Le rendu visuel du document dans `/reports` n'a pas été vérifié (QA
+visuelle = Guillaume). **Résidu connu, hors périmètre** : `ai_intelligence_runs.current_phase`
+reçoit encore la `phase` du payload (la ligne appartient au bloc 6 préexistant) — sans conséquence,
+la garde M-4 est posée dans `v_ai_intelligence_summary` et aucun code TypeScript n'interprète cette
+colonne.
+
+> L2 (workflow `mission-001-run`, livré par Gemini le 2026-08-18) n'a pas d'entrée dans ce journal :
+> son détail vit dans `docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md` §9.
+
+Prochain lot : **L5**, le pilote (`intel-021` rejoué en preset). L4 (composeur UX) reste suspendu
+jusqu'à la preuve du pilote.
 
 ---
 

@@ -35,6 +35,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
   strategic_watch_analysis: "Analyse stratégique de la veille",
   master_study: "Master Study sectorielle",
   competitive_map_import: "Import de cartographie",
+  mission_report: "Rapport de mission",
 }
 
 function formatDate(value: string) {

@@ -8637,6 +8637,7 @@ export type Database = {
         | "master_study"
         | "competitive_map_import"
         | "manager_summary"
+        | "mission_report"
       intelligence_document_version_origin:
         | "generated"
         | "regenerated"
@@ -8882,6 +8883,7 @@ export const Constants = {
         "master_study",
         "competitive_map_import",
         "manager_summary",
+        "mission_report",
       ],
       intelligence_document_version_origin: [
         "generated",

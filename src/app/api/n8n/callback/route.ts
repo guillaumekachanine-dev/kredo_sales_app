@@ -24,8 +24,33 @@ import {
   ACCOUNT_KNOWLEDGE_RESULT_TYPE,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import { isEligibleDocumentResultType } from "@/lib/communication/communication-result-documents"
+import { isMissionRunType } from "@/features/intelligence-missions/domain/mission-run-type"
+import {
+  readCorpusTrace,
+  validateMissionReport,
+} from "@/features/intelligence-missions/domain/validate-mission-report"
+import { renderMissionReportText } from "@/features/intelligence-missions/domain/render-mission-report-text"
 import type { Database } from "@/types/database"
 import type { N8nCallbackPayload } from "@/lib/n8n/types"
+
+/**
+ * ADR-0020 M-7 / M-4 — les deux valeurs qu'une mission ne configure JAMAIS.
+ * Le callback les impose à partir du seul préfixe `mission:` de `run_type`, de sorte
+ * qu'aucune intention rédigée en texte libre dans un preset ne puisse décider de ce qui
+ * est ÉCRIT : `ai_intelligence_results.result_type`/`phase`, et par conséquence le
+ * `intelligence_documents.document_type` que le chemin document en dérive.
+ *
+ * L'imposition porte sur le CONTENU écrit ET sur l'AIGUILLAGE : dès qu'un run de mission
+ * est reconnu, `resultType`/`phase` sont réassignés (pas seulement `persistedPayload`), de
+ * sorte que les blocs suivants — `account_issues_map`, le chemin document, la revalidation
+ * `account_watch_refresh`, `updateRunStatus` — dispatchent sur la valeur IMPOSÉE, jamais sur
+ * celle qu'aurait envoyée n8n. Le bloc `account_knowledge`, qui s'exécute AVANT ce portail,
+ * exclut explicitement `isMissionRunType(run.run_type)` pour la même raison symétrique :
+ * sans cette exclusion, un payload de mission au `resultType` erroné y serait rejeté avant
+ * même d'être validé comme rapport de mission.
+ */
+const MISSION_REPORT_RESULT_TYPE = "mission_report"
+const MISSION_REPORT_PHASE = 1
 
 function getServiceClient() {
   return createClient<Database>(
@@ -53,7 +78,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON invalide" }, { status: 400 })
   }
 
-  const { runId, phase, resultType, status, contentJson } = payload
+  const { runId, status, contentJson } = payload
+  // `resultType`/`phase` sont mutables : le portail mission (4 ter) les réassigne pour que
+  // TOUT ce qui suit — matérialisation account_issues, chemin document, revalidation
+  // account_watch_refresh, updateRunStatus — dispatche sur la valeur IMPOSÉE, jamais sur
+  // celle qu'a envoyée n8n. Avant ce portail, ce sont encore les valeurs brutes du payload.
+  let resultType = payload.resultType
+  let phase = payload.phase
 
   if (!runId || phase === undefined || !resultType || !status || !contentJson) {
     return NextResponse.json(
@@ -66,7 +97,7 @@ export async function POST(request: Request) {
   const supabase = getServiceClient()
   const { data: run, error: runError } = await supabase
     .from("ai_intelligence_runs")
-    .select("company_id, workspace_id, owner_id, trigger_source, status")
+    .select("company_id, workspace_id, owner_id, trigger_source, status, run_type, input_snapshot")
     .eq("id", runId)
     .single()
 
@@ -86,8 +117,12 @@ export async function POST(request: Request) {
   // contre le workspace du run, et son indicateur de dynamique recalculé
   // côté applicatif (jamais celui du LLM). Un artefact refusé ne doit JAMAIS
   // laisser le run en `running` : on le bascule explicitement en `failed`.
+  //
+  // `!isMissionRunType(run.run_type)` : un run de mission n'a rien à faire ici, quel que
+  // soit le `resultType` du payload — un payload malformé/erroné ne doit pas le faire
+  // échouer sur le mauvais contrat avant même d'atteindre son propre validateur (4 ter).
   let persistedPayload = payload
-  if (status === "succeeded" && resultType === ACCOUNT_KNOWLEDGE_RESULT_TYPE) {
+  if (status === "succeeded" && resultType === ACCOUNT_KNOWLEDGE_RESULT_TYPE && !isMissionRunType(run.run_type)) {
     const ingest = await ingestAccountKnowledgeArtifact(supabase, {
       workspaceId: run.workspace_id,
       companyId: run.company_id,
@@ -109,6 +144,61 @@ export async function POST(request: Request) {
     }
 
     persistedPayload = { ...payload, contentJson: ingest.content as unknown as N8nCallbackPayload["contentJson"] }
+  }
+
+  // ── 4 ter. Portail mission d'intelligence (ADR-0020 lot L3) ───────────────
+  // Le dispatch se fait sur `run.run_type`, écrit par la gateway de lancement (L1) et
+  // donc contrôlé par Kredo — JAMAIS sur `payload.resultType`, que n8n envoie. Une fois
+  // la mission reconnue, `resultType` et `phase` sont IMPOSÉS (M-7 / M-4), quoi qu'ait
+  // envoyé le workflow — et cette imposition se propage à tout le reste de la route (les
+  // deux variables sont réassignées ci-dessous, pas seulement portées par
+  // `persistedPayload`).
+  //
+  // `mission-001-run` ne parse jamais la sortie du modèle : elle arrive telle quelle dans
+  // `contentJson.rawOutput` (une CHAÎNE). Elle est validée ICI, une seule fois (M-2),
+  // avant toute persistance — mêmes conséquences qu'un refus `account_knowledge` : run
+  // basculé en `failed`, réponse 400, `saveResult` jamais appelé. Aucune réparation de
+  // JSON, aucun élagage de citation : l'utilisateur relance.
+  if (status === "succeeded" && isMissionRunType(run.run_type)) {
+    // Un champ absent ou non textuel est traité comme une sortie absente par le validateur.
+    const rawOutput = typeof contentJson.rawOutput === "string" ? contentJson.rawOutput : ""
+    const validation = validateMissionReport(rawOutput, readCorpusTrace(run.input_snapshot))
+
+    if (!validation.valid) {
+      const detail = validation.issues.map((issue) => `${issue.path}: ${issue.message}`).join(" | ")
+      console.error("[callback] rapport de mission rejeté:", run.run_type, detail)
+      try {
+        await updateRunStatus(runId, "failed", {
+          phase: MISSION_REPORT_PHASE,
+          errorMessage: `Rapport de mission invalide — ${detail}`.slice(0, 2000),
+        })
+      } catch (err) {
+        console.error("[callback] updateRunStatus(failed) after mission rejection failed:", err)
+      }
+      return NextResponse.json(
+        { error: "Rapport de mission invalide", issues: validation.issues },
+        { status: 400 }
+      )
+    }
+
+    // Réassignés, pas seulement portés par `persistedPayload` : tout ce qui suit dans la
+    // route (matérialisation account_issues, chemin document, revalidation
+    // account_watch_refresh, `updateRunStatus`) lit ces variables, jamais `payload` — sans
+    // cette réassignation, un `resultType` erroné envoyé par n8n survivrait à l'imposition
+    // et piloterait encore l'aiguillage en aval (cf. commentaire de tête de fichier).
+    resultType = MISSION_REPORT_RESULT_TYPE
+    phase = MISSION_REPORT_PHASE
+
+    persistedPayload = {
+      ...payload,
+      resultType,
+      phase,
+      contentJson: validation.value as unknown as N8nCallbackPayload["contentJson"],
+      // Le JSON du modèle serait illisible dans /reports : `buildResultContentText` ne
+      // reconnaît pas la forme `MissionReportV1` et retomberait sur ce champ tel quel.
+      contentText: renderMissionReportText(validation.value),
+      title: validation.value.title,
+    }
   }
 
   // ── 5. Sauvegarde du résultat (upsert idempotent) ─────────────────────────

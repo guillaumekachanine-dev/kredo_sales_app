@@ -73,6 +73,7 @@ const RESULT_DOCUMENT_TYPE_BY_RESULT_TYPE: Record<string, IntelligenceDocumentTy
   manager_summary: "manager_summary",
   workspace_diagnostic: "workspace_diagnostic",
   strategic_watch_analysis: "strategic_watch_analysis",
+  mission_report: "mission_report",
 } satisfies Record<string, IntelligenceDocumentType>
 
 const FALLBACK_TITLE_BY_DOCUMENT_TYPE = {
@@ -99,6 +100,7 @@ const FALLBACK_TITLE_BY_DOCUMENT_TYPE = {
   strategic_watch_analysis: "Analyse stratégique de la veille",
   master_study: "Master Study sectorielle",
   competitive_map_import: "Import de cartographie",
+  mission_report: "Rapport de mission",
 } satisfies Record<IntelligenceDocumentType, string>
 
 const LENGTH_LABELS = {

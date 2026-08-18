@@ -157,6 +157,7 @@ Quatre pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260818092506 | harden_get_manager_summary_facts_privileges (🔒 faille corrigée — `SECURITY DEFINER` sans `search_path`, `EXECUTE` ouvert à `anon`/`authenticated` sur une fonction filtrant sur son paramètre `p_workspace_id`) |
 | 20260818101855 | guard_ai_intelligence_summary_mission_runs (ADR-0020 M-4 — exclut `run_type LIKE 'mission:%'` de la latérale `res`) |
 | 20260818110944 | guard_ai_intelligence_summary_mission_runs_counters (M-4, complément — la latérale `runs` restait polluée : `count_runs`/`latest_run_*`) |
+| 20260818140533 | 086_mission_report_document_type (ADR-0020 L3 — `intelligence_document_type` += `mission_report`, seule écriture de schéma du lot) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -297,9 +298,29 @@ les items. Invariants assertés par `supabase/tests/069_sector_knowledge_resolut
 | `intelligence_document_versions` | 59 | Historique append-only des versions d'un document |
 | `intelligence_document_links` | 55 | Relation N:M polymorphe entre un document et les entités métier Kredo |
 
-`intelligence_document_type` (enum, **21 valeurs**, vérifié live le 2026-08-13) : `communication` · `client_summary` · `commercial_pitch` · `campaign` · `internal_note` · `activity_commercial` · `activity_recruitment` · `weekly_manager` · `planning_deadlines` · `financial` · `quarterly_review` · `staffing_capacity` · `delivery_profitability` · `account_portfolio` · `commercial_strategy` · `prise_de_parole` · `workspace_diagnostic` · `financial_reference` · `commercial_quote` · `strategic_watch_analysis` · **`master_study`** (migration 076)
+`intelligence_document_type` (enum, **24 valeurs**, vérifié live le 2026-08-18 via `pg_enum`) : `communication` · `client_summary` · `commercial_pitch` · `campaign` · `internal_note` · `activity_commercial` · `activity_recruitment` · `weekly_manager` · `planning_deadlines` · `financial` · `quarterly_review` · `staffing_capacity` · `delivery_profitability` · `account_portfolio` · `commercial_strategy` · `prise_de_parole` · `workspace_diagnostic` · `financial_reference` · `commercial_quote` · `strategic_watch_analysis` · `master_study` (migration 076) · `competitive_map_import` (080) · `manager_summary` · **`mission_report`** (086)
 
-> ⚠️ **Ajouter une valeur à cet enum casse le `typecheck`**, pas le build : quatre `Record` exhaustifs la réclament aussitôt — `document-display.tsx` (deux maps + le type `ReportDocumentType` + le Set `REPORT_DOCUMENT_TYPES`), `DocumentCard.tsx`, `DocumentMobileDetail.tsx` et `communication-result-documents.ts`. Les patcher fait partie de la migration, pas d'un suivi.
+> ⚠️ **Ajouter une valeur à cet enum casse le `typecheck`**, pas le build : quatre fichiers la
+> réclament aussitôt — `document-display.tsx`, `DocumentCard.tsx`, `DocumentMobileDetail.tsx`,
+> `communication-result-documents.ts` (`FALLBACK_TITLE_BY_DOCUMENT_TYPE`). Les patcher fait partie
+> de la migration, pas d'un suivi.
+>
+> 🔴 **Mais 8 sites sont à patcher, et `tsc` n'en désigne franchement que 4** (mesuré au lot
+> ADR-0020 L3, 2026-08-18) :
+> - **4 désignés sur leur définition** : `DOCUMENT_OBJECT_LABELS` (document-display), les deux
+>   `DOCUMENT_TYPE_LABELS` de `DocumentCard`/`DocumentMobileDetail`, `FALLBACK_TITLE_BY_DOCUMENT_TYPE`.
+> - **1 désigné seulement indirectement** (TS7053 au site d'appel, pas sur sa définition) : le
+>   second `DOCUMENT_TYPE_LABELS` de `document-display.tsx`, indexé sur l'union manuscrite
+>   `CommunicationDocumentType | ReportDocumentType`.
+> - **2 jamais désignés** : le type `ReportDocumentType` et le `Set REPORT_DOCUMENT_TYPES` du même
+>   fichier. Oublier le `Set` est un bug **silencieux** : `getDocumentCategory()` classe alors le
+>   nouveau type en `"communication"` au lieu de `"report"`, ce qui change le rendu de
+>   `DocumentPreviewPanel` et de `DocumentGenerationParameters` sans une seule erreur de compilation.
+> - **1 hors exhaustivité** : `RESULT_DOCUMENT_TYPE_BY_RESULT_TYPE` (`Record<string, …>`, indexé sur
+>   `result_type` qui est du texte libre) — jamais réclamé par `tsc`, mais c'est LUI qui décide
+>   qu'un `result_type` devient un document (`isEligibleDocumentResultType`, chemin auto du callback).
+>
+> Contrôle : `grep -rl master_study src/` doit rendre 4 fichiers + `database.generated.ts`.
 
 `intelligence_provenance` (enum, ADR-0012 D-3) : `relational` · `human_verified` · `engine_researched` · `folio_legacy` · `inferred`
 
@@ -647,7 +668,7 @@ côté TypeScript. Terminer par `npm run n8n:status` pour mesurer la dérive rep
 ## État du chantier
 
 ### Journal des sessions
-L'historique détaillé (Sessions 6 → 30, juin → août 2026 : décisions, pièges rencontrés,
+L'historique détaillé (Sessions 6 → 48, juin → août 2026 : décisions, pièges rencontrés,
 lots livrés, ce qui reste non fait) vit dans **`docs/JOURNAL-SESSIONS.md`**.
 Il pesait 164 Ko sur les 197 Ko de ce fichier — chargé à chaque session pour de l'historique
 rarement consulté. **Le `grep`, ne le lis pas en entier** : cherche par nom de fichier, table,
@@ -661,7 +682,7 @@ de la base.
 
 | Chantier | État | Où |
 |---|---|---|
-| **ADR-0020 — Missions d'intelligence** (moteur déclaratif : le métier IA en TypeScript, n8n en exécuteur sans métier) | **L0 + L1 livrés (2026-08-18)** — contrats, catalogue, garde M-4, 3 providers de corpus, budget déterministe, résolveur, branche `missionSlug` dans `/api/n8n/trigger`. **Prochain : L2** (workflow `mission-001-run`, import VPS unique) | `docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md` — **commencer par le §2**, puis le §8 (prompt L2) |
+| **ADR-0020 — Missions d'intelligence** (moteur déclaratif : le métier IA en TypeScript, n8n en exécuteur sans métier) | **L0 → L3 livrés (2026-08-18)** — contrats, catalogue, garde M-4, 3 providers de corpus, budget déterministe, résolveur, branche `missionSlug` dans `/api/n8n/trigger`, workflow `mission-001-run`, et le portail de callback (validateur `MissionReportV1`, `resultType`/`phase` imposés, enum `mission_report`). **Deux dépendances hors code** : import VPS de `mission-001-run` (manuel, Guillaume) et lancement depuis `intelligence-registry.ts`. **Prochain : L5** (pilote `intel-021` rejoué en preset) ; L4 (composeur UX) reste suspendu jusqu'à la preuve du pilote | `docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md` — **commencer par le §2** |
 | **ADR-0018 — refonte shell navigation desktop** (rail de section, 12 modules) | Proposé, en cours | `docs/adr/ADR-0018-*.md` + ledger `docs/FEATURES/dynamic_content_generator(redaction assistee)/SHELL-0018-implementation-ledger.md` — **commencer par le ledger** |
 | **Taxonomie sectorielle + classification comptes** | Figé en migration (commit `a0338ab9`) | 98/98 comptes classifiés, 53 fiches `sector_intelligence` (15 macro + 38 segment) |
 | **Connaissance & intelligence sectorielle** | **Lot 0 livré (2026-08-12)** — lecture à la maille segment avec héritage macro | `docs/FEATURES/sector_intelligence/HANDOFF-LOT0-RESOLUTION-SECTORIELLE.md` + `ARCHITECTURE-CONNAISSANCE-INTELLIGENCE.md`. Reste Lots 1-9. **Hors périmètre du Lot 0, à trancher** : `/prospection/approche-sectorielle` (`build-sector-activation-model.ts`) reste groupé au macro |
