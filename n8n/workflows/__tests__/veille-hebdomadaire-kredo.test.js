@@ -557,7 +557,7 @@ const digestArticlesFixture = {
 const lignesArticles = runCodeNode(PREPARER_LIGNES, {
   input: [digestArticlesFixture],
   registry: {
-    "Parser Digest Final": [digestArticlesFixture],
+    "Valider Convergences": [digestArticlesFixture],
     "Créer Digest": [{ id: "digest-uuid-1" }],
     "Build Contexte KREDO": [{ workspaceId: "workspace-uuid-1" }],
   },
@@ -677,6 +677,12 @@ check(
   "lot2 — nœud Valider Convergences existe",
   VALIDER_CONVERGENCES in nodes,
 )
+check(
+  "lot2 — 'Charger Comptes', 'Charger Enjeux' et 'Charger Playbooks' ont executeOnce: true pour éviter le fan-out par item",
+  nodes["Charger Comptes"]?.executeOnce === true &&
+  nodes["Charger Enjeux"]?.executeOnce === true &&
+  nodes["Charger Playbooks"]?.executeOnce === true,
+)
 
 const companiesFixture = [
   { id: "comp_1", name: "Comp 1", sector_id: "sect_1", segment_id: "seg_1" },
@@ -762,7 +768,7 @@ check(
     const lignes = runCodeNode(PREPARER_LIGNES, {
       input: [{ articles: [{ id: "art_1", convergences: { schemaVersion: 1 } }] }],
       registry: {
-        "Parser Digest Final": [{ articles: [] }], // not used directly for this field
+        "Valider Convergences": [{ articles: [{ id: "art_1", convergences: { schemaVersion: 1 } }] }],
         "Créer Digest": [{ id: "digest_1" }],
         "Build Contexte KREDO": [{ workspaceId: "ws_1" }]
       }

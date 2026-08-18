@@ -506,7 +506,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const digest = $(\"Parser Digest Final\").first().json;\nconst digestRow = $(\"Créer Digest\").first().json;\nconst workspaceId = $(\"Build Contexte KREDO\").first().json.workspaceId;\n\nreturn digest.articles.map((a) => ({\n  json: {\n    digest_id: digestRow.id,\n    workspace_id: workspaceId,\n    selection_rank: a.selectionRank,\n    titre_fr: a.titreFr,\n    source_name: a.sourceName,\n    source_catalog_id: a.sourceCatalogId,\n    url: a.url,\n    url_hash: a.urlHash,\n    published_at: a.publishedAt,\n    resume: a.resume,\n    analyse_kredo: a.analyseKredo,\n    action_commerciale: a.actionCommerciale,\n    secteur_principal: a.secteurPrincipal,\n    secteur_secondaire: a.secteurSecondaire,\n    categorie: a.categorie,\n    tags: a.tags,\n    convergences: a.convergences,\n  },\n}));"
+        "jsCode": "const digest = $(\"Valider Convergences\").first().json;\nconst digestRow = $(\"Créer Digest\").first().json;\nconst workspaceId = $(\"Build Contexte KREDO\").first().json.workspaceId;\n\nreturn digest.articles.map((a) => ({\n  json: {\n    digest_id: digestRow.id,\n    workspace_id: workspaceId,\n    selection_rank: a.selectionRank,\n    titre_fr: a.titreFr,\n    source_name: a.sourceName,\n    source_catalog_id: a.sourceCatalogId,\n    url: a.url,\n    url_hash: a.urlHash,\n    published_at: a.publishedAt,\n    resume: a.resume,\n    analyse_kredo: a.analyseKredo,\n    action_commerciale: a.actionCommerciale,\n    secteur_principal: a.secteurPrincipal,\n    secteur_secondaire: a.secteurSecondaire,\n    categorie: a.categorie,\n    tags: a.tags,\n    convergences: a.convergences,\n  },\n}));"
       },
       "id": "435dd551-513c-49a3-904d-c9bf8dd112aa",
       "name": "Préparer Lignes Articles",
@@ -591,7 +591,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "executeOnce": true
     },
     {
       "parameters": {
@@ -631,7 +632,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "executeOnce": true
     },
     {
       "parameters": {
@@ -667,7 +669,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "executeOnce": true
     },
     {
       "parameters": {
