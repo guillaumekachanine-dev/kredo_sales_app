@@ -8409,6 +8409,15 @@ export type Database = {
         }
         Returns: Json
       }
+      get_manager_summary_facts: {
+        Args: {
+          p_end_date: string
+          p_owner_id: string
+          p_start_date: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       get_matching_context: {
         Args: { p_opportunity_id: string; p_workspace_id: string }
         Returns: Json
@@ -8425,15 +8434,6 @@ export type Database = {
       }
       get_sector_intelligence_context: {
         Args: { p_sector_id: string; p_workspace_id: string }
-        Returns: Json
-      }
-      get_manager_summary_facts: {
-        Args: {
-          p_workspace_id: string
-          p_owner_id: string
-          p_start_date: string
-          p_end_date: string
-        }
         Returns: Json
       }
       get_weekly_business_facts: {
@@ -8622,7 +8622,6 @@ export type Database = {
         | "activity_commercial"
         | "activity_recruitment"
         | "weekly_manager"
-        | "manager_summary"
         | "planning_deadlines"
         | "financial"
         | "quarterly_review"
@@ -8637,6 +8636,7 @@ export type Database = {
         | "strategic_watch_analysis"
         | "master_study"
         | "competitive_map_import"
+        | "manager_summary"
       intelligence_document_version_origin:
         | "generated"
         | "regenerated"
@@ -8867,7 +8867,6 @@ export const Constants = {
         "activity_commercial",
         "activity_recruitment",
         "weekly_manager",
-        "manager_summary",
         "planning_deadlines",
         "financial",
         "quarterly_review",
@@ -8882,6 +8881,7 @@ export const Constants = {
         "strategic_watch_analysis",
         "master_study",
         "competitive_map_import",
+        "manager_summary",
       ],
       intelligence_document_version_origin: [
         "generated",
