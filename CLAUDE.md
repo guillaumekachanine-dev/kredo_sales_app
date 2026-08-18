@@ -154,6 +154,9 @@ Quatre pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260813120000 | 076_master_study_document_type (`intelligence_document_type` += `master_study` — MASTER-STUDY lot 0.1) |
 | 20260813233100 | account_signal_lifecycle_actions (`detected_at` comme date métier, archivage calendaire, vue défensive, promotions traçables) |
 | 20260813234513 | index_account_signal_promotions (index couvrants des FK de promotion Playbook) |
+| 20260818092506 | harden_get_manager_summary_facts_privileges (🔒 faille corrigée — `SECURITY DEFINER` sans `search_path`, `EXECUTE` ouvert à `anon`/`authenticated` sur une fonction filtrant sur son paramètre `p_workspace_id`) |
+| 20260818101855 | guard_ai_intelligence_summary_mission_runs (ADR-0020 M-4 — exclut `run_type LIKE 'mission:%'` de la latérale `res`) |
+| 20260818110944 | guard_ai_intelligence_summary_mission_runs_counters (M-4, complément — la latérale `runs` restait polluée : `count_runs`/`latest_run_*`) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -287,7 +290,7 @@ les items. Invariants assertés par `supabase/tests/069_sector_knowledge_resolut
 #### Domaine Intelligence commerciale (ADR-0007 / ADR-0008)
 | Table | Rows | Description |
 |---|---|---|
-| `ai_intelligence_runs` | 137 | Une exécution d'analyse / rapport / scan (cycle de vie, `current_phase`, coûts/tokens, `input_snapshot`, `primary_entity_type`/`primary_entity_id`) |
+| `ai_intelligence_runs` | 137 | Une exécution d'analyse / rapport / scan (cycle de vie, `current_phase`, coûts/tokens, `input_snapshot`, `primary_entity_type`/`primary_entity_id`). **`run_type` est du `text` libre** : une mission d'intelligence y écrit `mission:<slug>` (ADR-0020 M-3, aucune table ni colonne nouvelle) |
 | `ai_intelligence_results` | 113 | Un résultat **par phase** (`UNIQUE(run_id,phase)`) — **`content_json` = source unique** (pas de html) ; `result_type` = la vraie clé de classification (pas `phase`, pollué — cf. [[folio-data-reality]]) |
 | `ai_intelligence_logs` | 0 | Append-only (coûts, erreurs, retries) — RLS 2 policies (INSERT/SELECT), pas de update/delete client |
 | `intelligence_documents` | 59 | Couche documentaire exploitable par l'utilisateur — distincte de `ai_intelligence_results` (immuable, technique) |
@@ -301,6 +304,14 @@ les items. Invariants assertés par `supabase/tests/069_sector_knowledge_resolut
 `intelligence_provenance` (enum, ADR-0012 D-3) : `relational` · `human_verified` · `engine_researched` · `folio_legacy` · `inferred`
 
 **Phases** : `1=analyse client · 2=sectorielle (rattachée au SECTEUR, mutualisée) · 3=diagnostic process · 4=roadmap · 5=pitch` (ordre d'impl. `1→2→4→5→3`). `ai_run_status`/`ai_result_status` (enums) : `queued · running · succeeded · failed · cancelled` + `needs_review` **orthogonal**. Scoring legacy FOLIO déprécié (`companies.legacy_folio_score`) — remplacé par le Score de Priorité Commerciale ADR-0011 (domaine dédié ci-dessous).
+
+> 🔴 **`phase` porte DEUX sémantiques depuis ADR-0020 (M-4), selon `run_type`.** Une mission
+> d'intelligence écrit **toujours `phase = 1`**, qui ne signifie alors PAS « analyse client ».
+> **Tout consommateur de `phase` doit exclure `run_type LIKE 'mission:%'`.** C'est une dette
+> volontaire, et la seule régression connue de ce chantier sur l'existant. Périmètre mesuré le
+> 2026-08-18 : un unique consommateur sémantique, la vue `v_ai_intelligence_summary`, corrigée
+> par les migrations `20260818101855` + `20260818110944`. **Aucun code TypeScript n'interprète
+> cette colonne** — s'assurer qu'il en va toujours ainsi avant d'en ajouter un.
 
 **Surface (ADR-0008/0012)** : Hub `/prospection/accounts/[companyId]` en 5 étapes (Connaissance→Secteur→Enjeux→Stratégie→Roadmap, ADR-0012) lit `content_json` + fallback `companies.metadata` ; drawer `CompanyIdentityDrawer` = Quick View.
 
@@ -429,7 +440,7 @@ Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par 
 | Vue | Description |
 |---|---|
 | `v_active_account_signals` (`security_invoker`) | Défense SQL de la file à traiter : exclut `archived`/`dismissed` et tout `detected_at < CURRENT_TIMESTAMP - INTERVAL '2 months'` |
-| `v_ai_intelligence_summary` (`security_invoker`) | Par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches`), dernier run, compteurs. **Migration 060** : 2 agrégats latéraux au lieu d'un produit cartésien runs × résultats ; drapeaux FOLIO lus sur les colonnes générées `companies.meta_has_*` |
+| `v_ai_intelligence_summary` (`security_invoker`) | Par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches`), dernier run, compteurs. **Migration 060** : 2 agrégats latéraux au lieu d'un produit cartésien runs × résultats ; drapeaux FOLIO lus sur les colonnes générées `companies.meta_has_*`. **Migrations 20260818101855 + 110944 (garde M-4)** : ses DEUX latérales excluent `run_type LIKE 'mission:%'` — sans quoi une mission ouverte depuis un compte, qui écrit `phase = 1`, ferait passer `has_client_analysis` à `true` sur un compte jamais analysé |
 | `v_crm_account_list` (`security_invoker`) | Vue consolidée fiche compte — contacts, `has_study`, `has_dedicated_watch`, `has_client_analysis`/`sector_analysis`/`process_diagnostic`/`roadmap`, `has_account_issues`, `has_commercial_strategy`. Source de la liste comptes `/prospection`. **Migration 060** : lit `companies.meta_*` au lieu de dérefencer `metadata` 6 fois par ligne |
 | `v_collaborator_activity_summary` (migration 025) | 1 ligne par collaborateur × mois — activité (business/billable/pto/sick/non_billable), finance (revenue, employer_cost, real_margin, real_margin_pct), marge théorique |
 | `v_collaborator_ytd_activity` (migration 025) | Taux d'activité YTD pondéré (pas moyenne des %), gap vs TACI cible, finance YTD |
@@ -550,6 +561,7 @@ Utiliser EXCLUSIVEMENT les variables de couleurs du projet.
 | Audit de performance | `docs/audits/AUDIT-PERFORMANCE-KREDO.md` |
 | Workflows n8n (JSON + SETUP) | `n8n/workflows/` |
 | **Production de la connaissance commerciale** | **`docs/MASTER-STUDY/`** — source unique |
+| **Missions d'intelligence** (moteur déclaratif ADR-0020) | **`docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md`** — point de reprise autoportant, à lire AVANT l'ADR |
 | Étude sectorielle (matière brute, archives) | `docs/FEATURES/sector_intelligence/` |
 
 > 🔴 **`docs/MASTER-STUDY/` fait autorité sur tout ce qui concerne la production de
@@ -649,6 +661,7 @@ de la base.
 
 | Chantier | État | Où |
 |---|---|---|
+| **ADR-0020 — Missions d'intelligence** (moteur déclaratif : le métier IA en TypeScript, n8n en exécuteur sans métier) | **L0 + L1 livrés (2026-08-18)** — contrats, catalogue, garde M-4, 3 providers de corpus, budget déterministe, résolveur, branche `missionSlug` dans `/api/n8n/trigger`. **Prochain : L2** (workflow `mission-001-run`, import VPS unique) | `docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md` — **commencer par le §2**, puis le §8 (prompt L2) |
 | **ADR-0018 — refonte shell navigation desktop** (rail de section, 12 modules) | Proposé, en cours | `docs/adr/ADR-0018-*.md` + ledger `docs/FEATURES/dynamic_content_generator(redaction assistee)/SHELL-0018-implementation-ledger.md` — **commencer par le ledger** |
 | **Taxonomie sectorielle + classification comptes** | Figé en migration (commit `a0338ab9`) | 98/98 comptes classifiés, 53 fiches `sector_intelligence` (15 macro + 38 segment) |
 | **Connaissance & intelligence sectorielle** | **Lot 0 livré (2026-08-12)** — lecture à la maille segment avec héritage macro | `docs/FEATURES/sector_intelligence/HANDOFF-LOT0-RESOLUTION-SECTORIELLE.md` + `ARCHITECTURE-CONNAISSANCE-INTELLIGENCE.md`. Reste Lots 1-9. **Hors périmètre du Lot 0, à trancher** : `/prospection/approche-sectorielle` (`build-sector-activation-model.ts`) reste groupé au macro |

@@ -229,6 +229,18 @@ interprétant `phase` doivent exclure `run_type LIKE 'mission:%'`.
 
 ## 4. Le résolveur de corpus
 
+> 🔴 **LIVRÉ le 2026-08-18 (lot L1). Les extraits de code de cette section sont désormais
+> PÉRIMÉS sur trois points** — le code fait foi, pas ce document :
+> 1. `CorpusProvider.resolve` rend `{ items, exclusions }`, pas `CorpusItem[]` — sans ce
+>    canal, un document archivé ou une référence illisible disparaîtrait sans trace ;
+> 2. `CorpusResolveContext` porte le **client Supabase injecté** en plus du `workspaceId` ;
+> 3. `trace` porte aussi `provenance` (ajouté en L0) et trois motifs de plus
+>    (`archived`, `not_found`, `provider_limit`).
+>
+> **`account_context` s'exécute en `user_rls`, pas en service-role** : §4.3 ci-dessous laissait
+> l'alternative ouverte, elle est tranchée. Voir
+> `05-HANDOFF-IMPLEMENTATION.md` §2 « Les cinq écarts entre le plan et le code livré ».
+
 La pièce la plus coûteuse (`02` §7, lot L1) et la seule réellement nouvelle.
 
 ### 4.1 Types normalisés

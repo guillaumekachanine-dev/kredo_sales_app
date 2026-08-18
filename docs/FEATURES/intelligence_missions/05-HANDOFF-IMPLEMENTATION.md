@@ -3,7 +3,8 @@
 > **Statut** : opérationnel — document de reprise pour tout agent entrant.
 > **Autorité** : `docs/adr/ADR-0020-missions-intelligence.md` (**Accepté** le 2026-08-18).
 > En cas de divergence avec `02` ou `03`, **l'ADR fait foi**.
-> **Dernière mise à jour** : 2026-08-18.
+> **Dernière mise à jour** : 2026-08-18 — **L0 et L1 livrés**. Le lot courant est **L2**,
+> dont le cahier des charges complet est le **§8**.
 
 Ce document est **autoportant**. Un agent qui le lit doit pouvoir reprendre le chantier
 sans relire la conversation de cadrage. Il donne : l'état d'avancement, la configuration
@@ -222,6 +223,11 @@ chantier où une erreur crée une faille.
 **Pourquoi Sonnet** : le workflow ne contient **aucune logique métier** (M-1/M-2). C'est
 de la plomberie JSON calquée sur 12 workflows existants. Opus n'apporterait rien.
 
+> ℹ️ **Ce lot peut être confié à un autre modèle que ceux de cette table** (Gemini par exemple) :
+> il est mécanique et entièrement borné. Dans ce cas, **le §8 fait foi et se suffit à lui-même** —
+> il énumère les trois fichiers autorisés, les 11 nœuds, le contrat de callback figé et la
+> checklist de sortie. Ne pas résumer le §8 en le transmettant : sa longueur EST la garantie.
+
 **Pourquoi `claude-api` est obligatoire** : le nœud `Call LLM` porte l'id de modèle et les
 paramètres de l'API Messages. Ne jamais les écrire de mémoire.
 
@@ -403,148 +409,381 @@ workflow est cassé.
 
 ---
 
-## 8. Prompt de démarrage du lot L1 — ⚠️ LOT LIVRÉ, conservé pour mémoire
+## 8. Lot L2 — `mission-001-run` : le workflow n8n générique
 
-> 🔴 **L1 est livré (2026-08-18). Ne pas rejouer ce prompt.** Il est conservé parce qu'il
-> documente les contraintes du lot, mais le prochain lot est **L2**. Lire d'abord le §2
-> (surface livrée, cinq écarts, ce que L2 et L3 doivent savoir), puis le §4 « L2 ».
+> **Le prompt du lot L1 est en historique git** (commit `5da91db4`), comme celui de L0 avant lui.
+> L1 est livré ; cette section est le **cahier des charges complet du lot L2**, écrit pour être
+> exécuté sans rien relire d'autre que le §2 et le §3 de ce document.
 
-### Prompt d'origine du lot L1
+---
 
-> À copier tel quel dans une session neuve, après avoir réglé `/model claude-opus-5`.
-> Le prompt est autoportant. **Le prompt du lot L0 est en historique git** (commit du
-> cadrage) — il n'est plus reproduit ici, L0 étant livré et audité.
+### 8.1 Ce que tu dois produire — exactement trois fichiers
 
-```text
-Contexte : chantier « Missions d'intelligence » de Kredo, acté dans
-docs/adr/ADR-0020-missions-intelligence.md (statut Accepté). Lis d'abord, dans cet ordre :
-  1. docs/adr/ADR-0020-missions-intelligence.md — les 7 décisions M-1 à M-7 font autorité,
-     et particulièrement §5.1 (mode d'exécution des providers) et §5.2 (gateway unique)
-  2. docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md — §3, §5, §6
-  3. docs/FEATURES/intelligence_missions/03-ARCHITECTURE-CIBLE.md §4 — le résolveur
-  4. Le code livré en L0 : src/features/intelligence-missions/domain/*.ts
-Ne relis pas 00/01/02 : leur substance est reprise dans l'ADR.
+| # | Fichier | Nature |
+|---|---|---|
+| 1 | `n8n/workflows/mission-001-run.json` | Le workflow, **11 nœuds**, généré par script Python |
+| 2 | `n8n/workflows/mission-001-run.SETUP.md` | Notice d'import pour Guillaume (~35 lignes, calquée sur `intel-021-monthly-watch-analysis.SETUP.md`) |
+| 3 | `n8n/workflows/__tests__/mission-001-run.test.js` | Harnais Node, exécuté par `npm run test:n8n` |
 
-Tu réalises le LOT L1, et RIEN d'autre. Ultrathink : c'est le seul lot du chantier où
-une erreur crée une faille de sécurité, pas seulement un bug.
+### 8.2 🔴 Ce que tu ne dois toucher sous AUCUN prétexte
 
-──────────────────────────────────────────────────────────────────────
-CE QUI EXISTE DÉJÀ (L0 livré et audité — ne pas le réécrire)
-──────────────────────────────────────────────────────────────────────
-  * src/features/intelligence-missions/domain/mission-contracts.ts
-      MissionSpec, CorpusKind, CorpusSelector, CorpusItem, ResolvedCorpus, CorpusBudget,
-      CorpusProvider (avec `execution: "user_rls" | "service_role"`), CorpusResolveContext,
-      MissionReportV1, Finding (6 catégories), Recommendation, SourceRef.
-      MissionSpec.corpus porte `base`, `requiredAtLaunch`, `userAddition`, `budget`.
-      `ResolvedCorpus.trace` porte ref + title + provenance + kept + reason.
-  * domain/mission-catalog.ts — un seul preset, `veille-analyse-mensuelle`,
-    `base: []` et `requiredAtLaunch: ["veille_period"]` (la période vient du lancement).
-  * domain/mission-run-type.ts — buildMissionRunType / isMissionRunType, testés.
-  * Garde M-4 en base : migrations 20260818101855 + 20260818110944. Ne pas y revenir.
+Cette liste n'est pas indicative. Toute modification hors des trois fichiers ci-dessus est un
+échec du lot, même si elle « améliore » quelque chose.
 
-──────────────────────────────────────────────────────────────────────
-PÉRIMÈTRE — quatre livrables, aucun de plus
-──────────────────────────────────────────────────────────────────────
+- ❌ **Rien dans `src/`.** Aucune ligne. L1 a déjà tout posé côté TypeScript, et
+  `"mission-001-run"` est **déjà** dans `N8nWorkflowId` (`src/lib/n8n/types.ts`). Si tu crois
+  avoir besoin d'un changement dans `src/`, **arrête-toi et signale-le** : c'est le signe que tu
+  as mal lu l'enveloppe.
+- ❌ **Pas de migration SQL**, pas de `apply_migration`, pas de MCP Supabase en écriture.
+- ❌ **Ne touche pas au callback** `src/app/api/n8n/callback/route.ts` — c'est le lot L3.
+- ❌ **Ne modifie aucun autre workflow** de `n8n/workflows/`.
+- ❌ **N'essaie pas d'importer le workflow sur le VPS.** Le MCP n8n est bloqué en session agent.
+  L'import est **manuel, fait par Guillaume**. Ne propose pas non plus de « handoff terminal »
+  pour n8n : approche explicitement rejetée, ne jamais la reproposer.
+- ❌ **N'invente pas de logique métier.** Voir §8.4, c'est le cœur du lot.
 
-A. LES TROIS CORPUS PROVIDERS, dans src/features/intelligence-missions/data/corpus/
-   Un fichier par origine, chacun exportant un CorpusProvider complet.
-   Ils HYDRATENT DU CONTENU : c'est ce qui n'existe nulle part aujourd'hui
-   (content-type-registry.ts ne rend que des métadonnées d'affichage — le lire comme
-   patron de registre, PAS comme source d'hydratation).
+---
 
-   1. veille_period  (execution: "user_rls")
-      veille_digests (titre_digest, resume_hebdo, digest_date) +
-      veille_articles (titre_fr, resume, analyse_kredo, action_commerciale,
-      published_at, source_name, digest_id) sur [periodStart, periodEnd].
-      RLS workspace standard : le client utilisateur suffit, ne pas passer en service-role.
+### 8.3 Comprendre ce que tu construis (lis ce paragraphe deux fois)
 
-   2. intelligence_document  (execution: "user_rls")
-      intelligence_documents.current_content_text / current_content_json, par ids.
-      Ignorer les documents archivés (archived_at non nul) et le dire dans la trace.
+Kredo a 19 workflows n8n. Douze d'entre eux contiennent du **métier** : ils hydratent des données
+depuis Supabase, assemblent un prompt en JavaScript, appellent un LLM, valident sa sortie, puis
+postent un callback. Ce métier vit donc dans du JSON importé à la main sur un VPS — impossible à
+tester, impossible à relire, et sa dérive n'est pas détectée.
 
-   3. account_context  (execution: "service_role" — À VÉRIFIER avant d'écrire)
-      🔴 get_account_knowledge_context est `auth_exec = false` et n'est PAS
-      SECURITY DEFINER : appelée en service-role elle s'exécute SANS AUCUNE RLS, et
-      elle filtre sur son paramètre p_workspace_id. C'est exactement le schéma de la
-      faille get_manager_summary_facts corrigée le 2026-08-18.
-      Donc, sans exception :
-        * le workspaceId provient de profiles.workspace_id résolu côté serveur à partir
-          de la session — JAMAIS d'un champ du body ;
-        * le provider revérifie explicitement que la company demandée appartient à ce
-          workspace AVANT de retourner quoi que ce soit ;
-        * ce contrôle porte un test dédié qui échoue si la garde est retirée.
-      Vérifie d'abord si un chemin sous RLS utilisateur suffit (lecture directe de
-      companies + account_signals + contacts). Si oui, prends-le et déclare "user_rls" :
-      le service-role est un dernier recours, pas un confort.
+L'ADR-0020 renverse cela. **Le métier est remonté en TypeScript (déjà fait, lots L0 et L1).**
+Ce qui reste à n8n, et c'est tout ce que tu construis :
 
-B. LE BUDGET ET LA TRONCATURE — déterministes, jamais aléatoires, jamais délégués au LLM
-   Ordre imposé (ADR §4.4) :
-     1. troncature de chaque item à maxCharsPerItem, coupe en fin, marqueur explicite ;
-     2. tri par (weight du provider DESC, date DESC) ;
-     3. conservation jusqu'à maxTotalChars / maxItems ;
-     4. tout élément écarté est compté ET tracé, jamais silencieux.
-   Fonction pure, testée sur les cas limites : corpus vide, un seul item plus gros que
-   maxTotalChars, égalité de weight, dates nulles (ordre stable et reproductible exigé).
-
-C. LE RÉSOLVEUR ET SON BRANCHEMENT DANS LA GATEWAY EXISTANTE
-   * data/resolve-mission-corpus.ts : preset + sélecteurs de lancement → ResolvedCorpus.
-     Refuse le lancement si un kind de `requiredAtLaunch` n'a pas de sélecteur, et si un
-     sélecteur porte un kind absent de `base`/`requiredAtLaunch`/`userAddition.kinds`
-     (allowlist stricte : l'appelant ne choisit pas ses corpus).
-   * data/assemble-mission-prompt.ts : preset + corpus → { systemPrompt, userPrompt }.
-     Fonction PURE et testée — c'est le cœur du critère de succès du chantier.
-   * src/app/api/n8n/trigger/route.ts : une branche `missionSlug`, dans la route
-     EXISTANTE. Ne crée pas de second chemin de lancement, ne crée pas
-     actions/launch-mission.ts (ADR §5.2). Patron à suivre : le bloc « 3ter. Résolution
-     du Knowledge Scope », qui repart déjà du seul identifiant serveur et écrase tout
-     `refs` venu du navigateur.
-   * run_type : `createRun` porte DÉJÀ `runType?: string` (run_type = runType ?? workflowId).
-     Il suffit de le faire traverser `triggerN8nRun` (TriggerN8nRunInput) et de passer
-     buildMissionRunType(slug). Étendre aussi `config` — aujourd'hui `{ workflowId }` en
-     dur — pour porter { missionSlug, missionVersion, corpusBudget } (ADR §3).
-
-D. LA TRAÇABILITÉ
-   `ResolvedCorpus.trace` est écrite dans ai_intelligence_runs.input_snapshot.
-   Références, titres et provenance UNIQUEMENT — jamais de contenu copié (P2).
-   Contrainte inter-lots à respecter : la trace doit suffire au callback L3 pour
-   reconstituer un SourceRef à partir du seul identifiant rendu par le LLM. Ne pas
-   l'appauvrir.
-
-──────────────────────────────────────────────────────────────────────
-HORS PÉRIMÈTRE — ne rien commencer de tout cela
-──────────────────────────────────────────────────────────────────────
-  ✗ Tout JSON n8n, y compris mission-001-run (L2)
-  ✗ Toute modification du callback, le validateur MissionReportV1, l'enum
-    mission_report et ses 4 Record exhaustifs (L3)
-  ✗ Toute UI, y compris un bouton de lancement (L4, suspendu)
-  ✗ Toute migration d'un workflow existant, et tout retour sur la garde M-4
-  ✗ Tout nouveau CorpusKind : content_collection et source_corpus attendent d'avoir
-    de la matière (5 et 2 lignes)
-
-──────────────────────────────────────────────────────────────────────
-MÉTHODE
-──────────────────────────────────────────────────────────────────────
-1. Un agent Explore (« très minutieux ») en AMONT uniquement, pour cartographier les
-   chemins de données veille et compte. Aucun agent ensuite.
-2. Lire avant d'écrire. Ne jamais qualifier quelque chose d'absent ou de cassé sans
-   avoir ouvert le fichier et suivi ses imports.
-3. `import "server-only"` sur tout module touchant le client Supabase serveur.
-4. Passer `security-review` sur le provider service-role avant de déclarer le lot fini,
-   et `get_advisors` (MCP supabase) si une RPC ou une policy est touchée.
-5. Boucle de validation complète, dans l'ordre, avant de déclarer le lot fini :
-   npm run typecheck && npm test && npm run check:server-boundary && npm run lint && npm run build
-   (test:n8n inutile ici : aucun fichier de n8n/workflows/ n'est touché.)
-   Si le build échoue sur ENOTEMPTY ou de faux TS6200/TS2300 : rm -rf .next, puis relancer.
-   Rapporter les compteurs réels (tests passés, échecs), jamais un simple « ça passe ».
-6. Terminer en mettant à jour le §2 et le §9 de
-   docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md, et en signalant tout
-   écart constaté entre l'ADR et la réalité du code.
-
-Critère de sortie du lot : depuis la gateway existante, le preset veille-analyse-mensuelle
-produit un prompt assemblé et un ResolvedCorpus tracé, borné par son budget, sur une
-période de veille réelle — sans qu'aucune ligne ne soit lue hors du workspace de
-l'utilisateur, et avec un test qui échoue si la garde de workspace est retirée.
 ```
+recevoir un appel signé → marquer le run "running" → appeler le LLM → reposter le texte brut
+```
+
+> 🎯 **`mission-001-run` ne contient AUCUNE logique métier. Zéro.**
+> Pas d'hydratation. Pas d'assemblage de prompt. Pas de validation de sortie. Pas de règle QA.
+> Il ne sait même pas ce qu'est une « mission » : il reçoit deux chaînes de caractères déjà
+> prêtes et les transmet.
+
+**Pourquoi garder n8n si on lui retire le métier ?** Deux raisons, et deux seulement :
+le **retry** sur l'appel LLM, et l'**historique d'exécution** déjà instrumenté par les vues
+`v_ai_*_costs` et `v_workflow_health`. Refaire cela dans Vercel serait un recul.
+
+**Pourquoi c'est important que tu n'ajoutes rien** — décision **M-6** : *ce workflow est importé
+une seule fois sur le VPS et n'est plus jamais modifié.* Chaque nouvelle mission d'intelligence
+(analyse de veille, synthèse de compte, note sectorielle…) réutilisera **ce même workflow**, sans
+réimport. C'est tout l'intérêt du chantier. Si tu y mets quoi que ce soit de spécifique à une
+mission, tu casses cette propriété et le chantier perd sa raison d'être.
+
+---
+
+### 8.4 Ce que le workflow reçoit — l'enveloppe (contrat figé par L1)
+
+Next.js poste sur `{N8N_WEBHOOK_BASE_URL}/webhook/mission-001-run` un corps signé HMAC de cette
+forme exacte (type `N8nTriggerPayload`, `src/lib/n8n/types.ts`) :
+
+```jsonc
+{
+  "runId": "uuid du run déjà créé en base, statut 'queued'",
+  "workflowId": "mission-001-run",
+  "entityType": "workspace",           // ou "company" si la mission porte sur un compte
+  "entityId": "uuid",
+  "workspaceId": "uuid",
+  "userId": "uuid",
+  "callbackUrl": "https://.../api/n8n/callback",
+  "input": {                            // ← type MissionRunEnvelope
+    "schemaVersion": 1,
+    "missionSlug": "veille-analyse-mensuelle",
+    "missionVersion": 1,
+    "systemPrompt": "…déjà assemblé par Next.js, à transmettre tel quel…",
+    "userPrompt":   "…déjà assemblé par Next.js, corpus inclus, à transmettre tel quel…",
+    "model": { "provider": "anthropic", "model": "claude-sonnet-5", "maxOutputTokens": 5000 },
+    "corpus": { "kept": 12, "requested": 12, "dropped": 0, "totalChars": 11900 },
+    "budget": { "maxTotalChars": 120000, "maxCharsPerItem": 4000, "maxItems": 120 },
+    "requestedAt": "2026-08-18T08:00:00.000Z"
+  }
+}
+```
+
+> 🔴 **`model` et `maxOutputTokens` viennent de l'enveloppe, PAS du workflow.**
+> C'est exactement ce qui permet à M-6 de tenir : changer de modèle pour une mission se fait
+> dans le catalogue TypeScript et un `git push`, sans jamais retoucher n8n.
+> **Ne code EN DUR ni `claude-sonnet-5`, ni `5000`, ni aucun identifiant de modèle.**
+> Le workflow de référence `intel-021` les code en dur — **ne le recopie pas sur ce point.**
+
+`systemPrompt` et `userPrompt` sont **déjà complets**. Tu ne les concatènes pas, tu n'y ajoutes
+aucune consigne, tu n'y injectes aucune variable. Tu les passes à l'API.
+
+---
+
+### 8.5 Ce que le workflow doit reposter — le contrat de callback (IMMUABLE)
+
+C'est la partie la plus importante du lot. Le workflow étant figé à vie (M-6), **ce contrat ne
+pourra plus changer**. L3 sera écrit pour le consommer tel quel.
+
+Corps du POST vers `callbackUrl`, signé HMAC :
+
+```jsonc
+{
+  "n8nExecutionId": "<$execution.id>",
+  "n8nWorkflowId":  "<$workflow.id>",
+  "runId": "<repris de l'enveloppe>",
+  "phase": 1,
+  "resultType": "mission_report",
+  "status": "succeeded",
+  "contentJson": {
+    "schemaVersion": 1,
+    "missionSlug": "<repris de l'enveloppe>",
+    "rawOutput": "<LE TEXTE BRUT DU LLM, NON PARSÉ, NON NETTOYÉ>"
+  },
+  "contentText": "<le même texte brut>",
+  "title": "Mission — <missionSlug>",
+  "modelProvider": "anthropic",
+  "modelUsed": "<champ `model` de la réponse Anthropic>",
+  "tokensInput":  "<usage.input_tokens>",
+  "tokensOutput": "<usage.output_tokens>"
+}
+```
+
+Quatre points à comprendre, pas seulement à appliquer :
+
+1. **`rawOutput` est le texte BRUT.** Tu ne fais **pas** de `JSON.parse`, tu ne retires **pas**
+   les balises de code, tu ne valides **rien**. Décision **M-2** : la sortie du LLM est validée
+   **une seule fois, côté Next.js, dans le callback** (lot L3). Un `JSON.parse` dans n8n ferait
+   échouer le run **avant** que Next.js puisse produire un message d'erreur exploitable, et
+   imposerait de maintenir un validateur en double.
+2. **`resultType` est le littéral `"mission_report"`, écrit en dur.** Il ne vient **jamais** de
+   l'enveloppe. Raison — décision **M-7** : le callback aiguille en service-role, hors RLS, vers
+   des écritures métier réelles (`account_issues_map` crée N lignes dans le CRM). Si une mission
+   pouvait choisir son `resultType`, une intention rédigée en texte libre ferait écrire un LLM
+   dans le CRM. En L3, le callback **re-dérivera** lui-même cette valeur depuis
+   `run_type LIKE 'mission:%'` et ignorera ce que tu envoies : double verrou, c'est voulu.
+3. **`phase: 1`, toujours.** Décision **M-4**. La vue `v_ai_intelligence_summary` a déjà été
+   corrigée (migrations `20260818101855` + `20260818110944`) pour exclure `run_type LIKE
+   'mission:%'`. Tu n'as rien à faire de ce côté, mais n'écris pas une autre valeur.
+4. **`title` est un repli déterministe.** Le vrai titre est dans la sortie du LLM, que tu ne
+   parses pas — L3 l'écrasera après validation.
+
+**`n8nExecutionId` / `n8nWorkflowId` sont obligatoires dès le premier jour.** Onze workflows
+existants ne les envoient pas encore, ce qui rend muet le lien « Ouvrir dans n8n » de
+`/automations`. Ne reproduis pas cette dette sur un workflow neuf.
+
+#### Le callback d'échec
+
+Même forme, avec `"status": "failed"`, `"contentJson": { "error": "<message>" }`,
+`"contentText": ""`, `"errorMessage": "<message>"`, `"title": "Mission — <slug> — échec"`.
+Il doit fonctionner **même si l'enveloppe était invalide** : récupère `runId` et `callbackUrl`
+en repli direct depuis le corps du webhook (patron `Prepare Failure Callback` d'`intel-021`).
+
+---
+
+### 8.6 Les 11 nœuds, un par un
+
+Modèle de référence à ouvrir avant d'écrire : **`n8n/workflows/intel-021-monthly-watch-analysis.json`**.
+Recopie-en la plomberie (webhook, crypto, callback signé) ; **ignore-en tout le métier**
+(`Load Digests`, `Load Articles`, `Assemble Prompt`, `Validate Output` n'ont pas d'équivalent ici).
+
+| # | Nom du nœud | Type n8n | Rôle |
+|---|---|---|---|
+| 1 | `Webhook — Mission Run` | `n8n-nodes-base.webhook` v2 | `path: "mission-001-run"`, POST, `responseMode: onReceived`, `options: { rawBody: true, responseCode: 202 }` |
+| 2 | `Verify Signature` | `n8n-nodes-base.crypto` v1 | `action: hmac`, `binaryData: true`, `binaryPropertyName: "data"`, `type: SHA256`, `dataPropertyName: "computedSignature"`, `encoding: hex` |
+| 3 | `Validate Envelope` | `n8n-nodes-base.code` v2 | Compare la signature, vérifie les champs, **aplatit l'enveloppe** |
+| 4 | `Mark Run Running` | `n8n-nodes-base.httpRequest` v4.2 | PATCH Supabase REST, statut `running` |
+| 5 | `Call LLM` | `n8n-nodes-base.httpRequest` v4.2 | POST `https://api.anthropic.com/v1/messages` |
+| 6 | `Prepare Callback` | `n8n-nodes-base.code` v2 | Construit le corps du §8.5 et le sérialise |
+| 7 | `Sign Callback` | `n8n-nodes-base.crypto` v1 | HMAC du `rawBody` |
+| 8 | `Callback` | `n8n-nodes-base.httpRequest` v4.2 | POST signé vers `callbackUrl` |
+| 9 | `Prepare Failure Callback` | `n8n-nodes-base.code` v2 | Idem, branche d'échec |
+| 10 | `Sign Failure Callback` | `n8n-nodes-base.crypto` v1 | |
+| 11 | `Callback (Failure)` | `n8n-nodes-base.httpRequest` v4.2 | |
+
+Racine du fichier : `{ "name", "nodes", "connections", "active": false, "settings": { "executionOrder": "v1" }, "pinData": {} }`.
+
+#### Nœud 3 — `Validate Envelope` (le seul code non trivial)
+
+Il fait **de la validation de transport, pas du métier**. Rien de plus que ceci :
+
+```js
+const item = $input.first().json;
+const body = item.body || {};
+const headers = item.headers || {};
+const received = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';
+const expected = 'sha256=' + (item.computedSignature || '');
+if (!received || received !== expected) throw new Error('Signature HMAC invalide');
+for (const f of ['runId','workflowId','workspaceId','userId','input','callbackUrl']) {
+  if (!body[f]) throw new Error('Champ requis manquant : ' + f);
+}
+if (body.workflowId !== 'mission-001-run') throw new Error('workflowId invalide');
+const env = body.input;
+if (env.schemaVersion !== 1) throw new Error('schemaVersion doit valoir 1');
+for (const f of ['missionSlug','missionVersion','systemPrompt','userPrompt','model']) {
+  if (env[f] === undefined || env[f] === null || env[f] === '') throw new Error('Champ enveloppe manquant : ' + f);
+}
+if (!env.model.model || !env.model.maxOutputTokens) throw new Error('model.model / model.maxOutputTokens requis');
+return [{ json: {
+  runId: body.runId, workspaceId: body.workspaceId, userId: body.userId,
+  callbackUrl: body.callbackUrl,
+  missionSlug: env.missionSlug, missionVersion: env.missionVersion,
+  systemPrompt: env.systemPrompt, userPrompt: env.userPrompt, model: env.model,
+} }];
+```
+
+#### Nœud 5 — `Call LLM`
+
+```jsonc
+{
+  "method": "POST",
+  "url": "https://api.anthropic.com/v1/messages",
+  "authentication": "predefinedCredentialType",
+  "nodeCredentialType": "anthropicApi",
+  "sendHeaders": true,
+  "headerParameters": { "parameters": [{ "name": "anthropic-version", "value": "2023-06-01" }] },
+  "sendBody": true, "contentType": "json", "specifyBody": "json",
+  "jsonBody": "={{ { model: $json.model.model, max_tokens: $json.model.maxOutputTokens, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] } }}",
+  "options": { "timeout": 180000 }
+}
+```
+
+Et sur ce nœud **uniquement**, active le retry — c'est l'une des deux raisons de garder n8n :
+`"retryOnFail": true, "maxTries": 3, "waitBetweenTries": 3000`.
+Timeout à **180 000 ms** (et non 90 000 comme `intel-021`) : un corpus de mission peut atteindre
+120 000 caractères. Vercel n'attend pas, le callback est asynchrone.
+
+#### Extraction de la réponse, dans `Prepare Callback`
+
+L'API Messages rend `content` comme un **tableau de blocs**. Ne prends pas `content[0]`
+aveuglément :
+
+```js
+const blocks = llm.content || [];
+const text = blocks.filter(b => b && b.type === 'text').map(b => b.text).join('');
+if (!text) throw new Error('Réponse LLM vide');
+```
+
+#### Câblage des erreurs
+
+Sur les nœuds **3, 4, 5 et 6**, pose `"onError": "continueErrorOutput"`, et relie leur
+**sortie `main[1]`** à `Prepare Failure Callback`. Chaîne nominale :
+`1 → 2 → 3 → 4 → 5 → 6 → 7 → 8`. Chaîne d'échec : `9 → 10 → 11`.
+
+#### ⚠️ Le piège des deux secrets
+
+`intel-021` porte deux placeholders différents, `REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET` et
+`REMPLACE_PAR_TON_N8N_CALLBACK_SECRET`, ce qui laisse croire à deux secrets distincts.
+**Il n'y en a qu'un.** `src/lib/n8n/hmac.ts` signe et vérifie les deux sens avec le même
+`N8N_WEBHOOK_SECRET`. Utilise **un seul placeholder**, `REMPLACE_PAR_N8N_WEBHOOK_SECRET`, dans
+les deux nœuds `crypto` de signature, et dis-le explicitement dans le SETUP.
+
+---
+
+### 8.7 Le harnais de test — et le piège qui a déjà coûté 117 assertions muettes
+
+Crée `n8n/workflows/__tests__/mission-001-run.test.js`, sur le modèle de
+`intel-040-workspace-diagnostic.test.js` (compteurs `passed`/`failed`, fonction `check()`,
+affichage final `${passed} passed, ${failed} failed`).
+
+> 🔴 **`npm test` (Vitest) n'inclut PAS ces harnais** — il ne prend que `src/**/*.test.ts`.
+> C'est `npm run test:n8n` qui les exécute. Un workflow cassé laisse `npm test` parfaitement vert.
+
+> 🔴 **Un harnais qui « passe » peut n'avoir rien exécuté.** Ces harnais sont des scripts Node
+> nus : une exception dans un nœud `Code` — typiquement une globale n8n absente du sandbox
+> (`$execution`, `$workflow`, `$input`, `$()`) — fait sauter **toutes les assertions restantes**
+> sans faire échouer le script. `intel-020` et `intel-040` ont vécu ainsi avec **117 assertions
+> muettes**. **Lis toujours le compteur final, jamais le seul code de sortie.**
+> Dans ton rapport, cite le nombre d'assertions exécutées.
+
+**Assertions structurelles** (lecture du JSON) :
+- exactement **11 nœuds**, et les 11 noms attendus sont présents ;
+- **aucun** nœud nommé `Assemble Prompt`, `Hydrate*`, `Load *`, `Validate Output`, `Quality Check` ;
+- le `jsonBody` de `Call LLM` référence `$json.model.model` et `$json.model.maxOutputTokens`,
+  et **ne contient aucune chaîne `claude-`** — c'est l'assertion qui protège M-6 ;
+- `Call LLM` porte `retryOnFail: true` ;
+- les nœuds 3/4/5/6 portent `onError: "continueErrorOutput"` et sont câblés en `main[1]` vers
+  `Prepare Failure Callback` ;
+- le code de `Prepare Callback` contient `resultType` avec le littéral `'mission_report'`,
+  `phase` à `1`, et **ne contient ni `JSON.parse` ni `mapResultType`** ;
+- le webhook a `path === "mission-001-run"` et `rawBody: true`.
+
+**Assertions exécutables** (les plus utiles — exécute réellement les nœuds `Code` dans un
+`vm` avec des globales mockées) :
+- `Validate Envelope` sur une enveloppe valide → rend `systemPrompt`, `userPrompt`, `model` ;
+- sur une signature fausse → **lève** `Signature HMAC invalide` ;
+- sur `schemaVersion: 2` → lève ;
+- `Prepare Callback` sur une réponse Anthropic réaliste (blocs `content`, `usage`, `model`)
+  → `rawBody` est un JSON dont `resultType === 'mission_report'`, `phase === 1`,
+  `contentJson.rawOutput` **égale exactement** le texte du LLM (aucune transformation) ;
+- `Prepare Failure Callback` avec `Validate Envelope` en échec → produit quand même un corps
+  avec le bon `runId` et `status: 'failed'`.
+
+Globales à mocker dans le `vm` : `$input`, `$json`, `$execution` (`{ id: 'exec-1' }`),
+`$workflow` (`{ id: 'wf-1' }`), et `$('Nom du nœud')` renvoyant `{ item: { json: … } }`.
+
+---
+
+### 8.8 Méthode de production du JSON
+
+**Génère le fichier par un script Python**, pas à la main : l'échappement du JavaScript dans du
+JSON est la source d'erreur n°1 sur ce type de fichier. Mets le script dans le scratchpad, pas
+dans le repo.
+
+Puis, avant tout commit :
+```bash
+node --check <(python3 -c "import json;print(json.load(open('n8n/workflows/mission-001-run.json'))['nodes'][2]['parameters']['jsCode'])")
+```
+— et fais-le pour **chacun** des trois nœuds `Code` (indices à adapter). Un `jsCode`
+syntaxiquement invalide passe la validation JSON sans problème et n'explose qu'à l'exécution
+sur le VPS, c'est-à-dire trop tard.
+
+---
+
+### 8.9 Ce que tu peux prouver, et ce que tu ne peux pas
+
+| Vérifiable par toi, hors ligne | Vérifiable seulement par Guillaume, après import |
+|---|---|
+| Structure du workflow, absence de métier | Que le webhook répond 202 |
+| Exécution réelle des 3 nœuds `Code` | Que la credential `anthropicApi` est bien résolue |
+| Forme exacte du corps de callback | Que le HMAC passe de bout en bout |
+| Cohérence avec l'enveloppe produite par L1 | Que le run passe `queued → running → succeeded` |
+
+**Ne déclare jamais « le workflow fonctionne ».** Dis : *« le workflow est conforme au contrat et
+ses nœuds `Code` sont testés ; l'exécution réelle reste à valider après import. »*
+
+**Bonne nouvelle qui borne le risque** : `ai_intelligence_results.result_type` est du **`text`
+libre**, et l'aiguillage du callback est une **allowlist stricte**
+(`mapResultTypeToDocumentType` rend `null` pour toute valeur inconnue). Donc, **avant même que
+L3 existe**, un run de mission qui aboutit écrit sa ligne de résultat **sans créer aucun
+document et sans déclencher aucune écriture métier**. L2 est donc testable de bout en bout
+tout seul, et ne peut rien casser dans le CRM. C'est vérifié, pas supposé.
+
+---
+
+### 8.10 Boucle de validation — dans cet ordre, sans en sauter
+
+```bash
+npm run typecheck && npm test && npm run check:server-boundary && npm run lint && npm run build && npm run test:n8n
+```
+
+`npm run test:n8n` est **obligatoire ici** (un fichier de `n8n/workflows/` est touché) — et c'est
+le seul lot où il l'est. Les cinq premières commandes doivent rester vertes **sans que tu aies
+touché à `src/`** : si l'une casse, c'est que tu es sorti du périmètre.
+
+Si le build échoue sur `ENOTEMPTY` ou de faux `TS6200`/`TS2300` : `rm -rf .next`, puis relance.
+
+**Rapporte les compteurs réels** — nombre de tests passés, nombre d'assertions n8n exécutées,
+échecs éventuels. Jamais un simple « ça passe ».
+
+### 8.11 Checklist de sortie du lot
+
+- [ ] 3 fichiers créés, **aucun autre fichier modifié** (`git status` le prouve)
+- [ ] 11 nœuds, aucun nœud de métier
+- [ ] Aucun identifiant de modèle en dur — tout vient de l'enveloppe
+- [ ] `resultType: 'mission_report'` littéral, `phase: 1`
+- [ ] `rawOutput` = texte brut, aucun `JSON.parse` nulle part
+- [ ] `n8nExecutionId` / `n8nWorkflowId` envoyés
+- [ ] Branche d'échec câblée sur les 4 nœuds faillibles
+- [ ] `node --check` passé sur les 3 `jsCode`
+- [ ] Harnais : compteur final lu et cité dans le rapport
+- [ ] Boucle de validation complète, compteurs rapportés
+- [ ] `SETUP.md` écrit, avec le secret unique et les credentials à configurer
+- [ ] Le rapport final dit explicitement ce qui reste à valider après import VPS
 
 ---
 

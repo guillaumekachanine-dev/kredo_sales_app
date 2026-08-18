@@ -219,6 +219,19 @@ C'est le patron déjà appliqué ailleurs dans Kredo (lecture de `profiles.works
 Server Action, cf. `collect-account-score-input.ts`), les fonctions `private.*` n'étant pas
 exposées par PostgREST.
 
+> **Résolution en L1 (2026-08-18) — l'option est tranchée : aucun provider n'est en
+> service-role.** L'alternative que ce paragraphe laissait ouverte (« soit emprunter un autre
+> chemin de données, soit s'exécuter en service-role ») est résolue **dans le premier sens**.
+> `companies`, `v_active_account_signals`, `contacts` et `persons` portent toutes le motif RLS
+> workspace standard : la lecture ligne à ligne sous le client de l'utilisateur suffit, et
+> `get_account_knowledge_context` n'est appelée nulle part côté Next.js. Deuxième raison, qui
+> n'était pas anticipée ici : la RPC rend un **unique blob JSON**, donc une seule référence
+> citable, là où la lecture ligne à ligne donne au LLM un identifiant réel par signal et par
+> contact — ce dont L3 a besoin pour reconstituer un `SourceRef`. La clause de M-5 sur la garde
+> de workspace reste **appliquée quand même**, en seconde serrure : le provider revérifie
+> l'appartenance de la company avant toute autre requête, et le retrait de ce verrou fait
+> échouer trois tests.
+
 ### 5.2 Réutiliser `/api/n8n/trigger` — **acceptée, elle corrige une incohérence interne**
 
 `03` §4.3 (M-5) plaçait la résolution dans la route de trigger existante, mais son
@@ -402,14 +415,24 @@ non les trois ensembles proposés en `00` §11, qui sont les plus vides de la ba
 
 ## Action items
 
-1. [ ] **Arbitrer cette ADR** — passage en `Accepté` ou retour sur l'une des 7 décisions.
-2. [ ] **L0** — `mission-contracts.ts`, `mission-catalog.ts`, 1 preset ; **appliquer la
-       garde M-4** aux vues et composants lisant `phase` (`v_ai_intelligence_summary` en
-       premier).
-3. [ ] **L1** — 3 providers ; chacun **déclare son mode d'exécution**, et tout provider
-       service-role porte une **garde de workspace testée** (§5.1).
-4. [ ] **L1** — budget + troncature déterministe + trace dans `input_snapshot`.
-5. [ ] **L2** — `mission-001-run` (11 nœuds, zéro code métier), harnais `test:n8n`,
+> État au **2026-08-18** — L0 et L1 livrés, L2 est le prochain lot.
+
+1. [x] **Arbitrer cette ADR** — ✅ **Acceptée le 2026-08-18**, sans retour sur aucune des 7 décisions.
+2. [x] **L0 — livré le 2026-08-18** (puis audité) : `mission-contracts.ts`, `mission-catalog.ts`,
+       1 preset, et la **garde M-4** sur `v_ai_intelligence_summary`. Il a fallu **deux**
+       migrations : `20260818101855` ne guardait que la latérale `res`, `20260818110944`
+       a complété la latérale `runs` (`count_runs` / `latest_run_*` restaient pollués).
+3. [x] **L1 — livré le 2026-08-18** : 3 providers, budget déterministe, résolveur à allowlist
+       stricte, assembleur de prompt pur, branche `missionSlug` dans la gateway existante.
+       **Les trois providers déclarent `user_rls` : aucun n'est en service-role** — l'option
+       laissée ouverte au §5.1 est tranchée dans l'autre sens (note de résolution *in situ*).
+       La garde de workspace est appliquée quand même, en seconde serrure, et **vérifiée par
+       mutation** : la retirer fait échouer 3 tests sur 6.
+4. [x] **L1 — livré** : budget + troncature déterministe + trace dans `input_snapshot`.
+       Piège non anticipé : `createRun` écrivait `input_snapshot = input`, ce qui aurait
+       recopié tout le corpus (P2). D'où `inputSnapshot` en option de `createRun` /
+       `triggerN8nRun` — par défaut inchangé pour tous les appelants existants.
+5. [ ] **L2 — PROCHAIN** : `mission-001-run` (zéro code métier), harnais `test:n8n`,
        **un seul import VPS préparé** ; lire le compteur d'assertions.
 6. [ ] **L3** — extraire l'aiguillage du callback à comportement **strictement identique**
        (4 chemins en production), validateur `MissionReportV1`, migration de l'enum + les
