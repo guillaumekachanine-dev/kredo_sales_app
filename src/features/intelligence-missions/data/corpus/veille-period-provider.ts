@@ -110,6 +110,7 @@ export const veillePeriodProvider: CorpusProvider<{
       )
       .eq("workspace_id", ctx.workspaceId)
       .in("digest_id", Array.from(digestDateById.keys()))
+      .is("superseded_at", null)
       .order("published_at", { ascending: false, nullsFirst: false })
       .order("selection_rank", { ascending: true })
       .limit(VEILLE_ARTICLE_QUERY_LIMIT)

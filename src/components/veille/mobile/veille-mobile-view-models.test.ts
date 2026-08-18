@@ -42,6 +42,7 @@ function makeArticle(overrides: Partial<VeilleArticle> & { id: string }): Veille
     company_id: overrides.company_id ?? null,
     convergences: overrides.convergences ?? null,
     source_catalog_id: null,
+    superseded_at: overrides.superseded_at ?? null,
     tags: [],
     created_at: "2026-07-29T08:00:00Z",
     updated_at: "2026-07-29T08:00:00Z",

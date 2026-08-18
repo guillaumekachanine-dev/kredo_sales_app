@@ -86,6 +86,7 @@ export async function POST(request: Request) {
       .select("id")
       .eq("workspace_id", workspace.id)
       .in("digest_id", digestIds)
+      .is("superseded_at", null)
       .order("selection_rank", { ascending: true })
     if (articleError) {
       runs.push({ workspaceId: workspace.id, error: articleError.message })

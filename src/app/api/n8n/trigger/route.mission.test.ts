@@ -44,6 +44,10 @@ vi.mock("@/lib/supabase/server", () => ({
           rows = rows.filter((row) => String(row[column]) <= String(value))
           return builder
         },
+        is: (column: string, value: unknown) => {
+          rows = rows.filter((row) => (value === null ? row[column] === null || row[column] === undefined : row[column] === value))
+          return builder
+        },
         order: () => builder,
         limit: (count: number) => {
           rows = rows.slice(0, count)

@@ -62,6 +62,10 @@ export function createFakeSupabase(
           rows = rows.filter((row) => compare(row[column], value) <= 0)
           return builder
         },
+        is: (column: string, value: unknown) => {
+          rows = rows.filter((row) => (value === null ? row[column] === null || row[column] === undefined : row[column] === value))
+          return builder
+        },
         order: () => builder,
         limit: (count: number) => {
           rows = rows.slice(0, count)

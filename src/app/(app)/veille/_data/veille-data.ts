@@ -154,6 +154,7 @@ export async function getMonthlyWatchGenerationContext(reference = new Date()): 
         .select("id")
         .eq("workspace_id", workspaceId)
         .in("digest_id", digestIds)
+        .is("superseded_at", null)
         .order("selection_rank", { ascending: true })
     : { data: [] as Array<{ id: string }>, error: null }
   const latestRunRow = runsResult.data?.[0] ?? null
@@ -198,6 +199,7 @@ export async function getVeilleArticles(digestId: string) {
     .from("veille_articles")
     .select("*")
     .eq("digest_id", digestId)
+    .is("superseded_at", null)
     .order("selection_rank", { ascending: true })
 
   return { data: (data || []) as VeilleArticle[], error }
@@ -208,6 +210,7 @@ export async function getAllVeilleArticles() {
   const { data, error } = await supabase
     .from("veille_articles")
     .select("*")
+    .is("superseded_at", null)
     .order("published_at", { ascending: false })
     .order("selection_rank", { ascending: true })
 
@@ -228,6 +231,7 @@ export async function getVeilleArticlesForDigests(digestIds: string[]) {
     .from("veille_articles")
     .select("*")
     .in("digest_id", digestIds)
+    .is("superseded_at", null)
     .order("published_at", { ascending: false })
     .order("selection_rank", { ascending: true })
 

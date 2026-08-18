@@ -7060,6 +7060,7 @@ export type Database = {
           selection_rank: number
           source_catalog_id: string | null
           source_name: string
+          superseded_at: string | null
           tags: string[]
           titre_fr: string
           updated_at: string
@@ -7083,6 +7084,7 @@ export type Database = {
           selection_rank: number
           source_catalog_id?: string | null
           source_name: string
+          superseded_at?: string | null
           tags?: string[]
           titre_fr: string
           updated_at?: string
@@ -7106,6 +7108,7 @@ export type Database = {
           selection_rank?: number
           source_catalog_id?: string | null
           source_name?: string
+          superseded_at?: string | null
           tags?: string[]
           titre_fr?: string
           updated_at?: string
@@ -8300,6 +8303,13 @@ export type Database = {
           status: string
           updated_at: string
         }[]
+      }
+      replace_veille_digest_articles: {
+        Args: {
+          p_articles: Json
+          p_digest_id: string
+        }
+        Returns: Database["public"]["Tables"]["veille_articles"]["Row"][]
       }
       archive_stale_account_signals: { Args: never; Returns: number }
       compute_conviction_score_v1: {

@@ -554,7 +554,7 @@ const digestArticlesFixture = {
     },
   ],
 }
-const lignesArticles = runCodeNode(PREPARER_LIGNES, {
+const payloadArticles = runCodeNode(PREPARER_LIGNES, {
   input: [digestArticlesFixture],
   registry: {
     "Valider Convergences": [digestArticlesFixture],
@@ -562,6 +562,7 @@ const lignesArticles = runCodeNode(PREPARER_LIGNES, {
     "Build Contexte KREDO": [{ workspaceId: "workspace-uuid-1" }],
   },
 }).map((i) => i.json)
+const lignesArticles = payloadArticles[0].p_articles
 check(
   "propagation — source_catalog_id atteint les lignes veille_articles",
   lignesArticles.every((r, idx) => r.source_catalog_id === digestArticlesFixture.articles[idx].sourceCatalogId),
@@ -684,6 +685,96 @@ check(
   nodes["Charger Playbooks"]?.executeOnce === true,
 )
 
+// --- LOT 2.1 : Test de Régression Taxonomie Relationnelle (BFA / CEGEMA) ---
+const realTaxonomyPlaybooks = [
+  {
+    macro_id: "macro-bfa-uuid",
+    macro_name: "Banque, Finance & Assurance",
+    segment_id: "seg-assurance-uuid",
+    segment_name: "Assurance, mutuelles & courtage",
+    playbook: { target: "DORA" }
+  },
+  {
+    macro_id: "macro-bfa-uuid",
+    macro_name: "Banque, Finance & Assurance",
+    segment_id: "seg-banque-uuid",
+    segment_name: "Banque & financement",
+    playbook: { target: "AI Act" }
+  },
+  {
+    macro_id: "macro-services-uuid",
+    macro_name: "Services aux entreprises & aux personnes",
+    segment_id: "seg-medias-uuid",
+    segment_name: "Médias & édition",
+    playbook: { target: "GenAI" }
+  }
+];
+
+const realTaxonomyComptes = [
+  {
+    id: "comp-cegema-uuid",
+    name: "CEGEMA",
+    sector_id: "macro-bfa-uuid",
+    segment_id: "seg-assurance-uuid",
+    lifecycle_status: "client"
+  },
+  {
+    id: "comp-other-uuid",
+    name: "Other SaaS",
+    sector_id: "macro-saas-uuid",
+    segment_id: "seg-saas-uuid",
+    lifecycle_status: "prospect"
+  }
+];
+
+const realTaxonomyIssues = [
+  {
+    id: "issue-cegema-1",
+    company_id: "comp-cegema-uuid",
+    title: "Mise en conformité DORA",
+    problem_statement: "Échéance janvier 2025"
+  },
+  {
+    id: "issue-other-1",
+    company_id: "comp-other-uuid",
+    title: "Refonte CRM",
+    problem_statement: "Migration en cours"
+  }
+];
+
+const preFiltrageRealBfaOut = runCodeNode(PRE_FILTRAGE, {
+  registry: {
+    "Parser Top 5": [{ id: "art_rank3", secteurPrincipal: "Banque, Finance & Assurance", secteurSecondaire: "" }],
+    "Charger Comptes": realTaxonomyComptes,
+    "Charger Enjeux": realTaxonomyIssues,
+    "Charger Playbooks": realTaxonomyPlaybooks
+  }
+}).map(i => i.json);
+
+check(
+  "lot2.1 — article BFA : candidateAccounts >= 1 (CEGEMA rattaché)",
+  preFiltrageRealBfaOut[0].convergenceContext.candidateAccounts.some(c => c.id === "comp-cegema-uuid"),
+);
+
+check(
+  "lot2.1 — article BFA : candidateIssues >= 1 (enjeux CEGEMA)",
+  preFiltrageRealBfaOut[0].convergenceContext.candidateIssues.some(i => i.id === "issue-cegema-1" && i.company_name === "CEGEMA"),
+);
+
+check(
+  "lot2.1 — article BFA : candidatePlaybooks >= 1 (playbooks BFA/Assurance)",
+  preFiltrageRealBfaOut[0].convergenceContext.candidatePlaybooks.some(p => p.segment_id === "seg-assurance-uuid"),
+);
+
+check(
+  "lot2.1 — diagnostic convergenceDebug présent dans l'output de pré-filtrage",
+  preFiltrageRealBfaOut[0].convergenceDebug &&
+  preFiltrageRealBfaOut[0].convergenceDebug.candidateAccountsCount >= 1 &&
+  preFiltrageRealBfaOut[0].convergenceDebug.candidateIssuesCount >= 1 &&
+  preFiltrageRealBfaOut[0].convergenceDebug.candidatePlaybooksCount >= 1 &&
+  preFiltrageRealBfaOut[0].convergenceDebug.resolvedSectorIds.includes("macro-bfa-uuid"),
+);
+
 const companiesFixture = [
   { id: "comp_1", name: "Comp 1", sector_id: "sect_1", segment_id: "seg_1" },
   { id: "comp_2", name: "Comp 2", sector_id: "sect_2", segment_id: "seg_2" }
@@ -698,7 +789,7 @@ const playbooksFixture = [
 
 const preFiltrageOut = runCodeNode(PRE_FILTRAGE, {
   registry: {
-    "Parser Top 5": [{ id: "art_1", secteurPrincipal: "sect_1", secteurSecondaire: "seg_1" }],
+    "Parser Top 5": [{ id: "art_1", secteurPrincipal: "Sect 1", secteurSecondaire: "Seg 1" }],
     "Charger Comptes": companiesFixture,
     "Charger Enjeux": issuesFixture,
     "Charger Playbooks": playbooksFixture
@@ -765,7 +856,7 @@ check(
 check(
   "lot2 — persistance: prépararer lignes inclut la colonne convergences",
   (() => {
-    const lignes = runCodeNode(PREPARER_LIGNES, {
+    const payload = runCodeNode(PREPARER_LIGNES, {
       input: [{ articles: [{ id: "art_1", convergences: { schemaVersion: 1 } }] }],
       registry: {
         "Valider Convergences": [{ articles: [{ id: "art_1", convergences: { schemaVersion: 1 } }] }],
@@ -773,8 +864,120 @@ check(
         "Build Contexte KREDO": [{ workspaceId: "ws_1" }]
       }
     }).map(i => i.json);
+    const lignes = payload[0].p_articles;
     return lignes[0].convergences && lignes[0].convergences.schemaVersion === 1;
   })(),
+)
+
+// --- LOT 2.3 : Idempotence Sûre & RPC Transactionnelle ---
+
+const rpcNode = nodes["Remplacer Articles Digest (RPC)"]
+check(
+  "lot2.3 — nœud 'Remplacer Articles Digest (RPC)' configuré pour appeler replace_veille_digest_articles",
+  !!rpcNode &&
+  (rpcNode.parameters.method || "").toUpperCase() === "POST" &&
+  rpcNode.parameters.url.includes("/rpc/replace_veille_digest_articles"),
+)
+
+check(
+  "lot2.3 — chaînage transactionnel : 'Créer Digest' -> 'Préparer Lignes Articles' -> 'Remplacer Articles Digest (RPC)'",
+  workflow.connections["Créer Digest"]?.main?.[0]?.[0]?.node === "Préparer Lignes Articles" &&
+  workflow.connections["Préparer Lignes Articles"]?.main?.[0]?.[0]?.node === "Remplacer Articles Digest (RPC)",
+)
+
+check(
+  "lot2.3 — suppression complète de 'Purger Anciens Articles Digest' destructif",
+  !("Purger Anciens Articles Digest" in nodes),
+)
+
+// Test de cohérence : confidence high sans éléments structurés doit être rabattue à low
+const digestHighWithoutStructured = {
+  articles: [{
+    id: "art_1",
+    convergences: {
+      schemaVersion: 1,
+      synthesis: "Synthèse générale sans rapprochement structuré retenu.",
+      confidence: "high",
+      matchedIssues: [],
+      relatedAccounts: [],
+      playbookSuggestion: null,
+      recommendedActions: [],
+      evidenceRefs: []
+    }
+  }]
+}
+const outHighWithoutStructured = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [digestHighWithoutStructured],
+  registry: { "Pré-filtrage Déterministe": preFiltrageOut }
+}).map(i => i.json)
+
+check(
+  "lot2.2 — confidence high sans éléments structurés est rabattue à low",
+  outHighWithoutStructured[0].articles[0].convergences.confidence === "low",
+)
+
+// Test de cohérence : confidence high avec matchedIssues reste high
+const digestHighWithStructured = {
+  articles: [{
+    id: "art_1",
+    convergences: {
+      schemaVersion: 1,
+      synthesis: "Convergence Schneider DORA avérée.",
+      confidence: "high",
+      matchedIssues: [
+        {
+          issueId: "issue_1",
+          companyId: "comp_1",
+          companyName: "Comp 1",
+          issueTitle: "Enjeu 1",
+          rationale: "Alignement direct"
+        }
+      ],
+      relatedAccounts: [],
+      playbookSuggestion: null,
+      recommendedActions: [{ label: "Action 1", rationale: "Raison" }],
+      evidenceRefs: [{ type: "account_issue", id: "issue_1", label: "Enjeu 1" }]
+    }
+  }]
+}
+const outHighWithStructured = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [digestHighWithStructured],
+  registry: { "Pré-filtrage Déterministe": preFiltrageOut }
+}).map(i => i.json)
+
+check(
+  "lot2.2 — confidence high avec matchedIssues reste high et conserve ses structures",
+  outHighWithStructured[0].articles[0].convergences.confidence === "high" &&
+  outHighWithStructured[0].articles[0].convergences.matchedIssues.length === 1,
+)
+
+// Test cas OpenAI / Éducation : confidence low avec evidenceRefs périphériques préservées sans forcing
+const digestLowContextOnly = {
+  articles: [{
+    id: "art_1",
+    convergences: {
+      schemaVersion: 1,
+      synthesis: "Partenariat éducatif transverse sans opportunité commerciale forte.",
+      confidence: "low",
+      matchedIssues: [],
+      relatedAccounts: [],
+      playbookSuggestion: null,
+      recommendedActions: [],
+      evidenceRefs: [{ type: "company", id: "comp_1", label: "Comp 1" }]
+    }
+  }]
+}
+const outLowContextOnly = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [digestLowContextOnly],
+  registry: { "Pré-filtrage Déterministe": preFiltrageOut }
+}).map(i => i.json)
+
+check(
+  "lot2.2 — cas context-only (OpenAI/Éducation) : evidenceRefs préservées, pas de forcing dans relatedAccounts",
+  outLowContextOnly[0].articles[0].convergences.confidence === "low" &&
+  outLowContextOnly[0].articles[0].convergences.relatedAccounts.length === 0 &&
+  outLowContextOnly[0].articles[0].convergences.evidenceRefs.length === 1 &&
+  outLowContextOnly[0].articles[0].convergences.evidenceRefs[0].id === "comp_1",
 )
 
 console.log(`\n${passed} ok · ${failed} échec(s)`)

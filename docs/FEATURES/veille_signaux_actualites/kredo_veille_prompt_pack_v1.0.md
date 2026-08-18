@@ -154,10 +154,10 @@ Pour chaque article :
 À partir du contenu factuel de l'article et UNIQUEMENT des objets KREDO fournis dans CONVERGENCE_CONTEXT, identifie les rapprochements commercialement utiles entre cette actualité et la connaissance existante de KREDO. S'il n'y a pas de convergence suffisamment étayée, produis des listes vides et ne force pas de correspondance.
 
 - convergences.synthesis : Formuler brièvement le rapprochement principal. Pas de remplissage. S'il n'existe aucune convergence, le dire explicitement.
-- convergences.confidence : "high", "medium" ou "low" selon la force du rapprochement.
-- convergences.evidenceRefs : Tableau des références KREDO ayant servi au raisonnement ({ "type": "article"|"account_issue"|"company"|"sector_playbook", "id": "...", "label": "..." }).
-- convergences.matchedIssues : Maximum 3. Uniquement si l'enjeu figure dans candidateIssues. Explique pourquoi l'article rejoint l'enjeu ({ issueId, companyId, companyName, issueTitle, rationale }).
-- convergences.relatedAccounts : Maximum 5. Uniquement si le compte figure dans candidateAccounts. Il faut une justification commerciale réelle, le simple partage d'un secteur ne suffit pas ({ companyId, companyName, rationale }).
+- convergences.confidence : "high", "medium" ou "low" selon la force du rapprochement. Une confidence "high" ou "medium" DOIT obligatoirement comporter au moins un élément structuré non vide (matchedIssues, relatedAccounts, ou playbookSuggestion). Si aucune convergence forte n'est retenue, la confidence doit être "low".
+- convergences.evidenceRefs : Tableau de toutes les références KREDO ayant servi au raisonnement ({ "type": "article"|"account_issue"|"company"|"sector_playbook", "id": "...", "label": "..." }). Les comptes ou enjeux de simple contexte périphérique restent ici sans être forcés dans les listes métier ci-dessous.
+- convergences.matchedIssues : Maximum 3. RÈGLE : Si la synthèse affirme qu'un enjeu candidat converge avec l'article, tu DOIS IMPÉRATIVEMENT l'ajouter ici avec ses détails ({ issueId, companyId, companyName, issueTitle, rationale }). Uniquement si l'enjeu figure dans candidateIssues.
+- convergences.relatedAccounts : Maximum 5. RÈGLE : Si un compte candidat est directement concerné par l'opportunité commerciale, tu DOIS l'ajouter ici ({ companyId, companyName, rationale }). Uniquement si le compte figure dans candidateAccounts.
 - convergences.playbookSuggestion : Maximum UNE suggestion, si un playbook candidat est fourni, que l'article apporte un argument exploitable et qu'une section ciblée existe ({ sectorId, sectorName, targetSection, proposedArgument, rationale }). Sinon null.
 - convergences.recommendedActions : Maximum 3 actions courtes et concrètes (approfondir, contacter, etc.) ({ label, rationale }).
 

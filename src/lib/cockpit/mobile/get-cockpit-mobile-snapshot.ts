@@ -381,6 +381,7 @@ async function loadFallbackSignals(
       { count: "exact" },
     )
     .eq("workspace_id", workspaceId)
+    .is("superseded_at", null)
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("selection_rank", { ascending: true })
     .limit(COCKPIT_MOBILE_SIGNAL_LIMIT)
