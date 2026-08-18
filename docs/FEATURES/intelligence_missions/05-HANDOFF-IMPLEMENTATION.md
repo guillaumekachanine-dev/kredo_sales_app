@@ -412,8 +412,100 @@ workflow est cassé.
 ## 8. Lot L2 — `mission-001-run` : le workflow n8n générique
 
 > **Le prompt du lot L1 est en historique git** (commit `5da91db4`), comme celui de L0 avant lui.
-> L1 est livré ; cette section est le **cahier des charges complet du lot L2**, écrit pour être
-> exécuté sans rien relire d'autre que le §2 et le §3 de ce document.
+> L1 est livré ; §8.1 à §8.11 ci-dessous forment le **cahier des charges complet du lot L2**.
+
+### 8.0 Prompt de démarrage — à copier tel quel dans une session neuve
+
+> Contrairement à L0 et L1, ce prompt ne réexplique pas le détail : il pointe vers §8.1-§8.11,
+> qui font foi et se suffisent à eux-mêmes. Ne les résume pas en les transmettant — leur longueur
+> EST la garantie. En revanche les points ci-dessous sont dupliqués en dur dans ce prompt parce
+> qu'une lecture en diagonale ne doit jamais pouvoir les manquer.
+
+```text
+Contexte : chantier « Missions d'intelligence » de Kredo, acté dans
+docs/adr/ADR-0020-missions-intelligence.md (statut Accepté). Les lots L0 et L1 sont livrés.
+
+Tu réalises le LOT L2, et RIEN d'autre. Lis dans cet ordre, intégralement, avant d'écrire quoi
+que ce soit :
+  1. docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md §8.1 à §8.11 — c'est le
+     cahier des charges complet du lot, il fait foi sur tout le reste de ce prompt en cas de
+     divergence.
+  2. n8n/workflows/intel-021-monthly-watch-analysis.json — le workflow de référence, patron de
+     plomberie (webhook, HMAC, callback signé). Son métier (hydratation, assemblage de prompt,
+     validation de sortie) N'A PAS d'équivalent dans ton lot et ne doit pas être recopié.
+  3. src/lib/n8n/types.ts — cherche `MissionRunEnvelope` : c'est EXACTEMENT ce que ton workflow
+     reçoit dans `input`. Ne devine rien, ce type est déjà écrit et figé.
+  4. src/lib/n8n/hmac.ts — un seul secret (`N8N_WEBHOOK_SECRET`) signe les deux sens. Le
+     workflow de référence porte deux placeholders différents qui laissent croire à deux
+     secrets : c'est trompeur, n'en crée pas deux.
+
+Ne relis rien d'autre du chantier (ADR en entier, L0, L1, code de src/features/intelligence-missions/) :
+leur substance utile à ce lot est déjà résumée dans le §8 du handoff.
+
+──────────────────────────────────────────────────────────────────────
+CE QUE TU PRODUIS — exactement trois fichiers, aucun de plus
+──────────────────────────────────────────────────────────────────────
+  1. n8n/workflows/mission-001-run.json          (11 nœuds — liste exacte en §8.6)
+  2. n8n/workflows/mission-001-run.SETUP.md      (notice d'import, calquée sur les SETUP.md existants)
+  3. n8n/workflows/__tests__/mission-001-run.test.js   (harnais Node, exécuté par npm run test:n8n)
+
+──────────────────────────────────────────────────────────────────────
+CE QUE TU NE TOUCHES SOUS AUCUN PRÉTEXTE (détail et pourquoi : §8.2)
+──────────────────────────────────────────────────────────────────────
+  ✗ Rien dans src/. Pas une ligne. "mission-001-run" est DÉJÀ dans N8nWorkflowId
+    (src/lib/n8n/types.ts). Si tu penses avoir besoin d'un changement dans src/, ARRÊTE-TOI
+    et signale-le au lieu de le faire : c'est le signe que tu as mal lu l'enveloppe.
+  ✗ Aucune migration SQL, aucun apply_migration.
+  ✗ Ne touche pas au callback (src/app/api/n8n/callback/route.ts) — c'est le lot L3, pas le tien.
+  ✗ Ne modifie aucun autre fichier de n8n/workflows/.
+  ✗ N'essaie pas d'importer le workflow sur le VPS ni de proposer un handoff terminal pour n8n
+    — l'import est manuel, fait par Guillaume, et cette approche a déjà été explicitement
+    rejetée. Le MCP n8n est bloqué en session agent.
+  ✗ N'invente aucune logique métier : ton workflow ne parse pas la sortie du LLM, ne calcule
+    aucun resultType, ne connaît même pas ce qu'est une « mission ». Il reçoit deux chaînes
+    déjà prêtes (systemPrompt, userPrompt) et les transmet. Détail intégral en §8.3.
+
+──────────────────────────────────────────────────────────────────────
+TROIS RÈGLES QUI CASSENT LE CHANTIER SI TU LES RATES
+──────────────────────────────────────────────────────────────────────
+  1. Aucun identifiant de modèle en dur (ni "claude-*", ni un nombre de tokens). Tout vient de
+     `input.model` dans l'enveloppe reçue. Le workflow de référence code son modèle en dur —
+     NE LE RECOPIE PAS sur ce point précis. C'est ce qui permet de ne plus jamais réimporter
+     ce workflow (décision M-6) : changer de modèle se fait dans le catalogue TypeScript.
+  2. Le corps posté au callback ne contient AUCUN JSON.parse de la sortie LLM. `contentJson.rawOutput`
+     est le texte brut, tel quel. La validation se fait une seule fois, côté Next.js, dans un
+     lot ultérieur (M-2).
+  3. `resultType` est le littéral "mission_report", écrit en dur dans ton code — jamais une
+     valeur qui transite depuis l'enveloppe ou depuis la sortie du LLM (M-7). Le contrat de
+     callback complet, avec exemple JSON, est en §8.5 : ne t'en écarte pas, il est immuable.
+
+──────────────────────────────────────────────────────────────────────
+MÉTHODE
+──────────────────────────────────────────────────────────────────────
+1. Génère le JSON du workflow par un script Python (dans le scratchpad, pas dans le repo) —
+   jamais à la main : l'échappement du JavaScript en JSON est la source d'erreur n°1.
+2. `node --check` sur chacun des 3 nœuds `Code` avant tout commit (§8.8).
+3. Écris le harnais de test AVANT de déclarer le lot fini, et lis son compteur final
+   d'assertions — jamais le seul code de sortie. Un harnais n8n qui « passe » peut n'avoir rien
+   exécuté si une globale n8n (`$execution`, `$workflow`, `$()`) manque dans le mock (§8.7).
+4. Boucle de validation complète, dans cet ordre :
+   npm run typecheck && npm test && npm run check:server-boundary && npm run lint && npm run build && npm run test:n8n
+   `test:n8n` est OBLIGATOIRE sur ce lot (un fichier de n8n/workflows/ est touché) — c'est le
+   seul lot du chantier où il l'est. Les cinq premières commandes doivent rester vertes SANS
+   qu'aucun fichier de src/ n'ait changé ; si l'une casse, tu es sorti du périmètre.
+   Si le build échoue sur ENOTEMPTY ou de faux TS6200/TS2300 : rm -rf .next, puis relance.
+5. Rapporte les compteurs réels — tests Vitest passés, assertions n8n exécutées, échecs éventuels.
+   Jamais un simple « ça passe ».
+6. Ne déclare jamais « le workflow fonctionne » : dis explicitement ce qui est vérifiable hors
+   ligne (structure, nœuds Code testés, forme du contrat) versus ce qui ne l'est qu'après
+   import manuel sur le VPS par Guillaume (§8.9).
+7. Termine par la checklist de sortie du §8.11, point par point, dans ton rapport final.
+
+Critère de sortie du lot : les 3 fichiers existent, git status ne montre AUCUN autre fichier
+modifié, le workflow reproduit le squelette à 11 nœuds sans aucun code métier, le contrat de
+callback du §8.5 est respecté à la lettre, et la boucle de validation complète (test:n8n inclus)
+passe avec des compteurs réels rapportés.
+```
 
 ---
 
