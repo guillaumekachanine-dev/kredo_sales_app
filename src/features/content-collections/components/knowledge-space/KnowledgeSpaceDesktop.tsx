@@ -1,6 +1,9 @@
 "use client"
 
+import Link from "next/link"
+import { useState } from "react"
 import { IconChevron } from "@/components/cockpit/mobile/icons"
+import { getDocumentIcon } from "@/components/reports/document-display"
 import { Button } from "@/components/ui/Button"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Input } from "@/components/ui/Input"
@@ -31,6 +34,20 @@ const KIND_TABS: Array<{ id: CollectionKind; label: string }> = [
   { id: "corpus", label: "Corpus" },
 ]
 
+/** Icône SVG selon le content-type — miroir de la Bibliothèque de documents. */
+function CollectionItemIcon({ contentType }: { contentType: ResolvedCollectionItem["contentType"] }) {
+  // intelligence_document → icône calendrier/rapport (default)
+  // veille_article → icône enveloppe (communication)
+  // knowledge_list → icône document générique
+  const docType =
+    contentType === "veille_article"
+      ? "communication"
+      : contentType === "knowledge_list"
+        ? "client_summary"
+        : "planning_deadlines" // default calendar = rapport générique
+  return getDocumentIcon(docType, "size-[18px] shrink-0 text-muted")
+}
+
 function KnowledgeCollectionRow({
   collection,
   active,
@@ -51,7 +68,13 @@ function KnowledgeCollectionRow({
           active ? "bg-primary/10 text-primary" : "text-heading hover:bg-surface-hover",
         )}
       >
-        <span className="min-w-0 flex-1 truncate">{collection.name}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-2 truncate">
+          {getDocumentIcon(
+            collection.kind === "corpus" ? "commercial_strategy" : "planning_deadlines",
+            "size-[14px] shrink-0 text-muted opacity-80"
+          )}
+          <span className="truncate">{collection.name}</span>
+        </span>
         <span className="shrink-0 text-[10px] font-normal text-muted">{collection.itemCount}</span>
       </button>
     </li>
@@ -60,45 +83,64 @@ function KnowledgeCollectionRow({
 
 function KnowledgeItemRow({
   item,
+  reorderMode,
   canMoveUp,
   canMoveDown,
   onMoveUp,
   onMoveDown,
-  onRemove,
+  onRemoveRequest,
 }: {
   item: ResolvedCollectionItem
+  reorderMode: boolean
   canMoveUp: boolean
   canMoveDown: boolean
   onMoveUp: () => void
   onMoveDown: () => void
-  onRemove: () => void
+  onRemoveRequest: () => void
 }) {
+  const itemIconOrLink = item.url ? (
+    <Link href={item.url} title={`Voir : ${item.title}`} className="mt-0.5 block shrink-0 rounded hover:opacity-70 transition-opacity">
+      <CollectionItemIcon contentType={item.contentType} />
+    </Link>
+  ) : (
+    <span className="mt-0.5 shrink-0">
+      <CollectionItemIcon contentType={item.contentType} />
+    </span>
+  )
+
   return (
     <li className="flex items-start gap-3 px-2 py-2.5">
-      <div className="mt-0.5 flex shrink-0 flex-col">
-        <button
-          type="button"
-          aria-label="Monter"
-          disabled={!canMoveUp}
-          onClick={onMoveUp}
-          className="inline-flex size-5 items-center justify-center text-muted hover:text-heading disabled:opacity-25"
-        >
-          <span className="-rotate-90 block">
-            <IconChevron />
-          </span>
-        </button>
-        <button
-          type="button"
-          aria-label="Descendre"
-          disabled={!canMoveDown}
-          onClick={onMoveDown}
-          className="inline-flex size-5 items-center justify-center text-muted hover:text-heading disabled:opacity-25"
-        >
-          <span className="rotate-90 block">
-            <IconChevron />
-          </span>
-        </button>
-      </div>
+      {itemIconOrLink}
+
+      {/* Flèches de réorganisation — visibles uniquement en mode reorder */}
+      {reorderMode && (
+        <div className="mt-0.5 flex shrink-0 flex-col">
+          <button
+            type="button"
+            aria-label="Monter"
+            disabled={!canMoveUp}
+            onClick={onMoveUp}
+            className="inline-flex size-5 items-center justify-center text-muted hover:text-heading disabled:opacity-25"
+          >
+            <span className="-rotate-90 block">
+              <IconChevron />
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label="Descendre"
+            disabled={!canMoveDown}
+            onClick={onMoveDown}
+            className="inline-flex size-5 items-center justify-center text-muted hover:text-heading disabled:opacity-25"
+          >
+            <span className="rotate-90 block">
+              <IconChevron />
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Contenu : titre puis type/date en dessous */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-heading">{item.title}</p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted">
@@ -112,9 +154,13 @@ function KnowledgeItemRow({
         </div>
         {item.preview ? <p className="mt-1 line-clamp-2 text-xs text-body">{item.preview}</p> : null}
       </div>
-      <Button size="sm" variant="ghost" onClick={onRemove}>
-        Retirer
-      </Button>
+
+      {/* Bouton Retirer — visible uniquement en mode reorder */}
+      {reorderMode && (
+        <Button size="sm" variant="ghost" onClick={onRemoveRequest}>
+          Retirer
+        </Button>
+      )}
     </li>
   )
 }
@@ -148,6 +194,8 @@ export function KnowledgeSpaceDesktop() {
     handleDelete,
     handleRemoveItem,
     moveItem,
+    reorderMode,
+    setReorderMode,
     addListDialogOpen,
     setAddListDialogOpen,
     eligibleListsForCorpus,
@@ -156,7 +204,16 @@ export function KnowledgeSpaceDesktop() {
     isPending,
   } = state
 
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null)
+
   const isCorpus = selectedCollection?.kind === "corpus"
+
+  const confirmRemove = (membershipId: string) => setRemoveTarget(membershipId)
+  const handleConfirmRemove = () => {
+    if (!removeTarget) return
+    setRemoveTarget(null)
+    handleRemoveItem(removeTarget)
+  }
 
   return (
     <>
@@ -309,6 +366,9 @@ export function KnowledgeSpaceDesktop() {
                     <Button size="sm" onClick={() => openCollectionAsKnowledgeScope(selectedCollection)}>
                       Utiliser comme contexte
                     </Button>
+                    <Button size="sm" variant="secondary" onClick={() => { setReorderMode((v) => !v) }}>
+                      {reorderMode ? "Terminer" : "Réorganiser"}
+                    </Button>
                     <Button size="sm" variant="secondary" onClick={() => startEditing(selectedCollection)}>
                       Modifier
                     </Button>
@@ -343,11 +403,12 @@ export function KnowledgeSpaceDesktop() {
                             <KnowledgeItemRow
                               key={item.membershipId}
                               item={item}
+                              reorderMode={reorderMode}
                               canMoveUp={index > 0}
                               canMoveDown={index < items.length - 1}
                               onMoveUp={() => moveItem(index, -1)}
                               onMoveDown={() => moveItem(index, 1)}
-                              onRemove={() => handleRemoveItem(item.membershipId)}
+                              onRemoveRequest={() => confirmRemove(item.membershipId)}
                             />
                           )
                         })}
@@ -361,11 +422,12 @@ export function KnowledgeSpaceDesktop() {
                     <KnowledgeItemRow
                       key={item.membershipId}
                       item={item}
+                      reorderMode={reorderMode}
                       canMoveUp={index > 0}
                       canMoveDown={index < items.length - 1}
                       onMoveUp={() => moveItem(index, -1)}
                       onMoveDown={() => moveItem(index, 1)}
-                      onRemove={() => handleRemoveItem(item.membershipId)}
+                      onRemoveRequest={() => confirmRemove(item.membershipId)}
                     />
                   ))}
                 </ul>
@@ -376,6 +438,7 @@ export function KnowledgeSpaceDesktop() {
       </div>
     </div>
 
+    {/* Modale de confirmation — suppression collection */}
     <ConfirmDialog
       open={deleteTarget !== null}
       onOpenChange={(next) => {
@@ -390,6 +453,19 @@ export function KnowledgeSpaceDesktop() {
       variant="danger"
       confirmLabel="Supprimer"
       onConfirm={handleDelete}
+    />
+
+    {/* Modale de confirmation — retrait d'un élément */}
+    <ConfirmDialog
+      open={removeTarget !== null}
+      onOpenChange={(next) => {
+        if (!next) setRemoveTarget(null)
+      }}
+      title="Retirer cet élément ?"
+      description="L'élément sera retiré de la liste. Il ne sera pas supprimé de KREDO."
+      variant="danger"
+      confirmLabel="Retirer"
+      onConfirm={handleConfirmRemove}
     />
 
     {selectedCollection && isCorpus ? (

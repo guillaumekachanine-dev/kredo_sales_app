@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
-import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
+import { StatusPill } from "@/components/ui/StatusPill"
 import { DocumentGenerationParameters } from "@/components/reports/DocumentGenerationParameters"
 import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
@@ -58,19 +58,6 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   competitive_map_import: "Import de cartographie",
 }
 
-const STATUS_LABELS: Record<DocumentDetail["status"], string> = {
-  draft: "Brouillon",
-  ready: "Prêt",
-  used: "Utilisé",
-  archived: "Archivé",
-}
-
-const STATUS_VARIANTS: Record<DocumentDetail["status"], StatusPillVariant> = {
-  draft: "draft",
-  ready: "inProgress",
-  used: "success",
-  archived: "neutral",
-}
 
 type LoadState =
   | { status: "loading"; data: null; error: null }
@@ -279,19 +266,10 @@ export function DocumentMobileDetail({
             />
           ) : (
             <>
-              <section className="flex flex-wrap items-center gap-2">
-                <StatusPill
-                  label={STATUS_LABELS[document.status]}
-                  variant={STATUS_VARIANTS[document.status]}
-                />
+              <section className="flex items-center">
                 <StatusPill
                   label={DOCUMENT_TYPE_LABELS[document.documentType]}
                   variant="info"
-                />
-                <StatusPill
-                  label={`Version ${document.versionNumber}`}
-                  variant="neutral"
-                  dot={false}
                 />
               </section>
 

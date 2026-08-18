@@ -80,7 +80,7 @@ export function DocumentGenerationParameters({ document }: DocumentGenerationPar
     const context = brief.context || {}
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-2">
         {/* Section 2 : Entité liée */}
         {hasLinkedEntities && (
           <div className="space-y-1.5 pb-3 border-b border-border/10">

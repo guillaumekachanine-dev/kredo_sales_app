@@ -1,7 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { IconChevron, IconSearch } from "@/components/cockpit/mobile/icons"
+import { getDocumentIcon } from "@/components/reports/document-display"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -35,6 +37,17 @@ const KIND_TABS: Array<{ id: CollectionKind; label: string }> = [
 
 type DrawerView = "create" | "detail" | "edit" | null
 
+/** Icône SVG selon le content-type — miroir de la Bibliothèque de documents. */
+function CollectionItemIcon({ contentType }: { contentType: ResolvedCollectionItem["contentType"] }) {
+  const docType =
+    contentType === "veille_article"
+      ? "communication"
+      : contentType === "knowledge_list"
+        ? "client_summary"
+        : "planning_deadlines"
+  return getDocumentIcon(docType, "size-[20px] shrink-0 text-muted")
+}
+
 function KnowledgeCollectionCard({ collection, onOpen }: { collection: CollectionSummary; onOpen: () => void }) {
   return (
     <button
@@ -42,11 +55,19 @@ function KnowledgeCollectionCard({ collection, onOpen }: { collection: Collectio
       onClick={onOpen}
       className="flex min-h-14 w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
     >
-      <div className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-bold text-heading">{collection.name}</span>
-        {collection.description ? (
-          <span className="mt-0.5 block truncate text-xs text-muted">{collection.description}</span>
-        ) : null}
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <span className="shrink-0">
+          {getDocumentIcon(
+            collection.kind === "corpus" ? "commercial_strategy" : "planning_deadlines",
+            "size-[18px] text-muted"
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold text-heading">{collection.name}</span>
+          {collection.description ? (
+            <span className="mt-0.5 block truncate text-xs text-muted">{collection.description}</span>
+          ) : null}
+        </div>
       </div>
       <span className="shrink-0 text-xs font-semibold text-muted">{collection.itemCount} élément(s)</span>
     </button>
@@ -60,7 +81,7 @@ function KnowledgeItemCard({
   canMoveDown,
   onMoveUp,
   onMoveDown,
-  onRemove,
+  onRemoveRequest,
 }: {
   item: ResolvedCollectionItem
   reorderMode: boolean
@@ -68,10 +89,23 @@ function KnowledgeItemCard({
   canMoveDown: boolean
   onMoveUp: () => void
   onMoveDown: () => void
-  onRemove: () => void
+  onRemoveRequest: () => void
 }) {
+  const itemIconOrLink = item.url ? (
+    <Link href={item.url} title={`Voir : ${item.title}`} className="mt-0.5 block shrink-0 rounded hover:opacity-70 transition-opacity">
+      <CollectionItemIcon contentType={item.contentType} />
+    </Link>
+  ) : (
+    <span className="mt-0.5 shrink-0">
+      <CollectionItemIcon contentType={item.contentType} />
+    </span>
+  )
+
   return (
-    <li className="flex min-h-12 items-center gap-3 py-2.5">
+    <li className="flex min-h-12 items-start gap-3 py-2.5">
+      {itemIconOrLink}
+
+      {/* Contenu : titre puis type/date en dessous */}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-heading">{item.title}</p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-muted">
@@ -84,6 +118,8 @@ function KnowledgeItemCard({
           ) : null}
         </div>
       </div>
+
+      {/* Actions — visibles uniquement en mode réorganisation */}
       {reorderMode ? (
         <div className="flex shrink-0 gap-1">
           <button
@@ -108,12 +144,11 @@ function KnowledgeItemCard({
               <IconChevron />
             </span>
           </button>
+          <Button size="sm" variant="ghost" onClick={onRemoveRequest} className="min-h-11 shrink-0">
+            Retirer
+          </Button>
         </div>
-      ) : (
-        <Button size="sm" variant="ghost" onClick={onRemove} className="min-h-11 shrink-0">
-          Retirer
-        </Button>
-      )}
+      ) : null}
     </li>
   )
 }
@@ -164,6 +199,7 @@ export function KnowledgeSpaceMobile() {
 
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [drawerView, setDrawerView] = useState<DrawerView>(null)
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null)
 
   const isCorpus = selectedCollection?.kind === "corpus"
 
@@ -183,6 +219,13 @@ export function KnowledgeSpaceMobile() {
     setCreatingOpen(false)
     cancelEditing()
     setReorderMode(false)
+  }
+
+  const confirmRemove = (membershipId: string) => setRemoveTarget(membershipId)
+  const handleConfirmRemove = () => {
+    if (!removeTarget) return
+    setRemoveTarget(null)
+    handleRemoveItem(removeTarget)
   }
 
   const drawerTitle =
@@ -268,6 +311,7 @@ export function KnowledgeSpaceMobile() {
         side="bottom"
         title={drawerTitle}
         showMobileCloseButton
+        contentClassName={drawerView === "detail" ? "pt-1 pb-4 px-4" : undefined}
         onRequestClose={() => {
           if (drawerView === "edit" && selectedCollection) {
             setDrawerView("detail")
@@ -356,8 +400,11 @@ export function KnowledgeSpaceMobile() {
             </Button>
           </div>
         ) : drawerView === "detail" && selectedCollection ? (
-          <div className="space-y-3">
-            {selectedCollection.description ? <p className="text-xs text-muted">{selectedCollection.description}</p> : null}
+          <div className="space-y-1">
+            {/* Description avec espacement réduit par rapport au titre du drawer */}
+            {selectedCollection.description ? (
+              <p className="text-xs text-muted">{selectedCollection.description}</p>
+            ) : null}
             {reorderMode ? <p className="text-xs font-semibold text-primary">Mode réorganisation : utilisez les flèches pour déplacer un élément.</p> : null}
 
             {isLoadingItems ? (
@@ -367,7 +414,7 @@ export function KnowledgeSpaceMobile() {
                 {isCorpus ? "Ce corpus est vide." : "Cette liste est vide."}
               </p>
             ) : isCorpus ? (
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2">
                 {groupedItems.map((group) => (
                   <div key={group.contentType}>
                     <p className="py-1 text-[10px] font-bold uppercase tracking-wider text-muted">
@@ -385,7 +432,7 @@ export function KnowledgeSpaceMobile() {
                             canMoveDown={index < items.length - 1}
                             onMoveUp={() => moveItem(index, -1)}
                             onMoveDown={() => moveItem(index, 1)}
-                            onRemove={() => handleRemoveItem(item.membershipId)}
+                            onRemoveRequest={() => confirmRemove(item.membershipId)}
                           />
                         )
                       })}
@@ -394,7 +441,7 @@ export function KnowledgeSpaceMobile() {
                 ))}
               </div>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-border pt-2">
                 {items.map((item, index) => (
                   <KnowledgeItemCard
                     key={item.membershipId}
@@ -404,7 +451,7 @@ export function KnowledgeSpaceMobile() {
                     canMoveDown={index < items.length - 1}
                     onMoveUp={() => moveItem(index, -1)}
                     onMoveDown={() => moveItem(index, 1)}
-                    onRemove={() => handleRemoveItem(item.membershipId)}
+                    onRemoveRequest={() => confirmRemove(item.membershipId)}
                   />
                 ))}
               </ul>
@@ -413,6 +460,7 @@ export function KnowledgeSpaceMobile() {
         ) : null}
       </AppDrawer>
 
+      {/* Modale de confirmation — suppression collection */}
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(next) => {
@@ -430,6 +478,19 @@ export function KnowledgeSpaceMobile() {
           await handleDelete()
           closeDrawer()
         }}
+      />
+
+      {/* Modale de confirmation — retrait d'un élément */}
+      <ConfirmDialog
+        open={removeTarget !== null}
+        onOpenChange={(next) => {
+          if (!next) setRemoveTarget(null)
+        }}
+        title="Retirer cet élément ?"
+        description="L'élément sera retiré de la liste. Il ne sera pas supprimé de KREDO."
+        variant="danger"
+        confirmLabel="Retirer"
+        onConfirm={handleConfirmRemove}
       />
 
       {selectedCollection && isCorpus ? (
