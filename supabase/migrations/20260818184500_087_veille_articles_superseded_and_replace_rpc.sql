@@ -98,7 +98,8 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.replace_veille_digest_articles(uuid, jsonb) TO authenticated, service_role, anon;
+REVOKE ALL ON FUNCTION public.replace_veille_digest_articles(uuid, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.replace_veille_digest_articles(uuid, jsonb) TO service_role;
 
 COMMENT ON FUNCTION public.replace_veille_digest_articles(uuid, jsonb) IS
   'LOT 2.3 — Remplacement transactionnel et idempotent des articles d''un digest. Les anciens articles actifs sont marqués superseded_at = now() et la nouvelle sélection est insérée atomiquement.';
