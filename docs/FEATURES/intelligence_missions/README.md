@@ -106,9 +106,9 @@ Réutilisation obligatoire, avec l'état réel mesuré en `01` :
 - `intel-021-monthly-watch-analysis` — **3 runs en tout : pilote idéal parce que le migrer
   ne met aucune valeur en risque** (`02` §4).
 
-> ⚠️ **Découvert hors périmètre en préparant l'ADR** : `public.get_manager_summary_facts`
-> est `SECURITY DEFINER`, sans `search_path` fixé, et `EXECUTE` est accordé à `anon`.
-> À traiter séparément — ADR-0020, action item 9.
+> ✅ **Découvert hors périmètre en préparant l'ADR, corrigé le 18/08** :
+> `public.get_manager_summary_facts` était `SECURITY DEFINER`, sans `search_path` fixé, et
+> `EXECUTE` était accordé à `anon`. Migration `20260818092506` — ADR-0020, action item 9.
 
 ## Règle de gouvernance
 
