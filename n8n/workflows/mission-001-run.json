@@ -1,0 +1,395 @@
+{
+  "name": "MISSION-001 — Exécuteur de mission d'intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mission-001-run",
+        "authentication": "none",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true,
+          "responseCode": 202
+        }
+      },
+      "id": "webhook",
+      "name": "Webhook — Mission Run",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        280
+      ],
+      "webhookId": "mission-001-run"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "type": "SHA256",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "verify-signature",
+      "name": "Verify Signature",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        400,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\nconst received = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expected = 'sha256=' + (item.computedSignature || '');\nif (!received || received !== expected) throw new Error('Signature HMAC invalide');\nfor (const f of ['runId','workflowId','workspaceId','userId','input','callbackUrl']) {\n  if (!body[f]) throw new Error('Champ requis manquant : ' + f);\n}\nif (body.workflowId !== 'mission-001-run') throw new Error('workflowId invalide');\nconst env = body.input;\nif (env.schemaVersion !== 1) throw new Error('schemaVersion doit valoir 1');\nfor (const f of ['missionSlug','missionVersion','systemPrompt','userPrompt','model']) {\n  if (env[f] === undefined || env[f] === null || env[f] === '') throw new Error('Champ enveloppe manquant : ' + f);\n}\nif (!env.model.model || !env.model.maxOutputTokens) throw new Error('model.model / model.maxOutputTokens requis');\nreturn [{ json: {\n  runId: body.runId, workspaceId: body.workspaceId, userId: body.userId,\n  callbackUrl: body.callbackUrl,\n  missionSlug: env.missionSlug, missionVersion: env.missionVersion,\n  systemPrompt: env.systemPrompt, userPrompt: env.userPrompt, model: env.model,\n} }];"
+      },
+      "id": "validate-envelope",
+      "name": "Validate Envelope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        280
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs?id=eq.{{ $json.runId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: 'running', started_at: new Date().toISOString() } }}",
+        "options": {}
+      },
+      "id": "mark-running",
+      "name": "Mark Run Running",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        280
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: $json.model.model, max_tokens: $json.model.maxOutputTokens, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] } }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "call-llm",
+      "name": "Call LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        280
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const base = $('Validate Envelope').item.json;\nconst llm = $input.first().json;\nconst blocks = llm.content || [];\nconst text = blocks.filter(b => b && b.type === 'text').map(b => b.text).join('');\nif (!text) throw new Error('Réponse LLM vide');\nconst callback = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: base.runId,\n  phase: 1,\n  resultType: 'mission_report',\n  status: 'succeeded',\n  contentJson: {\n    schemaVersion: 1,\n    missionSlug: base.missionSlug,\n    rawOutput: text,\n  },\n  contentText: text,\n  title: 'Mission — ' + base.missionSlug,\n  modelProvider: 'anthropic',\n  modelUsed: llm.model || base.model?.model || 'unknown',\n  tokensInput: llm.usage?.input_tokens ?? null,\n  tokensOutput: llm.usage?.output_tokens ?? null,\n};\nreturn [{ json: { callbackUrl: base.callbackUrl, rawBody: JSON.stringify(callback) } }];"
+      },
+      "id": "prepare-callback",
+      "name": "Prepare Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        280
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "sign-callback",
+      "name": "Sign Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare Callback').item.json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.computedSignature }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Callback').item.json.rawBody }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "callback",
+      "name": "Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1720,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const failure = $input.first().json;\nconst webhook = $('Webhook — Mission Run').item.json.body || {};\nconst validated = (() => { try { return $('Validate Envelope').item.json; } catch { return null; } })();\nconst runId = validated?.runId || webhook.runId;\nconst callbackUrl = validated?.callbackUrl || webhook.callbackUrl;\nif (!runId || !callbackUrl) throw new Error('Impossible de notifier l’échec : runId/callbackUrl absents');\nconst message = failure.error?.message || failure.message || failure.errorMessage || 'Échec du workflow mission-001-run';\nconst slug = validated?.missionSlug || webhook.input?.missionSlug || 'inconnue';\nconst callback = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId,\n  phase: 1,\n  resultType: 'mission_report',\n  status: 'failed',\n  contentJson: { error: message },\n  contentText: '',\n  title: 'Mission — ' + slug + ' — échec',\n  errorMessage: message,\n};\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callback) } }];"
+      },
+      "id": "prepare-failure",
+      "name": "Prepare Failure Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "sign-failure",
+      "name": "Sign Failure Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare Failure Callback').item.json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.computedSignature }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Failure Callback').item.json.rawBody }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "callback-failure",
+      "name": "Callback (Failure)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1720,
+        480
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook — Mission Run": {
+      "main": [
+        [
+          {
+            "node": "Verify Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Signature": {
+      "main": [
+        [
+          {
+            "node": "Validate Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Envelope": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Running",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Running": {
+      "main": [
+        [
+          {
+            "node": "Call LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LLM": {
+      "main": [
+        [
+          {
+            "node": "Prepare Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Callback": {
+      "main": [
+        [
+          {
+            "node": "Sign Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Callback": {
+      "main": [
+        [
+          {
+            "node": "Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Failure Callback": {
+      "main": [
+        [
+          {
+            "node": "Sign Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Failure Callback": {
+      "main": [
+        [
+          {
+            "node": "Callback (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "pinData": {}
+}
