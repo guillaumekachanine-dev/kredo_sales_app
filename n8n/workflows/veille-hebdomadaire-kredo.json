@@ -400,14 +400,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all().map((i) => i.json);\nconst blocContexteKredo = $(\"Build Contexte KREDO\").first().json.blocContexteKredo;\n\nconst articlesBlock = items\n  .map(\n    (a, idx) =>\n      `Article ${idx + 1}\\nid: ${a.id}\\nTitre: ${a.title}\\nSource: ${a.source}\\nURL: ${a.url}\\nPublié: ${a.publishedAt || \"inconnue\"}\\nContenu: ${String(a.summary || \"\").slice(0, 1500)}`\n  )\n  .join(\"\\n\\n---\\n\\n\");\n\nconst promptAnalyse = `${blocContexteKredo}\n\n# TÂCHE\nPour chacun des ${items.length} articles ci-dessous, produis une fiche exploitable\npar un commercial d'ESN. Base-toi UNIQUEMENT sur le contenu fourni. Si un élément\n(chiffre, angle) n'est pas dans le texte, ne l'invente pas : reste factuel.\n\n# POUR CHAQUE ARTICLE, produis :\nid (reprends EXACTEMENT le champ \"id\" fourni ci-dessous, ex. \"art_3\" — c'est la clé\nqui relie ta réponse à l'article source, ne l'invente pas), selection_rank, titre_fr,\nresume (2-3 phrases factuelles), analyse_kredo (3-4 phrases : LE POURQUOI pour un\ncommercial d'ESN), action_commerciale (suggestion concrète et ciblée, jamais une\ngénéralité), secteur_principal, secteur_secondaire (chaîne vide si aucun), categorie,\ntags (2 à 4 mots-clés).\n\n# PUIS, au niveau de la semaine, produis :\ntitre_digest, resume_hebdo (3-4 phrases donnant le fil rouge de la semaine),\nsuper_short_summary (4 à 10 mots, sans ponctuation finale).\n\n# CONTRAINTES\n- Français, ton professionnel et direct, zéro remplissage.\n- action_commerciale toujours concret. Interdiction de phrases creuses.\n- Reste neutre : ne prends pas parti dans les rivalités entre acteurs.\n\n# FORMAT DE SORTIE\nRéponds UNIQUEMENT avec un JSON valide, une seule ligne, sans backticks, structure :\n{\"titre_digest\":\"...\",\"resume_hebdo\":\"...\",\"super_short_summary\":\"...\",\"articles\":[{\"id\":\"art_0\",\"selection_rank\":1,\"titre_fr\":\"...\",\"resume\":\"...\",\"analyse_kredo\":\"...\",\"action_commerciale\":\"...\",\"secteur_principal\":\"...\",\"secteur_secondaire\":\"\",\"categorie\":\"...\",\"tags\":[\"...\"]}]}\n\n# ARTICLES\n${articlesBlock}`;\n\nreturn [{ json: { promptAnalyse, sourceArticles: items } }];"
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst blocContexteKredo = $(\"Build Contexte KREDO\").first().json.blocContexteKredo;\n\nconst articlesBlock = items\n  .map(\n    (a, idx) => {\n      const articleStr = `Article ${idx + 1}\\nid: ${a.id}\\nTitre: ${a.title}\\nSource: ${a.source}\\nURL: ${a.url}\\nPublié: ${a.publishedAt || \"inconnue\"}\\nContenu: ${String(a.summary || \"\").slice(0, 1500)}`;\n      const ctxStr = `\\n\\nCONVERGENCE_CONTEXT (pour cet article):\\n` + JSON.stringify(a.convergenceContext || {}, null, 2);\n      return articleStr + ctxStr;\n    }\n  )\n  .join(\"\\n\\n---\\n\\n\");\n\nconst promptAnalyse = `${blocContexteKredo}\n\n# TÂCHE\nPour chacun des ${items.length} articles ci-dessous, produis une fiche exploitable\npar un commercial d'ESN. Base-toi UNIQUEMENT sur le contenu fourni. Si un élément\n(chiffre, angle) n'est pas dans le texte, ne l'invente pas : reste factuel.\n\n# POUR CHAQUE ARTICLE, produis :\nid (reprends EXACTEMENT le champ \"id\" fourni ci-dessous, ex. \"art_3\" — c'est la clé\nqui relie ta réponse à l'article source, ne l'invente pas), selection_rank, titre_fr,\nresume (2-3 phrases factuelles), analyse_kredo (3-4 phrases : LE POURQUOI pour un\ncommercial d'ESN), action_commerciale (suggestion concrète et ciblée, jamais une\ngénéralité), secteur_principal, secteur_secondaire (chaîne vide si aucun), categorie,\ntags (2 à 4 mots-clés).\n\n# CONVERGENCES KREDO\nPour chaque article :\nÀ partir du contenu factuel de l'article et UNIQUEMENT des objets KREDO fournis dans CONVERGENCE_CONTEXT, identifie les rapprochements commercialement utiles entre cette actualité et la connaissance existante de KREDO. S'il n'y a pas de convergence suffisamment étayée, produis des listes vides et ne force pas de correspondance.\n\n- convergences.synthesis : Formuler brièvement le rapprochement principal. Pas de remplissage. S'il n'existe aucune convergence, le dire explicitement.\n- convergences.confidence : \"high\", \"medium\" ou \"low\" selon la force du rapprochement.\n- convergences.evidenceRefs : Tableau des références KREDO ayant servi au raisonnement ({ \"type\": \"article\"|\"account_issue\"|\"company\"|\"sector_playbook\", \"id\": \"...\", \"label\": \"...\" }).\n- convergences.matchedIssues : Maximum 3. Uniquement si l'enjeu figure dans candidateIssues. Explique pourquoi l'article rejoint l'enjeu ({ issueId, companyId, companyName, issueTitle, rationale }).\n- convergences.relatedAccounts : Maximum 5. Uniquement si le compte figure dans candidateAccounts. Il faut une justification commerciale réelle, le simple partage d'un secteur ne suffit pas ({ companyId, companyName, rationale }).\n- convergences.playbookSuggestion : Maximum UNE suggestion, si un playbook candidat est fourni, que l'article apporte un argument exploitable et qu'une section ciblée existe ({ sectorId, sectorName, targetSection, proposedArgument, rationale }). Sinon null.\n- convergences.recommendedActions : Maximum 3 actions courtes et concrètes (approfondir, contacter, etc.) ({ label, rationale }).\n\n# PUIS, au niveau de la semaine, produis :\ntitre_digest, resume_hebdo (3-4 phrases donnant le fil rouge de la semaine),\nsuper_short_summary (4 à 10 mots, sans ponctuation finale).\n\n# CONTRAINTES & RÈGLES DE GROUNDING ABSOLUES\n- Français, ton professionnel et direct, zéro remplissage.\n- Le champ action_commerciale doit TOUJOURS être concret. Interdiction de phrases\n  creuses type \"cela peut intéresser vos prospects\".\n- Reste neutre : ne prends pas parti dans les rivalités entre acteurs.\n- Aucun UUID inventé. Aucun compte inventé. Aucun enjeu inventé. Aucun secteur inventé. Aucun playbook inventé.\n- Aucun chiffre absent du contenu source. Aucun fait KREDO absent du contexte fourni.\n- Ne jamais transformer une hypothèse en fait.\n- Une absence de convergence est parfaitement acceptable. Préférer des tableaux vides [] ou null à un rapprochement artificiel.\n- Tu ne décides jamais d'une mutation métier, tu produis uniquement une recommandation structurée.\n\n# FORMAT DE SORTIE\nRéponds UNIQUEMENT avec un JSON valide, une seule ligne, sans backticks, structure :\n{\"titre_digest\":\"...\",\"resume_hebdo\":\"...\",\"super_short_summary\":\"...\",\"articles\":[{\"id\":\"art_0\",\"selection_rank\":1,\"titre_fr\":\"...\",\"resume\":\"...\",\"analyse_kredo\":\"...\",\"action_commerciale\":\"...\",\"secteur_principal\":\"...\",\"secteur_secondaire\":\"\",\"categorie\":\"...\",\"tags\":[\"...\"],\"convergences\":{\"schemaVersion\":1,\"synthesis\":\"...\",\"confidence\":\"medium\",\"evidenceRefs\":[],\"matchedIssues\":[],\"relatedAccounts\":[],\"playbookSuggestion\":null,\"recommendedActions\":[]}}]}\n\n# ARTICLES & CONVERGENCE_CONTEXT\n${articlesBlock}`;\n\nreturn [{ json: { promptAnalyse, sourceArticles: items } }];"
       },
       "id": "6dc683d7-7066-499a-9d6c-a0c182e7c941",
       "name": "Construire Prompt Analyse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6128,
+        6472,
         1328
       ]
     },
@@ -438,7 +438,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6384,
+        6984,
         1328
       ],
       "retryOnFail": true,
@@ -453,14 +453,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst textBlock = (response.content || []).find((b) => b.type === \"text\");\nconst rawText = textBlock?.text || \"\";\nconst sourceArticles = $(\"Construire Prompt Analyse\").first().json.sourceArticles;\n\nfunction extractJson(text) {\n  const fenced = text.match(/^```(?:json)?\\s*([\\s\\S]*?)\\s*```$/i);\n  if (fenced) return fenced[1].trim();\n  const first = text.indexOf(\"{\");\n  const last = text.lastIndexOf(\"}\");\n  if (first >= 0 && last > first) return text.slice(first, last + 1);\n  return text;\n}\n\nfunction repair(text) {\n  return text\n    .replace(/[“”]/g, '\"')\n    .replace(/[‘’]/g, \"'\")\n    .replace(/,\\s*([}\\]])/g, \"$1\");\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(repair(extractJson(rawText)));\n} catch (e) {\n  throw new Error(\"L analyse Sonnet n a pas renvoye un JSON exploitable : \" + rawText.slice(0, 300));\n}\n\n// Clé stable : on relie chaque article renvoyé par le LLM à sa source via son\n// `id` (art_0, art_1…), pas via la position dans le tableau — le contrat LLM\n// n'est pas garanti de préserver l'ordre ou le compte exact. Fallback sur\n// l'index uniquement si le modèle a omis le champ `id`.\nconst byId = Object.fromEntries(sourceArticles.map((a) => [a.id, a]));\n\nconst articles = (parsed.articles || []).map((a, idx) => {\n  const src = byId[a.id] || sourceArticles[idx] || {};\n  return {\n    selectionRank: a.selection_rank || idx + 1,\n    titreFr: a.titre_fr,\n    resume: a.resume,\n    analyseKredo: a.analyse_kredo,\n    actionCommerciale: a.action_commerciale,\n    secteurPrincipal: a.secteur_principal || src.secteurPrincipal || \"transverse\",\n    secteurSecondaire: a.secteur_secondaire || \"\",\n    categorie: a.categorie || src.categorie,\n    tags: a.tags || [],\n    url: src.url,\n    urlHash: src.urlHash,\n    sourceName: src.source,\n    sourceCatalogId: src.sourceCatalogId || null,\n    collectedVia: src.collectedVia || null,\n    publishedAt: src.publishedAt || null,\n  };\n});\n\nreturn [\n  {\n    json: {\n      titreDigest: parsed.titre_digest,\n      resumeHebdo: parsed.resume_hebdo,\n      superShortSummary: parsed.super_short_summary,\n      articles,\n    },\n  },\n];"
+        "jsCode": "const response = $input.first().json;\nconst textBlock = (response.content || []).find((b) => b.type === \"text\");\nconst rawText = textBlock?.text || \"\";\nconst sourceArticles = $(\"Construire Prompt Analyse\").first().json.sourceArticles;\n\nfunction extractJson(text) {\n  const fenced = text.match(/^```(?:json)?\\s*([\\s\\S]*?)\\s*```$/i);\n  if (fenced) return fenced[1].trim();\n  const first = text.indexOf(\"{\");\n  const last = text.lastIndexOf(\"}\");\n  if (first >= 0 && last > first) return text.slice(first, last + 1);\n  return text;\n}\n\nfunction repair(text) {\n  return text\n    .replace(/[“”]/g, '\"')\n    .replace(/[‘’]/g, \"'\")\n    .replace(/,\\s*([}\\]])/g, \"$1\");\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(repair(extractJson(rawText)));\n} catch (e) {\n  throw new Error(\"L analyse Sonnet n a pas renvoye un JSON exploitable : \" + rawText.slice(0, 300));\n}\n\n// Clé stable : on relie chaque article renvoyé par le LLM à sa source via son\n// `id` (art_0, art_1…), pas via la position dans le tableau — le contrat LLM\n// n'est pas garanti de préserver l'ordre ou le compte exact. Fallback sur\n// l'index uniquement si le modèle a omis le champ `id`.\nconst byId = Object.fromEntries(sourceArticles.map((a) => [a.id, a]));\n\nconst articles = (parsed.articles || []).map((a, idx) => {\n  const src = byId[a.id] || sourceArticles[idx] || {};\n  return {\n    selectionRank: a.selection_rank || idx + 1,\n    titreFr: a.titre_fr,\n    resume: a.resume,\n    analyseKredo: a.analyse_kredo,\n    actionCommerciale: a.action_commerciale,\n    secteurPrincipal: a.secteur_principal || src.secteurPrincipal || \"transverse\",\n    secteurSecondaire: a.secteur_secondaire || \"\",\n    categorie: a.categorie || src.categorie,\n    tags: a.tags || [],\n    convergences: a.convergences,\n    url: src.url,\n    urlHash: src.urlHash,\n    sourceName: src.source,\n    sourceCatalogId: src.sourceCatalogId || null,\n    collectedVia: src.collectedVia || null,\n    publishedAt: src.publishedAt || null,\n  };\n});\n\nreturn [\n  {\n    json: {\n      titreDigest: parsed.titre_digest,\n      resumeHebdo: parsed.resume_hebdo,\n      superShortSummary: parsed.super_short_summary,\n      articles,\n    },\n  },\n];"
       },
       "id": "d522d569-856c-42ed-aace-05f6d6526547",
       "name": "Parser Digest Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6624,
+        7224,
         1328
       ]
     },
@@ -491,7 +491,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6880,
+        7680,
         1328
       ],
       "retryOnFail": true,
@@ -506,14 +506,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const digest = $(\"Parser Digest Final\").first().json;\nconst digestRow = $(\"Créer Digest\").first().json;\nconst workspaceId = $(\"Build Contexte KREDO\").first().json.workspaceId;\n\nreturn digest.articles.map((a) => ({\n  json: {\n    digest_id: digestRow.id,\n    workspace_id: workspaceId,\n    selection_rank: a.selectionRank,\n    titre_fr: a.titreFr,\n    source_name: a.sourceName,\n    source_catalog_id: a.sourceCatalogId,\n    url: a.url,\n    url_hash: a.urlHash,\n    published_at: a.publishedAt,\n    resume: a.resume,\n    analyse_kredo: a.analyseKredo,\n    action_commerciale: a.actionCommerciale,\n    secteur_principal: a.secteurPrincipal,\n    secteur_secondaire: a.secteurSecondaire,\n    categorie: a.categorie,\n    tags: a.tags,\n  },\n}));"
+        "jsCode": "const digest = $(\"Parser Digest Final\").first().json;\nconst digestRow = $(\"Créer Digest\").first().json;\nconst workspaceId = $(\"Build Contexte KREDO\").first().json.workspaceId;\n\nreturn digest.articles.map((a) => ({\n  json: {\n    digest_id: digestRow.id,\n    workspace_id: workspaceId,\n    selection_rank: a.selectionRank,\n    titre_fr: a.titreFr,\n    source_name: a.sourceName,\n    source_catalog_id: a.sourceCatalogId,\n    url: a.url,\n    url_hash: a.urlHash,\n    published_at: a.publishedAt,\n    resume: a.resume,\n    analyse_kredo: a.analyseKredo,\n    action_commerciale: a.actionCommerciale,\n    secteur_principal: a.secteurPrincipal,\n    secteur_secondaire: a.secteurSecondaire,\n    categorie: a.categorie,\n    tags: a.tags,\n    convergences: a.convergences,\n  },\n}));"
       },
       "id": "435dd551-513c-49a3-904d-c9bf8dd112aa",
       "name": "Préparer Lignes Articles",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7136,
+        7936,
         1328
       ]
     },
@@ -544,7 +544,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        7376,
+        8176,
         1328
       ],
       "retryOnFail": true,
@@ -556,6 +556,144 @@
           "name": "Supabase_Service_Role_KREDO"
         }
       }
+    },
+    {
+      "parameters": {
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/companies",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,name,sector_id,segment_id,lifecycle_status"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c2a2a001-2222-4a22-8a22-000000000001",
+      "name": "Charger Comptes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6072,
+        1128
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/account_issues",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,company_id,title,problem_statement"
+            },
+            {
+              "name": "status",
+              "value": "eq.open"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c2a2a002-2222-4a22-8a22-000000000002",
+      "name": "Charger Enjeux",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6072,
+        1328
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/v_sector_knowledge_resolved",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "macro_id,segment_id,macro_name,segment_name,playbook"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c2a2a003-2222-4a22-8a22-000000000003",
+      "name": "Charger Playbooks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6072,
+        1528
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// LOT 2: Pré-filtrage Déterministe\nconst top5 = $('Parser Top 5').all().map(i => i.json);\nconst comptes = $('Charger Comptes').all().map(i => i.json);\nconst enjeux = $('Charger Enjeux').all().map(i => i.json);\nconst playbooks = $('Charger Playbooks').all().map(i => i.json);\n\nconst output = top5.map(article => {\n  const secteursArticle = [\n    (article.secteurPrincipal || '').toLowerCase(),\n    (article.secteurSecondaire || '').toLowerCase()\n  ].filter(s => s && s !== 'transverse');\n\n  // Trouver les comptes dont le secteur ou segment correspond (ou sans filtre strict pour ne pas trop restreindre si transverse)\n  const isTransverse = secteursArticle.length === 0;\n  \n  const candidateAccounts = comptes.filter(c => {\n    if (isTransverse) return true;\n    const cSector = (c.sector_id || '').toLowerCase();\n    const cSegment = (c.segment_id || '').toLowerCase();\n    return secteursArticle.some(s => s === cSector || s === cSegment);\n  }).slice(0, 30); // Limiter pour le LLM\n  \n  const candidateAccountIds = new Set(candidateAccounts.map(c => c.id));\n  \n  const candidateIssues = enjeux.filter(e => candidateAccountIds.has(e.company_id));\n  \n  const candidatePlaybooks = playbooks.filter(p => {\n    if (isTransverse) return true;\n    const pMacro = (p.macro_id || '').toLowerCase();\n    const pSegment = (p.segment_id || '').toLowerCase();\n    return secteursArticle.some(s => s === pMacro || s === pSegment);\n  });\n\n  return {\n    json: {\n      ...article,\n      convergenceContext: {\n        candidateIssues,\n        candidateAccounts,\n        candidatePlaybooks\n      }\n    }\n  };\n});\n\nreturn output;"
+      },
+      "id": "c2a2a004-2222-4a22-8a22-000000000004",
+      "name": "Pré-filtrage Déterministe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6272,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// LOT 2: Validation déterministe\nconst digest = $input.first().json;\nconst top5Items = $('Pré-filtrage Déterministe').all().map(i => i.json);\nconst byId = Object.fromEntries(top5Items.map(a => [a.id, a]));\n\ndigest.articles = digest.articles.map(article => {\n  const sourceItem = byId[article.id] || {};\n  const ctx = sourceItem.convergenceContext || { candidateIssues: [], candidateAccounts: [], candidatePlaybooks: [] };\n  \n  let conv = article.convergences;\n  if (!conv || typeof conv !== 'object' || conv.schemaVersion !== 1) {\n    conv = {\n      schemaVersion: 1,\n      synthesis: \"Aucune convergence identifiée ou format invalide.\",\n      confidence: \"low\",\n      matchedIssues: [],\n      relatedAccounts: [],\n      playbookSuggestion: null,\n      recommendedActions: [],\n      evidenceRefs: []\n    };\n  }\n\n  // 1. Validation des Enjeux (matchedIssues)\n  const validIssueIds = new Set(ctx.candidateIssues.map(i => i.id));\n  conv.matchedIssues = (conv.matchedIssues || []).filter(issue => validIssueIds.has(issue.issueId)).slice(0, 3);\n\n  // 2. Validation des Comptes (relatedAccounts)\n  const validAccountIds = new Set(ctx.candidateAccounts.map(c => c.id));\n  conv.relatedAccounts = (conv.relatedAccounts || []).filter(acc => validAccountIds.has(acc.companyId)).slice(0, 5);\n\n  // 3. Validation du Playbook\n  const validPlaybookMacroIds = new Set(ctx.candidatePlaybooks.map(p => p.macro_id));\n  const validPlaybookSegmentIds = new Set(ctx.candidatePlaybooks.map(p => p.segment_id));\n  \n  if (conv.playbookSuggestion) {\n    const sId = conv.playbookSuggestion.sectorId;\n    if (!validPlaybookMacroIds.has(sId) && !validPlaybookSegmentIds.has(sId)) {\n      conv.playbookSuggestion = null;\n    }\n  }\n\n  // 4. Limite Actions\n  conv.recommendedActions = (conv.recommendedActions || []).slice(0, 3);\n\n  article.convergences = conv;\n  return article;\n});\n\nreturn [{ json: digest }];"
+      },
+      "id": "c2a2a005-2222-4a22-8a22-000000000005",
+      "name": "Valider Convergences",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7424,
+        1328
+      ]
     }
   ],
   "pinData": {},
@@ -780,17 +918,6 @@
         ]
       ]
     },
-    "Parser Top 5": {
-      "main": [
-        [
-          {
-            "node": "Construire Prompt Analyse",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Construire Prompt Analyse": {
       "main": [
         [
@@ -813,17 +940,6 @@
         ]
       ]
     },
-    "Parser Digest Final": {
-      "main": [
-        [
-          {
-            "node": "Créer Digest",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Créer Digest": {
       "main": [
         [
@@ -840,6 +956,83 @@
         [
           {
             "node": "Créer Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Top 5": {
+      "main": [
+        [
+          {
+            "node": "Charger Comptes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Comptes": {
+      "main": [
+        [
+          {
+            "node": "Charger Enjeux",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Enjeux": {
+      "main": [
+        [
+          {
+            "node": "Charger Playbooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Playbooks": {
+      "main": [
+        [
+          {
+            "node": "Pré-filtrage Déterministe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pré-filtrage Déterministe": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Analyse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Digest Final": {
+      "main": [
+        [
+          {
+            "node": "Valider Convergences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider Convergences": {
+      "main": [
+        [
+          {
+            "node": "Créer Digest",
             "type": "main",
             "index": 0
           }

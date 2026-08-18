@@ -664,5 +664,112 @@ check(
     ),
 )
 
+// --- 17. LOT 2 : Hydratation et Validation des Convergences ---------------------
+
+const PRE_FILTRAGE = "Pré-filtrage Déterministe"
+const VALIDER_CONVERGENCES = "Valider Convergences"
+
+check(
+  "lot2 — nœud Pré-filtrage Déterministe existe",
+  PRE_FILTRAGE in nodes,
+)
+check(
+  "lot2 — nœud Valider Convergences existe",
+  VALIDER_CONVERGENCES in nodes,
+)
+
+const companiesFixture = [
+  { id: "comp_1", name: "Comp 1", sector_id: "sect_1", segment_id: "seg_1" },
+  { id: "comp_2", name: "Comp 2", sector_id: "sect_2", segment_id: "seg_2" }
+]
+const issuesFixture = [
+  { id: "issue_1", company_id: "comp_1", title: "Enjeu 1", problem_statement: "Prob 1" },
+  { id: "issue_2", company_id: "comp_2", title: "Enjeu 2", problem_statement: "Prob 2" }
+]
+const playbooksFixture = [
+  { macro_id: "sect_1", segment_id: "seg_1", macro_name: "Sect 1", segment_name: "Seg 1", playbook: {} }
+]
+
+const preFiltrageOut = runCodeNode(PRE_FILTRAGE, {
+  registry: {
+    "Parser Top 5": [{ id: "art_1", secteurPrincipal: "sect_1", secteurSecondaire: "seg_1" }],
+    "Charger Comptes": companiesFixture,
+    "Charger Enjeux": issuesFixture,
+    "Charger Playbooks": playbooksFixture
+  }
+}).map(i => i.json)
+
+check(
+  "lot2 — pré-filtrage filtre correctement les comptes, enjeux et playbooks candidats",
+  preFiltrageOut[0].convergenceContext.candidateAccounts.length === 1 &&
+  preFiltrageOut[0].convergenceContext.candidateAccounts[0].id === "comp_1" &&
+  preFiltrageOut[0].convergenceContext.candidateIssues.length === 1 &&
+  preFiltrageOut[0].convergenceContext.candidateIssues[0].id === "issue_1" &&
+  preFiltrageOut[0].convergenceContext.candidatePlaybooks.length === 1,
+)
+
+// Validation avec hallucination et dépassement de limite
+const llmDigestFixture = {
+  articles: [{
+    id: "art_1",
+    convergences: {
+      schemaVersion: 1,
+      synthesis: "Synth",
+      confidence: "high",
+      matchedIssues: [
+        { issueId: "issue_1", companyId: "comp_1" }, // Valid
+        { issueId: "issue_fake", companyId: "comp_fake" }, // Halluciné
+        { issueId: "issue_1", companyId: "comp_1" }, // Valid (duplicate for testing limit)
+        { issueId: "issue_1", companyId: "comp_1" }, // Valid
+        { issueId: "issue_1", companyId: "comp_1" }, // Valid (over limit of 3)
+      ],
+      relatedAccounts: [
+        { companyId: "comp_1" }, // Valid
+        { companyId: "comp_fake" }, // Halluciné
+      ],
+      playbookSuggestion: { sectorId: "sect_fake" }, // Halluciné
+      recommendedActions: [{}, {}, {}, {}] // Over limit of 3
+    }
+  }]
+}
+
+const validationOut = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [llmDigestFixture],
+  registry: {
+    "Pré-filtrage Déterministe": preFiltrageOut
+  }
+}).map(i => i.json)
+
+const validConv = validationOut[0].articles[0].convergences
+
+check(
+  "lot2 — validation supprime les UUIDs non fournis dans le contexte",
+  validConv.matchedIssues.every(i => i.issueId !== "issue_fake") &&
+  validConv.relatedAccounts.every(a => a.companyId !== "comp_fake") &&
+  validConv.playbookSuggestion === null,
+)
+
+check(
+  "lot2 — validation respecte les bornes maximales",
+  validConv.matchedIssues.length <= 3 &&
+  validConv.relatedAccounts.length <= 5 &&
+  validConv.recommendedActions.length <= 3,
+)
+
+check(
+  "lot2 — persistance: prépararer lignes inclut la colonne convergences",
+  (() => {
+    const lignes = runCodeNode(PREPARER_LIGNES, {
+      input: [{ articles: [{ id: "art_1", convergences: { schemaVersion: 1 } }] }],
+      registry: {
+        "Parser Digest Final": [{ articles: [] }], // not used directly for this field
+        "Créer Digest": [{ id: "digest_1" }],
+        "Build Contexte KREDO": [{ workspaceId: "ws_1" }]
+      }
+    }).map(i => i.json);
+    return lignes[0].convergences && lignes[0].convergences.schemaVersion === 1;
+  })(),
+)
+
 console.log(`\n${passed} ok · ${failed} échec(s)`)
 process.exit(failed === 0 ? 0 : 1)

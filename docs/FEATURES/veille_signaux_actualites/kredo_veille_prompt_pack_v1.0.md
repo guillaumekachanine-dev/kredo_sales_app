@@ -149,17 +149,34 @@ commercial d'ESN. Base-toi UNIQUEMENT sur le contenu fourni. Si un élément
 - categorie : [marche-esn, ia-appliquee, frontier, strategie, vertical, reglementaire]
 - tags : 2 à 4 mots-clés
 
+# CONVERGENCES KREDO
+Pour chaque article :
+À partir du contenu factuel de l'article et UNIQUEMENT des objets KREDO fournis dans CONVERGENCE_CONTEXT, identifie les rapprochements commercialement utiles entre cette actualité et la connaissance existante de KREDO. S'il n'y a pas de convergence suffisamment étayée, produis des listes vides et ne force pas de correspondance.
+
+- convergences.synthesis : Formuler brièvement le rapprochement principal. Pas de remplissage. S'il n'existe aucune convergence, le dire explicitement.
+- convergences.confidence : "high", "medium" ou "low" selon la force du rapprochement.
+- convergences.evidenceRefs : Tableau des références KREDO ayant servi au raisonnement ({ "type": "article"|"account_issue"|"company"|"sector_playbook", "id": "...", "label": "..." }).
+- convergences.matchedIssues : Maximum 3. Uniquement si l'enjeu figure dans candidateIssues. Explique pourquoi l'article rejoint l'enjeu ({ issueId, companyId, companyName, issueTitle, rationale }).
+- convergences.relatedAccounts : Maximum 5. Uniquement si le compte figure dans candidateAccounts. Il faut une justification commerciale réelle, le simple partage d'un secteur ne suffit pas ({ companyId, companyName, rationale }).
+- convergences.playbookSuggestion : Maximum UNE suggestion, si un playbook candidat est fourni, que l'article apporte un argument exploitable et qu'une section ciblée existe ({ sectorId, sectorName, targetSection, proposedArgument, rationale }). Sinon null.
+- convergences.recommendedActions : Maximum 3 actions courtes et concrètes (approfondir, contacter, etc.) ({ label, rationale }).
+
 # PUIS, au niveau de la semaine, produis :
 - titre_digest : un titre pour l'ensemble de la sélection
 - resume_hebdo : 3-4 phrases donnant LE fil rouge de la semaine (quel thème domine,
   quelle lecture d'ensemble en tirer)
 - super_short_summary : 4 à 10 mots, sans ponctuation finale, pour le widget d'accueil
 
-# CONTRAINTES
+# CONTRAINTES & RÈGLES DE GROUNDING ABSOLUES
 - Français, ton professionnel et direct, zéro remplissage.
 - Le champ action_commerciale doit TOUJOURS être concret. Interdiction de phrases
   creuses type "cela peut intéresser vos prospects".
 - Reste neutre : ne prends pas parti dans les rivalités entre acteurs.
+- Aucun UUID inventé. Aucun compte inventé. Aucun enjeu inventé. Aucun secteur inventé. Aucun playbook inventé.
+- Aucun chiffre absent du contenu source. Aucun fait KREDO absent du contexte fourni.
+- Ne jamais transformer une hypothèse en fait.
+- Une absence de convergence est parfaitement acceptable. Préférer des tableaux vides [] ou null à un rapprochement artificiel.
+- Tu ne décides jamais d'une mutation métier, tu produis uniquement une recommandation structurée.
 
 # EXEMPLE DU NIVEAU ATTENDU
 Article : "L'AI Act impose au 2 août 2026 des obligations de transparence et de
@@ -183,8 +200,9 @@ traçabilité aux systèmes d'IA à haut risque, notamment dans la finance."
 - secteur_secondaire : ""
 - categorie : "reglementaire"
 - tags : ["AI Act", "conformité", "banque", "audit"]
+- convergences : (voir la structure JSON en section 5.2)
 
-# ARTICLES
+# ARTICLES & CONVERGENCE_CONTEXT
 {{articles_top5_avec_contenu}}
 ```
 
@@ -224,6 +242,7 @@ traçabilité aux systèmes d'IA à haut risque, notamment dans la finance."
   "super_short_summary": "Gouvernance souveraineté et IA créative cette semaine",
   "articles": [
     {
+      "id": "art_001",
       "selection_rank": 1,
       "titre_fr": "Titre reformulé en français",
       "resume": "Deux à trois phrases factuelles.",
@@ -232,7 +251,44 @@ traçabilité aux systèmes d'IA à haut risque, notamment dans la finance."
       "secteur_principal": "parfumerie",
       "secteur_secondaire": "",
       "categorie": "vertical",
-      "tags": ["tag1", "tag2", "tag3"]
+      "tags": ["tag1", "tag2", "tag3"],
+      "convergences": {
+        "schemaVersion": 1,
+        "synthesis": "L'article renforce le besoin de gouvernance IA déjà identifié chez L'Oréal.",
+        "confidence": "high",
+        "evidenceRefs": [
+          { "type": "company", "id": "comp_uuid_1", "label": "L'Oréal" }
+        ],
+        "matchedIssues": [
+          {
+            "issueId": "issue_uuid_1",
+            "companyId": "comp_uuid_1",
+            "companyName": "L'Oréal",
+            "issueTitle": "Mise en place AI Act",
+            "rationale": "L'article donne un calendrier précis réutilisable pour cet enjeu."
+          }
+        ],
+        "relatedAccounts": [
+          {
+            "companyId": "comp_uuid_1",
+            "companyName": "L'Oréal",
+            "rationale": "Leur DSI est citée directement dans l'article."
+          }
+        ],
+        "playbookSuggestion": {
+          "sectorId": "sect_uuid_1",
+          "sectorName": "Parfumerie",
+          "targetSection": "Réglementation",
+          "proposedArgument": "Anticiper l'AI Act dès Q3 2026",
+          "rationale": "L'article confirme cette tendance pour tout le secteur."
+        },
+        "recommendedActions": [
+          {
+            "label": "Contacter le DSI L'Oréal",
+            "rationale": "Rebondir sur leur citation."
+          }
+        ]
+      }
     }
   ]
 }
