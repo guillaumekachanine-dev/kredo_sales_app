@@ -52,7 +52,7 @@ Si un lot s'éloigne de ce critère, il faut s'arrêter et le signaler, pas cont
 |---|---|---|---:|
 | Cadrage | Vision, audit, critique, architecture, ADR | ✅ **Terminé** — ADR Accepté | — |
 | Sécurité | Durcissement `get_manager_summary_facts` | ✅ **Livré** — migration `20260818092506` | — |
-| **L0** | Contrats, catalogue TS, 1 preset, **garde M-4** | ⬜ **À FAIRE — prochain** | 1 |
+| **L0** | Contrats, catalogue TS, 1 preset, **garde M-4** | ✅ **Livré** | 1 |
 | L1 | 3 CorpusProviders + budget + trace + garde service-role | ⬜ À faire | 2 |
 | L2 | `mission-001-run` + harnais + **import VPS unique** | ⬜ À faire | 2 |
 | L3 | Callback : aiguillage, validateur, enum `mission_report` | ⬜ À faire | 1 |
