@@ -1,4 +1,5 @@
 import type { AccountClassificationProposal } from "@/features/account-lifecycle/domain/account-classification"
+import type { CorpusBudget } from "@/features/intelligence-missions/domain/mission-contracts"
 
 // ─── Catalogue des IDs de workflows n8n ──────────────────────────────────────
 // Correspond aux IDs stables de la cartographie KREDO_Cartographie_Workflows_n8n.html
@@ -19,6 +20,8 @@ export type N8nWorkflowId =
   | "intel-033-account-watch-refresh" // Veille spécifique compte : rafraîchissement manuel
   | "intel-034-account-signal-verification" // Veille compte : vérification indépendante d'un signal
   | "intel-040-workspace-diagnostic" // ADR-0014 Lot 5 : diagnostic macro du centre de profit
+  // Missions d'intelligence (ADR-0020)
+  | "mission-001-run"               // M-6 : exécuteur générique, importé UNE fois, sans métier
   // Rapports (REPORT-001)
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
   | "report-activity-commercial"    // REPORT-001 Lot 2 : rapport d'activité commerciale
@@ -138,6 +141,24 @@ export type MonthlyWatchAnalysisOutput = {
   risksAndWatchpoints: Array<{ title: string; explanation: string; articleIds: string[] }>
   priorityActions: Array<{ title: string; action: string; horizon: "immediate" | "30_days" | "quarter" }>
   coverage: { digestsCount: number; articlesCount: number; sourcesCount: number }
+}
+
+// ─── Missions d'intelligence — enveloppe envoyée à mission-001-run (ADR-0020) ──
+// M-1/M-6 : n8n ne porte AUCUN métier. Il reçoit deux prompts déjà assemblés et les
+// paramètres d'appel du modèle, poste le texte brut au callback, et c'est tout.
+// Le contenu du corpus ne vit QUE dans `userPrompt` — jamais recopié ailleurs, et
+// surtout jamais dans `ai_intelligence_runs.input_snapshot` (P2).
+
+export type MissionRunEnvelope = {
+  schemaVersion: 1
+  missionSlug: string
+  missionVersion: number
+  systemPrompt: string
+  userPrompt: string
+  model: { provider: "anthropic"; model: string; maxOutputTokens: number }
+  corpus: { kept: number; requested: number; dropped: number; totalChars: number }
+  budget: CorpusBudget
+  requestedAt: string
 }
 
 // ─── Account watch refresh (veille spécifique compte) ───────────────────────

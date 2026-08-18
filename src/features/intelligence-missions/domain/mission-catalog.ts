@@ -8,9 +8,11 @@ export const MISSION_CATALOG = [
     description:
       "Analyse stratégique mensuelle de la veille Kredo : tendances, signaux faibles, réglementation, opportunités, risques et actions prioritaires.",
     corpus: {
-      // Le sélecteur veille_period concret dépend de la période de lancement.
-      // Sa dérivation appartient au résolveur L1, pas au catalogue L0.
+      // La période concrète n'est connue qu'au lancement : le sélecteur veille_period
+      // est fourni par le contexte, pas par le catalogue. `requiredAtLaunch` rend cette
+      // exigence explicite — sans lui, ce preset décrirait une mission sans corpus.
       base: [],
+      requiredAtLaunch: ["veille_period"],
       userAddition: {
         allowed: false,
         kinds: [],
@@ -53,3 +55,12 @@ Ne transforme jamais une absence d'information en conclusion. Si le corpus ne pe
     },
   },
 ] satisfies MissionSpec[]
+
+/**
+ * Seule porte d'entrée du catalogue : le slug reçu du navigateur ne sert qu'à CHERCHER
+ * un preset relu et typé, jamais à en composer un. Un slug inconnu rend `undefined`,
+ * et l'appelant refuse le lancement (ADR-0020 M-7 — rien n'est configurable côté client).
+ */
+export function findMissionSpec(slug: string): MissionSpec | undefined {
+  return MISSION_CATALOG.find((mission) => mission.slug === slug)
+}

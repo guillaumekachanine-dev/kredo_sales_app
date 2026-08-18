@@ -15,12 +15,25 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { triggerN8nRun } from "@/lib/n8n/trigger-run"
 import { resolveKnowledgeScope } from "@/features/content-collections/data/resolve-knowledge-scope"
+import { findMissionSpec } from "@/features/intelligence-missions/domain/mission-catalog"
+import { buildMissionRunType } from "@/features/intelligence-missions/domain/mission-run-type"
+import { parseCorpusSelectors } from "@/features/intelligence-missions/domain/mission-selectors"
+import { resolveMissionCorpus } from "@/features/intelligence-missions/data/resolve-mission-corpus"
+import { assembleMissionPrompt } from "@/features/intelligence-missions/data/assemble-mission-prompt"
+import {
+  buildMissionEnvelope,
+  buildMissionInputSnapshot,
+  buildMissionRunConfig,
+  resolveMissionRunEntity,
+} from "@/features/intelligence-missions/data/build-mission-launch"
 import type {
   N8nEntityType,
   N8nWorkflowId,
   TriggerResponse,
   TriggerErrorResponse,
 } from "@/lib/n8n/types"
+
+type UserScopedClient = Awaited<ReturnType<typeof createClient>>
 
 // entityType/entityId généralisés (REPORT-001 Lot 0) : companyId reste accepté
 // pour compatibilité et n'est utilisé que quand entityType === "company".
@@ -32,6 +45,93 @@ type TriggerBody = {
   entityId?: string
   companyId?: string
   input: Record<string, unknown>
+  // ADR-0020 — un lancement de mission n'a ni `workflowId` ni `input` : il ne porte
+  // que l'identifiant du preset et les sélecteurs de corpus qu'il a le droit de fournir.
+  missionSlug?: string
+  selectors?: unknown
+}
+
+// ── Lancement d'une mission d'intelligence (ADR-0020 M-5 / §5.2) ──────────────
+// Une SEULE porte de lancement : cette route. Il n'y a pas d'action serveur
+// concurrente, et cette fonction n'est appelée que d'ici.
+//
+// Même doctrine que le bloc « 3ter » plus bas : le serveur ne fait confiance qu'à
+// deux choses — l'identifiant de mission (qui ne sert qu'à CHERCHER un preset relu et
+// typé) et le `workspaceId` résolu depuis `profiles`. Tout le reste est soit imposé
+// par le preset (intention, contraintes, budget, modèle, contrat de sortie), soit
+// revalidé contre son allowlist de corpus. Le navigateur ne peut ni élargir le corpus,
+// ni choisir un `resultType` (M-7), ni faire lire une ligne hors de son workspace.
+async function launchMissionRun(params: {
+  supabase: UserScopedClient
+  workspaceId: string
+  userId: string
+  missionSlug: string
+  rawSelectors: unknown
+}): Promise<NextResponse<TriggerResponse | TriggerErrorResponse>> {
+  const spec = findMissionSpec(params.missionSlug)
+  if (!spec) {
+    return NextResponse.json<TriggerErrorResponse>(
+      { error: `Mission « ${params.missionSlug} » inconnue.` },
+      { status: 400 }
+    )
+  }
+
+  const parsed = parseCorpusSelectors(params.rawSelectors)
+  if ("error" in parsed) {
+    return NextResponse.json<TriggerErrorResponse>({ error: parsed.error }, { status: 400 })
+  }
+
+  const corpus = await resolveMissionCorpus(
+    { workspaceId: params.workspaceId, supabase: params.supabase },
+    spec,
+    parsed.selectors
+  )
+  if ("error" in corpus) {
+    return NextResponse.json<TriggerErrorResponse>({ error: corpus.error }, { status: 400 })
+  }
+
+  // Un corpus vide ne produit qu'une hallucination coûteuse : on refuse plutôt que de
+  // lancer un appel LLM sans matière.
+  if (corpus.items.length === 0) {
+    return NextResponse.json<TriggerErrorResponse>(
+      { error: "Corpus vide : aucune source lisible pour cette mission." },
+      { status: 400 }
+    )
+  }
+
+  const requestedAt = new Date().toISOString()
+  const prompts = assembleMissionPrompt(spec, corpus)
+  const entity = resolveMissionRunEntity(corpus, params.workspaceId)
+
+  const result = await triggerN8nRun({
+    workflowId: "mission-001-run",
+    // M-3 — `run_type = 'mission:<slug>'`, sur une ligne `ai_intelligence_runs`
+    // ordinaire. C'est aussi ce que la garde M-4 exclut des vues qui lisent `phase`.
+    runType: buildMissionRunType(spec.slug),
+    entityType: entity.entityType,
+    entityId: entity.entityId,
+    companyId: entity.companyId,
+    workspaceId: params.workspaceId,
+    userId: params.userId,
+    // Vers n8n : les prompts assemblés (donc le contenu du corpus).
+    input: buildMissionEnvelope(spec, corpus, prompts, requestedAt),
+    // Persisté : la trace seule — références, titres, provenance (P2).
+    inputSnapshot: buildMissionInputSnapshot(spec, corpus, parsed.selectors, requestedAt),
+    extraConfig: buildMissionRunConfig(spec),
+  })
+
+  if (!result.ok) {
+    console.error("[trigger] launchMissionRun failed:", result.error)
+    return NextResponse.json<TriggerErrorResponse>(
+      { error: result.error },
+      { status: result.runId ? 502 : 500 }
+    )
+  }
+
+  return NextResponse.json<TriggerResponse>(
+    { runId: result.runId, status: "queued" },
+    { status: 202 }
+  )
 }
 
 export async function POST(request: Request) {
@@ -69,6 +169,18 @@ export async function POST(request: Request) {
       { error: "Body JSON invalide" },
       { status: 400 }
     )
+  }
+
+  // ── 3bis-mission. Branche « mission d'intelligence » (ADR-0020) ────────────
+  // Placée AVANT la validation `workflowId`/`input` : une mission n'en porte aucun.
+  if (typeof body.missionSlug === "string" && body.missionSlug.length > 0) {
+    return launchMissionRun({
+      supabase,
+      workspaceId: profile.workspace_id,
+      userId: user.id,
+      missionSlug: body.missionSlug,
+      rawSelectors: body.selectors,
+    })
   }
 
   const { workflowId, companyId, input } = body

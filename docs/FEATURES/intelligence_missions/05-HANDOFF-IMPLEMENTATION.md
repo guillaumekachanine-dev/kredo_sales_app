@@ -52,15 +52,77 @@ Si un lot s'éloigne de ce critère, il faut s'arrêter et le signaler, pas cont
 |---|---|---|---:|
 | Cadrage | Vision, audit, critique, architecture, ADR | ✅ **Terminé** — ADR Accepté | — |
 | Sécurité | Durcissement `get_manager_summary_facts` | ✅ **Livré** — migration `20260818092506` | — |
-| **L0** | Contrats, catalogue TS, 1 preset, **garde M-4** | ✅ **Livré** | 1 |
-| L1 | 3 CorpusProviders + budget + trace + garde service-role | ⬜ À faire | 2 |
-| L2 | `mission-001-run` + harnais + **import VPS unique** | ⬜ À faire | 2 |
+| **L0** | Contrats, catalogue TS, 1 preset, **garde M-4** | ✅ **Livré et audité** — 2026-08-18 | 1 |
+| **L1** | 3 CorpusProviders + budget + trace + garde de workspace | ✅ **Livré** — 2026-08-18 | 2 |
+| **L2** | `mission-001-run` + harnais + **import VPS unique** | ⬜ **À FAIRE — prochain** | 2 |
 | L3 | Callback : aiguillage, validateur, enum `mission_report` | ⬜ À faire | 1 |
 | L5 | Pilote : `intel-021` rejoué en preset + comparaison | ⬜ À faire | 1 |
 | L4 | Composeur UX desktop + mobile | ⏸️ **Décidé après L5**, jamais avant | 2,5 |
 
 **Total moteur + preuve (L0→L3 + L5) : 7 sessions réalistes, 5 optimiste.**
 L'ordre `L0 → L1 → L2 → L3 → L5` est **strict** : chaque lot consomme le précédent.
+
+### Ce que L1 a livré (2026-08-18) — surface exacte
+
+```
+src/features/intelligence-missions/
+  domain/
+    apply-corpus-budget.ts      ← budget + troncature, fonction PURE (ADR §4.4)
+    mission-selectors.ts        ← analyse des sélecteurs reçus du navigateur, PURE
+    mission-catalog.ts          ← + findMissionSpec(slug)
+    mission-contracts.ts        ← + CorpusProviderResult / CorpusExclusion / CorpusTraceReason
+  data/
+    corpus/
+      veille-period-provider.ts          user_rls · weight 50
+      intelligence-document-provider.ts  user_rls · weight 70
+      account-context-provider.ts        user_rls · weight 90
+      corpus-provider-registry.ts
+    resolve-mission-corpus.ts   ← allowlist stricte + budget
+    assemble-mission-prompt.ts  ← preset + corpus → { systemPrompt, userPrompt }, PURE
+    build-mission-launch.ts     ← enveloppe n8n vs snapshot persisté, PURE
+```
+
+Gateway : une branche `missionSlug` **dans `/api/n8n/trigger`**, placée avant la validation
+`workflowId`/`input` (une mission n'en porte aucun). Aucune action serveur concurrente,
+`actions/launch-mission.ts` n'existe pas.
+
+**Boucle de validation rejouée intégralement** : `typecheck` ✅ · **1485 tests / 148 fichiers,
+0 échec** (1401 avant le lot, soit **+84 tests**) · `check:server-boundary` ✅ ·
+`lint` ✅ **0 problème sur les fichiers du lot** (le dépôt en compte 1617 par ailleurs,
+préexistants) · `build` ✅ exit 0, 64/64 pages, après `rm -rf .next` (faux `TS6200`/`TS2300`
+rencontrés, piège documenté §6).
+
+**Critère de sortie vérifié sur données réelles** — période juillet 2026 : 2 digests +
+10 articles = **12 sources, 11 900 caractères**, aucun élément au-dessus des 4 000 caractères
+par item. Le budget (120 000 / 120) n'est donc **pas** le facteur limitant aujourd'hui : la
+matière l'est, exactement comme l'annonce l'ADR §« le risque qui n'est pas technique ».
+
+### Les cinq écarts entre le plan et le code livré — à connaître avant L2/L3
+
+| # | Écart | Pourquoi |
+|---|---|---|
+| **1** | 🔴 **`account_context` s'exécute en `user_rls`, PAS en `service_role`** | Le plan L1 l'annonçait en service-role via `get_account_knowledge_context`. Vérification live : cette RPC est `security invoker`, `EXECUTE` révoqué à `authenticated`, accordé au seul `service_role` — en service-role elle tourne **sans aucune RLS** et ne se protège que par son paramètre `p_workspace_id`. Or `companies` / `v_active_account_signals` / `contacts` / `persons` portent toutes le motif RLS workspace standard : **le chemin sous RLS utilisateur suffit**, et l'ADR §5.1 l'autorisait explicitement (« soit emprunter un autre chemin de données, soit s'exécuter en service-role »). Bénéfice non accessoire : la RPC rend un blob JSON unique donc **une seule référence citable**, là où la lecture ligne à ligne donne un identifiant réel par signal et par contact — ce dont L3 a besoin. **Il n'y a donc aucun provider service-role dans le moteur.** |
+| **2** | `CorpusProvider.resolve` rend `{ items, exclusions }` et non `CorpusItem[]` | Un document archivé ou une référence illisible est écarté **avant** le budget. Sans ce canal il disparaîtrait sans trace, ce qu'ADR §4.4 interdit (« jamais silencieux »). |
+| **3** | `trace.reason` gagne `archived`, `not_found`, `provider_limit` | Corollaire du précédent. `provider_limit` trace l'atteinte d'une borne dure de requête — une garde de volume, jamais une règle métier. |
+| **4** | `CorpusResolveContext` porte le client Supabase | Le contrat L0 ne portait que `workspaceId` ; un provider ne pouvait alors rien lire. Le client est **injecté**, jamais fabriqué — même doctrine que `resolveKnowledgeScope`. |
+| **5** | `createRun` / `triggerN8nRun` gagnent `inputSnapshot` (en plus de `runType` et `extraConfig` prévus) | **Non anticipé, et obligatoire.** `createRun` écrivait `input_snapshot = input`. Une mission envoie à n8n un prompt **contenant le corpus** : sans ce champ, tout le contenu aurait été recopié dans `input_snapshot`, en violation directe de P2. Les deux objets sont désormais construits par deux fonctions distinctes (`buildMissionEnvelope` / `buildMissionInputSnapshot`) précisément pour qu'on ne puisse pas se tromper de champ. Par défaut `input_snapshot` reste `input` : **aucun appelant existant n'est modifié.** |
+
+`N8nWorkflowId` porte désormais `"mission-001-run"` — nécessaire pour que la branche compile.
+**Le JSON du workflow reste entièrement à écrire : c'est L2.**
+
+### Ce que L2 et L3 doivent savoir
+
+- **L2** reçoit un `MissionRunEnvelope` (`src/lib/n8n/types.ts`) : `systemPrompt`, `userPrompt`,
+  `model`, `budget`, `corpus` (compteurs). **Zéro hydratation, zéro assemblage, zéro validation
+  côté n8n** — le workflow poste le texte brut du LLM au callback.
+- **L3** trouvera dans `ai_intelligence_runs.input_snapshot` : `{ schemaVersion, missionSlug,
+  missionVersion, requestedAt, selectors, budget, stats, trace }`. **`trace` porte `ref` + `title`
+  + `provenance` sur CHAQUE élément considéré, conservé ou non** : c'est exactement ce qu'il faut
+  pour reconstituer un `SourceRef` à partir du seul identifiant rendu par le LLM. Ne pas
+  l'appauvrir. `config` porte `{ workflowId, missionSlug, missionVersion, corpusBudget }`.
+- **Injection de prompt** : le contenu du corpus arrive dans `userPrompt`. Il provient toujours du
+  workspace de l'utilisateur, et M-7 verrouille déjà le `resultType` — mais le validateur L3 doit
+  **refuser tout `SourceRef` absent de la trace** plutôt que de faire confiance au modèle.
 
 ---
 
@@ -262,6 +324,20 @@ un chiffre**, mais ne pas refaire l'analyse.
 | Volumes à éviter | `content_collection_items` **5** · `source_corpora` **2** | **Ne pas piloter dessus** |
 | Runs par workflow | `intel-010` 176 · `intel-020` 92 · **`intel-021` 3** | Ne jamais migrer les deux premiers |
 
+### Faits ajoutés par l'audit de L0 (2026-08-18, revérifiés live)
+
+| Fait | Valeur | Conséquence |
+|---|---|---|
+| Garde M-4 en base | **deux** migrations : `20260818101855` (latérale `res`) **+ `20260818110944`** (latérale `runs`) | La première ne guardait que `has_*`/`count_results` ; `count_runs`/`latest_run_*` restaient pollués |
+| `v_crm_account_list` | lit `v_ai_intelligence_summary`, ne relit jamais `phase` | Hérite du garde-fou, rien à corriger |
+| Fonctions SQL interprétant `phase` | **aucune** (`pg_proc` balayé) | L'inventaire §5.8 de l'ADR est complet |
+| `run_type` en base | 20 valeurs, **0 NULL**, aucune préfixée `mission:` | Pas de collision possible |
+| `createRun` (`src/lib/n8n/runs.ts`) | porte **déjà** `runType?: string` (`run_type = runType ?? workflowId`) | M-3 sans modifier `runs.ts` — il faut seulement le faire traverser `triggerN8nRun` |
+| `createRun.config` | écrit en dur `{ workflowId }` | À étendre en L1 pour `{ missionSlug, missionVersion, corpusBudget }` (ADR §3) |
+| `get_account_knowledge_context` | `auth_exec=false`, **pas** `SECURITY DEFINER`, signature `(p_workspace_id, p_company_id)` | En service-role : **aucune RLS**, et le workspace vient d'un paramètre → garde obligatoire (même schéma que la faille `get_manager_summary_facts`) |
+| Hydratation veille | `veille_digests(titre_digest, resume_hebdo, digest_date)` · `veille_articles(titre_fr, resume, analyse_kredo, action_commerciale, published_at, digest_id, source_name)` | Matière réelle du provider `veille_period` |
+| Hydratation documents | `intelligence_documents.current_content_text` / `current_content_json` | Matière réelle du provider `intelligence_document` |
+
 ### Les fichiers qui comptent
 
 | Rôle | Chemin |
@@ -327,100 +403,147 @@ workflow est cassé.
 
 ---
 
-## 8. Prompt de démarrage du lot L0
+## 8. Prompt de démarrage du lot L1 — ⚠️ LOT LIVRÉ, conservé pour mémoire
+
+> 🔴 **L1 est livré (2026-08-18). Ne pas rejouer ce prompt.** Il est conservé parce qu'il
+> documente les contraintes du lot, mais le prochain lot est **L2**. Lire d'abord le §2
+> (surface livrée, cinq écarts, ce que L2 et L3 doivent savoir), puis le §4 « L2 ».
+
+### Prompt d'origine du lot L1
 
 > À copier tel quel dans une session neuve, après avoir réglé `/model claude-opus-5`.
-> Le prompt est autoportant : il ne suppose aucune connaissance de la conversation de
-> cadrage.
+> Le prompt est autoportant. **Le prompt du lot L0 est en historique git** (commit du
+> cadrage) — il n'est plus reproduit ici, L0 étant livré et audité.
 
 ```text
-Contexte : chantier « Missions d'intelligence » de Kredo, cadré et acté dans
+Contexte : chantier « Missions d'intelligence » de Kredo, acté dans
 docs/adr/ADR-0020-missions-intelligence.md (statut Accepté). Lis d'abord, dans cet ordre :
-  1. docs/adr/ADR-0020-missions-intelligence.md — les 7 décisions M-1 à M-7 font autorité
+  1. docs/adr/ADR-0020-missions-intelligence.md — les 7 décisions M-1 à M-7 font autorité,
+     et particulièrement §5.1 (mode d'exécution des providers) et §5.2 (gateway unique)
   2. docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md — §3, §5, §6
-  3. docs/FEATURES/intelligence_missions/03-ARCHITECTURE-CIBLE.md §2 et §4 — les contrats
+  3. docs/FEATURES/intelligence_missions/03-ARCHITECTURE-CIBLE.md §4 — le résolveur
+  4. Le code livré en L0 : src/features/intelligence-missions/domain/*.ts
 Ne relis pas 00/01/02 : leur substance est reprise dans l'ADR.
 
-Tu réalises le LOT L0, et RIEN d'autre. Ultrathink n'est pas nécessaire ; think hard suffit.
+Tu réalises le LOT L1, et RIEN d'autre. Ultrathink : c'est le seul lot du chantier où
+une erreur crée une faille de sécurité, pas seulement un bug.
 
 ──────────────────────────────────────────────────────────────────────
-PÉRIMÈTRE — trois livrables, aucun de plus
+CE QUI EXISTE DÉJÀ (L0 livré et audité — ne pas le réécrire)
+──────────────────────────────────────────────────────────────────────
+  * src/features/intelligence-missions/domain/mission-contracts.ts
+      MissionSpec, CorpusKind, CorpusSelector, CorpusItem, ResolvedCorpus, CorpusBudget,
+      CorpusProvider (avec `execution: "user_rls" | "service_role"`), CorpusResolveContext,
+      MissionReportV1, Finding (6 catégories), Recommendation, SourceRef.
+      MissionSpec.corpus porte `base`, `requiredAtLaunch`, `userAddition`, `budget`.
+      `ResolvedCorpus.trace` porte ref + title + provenance + kept + reason.
+  * domain/mission-catalog.ts — un seul preset, `veille-analyse-mensuelle`,
+    `base: []` et `requiredAtLaunch: ["veille_period"]` (la période vient du lancement).
+  * domain/mission-run-type.ts — buildMissionRunType / isMissionRunType, testés.
+  * Garde M-4 en base : migrations 20260818101855 + 20260818110944. Ne pas y revenir.
+
+──────────────────────────────────────────────────────────────────────
+PÉRIMÈTRE — quatre livrables, aucun de plus
 ──────────────────────────────────────────────────────────────────────
 
-A. LES CONTRATS TypeScript, dans src/features/intelligence-missions/domain/
-   - mission-contracts.ts : MissionSpec, CorpusKind, CorpusSelector, CorpusItem,
-     ResolvedCorpus, CorpusBudget, MissionReportV1, Finding, Recommendation, SourceRef.
-     Reprendre les formes de 03-ARCHITECTURE-CIBLE.md §2 et §4.1, qui intègrent déjà les
-     révisions de l'ADR.
-     Contraintes dures :
-       * CorpusKind = "veille_period" | "intelligence_document" | "account_context".
-         PAS de "rpc_context" : un nom de RPC PostgreSQL ne remonte JAMAIS dans le
-         contrat de mission (ADR §5.1).
-       * MissionSpec ne porte AUCUN resultType, AUCUN outputSchema, AUCUN QaRule[].
-         Toutes les missions produisent MissionReportV1 ; le callback impose lui-même
-         resultType = documentType = "mission_report" (ADR §5.4 / M-7).
-       * Finding porte un discriminant `category` couvrant les six sections d'intel-021 :
-         tendance | signal_faible | reglementaire | opportunite | risque | autre.
-         Ce champ existe pour que la comparaison du pilote L5 reste vérifiable (ADR §5.3).
-       * CorpusProvider déclare `execution: "user_rls" | "service_role"` (ADR M-5).
-   - mission-catalog.ts : UN SEUL preset, `veille-analyse-mensuelle`, calqué sur
-     l'intention métier de n8n/workflows/intel-021-monthly-watch-analysis.json
-     (lire son nœud « Assemble Prompt » pour le fond, pas pour la forme).
-   - Tests colocalisés en __tests__/ : le catalogue est bien typé, les slugs sont uniques,
-     le preset est complet. Fonctions pures uniquement — aucun accès base.
+A. LES TROIS CORPUS PROVIDERS, dans src/features/intelligence-missions/data/corpus/
+   Un fichier par origine, chacun exportant un CorpusProvider complet.
+   Ils HYDRATENT DU CONTENU : c'est ce qui n'existe nulle part aujourd'hui
+   (content-type-registry.ts ne rend que des métadonnées d'affichage — le lire comme
+   patron de registre, PAS comme source d'hydratation).
 
-B. LA GARDE M-4 — le seul risque de régression du chantier
-   Fait déjà mesuré, ne pas le réinventorier (ADR §5.8) :
-     * AUCUN code TypeScript ne filtre ni n'interprète la colonne `phase` de
-       ai_intelligence_results. Les `phase` vus dans src/components/ sont des états de
-       machine UI ("tracking"/"succeeded"/...) ou des jalons project_phases : hors sujet.
-     * UN SEUL consommateur sémantique, en SQL : la vue v_ai_intelligence_summary, qui
-       fait bool_or(r.phase = 1) AS has_client_analysis (… = 2, 3, 4), filtrée uniquement
-       sur company_id et status, jamais sur run_type.
-   Problème : une mission ouverte depuis un compte écrit phase = 1 avec un company_id.
-   Elle ferait passer has_client_analysis à true — un compte paraîtrait analysé sans l'être.
-   Travail : migration corrigeant la sous-requête latérale de v_ai_intelligence_summary
-   pour exclure les résultats dont le run porte run_type LIKE 'mission:%'.
-   Vérifier d'abord le texte exact de la vue en base (information_schema.views), la
-   recréer à l'identique hormis cette exclusion, et PROUVER la non-régression : mêmes
-   valeurs de has_* / count_results pour tous les comptes avant et après (comparer les
-   deux résultats, ne pas se contenter d'un "ça tourne").
-   Appliquer via le MCP supabase apply_migration, puis créer le fichier local aligné sur
-   le timestamp réellement assigné, puis npm run db:types.
+   1. veille_period  (execution: "user_rls")
+      veille_digests (titre_digest, resume_hebdo, digest_date) +
+      veille_articles (titre_fr, resume, analyse_kredo, action_commerciale,
+      published_at, source_name, digest_id) sur [periodStart, periodEnd].
+      RLS workspace standard : le client utilisateur suffit, ne pas passer en service-role.
 
-C. LA CONVENTION de run_type
-   Un helper pur exposant `buildMissionRunType(slug)` → `mission:<slug>` et
-   `isMissionRunType(runType)`, testés. Aucun appel réseau, aucun accès base.
+   2. intelligence_document  (execution: "user_rls")
+      intelligence_documents.current_content_text / current_content_json, par ids.
+      Ignorer les documents archivés (archived_at non nul) et le dire dans la trace.
+
+   3. account_context  (execution: "service_role" — À VÉRIFIER avant d'écrire)
+      🔴 get_account_knowledge_context est `auth_exec = false` et n'est PAS
+      SECURITY DEFINER : appelée en service-role elle s'exécute SANS AUCUNE RLS, et
+      elle filtre sur son paramètre p_workspace_id. C'est exactement le schéma de la
+      faille get_manager_summary_facts corrigée le 2026-08-18.
+      Donc, sans exception :
+        * le workspaceId provient de profiles.workspace_id résolu côté serveur à partir
+          de la session — JAMAIS d'un champ du body ;
+        * le provider revérifie explicitement que la company demandée appartient à ce
+          workspace AVANT de retourner quoi que ce soit ;
+        * ce contrôle porte un test dédié qui échoue si la garde est retirée.
+      Vérifie d'abord si un chemin sous RLS utilisateur suffit (lecture directe de
+      companies + account_signals + contacts). Si oui, prends-le et déclare "user_rls" :
+      le service-role est un dernier recours, pas un confort.
+
+B. LE BUDGET ET LA TRONCATURE — déterministes, jamais aléatoires, jamais délégués au LLM
+   Ordre imposé (ADR §4.4) :
+     1. troncature de chaque item à maxCharsPerItem, coupe en fin, marqueur explicite ;
+     2. tri par (weight du provider DESC, date DESC) ;
+     3. conservation jusqu'à maxTotalChars / maxItems ;
+     4. tout élément écarté est compté ET tracé, jamais silencieux.
+   Fonction pure, testée sur les cas limites : corpus vide, un seul item plus gros que
+   maxTotalChars, égalité de weight, dates nulles (ordre stable et reproductible exigé).
+
+C. LE RÉSOLVEUR ET SON BRANCHEMENT DANS LA GATEWAY EXISTANTE
+   * data/resolve-mission-corpus.ts : preset + sélecteurs de lancement → ResolvedCorpus.
+     Refuse le lancement si un kind de `requiredAtLaunch` n'a pas de sélecteur, et si un
+     sélecteur porte un kind absent de `base`/`requiredAtLaunch`/`userAddition.kinds`
+     (allowlist stricte : l'appelant ne choisit pas ses corpus).
+   * data/assemble-mission-prompt.ts : preset + corpus → { systemPrompt, userPrompt }.
+     Fonction PURE et testée — c'est le cœur du critère de succès du chantier.
+   * src/app/api/n8n/trigger/route.ts : une branche `missionSlug`, dans la route
+     EXISTANTE. Ne crée pas de second chemin de lancement, ne crée pas
+     actions/launch-mission.ts (ADR §5.2). Patron à suivre : le bloc « 3ter. Résolution
+     du Knowledge Scope », qui repart déjà du seul identifiant serveur et écrase tout
+     `refs` venu du navigateur.
+   * run_type : `createRun` porte DÉJÀ `runType?: string` (run_type = runType ?? workflowId).
+     Il suffit de le faire traverser `triggerN8nRun` (TriggerN8nRunInput) et de passer
+     buildMissionRunType(slug). Étendre aussi `config` — aujourd'hui `{ workflowId }` en
+     dur — pour porter { missionSlug, missionVersion, corpusBudget } (ADR §3).
+
+D. LA TRAÇABILITÉ
+   `ResolvedCorpus.trace` est écrite dans ai_intelligence_runs.input_snapshot.
+   Références, titres et provenance UNIQUEMENT — jamais de contenu copié (P2).
+   Contrainte inter-lots à respecter : la trace doit suffire au callback L3 pour
+   reconstituer un SourceRef à partir du seul identifiant rendu par le LLM. Ne pas
+   l'appauvrir.
 
 ──────────────────────────────────────────────────────────────────────
 HORS PÉRIMÈTRE — ne rien commencer de tout cela
 ──────────────────────────────────────────────────────────────────────
-  ✗ Les CorpusProviders et le résolveur (L1)
-  ✗ Toute modification de /api/n8n/trigger ou du callback (L1/L3)
-  ✗ Tout JSON n8n (L2)
-  ✗ L'enum mission_report et sa migration (L3)
-  ✗ Toute UI (L4, suspendu)
-  ✗ Toute migration d'un workflow existant
+  ✗ Tout JSON n8n, y compris mission-001-run (L2)
+  ✗ Toute modification du callback, le validateur MissionReportV1, l'enum
+    mission_report et ses 4 Record exhaustifs (L3)
+  ✗ Toute UI, y compris un bouton de lancement (L4, suspendu)
+  ✗ Toute migration d'un workflow existant, et tout retour sur la garde M-4
+  ✗ Tout nouveau CorpusKind : content_collection et source_corpus attendent d'avoir
+    de la matière (5 et 2 lignes)
 
 ──────────────────────────────────────────────────────────────────────
 MÉTHODE
 ──────────────────────────────────────────────────────────────────────
-1. Lire avant d'écrire. Ne jamais qualifier quelque chose d'absent ou de cassé sans
-   avoir ouvert le fichier.
-2. Annoncer ce que tu vas faire et pourquoi, puis exécuter. Trancher, ne pas présenter
-   un menu d'options.
-3. Boucle de validation complète, dans l'ordre, avant de déclarer le lot fini :
+1. Un agent Explore (« très minutieux ») en AMONT uniquement, pour cartographier les
+   chemins de données veille et compte. Aucun agent ensuite.
+2. Lire avant d'écrire. Ne jamais qualifier quelque chose d'absent ou de cassé sans
+   avoir ouvert le fichier et suivi ses imports.
+3. `import "server-only"` sur tout module touchant le client Supabase serveur.
+4. Passer `security-review` sur le provider service-role avant de déclarer le lot fini,
+   et `get_advisors` (MCP supabase) si une RPC ou une policy est touchée.
+5. Boucle de validation complète, dans l'ordre, avant de déclarer le lot fini :
    npm run typecheck && npm test && npm run check:server-boundary && npm run lint && npm run build
-   (test:n8n est inutile ici : aucun fichier de n8n/workflows/ n'est touché.)
-   Si .next/ produit de faux TS6200/TS2300, purger avec rm -rf .next avant de conclure.
-4. Rapporter les résultats réels, échecs compris.
-5. Terminer en mettant à jour le tableau d'avancement du §2 de
-   docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md (L0 → ✅), et en
-   signalant tout écart constaté entre l'ADR et la réalité du code.
+   (test:n8n inutile ici : aucun fichier de n8n/workflows/ n'est touché.)
+   Si le build échoue sur ENOTEMPTY ou de faux TS6200/TS2300 : rm -rf .next, puis relancer.
+   Rapporter les compteurs réels (tests passés, échecs), jamais un simple « ça passe ».
+6. Terminer en mettant à jour le §2 et le §9 de
+   docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md, et en signalant tout
+   écart constaté entre l'ADR et la réalité du code.
 
-Critère de sortie du lot : les contrats compilent, les tests passent, et
-v_ai_intelligence_summary renvoie EXACTEMENT les mêmes valeurs qu'avant pour tous les
-comptes existants tout en étant désormais immunisée contre les runs de mission.
+Critère de sortie du lot : depuis la gateway existante, le preset veille-analyse-mensuelle
+produit un prompt assemblé et un ResolvedCorpus tracé, borné par son budget, sur une
+période de veille réelle — sans qu'aucune ligne ne soit lue hors du workspace de
+l'utilisateur, et avec un test qui échoue si la garde de workspace est retirée.
 ```
 
 ---
@@ -433,3 +556,6 @@ comptes existants tout en étant désormais immunisée contre les runs de missio
 | 2026-08-18 | Revue contradictoire (ChatGPT) : 5 objections, **5 acceptées** — dont une invalidant la rédaction initiale de M-5 |
 | 2026-08-18 | **ADR-0020 Accepté**. Périmètre de la garde M-4 mesuré : un seul consommateur sémantique (§5.8) |
 | 2026-08-18 | Hors périmètre, découvert en préparant l'ADR : faille `get_manager_summary_facts` **corrigée** (migration `20260818092506`, boucle de validation complète passée) |
+| 2026-08-18 | **L0 livré** (ChatGPT) — contrats, catalogue, `run_type`, garde M-4 partielle (`20260818101855`) |
+| 2026-08-18 | **L1 livré** (Claude Code) — 3 providers **tous en `user_rls`** (le service-role s'est révélé inutile, cf. écart #1), budget déterministe pur, résolveur à allowlist stricte, assembleur de prompt pur, branche `missionSlug` dans la gateway existante. Boucle complète : typecheck ✅ · **1485 tests, 0 échec** (+84) · server-boundary ✅ · lint ✅ sur les fichiers du lot · build ✅. **La garde de workspace est vérifiée par mutation** : retirer le `.eq("workspace_id", …)` du verrou d'entrée d'`account-context-provider.ts` fait échouer 3 tests sur 6 d'`account-context-provider.test.ts`. `get_advisors` (sécurité) : 16 avertissements, **tous préexistants et étrangers au lot** — L1 ne crée ni RPC, ni policy, ni migration |
+| 2026-08-18 | **L0 audité et corrigé** (Claude Code) — boucle de validation rejouée localement (typecheck ✅ · 1401 tests ✅ · server-boundary ✅ · build ✅ après `rm -rf .next` · lint : 0 problème sur les fichiers du lot). Deux correctifs : garde M-4 complétée sur la latérale `runs` (migration `20260818110944`, empreinte des 112 lignes inchangée) et `MissionSpec.corpus.requiredAtLaunch` ajouté — sans lui le preset pilote décrivait une mission sans corpus. `Recommendation.horizon` ajouté pour la fidélité au pilote L5 |

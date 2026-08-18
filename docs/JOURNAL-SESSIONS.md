@@ -15,6 +15,43 @@
 
 ---
 
+### Session 46 — Missions d'intelligence, lot L1 : providers de corpus, budget, résolveur (2026-08-18)
+
+ADR-0020 (Accepté). L0 avait posé les contrats ; L1 pose l'hydratation, qui n'existait nulle part —
+les deux agrégateurs de veille existants ne rendent que des identifiants, le contenu était hydraté
+côté n8n. Trois providers dans `src/features/intelligence-missions/data/corpus/`, un budget
+déterministe pur, un résolveur à allowlist stricte, un assembleur de prompt pur, et **une branche
+`missionSlug` dans `/api/n8n/trigger`** — pas de second chemin de lancement.
+
+**La décision du lot : aucun provider ne s'exécute en service-role.** Le plan annonçait
+`account_context` en service-role via `get_account_knowledge_context`. Contrôle live : cette RPC est
+`security invoker`, `EXECUTE` révoqué à `authenticated` — appelée en service-role elle tourne sans
+aucune RLS et ne se protège que par son paramètre `p_workspace_id`, le schéma exact de la faille
+`get_manager_summary_facts` corrigée le matin même. Or `companies`, `v_active_account_signals`,
+`contacts` et `persons` portent toutes le motif RLS workspace standard : la lecture ligne à ligne
+sous RLS utilisateur suffit, et elle donne en prime un identifiant citable par signal et par contact
+là où la RPC ne rend qu'un blob JSON. Le provider garde malgré tout un **verrou d'entrée explicite**
+(`.eq("workspace_id", …)` sur la company avant toute autre requête), en seconde serrure.
+
+**Le piège qui n'était pas au plan** : `createRun` écrivait `input_snapshot = input`. Une mission
+envoie à n8n un prompt qui *contient* le corpus — sans séparation, tout le contenu se serait retrouvé
+recopié dans `input_snapshot`, contre P2. D'où `inputSnapshot` en option de `createRun` /
+`triggerN8nRun` (par défaut : `input`, aucun appelant existant modifié) et deux fonctions distinctes
+pour construire l'enveloppe et le snapshot.
+
+**Vérification par mutation, pas seulement par assertion** : le faux client Supabase des tests
+applique réellement les filtres. Retirer le verrou de workspace fait échouer 3 tests sur 6. C'est la
+seule preuve qui vaille pour ce genre de garde.
+
+Boucle complète : typecheck ✅ · **1485 tests / 148 fichiers, 0 échec** (+84) · server-boundary ✅ ·
+lint ✅ sur les fichiers du lot · build ✅ après `rm -rf .next`. Sur données réelles (juillet 2026) :
+12 sources, 11 900 caractères — le budget n'est pas le facteur limitant, la matière l'est.
+
+Détail, écarts au plan et point d'entrée L2 :
+`docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md` §2.
+
+---
+
 ### Session 45 — Veille ciblée comptes : cycle de vie et actions réelles (2026-08-14)
 
 **Cycle de vie** : `account_signals.detected_at`, déjà utilisé pour dater et ordonner les signaux,

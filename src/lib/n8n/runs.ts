@@ -35,6 +35,16 @@ type CreateRunOptions = {
   workspaceId: string
   userId: string
   input: Record<string, unknown>
+  // ADR-0020 L1 — ce qui est PERSISTÉ peut différer de ce qui est ENVOYÉ à n8n.
+  // Une mission envoie un prompt déjà assemblé (donc le contenu du corpus) mais ne doit
+  // persister que des références et des titres : `input_snapshot` reçoit alors la trace,
+  // jamais le prompt (P2). Par défaut — et donc pour tous les appelants existants —
+  // `input_snapshot` reste strictement `input`.
+  inputSnapshot?: Record<string, unknown>
+  // Fusionné dans `config`, qui portait `{ workflowId }` en dur. Une mission y ajoute
+  // { missionSlug, missionVersion, corpusBudget } (ADR-0020 §3). `updateRunN8nIds`
+  // fusionne ensuite les ids n8n dans le même objet, sans écraser ces clés.
+  extraConfig?: Record<string, unknown>
   // "ui" (défaut) = déclenché par un clic utilisateur · "cron" = déclenché
   // par report-weekly-manager-cron (ADR-0010 Lot 4) — /api/n8n/callback lit
   // cette valeur pour décider de créer ou non une notification in-app (un
@@ -55,8 +65,10 @@ export async function createRun(opts: CreateRunOptions): Promise<string> {
       run_type: opts.runType ?? opts.workflowId,
       trigger_source: opts.triggerSource ?? "ui",
       status: "queued",
-      input_snapshot: opts.input as Json,
-      config: { workflowId: opts.workflowId } as Json,
+      input_snapshot: (opts.inputSnapshot ?? opts.input) as Json,
+      // `workflowId` est posé EN DERNIER : `extraConfig` ne peut donc jamais l'écraser.
+      // C'est cette clé que `RunDrillDownDialog` lit pour le lien « Ouvrir dans n8n ».
+      config: { ...(opts.extraConfig ?? {}), workflowId: opts.workflowId } as Json,
       owner_id: opts.userId,
       workspace_id: opts.workspaceId,
     })

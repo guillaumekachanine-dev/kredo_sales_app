@@ -18,6 +18,16 @@ export type TriggerN8nRunInput = {
   userId: string
   input: Record<string, unknown>
   triggerSource?: string
+  // ── ADR-0020 (missions d'intelligence) ──────────────────────────────────────
+  // `createRun` portait déjà `runType` (`run_type = runType ?? workflowId`) sans que
+  // rien ne le lui passe : les trois champs ci-dessous ne font que le traverser.
+  // Tous optionnels — le comportement des appelants existants est inchangé.
+  /** `mission:<slug>` pour une mission (M-3), sinon `run_type` retombe sur `workflowId`. */
+  runType?: string
+  /** Ce qui est persisté dans `input_snapshot` quand il doit différer de `input`. */
+  inputSnapshot?: Record<string, unknown>
+  /** Clés fusionnées dans `config`, à côté de `workflowId`. */
+  extraConfig?: Record<string, unknown>
 }
 
 export type TriggerN8nRunResult =

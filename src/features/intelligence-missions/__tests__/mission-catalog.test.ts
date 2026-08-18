@@ -9,6 +9,24 @@ describe("MISSION_CATALOG", () => {
     expect(typedCatalog).toHaveLength(1)
   })
 
+  it("ne declare jamais un corpus vide : base ou requiredAtLaunch est renseigne", () => {
+    for (const mission of MISSION_CATALOG) {
+      expect(
+        mission.corpus.base.length + mission.corpus.requiredAtLaunch.length,
+      ).toBeGreaterThan(0)
+    }
+  })
+
+  it("n'autorise un ajout utilisateur que s'il liste des kinds", () => {
+    for (const mission of MISSION_CATALOG) {
+      if (mission.corpus.userAddition.allowed) {
+        expect(mission.corpus.userAddition.kinds.length).toBeGreaterThan(0)
+      } else {
+        expect(mission.corpus.userAddition.kinds).toHaveLength(0)
+      }
+    }
+  })
+
   it("contient des slugs uniques", () => {
     const slugs = MISSION_CATALOG.map((mission) => mission.slug)
 
@@ -38,6 +56,10 @@ describe("MISSION_CATALOG", () => {
     expect(preset.model.provider).toBe("anthropic")
     expect(preset.model.model.trim()).not.toBe("")
     expect(preset.model.maxOutputTokens).toBeGreaterThan(0)
+
+    expect(preset.corpus.requiredAtLaunch.length + preset.corpus.base.length).toBeGreaterThan(
+      0,
+    )
 
     expect(preset).not.toHaveProperty("resultType")
     expect(preset).not.toHaveProperty("outputSchema")

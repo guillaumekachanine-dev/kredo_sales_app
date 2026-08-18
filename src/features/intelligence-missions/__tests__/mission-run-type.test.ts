@@ -11,6 +11,9 @@ describe("mission run_type", () => {
   it("reconnait uniquement le prefixe mission:", () => {
     expect(isMissionRunType("mission:veille-analyse-mensuelle")).toBe(true)
     expect(isMissionRunType("mission:")).toBe(true)
+    // Le prefixe seul suffit au callback (M-7) : tout run_type mission:* est aiguille
+    // vers mission_report, y compris un slug vide. Aucun run_type existant ne le porte.
+    expect(isMissionRunType("intel-021-monthly-watch-analysis")).toBe(false)
     expect(isMissionRunType("intel-021-monthly-watch-analysis")).toBe(false)
     expect(isMissionRunType("Mission:veille-analyse-mensuelle")).toBe(false)
     expect(isMissionRunType(null)).toBe(false)
