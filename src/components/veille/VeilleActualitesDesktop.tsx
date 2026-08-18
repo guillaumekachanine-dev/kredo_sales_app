@@ -28,6 +28,7 @@ import {
   CreateCommercialWindowDialog,
   QualifySignalDialog,
 } from "./SignalDialogs"
+import { VeilleConvergencesRail } from "./VeilleConvergencesRail"
 import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
 import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
@@ -162,58 +163,6 @@ function EditorialArticle({ article, headingRef, isMain }: { article: VeilleArti
   )
 }
 
-function ArticleRail({
-  company,
-  watched,
-  onPitch,
-  onNote,
-  onQualify,
-  onAddToList,
-  onOpportunity,
-}: {
-  company: CompanyContextStats | null
-  watched: boolean
-  onPitch: () => void
-  onNote: () => void
-  onQualify: () => void
-  onAddToList: () => void
-  onOpportunity: () => void
-}) {
-  const actions = [
-    { label: "Qualifier le signal", icon: "prioritize" as const, onClick: onQualify },
-    { label: "Ajouter à la liste", icon: "report" as const, onClick: onAddToList },
-    { label: "Créer une fenêtre commerciale", icon: "detect_risks" as const, onClick: onOpportunity },
-    { label: "Créer une note compte", icon: "write_email" as const, onClick: onNote },
-  ]
-  return (
-    <aside className="border border-border bg-edito-canvas/55">
-      <section className="p-4">
-        <SectionHeading>Actions recommandées</SectionHeading>
-        <div className="mt-3 space-y-2">
-          <Button variant="brass" size="sm" fullWidth onClick={onPitch} leftIcon={<IntelligenceIcon name="generate_pitch" preferVector />} className="justify-between">
-            Générer un pitch / mail
-          </Button>
-          {actions.map((action) => (
-            <Button key={action.label} variant="secondary" size="sm" fullWidth onClick={action.onClick} leftIcon={<IntelligenceIcon name={action.icon} preferVector />} className="justify-start">
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      </section>
-      <section className="border-t border-border p-4">
-        <SectionHeading>Contexte mobilisable</SectionHeading>
-        <dl className="mt-3 divide-y divide-border text-[11px]">
-          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Fiche compte</dt><dd className={cn("font-bold", company ? "text-success" : "text-danger")}>{company ? company.name : "Non détecté"}</dd></div>
-          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Interactions</dt><dd className="font-bold text-heading">{company?.interactionsCount ?? "—"}</dd></div>
-          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Contacts clés</dt><dd className="font-bold text-heading">{company?.contactsCount ?? "—"}</dd></div>
-          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Analyses liées</dt><dd className="font-bold text-heading">{company?.docsCount ?? "—"}</dd></div>
-          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Statut de veille</dt><dd className="font-bold text-heading">{company ? (watched ? "Surveillé" : "Non surveillé") : "—"}</dd></div>
-        </dl>
-        {company ? <Link href={`/prospection/accounts?drawer=${company.id}`} className="mt-3 block border border-border bg-surface px-3 py-2 text-center text-[11px] font-bold text-primary hover:bg-surface-hover">Voir le compte</Link> : null}
-      </section>
-    </aside>
-  )
-}
 
 function VerticalArticleRail({
   digestNumber,
@@ -1443,7 +1392,8 @@ export function VeilleActualitesDesktop({
           ? (
               <div className="grid grid-cols-[minmax(0,1fr)_16rem] items-start gap-4">
                 <EditorialArticle article={selectedArticle} headingRef={headingRef} isMain={selectedArticle.selection_rank === 1} />
-                <ArticleRail
+                <VeilleConvergencesRail
+                  article={selectedArticle}
                   company={matchedCompany}
                   watched={watched}
                   onPitch={pitch}

@@ -88,6 +88,7 @@ describe("veille Desktop contracts", () => {
 
 describe("veille Desktop UI source contract", () => {
   const desktop = readFileSync(resolve(root, "src/components/veille/VeilleActualitesDesktop.tsx"), "utf8")
+  const rail = readFileSync(resolve(root, "src/components/veille/VeilleConvergencesRail.tsx"), "utf8")
   const header = readFileSync(resolve(root, "src/components/veille/VeilleHeaderActions.tsx"), "utf8")
   const navigation = readFileSync(resolve(root, "src/components/veille/VeilleLocalNavigation.tsx"), "utf8")
   const distributor = readFileSync(resolve(root, "src/components/veille/VeilleActualitesPage.tsx"), "utf8")
@@ -109,9 +110,9 @@ describe("veille Desktop UI source contract", () => {
     expect(header).toContain("<GlobalWatchSettingsDialog")
     expect(desktop).toContain("setSelectedArticle(article)")
     expect(desktop).toContain("headingRef.current?.focus()")
-    expect(desktop).toContain("<ArticleRail")
+    expect(desktop).toContain("<VeilleConvergencesRail")
     expect(desktop).toContain("VerticalArticleRail")
-    expect(desktop).toContain("Non détecté")
+    expect(rail).toContain("Non détecté")
   })
 
   it("keeps the server-side Mobile branch separate", () => {
