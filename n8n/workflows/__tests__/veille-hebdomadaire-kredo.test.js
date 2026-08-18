@@ -1541,6 +1541,58 @@ check(
   })(),
 )
 
+// --- Lot 6 — Instrumentation métriques d'efficacité ---
+const PREPARER_METRIQUES = "Préparer Métriques Sources"
+check("lot6 — nœud 'Préparer Métriques Sources' existe dans le workflow", Boolean(nodes[PREPARER_METRIQUES]))
+
+const metricsResult = runCodeNode(PREPARER_METRIQUES, {
+  input: [{}],
+  registry: {
+    "Charger Sources Effectives (Supabase)": [
+      { source_id: "src-prod-1", corpus_id: "corp-1" },
+      { source_id: "src-improd-2", corpus_id: "corp-1" },
+      { source_id: "src-err-3", corpus_id: null },
+    ],
+    "Enrichir avec Métadonnées Source": [
+      { sourceId: "src-prod-1", title: "Article 1" },
+      { sourceId: "src-prod-1", title: "Article 2" },
+      { sourceId: "src-improd-2", title: "Article 3" },
+    ],
+    "Ignorer Source En Erreur": [
+      { sourceId: "src-err-3", error: true },
+    ],
+    "Dédup + Filtre Récence + Préfiltre Qualité": [
+      { sourceId: "src-prod-1", title: "Article 1" },
+      { sourceId: "src-improd-2", title: "Article 3" },
+    ],
+    "Préparer Lignes Articles": [
+      { source_catalog_id: "src-prod-1", title: "Article 1" },
+    ],
+  },
+}).map((i) => i.json)
+
+check("lot6 — métriques : produit 3 lignes de métriques (1 par source)", metricsResult.length === 3)
+
+const metricsBySrc = new Map(metricsResult.map((m) => [m.source_catalog_id, m]))
+
+const mProd = metricsBySrc.get("src-prod-1")
+check(
+  "lot6 — Cas A (source productive) : query_succeeded=true, items_collected=2, items_after_dedup=1, items_retained=1",
+  Boolean(mProd && mProd.query_succeeded === true && mProd.items_collected === 2 && mProd.items_after_dedup === 1 && mProd.items_retained === 1),
+)
+
+const mImprod = metricsBySrc.get("src-improd-2")
+check(
+  "lot6 — Cas B (source improductive - CRITIQUE) : query_succeeded=true, items_collected=1, items_retained=0",
+  Boolean(mImprod && mImprod.query_succeeded === true && mImprod.items_collected === 1 && mImprod.items_retained === 0),
+)
+
+const mErr = metricsBySrc.get("src-err-3")
+check(
+  "lot6 — Cas C (source en erreur) : query_succeeded=false, items_collected=0, items_retained=0",
+  Boolean(mErr && mErr.query_succeeded === false && mErr.items_collected === 0 && mErr.items_retained === 0),
+)
+
 console.log(`\n${passed} ok · ${failed} échec(s)`)
 process.exit(failed === 0 ? 0 : 1)
 

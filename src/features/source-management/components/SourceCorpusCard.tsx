@@ -39,6 +39,15 @@ function ItemRow({ item }: { item: SourceCorpusItemView }) {
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-muted">
           <Badge variant="neutral" size="sm">{item.pack}</Badge>
           {item.tier ? <Badge variant="neutral" size="sm">{item.tier}</Badge> : null}
+          {item.source?.effectiveness && item.source.effectiveness.effectivenessScore !== null ? (
+            <Badge variant="success" size="sm">
+              {item.source.effectiveness.effectivenessScore}/100 ({item.source.effectiveness.observations} runs)
+            </Badge>
+          ) : (
+            <Badge variant="neutral" size="sm">
+              À observer ({item.source?.effectiveness?.observations ?? 0}/3 runs)
+            </Badge>
+          )}
           {typeof item.utilityScore === "number" ? <span>Score {item.utilityScore}</span> : null}
           {item.automationFit ? <span className="capitalize">{item.automationFit.replace("_", " ")}</span> : null}
           {!item.isCollectable ? <Badge variant="neutral" size="sm">Hors veille récurrente</Badge> : null}
@@ -110,6 +119,9 @@ export function SourceCorpusCard({ corpus, variant }: SourceCorpusCardProps) {
           </p>
           <p className="mt-1 text-[11px] text-body">
             {corpus.activeSources}/{corpus.totalSources} sources actives · {corpus.collectableSources} collectables · {corpus.accountsFed} comptes alimentés
+          </p>
+          <p className="mt-0.5 text-[11px] font-medium text-brand-brass">
+            Efficacité observée : {corpus.averageEffectivenessScore != null ? `${corpus.averageEffectivenessScore}/100` : "À observer"} ({corpus.evaluatedSourcesCount} / {corpus.totalSources} sources évaluées)
           </p>
         </div>
         <svg className="mt-1 size-4 shrink-0 text-muted transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" aria-hidden="true">

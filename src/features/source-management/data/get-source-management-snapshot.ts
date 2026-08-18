@@ -12,6 +12,7 @@ import {
   type SourceCatalogEntry,
   type SourceCorpusItemView,
   type SourceCorpusView,
+  type SourceEffectivenessMetrics,
   type SourceManagementSnapshot,
 } from "../domain/source-management-contracts"
 
@@ -60,7 +61,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
   const workspace = await resolveWorkspace(supabase)
   if (!workspace) return EMPTY_SOURCE_MANAGEMENT_SNAPSHOT
 
-  const [sourcesResult, corporaResult] = await Promise.all([
+  const [sourcesResult, corporaResult, effectivenessResult] = await Promise.all([
     supabase.from("source_catalog").select("*").order("name", { ascending: true }),
     supabase
       .from("source_corpora")
@@ -68,6 +69,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
       .in("scope_kind", ["sector", "system"])
       .eq("is_current", true)
       .order("snapshot_date", { ascending: false }),
+    supabase.from("v_source_effectiveness_30d").select("*"),
   ])
 
   if (sourcesResult.error) {
@@ -76,10 +78,37 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
   if (corporaResult.error) {
     console.error("[source-management] chargement source_corpora:", corporaResult.error.message)
   }
+  if (effectivenessResult.error) {
+    console.error("[source-management] chargement v_source_effectiveness_30d:", effectivenessResult.error.message)
+  }
+
+  type EffectivenessRow = Database["public"]["Views"]["v_source_effectiveness_30d"]["Row"]
+  const effectivenessBySourceId = new Map<string, SourceEffectivenessMetrics>()
+  for (const row of (effectivenessResult.data ?? []) as EffectivenessRow[]) {
+    if (!row.source_catalog_id) continue
+    effectivenessBySourceId.set(row.source_catalog_id, {
+      observations: row.observations ?? 0,
+      successfulObservations: row.successful_observations ?? 0,
+      productiveObservations: row.productive_observations ?? 0,
+      itemsCollected: row.items_collected ?? 0,
+      itemsAfterDedup: row.items_after_dedup ?? 0,
+      itemsRetained: row.items_retained ?? 0,
+      reliabilityRate: Number(row.reliability_rate ?? 0),
+      productiveRunRate: Number(row.productive_run_rate ?? 0),
+      retentionRate: Number(row.retention_rate ?? 0),
+      effectivenessScore: row.effectiveness_score != null ? Number(row.effectiveness_score) : null,
+    })
+  }
 
   const sourceRows = sourcesResult.data ?? []
   const corpusRows: SourceCorporaRow[] = corporaResult.data ?? []
-  const sourcesById = new Map(sourceRows.map((row) => [row.id, mapSource(row)]))
+  const sourcesById = new Map(
+    sourceRows.map((row) => {
+      const source = mapSource(row)
+      source.effectiveness = effectivenessBySourceId.get(row.id) ?? null
+      return [row.id, source]
+    }),
+  )
 
   const corpusIds = corpusRows.map((row) => row.id)
   const sectorIds = Array.from(new Set(corpusRows.map((row) => row.sector_id).filter((id): id is string => Boolean(id))))
@@ -140,6 +169,20 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
       }
     })
 
+    const evaluatedItems = items.filter(
+      (item) => item.source?.effectiveness?.effectivenessScore != null,
+    )
+    const evaluatedSourcesCount = evaluatedItems.length
+    const averageEffectivenessScore =
+      evaluatedSourcesCount > 0
+        ? Math.round(
+            evaluatedItems.reduce(
+              (acc, item) => acc + (item.source?.effectiveness?.effectivenessScore ?? 0),
+              0,
+            ) / evaluatedSourcesCount,
+          )
+        : null
+
     return {
       id: corpus.id,
       slug: corpus.slug,
@@ -155,12 +198,20 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
       collectableSources: items.filter((item) => item.isCollectable).length,
       activeSources: items.filter((item) => item.isEnabled).length,
       accountsFed: accountsFedByCorpus.get(corpus.id)?.size ?? 0,
+      evaluatedSourcesCount,
+      averageEffectivenessScore,
       items,
     }
   })
 
-  const systemSources = sourceRows.filter((row) => row.origin === "system").map(mapSource)
-  const manualSources = sourceRows.filter((row) => row.origin === "manual").map(mapSource)
+  const systemSources = sourceRows.map(mapSource).filter((s) => s.origin === "system").map((s) => {
+    s.effectiveness = effectivenessBySourceId.get(s.id) ?? null
+    return s
+  })
+  const manualSources = sourceRows.map(mapSource).filter((s) => s.origin === "manual").map((s) => {
+    s.effectiveness = effectivenessBySourceId.get(s.id) ?? null
+    return s
+  })
   const activeNewsSourceCount = sourceRows.filter(
     (row) => row.is_active && (row.usage_scopes ?? []).includes("news"),
   ).length

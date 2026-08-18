@@ -37,6 +37,19 @@ export function isKredoSourceCategory(value: string | null): value is KredoSourc
   return value !== null && (KREDO_SOURCE_CATEGORY_ORDER as string[]).includes(value)
 }
 
+export type SourceEffectivenessMetrics = {
+  observations: number
+  successfulObservations: number
+  productiveObservations: number
+  itemsCollected: number
+  itemsAfterDedup: number
+  itemsRetained: number
+  reliabilityRate: number
+  productiveRunRate: number
+  retentionRate: number
+  effectivenessScore: number | null
+}
+
 export type SourceCatalogEntry = {
   id: string
   sourceKey: string
@@ -57,6 +70,7 @@ export type SourceCatalogEntry = {
   isLocked: boolean
   lastVerifiedAt: string | null
   lastError: string | null
+  effectiveness?: SourceEffectivenessMetrics | null
 }
 
 export type CorpusQualityVerdict = "production_ready" | "usable_with_caveats" | "rejected"
@@ -102,6 +116,8 @@ export type SourceCorpusView = {
   collectableSources: number
   activeSources: number
   accountsFed: number
+  evaluatedSourcesCount: number
+  averageEffectivenessScore: number | null
   items: SourceCorpusItemView[]
 }
 

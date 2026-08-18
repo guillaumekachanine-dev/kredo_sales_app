@@ -6561,6 +6561,83 @@ export type Database = {
           },
         ]
       }
+      source_collection_metrics: {
+        Row: {
+          company_id: string | null
+          corpus_id: string | null
+          created_at: string
+          id: string
+          items_after_dedup: number
+          items_collected: number
+          items_retained: number
+          query_succeeded: boolean
+          source_catalog_id: string
+          usage_scope: string
+          workflow_id: string
+          workflow_run_key: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          corpus_id?: string | null
+          created_at?: string
+          id?: string
+          items_after_dedup?: number
+          items_collected?: number
+          items_retained?: number
+          query_succeeded?: boolean
+          source_catalog_id: string
+          usage_scope: string
+          workflow_id: string
+          workflow_run_key: string
+          workspace_id?: string
+        }
+        Update: {
+          company_id?: string | null
+          corpus_id?: string | null
+          created_at?: string
+          id?: string
+          items_after_dedup?: number
+          items_collected?: number
+          items_retained?: number
+          query_succeeded?: boolean
+          source_catalog_id?: string
+          usage_scope?: string
+          workflow_id?: string
+          workflow_run_key?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_collection_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "source_corpora"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "source_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       source_corpora: {
         Row: {
           activation_state: Database["public"]["Enums"]["corpus_activation_state"]
@@ -7342,6 +7419,38 @@ export type Database = {
       }
     }
     Views: {
+      v_source_effectiveness_30d: {
+        Row: {
+          effectiveness_score: number | null
+          items_after_dedup: number | null
+          items_collected: number | null
+          items_retained: number | null
+          observations: number | null
+          productive_observations: number | null
+          productive_run_rate: number | null
+          reliability_rate: number | null
+          retention_rate: number | null
+          source_catalog_id: string | null
+          successful_observations: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_collection_metrics_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "source_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_score_current: {
         Row: {
           calculated_at: string | null

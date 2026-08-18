@@ -559,6 +559,69 @@
     },
     {
       "parameters": {
+        "jsCode": "// Instrumentation Lot 6 — calcul des métriques de collecte par source pour la veille hebdo.\nconst loadedSources = $('Charger Sources Effectives (Supabase)').all().map((i) => i.json).filter((s) => s && s.source_id);\nconst enrichedItems = $('Enrichir avec Métadonnées Source').all().map((i) => i.json).filter((it) => it && it.sourceId);\nconst errorItems = $('Ignorer Source En Erreur').all().map((i) => i.json).filter((it) => it && it.sourceId && it.error);\nconst dedupCandidateItems = $('Dédup + Filtre Récence + Préfiltre Qualité').all().map((i) => i.json).filter((it) => it && (it.sourceId || it.source_id));\nconst retainedArticles = $('Préparer Lignes Articles').all().map((i) => i.json).filter((a) => a && (a.source_catalog_id || a.sourceId));\n\nconst runKey = typeof $execution !== 'undefined' && $execution && $execution.id ? $execution.id : ('run-' + Date.now());\n\nconst failedSourceIds = new Set(errorItems.map((it) => it.sourceId));\n\nconst collectedBySource = new Map();\nfor (const it of enrichedItems) {\n  if (it.placeholder) continue;\n  const sId = it.sourceId;\n  collectedBySource.set(sId, (collectedBySource.get(sId) || 0) + 1);\n}\n\nconst dedupBySource = new Map();\nfor (const it of dedupCandidateItems) {\n  const sId = it.sourceId || it.source_id;\n  if (!sId) continue;\n  dedupBySource.set(sId, (dedupBySource.get(sId) || 0) + 1);\n}\n\nconst retainedBySource = new Map();\nfor (const a of retainedArticles) {\n  const sId = a.source_catalog_id || a.sourceId;\n  if (!sId) continue;\n  retainedBySource.set(sId, (retainedBySource.get(sId) || 0) + 1);\n}\n\nconst metrics = loadedSources.map((s) => {\n  const sourceCatalogId = s.source_id;\n  const corpusId = s.corpus_id || null;\n  const isError = failedSourceIds.has(sourceCatalogId);\n  const querySucceeded = !isError;\n  const itemsCollected = querySucceeded ? (collectedBySource.get(sourceCatalogId) || 0) : 0;\n  const itemsAfterDedup = dedupBySource.get(sourceCatalogId) || 0;\n  const itemsRetained = retainedBySource.get(sourceCatalogId) || 0;\n\n  return {\n    source_catalog_id: sourceCatalogId,\n    corpus_id: corpusId,\n    workflow_id: 'veille-hebdomadaire-kredo',\n    workflow_run_key: runKey,\n    usage_scope: 'news',\n    company_id: null,\n    query_succeeded: querySucceeded,\n    items_collected: itemsCollected,\n    items_after_dedup: itemsAfterDedup,\n    items_retained: itemsRetained,\n  };\n});\n\nif (metrics.length === 0) {\n  return [];\n}\n\nreturn metrics.map((m) => ({ json: m }));"
+      },
+      "id": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+      "name": "Préparer Métriques Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8616,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/source_collection_metrics",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "workflow_id,workflow_run_key,source_catalog_id,usage_scope"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "f7a8b9c0-d1e2-4f3a-9b4c-5d6e7f8a9b0c",
+      "name": "Écrire Métriques Sources",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8856,
+        1328
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
         "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/companies",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
@@ -1267,6 +1330,28 @@
         [
           {
             "node": "Pré-filtrage Déterministe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remplacer Articles Digest (RPC)": {
+      "main": [
+        [
+          {
+            "node": "Préparer Métriques Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer Métriques Sources": {
+      "main": [
+        [
+          {
+            "node": "Écrire Métriques Sources",
             "type": "main",
             "index": 0
           }

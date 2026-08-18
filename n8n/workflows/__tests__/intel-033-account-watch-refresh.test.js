@@ -641,6 +641,49 @@ async function main() {
     workflow.connections["Normalize & Dedup Items"].main[0][0].node === "Filter Administrative Static Items",
   )
 
+  // -------------------------------------------------------------------------------------------
+  // 18. Lot 6 — Métriques d'efficacité pour INTEL-033
+  // -------------------------------------------------------------------------------------------
+  check("lot6 — nœud 'Préparer Métriques Sources' existe dans INTEL-033", Boolean(nodes["Préparer Métriques Sources"]))
+  check("lot6 — nœud 'Écrire Métriques Sources' existe dans INTEL-033", Boolean(nodes["Écrire Métriques Sources"]))
+
+  {
+    const reg = {
+      "Shape Sector Sources": [
+        { sourceCatalogId: "src-sec-1", corpusId: "corp-sec-1" },
+        { sourceCatalogId: "src-sec-2", corpusId: "corp-sec-1" },
+      ],
+      "Shape Sector Corpus Item": [
+        { sourceCatalogId: "src-sec-1", title: "Item A" },
+        { sourceCatalogId: "src-sec-1", title: "Item B" },
+      ],
+      "Ignore Sector Corpus Source Error": [
+        { sourceCatalogId: "src-sec-2", error: true },
+      ],
+      "Filter Administrative Static Items": [
+        { sourceCatalogId: "src-sec-1", title: "Item A" },
+      ],
+      "Map Signals to Sources": [
+        { primary_source_id: "src-sec-1", title: "Signal 1" },
+      ],
+      "Validate Payload": { companyId: "comp-123", runId: "run-abc" },
+    }
+
+    const metricsOut = await runCodeNode("Préparer Métriques Sources", reg, {})
+    const rows = metricsOut.items.map((i) => i.json)
+    check("lot6 INTEL-033 — métriques : 2 lignes produites", Array.isArray(rows) && rows.length === 2)
+    const m1 = rows.find((r) => r.source_catalog_id === "src-sec-1")
+    check(
+      "lot6 INTEL-033 — src-sec-1 : query_succeeded=true, items_collected=2, items_after_dedup=1, items_retained=1",
+      Boolean(m1 && m1.query_succeeded === true && m1.items_collected === 2 && m1.items_after_dedup === 1 && m1.items_retained === 1),
+    )
+    const m2 = rows.find((r) => r.source_catalog_id === "src-sec-2")
+    check(
+      "lot6 INTEL-033 — src-sec-2 (erreur) : query_succeeded=false, items_collected=0, items_retained=0",
+      Boolean(m2 && m2.query_succeeded === false && m2.items_collected === 0 && m2.items_retained === 0),
+    )
+  }
+
   console.log(`\n${passed} ok, ${failed} failed`)
   if (failed > 0) process.exit(1)
 }

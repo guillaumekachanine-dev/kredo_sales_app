@@ -124,6 +124,7 @@ export function SourceBaseList({ sources, variant, onEdit }: SourceBaseListProps
               <th className="py-2 pr-3 font-semibold">Collecte</th>
               <th className="py-2 pr-3 font-semibold">État</th>
               <th className="py-2 pr-3 font-semibold">Origine</th>
+              <th className="py-2 pr-3 font-semibold">Efficacité</th>
               <th className="py-2 pr-3 font-semibold text-right">Actions</th>
             </tr>
           </thead>
@@ -131,7 +132,7 @@ export function SourceBaseList({ sources, variant, onEdit }: SourceBaseListProps
             {groups.map((group) => (
               <Fragment key={group.key}>
                 <tr className="bg-canvas">
-                  <td colSpan={6} className="py-1.5 px-1 text-[11px] font-bold uppercase tracking-[0.06em] text-heading">
+                  <td colSpan={7} className="py-1.5 px-1 text-[11px] font-bold uppercase tracking-[0.06em] text-heading">
                     {group.label}
                   </td>
                 </tr>
@@ -145,6 +146,11 @@ export function SourceBaseList({ sources, variant, onEdit }: SourceBaseListProps
                     <td className="py-2 pr-3"><CollectionModeBadge source={source} /></td>
                     <td className="py-2 pr-3"><ValidationBadge source={source} /></td>
                     <td className="py-2 pr-3 capitalize text-body">{source.origin}</td>
+                    <td className="py-2 pr-3 text-body font-mono text-xs">
+                      {source.effectiveness && source.effectiveness.effectivenessScore !== null
+                        ? `${source.effectiveness.effectivenessScore}/100`
+                        : "À observer"}
+                    </td>
                     <td className="py-2 pr-3">
                       <div className="flex justify-end">
                         <RowActions source={source} onEdit={onEdit} variant="table" />
@@ -171,7 +177,11 @@ export function SourceBaseList({ sources, variant, onEdit }: SourceBaseListProps
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-heading">{source.name}</p>
-                    <p className="truncate text-[11px] text-muted">{source.family ?? "Famille non renseignée"}</p>
+                    <p className="truncate text-[11px] text-muted">
+                      {source.effectiveness && source.effectiveness.effectivenessScore !== null
+                        ? `${source.effectiveness.effectivenessScore}/100 · ${source.effectiveness.observations} runs`
+                        : `À observer · ${source.effectiveness?.observations ?? 0}/3 runs`}
+                    </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <ValidationBadge source={source} />

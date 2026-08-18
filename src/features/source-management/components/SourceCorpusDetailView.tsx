@@ -85,11 +85,25 @@ function CorpusItemRow({ item }: { item: SourceCorpusItemView }) {
         </span>
       </div>
 
-      {/* 3. Note (Reserved Slot) */}
-      <div className="w-8 shrink-0 text-center">
-        <span className="text-xs text-white/35 font-mono">
-          {typeof item.utilityScore === "number" ? item.utilityScore : "—"}
-        </span>
+      {/* 3. Efficacité */}
+      <div className="min-w-0 w-32 shrink-0 text-right">
+        {item.source?.effectiveness && item.source.effectiveness.effectivenessScore !== null ? (
+          <div>
+            <p className="font-bold text-xs text-brand-brass font-mono">
+              {item.source.effectiveness.effectivenessScore}/100
+            </p>
+            <p className="text-[10px] text-white/50 truncate">
+              {item.source.effectiveness.observations} runs · {item.source.effectiveness.productiveObservations} productifs
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs font-medium text-white/60">À observer</p>
+            <p className="text-[10px] text-white/40 truncate">
+              {item.source?.effectiveness?.observations ?? 0}/3 runs
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 4. Switch */}
@@ -154,6 +168,9 @@ export function SourceCorpusDetailView({ corpus }: SourceCorpusDetailViewProps) 
           </h3>
           <p className="mt-0.5 text-[11px] text-white/50">
             {totalSourcesCount} sources · {activeSourcesCount} actives · v{corpus?.version ?? "1.0"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-brand-brass font-medium">
+            Efficacité observée : {corpus?.averageEffectivenessScore != null ? `${corpus.averageEffectivenessScore}/100` : "À observer"} ({corpus?.evaluatedSourcesCount ?? 0} / {totalSourcesCount} sources évaluées)
           </p>
         </div>
 

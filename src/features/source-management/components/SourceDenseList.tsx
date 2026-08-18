@@ -171,9 +171,25 @@ function SourceRow({
         </span>
       </div>
 
-      {/* 3. Note (Reserved Slot) */}
-      <div className="w-8 shrink-0 text-center">
-        <span className="text-xs text-white/35 font-mono">—</span>
+      {/* 3. Efficacité */}
+      <div className="min-w-0 w-32 shrink-0 text-right">
+        {source.effectiveness && source.effectiveness.effectivenessScore !== null ? (
+          <div>
+            <p className="font-bold text-xs text-brand-brass font-mono">
+              {source.effectiveness.effectivenessScore}/100
+            </p>
+            <p className="text-[10px] text-white/50 truncate">
+              {source.effectiveness.observations} runs · {source.effectiveness.productiveObservations} productifs
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs font-medium text-white/60">À observer</p>
+            <p className="text-[10px] text-white/40 truncate">
+              {source.effectiveness?.observations ?? 0}/3 runs
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 4. Switch & Action Discrete */}
