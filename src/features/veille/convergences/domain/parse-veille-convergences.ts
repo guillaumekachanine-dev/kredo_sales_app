@@ -8,6 +8,7 @@ import {
   type VeilleConvergencePlaybookSuggestion,
   type VeilleConvergenceRecommendedAction,
   type VeilleConvergenceRelatedAccount,
+  type VeilleConvergenceRelatedOpportunity,
 } from "./veille-convergences-contracts"
 
 function isObject(val: unknown): val is Record<string, unknown> {
@@ -30,7 +31,10 @@ function parseEvidenceType(val: unknown): VeilleConvergenceEvidenceType | null {
     val === "article" ||
     val === "account_issue" ||
     val === "company" ||
-    val === "sector_playbook"
+    val === "sector_playbook" ||
+    val === "account_signal" ||
+    val === "account_fact" ||
+    val === "opportunity"
   ) {
     return val
   }
@@ -105,6 +109,37 @@ function parseRelatedAccounts(val: unknown): VeilleConvergenceRelatedAccount[] {
   return accounts
 }
 
+function parseRelatedOpportunities(
+  val: unknown,
+): VeilleConvergenceRelatedOpportunity[] {
+  if (!Array.isArray(val)) return []
+  const opportunities: VeilleConvergenceRelatedOpportunity[] = []
+
+  for (const item of val) {
+    if (!isObject(item)) continue
+    const opportunityId = parseString(item.opportunityId)
+    const companyId = parseString(item.companyId)
+    const companyName = parseString(item.companyName)
+    const opportunityTitle = parseString(item.opportunityTitle)
+    const stage = parseString(item.stage)
+    const rationale = parseString(item.rationale)
+
+    if (opportunityId && companyId && companyName) {
+      opportunities.push({
+        opportunityId,
+        companyId,
+        companyName,
+        opportunityTitle,
+        stage,
+        rationale,
+      })
+    }
+    if (opportunities.length >= VEILLE_CONVERGENCES_BOUNDS.MAX_RELATED_OPPORTUNITIES) break
+  }
+
+  return opportunities
+}
+
 function parsePlaybookSuggestion(
   val: unknown,
 ): VeilleConvergencePlaybookSuggestion | null {
@@ -163,10 +198,10 @@ export function validateVeilleArticleConvergences(
     return { success: false, error: "Format convergences invalide (doit être un objet)" }
   }
 
-  if (input.schemaVersion !== 1) {
+  if (input.schemaVersion !== 1 && input.schemaVersion !== 2) {
     return {
       success: false,
-      error: `Version de schéma non supportée : ${String(input.schemaVersion)} (version 1 requise)`,
+      error: `Version de schéma non supportée : ${String(input.schemaVersion)} (version 1 ou 2 requise)`,
     }
   }
 
@@ -176,11 +211,12 @@ export function validateVeilleArticleConvergences(
   }
 
   const data: VeilleArticleConvergences = {
-    schemaVersion: 1,
+    schemaVersion: input.schemaVersion,
     synthesis,
     confidence: parseConfidence(input.confidence),
     matchedIssues: parseMatchedIssues(input.matchedIssues),
     relatedAccounts: parseRelatedAccounts(input.relatedAccounts),
+    relatedOpportunities: parseRelatedOpportunities(input.relatedOpportunities),
     playbookSuggestion: parsePlaybookSuggestion(input.playbookSuggestion),
     recommendedActions: parseRecommendedActions(input.recommendedActions),
     evidenceRefs: parseEvidenceRefs(input.evidenceRefs),

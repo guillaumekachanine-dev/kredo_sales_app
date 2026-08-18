@@ -26,6 +26,7 @@ describe("VeilleArticleConvergences - Contrat & Parseur (v1)", () => {
         rationale: "Compte aéronautique directement concerné.",
       },
     ],
+    relatedOpportunities: [],
     playbookSuggestion: {
       sectorId: "sector-aero",
       sectorName: "Aéronautique & Spatial",
@@ -79,8 +80,8 @@ describe("VeilleArticleConvergences - Contrat & Parseur (v1)", () => {
     }
   })
 
-  it("exige schemaVersion = 1 et rejette les autres versions", () => {
-    const invalidVersion = { ...sampleValid, schemaVersion: 2 }
+  it("accepte schemaVersion = 1 et rejette les versions inconnues (ex. 99)", () => {
+    const invalidVersion = { ...sampleValid, schemaVersion: 99 }
     const result = validateVeilleArticleConvergences(invalidVersion)
     expect(result.success).toBe(false)
     if (!result.success) {
@@ -164,5 +165,90 @@ describe("VeilleArticleConvergences - Contrat & Parseur (v1)", () => {
     const parsed = parseVeilleArticleConvergences(payloadInvalidEvidence)
     expect(parsed?.evidenceRefs).toHaveLength(1)
     expect(parsed?.evidenceRefs[0].type).toBe("article")
+  })
+
+  describe("schemaVersion 2 — signaux, faits, opportunités", () => {
+    const sampleV2: VeilleArticleConvergences = {
+      ...sampleValid,
+      schemaVersion: 2,
+      synthesis: "L'ouverture de l'EURECOM AI Center recoupe directement l'article sur la gouvernance IA.",
+      evidenceRefs: [
+        { type: "account_fact", id: "fact-strategic-priority-1", label: "EURECOM AI Center" },
+        { type: "account_signal", id: "signal-centre-ia-1", label: "Lancement Centre IA" },
+      ],
+      relatedOpportunities: [
+        {
+          opportunityId: "opp-1",
+          companyId: "comp-eurecom",
+          companyName: "EURECOM",
+          opportunityTitle: "Audit gouvernance IA",
+          stage: "qualification",
+          rationale: "Le centre IA en construction a besoin d'un cadrage gouvernance.",
+        },
+      ],
+    }
+
+    it("accepte schemaVersion 2 et parse relatedOpportunities", () => {
+      const result = validateVeilleArticleConvergences(sampleV2)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.schemaVersion).toBe(2)
+        expect(result.data.relatedOpportunities).toHaveLength(1)
+        expect(result.data.relatedOpportunities[0].opportunityId).toBe("opp-1")
+      }
+    })
+
+    it("accepte les nouveaux types evidenceRef (account_signal, account_fact, opportunity)", () => {
+      const parsed = parseVeilleArticleConvergences({
+        ...sampleV2,
+        evidenceRefs: [
+          { type: "account_fact", id: "f1", label: "Fait 1" },
+          { type: "account_signal", id: "s1", label: "Signal 1" },
+          { type: "opportunity", id: "o1", label: "Opp 1" },
+        ],
+      })
+      expect(parsed?.evidenceRefs).toHaveLength(3)
+      expect(parsed?.evidenceRefs.map((r) => r.type)).toEqual([
+        "account_fact",
+        "account_signal",
+        "opportunity",
+      ])
+    })
+
+    it("applique strictement la borne MAX_RELATED_OPPORTUNITIES = 3", () => {
+      const payloadOverBounds = {
+        ...sampleV2,
+        relatedOpportunities: Array.from({ length: 6 }, (_, idx) => ({
+          opportunityId: `opp-${idx}`,
+          companyId: "comp-eurecom",
+          companyName: "EURECOM",
+          opportunityTitle: `Opp ${idx}`,
+          stage: "qualification",
+          rationale: `R${idx}`,
+        })),
+      }
+
+      const parsed = parseVeilleArticleConvergences(payloadOverBounds)
+      expect(parsed?.relatedOpportunities).toHaveLength(3)
+    })
+
+    it("tolère l'absence de relatedOpportunities sur une ligne v1 historique (jamais backfillée)", () => {
+      const legacyV1 = { ...sampleValid }
+      const legacyV1AsRecord = legacyV1 as unknown as Record<string, unknown>
+      delete legacyV1AsRecord.relatedOpportunities
+
+      const parsed = parseVeilleArticleConvergences(legacyV1AsRecord)
+      expect(parsed).not.toBeNull()
+      expect(parsed?.relatedOpportunities).toEqual([])
+      expect(parsed?.schemaVersion).toBe(1)
+    })
+
+    it("rejette toujours une version de schéma inconnue (ex. 3)", () => {
+      const result = validateVeilleArticleConvergences({ ...sampleV2, schemaVersion: 3 })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toContain("Version de schéma non supportée")
+      }
+    })
   })
 })

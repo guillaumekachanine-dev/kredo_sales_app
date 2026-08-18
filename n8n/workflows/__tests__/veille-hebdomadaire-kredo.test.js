@@ -685,6 +685,35 @@ check(
   nodes["Charger Playbooks"]?.executeOnce === true,
 )
 
+check(
+  "lot3 — 'Charger Signaux Comptes', 'Charger Faits Comptes' et 'Charger Opportunités' existent avec executeOnce: true",
+  nodes["Charger Signaux Comptes"]?.executeOnce === true &&
+  nodes["Charger Faits Comptes"]?.executeOnce === true &&
+  nodes["Charger Opportunités"]?.executeOnce === true,
+)
+
+check(
+  "lot3 — Charger Signaux Comptes lit v_active_account_signals (respecte le filtre défensif archived/2 mois déjà en place)",
+  nodes["Charger Signaux Comptes"]?.parameters.url.includes("v_active_account_signals"),
+)
+
+check(
+  "lot3 — Charger Faits Comptes filtre target_type=eq.company et is_current=eq.true",
+  (() => {
+    const params = nodes["Charger Faits Comptes"]?.parameters.queryParameters.parameters || []
+    return params.some((p) => p.name === "target_type" && p.value === "eq.company") &&
+      params.some((p) => p.name === "is_current" && p.value === "eq.true")
+  })(),
+)
+
+check(
+  "lot3 — Charger Opportunités exclut perdu/abandonne (contexte commercial actif uniquement)",
+  (() => {
+    const params = nodes["Charger Opportunités"]?.parameters.queryParameters.parameters || []
+    return params.some((p) => p.name === "stage" && p.value === "not.in.(perdu,abandonne)")
+  })(),
+)
+
 // --- LOT 2.1 : Test de Régression Taxonomie Relationnelle (BFA / CEGEMA) ---
 const realTaxonomyPlaybooks = [
   {
@@ -747,7 +776,10 @@ const preFiltrageRealBfaOut = runCodeNode(PRE_FILTRAGE, {
     "Parser Top 5": [{ id: "art_rank3", secteurPrincipal: "Banque, Finance & Assurance", secteurSecondaire: "" }],
     "Charger Comptes": realTaxonomyComptes,
     "Charger Enjeux": realTaxonomyIssues,
-    "Charger Playbooks": realTaxonomyPlaybooks
+    "Charger Playbooks": realTaxonomyPlaybooks,
+    "Charger Signaux Comptes": [],
+    "Charger Faits Comptes": [],
+    "Charger Opportunités": []
   }
 }).map(i => i.json);
 
@@ -784,7 +816,9 @@ const issuesFixture = [
   { id: "issue_2", company_id: "comp_2", title: "Enjeu 2", problem_statement: "Prob 2" }
 ]
 const playbooksFixture = [
-  { macro_id: "sect_1", segment_id: "seg_1", macro_name: "Sect 1", segment_name: "Seg 1", playbook: {} }
+  // Playbook réellement utile (au moins une entrée non vide) : un squelette de seed
+  // ({} ou tableaux tous vides) est désormais exclu par `playbookIsUseful` (LOT 3).
+  { macro_id: "sect_1", segment_id: "seg_1", macro_name: "Sect 1", segment_name: "Seg 1", playbook: { personas: ["DSI"], objections: [], entry_points: [], roi_arguments: [] } }
 ]
 
 const preFiltrageOut = runCodeNode(PRE_FILTRAGE, {
@@ -792,7 +826,10 @@ const preFiltrageOut = runCodeNode(PRE_FILTRAGE, {
     "Parser Top 5": [{ id: "art_1", secteurPrincipal: "Sect 1", secteurSecondaire: "Seg 1" }],
     "Charger Comptes": companiesFixture,
     "Charger Enjeux": issuesFixture,
-    "Charger Playbooks": playbooksFixture
+    "Charger Playbooks": playbooksFixture,
+    "Charger Signaux Comptes": [],
+    "Charger Faits Comptes": [],
+    "Charger Opportunités": []
   }
 }).map(i => i.json)
 
@@ -1111,15 +1148,397 @@ check(
 )
 
 check(
-  "lot2.4 — chaînage séquentiel obligatoire: Charger Comptes -> Charger Enjeux -> Charger Playbooks -> Pré-filtrage Déterministe",
+  "lot2.4/lot3 — chaînage séquentiel obligatoire: Charger Comptes -> Enjeux -> Playbooks -> Signaux -> Faits -> Opportunités -> Pré-filtrage Déterministe",
   workflow.connections["Charger Comptes"]?.main?.[0]?.[0]?.node === "Charger Enjeux" &&
   workflow.connections["Charger Enjeux"]?.main?.[0]?.[0]?.node === "Charger Playbooks" &&
-  workflow.connections["Charger Playbooks"]?.main?.[0]?.[0]?.node === "Pré-filtrage Déterministe",
+  workflow.connections["Charger Playbooks"]?.main?.[0]?.[0]?.node === "Charger Signaux Comptes" &&
+  workflow.connections["Charger Signaux Comptes"]?.main?.[0]?.[0]?.node === "Charger Faits Comptes" &&
+  workflow.connections["Charger Faits Comptes"]?.main?.[0]?.[0]?.node === "Charger Opportunités" &&
+  workflow.connections["Charger Opportunités"]?.main?.[0]?.[0]?.node === "Pré-filtrage Déterministe",
 )
 
 check(
   "lot2.4 — sécurité de câblage: aucune connexion directe entre Router et Pré-filtrage Déterministe",
   !workflow.connections["Router Articles Sélectionnés"]?.main?.[1]?.some(c => c.node === "Pré-filtrage Déterministe"),
+)
+
+// --- LOT 3 : Convergences transverses (signaux, faits, opportunités) -------------
+//
+// Cas d'acceptation inspiré du run réel du 2026-08-18 : le secteur "Secteur public,
+// Enseignement supérieur & Recherche" contenait 10 comptes, 0 enjeu ouvert et des
+// playbooks squelettes (tableaux tous vides) — le moteur LOT 2 n'avait donc RIEN à
+// donner à Sonnet sur un article OpenAI / gouvernance IA, alors qu'EURECOM porte de
+// vrais faits et signaux sur exactement ce sujet (EURECOM AI Center, cybersécurité,
+// IA). Ce bloc reproduit ce cas à l'identique (10 comptes, 0 enjeu, playbooks vides)
+// pour prouver que le nouveau pré-filtrage trouve la matière AVANT tout appel LLM.
+
+const MACRO_PUBLIC_ID = "macro-public-esr-uuid"
+const SEG_ESR_ID = "seg-public-esr-uuid"
+const SEG_COLLECTIVITES_ID = "seg-public-collectivites-uuid"
+
+const secteurPublicPlaybooks = [
+  { macro_id: MACRO_PUBLIC_ID, macro_name: "Secteur public, Enseignement supérieur & Recherche", segment_id: SEG_ESR_ID, segment_name: "Enseignement supérieur & recherche", playbook: { personas: [], objections: [], entry_points: [], roi_arguments: [] } },
+  { macro_id: MACRO_PUBLIC_ID, macro_name: "Secteur public, Enseignement supérieur & Recherche", segment_id: SEG_COLLECTIVITES_ID, segment_name: "Collectivités & administrations d'État", playbook: { personas: [], objections: [], entry_points: [], roi_arguments: [] } },
+]
+
+// 10 comptes réels du secteur, EURECOM inclus — aucun enjeu ouvert sur aucun d'eux.
+const secteurPublicComptes = [
+  { id: "comp-eurecom", name: "EURECOM", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_ESR_ID, lifecycle_status: "client_actif" },
+  { id: "comp-casa", name: "CASA", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_COLLECTIVITES_ID, lifecycle_status: "client_actif" },
+  { id: "comp-cnrs-geoazur", name: "CNRS Geoazur", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_ESR_ID, lifecycle_status: "prospect" },
+  { id: "comp-cnrs-mer", name: "CNRS Institut de la mer", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_ESR_ID, lifecycle_status: "prospect" },
+  { id: "comp-cnrs-obs", name: "CNRS Observatoire Côte d'Azur", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_ESR_ID, lifecycle_status: "prospect" },
+  { id: "comp-polytech", name: "Polytech Nice Sophia", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_ESR_ID, lifecycle_status: "prospect" },
+  { id: "comp-prefecture", name: "Préfecture 06", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_COLLECTIVITES_ID, lifecycle_status: "prospect" },
+  { id: "comp-rectorat", name: "Rectorat de Nice", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_COLLECTIVITES_ID, lifecycle_status: "prospect" },
+  { id: "comp-skema", name: "Skema Business School", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_ESR_ID, lifecycle_status: "prospect" },
+  { id: "comp-unice", name: "Université Nice Côte d'Azur", sector_id: MACRO_PUBLIC_ID, segment_id: SEG_ESR_ID, lifecycle_status: "prospect" },
+]
+
+const ilYA10Jours = new Date(Date.now() - 10 * JOUR).toISOString()
+
+const secteurPublicSignaux = [
+  {
+    id: "signal-eurecom-centre-ia",
+    company_id: "comp-eurecom",
+    signal_category: "company_context",
+    signal_type: "product_launch",
+    title: "Lancement du Centre IA d'EURECOM en 2026 dans un nouveau campus partagé",
+    summary: "EURECOM ouvre un centre dédié à l'intelligence artificielle avec un calcul dédié.",
+    detected_at: ilYA10Jours,
+    global_score: 0.65,
+    relevance_score: 0.6,
+    recommended_action: "Proposer un audit de gouvernance IA",
+  },
+]
+
+const secteurPublicFaits = [
+  {
+    id: "fact-eurecom-strategic-priority",
+    target_id: "comp-eurecom",
+    fact_type: "strategic_priority",
+    value_text: "Ouverture d'un EURECOM AI Center avec un centre de calcul dédié à l'intelligence artificielle.",
+    confidence_score: 0.8,
+    effective_at: ilYA10Jours,
+  },
+  {
+    id: "fact-eurecom-transformation",
+    target_id: "comp-eurecom",
+    fact_type: "transformation_program",
+    value_text: "Mise en place d'un centre de calcul dédié à l'intelligence artificielle (EURECOM AI Center).",
+    confidence_score: 0.8,
+    effective_at: ilYA10Jours,
+  },
+  {
+    id: "fact-eurecom-technology",
+    target_id: "comp-eurecom",
+    fact_type: "technology",
+    value_text: "Recherche sur la sécurité de l'intelligence artificielle, détection de deepfakes, cybersécurité.",
+    confidence_score: 0.8,
+    effective_at: ilYA10Jours,
+  },
+  // Bruit : un fait réel mais sans aucun recoupement avec le sujet de l'article.
+  {
+    id: "fact-casa-market",
+    target_id: "comp-casa",
+    fact_type: "market_position",
+    value_text: "Collectivité locale gérant les services urbains de proximité.",
+    confidence_score: 0.7,
+    effective_at: ilYA10Jours,
+  },
+]
+
+const articleOpenAiGouvernanceIa = {
+  id: "art_openai_gouvernance_ia",
+  secteurPrincipal: "Secteur public, Enseignement supérieur & Recherche",
+  secteurSecondaire: "",
+  title: "OpenAI lance une initiative pour renforcer le contrôle démocratique de l'IA dans la sécurité nationale",
+  summary: "OpenAI annonce un programme de gouvernance de l'intelligence artificielle destiné aux administrations et aux centres de recherche, avec un focus sur la sécurité et le contrôle des usages sensibles.",
+}
+
+const preFiltrageEurecomOut = runCodeNode(PRE_FILTRAGE, {
+  registry: {
+    "Parser Top 5": [articleOpenAiGouvernanceIa],
+    "Charger Comptes": secteurPublicComptes,
+    "Charger Enjeux": [],
+    "Charger Playbooks": secteurPublicPlaybooks,
+    "Charger Signaux Comptes": secteurPublicSignaux,
+    "Charger Faits Comptes": secteurPublicFaits,
+    "Charger Opportunités": []
+  }
+}).map(i => i.json)
+
+const ctxEurecom = preFiltrageEurecomOut[0].convergenceContext
+const debugEurecom = preFiltrageEurecomOut[0].convergenceDebug
+
+check(
+  "lot3 — EURECOM (cas réel) : le compte est bien candidat malgré 10 comptes en lice pour 8 places",
+  ctxEurecom.candidateAccounts.some(c => c.id === "comp-eurecom") &&
+  ctxEurecom.candidateAccounts.length <= 8,
+  `${ctxEurecom.candidateAccounts.length} comptes retenus`,
+)
+
+check(
+  "lot3 — EURECOM (cas réel) : candidateSignalsCount >= 1 AVANT tout appel LLM",
+  debugEurecom.candidateSignalsCount >= 1,
+  `candidateSignalsCount=${debugEurecom.candidateSignalsCount}`,
+)
+
+check(
+  "lot3 — EURECOM (cas réel) : candidateFactsCount >= 2 AVANT tout appel LLM",
+  debugEurecom.candidateFactsCount >= 2,
+  `candidateFactsCount=${debugEurecom.candidateFactsCount}`,
+)
+
+check(
+  "lot3 — EURECOM (cas réel) : ressort en tête du ranking (topAccounts[0])",
+  debugEurecom.topAccounts[0]?.id === "comp-eurecom",
+  JSON.stringify(debugEurecom.topAccounts),
+)
+
+check(
+  "lot3 — EURECOM (cas réel) : playbooks squelettes (tableaux vides) exclus malgré secteur résolu",
+  debugEurecom.candidatePlaybooksCount === 0,
+  `candidatePlaybooksCount=${debugEurecom.candidatePlaybooksCount}`,
+)
+
+check(
+  "lot3 — EURECOM (cas réel) : candidateFacts porte bien les faits EURECOM, pas juste le bruit CASA",
+  ctxEurecom.candidateFacts.some(f => f.id === "fact-eurecom-technology") &&
+  ctxEurecom.candidateFacts.some(f => f.id === "fact-eurecom-strategic-priority"),
+)
+
+// --- Simulation d'une réponse Sonnet AVEC convergence réelle citée -------------
+
+const digestEurecomPositif = {
+  articles: [{
+    id: "art_openai_gouvernance_ia",
+    convergences: {
+      schemaVersion: 2,
+      synthesis: "L'ouverture de l'EURECOM AI Center et ses travaux de sécurité IA recoupent directement l'initiative de gouvernance IA d'OpenAI.",
+      confidence: "high",
+      matchedIssues: [],
+      relatedAccounts: [
+        { companyId: "comp-eurecom", companyName: "EURECOM", rationale: "Le centre IA en construction est directement concerné par la gouvernance de l'IA." },
+        { companyId: "comp-invente", companyName: "Compte Halluciné", rationale: "Hors du candidate set." },
+      ],
+      relatedOpportunities: [],
+      playbookSuggestion: null,
+      recommendedActions: [{ label: "Contacter EURECOM sur la gouvernance de son centre IA", rationale: "Angle direct." }],
+      evidenceRefs: [
+        { type: "account_fact", id: "fact-eurecom-strategic-priority", label: "EURECOM AI Center" },
+        { type: "account_fact", id: "fact-eurecom-technology", label: "Recherche sécurité IA" },
+        { type: "account_signal", id: "signal-eurecom-centre-ia", label: "Lancement Centre IA" },
+        { type: "account_fact", id: "fact-invente-halluciné", label: "Fait halluciné" },
+      ],
+    },
+  }],
+}
+
+const outEurecomPositif = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [digestEurecomPositif],
+  registry: { "Pré-filtrage Déterministe": preFiltrageEurecomOut }
+}).map(i => i.json)
+const convEurecomPositif = outEurecomPositif[0].articles[0].convergences
+
+check(
+  "lot3 — EURECOM (cas réel) : relatedAccounts conserve EURECOM et supprime le compte halluciné",
+  convEurecomPositif.relatedAccounts.some(a => a.companyId === "comp-eurecom") &&
+  convEurecomPositif.relatedAccounts.every(a => a.companyId !== "comp-invente"),
+)
+
+check(
+  "lot3 — EURECOM (cas réel) : evidenceRefs conserve les faits/signaux réels, supprime le fait halluciné",
+  convEurecomPositif.evidenceRefs.some(r => r.type === "account_fact" && r.id === "fact-eurecom-strategic-priority") &&
+  convEurecomPositif.evidenceRefs.some(r => r.type === "account_signal" && r.id === "signal-eurecom-centre-ia") &&
+  convEurecomPositif.evidenceRefs.every(r => r.id !== "fact-invente-halluciné"),
+)
+
+check(
+  "lot3 — EURECOM (cas réel) : confidence high conservée (convergence réellement structurée)",
+  convEurecomPositif.confidence === "high",
+)
+
+// --- Cas négatif : même secteur, mais AUCUNE connaissance ne recoupe l'article --
+
+const articleCyberOffensive = {
+  id: "art_cyber_offensive",
+  secteurPrincipal: "Secteur public, Enseignement supérieur & Recherche",
+  secteurSecondaire: "",
+  title: "Cybersécurité : les approches offensives reviennent en force",
+  summary: "Un rapport pointe le retour des stratégies offensives en cybersécurité chez les grands groupes industriels.",
+}
+
+// Même secteur, mais 0 enjeu, 0 signal, 0 fait, 0 opportunité : rien ne recoupe l'article.
+const preFiltrageSansConnaissanceOut = runCodeNode(PRE_FILTRAGE, {
+  registry: {
+    "Parser Top 5": [articleCyberOffensive],
+    "Charger Comptes": secteurPublicComptes,
+    "Charger Enjeux": [],
+    "Charger Playbooks": secteurPublicPlaybooks,
+    "Charger Signaux Comptes": [],
+    "Charger Faits Comptes": [],
+    "Charger Opportunités": []
+  }
+}).map(i => i.json)
+
+check(
+  "lot3 — cas négatif : même secteur mais 0 signal/fait/enjeu/opportunité disponible",
+  preFiltrageSansConnaissanceOut[0].convergenceDebug.candidateSignalsCount === 0 &&
+  preFiltrageSansConnaissanceOut[0].convergenceDebug.candidateFactsCount === 0 &&
+  preFiltrageSansConnaissanceOut[0].convergenceDebug.candidateIssuesCount === 0,
+)
+
+// Sonnet, bien instruit par le prompt, ne force rien : confidence low, tout vide.
+const digestSansConnaissance = {
+  articles: [{
+    id: "art_cyber_offensive",
+    convergences: {
+      schemaVersion: 2,
+      synthesis: "Aucune convergence réelle : le secteur est identique mais aucun signal, fait ou enjeu KREDO ne recoupe le sujet de l'article.",
+      confidence: "low",
+      matchedIssues: [],
+      relatedAccounts: [],
+      relatedOpportunities: [],
+      playbookSuggestion: null,
+      recommendedActions: [],
+      evidenceRefs: [],
+    },
+  }],
+}
+const outSansConnaissance = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [digestSansConnaissance],
+  registry: { "Pré-filtrage Déterministe": preFiltrageSansConnaissanceOut }
+}).map(i => i.json)
+
+check(
+  "lot3 — cas négatif : aucune convergence forcée quand le secteur seul ne suffit pas",
+  outSansConnaissance[0].articles[0].convergences.confidence === "low" &&
+  outSansConnaissance[0].articles[0].convergences.relatedAccounts.length === 0 &&
+  outSansConnaissance[0].articles[0].convergences.relatedOpportunities.length === 0,
+)
+
+// Si, malgré tout, un modèle tentait de forcer confidence=high avec un compte hors
+// contexte (même secteur, mais pas dans candidateAccounts car hors des 8 retenus, ou
+// carrément halluciné), la validation doit le rabattre à low : le même secteur seul
+// ne peut jamais produire de convergence structurée valide.
+const digestForcageSansConnaissance = {
+  articles: [{
+    id: "art_cyber_offensive",
+    convergences: {
+      schemaVersion: 2,
+      synthesis: "Tentative de forcer une convergence sur le seul critère sectoriel.",
+      confidence: "high",
+      matchedIssues: [],
+      relatedAccounts: [{ companyId: "comp-invente", companyName: "Compte Halluciné", rationale: "Même secteur." }],
+      relatedOpportunities: [],
+      playbookSuggestion: null,
+      recommendedActions: [],
+      evidenceRefs: [],
+    },
+  }],
+}
+const outForcageSansConnaissance = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [digestForcageSansConnaissance],
+  registry: { "Pré-filtrage Déterministe": preFiltrageSansConnaissanceOut }
+}).map(i => i.json)
+
+check(
+  "lot3 — cas négatif : un compte hors candidate set sous confidence=high est supprimé ET la confidence rabattue à low",
+  outForcageSansConnaissance[0].articles[0].convergences.relatedAccounts.length === 0 &&
+  outForcageSansConnaissance[0].articles[0].convergences.confidence === "low",
+)
+
+// --- Opportunités : bornage, validation, et isOpen ne travestit jamais un deal gagné --
+
+const oppFixtureComptes = [{ id: "comp-opp-1", name: "Comp Opp", sector_id: "sect_opp", segment_id: "seg_opp" }]
+const oppFixturePlaybooks = [{ macro_id: "sect_opp", segment_id: "seg_opp", macro_name: "Sect Opp", segment_name: "Seg Opp", playbook: { personas: ["DSI"], objections: [], entry_points: [], roi_arguments: [] } }]
+const oppFixtureOpportunites = [
+  { id: "opp-ouverte", company_id: "comp-opp-1", title: "Audit gouvernance IA", stage: "qualification", opportunity_type: "audit", need_summary: "Cadrage gouvernance intelligence artificielle." },
+  { id: "opp-gagnee", company_id: "comp-opp-1", title: "Ancien projet IA", stage: "gagne", opportunity_type: "conseil", need_summary: "Projet intelligence artificielle déjà livré." },
+]
+const articleOpp = { id: "art_opp", secteurPrincipal: "Sect Opp", secteurSecondaire: "", title: "Gouvernance de l'intelligence artificielle", summary: "Cadrage et gouvernance de l'intelligence artificielle en entreprise." }
+
+const preFiltrageOppOut = runCodeNode(PRE_FILTRAGE, {
+  registry: {
+    "Parser Top 5": [articleOpp],
+    "Charger Comptes": oppFixtureComptes,
+    "Charger Enjeux": [],
+    "Charger Playbooks": oppFixturePlaybooks,
+    "Charger Signaux Comptes": [],
+    "Charger Faits Comptes": [],
+    "Charger Opportunités": oppFixtureOpportunites
+  }
+}).map(i => i.json)
+const ctxOpp = preFiltrageOppOut[0].convergenceContext
+
+check(
+  "lot3 — opportunités : la qualification en cours et le deal gagné sont tous deux candidats, isOpen distingue les deux",
+  ctxOpp.candidateOpportunities.find(o => o.id === "opp-ouverte")?.isOpen === true &&
+  ctxOpp.candidateOpportunities.find(o => o.id === "opp-gagnee")?.isOpen === false,
+)
+
+const digestOppFixture = {
+  articles: [{
+    id: "art_opp",
+    convergences: {
+      schemaVersion: 2,
+      synthesis: "L'article recoupe directement une opportunité déjà en pipe chez Comp Opp.",
+      confidence: "high",
+      matchedIssues: [],
+      relatedAccounts: [{ companyId: "comp-opp-1", companyName: "Comp Opp", rationale: "Dossier en pipe." }],
+      relatedOpportunities: [
+        { opportunityId: "opp-ouverte", companyId: "comp-opp-1", companyName: "Comp Opp", opportunityTitle: "Audit gouvernance IA", stage: "qualification", rationale: "Correspond exactement au sujet de l'article." },
+        { opportunityId: "opp-inventee", companyId: "comp-opp-1", companyName: "Comp Opp", opportunityTitle: "Opportunité halluciné", stage: "qualification", rationale: "N'existe pas dans le contexte." },
+      ],
+      playbookSuggestion: null,
+      recommendedActions: [],
+      evidenceRefs: [{ type: "opportunity", id: "opp-ouverte", label: "Audit gouvernance IA" }],
+    },
+  }],
+}
+const outOppFixture = runCodeNode(VALIDER_CONVERGENCES, {
+  input: [digestOppFixture],
+  registry: { "Pré-filtrage Déterministe": preFiltrageOppOut }
+}).map(i => i.json)
+const convOppFixture = outOppFixture[0].articles[0].convergences
+
+check(
+  "lot3 — opportunités : relatedOpportunities conserve l'opportunité réelle et supprime l'opportunité hallucinée",
+  convOppFixture.relatedOpportunities.length === 1 &&
+  convOppFixture.relatedOpportunities[0].opportunityId === "opp-ouverte",
+)
+
+check(
+  "lot3 — opportunités : borne MAX_RELATED_OPPORTUNITIES respectée même si le LLM en renvoie davantage",
+  (() => {
+    const tropOpportunites = {
+      articles: [{
+        id: "art_opp",
+        convergences: {
+          schemaVersion: 2,
+          synthesis: "Test de borne.",
+          confidence: "high",
+          matchedIssues: [],
+          relatedAccounts: [],
+          relatedOpportunities: [
+            { opportunityId: "opp-ouverte", companyId: "comp-opp-1", companyName: "Comp Opp", opportunityTitle: "A", stage: "qualification", rationale: "R" },
+            { opportunityId: "opp-ouverte", companyId: "comp-opp-1", companyName: "Comp Opp", opportunityTitle: "A", stage: "qualification", rationale: "R" },
+            { opportunityId: "opp-ouverte", companyId: "comp-opp-1", companyName: "Comp Opp", opportunityTitle: "A", stage: "qualification", rationale: "R" },
+            { opportunityId: "opp-ouverte", companyId: "comp-opp-1", companyName: "Comp Opp", opportunityTitle: "A", stage: "qualification", rationale: "R" },
+          ],
+          playbookSuggestion: null,
+          recommendedActions: [],
+          evidenceRefs: [],
+        },
+      }],
+    }
+    const out = runCodeNode(VALIDER_CONVERGENCES, {
+      input: [tropOpportunites],
+      registry: { "Pré-filtrage Déterministe": preFiltrageOppOut }
+    }).map(i => i.json)
+    return out[0].articles[0].convergences.relatedOpportunities.length === 3
+  })(),
 )
 
 console.log(`\n${passed} ok · ${failed} échec(s)`)

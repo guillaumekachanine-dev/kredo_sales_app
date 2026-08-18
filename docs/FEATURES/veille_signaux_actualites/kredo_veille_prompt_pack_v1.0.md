@@ -84,7 +84,17 @@ le contenu fourni, ne l'ajoute pas.
 
 # TÂCHE
 Voici une liste d'articles candidats de la semaine. Évalue CHACUN selon la grille
-ci-dessous, puis renvoie UNIQUEMENT les 5 meilleurs, classés par score décroissant.
+ci-dessous, puis renvoie jusqu'à 5 articles classés par score décroissant.
+
+Tu peux retourner moins de 5 articles si le nombre de candidats ou leur qualité
+ne justifie pas une sélection complète.
+
+Si AUCUN article ne constitue une munition commerciale suffisamment exploitable,
+retourne exactement :
+
+{"top5":[]}
+
+N'invente jamais un article ou un identifiant.
 
 # FILTRE PRÉALABLE OBLIGATOIRE
 Date de référence : {{date_run}}.
@@ -150,14 +160,30 @@ commercial d'ESN. Base-toi UNIQUEMENT sur le contenu fourni. Si un élément
 - tags : 2 à 4 mots-clés
 
 # CONVERGENCES KREDO
-Pour chaque article :
-À partir du contenu factuel de l'article et UNIQUEMENT des objets KREDO fournis dans CONVERGENCE_CONTEXT, identifie les rapprochements commercialement utiles entre cette actualité et la connaissance existante de KREDO. S'il n'y a pas de convergence suffisamment étayée, produis des listes vides et ne force pas de correspondance.
+CONVERGENCE_CONTEXT contient, pour chaque article, jusqu'à 6 gisements de connaissance
+KREDO déjà pré-filtrés et bornés : candidateAccounts (comptes du secteur/segment de
+l'article), candidateIssues (enjeux ouverts de ces comptes), candidateSignals (signaux
+d'affaires détectés — recrutement, actualité, échéance réglementaire), candidateFacts
+(faits stratégiques structurés — priorité stratégique, programme de transformation,
+technologie, tendance de croissance...), candidateOpportunities (opportunités
+commerciales déjà en pipe, avec un indicateur isOpen), candidatePlaybooks (playbooks
+sectoriels réellement exploitables, jamais des squelettes vides).
 
+À partir du contenu factuel de l'article et UNIQUEMENT des objets fournis dans
+CONVERGENCE_CONTEXT, identifie les rapprochements commercialement utiles entre cette
+actualité et la connaissance existante de KREDO. S'il n'y a pas de convergence
+suffisamment étayée, produis des listes vides et ne force pas de correspondance. Le
+simple fait qu'un compte partage le secteur de l'article NE SUFFIT JAMAIS à lui seul :
+il faut qu'un signal, un fait, un enjeu ou une opportunité candidat corrobore
+réellement le sujet de l'article.
+
+- convergences.schemaVersion : toujours 2.
 - convergences.synthesis : Formuler brièvement le rapprochement principal. Pas de remplissage. S'il n'existe aucune convergence, le dire explicitement.
-- convergences.confidence : "high", "medium" ou "low" selon la force du rapprochement. Une confidence "high" ou "medium" DOIT obligatoirement comporter au moins un élément structuré non vide (matchedIssues, relatedAccounts, ou playbookSuggestion). Si aucune convergence forte n'est retenue, la confidence doit être "low".
-- convergences.evidenceRefs : Tableau de toutes les références KREDO ayant servi au raisonnement ({ "type": "article"|"account_issue"|"company"|"sector_playbook", "id": "...", "label": "..." }). Les comptes ou enjeux de simple contexte périphérique restent ici sans être forcés dans les listes métier ci-dessous.
+- convergences.confidence : "high", "medium" ou "low" selon la force du rapprochement. Une confidence "high" ou "medium" DOIT obligatoirement comporter au moins un élément structuré non vide (matchedIssues, relatedAccounts, relatedOpportunities, ou playbookSuggestion). Si aucune convergence forte n'est retenue, la confidence doit être "low".
+- convergences.evidenceRefs : Tableau de toutes les références KREDO ayant servi au raisonnement ({ "type": "article"|"account_issue"|"company"|"sector_playbook"|"account_signal"|"account_fact"|"opportunity", "id": "...", "label": "..." }). Les comptes, enjeux, signaux ou faits de simple contexte périphérique restent ici sans être forcés dans les listes métier ci-dessous. Utilise UNIQUEMENT des id présents dans CONVERGENCE_CONTEXT : n'invente jamais un id.
 - convergences.matchedIssues : Maximum 3. RÈGLE : Si la synthèse affirme qu'un enjeu candidat converge avec l'article, tu DOIS IMPÉRATIVEMENT l'ajouter ici avec ses détails ({ issueId, companyId, companyName, issueTitle, rationale }). Uniquement si l'enjeu figure dans candidateIssues.
-- convergences.relatedAccounts : Maximum 5. RÈGLE : Si un compte candidat est directement concerné par l'opportunité commerciale, tu DOIS l'ajouter ici ({ companyId, companyName, rationale }). Uniquement si le compte figure dans candidateAccounts.
+- convergences.relatedAccounts : Maximum 5. RÈGLE : Si un compte candidat est directement concerné — via un signal, un fait ou un enjeu qui corrobore réellement le sujet de l'article, pas seulement le secteur —, tu DOIS l'ajouter ici ({ companyId, companyName, rationale }). Uniquement si le compte figure dans candidateAccounts.
+- convergences.relatedOpportunities : Maximum 3. RÈGLE : Si une opportunité candidate est directement liée au sujet de l'article, tu DOIS l'ajouter ici ({ opportunityId, companyId, companyName, opportunityTitle, stage, rationale }). Uniquement si l'opportunité figure dans candidateOpportunities. Une opportunité dont isOpen=false (gagnée) reste un contexte historique : ne la présente jamais comme un dossier ouvert.
 - convergences.playbookSuggestion : Maximum UNE suggestion, si un playbook candidat est fourni, que l'article apporte un argument exploitable et qu'une section ciblée existe ({ sectorId, sectorName, targetSection, proposedArgument, rationale }). Sinon null.
 - convergences.recommendedActions : Maximum 3 actions courtes et concrètes (approfondir, contacter, etc.) ({ label, rationale }).
 
@@ -172,7 +198,7 @@ Pour chaque article :
 - Le champ action_commerciale doit TOUJOURS être concret. Interdiction de phrases
   creuses type "cela peut intéresser vos prospects".
 - Reste neutre : ne prends pas parti dans les rivalités entre acteurs.
-- Aucun UUID inventé. Aucun compte inventé. Aucun enjeu inventé. Aucun secteur inventé. Aucun playbook inventé.
+- Aucun UUID inventé. Aucun compte inventé. Aucun enjeu inventé. Aucun secteur inventé. Aucun signal inventé. Aucun fait inventé. Aucune opportunité inventée. Aucun playbook inventé.
 - Aucun chiffre absent du contenu source. Aucun fait KREDO absent du contexte fourni.
 - Ne jamais transformer une hypothèse en fait.
 - Une absence de convergence est parfaitement acceptable. Préférer des tableaux vides [] ou null à un rapprochement artificiel.
@@ -253,11 +279,13 @@ traçabilité aux systèmes d'IA à haut risque, notamment dans la finance."
       "categorie": "vertical",
       "tags": ["tag1", "tag2", "tag3"],
       "convergences": {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "synthesis": "L'article renforce le besoin de gouvernance IA déjà identifié chez L'Oréal.",
         "confidence": "high",
         "evidenceRefs": [
-          { "type": "company", "id": "comp_uuid_1", "label": "L'Oréal" }
+          { "type": "company", "id": "comp_uuid_1", "label": "L'Oréal" },
+          { "type": "account_fact", "id": "fact_uuid_1", "label": "Priorité stratégique — programme gouvernance IA" },
+          { "type": "account_signal", "id": "signal_uuid_1", "label": "Recrutement responsable conformité IA" }
         ],
         "matchedIssues": [
           {
@@ -273,6 +301,16 @@ traçabilité aux systèmes d'IA à haut risque, notamment dans la finance."
             "companyId": "comp_uuid_1",
             "companyName": "L'Oréal",
             "rationale": "Leur DSI est citée directement dans l'article."
+          }
+        ],
+        "relatedOpportunities": [
+          {
+            "opportunityId": "opp_uuid_1",
+            "companyId": "comp_uuid_1",
+            "companyName": "L'Oréal",
+            "opportunityTitle": "Audit conformité IA",
+            "stage": "qualification",
+            "rationale": "L'échéance donnée par l'article étaye directement le besoin déjà en pipe."
           }
         ],
         "playbookSuggestion": {
@@ -301,8 +339,10 @@ traçabilité aux systèmes d'IA à haut risque, notamment dans la finance."
 1. **Étape A (gratuite)** — dédup Supabase (hash URL) + filtre récence 7 jours + pré-score mots-clés. Réduit ~300 candidats → ~30-40.
 2. **Étape B — Classement** — `Basic LLM Chain` (modèle léger) + `Structured Output Parser` (§5.1). Sort le top 5.
 3. **Étape intermédiaire — Fetch full-text** — un `HTTP Request` récupère le texte intégral des 5 articles retenus. *Indispensable : sans lui, l'analyse s'appauvrit (point 3 du test).* Coût négligeable sur 5 articles.
-4. **Étape C — Analyse** — `Basic LLM Chain` (modèle fort) + `Structured Output Parser` (§5.2).
-5. **Persistance** — upsert Supabase (`veille_digests`, `veille_articles`, mémoire `veille_seen`). Le champ `secteur_principal`/`secteur_secondaire` prépare le rattachement CRM en v2.
+3bis. **Pré-filtrage déterministe des connaissances KREDO** (nœud `Pré-filtrage Déterministe`) — après résolution du secteur/segment de chaque article, un ranking par recoupement de mots-clés + fraîcheur + scores déjà stockés en base (`global_score`, `confidence_score`, `importance/urgency/criticality/business_impact`) sélectionne, PAR ARTICLE : max 8 comptes, 3 enjeux (`account_issues`), 10 signaux (`account_signals`, via `v_active_account_signals`), 15 faits (`account_facts`, `is_current=true`), 3 opportunités exploitables (`opportunities`, hors `perdu`/`abandonne`) et 3 playbooks sectoriels réellement non vides. Aucun LLM, aucun pgvector, aucun RAG à cette étape — un simple overlap de tokens déterministe et bornée. Le compte-rendu de ce pré-filtrage (`convergenceDebug`) est inspectable dans la sortie du nœud n8n, jamais persisté en base.
+4. **Étape C — Analyse** — `Basic LLM Chain` (modèle fort) + `Structured Output Parser` (§5.2). Reçoit le contexte pré-filtré (`CONVERGENCE_CONTEXT`) par article.
+4bis. **Validation déterministe & anti-hallucination** (nœud `Valider Convergences`) — tout id renvoyé par Sonnet (enjeu, compte, signal, fait, opportunité, playbook) est vérifié contre le `CONVERGENCE_CONTEXT` fourni à CET article ; un id absent disparaît silencieusement. Une confidence `high`/`medium` sans au moins un élément structuré (`matchedIssues`, `relatedAccounts`, `relatedOpportunities`, `playbookSuggestion`) est rabattue à `low`.
+5. **Persistance** — upsert Supabase (`veille_digests`, `veille_articles`, mémoire `veille_seen`). Le champ `secteur_principal`/`secteur_secondaire` prépare le rattachement CRM en v2. La colonne `convergences` (jsonb) porte le contrat schemaVersion 1 (historique, jamais backfillé) ou 2 (courant) — voir `src/features/veille/convergences/domain/`.
 
 > **Astuce anti-bug :** dans les prompts, interdis explicitement le markdown dans les valeurs
 > texte. Le `Structured Output Parser` de n8n peut échouer si une valeur contient des triple
@@ -311,6 +351,13 @@ traçabilité aux systèmes d'IA à haut risque, notamment dans la finance."
 ---
 
 ## 7. Changelog
+
+**v1.2 (2026-08-18)** — LOT « Convergences transverses » : le moteur de convergence exploitait quasi uniquement `companies` + `account_issues` + playbooks sectoriels, ce qui le laissait sans matière sur tout secteur sans enjeu ouvert ni playbook rempli (cas réel : Secteur public/Enseignement supérieur, 10 comptes, 0 enjeu, playbooks squelettes vides → `confidence=low`, tout vide, alors qu'EURECOM porte des faits/signaux réels sur l'IA). Corrections :
+1. **3 nouveaux gisements exploités** : `account_signals` (via `v_active_account_signals`), `account_facts` (`is_current=true`, `target_type=company`), `opportunities` (hors `perdu`/`abandonne`).
+2. **Pré-filtrage déterministe étendu** (nœud `Pré-filtrage Déterministe`) : ranking par recoupement de mots-clés + fraîcheur + scores stockés, bornes strictes par article (8 comptes / 3 enjeux / 10 signaux / 15 faits / 3 opportunités / 3 playbooks). Un playbook squelette (`{}` ou tableaux tous vides) n'est jamais retenu comme « utile ».
+3. **Contrat Convergences → schemaVersion 2** : `evidenceRefs` accepte `account_signal`/`account_fact`/`opportunity` en plus des 4 types v1 ; nouveau champ `relatedOpportunities` (miroir de `relatedAccounts`, borné à 3). Les lignes v1 historiques restent parsables telles quelles, jamais backfillées.
+4. **Anti-hallucination étendu** (nœud `Valider Convergences`) : tout id des 3 nouveaux gisements est vérifié contre le `CONVERGENCE_CONTEXT` réellement fourni à l'article ; `relatedOpportunities` suit la même règle de cohérence confidence que `matchedIssues`/`relatedAccounts`.
+5. **`convergenceDebug` enrichi** : `candidateSignalsCount`, `candidateFactsCount`, `candidateOpportunitiesCount`, `topAccounts` (ids/noms/scores des comptes retenus) — jamais persisté dans `veille_articles`.
 
 **v1.0 (2026-07-06)** — Première version figée après test manuel sur 3 articles réels (MarketScale / gouvernance IA, L'Oréal DATALAND / parfumerie, Mistral / souveraineté). Corrections intégrées vs brouillon :
 1. **Filtre de récence strict à 7 jours** ajouté au Prompt de Classement (via `{{date_run}}`).
