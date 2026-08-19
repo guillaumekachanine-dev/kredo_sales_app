@@ -250,8 +250,14 @@ Le Header est une zone fixe (`shrink-0`) de `65px` de hauteur environ.
 
 ## 13. KPI — FAMILLE STANDARD (`Commercial Activity`)
 
-Cette famille privilégiant la **densité et la légèreté visuelle** n'utilise **PAS** de carte conteneur fermée.
+Cette famille privilégiant la **densité et la légèreté visuelle** n'utilise **PAS** de carte conteneur fermée (pas de `bg-white/[0.03]`, ni de `rounded-[18px]`, ni de bordure fermée `border border-white/5`).
 
+> **Règle normative canonique (Synthèse & Modales d'intelligence) :**  
+> Toute section KPI intégrée aux vues Synthèse dérivées de `IntelligenceSplitModalShell` (notamment *« Activité commerciale »*, *« Gérer la connaissance »* et *« Gérer les sources informationnelles »*) doit utiliser le design `KPI_STANDARD` issu de `CommercialActivityOverview.tsx`, sans cards opaques ou arrondies. Lorsque la métrique comporte une évolution, une comparaison ou un sous-texte d'explication, celui-ci est affiché **sous la valeur principale et aligné à gauche**.
+
+### Structure visuelle canonique et déclinaisons
+
+**1. Modale Activité commerciale (Évolution à droite) :**
 ```text
  ┌─────────────────────────────────────────────────────────┐
  │ ACTIVITÉS RÉALISÉES                                     │ 10px uppercase text-white/45
@@ -259,11 +265,22 @@ Cette famille privilégiant la **densité et la légèreté visuelle** n'utilise
  └─────────────────────────────────────────────────────────┘ Border-bottom border-white/8
 ```
 
-1.  **Label :** 10px font-semibold uppercase `tracking-[0.12em] text-white/45`.
-2.  **Ligne de Mesure :** `flex items-baseline justify-between gap-2 mt-2`.
-3.  **Chiffre Clé :** 24px `font-heading font-bold tabular-nums text-white`.
-4.  **Badge Variation :** 10px `font-semibold tabular-nums`. Positif = `text-brand-brass` (`#C89A2B`), Négatif = `text-status-danger` (`#BE3E3E`).
-5.  **Séparateur :** simple filet inférieur `border-b border-white/8 pb-3`.
+**2. Vues Synthèse (Gérer la connaissance, Gérer les sources) — Évolution/Sous-texte sous la valeur :**
+```text
+ ┌─────────────────────────────────────────────────────────┐
+ │ LABEL KPI                                               │ 10px uppercase tracking-[0.12em] text-white/45
+ │ 30                                                      │ 24px font-heading font-bold tabular-nums text-white
+ │ +18,8 %                                                 │ 10px font-semibold tabular-nums (brass/danger/muted)
+ └─────────────────────────────────────────────────────────┘ Border-bottom border-white/8 pb-3
+```
+
+### Tokens et Classes Audités :
+1. **Conteneur de la grille :** `grid gap-4 sm:grid-cols-3`
+2. **Conteneur par métrique (KPI) :** `border-b border-white/8 pb-3` (sans fond, sans arrondi)
+3. **Label :** `<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">`
+4. **Valeur Principale :** `<p className="mt-2 font-heading text-2xl font-bold tabular-nums text-white">`
+5. **Évolution / Sous-texte (sous la valeur, aligné à gauche) :** `<p className="mt-0.5 text-[10px] font-semibold tabular-nums text-brand-brass">` (ou `text-status-danger` si négatif, `text-white/55` pour information secondaire).
+
 
 ---
 

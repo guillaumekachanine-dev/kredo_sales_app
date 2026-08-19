@@ -316,28 +316,28 @@ export function SourceManagementSynthesisView({ snapshot }: SourceManagementSynt
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(201,154,43,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-5 py-5 sm:px-6">
       {/* ── 3 KPI MAXIMUM ─────────────────────────────────────────── */}
-      <div className="grid gap-2.5 pb-5 sm:grid-cols-3">
-        <div className="rounded-[18px] bg-white/[0.03] px-4 py-3 border border-white/5">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/42 font-medium">Sources disponibles</p>
-          <p className="mt-1.5 text-xl font-bold tabular-nums text-white">{formatCompact(overview.uniqueSourceCount)}</p>
-          <p className="mt-0.5 text-[11px] text-white/55">{overview.activeSourceCount} actives dans le socle</p>
+      <div className="grid gap-4 sm:grid-cols-3 mb-6">
+        <div className="border-b border-white/8 pb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Sources disponibles</p>
+          <p className="mt-2 font-heading text-2xl font-bold tabular-nums text-white">{formatCompact(overview.uniqueSourceCount)}</p>
+          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-white/55">{overview.activeSourceCount} actives dans le socle</p>
         </div>
 
-        <div className="rounded-[18px] bg-white/[0.03] px-4 py-3 border border-white/5">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/42 font-medium">Sources actives</p>
-          <p className="mt-1.5 text-xl font-bold tabular-nums text-white">{formatCompact(overview.activeSourceCount)}</p>
-          <p className="mt-0.5 text-[11px] text-brand-brass font-medium">{activePercent}% de couverture active</p>
+        <div className="border-b border-white/8 pb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Sources actives</p>
+          <p className="mt-2 font-heading text-2xl font-bold tabular-nums text-white">{formatCompact(overview.activeSourceCount)}</p>
+          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-brand-brass">{activePercent}% de couverture active</p>
         </div>
 
-        <div className="rounded-[18px] bg-white/[0.03] px-4 py-3 border border-white/5">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/42 font-medium">Corpus sectoriels</p>
-          <p className="mt-1.5 text-xl font-bold tabular-nums text-white">{formatCompact(overview.corpusCount)}</p>
-          <p className="mt-0.5 text-[11px] text-white/55">{overview.activeCorpusCount} corpus actif(s)</p>
+        <div className="border-b border-white/8 pb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Corpus sectoriels</p>
+          <p className="mt-2 font-heading text-2xl font-bold tabular-nums text-white">{formatCompact(overview.corpusCount)}</p>
+          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-white/55">{overview.activeCorpusCount} corpus actif(s)</p>
         </div>
       </div>
 
       {/* ── SEGMENTED CONTROL & CAROUSEL SECTION ─────────────────── */}
-      <div className="border-t border-white/8 py-5">
+      <div className="py-2">
         <div className="flex items-center justify-between gap-4">
           <h4 className="text-sm font-semibold text-white">
             {activeMode === "categories" ? "Répartition des sources" : "Activité des corpus"}

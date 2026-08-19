@@ -301,25 +301,25 @@ export function KnowledgeSynthesisView() {
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(201,154,43,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-5 py-5 sm:px-6">
       {/* ── 3 KPI PRINCIPAUX ───────────────────────────────────────── */}
-      <div className="grid gap-3 pb-4 sm:grid-cols-3">
-        <div className="rounded-[18px] bg-white/[0.03] px-4 py-3.5 border border-white/5 shadow-sm">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/45 font-medium">Documents KREDO</p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-white">{formatCompact(overview.totalDocuments)}</p>
-          <p className="mt-0.5 text-[11px] text-brand-brass font-medium">
+      <div className="grid gap-4 sm:grid-cols-3 mb-6">
+        <div className="border-b border-white/8 pb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Documents KREDO</p>
+          <p className="mt-2 font-heading text-2xl font-bold tabular-nums text-white">{formatCompact(overview.totalDocuments)}</p>
+          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-brand-brass">
             +{overview.recent30DaysCount} sur les 30 derniers jours
           </p>
         </div>
 
-        <div className="rounded-[18px] bg-white/[0.03] px-4 py-3.5 border border-white/5 shadow-sm">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/45 font-medium">Types documentaires</p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-white">{overview.uniqueTypeCount}</p>
-          <p className="mt-0.5 text-[11px] text-white/55">familles représentées</p>
+        <div className="border-b border-white/8 pb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Types documentaires</p>
+          <p className="mt-2 font-heading text-2xl font-bold tabular-nums text-white">{overview.uniqueTypeCount}</p>
+          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-white/55">familles représentées</p>
         </div>
 
-        <div className="rounded-[18px] bg-white/[0.03] px-4 py-3.5 border border-white/5 shadow-sm">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/45 font-medium">Taux de classement</p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-white">{overview.classifiedPercentage}%</p>
-          <p className="mt-0.5 text-[11px] text-white/55">
+        <div className="border-b border-white/8 pb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Taux de classement</p>
+          <p className="mt-2 font-heading text-2xl font-bold tabular-nums text-white">{overview.classifiedPercentage}%</p>
+          <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-white/55">
             {overview.classifiedDocCount} doc{overview.classifiedDocCount > 1 ? "s" : ""} rangé{overview.classifiedDocCount > 1 ? "s" : ""} dans des listes
           </p>
         </div>

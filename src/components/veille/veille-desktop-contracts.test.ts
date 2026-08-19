@@ -94,7 +94,7 @@ describe("veille Desktop UI source contract", () => {
   const distributor = readFileSync(resolve(root, "src/components/veille/VeilleActualitesPage.tsx"), "utf8")
 
   it("uses the four requested local sections", () => {
-    for (const label of ["Actualités", "Veille", "Analyses stratégiques", "Historique"]) expect(navigation).toContain(label)
+    for (const label of ["Actualités", "Veille ciblée", "Analyses", "Archives"]) expect(navigation).toContain(label)
     expect(navigation).toContain('aria-current={isActive ? "page" : undefined}')
   })
 

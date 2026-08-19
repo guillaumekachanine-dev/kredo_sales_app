@@ -6,9 +6,9 @@ import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 
 const SECTIONS: Array<{ id: VeilleSection; label: string }> = [
   { id: "news", label: "Actualités" },
-  { id: "watched-accounts", label: "Veille" },
-  { id: "strategic-analysis", label: "Analyses stratégiques" },
-  { id: "history", label: "Historique" },
+  { id: "watched-accounts", label: "Veille ciblée" },
+  { id: "strategic-analysis", label: "Analyses" },
+  { id: "history", label: "Archives" },
 ]
 
 function VeilleSidebarIcon({ name }: { name: VeilleSection }) {
