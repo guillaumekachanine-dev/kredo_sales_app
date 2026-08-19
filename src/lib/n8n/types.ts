@@ -143,6 +143,42 @@ export type MonthlyWatchAnalysisOutput = {
   coverage: { digestsCount: number; articlesCount: number; sourcesCount: number }
 }
 
+// ─── Analyse à la demande — Veille (V2, manual_custom) ──────────────────────
+// docs/FEATURES/veille_signaux_actualites/analyse_a_la_demande/01-ARCHITECTURE-ET-CONTRATS.md §4
+// Coexiste avec le contrat V1 ci-dessus (schemaVersion: 1, mensuel, préservé
+// intégralement) : INTEL-021 doit distinguer les deux versions au lancement.
+// Le navigateur ne transmet que des références ; elles sont revalidées côté
+// serveur (RLS) par `resolveWatchAnalysisSources` avant tout envoi à n8n —
+// voir src/features/watch-analysis/data/resolve-watch-analysis-sources.ts.
+
+export type WatchAnalysisSource =
+  | {
+      kind: "digest"
+      digestId: string
+      articleIds?: string[]
+    }
+  | {
+      kind: "account_signals"
+      signalIds: string[]
+    }
+  | {
+      kind: "intelligence_documents"
+      documentIds: string[]
+    }
+  | {
+      kind: "knowledge_collection"
+      collectionId: string
+    }
+
+export type WatchAnalysisInputV2 = {
+  schemaVersion: 2
+  triggerMode: "manual_custom"
+  intention: string
+  /** 1 à 3 groupes de sources — cf. `validateWatchAnalysisInput`. */
+  sources: WatchAnalysisSource[]
+  requestedAt: string
+}
+
 // ─── Missions d'intelligence — enveloppe envoyée à mission-001-run (ADR-0020) ──
 // M-1/M-6 : n8n ne porte AUCUN métier. Il reçoit deux prompts déjà assemblés et les
 // paramètres d'appel du modèle, poste le texte brut au callback, et c'est tout.
