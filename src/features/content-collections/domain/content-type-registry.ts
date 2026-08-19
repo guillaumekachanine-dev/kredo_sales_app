@@ -10,12 +10,14 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/database"
+import { getDocumentTypeLabel } from "@/components/reports/document-display"
 import type { AddableContentType } from "./content-collections-contracts"
 
 export type ResolvedContentMeta = {
   title: string
   date: string | null
   preview: string | null
+  categoryLabel?: string | null
 }
 
 export type ContentTypeRegistryEntry = {
@@ -50,10 +52,15 @@ const veilleArticleEntry: ContentTypeRegistryEntry = {
     if (ids.length === 0) return resolved
     const { data } = await supabase
       .from("veille_articles")
-      .select("id, titre_fr, published_at, resume")
+      .select("id, titre_fr, published_at, resume, categorie")
       .in("id", ids)
     for (const row of data ?? []) {
-      resolved.set(row.id, { title: row.titre_fr, date: row.published_at, preview: row.resume })
+      resolved.set(row.id, {
+        title: row.titre_fr,
+        date: row.published_at,
+        preview: row.resume,
+        categoryLabel: row.categorie || null,
+      })
     }
     return resolved
   },
@@ -69,13 +76,14 @@ const intelligenceDocumentEntry: ContentTypeRegistryEntry = {
     if (ids.length === 0) return resolved
     const { data } = await supabase
       .from("intelligence_documents")
-      .select("id, title, updated_at, current_content_text")
+      .select("id, title, updated_at, current_content_text, document_type")
       .in("id", ids)
     for (const row of data ?? []) {
       resolved.set(row.id, {
         title: row.title,
         date: row.updated_at,
         preview: truncate(row.current_content_text, 160),
+        categoryLabel: row.document_type ? getDocumentTypeLabel(row.document_type) : null,
       })
     }
     return resolved

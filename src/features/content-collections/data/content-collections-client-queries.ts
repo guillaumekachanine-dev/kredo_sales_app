@@ -154,10 +154,111 @@ export async function fetchResolvedCollectionItems(collectionId: string): Promis
         typeLabel: COLLECTION_CONTENT_TYPE_LABELS[row.content_type],
         date: meta.date,
         preview: meta.preview,
+        categoryLabel: meta.categoryLabel ?? null,
         url: getContentTypeRegistryEntry(row.content_type).buildUrl(row.content_id),
       },
     ]
   })
 
   return sortResolvedItems(resolved)
+}
+
+export async function fetchResolvedCollectionItemDetail(
+  contentType: CollectionContentType,
+  contentId: string,
+): Promise<import("../domain/content-collections-contracts").ResolvedCollectionItemDetail | null> {
+  const supabase = createClient()
+
+  if (contentType === "veille_article") {
+    const { data: article } = await supabase
+      .from("veille_articles")
+      .select("id, titre_fr, categorie, secteur_principal, source_name, url, published_at, created_at, resume, analyse_kredo, action_commerciale, tags, digest_id")
+      .eq("id", contentId)
+      .maybeSingle()
+
+    if (!article) return null
+
+    let digestTitle: string | null = null
+    let digestDate: string | null = null
+
+    if (article.digest_id) {
+      const { data: digest } = await supabase
+        .from("veille_digests")
+        .select("titre_digest, created_at")
+        .eq("id", article.digest_id)
+        .maybeSingle()
+
+      if (digest) {
+        digestTitle = digest.titre_digest
+        digestDate = digest.created_at
+      }
+    }
+
+    return {
+      contentType: "veille_article",
+      contentId: article.id,
+      title: article.titre_fr,
+      typeLabel: COLLECTION_CONTENT_TYPE_LABELS.veille_article,
+      categoryLabel: article.categorie || null,
+      date: article.published_at || article.created_at,
+      url: article.url || null,
+      sourceName: article.source_name || null,
+      secteurPrincipal: article.secteur_principal || null,
+      resume: article.resume || null,
+      analyseKredo: article.analyse_kredo || null,
+      actionCommerciale: article.action_commerciale || null,
+      tags: Array.isArray(article.tags) ? article.tags : null,
+      digestId: article.digest_id || null,
+      digestTitle,
+      digestDate,
+    }
+  }
+
+  if (contentType === "intelligence_document") {
+    const { data: doc } = await supabase
+      .from("intelligence_documents")
+      .select("id, title, document_type, current_content_text, current_content_json, created_at, updated_at")
+      .eq("id", contentId)
+      .maybeSingle()
+
+    if (!doc) return null
+
+    const { getDocumentTypeLabel } = await import("@/components/reports/document-display")
+
+    return {
+      contentType: "intelligence_document",
+      contentId: doc.id,
+      title: doc.title,
+      typeLabel: COLLECTION_CONTENT_TYPE_LABELS.intelligence_document,
+      categoryLabel: doc.document_type ? getDocumentTypeLabel(doc.document_type) : null,
+      date: doc.updated_at || doc.created_at,
+      url: `/reports?doc=${doc.id}`,
+      contentText: doc.current_content_text || null,
+      contentJson: doc.current_content_json || null,
+      documentType: doc.document_type || null,
+    }
+  }
+
+  if (contentType === "knowledge_list") {
+    const { data: list } = await supabase
+      .from("content_collections")
+      .select("id, name, description, created_at, updated_at")
+      .eq("id", contentId)
+      .maybeSingle()
+
+    if (!list) return null
+
+    return {
+      contentType: "knowledge_list",
+      contentId: list.id,
+      title: list.name,
+      typeLabel: COLLECTION_CONTENT_TYPE_LABELS.knowledge_list,
+      categoryLabel: "Liste",
+      date: list.updated_at || list.created_at,
+      url: null,
+      resume: list.description || null,
+    }
+  }
+
+  return null
 }

@@ -65,7 +65,32 @@ export type ResolvedCollectionItem = {
   typeLabel: string
   date: string | null
   preview: string | null
+  categoryLabel?: string | null
   url: string | null
+}
+
+export type ResolvedCollectionItemDetail = {
+  contentType: CollectionContentType
+  contentId: string
+  title: string
+  typeLabel: string
+  categoryLabel: string | null
+  date: string | null
+  url: string | null
+  // Veille article
+  sourceName?: string | null
+  secteurPrincipal?: string | null
+  resume?: string | null
+  analyseKredo?: string | null
+  actionCommerciale?: string | null
+  tags?: string[] | null
+  digestId?: string | null
+  digestTitle?: string | null
+  digestDate?: string | null
+  // Intelligence document
+  contentText?: string | null
+  contentJson?: unknown | null
+  documentType?: string | null
 }
 
 /**

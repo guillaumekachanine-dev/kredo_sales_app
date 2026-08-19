@@ -1,12 +1,8 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { AppDialog } from "@/components/ui/AppDialog"
-import { Button } from "@/components/ui/Button"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
-import { Input } from "@/components/ui/Input"
-import { Textarea } from "@/components/ui/Textarea"
-import { formatDateFr } from "@/lib/formatters"
+import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
 import { cn } from "@/lib/utils"
 import {
   fetchCollectionsSummary,
@@ -22,6 +18,9 @@ import {
   updateCollectionDescriptionAction,
 } from "../actions/content-collections-actions"
 import { CollectionPickerDialog } from "./CollectionPickerDialog"
+import { KnowledgeLibraryPane } from "./KnowledgeLibraryPane"
+import { KnowledgeListPane } from "./KnowledgeListPane"
+import { KnowledgeDocumentViewer } from "./KnowledgeDocumentViewer"
 import type { CollectionSummary, ResolvedCollectionItem } from "../domain/content-collections-contracts"
 
 export interface ManageCollectionsDesktopProps {
@@ -35,50 +34,65 @@ export function ManageCollectionsDesktop({
   onOpenChange,
   initialSelectedCollectionId,
 }: ManageCollectionsDesktopProps) {
+  const [mode, setMode] = useState<"lists" | "corpus">("lists")
   const [collections, setCollections] = useState<CollectionSummary[]>([])
-  const [isLoadingCollections, setIsLoadingCollections] = useState(true)
+  const [loadedCollectionsOpen, setLoadedCollectionsOpen] = useState(false)
+  const [loadedItemsCollectionId, setLoadedItemsCollectionId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [items, setItems] = useState<ResolvedCollectionItem[]>([])
-  const [isLoadingItems, setIsLoadingItems] = useState(false)
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
   const [newName, setNewName] = useState("")
   const [creatingOpen, setCreatingOpen] = useState(false)
-  const [editing, setEditing] = useState<{ name: string; description: string } | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editingData, setEditingData] = useState<{ name: string; description: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CollectionSummary | null>(null)
   const [pickerMode, setPickerMode] = useState<"add" | "move" | null>(null)
+  const [activeViewerItem, setActiveViewerItem] = useState<ResolvedCollectionItem | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  const isLoadingCollections = open && !loadedCollectionsOpen
+  const isLoadingItems = Boolean(selectedId && mode === "lists" && loadedItemsCollectionId !== selectedId)
+
+  // Reset state and fetch list collections when modal opens
   useEffect(() => {
     if (!open) return
-    setError(null)
-    setIsLoadingCollections(true)
+
     fetchCollectionsSummary().then((data) => {
-      setCollections(data)
-      setIsLoadingCollections(false)
-      setSelectedId(initialSelectedCollectionId ?? data[0]?.id ?? null)
+      // Filter lists only for the Library mode
+      const listCollections = data.filter((c) => c.kind === "list")
+      setError(null)
+      setMode("lists")
+      setIsEditMode(false)
+      setActiveViewerItem(null)
+      setCollections(listCollections)
+      setSelectedId((prev) => initialSelectedCollectionId ?? prev ?? listCollections[0]?.id ?? null)
+      setLoadedCollectionsOpen(true)
     })
-    // Ne dépend que de l'ouverture : `initialSelectedCollectionId` ne doit
-    // amorcer la sélection qu'au moment où le dialogue s'ouvre.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
+  // Fetch items when selected collection changes
   useEffect(() => {
-    if (!selectedId) {
-      setItems([])
+    if (!selectedId || mode !== "lists") {
       return
     }
-    setIsLoadingItems(true)
-    setSelectedItemIds(new Set())
+
     fetchResolvedCollectionItems(selectedId).then((data) => {
       setItems(data)
-      setIsLoadingItems(false)
+      setSelectedItemIds(new Set())
+      setIsEditMode(false)
+      setLoadedItemsCollectionId(selectedId)
     })
-  }, [selectedId])
+  }, [selectedId, mode])
 
   const selectedCollection = collections.find((c) => c.id === selectedId) ?? null
 
-  const refreshCollections = () => fetchCollectionsSummary().then(setCollections)
+  const refreshCollections = () =>
+    fetchCollectionsSummary().then((data) => {
+      setCollections(data.filter((c) => c.kind === "list"))
+    })
+
   const refreshItems = () => {
     if (selectedId) fetchResolvedCollectionItems(selectedId).then(setItems)
   }
@@ -99,29 +113,26 @@ export function ManageCollectionsDesktop({
     })
   }
 
-  const startEditing = (collection: CollectionSummary) => {
-    setEditing({ name: collection.name, description: collection.description ?? "" })
-  }
-
-  const saveEditing = () => {
-    if (!selectedCollection || !editing) return
+  const handleSaveEditing = () => {
+    if (!selectedCollection || !editingData) return
     setError(null)
     startTransition(async () => {
-      if (editing.name.trim() !== selectedCollection.name) {
-        const result = await renameCollectionAction(selectedCollection.id, editing.name)
+      if (editingData.name.trim() !== selectedCollection.name) {
+        const result = await renameCollectionAction(selectedCollection.id, editingData.name)
         if (!result.success) {
           setError(result.error)
           return
         }
       }
-      if (editing.description.trim() !== (selectedCollection.description ?? "")) {
-        const result = await updateCollectionDescriptionAction(selectedCollection.id, editing.description)
+      if (editingData.description.trim() !== (selectedCollection.description ?? "")) {
+        const result = await updateCollectionDescriptionAction(selectedCollection.id, editingData.description)
         if (!result.success) {
           setError(result.error)
           return
         }
       }
-      setEditing(null)
+      setEditingData(null)
+      setIsEditMode(false)
       await refreshCollections()
     })
   }
@@ -135,8 +146,12 @@ export function ManageCollectionsDesktop({
     }
     const remaining = collections.filter((c) => c.id !== deleteTarget.id)
     setCollections(remaining)
-    if (selectedId === deleteTarget.id) setSelectedId(remaining[0]?.id ?? null)
+    if (selectedId === deleteTarget.id) {
+      setSelectedId(remaining[0]?.id ?? null)
+      setActiveViewerItem(null)
+    }
     setDeleteTarget(null)
+    setIsEditMode(false)
   }
 
   const toggleItemSelection = (membershipId: string) => {
@@ -150,7 +165,7 @@ export function ManageCollectionsDesktop({
 
   const toggleSelectAll = () => {
     setSelectedItemIds((current) =>
-      current.size === items.length ? new Set() : new Set(items.map((item) => item.membershipId)),
+      current.size === items.length ? new Set() : new Set(items.map((item) => item.membershipId))
     )
   }
 
@@ -167,208 +182,166 @@ export function ManageCollectionsDesktop({
     })
   }
 
+  // Header Right Actions: Compact Mode Switcher [ Listes | Corpus ]
+  const headerRightActions = (
+    <div className="mr-2 inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] p-0.5" role="tablist" aria-label="Mode de vue">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "lists"}
+        onClick={() => {
+          setMode("lists")
+          setActiveViewerItem(null)
+        }}
+        className={cn(
+          "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
+          mode === "lists"
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-white/65 hover:text-white"
+        )}
+      >
+        Listes
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "corpus"}
+        onClick={() => {
+          setMode("corpus")
+          setActiveViewerItem(null)
+        }}
+        className={cn(
+          "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
+          mode === "corpus"
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-white/65 hover:text-white"
+        )}
+      >
+        Corpus
+      </button>
+    </div>
+  )
+
+  const isViewerOpen = activeViewerItem !== null
+
   return (
     <>
-      <AppDialog
+      <IntelligenceSplitModalShell
         open={open}
-        onOpenChange={onOpenChange}
-        title={<span className="text-sm font-black text-heading">Gérer les listes</span>}
-        description="Vos listes personnelles de contenus, réutilisables comme corpus dans les fonctionnalités IA."
-        className="border border-border bg-canvas transition-all duration-300 sm:!h-[min(74vh,660px)] sm:!w-[88vw] sm:!max-w-[1020px] rounded-xl flex flex-col overflow-hidden shadow-xl"
-        fillHeight
-        headerClassName="-mx-4 -mt-4 shrink-0 border-b border-border bg-surface px-4 sm:-mx-6 sm:-mt-6 sm:px-6 rounded-t-xl py-2.5"
-        bodyClassName="-mx-4 -mb-4 -mt-4 min-h-0 flex-1 overflow-hidden bg-canvas p-0 sm:-mx-6 sm:-mb-6 sm:-mt-4"
-      >
-        <div className="grid h-full grid-cols-[260px_minmax(0,1fr)] overflow-hidden">
-          <aside className="flex h-full flex-col border-r border-border bg-surface">
-            <div className="flex-1 overflow-y-auto p-2">
-              {isLoadingCollections ? (
-                <p className="p-3 text-xs text-muted">Chargement…</p>
-              ) : collections.length === 0 ? (
-                <p className="p-3 text-xs text-muted">Aucune liste pour l&apos;instant.</p>
-              ) : (
-                <ul className="space-y-0.5">
-                  {collections.map((collection) => (
-                    <li key={collection.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(collection.id)}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs font-semibold",
-                          collection.id === selectedId
-                            ? "bg-primary/10 text-primary"
-                            : "text-heading hover:bg-surface-hover",
-                        )}
-                      >
-                        <span className="min-w-0 flex-1 truncate">{collection.name}</span>
-                        <span className="shrink-0 text-[10px] font-normal text-muted">{collection.itemCount}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="shrink-0 border-t border-border p-2">
-              {creatingOpen ? (
-                <div className="space-y-2">
-                  <Input
-                    autoFocus
-                    size="sm"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Nom de la liste"
-                    fullWidth
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreate()
-                    }}
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" fullWidth onClick={handleCreate} disabled={isPending || !newName.trim()} loading={isPending}>
-                      Créer
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setCreatingOpen(false)
-                        setNewName("")
-                      }}
-                    >
-                      Annuler
-                    </Button>
+        onClose={() => onOpenChange(false)}
+        title="Gérer la connaissance"
+        headerRightActions={headerRightActions}
+        leftPane={null}
+        rightPane={null}
+        content={
+          mode === "corpus" ? (
+            /* Mode Corpus : Squelette structurel minimal avec empty-state */
+            <div className="flex flex-1 items-stretch overflow-hidden">
+              <aside className="w-[260px] shrink-0 border-r border-white/5 bg-[#0f122c] p-4 text-xs text-white/50">
+                <p className="font-bold text-white/70">Bibliothèque des corpus</p>
+                <p className="mt-2 text-[11px] leading-relaxed text-white/40">
+                  Vos corpus documentaires personnalisés apparaîtront ici.
+                </p>
+              </aside>
+              <main className="flex flex-1 items-center justify-center bg-slate-950/20 p-6 text-center text-xs text-white/50">
+                <div className="max-w-md space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
+                  <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-white/5 text-brand-brass">
+                    <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25" />
+                    </svg>
                   </div>
+                  <h4 className="font-bold text-white text-sm">Gestion des corpus</h4>
+                  <p className="text-white/60 leading-relaxed">
+                    La gestion des corpus sera disponible dans un prochain lot.
+                  </p>
                 </div>
-              ) : (
-                <Button size="sm" variant="secondary" fullWidth onClick={() => setCreatingOpen(true)}>
-                  + Créer une liste
-                </Button>
-              )}
+              </main>
             </div>
-          </aside>
-
-          <div className="flex h-full min-w-0 flex-col overflow-hidden">
-            {!selectedCollection ? (
-              <div className="flex flex-1 items-center justify-center p-6 text-center text-xs text-muted">
-                {collections.length === 0 ? "Créez une première liste pour commencer." : "Sélectionnez une liste."}
+          ) : (
+            /* Mode Listes : Layout dynamique 2 ou 3 panneaux avec animation */
+            <div className="flex flex-1 items-stretch overflow-hidden relative">
+              {/* Panneau 1 : Bibliothèque (retractée en rail si viewer ouvert) */}
+              <div
+                className={cn(
+                  "h-full shrink-0 transition-all duration-500 ease-out",
+                  isViewerOpen ? "w-[56px]" : "w-[260px]"
+                )}
+              >
+                <KnowledgeLibraryPane
+                  collections={collections}
+                  selectedId={selectedId}
+                  onSelect={(id) => {
+                    setSelectedId(id)
+                    setActiveViewerItem(null)
+                  }}
+                  isLoading={isLoadingCollections}
+                  creatingOpen={creatingOpen}
+                  setCreatingOpen={setCreatingOpen}
+                  newName={newName}
+                  setNewName={setNewName}
+                  onCreate={handleCreate}
+                  isPending={isPending}
+                  isCollapsed={isViewerOpen}
+                  onExpandLibrary={() => setActiveViewerItem(null)}
+                />
               </div>
-            ) : (
-              <>
-                <div className="shrink-0 border-b border-border p-4">
-                  {error ? <p className="mb-2 rounded bg-danger/10 p-2 text-xxs font-semibold text-danger">{error}</p> : null}
-                  {editing ? (
-                    <div className="space-y-2">
-                      <Input
-                        size="sm"
-                        value={editing.name}
-                        onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                        fullWidth
-                        placeholder="Nom"
-                      />
-                      <Textarea
-                        size="sm"
-                        value={editing.description}
-                        onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-                        fullWidth
-                        rows={2}
-                        placeholder="Description (optionnelle)"
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={saveEditing} loading={isPending}>
-                          Enregistrer
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                          Annuler
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="font-heading text-sm font-bold text-heading">{selectedCollection.name}</h3>
-                        {selectedCollection.description ? (
-                          <p className="mt-1 text-xs text-muted">{selectedCollection.description}</p>
-                        ) : null}
-                        <p className="mt-1 text-[10px] text-muted">{items.length} élément(s)</p>
-                      </div>
-                      <div className="flex shrink-0 gap-1.5">
-                        <Button size="sm" variant="secondary" onClick={() => startEditing(selectedCollection)}>
-                          Modifier
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(selectedCollection)}>
-                          Supprimer
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+
+              {/* Panneau 2 : Liste des documents (compressée si viewer ouvert) */}
+              <div
+                className={cn(
+                  "h-full flex flex-col transition-all duration-500 ease-out min-w-0",
+                  isViewerOpen ? "w-[340px] shrink-0" : "flex-1"
+                )}
+              >
+                <KnowledgeListPane
+                  collection={selectedCollection}
+                  items={items}
+                  isLoadingItems={isLoadingItems}
+                  isEditMode={isEditMode}
+                  onToggleEditMode={() => {
+                    setIsEditMode(!isEditMode)
+                    if (!isEditMode && selectedCollection) {
+                      setEditingData({
+                        name: selectedCollection.name,
+                        description: selectedCollection.description ?? "",
+                      })
+                    }
+                  }}
+                  editingData={editingData}
+                  setEditingData={setEditingData}
+                  onSaveEditing={handleSaveEditing}
+                  onCancelEditing={() => {
+                    setIsEditMode(false)
+                    setEditingData(null)
+                  }}
+                  onDeleteCollection={() => setDeleteTarget(selectedCollection)}
+                  selectedItemIds={selectedItemIds}
+                  onToggleItemSelection={toggleItemSelection}
+                  onToggleSelectAll={toggleSelectAll}
+                  onOpenPicker={(pMode) => setPickerMode(pMode)}
+                  onRemoveSelected={handleRemoveSelected}
+                  onOpenViewer={(item) => setActiveViewerItem(item)}
+                  activeViewerItemId={activeViewerItem?.membershipId}
+                  isPending={isPending}
+                  error={error}
+                />
+              </div>
+
+              {/* Panneau 3 : Visionneuse de document (Viewer) */}
+              {isViewerOpen ? (
+                <div className="h-full flex-1 min-w-0 transition-all duration-500 ease-out">
+                  <KnowledgeDocumentViewer
+                    item={activeViewerItem}
+                    onCloseViewer={() => setActiveViewerItem(null)}
+                  />
                 </div>
+              ) : null}
+            </div>
+          )
+        }
+      />
 
-                {selectedItemIds.size > 0 ? (
-                  <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2.5">
-                    <span className="text-xs font-semibold text-heading">{selectedItemIds.size} sélectionné(s)</span>
-                    <Button size="sm" variant="secondary" onClick={() => setPickerMode("add")}>
-                      Ajouter à une autre liste
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => setPickerMode("move")}>
-                      Déplacer vers…
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={handleRemoveSelected} loading={isPending}>
-                      Retirer de cette liste
-                    </Button>
-                  </div>
-                ) : null}
-
-                <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                  {isLoadingItems ? (
-                    <p className="p-4 text-center text-xs text-muted">Chargement…</p>
-                  ) : items.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-muted">
-                      Cette liste est vide. Utilisez « Ajouter à la liste » depuis un article pour la remplir.
-                    </p>
-                  ) : (
-                    <div>
-                      <label className="flex items-center gap-2 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
-                        <input
-                          type="checkbox"
-                          checked={selectedItemIds.size === items.length}
-                          onChange={toggleSelectAll}
-                          className="size-3.5 accent-primary"
-                        />
-                        Tout sélectionner
-                      </label>
-                      <ul className="divide-y divide-border">
-                        {items.map((item) => (
-                          <li key={item.membershipId} className="flex items-start gap-3 px-2 py-2.5">
-                            <input
-                              type="checkbox"
-                              checked={selectedItemIds.has(item.membershipId)}
-                              onChange={() => toggleItemSelection(item.membershipId)}
-                              className="mt-0.5 size-4 shrink-0 accent-primary"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-heading">{item.title}</p>
-                              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted">
-                                <span>{item.typeLabel}</span>
-                                {item.date ? (
-                                  <>
-                                    <span aria-hidden="true">·</span>
-                                    <span>{formatDateFr(item.date)}</span>
-                                  </>
-                                ) : null}
-                              </div>
-                              {item.preview ? <p className="mt-1 line-clamp-2 text-xs text-body">{item.preview}</p> : null}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </AppDialog>
-
+      {/* Confirmation de suppression d'une liste */}
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(next) => {
@@ -381,6 +354,7 @@ export function ManageCollectionsDesktop({
         onConfirm={handleDelete}
       />
 
+      {/* Picker d'ajout ou déplacement d'éléments */}
       {selectedCollection ? (
         <CollectionPickerDialog
           open={pickerMode !== null}
