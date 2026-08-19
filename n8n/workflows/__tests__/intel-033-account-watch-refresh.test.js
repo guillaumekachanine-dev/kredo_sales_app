@@ -642,11 +642,12 @@ async function main() {
   )
 
   // -------------------------------------------------------------------------------------------
-  // 18. Lot 6 — Métriques d'efficacité pour INTEL-033
+  // 18. Lot 6 — Propagation de workspace_id & Métriques d'efficacité pour INTEL-033
   // -------------------------------------------------------------------------------------------
   check("lot6 — nœud 'Préparer Métriques Sources' existe dans INTEL-033", Boolean(nodes["Préparer Métriques Sources"]))
   check("lot6 — nœud 'Écrire Métriques Sources' existe dans INTEL-033", Boolean(nodes["Écrire Métriques Sources"]))
 
+  // Cas A — workspaceId présent → payload métrique contient workspace_id
   {
     const reg = {
       "Shape Sector Sources": [
@@ -666,22 +667,61 @@ async function main() {
       "Map Signals to Sources": [
         { primary_source_id: "src-sec-1", title: "Signal 1" },
       ],
-      "Validate Payload": { companyId: "comp-123", runId: "run-abc" },
+      "Validate Payload": { companyId: "comp-123", workspaceId: "ws-999", runId: "run-abc" },
     }
 
     const metricsOut = await runCodeNode("Préparer Métriques Sources", reg, {})
     const rows = metricsOut.items.map((i) => i.json)
-    check("lot6 INTEL-033 — métriques : 2 lignes produites", Array.isArray(rows) && rows.length === 2)
+    check("Cas A — workspaceId présent : 2 lignes de métriques produites", Array.isArray(rows) && rows.length === 2)
     const m1 = rows.find((r) => r.source_catalog_id === "src-sec-1")
     check(
-      "lot6 INTEL-033 — src-sec-1 : query_succeeded=true, items_collected=2, items_after_dedup=1, items_retained=1",
-      Boolean(m1 && m1.query_succeeded === true && m1.items_collected === 2 && m1.items_after_dedup === 1 && m1.items_retained === 1),
+      "Cas A — workspaceId présent : m1 contient workspace_id=ws-999",
+      Boolean(m1 && m1.workspace_id === "ws-999" && m1.query_succeeded === true && m1.items_collected === 2 && m1.items_after_dedup === 1 && m1.items_retained === 1),
     )
     const m2 = rows.find((r) => r.source_catalog_id === "src-sec-2")
     check(
-      "lot6 INTEL-033 — src-sec-2 (erreur) : query_succeeded=false, items_collected=0, items_retained=0",
-      Boolean(m2 && m2.query_succeeded === false && m2.items_collected === 0 && m2.items_retained === 0),
+      "Cas A — workspaceId présent : m2 contient workspace_id=ws-999",
+      Boolean(m2 && m2.workspace_id === "ws-999" && m2.query_succeeded === false && m2.items_collected === 0 && m2.items_retained === 0),
     )
+  }
+
+  // Cas B — workspaceId absent → aucune erreur métier, écriture métrique skipped
+  {
+    const reg = {
+      "Shape Sector Sources": [
+        { sourceCatalogId: "src-sec-1", corpusId: "corp-sec-1" },
+      ],
+      "Validate Payload": { companyId: "comp-123", workspaceId: null, runId: "run-abc" },
+    }
+
+    const metricsOut = await runCodeNode("Préparer Métriques Sources", reg, {})
+    const rows = metricsOut.items.map((i) => i.json).filter(Boolean)
+    check("Cas B — workspaceId absent : métriques skipped sans erreur", Array.isArray(rows) && rows.length === 0)
+  }
+
+  // Cas C — déclenchement manuel transporte workspaceId dans Validate Payload
+  {
+    const manualPayload = {
+      body: {
+        runId: "run-manual",
+        workspaceId: "ws-manual-123",
+        companyId: "comp-manual-456",
+        userId: "user-789",
+        settings: { watchLevel: "standard" },
+        callbackUrl: "https://kredo/api/n8n/callback",
+      },
+      headers: { "x-kredo-signature": "sha256=mock" },
+      computedSignature: "mock",
+    }
+    const vpOut = await runCodeNode("Validate Payload", {}, { input: manualPayload })
+    check("Cas C — déclenchement manuel : Validate Payload transporte workspaceId=ws-manual-123", vpOut.json.workspaceId === "ws-manual-123")
+  }
+
+  // Cas D — scheduler transporte workspaceId dans son payload vers INTEL-033
+  {
+    const schedulerWorkflow = JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "account-watch-scheduler.json"), "utf8"))
+    const buildPayloadNode = schedulerWorkflow.nodes.find((n) => n.name === "Build Webhook Payload")
+    check("Cas D — scheduler : Build Webhook Payload écrit workspaceId dans rawBody payload", Boolean(buildPayloadNode && buildPayloadNode.parameters.jsCode.includes("workspaceId: row.workspace_id")))
   }
 
   console.log(`\n${passed} ok, ${failed} failed`)

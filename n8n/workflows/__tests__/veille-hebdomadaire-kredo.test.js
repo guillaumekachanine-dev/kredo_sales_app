@@ -1548,6 +1548,9 @@ check("lot6 — nœud 'Préparer Métriques Sources' existe dans le workflow", B
 const metricsResult = runCodeNode(PREPARER_METRIQUES, {
   input: [{}],
   registry: {
+    "Build Contexte KREDO": [
+      { workspaceId: "ws-test-123" },
+    ],
     "Charger Sources Effectives (Supabase)": [
       { source_id: "src-prod-1", corpus_id: "corp-1" },
       { source_id: "src-improd-2", corpus_id: "corp-1" },
@@ -1577,8 +1580,8 @@ const metricsBySrc = new Map(metricsResult.map((m) => [m.source_catalog_id, m]))
 
 const mProd = metricsBySrc.get("src-prod-1")
 check(
-  "lot6 — Cas A (source productive) : query_succeeded=true, items_collected=2, items_after_dedup=1, items_retained=1",
-  Boolean(mProd && mProd.query_succeeded === true && mProd.items_collected === 2 && mProd.items_after_dedup === 1 && mProd.items_retained === 1),
+  "lot6 — Cas A (source productive) : workspace_id=ws-test-123, query_succeeded=true, items_collected=2, items_after_dedup=1, items_retained=1",
+  Boolean(mProd && mProd.workspace_id === "ws-test-123" && mProd.query_succeeded === true && mProd.items_collected === 2 && mProd.items_after_dedup === 1 && mProd.items_retained === 1),
 )
 
 const mImprod = metricsBySrc.get("src-improd-2")
@@ -1591,6 +1594,62 @@ const mErr = metricsBySrc.get("src-err-3")
 check(
   "lot6 — Cas C (source en erreur) : query_succeeded=false, items_collected=0, items_retained=0",
   Boolean(mErr && mErr.query_succeeded === false && mErr.items_collected === 0 && mErr.items_retained === 0),
+)
+
+// Cas — Nœuds conditionnels non exécutés ('Ignorer Source En Erreur' sans aucune donnée d'exécution)
+const metricsNoErrNodeResult = runCodeNode(PREPARER_METRIQUES, {
+  input: [{}],
+  registry: {
+    "Build Contexte KREDO": [
+      { workspaceId: "ws-test-123" },
+    ],
+    "Charger Sources Effectives (Supabase)": [
+      { source_id: "src-prod-1", corpus_id: "corp-1" },
+    ],
+    "Enrichir avec Métadonnées Source": [
+      { sourceId: "src-prod-1", title: "Article 1" },
+    ],
+    // 'Ignorer Source En Erreur' non exécuté / inexistant dans le registry
+  },
+}).map((i) => i.json)
+
+check(
+  "lot6 — Nœud 'Ignorer Source En Erreur' non exécuté : Préparer Métriques Sources ne plante pas et produit query_succeeded=true",
+  Boolean(metricsNoErrNodeResult.length === 1 && metricsNoErrNodeResult[0].source_catalog_id === "src-prod-1" && metricsNoErrNodeResult[0].query_succeeded === true),
+)
+
+// Cas critique — 14 sources chargées, 0 candidat retenu après déduplication
+check(
+  "lot6 — Branchement : 'Loop Over Items — 1 Source' (output 0) est connecté à 'Préparer Métriques Sources'",
+  workflow.connections["Loop Over Items — 1 Source"].main[0].some((c) => c.node === "Préparer Métriques Sources"),
+)
+
+const loaded14Sources = Array.from({ length: 14 }, (_, i) => ({
+  source_id: `src-catalog-${i + 1}`,
+  corpus_id: `corpus-${(i % 3) + 1}`,
+}))
+
+const metrics14Sources0CandidateResult = runCodeNode(PREPARER_METRIQUES, {
+  input: [{}],
+  registry: {
+    "Build Contexte KREDO": [
+      { workspaceId: "ws-test-123" },
+    ],
+    "Charger Sources Effectives (Supabase)": loaded14Sources,
+    "Enrichir avec Métadonnées Source": [
+      { sourceId: "src-catalog-1", title: "Article Vus A" },
+      { sourceId: "src-catalog-2", title: "Article Vus B" },
+    ],
+    "Dédup + Filtre Récence + Préfiltre Qualité": [], // 0 candidat retenu après dédup !
+  },
+}).map((i) => i.json)
+
+check(
+  "lot6 — 14 sources chargées & 0 candidat après dédup : Préparer Métriques Sources s'exécute et produit 14 lignes métriques avec items_retained=0",
+  Boolean(
+    metrics14Sources0CandidateResult.length === 14 &&
+    metrics14Sources0CandidateResult.every((m) => m.workspace_id === "ws-test-123" && m.items_after_dedup === 0 && m.items_retained === 0),
+  ),
 )
 
 console.log(`\n${passed} ok · ${failed} échec(s)`)
