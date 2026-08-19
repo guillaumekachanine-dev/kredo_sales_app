@@ -14,6 +14,7 @@ import type {
   WatchedAccountSignal,
 } from "@/app/(app)/veille/_data/veille-data"
 import type { StrategicWatchAnalysis } from "../veille-desktop-contracts"
+import type { WatchAnalysisEvidenceRef } from "@/lib/n8n/types"
 
 /* ────────────────────────────────────────────────────────────
    Onglet 1 — Actualités
@@ -359,7 +360,7 @@ export type AnalysisSectionVM = {
   key: AnalysisSectionKey
   label: string
   count: number
-  items: Array<{ title: string; body: string }>
+  items: Array<{ title: string; body: string; evidenceRefs?: WatchAnalysisEvidenceRef[] }>
 }
 
 export type AnalysisIndexVM = {
@@ -405,19 +406,27 @@ function formatPeriodRange(start: string | null, end: string | null): string | n
 
 export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIndexVM {
   const content = analysis.content
-  const coverage = content?.coverage ?? null
+  const isV2 = content?.schemaVersion === 2
 
-  const rawPeriodLabel = content?.period?.label ?? analysis.title
-  const analysisTitle = rawPeriodLabel.startsWith("Analyse")
-    ? rawPeriodLabel
-    : `Analyse ${rawPeriodLabel}`
+  const rawPeriodLabel = isV2 ? "Analyse à la demande" : (content?.period?.label ?? analysis.title)
+  const analysisTitle = isV2 ? analysis.title : (rawPeriodLabel.startsWith("Analyse") ? rawPeriodLabel : `Analyse ${rawPeriodLabel}`)
 
   const producedDate = formatProducedDate(analysis.createdAt)
   const producedAtLabel = producedDate ? `produite le ${producedDate}` : null
 
+  const coverageLabel = content
+    ? isV2
+      ? `${content.coverage.articlesCount} articles · ${content.coverage.signalsCount} signaux · ${content.coverage.documentsCount} docs`
+      : `${content.coverage.articlesCount} articles · ${content.coverage.sourcesCount} sources`
+    : null
+
   const metaParts: string[] = []
-  if (coverage) {
-    metaParts.push(`${coverage.articlesCount} articles`, `${coverage.sourcesCount} sources`)
+  if (content) {
+    if (isV2) {
+      metaParts.push(`${content.coverage.articlesCount} articles`, `${content.coverage.signalsCount} signaux`, `${content.coverage.documentsCount} docs`)
+    } else {
+      metaParts.push(`${content.coverage.articlesCount} articles`, `${content.coverage.sourcesCount} sources`)
+    }
   }
   if (producedDate) {
     metaParts.push(`Produite le ${producedDate}`)
@@ -429,7 +438,11 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
       key: "trends",
       label: "Enseignements clés",
       count: content?.majorTrends?.length ?? 0,
-      items: (content?.majorTrends ?? []).map((item) => ({ title: item.title, body: item.synthesis })),
+      items: (content?.majorTrends ?? []).map((item) => ({
+        title: item.title,
+        body: item.synthesis,
+        evidenceRefs: "evidenceRefs" in item ? item.evidenceRefs : undefined,
+      })),
     },
     {
       key: "opportunities",
@@ -438,6 +451,7 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
       items: (content?.commercialOpportunities ?? []).map((item) => ({
         title: item.title,
         body: item.rationale,
+        evidenceRefs: "evidenceRefs" in item ? item.evidenceRefs : undefined,
       })),
     },
     {
@@ -447,6 +461,7 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
       items: (content?.risksAndWatchpoints ?? []).map((item) => ({
         title: item.title,
         body: item.explanation,
+        evidenceRefs: "evidenceRefs" in item ? item.evidenceRefs : undefined,
       })),
     },
   ]
@@ -456,11 +471,11 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
     title: analysis.title,
     periodLabel: rawPeriodLabel,
     analysisTitle,
-    periodRange: formatPeriodRange(analysis.periodStart, analysis.periodEnd),
+    periodRange: isV2 ? null : formatPeriodRange(analysis.periodStart, analysis.periodEnd),
     statusLabel: ANALYSIS_STATUS_LABELS[analysis.status],
     executiveSummary: content?.executiveSummary ?? "",
-    coverageLabel: coverage ? `${coverage.articlesCount} articles · ${coverage.sourcesCount} sources` : null,
-    digestsCount: coverage?.digestsCount ?? null,
+    coverageLabel,
+    digestsCount: content && "digestsCount" in content.coverage ? content.coverage.digestsCount : null,
     producedAtLabel,
     metaSubtitle,
     sections,
@@ -550,19 +565,25 @@ export function buildArchiveEntries(input: {
   }
 
   for (const analysis of input.analyses) {
+    const isV2 = analysis.analysisKind === "manual_custom" || analysis.content?.schemaVersion === 2
     const date = (analysis.periodEnd ?? analysis.createdAt).slice(0, 10)
-    const coverage = analysis.content?.coverage ?? null
+    const content = analysis.content
+    const metaLabel = content
+      ? content.schemaVersion === 2
+        ? `${content.coverage.articlesCount} articles · ${content.coverage.signalsCount} signaux · ${content.coverage.documentsCount} docs`
+        : `${content.coverage.articlesCount} articles · ${content.coverage.sourcesCount} sources`
+      : null
 
     entries.push({
       id: analysis.id,
       kind: "analysis",
-      kindLabel: "Analyse",
+      kindLabel: isV2 ? "Analyse à la demande" : "Analyse mensuelle",
       date,
       dateLabel: fullDateLabelOf(date),
       monthKey: monthKeyOf(date),
       monthLabel: monthLabelOf(date),
       title: analysis.title,
-      metaLabel: coverage ? `${coverage.articlesCount} articles · ${coverage.sourcesCount} sources` : null,
+      metaLabel,
       statusLabel: ANALYSIS_STATUS_LABELS[analysis.status],
     })
   }

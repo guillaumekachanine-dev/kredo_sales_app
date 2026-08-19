@@ -7,7 +7,7 @@ import {
   MONTHLY_WATCH_WORKFLOW_ID,
   healthFromRun,
   parseGlobalWatchSettings,
-  parseMonthlyWatchAnalysisOutput,
+  parseStrategicWatchAnalysisOutput,
   previousCalendarMonth,
   type GlobalWatchSettings,
   type GlobalWatchWorkflowHealth,
@@ -70,6 +70,13 @@ function mapStrategicWatchAnalysis(row: {
   version_number: number
   current_content_json: Database["public"]["Tables"]["intelligence_documents"]["Row"]["current_content_json"]
 }): StrategicWatchAnalysis {
+  const content = parseStrategicWatchAnalysisOutput(row.current_content_json)
+  const analysisKind = content?.schemaVersion === 2
+    ? "manual_custom"
+    : row.period_start && row.period_end
+      ? "monthly"
+      : "manual_custom"
+
   return {
     id: row.id,
     title: row.title,
@@ -79,7 +86,8 @@ function mapStrategicWatchAnalysis(row: {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     versionNumber: row.version_number,
-    content: parseMonthlyWatchAnalysisOutput(row.current_content_json),
+    analysisKind,
+    content,
   }
 }
 
@@ -92,7 +100,7 @@ export async function getStrategicWatchAnalysisHistory(limit = 12): Promise<Stra
     .eq("workspace_id", workspaceId)
     .eq("document_type", "strategic_watch_analysis")
     .neq("status", "archived")
-    .order("period_start", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(limit)
   if (error) {
     console.error("[veille] strategic analysis history:", error.message)

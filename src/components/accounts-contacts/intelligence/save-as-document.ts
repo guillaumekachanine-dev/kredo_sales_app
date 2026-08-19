@@ -126,6 +126,14 @@ function asArray(value: Json): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
+export async function isManualCustomWatchAnalysisSnapshot(inputSnapshot: unknown): Promise<boolean> {
+  if (!inputSnapshot || typeof inputSnapshot !== "object" || Array.isArray(inputSnapshot)) {
+    return false
+  }
+  const snapshot = inputSnapshot as Record<string, unknown>
+  return snapshot.schemaVersion === 2 && snapshot.triggerMode === "manual_custom"
+}
+
 export async function saveResultAsDocumentWithSupabaseClient(
   supabase: SupabaseClient<Database>,
   resultId: string,
@@ -205,44 +213,106 @@ export async function saveResultAsDocumentWithSupabaseClient(
   })
 
   if (documentType === "strategic_watch_analysis") {
-    if (!contentPeriod.start || !contentPeriod.end) {
-      return { error: "Période mensuelle absente du résultat d’analyse stratégique" }
-    }
-    const dataCutoffAt = getContentDataCutoffAt(result.content_json)
-      ?? `${contentPeriod.end}T23:59:59.999Z`
-    const { data: documentId, error: upsertError } = await supabase.rpc(
-      "upsert_strategic_watch_document",
-      {
-        p_workspace_id: result.workspace_id ?? run.workspace_id,
-        p_actor_user_id: documentOwnerId,
-        p_source_result_id: result.id,
-        p_title: buildDocumentTitle(result, documentType, run.input_snapshot),
-        p_content_text: contentText ?? "",
-        p_content_json: result.content_json,
-        p_period_start: contentPeriod.start,
-        p_period_end: contentPeriod.end,
-        p_data_cutoff_at: dataCutoffAt,
-        p_scope_json: {
-          scope: "workspace",
-          periodStart: contentPeriod.start,
-          periodEnd: contentPeriod.end,
-          source: "veille_digests_and_articles",
+    if (!(await isManualCustomWatchAnalysisSnapshot(run.input_snapshot))) {
+      if (!contentPeriod.start || !contentPeriod.end) {
+        return { error: "Période mensuelle absente du résultat d’analyse stratégique" }
+      }
+      const dataCutoffAt = getContentDataCutoffAt(result.content_json)
+        ?? `${contentPeriod.end}T23:59:59.999Z`
+      const { data: documentId, error: upsertError } = await supabase.rpc(
+        "upsert_strategic_watch_document",
+        {
+          p_workspace_id: result.workspace_id ?? run.workspace_id,
+          p_actor_user_id: documentOwnerId,
+          p_source_result_id: result.id,
+          p_title: buildDocumentTitle(result, documentType, run.input_snapshot),
+          p_content_text: contentText ?? "",
+          p_content_json: result.content_json,
+          p_period_start: contentPeriod.start,
+          p_period_end: contentPeriod.end,
+          p_data_cutoff_at: dataCutoffAt,
+          p_scope_json: {
+            scope: "workspace",
+            periodStart: contentPeriod.start,
+            periodEnd: contentPeriod.end,
+            source: "veille_digests_and_articles",
+          },
+          p_brief_json: run.input_snapshot,
+          p_source_refs: result.source_refs,
+          p_qa_flags: result.qa_flags,
         },
-        p_brief_json: run.input_snapshot,
-        p_source_refs: result.source_refs,
-        p_qa_flags: result.qa_flags,
-      },
-    )
-    if (upsertError || !documentId) {
-      return { error: upsertError?.message ?? "Impossible de versionner l’analyse stratégique" }
+      )
+      if (upsertError || !documentId) {
+        return { error: upsertError?.message ?? "Impossible de versionner l’analyse stratégique" }
+      }
+      revalidateReportsSafely()
+      try {
+        revalidatePath("/veille")
+      } catch {
+        // Le callback peut être testé hors contexte de requête Next.
+      }
+      return { success: true, documentId }
     }
+
+    const snapshotRecord = run.input_snapshot as Record<string, unknown>
+    const snapshotStats = (snapshotRecord.resolutionStats ?? snapshotRecord.stats) as { sourceGroups?: number; resolvedRefs?: number } | undefined
+    const scopeJson = {
+      scope: "workspace",
+      analysisKind: "manual_custom",
+      triggerMode: "manual_custom",
+      sourceGroups: typeof snapshotStats?.sourceGroups === "number" ? snapshotStats.sourceGroups : 0,
+      resolvedRefs: typeof snapshotStats?.resolvedRefs === "number" ? snapshotStats.resolvedRefs : 0,
+    }
+
+    const creation = await saveAsDocumentWithClient(
+      supabase,
+      documentOwnerId,
+      {
+        title: buildDocumentTitle(result, documentType, run.input_snapshot),
+        documentType,
+        origin: "generated",
+        contentText,
+        contentJson: result.content_json,
+        scopeJson,
+        dataCutoffAt: getContentDataCutoffAt(result.content_json),
+        periodStart: null,
+        periodEnd: null,
+        briefJson: run.input_snapshot,
+        sourceRefs: asArray(result.source_refs),
+        qaFlags: asArray(result.qa_flags),
+        sourceResultId: result.id,
+        links: documentEntities.links,
+        primaryEntity: documentEntities.primaryEntity,
+      },
+      { workspaceId: result.workspace_id ?? run.workspace_id }
+    )
+
+    if (!creation.success) {
+      const { data: concurrentDocument, error: concurrentDocumentError } = await supabase
+        .from("intelligence_documents")
+        .select("id")
+        .eq("source_result_id", result.id)
+        .maybeSingle()
+
+      if (!concurrentDocumentError && concurrentDocument) {
+        revalidateReportsSafely()
+        try {
+          revalidatePath("/veille")
+        } catch {}
+        return {
+          success: true,
+          documentId: (concurrentDocument as ExistingDocumentRow).id,
+          alreadyExists: true,
+        }
+      }
+      return creation
+    }
+
     revalidateReportsSafely()
     try {
       revalidatePath("/veille")
-    } catch {
-      // Le callback peut être testé hors contexte de requête Next.
-    }
-    return { success: true, documentId }
+    } catch {}
+    return { success: true, documentId: creation.documentId }
   }
 
   const creation = await saveAsDocumentWithClient(

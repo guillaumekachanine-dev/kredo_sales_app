@@ -111,6 +111,20 @@ export function VeilleAnalysesTab({
 
           <p className="mt-4 text-[15px] leading-[1.6] text-body">{item.body}</p>
 
+          {item.evidenceRefs && item.evidenceRefs.length > 0 ? (
+            <div className="mt-6 border-t border-border pt-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted">Preuve(s)</h3>
+              <ul className="mt-2 space-y-1.5">
+                {item.evidenceRefs.map((ref, idx) => (
+                  <li key={idx} className="flex flex-col text-xs">
+                    <span className="font-bold text-heading">• {ref.title || "Source"}</span>
+                    <span className="text-muted text-[11px] pl-3">{ref.provenance || "KREDO"}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <p className="mt-8 border-t border-border pt-4 text-xs text-muted">
             {index.periodLabel}
             {index.coverageLabel ? ` · ${index.coverageLabel}` : ""}
@@ -148,7 +162,7 @@ export function VeilleAnalysesTab({
             htmlFor="veille-analysis-period"
             className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted"
           >
-            Période analysée
+            Analyse
           </label>
           <select
             id="veille-analysis-period"
@@ -158,7 +172,9 @@ export function VeilleAnalysesTab({
           >
             {analyses.map((analysis) => (
               <option key={analysis.id} value={analysis.id}>
-                {analysis.content?.period?.label ?? analysis.title}
+                {analysis.analysisKind === "manual_custom" || analysis.content?.schemaVersion === 2
+                  ? `${analysis.title} · À la demande`
+                  : (analysis.content?.period?.label ?? analysis.title)}
               </option>
             ))}
           </select>

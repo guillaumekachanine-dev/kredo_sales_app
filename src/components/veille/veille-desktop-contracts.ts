@@ -1,4 +1,5 @@
 import type { Json } from "@/types/database"
+import type { WatchAnalysisOutputV2 } from "@/lib/n8n/types"
 
 export const GLOBAL_WATCH_WORKFLOW_ID = process.env.NEXT_PUBLIC_GLOBAL_WATCH_WORKFLOW_ID ?? null
 export const MONTHLY_WATCH_WORKFLOW_ID = "intel-021-monthly-watch-analysis" as const
@@ -79,6 +80,8 @@ export type MonthlyWatchAnalysisOutput = {
   coverage: { digestsCount: number; articlesCount: number; sourcesCount: number }
 }
 
+export type StrategicWatchAnalysisContent = MonthlyWatchAnalysisOutput | WatchAnalysisOutputV2
+
 export type StrategicWatchAnalysis = {
   id: string
   title: string
@@ -88,7 +91,8 @@ export type StrategicWatchAnalysis = {
   createdAt: string
   updatedAt: string
   versionNumber: number
-  content: MonthlyWatchAnalysisOutput | null
+  analysisKind: "monthly" | "manual_custom"
+  content: StrategicWatchAnalysisContent | null
 }
 
 export type MonthlyWatchGenerationContext = {
@@ -198,6 +202,30 @@ export function parseMonthlyWatchAnalysisOutput(value: Json): MonthlyWatchAnalys
   ) return null
 
   return value as unknown as MonthlyWatchAnalysisOutput
+}
+
+export function parseWatchAnalysisOutputV2(value: Json): WatchAnalysisOutputV2 | null {
+  if (!isRecord(value) || value.schemaVersion !== 2 || value.analysisKind !== "manual_custom") return null
+  if (typeof value.title !== "string" || typeof value.executiveSummary !== "string" || !isRecord(value.coverage)) return null
+  if (
+    !Array.isArray(value.majorTrends) ||
+    !Array.isArray(value.weakSignals) ||
+    !Array.isArray(value.regulatoryDevelopments) ||
+    !Array.isArray(value.commercialOpportunities) ||
+    !Array.isArray(value.risksAndWatchpoints) ||
+    !Array.isArray(value.priorityActions)
+  ) {
+    return null
+  }
+
+  return value as unknown as WatchAnalysisOutputV2
+}
+
+export function parseStrategicWatchAnalysisOutput(value: Json): StrategicWatchAnalysisContent | null {
+  if (!isRecord(value)) return null
+  if (value.schemaVersion === 1) return parseMonthlyWatchAnalysisOutput(value)
+  if (value.schemaVersion === 2) return parseWatchAnalysisOutputV2(value)
+  return null
 }
 
 export function healthFromRun(input: {

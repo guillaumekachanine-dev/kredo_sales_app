@@ -289,6 +289,7 @@ describe("buildAnalysisIndex", () => {
     createdAt: "2026-08-01T00:00:00Z",
     updatedAt: "2026-08-01T00:00:00Z",
     versionNumber: 1,
+    analysisKind: "monthly",
     content: {
       schemaVersion: 1,
       period: { start: "2026-07-01", end: "2026-07-31", label: "Juillet 2026" },

@@ -42,6 +42,11 @@ import {
   type StrategicWatchAnalysis,
   type VeilleSection,
 } from "./veille-desktop-contracts"
+import {
+  getWatchAnalysisKindLabel,
+  getWatchAnalysisDateLabel,
+} from "@/features/watch-analysis/domain/watch-analysis-presentation"
+import type { WatchAnalysisEvidenceRef } from "@/lib/n8n/types"
 import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
 import {
   VeilleAdvancedSearchPopover,
@@ -733,6 +738,24 @@ function CollapsibleSectionHeader({
   )
 }
 
+function EvidenceRefsDisplay({ evidenceRefs }: { evidenceRefs?: WatchAnalysisEvidenceRef[] }) {
+  if (!evidenceRefs || evidenceRefs.length === 0) return null
+  return (
+    <div className="mt-1.5 pl-3.5 space-y-0.5">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Preuve(s) :</span>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {evidenceRefs.map((ref, idx) => (
+          <span key={idx} className="inline-flex items-center gap-1 text-[11px] text-body">
+            <span className="font-bold text-primary">•</span>
+            <span className="font-semibold text-heading">{ref.title || "Source"}</span>
+            <span className="text-muted">({ref.provenance || "KREDO"})</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function StrategicAnalysisSection({
   analysis: initialAnalysis,
   analysisHistory,
@@ -814,9 +837,9 @@ function StrategicAnalysisSection({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">Mois civil précédent</p>
-          <h2 className="mt-0.5 font-heading text-lg font-bold text-heading">Analyse stratégique de {generation.input.periodStart.slice(0, 7)}</h2>
-          <p className="mt-0.5 text-xs text-muted">{generation.input.digestIds.length} digest(s) · {generation.input.articleIds.length} article(s) collectés</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">ANALYSES DE VEILLE</p>
+          <h2 className="mt-0.5 font-heading text-lg font-bold text-heading">Analyses stratégiques</h2>
+          <p className="mt-0.5 text-xs text-muted">Analyses à la demande et synthèses mensuelles</p>
         </div>
         <Button variant="brass" onClick={() => setComposerOpen(true)}>
           Générer une analyse
@@ -841,9 +864,14 @@ function StrategicAnalysisSection({
           <div className="paper-sheet border-r border-border px-6 py-7 lg:px-10 space-y-5">
             <div className="border-b border-border pb-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-brass">
-                  Rapport d’analyse stratégique
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-brass">
+                    Rapport d’analyse stratégique
+                  </p>
+                  <span className="border border-brand-brass/30 bg-brand-brass/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                    {getWatchAnalysisKindLabel(activeAnalysis)}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="border border-border bg-edito-canvas px-2 py-0.5 text-[10px] font-bold text-heading">
                     v{activeAnalysis.versionNumber}
@@ -857,14 +885,14 @@ function StrategicAnalysisSection({
                 {activeAnalysis.title}
               </h3>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                <span>{formatPeriod(activeAnalysis.periodStart, activeAnalysis.periodEnd)}</span>
-                <span aria-hidden="true">·</span>
-                <span>Généré le {formatDateFr(activeAnalysis.updatedAt)}</span>
+                <span>{getWatchAnalysisDateLabel(activeAnalysis)}</span>
                 {content?.coverage ? (
                   <>
                     <span aria-hidden="true">·</span>
                     <span className="font-semibold text-heading">
-                      {content.coverage.articlesCount} articles · {content.coverage.sourcesCount} sources · {content.coverage.digestsCount} digests
+                      {content.schemaVersion === 2
+                        ? `${content.coverage.articlesCount} articles · ${content.coverage.signalsCount} signaux · ${content.coverage.documentsCount} docs`
+                        : `${content.coverage.articlesCount} articles · ${content.coverage.sourcesCount} sources · ${content.coverage.digestsCount} digests`}
                     </span>
                   </>
                 ) : null}
@@ -916,8 +944,11 @@ function StrategicAnalysisSection({
                           </div>
                         </div>
                         <p className="text-xs leading-relaxed text-body pl-3.5">{trend.synthesis}</p>
-                        {trend.articleIds?.length ? (
+                        {"articleIds" in trend && trend.articleIds?.length ? (
                           <p className="text-[10px] text-muted pl-3.5">{trend.articleIds.length} article(s) associé(s)</p>
+                        ) : null}
+                        {"evidenceRefs" in trend && trend.evidenceRefs?.length ? (
+                          <EvidenceRefsDisplay evidenceRefs={trend.evidenceRefs} />
                         ) : null}
                       </div>
                     ))}
@@ -954,6 +985,12 @@ function StrategicAnalysisSection({
                           </div>
                         </div>
                         <p className="text-xs leading-relaxed text-body pl-3.5">{opp.rationale}</p>
+                        {"articleIds" in opp && opp.articleIds?.length ? (
+                          <p className="text-[10px] text-muted pl-3.5">{opp.articleIds.length} article(s) associé(s)</p>
+                        ) : null}
+                        {"evidenceRefs" in opp && opp.evidenceRefs?.length ? (
+                          <EvidenceRefsDisplay evidenceRefs={opp.evidenceRefs} />
+                        ) : null}
                         {opp.recommendedAction ? (
                           <div className="ml-3.5 flex flex-wrap items-center justify-between gap-2 border-l-2 border-brand-brass pl-3 py-1">
                             <div className="min-w-0 flex-1">
@@ -964,9 +1001,12 @@ function StrategicAnalysisSection({
                               variant="brass"
                               size="sm"
                               onClick={() => {
+                                const periodLabel = "period" in (content ?? {}) && (content as { period?: { label?: string } })?.period?.label
+                                  ? (content as { period?: { label?: string } }).period?.label
+                                  : activeAnalysis.title
                                 const mustInclude = [
                                   `Opportunité : ${opp.title}`,
-                                  `Période : ${content.period?.label ?? ""}`,
+                                  `Analyse : ${periodLabel}`,
                                   `Argumentaire : ${opp.rationale}`,
                                   `Action recommandée : ${opp.recommendedAction}`,
                                 ].join("\n")
@@ -1007,17 +1047,22 @@ function StrategicAnalysisSection({
                       const horizonLabel = act.horizon === "immediate" ? "Immédiat" : act.horizon === "30_days" ? "30 jours" : "Trimestre"
                       const horizonClass = act.horizon === "immediate" ? "border-danger/30 bg-danger/10 text-danger" : act.horizon === "30_days" ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-edito-chip text-muted"
                       return (
-                        <div key={i} className="pt-2 flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2 min-w-0 flex-1">
-                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden="true" />
-                            <div>
-                              <h5 className="font-heading text-sm font-bold text-heading">{act.title}</h5>
-                              <p className="mt-0.5 text-xs leading-relaxed text-body">{act.action}</p>
+                        <div key={i} className="pt-2 space-y-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2 min-w-0 flex-1">
+                              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden="true" />
+                              <div>
+                                <h5 className="font-heading text-sm font-bold text-heading">{act.title}</h5>
+                                <p className="mt-0.5 text-xs leading-relaxed text-body">{act.action}</p>
+                              </div>
                             </div>
+                            <span className={cn("shrink-0 border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider", horizonClass)}>
+                              {horizonLabel}
+                            </span>
                           </div>
-                          <span className={cn("shrink-0 border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider", horizonClass)}>
-                            {horizonLabel}
-                          </span>
+                          {"evidenceRefs" in act && act.evidenceRefs?.length ? (
+                            <EvidenceRefsDisplay evidenceRefs={act.evidenceRefs} />
+                          ) : null}
                         </div>
                       )
                     })}
@@ -1045,6 +1090,12 @@ function StrategicAnalysisSection({
                           <h5 className="font-heading text-sm font-bold text-heading">{risk.title}</h5>
                         </div>
                         <p className="text-xs leading-relaxed text-body pl-3.5">{risk.explanation}</p>
+                        {"articleIds" in risk && risk.articleIds?.length ? (
+                          <p className="text-[10px] text-muted pl-3.5">{risk.articleIds.length} article(s) associé(s)</p>
+                        ) : null}
+                        {"evidenceRefs" in risk && risk.evidenceRefs?.length ? (
+                          <EvidenceRefsDisplay evidenceRefs={risk.evidenceRefs} />
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -1071,6 +1122,12 @@ function StrategicAnalysisSection({
                           <h5 className="font-heading text-sm font-bold text-heading">{reg.title}</h5>
                         </div>
                         <p className="text-xs leading-relaxed text-body pl-3.5">{reg.impact}</p>
+                        {"articleIds" in reg && reg.articleIds?.length ? (
+                          <p className="text-[10px] text-muted pl-3.5">{reg.articleIds.length} article(s) associé(s)</p>
+                        ) : null}
+                        {"evidenceRefs" in reg && reg.evidenceRefs?.length ? (
+                          <EvidenceRefsDisplay evidenceRefs={reg.evidenceRefs} />
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -1097,6 +1154,12 @@ function StrategicAnalysisSection({
                           <h5 className="font-heading text-xs font-bold text-heading">{sig.title}</h5>
                         </div>
                         <p className="text-xs leading-relaxed text-body pl-3.5">{sig.synthesis}</p>
+                        {"articleIds" in sig && sig.articleIds?.length ? (
+                          <p className="text-[10px] text-muted pl-3.5">{sig.articleIds.length} article(s) associé(s)</p>
+                        ) : null}
+                        {"evidenceRefs" in sig && sig.evidenceRefs?.length ? (
+                          <EvidenceRefsDisplay evidenceRefs={sig.evidenceRefs} />
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -1108,7 +1171,7 @@ function StrategicAnalysisSection({
           <aside className="sticky top-4 space-y-6 bg-edito-canvas/55 p-5">
             {analysisHistory.length > 1 ? (
               <div>
-                <SectionHeading>Période d’analyse</SectionHeading>
+                <SectionHeading>Analyse</SectionHeading>
                 <div className="mt-3">
                   <label htmlFor="select-analysis-period" className="sr-only">
                     Sélectionner l’analyse stratégique
@@ -1121,7 +1184,9 @@ function StrategicAnalysisSection({
                   >
                     {analysisHistory.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.content?.period?.label ?? item.title} ({formatDateFr(item.updatedAt)})
+                        {item.analysisKind === "manual_custom" || item.content?.schemaVersion === 2
+                          ? `${item.title} · À la demande (${formatDateFr(item.createdAt)})`
+                          : `${(item.content && "period" in item.content && item.content.period?.label) || item.title} (${formatDateFr(item.updatedAt)})`}
                       </option>
                     ))}
                   </select>
@@ -1132,11 +1197,23 @@ function StrategicAnalysisSection({
             <div>
               <SectionHeading>Fiche du rapport</SectionHeading>
               <dl className="mt-3 divide-y divide-border text-[11px]">
+                <div className="flex justify-between py-2.5"><dt className="text-muted">Type</dt><dd className="font-bold text-heading">{getWatchAnalysisKindLabel(activeAnalysis)}</dd></div>
                 <div className="flex justify-between py-2.5"><dt className="text-muted">État</dt><dd className="font-bold uppercase text-success">{activeAnalysis.status}</dd></div>
                 <div className="flex justify-between py-2.5"><dt className="text-muted">Version</dt><dd className="font-bold text-heading">v{activeAnalysis.versionNumber}</dd></div>
-                <div className="flex justify-between py-2.5"><dt className="text-muted">Digests</dt><dd className="font-bold text-heading">{content?.coverage?.digestsCount ?? "—"}</dd></div>
-                <div className="flex justify-between py-2.5"><dt className="text-muted">Articles</dt><dd className="font-bold text-heading">{content?.coverage?.articlesCount ?? "—"}</dd></div>
-                <div className="flex justify-between py-2.5"><dt className="text-muted">Sources</dt><dd className="font-bold text-heading">{content?.coverage?.sourcesCount ?? "—"}</dd></div>
+                {content?.schemaVersion === 2 ? (
+                  <>
+                    <div className="flex justify-between py-2.5"><dt className="text-muted">Articles</dt><dd className="font-bold text-heading">{content.coverage.articlesCount}</dd></div>
+                    <div className="flex justify-between py-2.5"><dt className="text-muted">Signaux</dt><dd className="font-bold text-heading">{content.coverage.signalsCount}</dd></div>
+                    <div className="flex justify-between py-2.5"><dt className="text-muted">Documents</dt><dd className="font-bold text-heading">{content.coverage.documentsCount}</dd></div>
+                    <div className="flex justify-between py-2.5"><dt className="text-muted">Refs résolues</dt><dd className="font-bold text-heading">{content.coverage.resolvedRefs}</dd></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between py-2.5"><dt className="text-muted">Digests</dt><dd className="font-bold text-heading">{content?.coverage?.digestsCount ?? "—"}</dd></div>
+                    <div className="flex justify-between py-2.5"><dt className="text-muted">Articles</dt><dd className="font-bold text-heading">{content?.coverage?.articlesCount ?? "—"}</dd></div>
+                    <div className="flex justify-between py-2.5"><dt className="text-muted">Sources</dt><dd className="font-bold text-heading">{content?.coverage?.sourcesCount ?? "—"}</dd></div>
+                  </>
+                )}
               </dl>
             </div>
 
@@ -1158,7 +1235,8 @@ function StrategicAnalysisSection({
                 fullWidth
                 onClick={() => {
                   if (!content) return
-                  const mustInclude = `Synthèse globale de l’analyse stratégique (${content.period?.label ?? ""}) :\n${content.executiveSummary}`
+                  const periodLabel = "period" in content ? content.period?.label ?? activeAnalysis.title : activeAnalysis.title
+                  const mustInclude = `Synthèse globale de l’analyse stratégique (${periodLabel}) :\n${content.executiveSummary}`
                   const preset = buildCommunicationEntryPreset("signal_outreach", {
                     origin: "veille_signal",
                     mustInclude,
@@ -1229,7 +1307,11 @@ function HistorySection({
         <div className="mt-3 divide-y divide-border border border-border bg-surface">
           {analyses.length === 0 ? <p className="p-5 text-xs text-muted">Aucune analyse disponible.</p> : analyses.map((analysis) => (
             <Link key={analysis.id} href={`/reports?doc=${analysis.id}`} className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
-              <p className="text-[10px] text-muted">{formatPeriod(analysis.periodStart, analysis.periodEnd)}</p>
+              <p className="text-[10px] font-medium text-muted">
+                {analysis.analysisKind === "manual_custom" || analysis.content?.schemaVersion === 2
+                  ? `Analyse à la demande · ${formatDateFr(analysis.createdAt)}`
+                  : formatPeriod(analysis.periodStart, analysis.periodEnd)}
+              </p>
               <h3 className="mt-1 text-sm font-bold text-heading">{analysis.title}</h3>
               <p className="mt-2 text-[10px] text-muted">v{analysis.versionNumber} · {analysis.status} · {formatDateFr(analysis.updatedAt)}</p>
             </Link>
