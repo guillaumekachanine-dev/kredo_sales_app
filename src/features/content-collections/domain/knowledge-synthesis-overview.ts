@@ -1,4 +1,4 @@
-import { getDocumentTypeLabel } from "@/components/reports/document-display"
+import { DOCUMENT_OBJECT_LABELS } from "@/components/reports/document-display"
 
 export interface RawDocumentRecord {
   id: string
@@ -39,6 +39,12 @@ export interface MonthlyProductionPoint {
   count: number
 }
 
+export interface WeeklyProductionPoint {
+  weekKey: string  // "YYYY-Www"
+  label: string    // "S23", "S24"…
+  count: number
+}
+
 export interface TopListPoint {
   id: string
   name: string
@@ -51,6 +57,7 @@ export interface KnowledgeSynthesisOverview {
   recent30DaysCount: number
   typeDistribution: DocumentTypePoint[]
   monthlyHistory: MonthlyProductionPoint[]
+  weeklyHistory: WeeklyProductionPoint[]
   classifiedDocCount: number
   unclassifiedDocCount: number
   classifiedPercentage: number
@@ -94,7 +101,7 @@ export function buildKnowledgeSynthesisOverview(
     const label =
       typeKey === "unspecified"
         ? "Non spécifié"
-        : getDocumentTypeLabel(typeKey as Parameters<typeof getDocumentTypeLabel>[0]) ?? typeKey
+        : (DOCUMENT_OBJECT_LABELS as Record<string, string>)[typeKey] ?? typeKey
     const percentage = totalDocuments > 0 ? Math.round((count / totalDocuments) * 100) : 0
     const colorVar = DATAVIZ_COLORS[index % DATAVIZ_COLORS.length]!
 
@@ -133,6 +140,51 @@ export function buildKnowledgeSynthesisOverview(
     ([yearMonth, count]) => ({
       yearMonth,
       label: monthLabels.get(yearMonth) ?? yearMonth,
+      count,
+    }),
+  )
+
+  // 3b. Évolution hebdomadaire (8 dernières semaines)
+  function getISOWeekKey(d: Date): string {
+    // ISO week: Monday = day 1
+    const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+    const dayOfWeek = tmp.getUTCDay() || 7 // Sunday = 7
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - dayOfWeek) // Thursday of this week
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+    const weekNumber = Math.ceil(((tmp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+    return `${tmp.getUTCFullYear()}-W${String(weekNumber).padStart(2, "0")}`
+  }
+
+  const weeklyCounts = new Map<string, number>()
+  const weekLabels = new Map<string, string>()
+
+  // Initialiser les 8 dernières semaines (lundi de chaque semaine)
+  for (let i = 7; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000)
+    // Reculer au lundi de cette semaine
+    const dayOfWeek = d.getDay() || 7
+    const monday = new Date(d.getTime() - (dayOfWeek - 1) * 24 * 60 * 60 * 1000)
+    const weekKey = getISOWeekKey(monday)
+    if (!weeklyCounts.has(weekKey)) {
+      weeklyCounts.set(weekKey, 0)
+      const weekNum = weekKey.split("-W")[1]
+      weekLabels.set(weekKey, `S${weekNum}`)
+    }
+  }
+
+  for (const doc of documents) {
+    const d = new Date(doc.created_at)
+    if (isNaN(d.getTime())) continue
+    const weekKey = getISOWeekKey(d)
+    if (weeklyCounts.has(weekKey)) {
+      weeklyCounts.set(weekKey, (weeklyCounts.get(weekKey) ?? 0) + 1)
+    }
+  }
+
+  const weeklyHistory: WeeklyProductionPoint[] = Array.from(weeklyCounts.entries()).map(
+    ([weekKey, count]) => ({
+      weekKey,
+      label: weekLabels.get(weekKey) ?? weekKey,
       count,
     }),
   )
@@ -192,6 +244,7 @@ export function buildKnowledgeSynthesisOverview(
     recent30DaysCount,
     typeDistribution,
     monthlyHistory,
+    weeklyHistory,
     classifiedDocCount,
     unclassifiedDocCount,
     classifiedPercentage,

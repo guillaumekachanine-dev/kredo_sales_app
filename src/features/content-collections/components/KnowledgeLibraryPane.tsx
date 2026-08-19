@@ -135,28 +135,14 @@ export function KnowledgeLibraryPane({
           type="button"
           onClick={() => onSelectView({ type: "synthesis" })}
           className={cn(
-            "group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all cursor-pointer",
+            "group flex w-full items-center gap-2 rounded-xl border px-3 py-3 text-left transition-all cursor-pointer",
             activeView.type === "synthesis"
               ? "border-brand-brass/40 bg-brand-brass/10 text-white"
               : "border-transparent bg-transparent text-white/75 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
           )}
         >
-          <div
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-              activeView.type === "synthesis"
-                ? "bg-brand-brass/20 text-brand-brass"
-                : "bg-white/[0.05] text-white/60 group-hover:bg-white/10 group-hover:text-white",
-            )}
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-            </svg>
-          </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold truncate">Synthèse</p>
-            <p className="mt-0.5 text-[10px] text-white/50 truncate">Patrimoine de connaissance</p>
+            <p className="text-xs font-semibold truncate">Patrimoine</p>
           </div>
           <svg
             className={cn(
@@ -196,22 +182,56 @@ export function KnowledgeLibraryPane({
                     type="button"
                     onClick={() => onSelectView({ type: "list", id: col.id })}
                     className={cn(
-                      "group flex w-full flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all cursor-pointer",
+                      "group flex w-full items-center gap-1.5 rounded-xl border px-2 py-2.5 text-left transition-all cursor-pointer",
                       isSelected
                         ? "border-brand-brass/40 bg-brand-brass/10 text-white shadow-sm"
                         : "border-transparent text-white/75 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
                     )}
                   >
-                    <div className="flex items-baseline justify-between gap-1.5 min-w-0">
-                      <span className="truncate text-xs font-bold leading-tight">
-                        {col.name} <span className="font-normal text-white/60">({col.itemCount})</span>
-                      </span>
+                    {/* Icône liste */}
+                    <div
+                      className={cn(
+                        "flex size-6 shrink-0 items-center justify-center rounded-md transition-colors",
+                        isSelected
+                          ? "bg-brand-brass/20 text-brand-brass"
+                          : "bg-white/[0.05] text-white/50 group-hover:bg-white/10 group-hover:text-white/80",
+                      )}
+                    >
+                      <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h10" />
+                      </svg>
                     </div>
-                    {col.description ? (
-                      <p className="line-clamp-2 text-[10px] leading-snug text-white/50 group-hover:text-white/65">
-                        {col.description}
-                      </p>
-                    ) : null}
+
+                    {/* Nom + compteur */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="truncate text-xs font-bold leading-tight">
+                          {col.name}
+                        </span>
+                        <span className="shrink-0 text-[10px] font-normal text-white/50">({col.itemCount})</span>
+                      </div>
+                      {col.description ? (
+                        <p className="mt-0.5 line-clamp-1 text-[10px] leading-snug text-white/45 group-hover:text-white/60">
+                          {col.description}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    {/* Chevron droite */}
+                    <svg
+                      className={cn(
+                        "size-4 shrink-0 transition-transform",
+                        isSelected
+                          ? "text-brand-brass translate-x-0"
+                          : "text-white/30 group-hover:translate-x-0.5 group-hover:text-white/60",
+                      )}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </li>
               )
@@ -266,7 +286,7 @@ export function KnowledgeLibraryPane({
               variant="secondary"
               fullWidth
               onClick={() => setCreatingOpen(true)}
-              className="w-full justify-center rounded-lg border border-white/10 bg-white/[0.04] text-xs font-semibold text-white hover:bg-white/[0.08]"
+              className="w-full justify-center rounded-lg border border-white/10 bg-transparent text-xs font-semibold text-white/70 hover:bg-white/[0.05] hover:text-white transition-colors"
             >
               + Créer une liste
             </Button>

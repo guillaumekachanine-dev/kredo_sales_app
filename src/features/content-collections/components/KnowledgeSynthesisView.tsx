@@ -170,8 +170,8 @@ function TypeDonut({
   )
 }
 
-function MonthlyProductionChart({ overview }: { overview: KnowledgeSynthesisOverview }) {
-  const history = overview.monthlyHistory
+function WeeklyProductionChart({ overview }: { overview: KnowledgeSynthesisOverview }) {
+  const history = overview.weeklyHistory
   const width = 920
   const height = 300
   const paddingTop = 24
@@ -187,7 +187,7 @@ function MonthlyProductionChart({ overview }: { overview: KnowledgeSynthesisOver
     <div className="flex h-full min-h-[18rem] w-full flex-col justify-center gap-3">
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-semibold text-white/70">Évolution de la production documentaire</span>
-        <span className="text-[10px] text-white/45">6 derniers mois</span>
+        <span className="text-[10px] text-white/45">8 dernières semaines</span>
       </div>
 
       <div className="flex flex-1 items-center overflow-hidden px-1">
@@ -212,7 +212,7 @@ function MonthlyProductionChart({ overview }: { overview: KnowledgeSynthesisOver
             const y = paddingTop + usableHeight - barHeight
 
             return (
-              <g key={point.yearMonth}>
+              <g key={point.weekKey}>
                 <rect
                   x={x}
                   y={y}
@@ -240,7 +240,7 @@ function MonthlyProductionChart({ overview }: { overview: KnowledgeSynthesisOver
                   fontWeight="700"
                   fill="rgba(255,255,255,0.9)"
                 >
-                  {point.count}
+                  {point.count > 0 ? point.count : ""}
                 </text>
                 <text
                   x={x + barWidth / 2}
@@ -300,14 +300,6 @@ export function KnowledgeSynthesisView() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(201,154,43,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-5 py-5 sm:px-6">
-      {/* Header section */}
-      <div className="mb-4">
-        <h3 className="font-heading text-lg font-bold text-white">Patrimoine de connaissance</h3>
-        <p className="mt-0.5 text-xs text-white/60 leading-relaxed">
-          Analyse globale des documents générés et structurés dans votre espace KREDO.
-        </p>
-      </div>
-
       {/* ── 3 KPI PRINCIPAUX ───────────────────────────────────────── */}
       <div className="grid gap-3 pb-4 sm:grid-cols-3">
         <div className="rounded-[18px] bg-white/[0.03] px-4 py-3.5 border border-white/5 shadow-sm">
@@ -333,28 +325,8 @@ export function KnowledgeSynthesisView() {
         </div>
       </div>
 
-      {/* ── INSIGHTS DÉTERMINISTES ─────────────────────────────────── */}
-      {overview.insights.length > 0 ? (
-        <div className="mb-5 rounded-2xl border border-brand-brass/20 bg-brand-brass/[0.06] p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="size-2 rounded-full bg-brand-brass" aria-hidden="true" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-brand-brass">
-              Insights clés du patrimoine
-            </h4>
-          </div>
-          <ul className="space-y-1.5 text-xs text-white/80 leading-relaxed">
-            {overview.insights.map((insight, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span className="text-brand-brass/70 select-none">•</span>
-                <span>{insight}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       {/* ── CARROUSEL ANALYTIQUE ───────────────────────────────────── */}
-      <div className="border-t border-white/8 py-4">
+      <div className="pt-0">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h4 className="text-sm font-semibold text-white">
             {activeMode === "distribution" ? "Répartition des documents par type" : "Évolution & Analyse des listes"}
@@ -443,7 +415,7 @@ export function KnowledgeSynthesisView() {
             <section className="w-1/2 shrink-0 pl-3">
               <div className="grid h-full gap-5 lg:grid-cols-2 lg:items-stretch">
                 <div className="flex flex-col justify-between rounded-[20px] bg-white/[0.02] p-4 border border-white/5">
-                  <MonthlyProductionChart overview={overview} />
+                  <WeeklyProductionChart overview={overview} />
                 </div>
 
                 <div className="flex flex-col justify-between rounded-[20px] bg-white/[0.02] p-4 border border-white/5 space-y-4">
