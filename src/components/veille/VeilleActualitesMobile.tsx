@@ -87,8 +87,14 @@ export function VeilleActualitesMobile({
   const [isOpportunityOpen, setIsOpportunityOpen] = useState(false)
   const [isQualifyOpen, setIsQualifyOpen] = useState(false)
   const [isAddToListOpen, setIsAddToListOpen] = useState(false)
+  const [isAddAnalysisToListOpen, setIsAddAnalysisToListOpen] = useState(false)
   const [isManageListsOpen, setIsManageListsOpen] = useState(false)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
+
+  const activeAnalysis = useMemo(() => {
+    if (analyses.length === 0) return null
+    return analyses.find((analysis) => analysis.id === selectedAnalysisId) ?? analyses[0]
+  }, [analyses, selectedAnalysisId])
 
   const resolvedArticles = useMemo(
     () => allArticles.map((article) => articleOverrides[article.id] ?? article),
@@ -296,6 +302,11 @@ export function VeilleActualitesMobile({
             selectedAnalysisId={selectedAnalysisId}
             onSelectAnalysis={setSelectedAnalysisId}
             onGenerateAnalysis={() => setIsComposerOpen(true)}
+            onAddToList={(analysisId) => {
+              setSelectedAnalysisId(analysisId)
+              setIsAddAnalysisToListOpen(true)
+            }}
+            onOpenInLibrary={(analysisId) => router.push(`/reports?doc=${analysisId}`)}
           />
         ) : null}
 
@@ -344,6 +355,16 @@ export function VeilleActualitesMobile({
             onSuccess={() => showFeedback("Fenêtre commerciale créée avec succès.")}
           />
         </>
+      ) : null}
+
+      {activeAnalysis ? (
+        <AddToListSheetMobile
+          open={isAddAnalysisToListOpen}
+          onOpenChange={setIsAddAnalysisToListOpen}
+          contentType="intelligence_document"
+          contentId={activeAnalysis.id}
+          onManageLists={() => setIsManageListsOpen(true)}
+        />
       ) : null}
 
       <ManageCollectionsMobile open={isManageListsOpen} onOpenChange={setIsManageListsOpen} />

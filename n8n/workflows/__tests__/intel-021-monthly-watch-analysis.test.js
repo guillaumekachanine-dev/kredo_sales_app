@@ -30,9 +30,11 @@ async function executeCodeNode(nodeName, inputItems, context = {}) {
   const $ = (referencedNodeName) => {
     const item = context[referencedNodeName];
     if (!item) throw new Error(`Nœud référencé introuvable dans le contexte mock : ${referencedNodeName}`);
+    const itemList = Array.isArray(item) ? item : [item];
     return {
       item,
-      all: () => Array.isArray(item) ? item : [item]
+      first: () => itemList[0],
+      all: () => itemList
     };
   };
 
@@ -113,15 +115,38 @@ function testAssert(condition, message) {
     await executeCodeNode('Validate Input', [invalidVer]);
   }, /schemaVersion invalide/, 'Validate Input rejette une version inconnue');
 
-  // ── 2. Nœud Route Schema Version ─────────────────────────────────────────────
+  // ── 2. Nœud Route Schema Version (Switch Natif) ────────────────────────────────
 
-  const routeV1 = await executeCodeNode('Route Schema Version', [{ json: { schemaVersion: 1 } }]);
-  testAssert(routeV1[0].length === 1 && routeV1[1].length === 0, 'Route Schema Version dirige V1 vers la sortie 0');
+  const routeNode = getNode('Route Schema Version');
+  testAssert(routeNode.type === 'n8n-nodes-base.switch', 'Route Schema Version est un nœud Switch natif (n8n-nodes-base.switch)');
+  testAssert(routeNode.type !== 'n8n-nodes-base.code', 'Route Schema Version n’est plus un Code node');
 
-  const routeV2 = await executeCodeNode('Route Schema Version', [{ json: { schemaVersion: 2 } }]);
-  testAssert(routeV2[0].length === 0 && routeV2[1].length === 1, 'Route Schema Version dirige V2 vers la sortie 1');
+  const rules = routeNode.parameters?.rules?.values || [];
+  testAssert(rules.length === 2, 'Route Schema Version contient exactement deux règles de routage');
 
-  // ── 3. Nœud Hydrate Corpus V2 ────────────────────────────────────────────────
+  const v1Condition = rules[0]?.conditions?.conditions?.[0];
+  testAssert(
+    v1Condition?.leftValue === '={{ $json.schemaVersion }}' && v1Condition?.rightValue === 1,
+    'Règle 0 (sortie V1) filtre sur schemaVersion === 1'
+  );
+
+  const v2Condition = rules[1]?.conditions?.conditions?.[0];
+  testAssert(
+    v2Condition?.leftValue === '={{ $json.schemaVersion }}' && v2Condition?.rightValue === 2,
+    'Règle 1 (sortie V2) filtre sur schemaVersion === 2'
+  );
+
+  const routeConnections = workflow.connections['Route Schema Version']?.main || [];
+  testAssert(
+    routeConnections[0]?.[0]?.node === 'Mark Run Running',
+    'Sortie 0 (V1) est connectée au nœud Mark Run Running'
+  );
+  testAssert(
+    routeConnections[1]?.[0]?.node === 'Mark Run Running V2',
+    'Sortie 1 (V2) est connectée au nœud Mark Run Running V2'
+  );
+
+  // ── 3. Nœud Hydration V2 (Prepare Requests -> Fetch HTTP -> Assemble Corpus) ──
 
   const routeContextV2 = {
     'Route Schema Version': {
@@ -143,31 +168,51 @@ function testAssert(condition, message) {
     }
   };
 
-  const mockFetch = async (url) => {
-    if (url.includes('account_signals')) {
-      return {
-        ok: true,
-        json: async () => [{ id: 'sig-1', title: 'Signal IA', summary: 'Résumé signal', category: 'ia', detected_at: '2026-08-10' }]
-      };
-    }
-    if (url.includes('veille_articles')) {
-      return {
-        ok: true,
-        json: async () => [{ id: 'art-10', titre_fr: 'Article Cyber', source_name: 'Les Echos', resume: 'Résumé cyber' }]
-      };
-    }
-    return { ok: false };
+  // 3a. Nœud Prepare Hydration Requests V2 (génération pure de requêtes)
+  const preparedRequests = await executeCodeNode('Prepare Hydration Requests V2', [{ json: {} }], routeContextV2);
+  testAssert(preparedRequests.length === 2, 'Prepare Hydration Requests V2 produit 2 requêtes pour 2 refs');
+  testAssert(preparedRequests[0].json.url.includes('account_signals'), 'Prepare Hydration Requests V2 génère la requête account_signals');
+  testAssert(preparedRequests[0].json.url.includes('category:signal_category'), 'La requête account_signals utilise l’alias PostgREST category:signal_category');
+  testAssert(!preparedRequests[0].json.url.includes('summary,category,detected_at'), 'La requête account_signals ne contient plus la colonne category sans alias');
+  testAssert(preparedRequests[1].json.url.includes('veille_articles'), 'Prepare Hydration Requests V2 génère la requête veille_articles');
+
+  // 3b. Nœud Fetch Corpus V2 (vérification statique HTTP Request natif)
+  const fetchNode = getNode('Fetch Corpus V2');
+  testAssert(fetchNode.type === 'n8n-nodes-base.httpRequest', 'Fetch Corpus V2 est un nœud HTTP Request natif (n8n-nodes-base.httpRequest)');
+  testAssert(fetchNode.parameters.nodeCredentialType === 'supabaseApi', 'Fetch Corpus V2 utilise le credential supabaseApi');
+  testAssert(fetchNode.parameters.authentication === 'predefinedCredentialType', 'Fetch Corpus V2 utilise predefinedCredentialType');
+  testAssert(fetchNode.parameters.url === '={{ $json.url }}', 'Fetch Corpus V2 évalue dynamiquement le champ url');
+
+  // 3c. Nœud Assemble Hydrated Corpus V2 (assemblage & normalisation des réponses)
+  const mockFetchedItems = [
+    { json: [{ id: 'sig-1', company_id: 'c-1', title: 'Signal IA', summary: 'Résumé signal', category: 'ia', detected_at: '2026-08-10' }] },
+    { json: [{ id: 'art-10', digest_id: 'd-1', titre_fr: 'Article Cyber', source_name: 'Les Echos', resume: 'Résumé cyber' }] }
+  ];
+
+  const assembleHydrateContext = {
+    ...routeContextV2,
+    'Prepare Hydration Requests V2': preparedRequests
   };
 
-  const hydrated = await executeCodeNode('Hydrate Corpus V2', [{ json: {} }], { ...routeContextV2, fetch: mockFetch });
-  testAssert(hydrated[0].json.hydratedCorpus.length === 2, 'Hydrate Corpus V2 hydrate 2 items');
-  testAssert(hydrated[0].json.hydratedCorpus[0].id === 'sig-1', 'Hydrate Corpus V2 conserve les IDs des items');
-  testAssert(hydrated[0].json.hydratedCorpus[1].kind === 'veille_article', 'Hydrate Corpus V2 conserve le kind');
+  const hydrated = await executeCodeNode('Assemble Hydrated Corpus V2', mockFetchedItems, assembleHydrateContext);
+  testAssert(hydrated[0].json.hydratedCorpus.length === 2, 'Assemble Hydrated Corpus V2 assemble 2 items');
+  testAssert(hydrated[0].json.hydratedCorpus[0].id === 'sig-1', 'Assemble Hydrated Corpus V2 conserve les IDs des items');
+  testAssert(hydrated[0].json.hydratedCorpus[1].kind === 'veille_article', 'Assemble Hydrated Corpus V2 conserve le kind');
 
-  // ── 4. Nœud Assemble Prompt V2 ─────────────────────────────────────────────
+  // 3d. Contrôle d'absence de process.env, fetch( et this.helpers.httpRequest dans TOUS les Code nodes
+  for (const node of workflow.nodes) {
+    if (node.type === 'n8n-nodes-base.code') {
+      const code = node.parameters?.jsCode || '';
+      testAssert(!code.includes('process.env'), `Le Code node "${node.name}" ne contient aucun process.env`);
+      testAssert(!code.includes('fetch('), `Le Code node "${node.name}" ne contient aucun appel fetch(`);
+      testAssert(!code.includes('this.helpers.httpRequest'), `Le Code node "${node.name}" ne contient aucun this.helpers.httpRequest`);
+    }
+  }
+
+  // ── 4. Nœud Assemble Prompt V2 & Call LLM V2 (Structured Outputs) ──────────
 
   const assembleContextV2 = {
-    'Hydrate Corpus V2': {
+    'Assemble Hydrated Corpus V2': {
       json: hydrated[0].json
     }
   };
@@ -175,6 +220,13 @@ function testAssert(condition, message) {
   const assembled = await executeCodeNode('Assemble Prompt V2', [{ json: {} }], assembleContextV2);
   testAssert(assembled[0].json.systemPrompt.includes('evidenceRefs'), 'Assemble Prompt V2 contient la consigne evidenceRefs dans le systemPrompt');
   testAssert(assembled[0].json.userPrompt.includes('Analyse de risques'), 'Assemble Prompt V2 inclut l’intention utilisateur dans le userPrompt');
+
+  const llmV2Node = getNode('Call LLM V2');
+  testAssert(llmV2Node.parameters.jsonBody.includes('output_config'), 'Call LLM V2 contient la clé output_config');
+  testAssert(llmV2Node.parameters.jsonBody.includes("type: 'json_schema'"), 'Call LLM V2 demande output_config.format.type = json_schema');
+  testAssert(!llmV2Node.parameters.jsonBody.includes('schemaVersion'), 'Call LLM V2 ne demande plus schemaVersion au LLM');
+  testAssert(!llmV2Node.parameters.jsonBody.includes('analysisKind'), 'Call LLM V2 ne demande plus analysisKind au LLM');
+  testAssert(!llmV2Node.parameters.jsonBody.includes('coverage'), 'Call LLM V2 ne demande plus coverage au LLM');
 
   // ── 5. Nœud Validate Output V2 ─────────────────────────────────────────────
 
@@ -190,21 +242,18 @@ function testAssert(condition, message) {
         {
           type: 'text',
           text: JSON.stringify({
-            schemaVersion: 2,
-            analysisKind: 'manual_custom',
             title: 'Synthèse des opportunités IA',
             executiveSummary: 'Une synthèse complète.',
             majorTrends: [
-              { title: 'Tendance 1', synthesis: 'Détail 1', sectors: ['Tech'], confidence: 0.9, evidenceRefs: [{ kind: 'account_signal', id: 'sig-1' }] }
+              { title: 'Tendance 1', synthesis: 'Détail 1', sectors: ['Tech'], confidence: 0.9, evidenceRefs: ['account_signal:sig-1'] }
             ],
             weakSignals: [
-              { title: 'Signal 1', synthesis: 'Détail signal', evidenceRefs: [{ kind: 'veille_article', id: 'art-10' }] }
+              { title: 'Signal 1', synthesis: 'Détail signal', evidenceRefs: ['veille_article:art-10'] }
             ],
             regulatoryDevelopments: [],
             commercialOpportunities: [],
             risksAndWatchpoints: [],
-            priorityActions: [],
-            coverage: { sourceGroups: 2, resolvedRefs: 2, articlesCount: 1, signalsCount: 1, documentsCount: 0, totalItems: 2 }
+            priorityActions: []
           })
         }
       ],
@@ -214,17 +263,25 @@ function testAssert(condition, message) {
   };
 
   const validatedOutV2 = await executeCodeNode('Validate Output V2', [validLlmResponseV2], assembleOutputContextV2);
-  testAssert(validatedOutV2[0].json.output.schemaVersion === 2, 'Validate Output V2 valide schemaVersion 2');
-  testAssert(validatedOutV2[0].json.output.majorTrends[0].evidenceRefs[0].title === 'Signal IA', 'Validate Output V2 reconstruit le titre de evidenceRef depuis le corpus hydraté');
+  testAssert(validatedOutV2[0].json.output.schemaVersion === 2, 'Validate Output V2 injecte schemaVersion 2');
+  testAssert(validatedOutV2[0].json.output.analysisKind === 'manual_custom', 'Validate Output V2 injecte analysisKind manual_custom');
+  testAssert(validatedOutV2[0].json.output.majorTrends[0].evidenceRefs[0].title === 'Signal IA', 'Validate Output V2 reconstruit le titre canonique de evidenceRef depuis le corpus');
+  testAssert(validatedOutV2[0].json.output.majorTrends[0].evidenceRefs[0].kind === 'account_signal', 'Validate Output V2 reconstruit le kind de evidenceRef');
   testAssert(validatedOutV2[0].json.output.coverage.articlesCount === 1, 'Validate Output V2 recalcule le nombre d’articles dans la couverture');
 
-  // Test evidenceRef inconnu (doit rejeter)
+  // Test evidenceRef inconnu (doit être rejeté par Validate Output V2)
+  let validationError = null;
   await assert.rejects(async () => {
     const invalidRefLlmResponse = JSON.parse(JSON.stringify(validLlmResponseV2));
     const badText = JSON.parse(invalidRefLlmResponse.json.content[0].text);
-    badText.majorTrends[0].evidenceRefs = [{ kind: 'account_signal', id: 'sig-inconnu-999' }];
+    badText.majorTrends[0].evidenceRefs = ['account_signal:sig-inconnu-999'];
     invalidRefLlmResponse.json.content[0].text = JSON.stringify(badText);
-    await executeCodeNode('Validate Output V2', [invalidRefLlmResponse], assembleOutputContextV2);
+    try {
+      await executeCodeNode('Validate Output V2', [invalidRefLlmResponse], assembleOutputContextV2);
+    } catch (err) {
+      validationError = err;
+      throw err;
+    }
   }, /evidenceRef inconnu ou hors corpus/, 'Validate Output V2 rejette les evidenceRefs inconnues');
 
   // ── 6. Nœud Prepare Callback V2 ───────────────────────────────────────────
@@ -240,6 +297,45 @@ function testAssert(condition, message) {
   testAssert(parsedCallbackV2.resultType === 'strategic_watch_analysis', 'Prepare Callback V2 utilise le resultType strategic_watch_analysis');
   testAssert(parsedCallbackV2.status === 'succeeded', 'Prepare Callback V2 renvoie le status succeeded');
   testAssert(parsedCallbackV2.contextSnapshot.triggerMode === 'manual_custom', 'Prepare Callback V2 trace triggerMode: manual_custom dans contextSnapshot');
+
+  // ── 7. Nœud Callback (HTTP Request Natif) ────────────────────────────────
+
+  const callbackNode = getNode('Callback');
+  testAssert(callbackNode.parameters.url === '={{ $json.callbackUrl }}', 'Callback utilise $json.callbackUrl pour son URL');
+  testAssert(callbackNode.parameters.body === '={{ $json.rawBody }}', 'Callback utilise $json.rawBody pour son body');
+  testAssert(!callbackNode.parameters.url.includes('Prepare Callback'), 'Callback ne référence plus Prepare Callback V1');
+  testAssert(!callbackNode.parameters.url.includes('Prepare Callback V2'), 'Callback ne référence plus Prepare Callback V2');
+
+  // ── 8. Nœuds de Gestion d'Échec (Prepare Failure Callback & Callback Failure) ──
+
+  const prepFailureNode = getNode('Prepare Failure Callback');
+  const failureCode = prepFailureNode.parameters?.jsCode || '';
+  testAssert(!failureCode.includes("('Validate Input').item"), "Prepare Failure Callback n'utilise plus .item sur Validate Input");
+  testAssert(!failureCode.includes("('Webhook — Monthly Watch').item"), "Prepare Failure Callback n'utilise plus .item sur Webhook");
+  testAssert(failureCode.includes("('Webhook — Monthly Watch').first().json"), "Prepare Failure Callback utilise .first().json sur Webhook");
+
+  const callbackFailureNode = getNode('Callback (Failure)');
+  testAssert(callbackFailureNode.parameters.url === '={{ $json.callbackUrl }}', 'Callback (Failure) utilise $json.callbackUrl pour son URL');
+  testAssert(callbackFailureNode.parameters.body === '={{ $json.rawBody }}', 'Callback (Failure) utilise $json.rawBody pour son body');
+  testAssert(!callbackFailureNode.parameters.url.includes('Prepare Failure Callback'), 'Callback (Failure) ne référence plus Prepare Failure Callback dans son URL');
+
+  // Test d'exécution réelle du Prepare Failure Callback suite à l'erreur de validation
+  const webhookContext = {
+    'Webhook — Monthly Watch': {
+      json: {
+        body: {
+          runId: 'run-v2-fail-test',
+          callbackUrl: 'https://kredo.app/api/n8n/callback'
+        }
+      }
+    }
+  };
+  const failureInput = [{ json: { error: { message: validationError?.message || 'Erreur simulée' } } }];
+  const prepFailureOutput = await executeCodeNode('Prepare Failure Callback', failureInput, webhookContext);
+  testAssert(prepFailureOutput[0].json.callbackUrl === 'https://kredo.app/api/n8n/callback', 'Prepare Failure Callback extrait correctement callbackUrl depuis Webhook first()');
+  const parsedFailureRawBody = JSON.parse(prepFailureOutput[0].json.rawBody);
+  testAssert(parsedFailureRawBody.status === 'failed', 'Prepare Failure Callback produit un status failed');
+  testAssert(parsedFailureRawBody.errorMessage.includes('evidenceRef inconnu'), 'Prepare Failure Callback capte le message d’erreur provenant de Validate Output V2');
 
   console.log(`\n✅ TOUS LES TESTS INTEL-021 V1/V2 ONT RÉUSSI (${assertionsCount} assertions)`);
 })();

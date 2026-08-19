@@ -18,6 +18,8 @@ type VeilleAnalysesTabProps = {
   selectedAnalysisId: string | null
   onSelectAnalysis: (analysisId: string | null) => void
   onGenerateAnalysis: () => void
+  onAddToList?: (analysisId: string) => void
+  onOpenInLibrary?: (analysisId: string) => void
 }
 
 const SECTION_ICONS: Record<AnalysisSectionKey, React.ComponentType<{ className?: string }>> = {
@@ -31,11 +33,18 @@ export function VeilleAnalysesTab({
   selectedAnalysisId,
   onSelectAnalysis,
   onGenerateAnalysis,
+  onAddToList,
+  onOpenInLibrary,
 }: VeilleAnalysesTabProps) {
   const activeAnalysis = useMemo(() => {
     if (analyses.length === 0) return null
     return analyses.find((analysis) => analysis.id === selectedAnalysisId) ?? analyses[0]
   }, [analyses, selectedAnalysisId])
+
+  const isManualCustom = useMemo(() => {
+    if (!activeAnalysis) return false
+    return activeAnalysis.analysisKind === "manual_custom" || activeAnalysis.content?.schemaVersion === 2
+  }, [activeAnalysis])
 
   const index = useMemo(() => (activeAnalysis ? buildAnalysisIndex(activeAnalysis) : null), [activeAnalysis])
 
@@ -138,6 +147,16 @@ export function VeilleAnalysesTab({
     <div className="veille-scrollbar h-full overflow-y-auto overscroll-contain bg-surface">
       <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
         <div className="min-w-0 flex-1">
+          <span
+            className={cn(
+              "inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider mb-1.5",
+              isManualCustom
+                ? "border border-[#2554B8]/30 bg-[#2554B8]/10 text-[#2554B8]"
+                : "border border-brand-brass/30 bg-brand-brass/10 text-brand-brass",
+            )}
+          >
+            {isManualCustom ? "À la demande" : "Mensuelle"}
+          </span>
           <h1 className="text-[17px] font-bold leading-6 text-heading">
             {index.analysisTitle}
           </h1>
@@ -181,12 +200,36 @@ export function VeilleAnalysesTab({
         </div>
       ) : null}
 
+      {activeAnalysis && (onAddToList || onOpenInLibrary) ? (
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          {onOpenInLibrary ? (
+            <button
+              type="button"
+              onClick={() => onOpenInLibrary(activeAnalysis.id)}
+              className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-[var(--radius-small)] border border-border bg-surface text-xs font-semibold text-heading hover:bg-surface-hover outline-none focus-visible:ring-2 focus-visible:ring-heading"
+            >
+              Voir dans la bibliothèque
+            </button>
+          ) : null}
+          {onAddToList ? (
+            <button
+              type="button"
+              onClick={() => onAddToList(activeAnalysis.id)}
+              className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-[var(--radius-small)] border border-border bg-surface text-xs font-semibold text-heading hover:bg-surface-hover outline-none focus-visible:ring-2 focus-visible:ring-heading"
+            >
+              Ajouter à…
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {index.executiveSummary ? (
         <div className="border-b border-border px-4 py-5">
           <h2 className="mb-2.5 text-[18px] font-bold text-heading">Synthèse</h2>
           <p
             className={cn(
-              "border-l-[3px] border-brand-brass pl-4 text-[16px] leading-[1.5] text-heading",
+              "border-l-[3px] pl-4 text-[16px] leading-[1.5] text-heading",
+              isManualCustom ? "border-[#2554B8]" : "border-brand-brass",
               summaryExpanded ? undefined : "line-clamp-4",
             )}
           >

@@ -492,6 +492,7 @@ export type ArchiveEntryVM = {
   id: string
   kind: ArchiveEntryKind
   kindLabel: string
+  isManualCustom?: boolean
   /** ISO date (YYYY-MM-DD) servant au tri et au regroupement mensuel. */
   date: string
   dateLabel: string
@@ -578,6 +579,7 @@ export function buildArchiveEntries(input: {
       id: analysis.id,
       kind: "analysis",
       kindLabel: isV2 ? "Analyse à la demande" : "Analyse mensuelle",
+      isManualCustom: isV2,
       date,
       dateLabel: fullDateLabelOf(date),
       monthKey: monthKeyOf(date),

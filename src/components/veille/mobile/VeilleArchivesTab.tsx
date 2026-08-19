@@ -123,7 +123,10 @@ export function VeilleArchivesTab({ entries, onOpenEntry }: VeilleArchivesTabPro
                   <li key={`${entry.kind}-${entry.id}`} className="relative border-b border-border last:border-b-0">
                     <span
                       aria-hidden="true"
-                      className="absolute -left-[22px] top-5 size-3 rounded-full border-2 border-surface bg-brand-brass"
+                      className={cn(
+                        "absolute -left-[22px] top-5 size-3 rounded-full border-2 border-surface",
+                        entry.kind === "analysis" && entry.isManualCustom ? "bg-[#2554B8]" : "bg-brand-brass",
+                      )}
                     />
                     <button
                       type="button"
@@ -132,7 +135,16 @@ export function VeilleArchivesTab({ entries, onOpenEntry }: VeilleArchivesTabPro
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm text-body">{entry.dateLabel}</span>
-                        <span className="mt-0.5 block text-sm font-semibold text-primary">
+                        <span
+                          className={cn(
+                            "mt-0.5 block text-sm font-semibold",
+                            entry.kind === "analysis" && entry.isManualCustom
+                              ? "text-[#2554B8]"
+                              : entry.kind === "analysis"
+                                ? "text-brand-brass"
+                                : "text-primary",
+                          )}
+                        >
                           {entry.kindLabel}
                         </span>
                         <span className="mt-2 block text-[15px] font-bold leading-6 text-heading">

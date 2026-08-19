@@ -2,11 +2,45 @@ import type { StrategicWatchAnalysis, StrategicWatchAnalysisContent } from "@/co
 import type { WatchAnalysisEvidenceRef } from "@/lib/n8n/types"
 import { formatDateFr } from "@/lib/formatters"
 
+export function isManualCustomWatchAnalysis(
+  analysis: Pick<StrategicWatchAnalysis, "analysisKind"> & { content?: { schemaVersion?: number } | null }
+): boolean {
+  return analysis.analysisKind === "manual_custom" || analysis.content?.schemaVersion === 2
+}
+
 export function getWatchAnalysisKindLabel(analysis: StrategicWatchAnalysis): string {
-  if (analysis.analysisKind === "manual_custom" || analysis.content?.schemaVersion === 2) {
+  if (isManualCustomWatchAnalysis(analysis)) {
     return "À la demande"
   }
   return "Mensuelle"
+}
+
+export function getWatchAnalysisBadgeStyle(
+  analysis: Pick<StrategicWatchAnalysis, "analysisKind"> & { content?: { schemaVersion?: number } | null }
+): {
+  badgeClassName: string
+  textClassName: string
+  dotClassName: string
+  borderClassName: string
+  isManualCustom: boolean
+} {
+  const isManual = isManualCustomWatchAnalysis(analysis)
+  if (isManual) {
+    return {
+      badgeClassName: "border border-[#2554B8]/30 bg-[#2554B8]/10 text-[#2554B8]",
+      textClassName: "text-[#2554B8]",
+      dotClassName: "bg-[#2554B8]",
+      borderClassName: "border-[#2554B8]",
+      isManualCustom: true,
+    }
+  }
+  return {
+    badgeClassName: "border border-brand-brass/30 bg-brand-brass/10 text-brand-brass",
+    textClassName: "text-brand-brass",
+    dotClassName: "bg-brand-brass",
+    borderClassName: "border-brand-brass",
+    isManualCustom: false,
+  }
 }
 
 export function getWatchAnalysisDateLabel(analysis: StrategicWatchAnalysis): string {

@@ -46,13 +46,60 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const item = $input.first().json;\nif (item.schemaVersion === 2) {\n  return [ [], [{ json: item }] ];\n}\nreturn [ [{ json: item }], [] ];"
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.schemaVersion }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "V1"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.schemaVersion }}",
+                    "rightValue": 2,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "V2"
+            }
+          ]
+        }
       },
       "id": "route-schema-version",
       "name": "Route Schema Version",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
       "position": [730, 280]
     },
     {
@@ -186,10 +233,10 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const base = $('Route Schema Version').item.json;\nconst workspaceId = base.workspaceId;\nconst refs = base.input.refs || [];\n\nconst supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jvzgmhvwirsbdkjpmvla.supabase.co';\nconst supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';\n\nasync function querySupabase(table, queryStr) {\n  const url = `${supabaseUrl}/rest/v1/${table}?${queryStr}`;\n  if (typeof this !== 'undefined' && this.helpers && typeof this.helpers.httpRequest === 'function') {\n    return await this.helpers.httpRequest({\n      method: 'GET',\n      url,\n      headers: {\n        'apikey': supabaseKey,\n        'Authorization': `Bearer ${supabaseKey}`,\n        'Accept': 'application/json'\n      },\n      json: true\n    });\n  } else if (typeof fetch === 'function') {\n    const res = await fetch(url, {\n      headers: {\n        'apikey': supabaseKey,\n        'Authorization': `Bearer ${supabaseKey}`,\n        'Accept': 'application/json'\n      }\n    });\n    if (!res.ok) throw new Error(`HTTP ${res.status} on ${table}`);\n    return await res.json();\n  } else {\n    throw new Error('Aucun client HTTP disponible pour querySupabase');\n  }\n}\n\nconst hydratedItems = [];\n\nfor (const ref of refs) {\n  if (ref.kind === 'veille_digest') {\n    let query;\n    if (Array.isArray(ref.articleIds) && ref.articleIds.length > 0) {\n      const idsStr = ref.articleIds.join(',');\n      query = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&id=in.(${idsStr})&workspace_id=eq.${workspaceId}`;\n    } else {\n      query = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&digest_id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    }\n    const rows = await querySupabase('veille_articles', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    if (list.length === 0 || (Array.isArray(ref.articleIds) && list.length < ref.articleIds.length)) {\n      throw new Error('Référence non hydratable : veille_digest ' + ref.id);\n    }\n    for (const item of list) {\n      if (!item || !item.id) continue;\n      hydratedItems.push({\n        kind: 'veille_article',\n        id: item.id,\n        title: item.titre_fr || 'Article de veille',\n        provenance: item.source_name || 'Veille KREDO',\n        content: JSON.stringify({\n          titre: item.titre_fr,\n          resume: item.resume,\n          analyse_kredo: item.analyse_kredo,\n          action_commerciale: item.action_commerciale,\n          categorie: item.categorie,\n          secteur: item.secteur_principal,\n          published_at: item.published_at\n        })\n      });\n    }\n  } else if (ref.kind === 'veille_article') {\n    const query = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    const rows = await querySupabase('veille_articles', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    const item = list[0];\n    if (!item || !item.id) throw new Error('Référence non hydratable : veille_article ' + ref.id);\n    hydratedItems.push({\n      kind: 'veille_article',\n      id: item.id,\n      title: item.titre_fr || 'Article de veille',\n      provenance: item.source_name || 'Veille KREDO',\n      content: JSON.stringify({\n        titre: item.titre_fr,\n        resume: item.resume,\n        analyse_kredo: item.analyse_kredo,\n        action_commerciale: item.action_commerciale,\n        categorie: item.categorie,\n        secteur: item.secteur_principal,\n        published_at: item.published_at\n      })\n    });\n  } else if (ref.kind === 'account_signal') {\n    const query = `select=id,company_id,title,summary,category,detected_at,recommended_action&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    const rows = await querySupabase('account_signals', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    const item = list[0];\n    if (!item || !item.id) throw new Error('Référence non hydratable : account_signal ' + ref.id);\n    hydratedItems.push({\n      kind: 'account_signal',\n      id: item.id,\n      title: item.title || 'Signal compte',\n      provenance: 'Signal compte KREDO',\n      content: JSON.stringify({\n        title: item.title,\n        summary: item.summary,\n        category: item.category,\n        detected_at: item.detected_at,\n        recommended_action: item.recommended_action\n      })\n    });\n  } else if (ref.kind === 'intelligence_document') {\n    const query = `select=id,title,document_type,current_content_text,current_content_json&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    const rows = await querySupabase('intelligence_documents', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    const item = list[0];\n    if (!item || !item.id) throw new Error('Référence non hydratable : intelligence_document ' + ref.id);\n    hydratedItems.push({\n      kind: 'intelligence_document',\n      id: item.id,\n      title: item.title || 'Document KREDO',\n      provenance: 'Bibliothèque documentaire KREDO',\n      content: item.current_content_text || JSON.stringify(item.current_content_json || {})\n    });\n  }\n}\n\nconst dedupedMap = new Map();\nfor (const item of hydratedItems) {\n  const key = `${item.kind}:${item.id}`;\n  if (!dedupedMap.has(key)) {\n    dedupedMap.set(key, item);\n  }\n}\n\nconst hydratedCorpus = Array.from(dedupedMap.values());\nif (hydratedCorpus.length === 0) throw new Error('Corpus V2 vide');\n\nreturn [{ json: { ...base, hydratedCorpus } }];"
+        "jsCode": "const base = $('Route Schema Version').item.json;\nconst workspaceId = base.workspaceId;\nconst refs = base.input.refs || [];\n\nif (!workspaceId) throw new Error('workspaceId manquant pour l’hydratation V2');\nif (!Array.isArray(refs) || refs.length === 0) throw new Error('refs vide ou invalide pour l’hydratation V2');\n\nconst supabaseUrl = 'https://jvzgmhvwirsbdkjpmvla.supabase.co';\nconst requests = [];\n\nfor (let i = 0; i < refs.length; i++) {\n  const ref = refs[i];\n  if (!ref || typeof ref !== 'object' || !ref.kind || typeof ref.id !== 'string') {\n    throw new Error('Référence invalide dans refs');\n  }\n\n  if (ref.kind === 'veille_digest') {\n    let queryStr;\n    if (Array.isArray(ref.articleIds) && ref.articleIds.length > 0) {\n      const idsStr = ref.articleIds.join(',');\n      queryStr = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&id=in.(${idsStr})&workspace_id=eq.${workspaceId}`;\n    } else {\n      queryStr = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&digest_id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    }\n    requests.push({\n      json: {\n        refIndex: i,\n        kind: 'veille_digest',\n        refId: ref.id,\n        expectedArticleIds: ref.articleIds || null,\n        url: `${supabaseUrl}/rest/v1/veille_articles?${queryStr}`\n      }\n    });\n  } else if (ref.kind === 'veille_article') {\n    const queryStr = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    requests.push({\n      json: {\n        refIndex: i,\n        kind: 'veille_article',\n        refId: ref.id,\n        url: `${supabaseUrl}/rest/v1/veille_articles?${queryStr}`\n      }\n    });\n  } else if (ref.kind === 'account_signal') {\n    const queryStr = `select=id,company_id,title,summary,category:signal_category,detected_at,recommended_action&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    requests.push({\n      json: {\n        refIndex: i,\n        kind: 'account_signal',\n        refId: ref.id,\n        url: `${supabaseUrl}/rest/v1/account_signals?${queryStr}`\n      }\n    });\n  } else if (ref.kind === 'intelligence_document') {\n    const queryStr = `select=id,title,document_type,current_content_text,current_content_json&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    requests.push({\n      json: {\n        refIndex: i,\n        kind: 'intelligence_document',\n        refId: ref.id,\n        url: `${supabaseUrl}/rest/v1/intelligence_documents?${queryStr}`\n      }\n    });\n  } else {\n    throw new Error('Kind non supporté pour l’hydratation : ' + ref.kind);\n  }\n}\n\nreturn requests;"
       },
-      "id": "hydrate-corpus-v2",
-      "name": "Hydrate Corpus V2",
+      "id": "prepare-hydration-requests-v2",
+      "name": "Prepare Hydration Requests V2",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1060, 480],
@@ -197,14 +244,47 @@
     },
     {
       "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "fetch-corpus-v2",
+      "name": "Fetch Corpus V2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const base = $('Hydrate Corpus V2').item.json;\nconst intention = base.input.intention;\nconst corpus = base.hydratedCorpus || [];\n\nconst systemPrompt = `Tu produis une analyse stratégique sur mesure à partir du corpus fourni et de l'intention utilisateur.\nRègles absolues :\n1. N'effectue aucune recherche externe.\n2. Utilise uniquement le corpus fourni. Aucun fait inventé.\n3. Chaque conclusion (tendance, signal faible, évolution réglementaire, opportunité commerciale, risque, action prioritaire) DOIT citer au moins une preuve valide via \"evidenceRefs\".\n4. Chaque \"evidenceRef\" doit être un objet contenant uniquement : {\"kind\": \"...\", \"id\": \"...\"}.\n   Kinds autorisés : \"veille_article\", \"account_signal\", \"intelligence_document\".\n   Seuls les IDs présents dans le corpus sont autorisés.\n5. La sortie doit être un JSON strict respectant exactement le schéma demandé.`;\n\nconst schemaExpected = {\n  schemaVersion: 2,\n  analysisKind: \"manual_custom\",\n  title: \"Titre explicite de l'analyse synthétisant l'angle\",\n  executiveSummary: \"Synthèse exécutive guidée par l'intention utilisateur\",\n  majorTrends: [{\n    title: \"string\",\n    synthesis: \"string\",\n    sectors: [\"string\"],\n    confidence: 0.85,\n    evidenceRefs: [{ kind: \"veille_article\", id: \"uuid\" }]\n  }],\n  weakSignals: [{\n    title: \"string\",\n    synthesis: \"string\",\n    evidenceRefs: [{ kind: \"account_signal\", id: \"uuid\" }]\n  }],\n  regulatoryDevelopments: [{\n    title: \"string\",\n    impact: \"string\",\n    evidenceRefs: [{ kind: \"intelligence_document\", id: \"uuid\" }]\n  }],\n  commercialOpportunities: [{\n    title: \"string\",\n    rationale: \"string\",\n    recommendedAction: \"string\",\n    practices: [\"string\"],\n    evidenceRefs: [{ kind: \"veille_article\", id: \"uuid\" }]\n  }],\n  risksAndWatchpoints: [{\n    title: \"string\",\n    explanation: \"string\",\n    evidenceRefs: [{ kind: \"account_signal\", id: \"uuid\" }]\n  }],\n  priorityActions: [{\n    title: \"string\",\n    action: \"string\",\n    horizon: \"immediate\",\n    evidenceRefs: [{ kind: \"veille_article\", id: \"uuid\" }]\n  }]\n};\n\nconst userPrompt = `INTENTION UTILISATEUR :\\n${intention}\\n\\nSCHÉMA JSON ATTENDU :\\n${JSON.stringify(schemaExpected, null, 2)}\\n\\nCORPUS DE SOURCES FOURNI :\\n${JSON.stringify(corpus, null, 2)}`;\n\nreturn [{ json: { ...base, systemPrompt, userPrompt } }];"
+        "jsCode": "const base = $('Route Schema Version').item.json;\nconst requests = $('Prepare Hydration Requests V2').all().map(i => i.json);\nconst rawFetched = $input.all().map(i => i.json);\nconst fetchedRows = rawFetched\n  .flatMap(v => Array.isArray(v) ? v : [v])\n  .filter(v => v && typeof v === 'object' && v.id);\n\nfunction identifyKind(row) {\n  if (row.titre_fr !== undefined || row.digest_id !== undefined || row.source_name !== undefined) {\n    return 'veille_article';\n  }\n  if (row.summary !== undefined || row.detected_at !== undefined || row.company_id !== undefined) {\n    return 'account_signal';\n  }\n  if (row.document_type !== undefined || row.current_content_text !== undefined || row.current_content_json !== undefined) {\n    return 'intelligence_document';\n  }\n  return null;\n}\n\nconst hydratedItems = [];\n\nfor (const req of requests) {\n  if (req.kind === 'veille_digest') {\n    let matchingRows = fetchedRows.filter(r => identifyKind(r) === 'veille_article');\n    if (Array.isArray(req.expectedArticleIds) && req.expectedArticleIds.length > 0) {\n      const expectedSet = new Set(req.expectedArticleIds);\n      matchingRows = matchingRows.filter(r => expectedSet.has(r.id));\n      if (matchingRows.length < req.expectedArticleIds.length) {\n        throw new Error('Référence non hydratable : veille_digest ' + req.refId);\n      }\n    } else {\n      matchingRows = matchingRows.filter(r => r.digest_id === req.refId);\n      if (matchingRows.length === 0) {\n        throw new Error('Référence non hydratable : veille_digest ' + req.refId);\n      }\n    }\n    for (const item of matchingRows) {\n      hydratedItems.push({\n        kind: 'veille_article',\n        id: item.id,\n        title: item.titre_fr || 'Article de veille',\n        provenance: item.source_name || 'Veille KREDO',\n        content: JSON.stringify({\n          titre: item.titre_fr,\n          resume: item.resume,\n          analyse_kredo: item.analyse_kredo,\n          action_commerciale: item.action_commerciale,\n          categorie: item.categorie,\n          secteur: item.secteur_principal,\n          published_at: item.published_at\n        })\n      });\n    }\n  } else if (req.kind === 'veille_article') {\n    const item = fetchedRows.find(r => identifyKind(r) === 'veille_article' && r.id === req.refId);\n    if (!item) throw new Error('Référence non hydratable : veille_article ' + req.refId);\n    hydratedItems.push({\n      kind: 'veille_article',\n      id: item.id,\n      title: item.titre_fr || 'Article de veille',\n      provenance: item.source_name || 'Veille KREDO',\n      content: JSON.stringify({\n        titre: item.titre_fr,\n        resume: item.resume,\n        analyse_kredo: item.analyse_kredo,\n        action_commerciale: item.action_commerciale,\n        categorie: item.categorie,\n        secteur: item.secteur_principal,\n        published_at: item.published_at\n      })\n    });\n  } else if (req.kind === 'account_signal') {\n    const item = fetchedRows.find(r => identifyKind(r) === 'account_signal' && r.id === req.refId);\n    if (!item) throw new Error('Référence non hydratable : account_signal ' + req.refId);\n    hydratedItems.push({\n      kind: 'account_signal',\n      id: item.id,\n      title: item.title || 'Signal compte',\n      provenance: 'Signal compte KREDO',\n      content: JSON.stringify({\n        title: item.title,\n        summary: item.summary,\n        category: item.category,\n        detected_at: item.detected_at,\n        recommended_action: item.recommended_action\n      })\n    });\n  } else if (req.kind === 'intelligence_document') {\n    const item = fetchedRows.find(r => identifyKind(r) === 'intelligence_document' && r.id === req.refId);\n    if (!item) throw new Error('Référence non hydratable : intelligence_document ' + req.refId);\n    hydratedItems.push({\n      kind: 'intelligence_document',\n      id: item.id,\n      title: item.title || 'Document KREDO',\n      provenance: 'Bibliothèque documentaire KREDO',\n      content: item.current_content_text || JSON.stringify(item.current_content_json || {})\n    });\n  }\n}\n\nconst dedupedMap = new Map();\nfor (const item of hydratedItems) {\n  const key = `${item.kind}:${item.id}`;\n  if (!dedupedMap.has(key)) {\n    dedupedMap.set(key, item);\n  }\n}\n\nconst hydratedCorpus = Array.from(dedupedMap.values());\nif (hydratedCorpus.length === 0) throw new Error('Corpus V2 vide');\n\nreturn [{ json: { ...base, hydratedCorpus } }];"
+      },
+      "id": "assemble-hydrated-corpus-v2",
+      "name": "Assemble Hydrated Corpus V2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const base = $('Assemble Hydrated Corpus V2').item.json;\nconst intention = base.input.intention;\nconst corpus = base.hydratedCorpus || [];\n\nconst systemPrompt = `Tu produis une analyse stratégique sur mesure à partir du corpus fourni et de l'intention utilisateur.\nRègles absolues :\n1. N'effectue aucune recherche externe.\n2. Utilise uniquement le corpus fourni. Aucun fait inventé.\n3. Chaque conclusion (tendance, signal faible, évolution réglementaire, opportunité commerciale, risque, action prioritaire) DOIT citer au moins une preuve valide via \"evidenceRefs\".\n4. Chaque element de \"evidenceRefs\" doit être une chaîne au format \"kind:id\" (ex: \"veille_article:uuid\", \"account_signal:uuid\", \"intelligence_document:uuid\").\n   Kinds autorisés : \"veille_article\", \"account_signal\", \"intelligence_document\".\n   Seuls les IDs présents dans le corpus sont autorisés.\n5. La sortie doit être un JSON strict respectant exactement le schéma demandé.`;\n\nconst schemaExpected = {\n  title: \"Titre explicite de l'analyse synthétisant l'angle\",\n  executiveSummary: \"Synthèse exécutive guidée par l'intention utilisateur\",\n  majorTrends: [{\n    title: \"string\",\n    synthesis: \"string\",\n    sectors: [\"string\"],\n    confidence: 0.85,\n    evidenceRefs: [\"account_signal:uuid\", \"veille_article:uuid\"]\n  }],\n  weakSignals: [{\n    title: \"string\",\n    synthesis: \"string\",\n    evidenceRefs: [\"veille_article:uuid\"]\n  }],\n  regulatoryDevelopments: [{\n    title: \"string\",\n    impact: \"string\",\n    evidenceRefs: [\"intelligence_document:uuid\"]\n  }],\n  commercialOpportunities: [{\n    title: \"string\",\n    rationale: \"string\",\n    recommendedAction: \"string\",\n    practices: [\"string\"],\n    evidenceRefs: [\"veille_article:uuid\"]\n  }],\n  risksAndWatchpoints: [{\n    title: \"string\",\n    explanation: \"string\",\n    evidenceRefs: [\"account_signal:uuid\"]\n  }],\n  priorityActions: [{\n    title: \"string\",\n    action: \"string\",\n    horizon: \"immediate\",\n    evidenceRefs: [\"veille_article:uuid\"]\n  }]\n};\n\nconst userPrompt = `INTENTION UTILISATEUR :\\n${intention}\\n\\nSCHÉMA JSON ATTENDU :\\n${JSON.stringify(schemaExpected, null, 2)}\\n\\nCORPUS DE SOURCES FOURNI :\\n${JSON.stringify(corpus, null, 2)}`;\n\nreturn [{ json: { ...base, systemPrompt, userPrompt } }];"
       },
       "id": "assemble-v2",
       "name": "Assemble Prompt V2",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1500, 480],
+      "position": [1720, 480],
       "onError": "continueErrorOutput"
     },
     {
@@ -218,7 +298,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ { model: 'claude-sonnet-5', max_tokens: 5000, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] } }}",
+        "jsonBody": "={{ { model: 'claude-sonnet-5', max_tokens: 5000, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }], output_config: { format: { type: 'json_schema', schema: { type: 'object', properties: { title: { type: 'string' }, executiveSummary: { type: 'string' }, majorTrends: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, synthesis: { type: 'string' }, sectors: { type: 'array', items: { type: 'string' } }, confidence: { type: 'number' }, evidenceRefs: { type: 'array', items: { type: 'string' } } }, required: ['title', 'synthesis', 'sectors', 'confidence', 'evidenceRefs'], additionalProperties: false } }, weakSignals: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, synthesis: { type: 'string' }, evidenceRefs: { type: 'array', items: { type: 'string' } } }, required: ['title', 'synthesis', 'evidenceRefs'], additionalProperties: false } }, regulatoryDevelopments: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, impact: { type: 'string' }, evidenceRefs: { type: 'array', items: { type: 'string' } } }, required: ['title', 'impact', 'evidenceRefs'], additionalProperties: false } }, commercialOpportunities: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, rationale: { type: 'string' }, recommendedAction: { type: 'string' }, practices: { type: 'array', items: { type: 'string' } }, evidenceRefs: { type: 'array', items: { type: 'string' } } }, required: ['title', 'rationale', 'recommendedAction', 'practices', 'evidenceRefs'], additionalProperties: false } }, risksAndWatchpoints: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, explanation: { type: 'string' }, evidenceRefs: { type: 'array', items: { type: 'string' } } }, required: ['title', 'explanation', 'evidenceRefs'], additionalProperties: false } }, priorityActions: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, action: { type: 'string' }, horizon: { type: 'string', enum: ['immediate', '30_days', 'quarter'] }, evidenceRefs: { type: 'array', items: { type: 'string' } } }, required: ['title', 'action', 'horizon', 'evidenceRefs'], additionalProperties: false } } }, required: ['title', 'executiveSummary', 'majorTrends', 'weakSignals', 'regulatoryDevelopments', 'commercialOpportunities', 'risksAndWatchpoints', 'priorityActions'], additionalProperties: false } } } } }}",
         "options": { "timeout": 90000 }
       },
       "id": "llm-v2",
@@ -231,7 +311,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const response = $input.first().json;\nconst base = $('Assemble Prompt V2').item.json;\nconst text = (response.content || []).find(b => b.type === 'text')?.text || '';\n\nlet output;\ntry {\n  output = JSON.parse(text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim());\n} catch {\n  throw new Error('Réponse LLM non JSON');\n}\n\nconst sectionsWithEvidence = [\n  'majorTrends',\n  'weakSignals',\n  'regulatoryDevelopments',\n  'commercialOpportunities',\n  'risksAndWatchpoints',\n  'priorityActions'\n];\n\nif (\n  output.schemaVersion !== 2 ||\n  output.analysisKind !== 'manual_custom' ||\n  !output.title ||\n  !output.executiveSummary ||\n  sectionsWithEvidence.some(k => !Array.isArray(output[k]))\n) {\n  throw new Error('Sortie structurée V2 invalide');\n}\n\nconst corpusMap = new Map();\nfor (const item of (base.hydratedCorpus || [])) {\n  corpusMap.set(`${item.kind}:${item.id}`, item);\n}\n\nfor (const secKey of sectionsWithEvidence) {\n  const items = output[secKey];\n  for (const item of items) {\n    if (!Array.isArray(item.evidenceRefs) || item.evidenceRefs.length === 0) {\n      throw new Error(`evidenceRefs manquants ou vides dans ${secKey}`);\n    }\n    const validatedRefs = [];\n    for (const ref of item.evidenceRefs) {\n      if (!ref || typeof ref !== 'object' || !ref.kind || !ref.id) {\n        throw new Error(`evidenceRef malformé dans ${secKey}`);\n      }\n      const key = `${ref.kind}:${ref.id}`;\n      const canonical = corpusMap.get(key);\n      if (!canonical) {\n        throw new Error(`evidenceRef inconnu ou hors corpus dans ${secKey} : ${key}`);\n      }\n      validatedRefs.push({\n        kind: ref.kind,\n        id: ref.id,\n        title: canonical.title,\n        provenance: canonical.provenance\n      });\n    }\n    item.evidenceRefs = validatedRefs;\n  }\n}\n\nconst articlesCount = base.hydratedCorpus.filter(i => i.kind === 'veille_article').length;\nconst signalsCount = base.hydratedCorpus.filter(i => i.kind === 'account_signal').length;\nconst documentsCount = base.hydratedCorpus.filter(i => i.kind === 'intelligence_document').length;\n\noutput.coverage = {\n  sourceGroups: base.input.stats?.sourceGroups || base.input.sources?.length || 0,\n  resolvedRefs: base.input.stats?.resolvedRefs || base.input.refs?.length || 0,\n  articlesCount,\n  signalsCount,\n  documentsCount,\n  totalItems: base.hydratedCorpus.length\n};\n\nconst qaFlags = [\n  { check: 'evidence_traceability', passed: true },\n  { check: 'resolved_refs_only', passed: true },\n  { check: 'no_external_collection', passed: true },\n  { check: 'coverage_from_hydrated_corpus', passed: true }\n];\n\nreturn [{\n  json: {\n    ...base,\n    output,\n    qaFlags,\n    llmUsage: response.usage || {},\n    model: response.model || 'claude-sonnet-5'\n  }\n}];"
+        "jsCode": "const response = $input.first().json;\nconst base = $('Assemble Prompt V2').item.json;\nconst text = (response.content || []).find(b => b.type === 'text')?.text || '';\n\nlet output;\ntry {\n  output = JSON.parse(text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim());\n} catch {\n  throw new Error('Réponse LLM non JSON');\n}\n\nconst sectionsWithEvidence = [\n  'majorTrends',\n  'weakSignals',\n  'regulatoryDevelopments',\n  'commercialOpportunities',\n  'risksAndWatchpoints',\n  'priorityActions'\n];\n\nif (\n  !output ||\n  typeof output !== 'object' ||\n  !output.title ||\n  !output.executiveSummary ||\n  sectionsWithEvidence.some(k => !Array.isArray(output[k]))\n) {\n  throw new Error('Sortie structurée V2 invalide');\n}\n\nconst corpusMap = new Map();\nfor (const item of (base.hydratedCorpus || [])) {\n  corpusMap.set(`${item.kind}:${item.id}`, item);\n}\n\nfor (const secKey of sectionsWithEvidence) {\n  const items = output[secKey];\n  for (const item of items) {\n    if (!Array.isArray(item.evidenceRefs) || item.evidenceRefs.length === 0) {\n      throw new Error(`evidenceRefs manquants ou vides dans ${secKey}`);\n    }\n    const validatedRefs = [];\n    for (const refEntry of item.evidenceRefs) {\n      let kind, id;\n      if (typeof refEntry === 'string') {\n        const colonIdx = refEntry.indexOf(':');\n        if (colonIdx === -1) {\n          throw new Error(`evidenceRef malformé dans ${secKey} : ${refEntry}`);\n        }\n        kind = refEntry.slice(0, colonIdx);\n        id = refEntry.slice(colonIdx + 1);\n      } else if (refEntry && typeof refEntry === 'object' && refEntry.kind && refEntry.id) {\n        kind = refEntry.kind;\n        id = refEntry.id;\n      } else {\n        throw new Error(`evidenceRef malformé dans ${secKey}`);\n      }\n\n      const key = `${kind}:${id}`;\n      const canonical = corpusMap.get(key);\n      if (!canonical) {\n        throw new Error(`evidenceRef inconnu ou hors corpus dans ${secKey} : ${key}`);\n      }\n      validatedRefs.push({\n        kind,\n        id,\n        title: canonical.title,\n        provenance: canonical.provenance\n      });\n    }\n    item.evidenceRefs = validatedRefs;\n  }\n}\n\nconst articlesCount = base.hydratedCorpus.filter(i => i.kind === 'veille_article').length;\nconst signalsCount = base.hydratedCorpus.filter(i => i.kind === 'account_signal').length;\nconst documentsCount = base.hydratedCorpus.filter(i => i.kind === 'intelligence_document').length;\n\nconst finalOutput = {\n  schemaVersion: 2,\n  analysisKind: 'manual_custom',\n  title: output.title,\n  executiveSummary: output.executiveSummary,\n  majorTrends: output.majorTrends,\n  weakSignals: output.weakSignals,\n  regulatoryDevelopments: output.regulatoryDevelopments,\n  commercialOpportunities: output.commercialOpportunities,\n  risksAndWatchpoints: output.risksAndWatchpoints,\n  priorityActions: output.priorityActions,\n  coverage: {\n    sourceGroups: base.input.stats?.sourceGroups || base.input.sources?.length || 0,\n    resolvedRefs: base.input.stats?.resolvedRefs || base.input.refs?.length || 0,\n    articlesCount,\n    signalsCount,\n    documentsCount,\n    totalItems: base.hydratedCorpus.length\n  }\n};\n\nconst qaFlags = [\n  { check: 'evidence_traceability', passed: true },\n  { check: 'resolved_refs_only', passed: true },\n  { check: 'no_external_collection', passed: true },\n  { check: 'coverage_from_hydrated_corpus', passed: true }\n];\n\nreturn [{\n  json: {\n    ...base,\n    output: finalOutput,\n    qaFlags,\n    llmUsage: response.usage || {},\n    model: response.model || 'claude-sonnet-5'\n  }\n}];"
       },
       "id": "validate-output-v2",
       "name": "Validate Output V2",
@@ -269,7 +349,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Prepare Callback').item ? $('Prepare Callback').item.json.callbackUrl : $('Prepare Callback V2').item.json.callbackUrl }}",
+        "url": "={{ $json.callbackUrl }}",
         "sendHeaders": true,
         "headerParameters": { "parameters": [{ "name": "x-kredo-signature", "value": "=sha256={{ $json.computedSignature }}" }, { "name": "content-type", "value": "application/json" }] },
         "sendBody": true,
@@ -287,7 +367,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const failure = $input.first().json;\nconst webhook = $('Webhook — Monthly Watch').item.json.body || {};\nconst validated = (() => {\n  try { return $('Validate Input').item.json; } catch { return null; }\n})();\nconst runId = validated?.runId || webhook.runId;\nconst callbackUrl = validated?.callbackUrl || webhook.callbackUrl;\nif (!runId || !callbackUrl) throw new Error('Impossible de notifier l’échec : runId/callbackUrl absents');\nconst message = failure.error?.message || failure.message || failure.errorMessage || 'Échec du workflow INTEL-021';\nconst callback = {\n  n8nExecutionId: typeof $execution !== 'undefined' ? $execution.id : 'test-exec-id',\n  n8nWorkflowId: typeof $workflow !== 'undefined' ? $workflow.id : 'intel-021-monthly-watch-analysis',\n  runId,\n  phase: 1,\n  resultType: 'strategic_watch_analysis',\n  status: 'failed',\n  contentJson: { error: message },\n  contentText: '',\n  title: 'Analyse stratégique de la veille — échec',\n  errorMessage: message\n};\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callback) } }];"
+        "jsCode": "const failure = $input.first().json;\nconst webhook = $('Webhook — Monthly Watch').first().json.body || {};\nconst runId = webhook.runId;\nconst callbackUrl = webhook.callbackUrl;\nif (!runId || !callbackUrl) throw new Error('Impossible de notifier l’échec : runId/callbackUrl absents');\nconst message = failure.error?.message || failure.message || failure.errorMessage || 'Échec du workflow INTEL-021';\nconst callback = {\n  n8nExecutionId: typeof $execution !== 'undefined' ? $execution.id : 'test-exec-id',\n  n8nWorkflowId: typeof $workflow !== 'undefined' ? $workflow.id : 'intel-021-monthly-watch-analysis',\n  runId,\n  phase: 1,\n  resultType: 'strategic_watch_analysis',\n  status: 'failed',\n  contentJson: { error: message },\n  contentText: '',\n  title: 'Analyse stratégique de la veille — échec',\n  errorMessage: message\n};\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callback) } }];"
       },
       "id": "prepare-failure",
       "name": "Prepare Failure Callback",
@@ -313,13 +393,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Prepare Failure Callback').item.json.callbackUrl }}",
+        "url": "={{ $json.callbackUrl }}",
         "sendHeaders": true,
         "headerParameters": { "parameters": [{ "name": "x-kredo-signature", "value": "=sha256={{ $json.computedSignature }}" }, { "name": "content-type", "value": "application/json" }] },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ $('Prepare Failure Callback').item.json.rawBody }}",
+        "body": "={{ $json.rawBody }}",
         "options": { "timeout": 30000 }
       },
       "id": "callback-failure",
@@ -368,8 +448,10 @@
     "Call LLM": { "main": [[{ "node": "Validate Output", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Validate Output": { "main": [[{ "node": "Prepare Callback", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Prepare Callback": { "main": [[{ "node": "Sign Callback", "type": "main", "index": 0 }]] },
-    "Mark Run Running V2": { "main": [[{ "node": "Hydrate Corpus V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
-    "Hydrate Corpus V2": { "main": [[{ "node": "Assemble Prompt V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Mark Run Running V2": { "main": [[{ "node": "Prepare Hydration Requests V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Prepare Hydration Requests V2": { "main": [[{ "node": "Fetch Corpus V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Fetch Corpus V2": { "main": [[{ "node": "Assemble Hydrated Corpus V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Assemble Hydrated Corpus V2": { "main": [[{ "node": "Assemble Prompt V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Assemble Prompt V2": { "main": [[{ "node": "Call LLM V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Call LLM V2": { "main": [[{ "node": "Validate Output V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Validate Output V2": { "main": [[{ "node": "Prepare Callback V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },

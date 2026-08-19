@@ -45,6 +45,8 @@ import {
 import {
   getWatchAnalysisKindLabel,
   getWatchAnalysisDateLabel,
+  getWatchAnalysisBadgeStyle,
+  isManualCustomWatchAnalysis,
 } from "@/features/watch-analysis/domain/watch-analysis-presentation"
 import type { WatchAnalysisEvidenceRef } from "@/lib/n8n/types"
 import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
@@ -764,6 +766,7 @@ function StrategicAnalysisSection({
   currentDigestNumber,
   pastDigests,
   knownArticles,
+  onAddToList,
 }: {
   analysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
@@ -772,6 +775,7 @@ function StrategicAnalysisSection({
   currentDigestNumber: number | null
   pastDigests: VeilleDigest[]
   knownArticles: VeilleArticle[]
+  onAddToList?: (analysisId: string) => void
 }) {
   const router = useRouter()
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(
@@ -860,18 +864,21 @@ function StrategicAnalysisSection({
       ) : null}
 
       {activeAnalysis ? (
-        <article className="grid grid-cols-[minmax(0,1fr)_18rem] items-start border border-border bg-surface">
-          <div className="paper-sheet border-r border-border px-6 py-7 lg:px-10 space-y-5">
-            <div className="border-b border-border pb-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-brass">
-                    Rapport d’analyse stratégique
-                  </p>
-                  <span className="border border-brand-brass/30 bg-brand-brass/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-brass">
-                    {getWatchAnalysisKindLabel(activeAnalysis)}
-                  </span>
-                </div>
+        (() => {
+          const badgeStyle = getWatchAnalysisBadgeStyle(activeAnalysis)
+          return (
+            <article className="grid grid-cols-[minmax(0,1fr)_18rem] items-start border border-border bg-surface">
+              <div className="paper-sheet border-r border-border px-6 py-7 lg:px-10 space-y-5">
+                <div className="border-b border-border pb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <p className={cn("text-[10px] font-bold uppercase tracking-[0.1em]", badgeStyle.textClassName)}>
+                        Rapport d’analyse stratégique
+                      </p>
+                      <span className={cn("px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", badgeStyle.badgeClassName)}>
+                        {getWatchAnalysisKindLabel(activeAnalysis)}
+                      </span>
+                    </div>
                 <div className="flex items-center gap-2">
                   <span className="border border-border bg-edito-canvas px-2 py-0.5 text-[10px] font-bold text-heading">
                     v{activeAnalysis.versionNumber}
@@ -1197,7 +1204,14 @@ function StrategicAnalysisSection({
             <div>
               <SectionHeading>Fiche du rapport</SectionHeading>
               <dl className="mt-3 divide-y divide-border text-[11px]">
-                <div className="flex justify-between py-2.5"><dt className="text-muted">Type</dt><dd className="font-bold text-heading">{getWatchAnalysisKindLabel(activeAnalysis)}</dd></div>
+                <div className="flex justify-between items-center py-2.5">
+                  <dt className="text-muted">Type</dt>
+                  <dd className="font-bold">
+                    <span className={cn("px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-sm", badgeStyle.badgeClassName)}>
+                      {getWatchAnalysisKindLabel(activeAnalysis)}
+                    </span>
+                  </dd>
+                </div>
                 <div className="flex justify-between py-2.5"><dt className="text-muted">État</dt><dd className="font-bold uppercase text-success">{activeAnalysis.status}</dd></div>
                 <div className="flex justify-between py-2.5"><dt className="text-muted">Version</dt><dd className="font-bold text-heading">v{activeAnalysis.versionNumber}</dd></div>
                 {content?.schemaVersion === 2 ? (
@@ -1233,6 +1247,16 @@ function StrategicAnalysisSection({
                 variant="secondary"
                 size="sm"
                 fullWidth
+                onClick={() => onAddToList?.(activeAnalysis.id)}
+                leftIcon={<IntelligenceIcon name="report" preferVector />}
+                className="justify-start text-xs"
+              >
+                Ajouter à…
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
                 onClick={() => {
                   if (!content) return
                   const periodLabel = "period" in content ? content.period?.label ?? activeAnalysis.title : activeAnalysis.title
@@ -1251,7 +1275,9 @@ function StrategicAnalysisSection({
             </div>
           </aside>
         </article>
-      ) : (
+      )
+    })()
+  ) : (
         <EmptyState title="Aucune analyse stratégique disponible">
           <p>La première synthèse mensuelle utilisera uniquement les digests et articles déjà collectés sur le mois civil précédent.</p>
         </EmptyState>
@@ -1305,17 +1331,29 @@ function HistorySection({
       <section>
         <SectionHeading>Analyses stratégiques</SectionHeading>
         <div className="mt-3 divide-y divide-border border border-border bg-surface">
-          {analyses.length === 0 ? <p className="p-5 text-xs text-muted">Aucune analyse disponible.</p> : analyses.map((analysis) => (
-            <Link key={analysis.id} href={`/reports?doc=${analysis.id}`} className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
-              <p className="text-[10px] font-medium text-muted">
-                {analysis.analysisKind === "manual_custom" || analysis.content?.schemaVersion === 2
-                  ? `Analyse à la demande · ${formatDateFr(analysis.createdAt)}`
-                  : formatPeriod(analysis.periodStart, analysis.periodEnd)}
-              </p>
-              <h3 className="mt-1 text-sm font-bold text-heading">{analysis.title}</h3>
-              <p className="mt-2 text-[10px] text-muted">v{analysis.versionNumber} · {analysis.status} · {formatDateFr(analysis.updatedAt)}</p>
-            </Link>
-          ))}
+          {analyses.length === 0 ? <p className="p-5 text-xs text-muted">Aucune analyse disponible.</p> : analyses.map((analysis) => {
+            const isManual = isManualCustomWatchAnalysis(analysis)
+            return (
+              <Link key={analysis.id} href={`/reports?doc=${analysis.id}`} className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
+                <p className="text-[10px] font-medium text-muted">
+                  {isManual ? (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-[#2554B8]">
+                      <span className="size-1.5 rounded-full bg-[#2554B8]" />
+                      Analyse à la demande
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-brand-brass">
+                      <span className="size-1.5 rounded-full bg-brand-brass" />
+                      {formatPeriod(analysis.periodStart, analysis.periodEnd)}
+                    </span>
+                  )}
+                  {" · "}{formatDateFr(analysis.createdAt)}
+                </p>
+                <h3 className="mt-1 text-sm font-bold text-heading">{analysis.title}</h3>
+                <p className="mt-2 text-[10px] text-muted">v{analysis.versionNumber} · {analysis.status} · {formatDateFr(analysis.updatedAt)}</p>
+              </Link>
+            )
+          })}
         </div>
       </section>
     </div>
@@ -1365,6 +1403,7 @@ export function VeilleActualitesDesktop({
   const [qualifyOpen, setQualifyOpen] = useState(false)
   const [opportunityOpen, setOpportunityOpen] = useState(false)
   const [addToListOpen, setAddToListOpen] = useState(false)
+  const [addAnalysisToListOpen, setAddAnalysisToListOpen] = useState(false)
   const [manageListsOpen, setManageListsOpen] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -1488,6 +1527,7 @@ export function VeilleActualitesDesktop({
             currentDigestNumber={digestNumber}
             pastDigests={pastDigests}
             knownArticles={knownArticlesForComposer}
+            onAddToList={() => setAddAnalysisToListOpen(true)}
           />
         )
       : section === "history"
@@ -1595,6 +1635,15 @@ export function VeilleActualitesDesktop({
             <CreateAccountNoteDialog open={noteOpen} onOpenChange={setNoteOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Note ajoutée pour ${matchedCompany.name}.`)} />
           ) : null}
         </>
+      ) : null}
+      {latestAnalysis ? (
+        <AddToListDialogDesktop
+          open={addAnalysisToListOpen}
+          onOpenChange={setAddAnalysisToListOpen}
+          contentType="intelligence_document"
+          contentId={latestAnalysis.id}
+          onManageLists={() => setManageListsOpen(true)}
+        />
       ) : null}
     </div>
   )
