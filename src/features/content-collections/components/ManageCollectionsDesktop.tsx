@@ -18,9 +18,10 @@ import {
   updateCollectionDescriptionAction,
 } from "../actions/content-collections-actions"
 import { CollectionPickerDialog } from "./CollectionPickerDialog"
-import { KnowledgeLibraryPane } from "./KnowledgeLibraryPane"
+import { KnowledgeLibraryPane, type KnowledgeLibraryMode, type KnowledgeView } from "./KnowledgeLibraryPane"
 import { KnowledgeListPane } from "./KnowledgeListPane"
 import { KnowledgeDocumentViewer } from "./KnowledgeDocumentViewer"
+import { KnowledgeSynthesisView } from "./KnowledgeSynthesisView"
 import type { CollectionSummary, ResolvedCollectionItem } from "../domain/content-collections-contracts"
 
 export interface ManageCollectionsDesktopProps {
@@ -34,7 +35,8 @@ export function ManageCollectionsDesktop({
   onOpenChange,
   initialSelectedCollectionId,
 }: ManageCollectionsDesktopProps) {
-  const [mode, setMode] = useState<"lists" | "corpus">("lists")
+  const [mode, setMode] = useState<KnowledgeLibraryMode>("lists")
+  const [view, setView] = useState<KnowledgeView>({ type: "synthesis" })
   const [collections, setCollections] = useState<CollectionSummary[]>([])
   const [loadedCollectionsOpen, setLoadedCollectionsOpen] = useState(false)
   const [loadedItemsCollectionId, setLoadedItemsCollectionId] = useState<string | null>(null)
@@ -52,7 +54,7 @@ export function ManageCollectionsDesktop({
   const [isPending, startTransition] = useTransition()
 
   const isLoadingCollections = open && !loadedCollectionsOpen
-  const isLoadingItems = Boolean(selectedId && mode === "lists" && loadedItemsCollectionId !== selectedId)
+  const isLoadingItems = Boolean(selectedId && view.type === "list" && loadedItemsCollectionId !== selectedId)
 
   // Reset state and fetch list collections when modal opens
   useEffect(() => {
@@ -63,10 +65,12 @@ export function ManageCollectionsDesktop({
       const listCollections = data.filter((c) => c.kind === "list")
       setError(null)
       setMode("lists")
+      setView({ type: "synthesis" })
       setIsEditMode(false)
       setActiveViewerItem(null)
       setCollections(listCollections)
-      setSelectedId((prev) => initialSelectedCollectionId ?? prev ?? listCollections[0]?.id ?? null)
+      const defaultId = initialSelectedCollectionId ?? listCollections[0]?.id ?? null
+      setSelectedId(defaultId)
       setLoadedCollectionsOpen(true)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,7 +78,7 @@ export function ManageCollectionsDesktop({
 
   // Fetch items when selected collection changes
   useEffect(() => {
-    if (!selectedId || mode !== "lists") {
+    if (!selectedId || view.type !== "list") {
       return
     }
 
@@ -84,7 +88,7 @@ export function ManageCollectionsDesktop({
       setIsEditMode(false)
       setLoadedItemsCollectionId(selectedId)
     })
-  }, [selectedId, mode])
+  }, [selectedId, view.type])
 
   const selectedCollection = collections.find((c) => c.id === selectedId) ?? null
 
@@ -110,6 +114,7 @@ export function ManageCollectionsDesktop({
       setCreatingOpen(false)
       await refreshCollections()
       setSelectedId(result.id)
+      setView({ type: "list", id: result.id })
     })
   }
 
@@ -147,7 +152,10 @@ export function ManageCollectionsDesktop({
     const remaining = collections.filter((c) => c.id !== deleteTarget.id)
     setCollections(remaining)
     if (selectedId === deleteTarget.id) {
-      setSelectedId(remaining[0]?.id ?? null)
+      const nextId = remaining[0]?.id ?? null
+      setSelectedId(nextId)
+      if (nextId) setView({ type: "list", id: nextId })
+      else setView({ type: "synthesis" })
       setActiveViewerItem(null)
     }
     setDeleteTarget(null)
@@ -191,7 +199,11 @@ export function ManageCollectionsDesktop({
         aria-selected={mode === "lists"}
         onClick={() => {
           setMode("lists")
-          setActiveViewerItem(null)
+          // Si l'utilisateur n'est pas sur Synthèse, basculer vers la 1ère liste disponible
+          if (view.type !== "synthesis") {
+            const firstId = selectedId ?? collections[0]?.id
+            if (firstId) setView({ type: "list", id: firstId })
+          }
         }}
         className={cn(
           "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
@@ -208,7 +220,10 @@ export function ManageCollectionsDesktop({
         aria-selected={mode === "corpus"}
         onClick={() => {
           setMode("corpus")
-          setActiveViewerItem(null)
+          // Si l'utilisateur n'est pas sur Synthèse, basculer vers la vue corpus
+          if (view.type !== "synthesis") {
+            setView({ type: "corpus", id: "" })
+          }
         }}
         className={cn(
           "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
@@ -222,7 +237,7 @@ export function ManageCollectionsDesktop({
     </div>
   )
 
-  const isViewerOpen = activeViewerItem !== null
+  const isViewerOpen = activeViewerItem !== null && view.type === "list"
 
   return (
     <>
@@ -234,15 +249,42 @@ export function ManageCollectionsDesktop({
         leftPane={null}
         rightPane={null}
         content={
-          mode === "corpus" ? (
-            /* Mode Corpus : Squelette structurel minimal avec empty-state */
-            <div className="flex flex-1 items-stretch overflow-hidden">
-              <aside className="w-[260px] shrink-0 border-r border-white/5 bg-[#0f122c] p-4 text-xs text-white/50">
-                <p className="font-bold text-white/70">Bibliothèque des corpus</p>
-                <p className="mt-2 text-[11px] leading-relaxed text-white/40">
-                  Vos corpus documentaires personnalisés apparaîtront ici.
-                </p>
-              </aside>
+          <div className="flex flex-1 items-stretch overflow-hidden relative">
+            {/* Panneau 1 : Navigation gauche (Bibliothèque) */}
+            <div
+              className={cn(
+                "h-full shrink-0 transition-all duration-500 ease-out",
+                isViewerOpen ? "w-[56px]" : "w-[260px]"
+              )}
+            >
+              <KnowledgeLibraryPane
+                mode={mode}
+                collections={collections}
+                activeView={view}
+                onSelectView={(v) => {
+                  setView(v)
+                  if (v.type === "list") setSelectedId(v.id)
+                  setActiveViewerItem(null)
+                }}
+                isLoading={isLoadingCollections}
+                creatingOpen={creatingOpen}
+                setCreatingOpen={setCreatingOpen}
+                newName={newName}
+                setNewName={setNewName}
+                onCreate={handleCreate}
+                isPending={isPending}
+                isCollapsed={isViewerOpen}
+                onExpandLibrary={() => setActiveViewerItem(null)}
+              />
+            </div>
+
+            {/* Panneau 2 & 3 : Zone de contenu principal */}
+            {view.type === "synthesis" ? (
+              <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950/20">
+                <KnowledgeSynthesisView />
+              </main>
+            ) : view.type === "corpus" ? (
+              /* Mode Corpus : Squelette structurel minimal avec empty-state */
               <main className="flex flex-1 items-center justify-center bg-slate-950/20 p-6 text-center text-xs text-white/50">
                 <div className="max-w-md space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
                   <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-white/5 text-brand-brass">
@@ -256,88 +298,60 @@ export function ManageCollectionsDesktop({
                   </p>
                 </div>
               </main>
-            </div>
-          ) : (
-            /* Mode Listes : Layout dynamique 2 ou 3 panneaux avec animation */
-            <div className="flex flex-1 items-stretch overflow-hidden relative">
-              {/* Panneau 1 : Bibliothèque (retractée en rail si viewer ouvert) */}
-              <div
-                className={cn(
-                  "h-full shrink-0 transition-all duration-500 ease-out",
-                  isViewerOpen ? "w-[56px]" : "w-[260px]"
-                )}
-              >
-                <KnowledgeLibraryPane
-                  collections={collections}
-                  selectedId={selectedId}
-                  onSelect={(id) => {
-                    setSelectedId(id)
-                    setActiveViewerItem(null)
-                  }}
-                  isLoading={isLoadingCollections}
-                  creatingOpen={creatingOpen}
-                  setCreatingOpen={setCreatingOpen}
-                  newName={newName}
-                  setNewName={setNewName}
-                  onCreate={handleCreate}
-                  isPending={isPending}
-                  isCollapsed={isViewerOpen}
-                  onExpandLibrary={() => setActiveViewerItem(null)}
-                />
-              </div>
-
-              {/* Panneau 2 : Liste des documents (compressée si viewer ouvert) */}
-              <div
-                className={cn(
-                  "h-full flex flex-col transition-all duration-500 ease-out min-w-0",
-                  isViewerOpen ? "w-[340px] shrink-0" : "flex-1"
-                )}
-              >
-                <KnowledgeListPane
-                  collection={selectedCollection}
-                  items={items}
-                  isLoadingItems={isLoadingItems}
-                  isEditMode={isEditMode}
-                  onToggleEditMode={() => {
-                    setIsEditMode(!isEditMode)
-                    if (!isEditMode && selectedCollection) {
-                      setEditingData({
-                        name: selectedCollection.name,
-                        description: selectedCollection.description ?? "",
-                      })
-                    }
-                  }}
-                  editingData={editingData}
-                  setEditingData={setEditingData}
-                  onSaveEditing={handleSaveEditing}
-                  onCancelEditing={() => {
-                    setIsEditMode(false)
-                    setEditingData(null)
-                  }}
-                  onDeleteCollection={() => setDeleteTarget(selectedCollection)}
-                  selectedItemIds={selectedItemIds}
-                  onToggleItemSelection={toggleItemSelection}
-                  onToggleSelectAll={toggleSelectAll}
-                  onOpenPicker={(pMode) => setPickerMode(pMode)}
-                  onRemoveSelected={handleRemoveSelected}
-                  onOpenViewer={(item) => setActiveViewerItem(item)}
-                  activeViewerItemId={activeViewerItem?.membershipId}
-                  isPending={isPending}
-                  error={error}
-                />
-              </div>
-
-              {/* Panneau 3 : Visionneuse de document (Viewer) */}
-              {isViewerOpen ? (
-                <div className="h-full flex-1 min-w-0 transition-all duration-500 ease-out">
-                  <KnowledgeDocumentViewer
-                    item={activeViewerItem}
-                    onCloseViewer={() => setActiveViewerItem(null)}
+            ) : (
+              /* Mode Liste : Layout dynamique 1 ou 2 panneaux (Liste + Viewer) */
+              <>
+                <div
+                  className={cn(
+                    "h-full flex flex-col transition-all duration-500 ease-out min-w-0",
+                    isViewerOpen ? "w-[340px] shrink-0" : "flex-1"
+                  )}
+                >
+                  <KnowledgeListPane
+                    collection={selectedCollection}
+                    items={items}
+                    isLoadingItems={isLoadingItems}
+                    isEditMode={isEditMode}
+                    onToggleEditMode={() => {
+                      setIsEditMode(!isEditMode)
+                      if (!isEditMode && selectedCollection) {
+                        setEditingData({
+                          name: selectedCollection.name,
+                          description: selectedCollection.description ?? "",
+                        })
+                      }
+                    }}
+                    editingData={editingData}
+                    setEditingData={setEditingData}
+                    onSaveEditing={handleSaveEditing}
+                    onCancelEditing={() => {
+                      setIsEditMode(false)
+                      setEditingData(null)
+                    }}
+                    onDeleteCollection={() => setDeleteTarget(selectedCollection)}
+                    selectedItemIds={selectedItemIds}
+                    onToggleItemSelection={toggleItemSelection}
+                    onToggleSelectAll={toggleSelectAll}
+                    onOpenPicker={(pMode) => setPickerMode(pMode)}
+                    onRemoveSelected={handleRemoveSelected}
+                    onOpenViewer={(item) => setActiveViewerItem(item)}
+                    activeViewerItemId={activeViewerItem?.membershipId}
+                    isPending={isPending}
+                    error={error}
                   />
                 </div>
-              ) : null}
-            </div>
-          )
+
+                {isViewerOpen ? (
+                  <div className="h-full flex-1 min-w-0 transition-all duration-500 ease-out">
+                    <KnowledgeDocumentViewer
+                      item={activeViewerItem}
+                      onCloseViewer={() => setActiveViewerItem(null)}
+                    />
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
         }
       />
 

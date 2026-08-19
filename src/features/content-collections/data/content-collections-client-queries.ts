@@ -262,3 +262,30 @@ export async function fetchResolvedCollectionItemDetail(
 
   return null
 }
+
+export async function fetchKnowledgeSynthesisRawData(): Promise<import("../domain/knowledge-synthesis-overview").KnowledgeSynthesisRawData> {
+  const supabase = createClient()
+
+  const [
+    { data: docs },
+    { data: items },
+    { data: collections },
+  ] = await Promise.all([
+    supabase
+      .from("intelligence_documents")
+      .select("id, document_type, created_at")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("content_collection_items")
+      .select("collection_id, content_type, content_id"),
+    supabase
+      .from("content_collections")
+      .select("id, name, kind, item_type"),
+  ])
+
+  return {
+    documents: docs ?? [],
+    collectionItems: items ?? [],
+    collections: collections ?? [],
+  }
+}
