@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { CreateCommercialWindowDialog, QualifySignalDialog } from "./SignalDialogs"
 import { AddToListSheetMobile } from "@/features/content-collections/components/AddToListSheetMobile"
 import { ManageCollectionsMobile } from "@/features/content-collections/components/ManageCollectionsMobile"
+import { WatchAnalysisComposerMobile } from "@/features/watch-analysis/components/WatchAnalysisComposerMobile"
 import { extractMatchedCompany } from "./veille-utils"
 import { VeilleAnalysesTab } from "./mobile/VeilleAnalysesTab"
 import { VeilleArchivesTab } from "./mobile/VeilleArchivesTab"
@@ -87,6 +88,7 @@ export function VeilleActualitesMobile({
   const [isQualifyOpen, setIsQualifyOpen] = useState(false)
   const [isAddToListOpen, setIsAddToListOpen] = useState(false)
   const [isManageListsOpen, setIsManageListsOpen] = useState(false)
+  const [isComposerOpen, setIsComposerOpen] = useState(false)
 
   const resolvedArticles = useMemo(
     () => allArticles.map((article) => articleOverrides[article.id] ?? article),
@@ -104,6 +106,12 @@ export function VeilleActualitesMobile({
   }, [periods, activeDigestId])
 
   const activePeriod = periods[activePeriodIndex] ?? null
+
+  /** Digest « actuellement consulté » pour préremplir la Source 1 du compositeur (LOT L1). */
+  const currentDigestForComposer = useMemo(
+    () => pastDigests.find((digest) => digest.id === activeDigestId) ?? null,
+    [pastDigests, activeDigestId],
+  )
 
   /** L'onglet Actualités ne montre QUE les articles du briefing de la semaine active. */
   const periodRows = useMemo(() => {
@@ -287,6 +295,7 @@ export function VeilleActualitesMobile({
             analyses={analyses}
             selectedAnalysisId={selectedAnalysisId}
             onSelectAnalysis={setSelectedAnalysisId}
+            onGenerateAnalysis={() => setIsComposerOpen(true)}
           />
         ) : null}
 
@@ -338,6 +347,18 @@ export function VeilleActualitesMobile({
       ) : null}
 
       <ManageCollectionsMobile open={isManageListsOpen} onOpenChange={setIsManageListsOpen} />
+
+      <WatchAnalysisComposerMobile
+        open={isComposerOpen}
+        onClose={() => setIsComposerOpen(false)}
+        currentDigest={currentDigestForComposer}
+        pastDigests={pastDigests}
+        knownArticles={resolvedArticles}
+        onLaunched={() => {
+          setIsComposerOpen(false)
+          showFeedback("Analyse lancée.")
+        }}
+      />
     </div>
   )
 }

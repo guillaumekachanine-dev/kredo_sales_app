@@ -17,6 +17,7 @@ type VeilleAnalysesTabProps = {
   analyses: StrategicWatchAnalysis[]
   selectedAnalysisId: string | null
   onSelectAnalysis: (analysisId: string | null) => void
+  onGenerateAnalysis: () => void
 }
 
 const SECTION_ICONS: Record<AnalysisSectionKey, React.ComponentType<{ className?: string }>> = {
@@ -29,6 +30,7 @@ export function VeilleAnalysesTab({
   analyses,
   selectedAnalysisId,
   onSelectAnalysis,
+  onGenerateAnalysis,
 }: VeilleAnalysesTabProps) {
   const activeAnalysis = useMemo(() => {
     if (analyses.length === 0) return null
@@ -64,8 +66,15 @@ export function VeilleAnalysesTab({
     return (
       <div className="veille-scrollbar h-full overflow-y-auto bg-surface px-6 py-16">
         <p className="text-center text-sm leading-6 text-muted">
-          Aucune analyse stratégique disponible. Elle est produite à partir des briefings du mois écoulé.
+          Aucune analyse pour l&apos;instant. Générez une analyse mensuelle automatique ou choisissez vos propres sources.
         </p>
+        <button
+          type="button"
+          onClick={onGenerateAnalysis}
+          className="mx-auto mt-5 flex min-h-11 items-center justify-center rounded-[var(--radius-small)] bg-heading px-5 text-sm font-bold text-surface"
+        >
+          Générer une analyse
+        </button>
       </div>
     )
   }
@@ -113,15 +122,24 @@ export function VeilleAnalysesTab({
 
   return (
     <div className="veille-scrollbar h-full overflow-y-auto overscroll-contain bg-surface">
-      <header className="border-b border-border px-4 py-4">
-        <h1 className="text-[17px] font-bold leading-6 text-heading">
-          {index.analysisTitle}
-        </h1>
-        {index.metaSubtitle ? (
-          <p className="mt-1 text-xs text-muted">{index.metaSubtitle}</p>
-        ) : index.producedAtLabel ? (
-          <p className="mt-1 text-xs text-muted">{index.producedAtLabel}</p>
-        ) : null}
+      <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[17px] font-bold leading-6 text-heading">
+            {index.analysisTitle}
+          </h1>
+          {index.metaSubtitle ? (
+            <p className="mt-1 text-xs text-muted">{index.metaSubtitle}</p>
+          ) : index.producedAtLabel ? (
+            <p className="mt-1 text-xs text-muted">{index.producedAtLabel}</p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={onGenerateAnalysis}
+          className="flex min-h-11 shrink-0 items-center justify-center rounded-[var(--radius-small)] border border-border bg-surface px-3 text-xs font-bold text-primary"
+        >
+          Générer une analyse
+        </button>
       </header>
 
       {analyses.length > 1 ? (

@@ -31,11 +31,11 @@ import {
 import { VeilleConvergencesRail } from "./VeilleConvergencesRail"
 import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
 import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
+import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
 import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
 import { extractMatchedCompany } from "./veille-utils"
 import {
-  MONTHLY_WATCH_WORKFLOW_ID,
   type GlobalWatchSettings,
   type GlobalWatchWorkflowHealth,
   type MonthlyWatchGenerationContext,
@@ -737,10 +737,18 @@ function StrategicAnalysisSection({
   analysis: initialAnalysis,
   analysisHistory,
   generation,
+  currentDigest,
+  currentDigestNumber,
+  pastDigests,
+  knownArticles,
 }: {
   analysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
   generation: MonthlyWatchGenerationContext
+  currentDigest: VeilleDigest | null
+  currentDigestNumber: number | null
+  pastDigests: VeilleDigest[]
+  knownArticles: VeilleArticle[]
 }) {
   const router = useRouter()
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(
@@ -749,6 +757,7 @@ function StrategicAnalysisSection({
   const [run, setRun] = useState(generation.latestRun)
   const [pending, setPending] = useState(Boolean(generation.activeRun))
   const [error, setError] = useState<string | null>(generation.latestRun?.status === "failed" ? generation.latestRun.errorMessage : null)
+  const [composerOpen, setComposerOpen] = useState(false)
 
   const [openSections, setOpenSections] = useState<Record<StrategicSectionKey, boolean>>({
     trends: false,
@@ -795,25 +804,10 @@ function StrategicAnalysisSection({
     },
   })
 
-  const generate = async () => {
+  const handleAnalysisLaunched = (runId: string) => {
+    setRun({ id: runId, status: "queued", createdAt: new Date().toISOString(), errorMessage: null })
     setPending(true)
     setError(null)
-    const response = await fetch("/api/n8n/trigger", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        workflowId: MONTHLY_WATCH_WORKFLOW_ID,
-        entityType: "workspace",
-        input: { ...generation.input, requestedAt: new Date().toISOString(), triggerMode: "manual" },
-      }),
-    })
-    const payload = await response.json() as { runId?: string; error?: string }
-    if (!response.ok || !payload.runId) {
-      setPending(false)
-      setError(payload.error ?? "Impossible de lancer l’analyse.")
-      return
-    }
-    setRun({ id: payload.runId, status: "queued", createdAt: new Date().toISOString(), errorMessage: null })
   }
 
   return (
@@ -824,8 +818,8 @@ function StrategicAnalysisSection({
           <h2 className="mt-0.5 font-heading text-lg font-bold text-heading">Analyse stratégique de {generation.input.periodStart.slice(0, 7)}</h2>
           <p className="mt-0.5 text-xs text-muted">{generation.input.digestIds.length} digest(s) · {generation.input.articleIds.length} article(s) collectés</p>
         </div>
-        <Button variant="brass" onClick={generate} loading={pending} loadingLabel="Génération" disabled={generation.input.articleIds.length === 0}>
-          {generation.isAlreadyCovered ? "Régénérer l’analyse" : "Générer l’analyse du mois écoulé"}
+        <Button variant="brass" onClick={() => setComposerOpen(true)}>
+          Générer une analyse
         </Button>
       </div>
 
@@ -1184,6 +1178,19 @@ function StrategicAnalysisSection({
           <p>La première synthèse mensuelle utilisera uniquement les digests et articles déjà collectés sur le mois civil précédent.</p>
         </EmptyState>
       )}
+
+      <WatchAnalysisComposerDesktop
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        currentDigest={currentDigest}
+        currentDigestNumber={currentDigestNumber}
+        pastDigests={pastDigests}
+        knownArticles={knownArticles}
+        onLaunched={(runId) => {
+          handleAnalysisLaunched(runId)
+          setComposerOpen(false)
+        }}
+      />
     </div>
   )
 }
@@ -1286,6 +1293,11 @@ export function VeilleActualitesDesktop({
     return () => useSidebarCollapse.getState().requestRestore()
   }, [])
 
+  // Réutilisé par le compositeur d'analyse à la demande (LOT L1) pour la
+  // famille « Digest & articles » : corpus déjà chargé côté page, jamais de
+  // requête supplémentaire pour le digest courant.
+  const knownArticlesForComposer = allArticles.length > 0 ? allArticles : initialArticles
+
   const availableCategories = useMemo(() => {
     const source = allArticles.length > 0 ? allArticles : initialArticles
     const set = new Set<string>()
@@ -1385,7 +1397,17 @@ export function VeilleActualitesDesktop({
   const content = section === "watched-accounts"
     ? <WatchedAccountsSection signals={watchedSignals} />
     : section === "strategic-analysis"
-      ? <StrategicAnalysisSection analysis={latestAnalysis} analysisHistory={analysisHistory} generation={monthlyGeneration} />
+      ? (
+          <StrategicAnalysisSection
+            analysis={latestAnalysis}
+            analysisHistory={analysisHistory}
+            generation={monthlyGeneration}
+            currentDigest={digest}
+            currentDigestNumber={digestNumber}
+            pastDigests={pastDigests}
+            knownArticles={knownArticlesForComposer}
+          />
+        )
       : section === "history"
         ? <HistorySection digests={pastDigests} analyses={analysisHistory} onOpenDigest={() => setSection("news")} />
         : selectedArticle
