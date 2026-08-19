@@ -26,12 +26,19 @@ import {
   buildMissionRunConfig,
   resolveMissionRunEntity,
 } from "@/features/intelligence-missions/data/build-mission-launch"
+import { validateWatchAnalysisInput } from "@/features/watch-analysis/domain/watch-analysis-contracts"
+import { resolveWatchAnalysisSources } from "@/features/watch-analysis/data/resolve-watch-analysis-sources"
+import {
+  buildWatchAnalysisRunEnvelope,
+  buildWatchAnalysisInputSnapshot,
+} from "@/features/watch-analysis/data/build-watch-analysis-launch"
 import type {
   N8nEntityType,
   N8nWorkflowId,
   TriggerResponse,
   TriggerErrorResponse,
 } from "@/lib/n8n/types"
+
 
 type UserScopedClient = Awaited<ReturnType<typeof createClient>>
 
@@ -249,7 +256,54 @@ export async function POST(request: Request) {
     }
   }
 
+  // ── 3quater. Branche V2 « Analyse à la demande » (INTEL-021 V2) ─────────────
+  if (workflowId === "intel-021-monthly-watch-analysis" && (input as Record<string, unknown>).schemaVersion === 2) {
+    const validated = validateWatchAnalysisInput(input)
+    if (!validated.ok) {
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: validated.error },
+        { status: 400 }
+      )
+    }
+
+    const resolved = await resolveWatchAnalysisSources(supabase, profile.workspace_id, validated.value)
+    if ("error" in resolved) {
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: resolved.error },
+        { status: 400 }
+      )
+    }
+
+    const n8nEnvelope = buildWatchAnalysisRunEnvelope(validated.value, resolved)
+    const inputSnapshot = buildWatchAnalysisInputSnapshot(validated.value, resolved)
+
+    const v2Result = await triggerN8nRun({
+      workflowId,
+      entityType: "workspace",
+      entityId: profile.workspace_id,
+      companyId: null,
+      workspaceId: profile.workspace_id,
+      userId: user.id,
+      input: n8nEnvelope as unknown as Record<string, unknown>,
+      inputSnapshot: inputSnapshot as unknown as Record<string, unknown>,
+    })
+
+    if (!v2Result.ok) {
+      console.error("[trigger] INTEL-021 V2 triggerN8nRun failed:", v2Result.error)
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: v2Result.error },
+        { status: v2Result.runId ? 502 : 500 }
+      )
+    }
+
+    return NextResponse.json<TriggerResponse>(
+      { runId: v2Result.runId, status: "queued" },
+      { status: 202 }
+    )
+  }
+
   // ── 4. Création du run + déclenchement n8n (factorisé, ADR-0010 Lot 2) ──────
+
   const result = await triggerN8nRun({
     workflowId,
     entityType,

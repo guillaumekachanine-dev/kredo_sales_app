@@ -179,6 +179,64 @@ export type WatchAnalysisInputV2 = {
   requestedAt: string
 }
 
+export type WatchAnalysisEvidenceRef = {
+  kind: "veille_article" | "account_signal" | "intelligence_document"
+  id: string
+  title: string
+  provenance: string
+}
+
+export type WatchAnalysisOutputV2 = {
+  schemaVersion: 2
+  analysisKind: "manual_custom"
+  title: string
+  executiveSummary: string
+  majorTrends: Array<{
+    title: string
+    synthesis: string
+    sectors: string[]
+    confidence: number
+    evidenceRefs: WatchAnalysisEvidenceRef[]
+  }>
+  weakSignals: Array<{
+    title: string
+    synthesis: string
+    evidenceRefs: WatchAnalysisEvidenceRef[]
+  }>
+  regulatoryDevelopments: Array<{
+    title: string
+    impact: string
+    evidenceRefs: WatchAnalysisEvidenceRef[]
+  }>
+  commercialOpportunities: Array<{
+    title: string
+    rationale: string
+    recommendedAction: string
+    practices: string[]
+    evidenceRefs: WatchAnalysisEvidenceRef[]
+  }>
+  risksAndWatchpoints: Array<{
+    title: string
+    explanation: string
+    evidenceRefs: WatchAnalysisEvidenceRef[]
+  }>
+  priorityActions: Array<{
+    title: string
+    action: string
+    horizon: "immediate" | "30_days" | "quarter"
+    evidenceRefs: WatchAnalysisEvidenceRef[]
+  }>
+  coverage: {
+    sourceGroups: number
+    resolvedRefs: number
+    articlesCount: number
+    signalsCount: number
+    documentsCount: number
+    totalItems: number
+  }
+}
+
+
 // ─── Missions d'intelligence — enveloppe envoyée à mission-001-run (ADR-0020) ──
 // M-1/M-6 : n8n ne porte AUCUN métier. Il reçoit deux prompts déjà assemblés et les
 // paramètres d'appel du modèle, poste le texte brut au callback, et c'est tout.

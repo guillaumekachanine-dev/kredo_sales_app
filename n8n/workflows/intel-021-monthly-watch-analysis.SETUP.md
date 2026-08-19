@@ -1,35 +1,29 @@
-# INTEL-021 — Analyse mensuelle de la veille
+# INTEL-021 — Analyse de la veille (Mensuelle V1 & À la demande V2)
 
-Le workflow analyse uniquement les lignes `veille_digests` et `veille_articles`
-du mois civil précédent. Il n’effectue aucune collecte externe.
+Le workflow `intel-021-monthly-watch-analysis` prend en charge deux schémas :
+1. **V1 Mensuelle historique** (`schemaVersion: 1`, `triggerMode: "manual" | "scheduled"`) : analyse les digests et articles du mois écoulé.
+2. **V2 Analyse à la demande** (`schemaVersion: 2`, `triggerMode: "manual_custom"`) : analyse 1 à 3 groupes de sources (`veille_article`, `account_signal`, `intelligence_document`, `veille_digest`) guidée par une intention utilisateur.
 
-## Contrat
+Il n'effectue aucune collecte externe sur Internet.
+
+## Contrats
 
 - Webhook stable : `intel-021-monthly-watch-analysis`
 - `resultType` : `strategic_watch_analysis`
-- déclenchement manuel : `/api/n8n/trigger`
-- déclenchement planifié : le 2 de chaque mois à 06:00 (Europe/Paris), via
-  `POST /api/veille/monthly-watch/cron`
-- cycle : run Supabase → webhook n8n → callback signé → résultat → document
-  versionné par période.
+- Déclenchement : via `/api/n8n/trigger`
+- Déclenchement planifié V1 : le 2 de chaque mois à 06:00 (Europe/Paris), via `POST /api/veille/monthly-watch/cron`
+- Cycle : run Supabase → webhook n8n → validation/hydratation → LLM → callback signé → résultat dans `ai_intelligence_results`.
 
-Le payload est le type `MonthlyWatchAnalysisInput` de `src/lib/n8n/types.ts`.
-Les identifiants de digests et d’articles sont hydratés côté n8n avec les
-credentials Supabase ; aucun texte intégral n’est transmis depuis le navigateur.
+Le payload est le type `MonthlyWatchAnalysisInput` (V1) ou l'enveloppe V2 dérivée de `WatchAnalysisInputV2` (V2) de `src/lib/n8n/types.ts`.
+Toutes les données métier (articles, signaux, documents) sont revalidées et hydratées côté serveur / n8n avec les accès Supabase ; aucun contenu métier intégral n'est transmis par le navigateur.
 
 ## Configuration avant activation
 
-1. Importer le JSON dans n8n sans l’activer.
-2. Remplacer les deux placeholders de secrets HMAC par les secrets déjà utilisés
-   par la passerelle KREDO.
+1. Importer le JSON dans n8n sans l'activer.
+2. Remplacer les placeholders de secrets HMAC (`REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET` et `REMPLACE_PAR_TON_N8N_CALLBACK_SECRET`) par les secrets de la passerelle KREDO.
 3. Affecter les credentials `supabaseApi` et `anthropicApi` aux nœuds concernés.
-4. Définir `KREDO_APP_URL` et `N8N_CRON_SECRET` dans l’environnement n8n, et le
-   même `N8N_CRON_SECRET` dans l’application.
-5. Tester un run manuel, le callback, la création documentaire puis une relance
-   sur la même période : la relance doit produire une nouvelle version du même
-   document.
-6. Vérifier les deux chemins de callback : succès et échec. Les sorties d’erreur
-   des nœuds `continueErrorOutput` sont reliées au callback `status=failed`.
+4. Définir `KREDO_APP_URL` et `N8N_CRON_SECRET` dans l'environnement n8n, et le même `N8N_CRON_SECRET` dans l'application.
+5. Tester les deux chemins (V1 mensuelle et V2 à la demande) ainsi que les deux callbacks (succès et échec).
+6. Les sorties d'erreur (`onError: "continueErrorOutput"`) sont reliées au callback d'échec `status=failed`.
 
-Le fichier est volontairement livré avec `active: false`. Aucun déploiement n8n
-n’est réalisé par ce lot.
+Le fichier est livré avec `active: false`. Aucun déploiement n8n n'est réalisé automatiquement.

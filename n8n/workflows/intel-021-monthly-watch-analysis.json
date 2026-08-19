@@ -35,7 +35,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\nconst received = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expected = 'sha256=' + (item.computedSignature || '');\nif (!received || received !== expected) throw new Error('Signature HMAC invalide');\nfor (const field of ['runId','workflowId','workspaceId','userId','input','callbackUrl']) { if (!body[field]) throw new Error('Champ requis manquant : ' + field); }\nif (body.workflowId !== 'intel-021-monthly-watch-analysis') throw new Error('workflowId invalide');\nconst input = body.input;\nif (input.schemaVersion !== 1) throw new Error('schemaVersion doit valoir 1');\nfor (const field of ['periodStart','periodEnd','digestIds','articleIds','requestedAt','triggerMode']) { if (input[field] === undefined) throw new Error('Champ input manquant : ' + field); }\nif (!Array.isArray(input.digestIds) || !Array.isArray(input.articleIds) || input.articleIds.length === 0) throw new Error('digestIds/articleIds invalides');\nif (!['manual','scheduled'].includes(input.triggerMode)) throw new Error('triggerMode invalide');\nreturn [{ json: { runId: body.runId, workspaceId: body.workspaceId, userId: body.userId, callbackUrl: body.callbackUrl, input } }];"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\nconst received = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expected = 'sha256=' + (item.computedSignature || '');\nif (!received || received !== expected) throw new Error('Signature HMAC invalide');\nfor (const field of ['runId','workflowId','workspaceId','userId','input','callbackUrl']) {\n  if (!body[field]) throw new Error('Champ requis manquant : ' + field);\n}\nif (body.workflowId !== 'intel-021-monthly-watch-analysis') throw new Error('workflowId invalide');\nconst input = body.input;\n\nif (input.schemaVersion === 1) {\n  for (const field of ['periodStart','periodEnd','digestIds','articleIds','requestedAt','triggerMode']) {\n    if (input[field] === undefined) throw new Error('Champ input manquant : ' + field);\n  }\n  if (!Array.isArray(input.digestIds) || !Array.isArray(input.articleIds) || input.articleIds.length === 0) {\n    throw new Error('digestIds/articleIds invalides');\n  }\n  if (!['manual','scheduled'].includes(input.triggerMode)) throw new Error('triggerMode invalide');\n  return [{ json: { schemaVersion: 1, runId: body.runId, workspaceId: body.workspaceId, userId: body.userId, callbackUrl: body.callbackUrl, input } }];\n} else if (input.schemaVersion === 2) {\n  if (input.triggerMode !== 'manual_custom') throw new Error('triggerMode invalide pour V2');\n  if (typeof input.intention !== 'string' || !input.intention.trim()) throw new Error('intention manquante ou vide');\n  if (typeof input.requestedAt !== 'string' || !input.requestedAt.trim()) throw new Error('requestedAt manquant ou vide');\n  if (!Array.isArray(input.refs) || input.refs.length === 0) throw new Error('refs doit être un tableau non vide');\n  if (typeof input.stats !== 'object' || input.stats === null) throw new Error('stats requis');\n\n  const allowedKinds = new Set(['veille_digest', 'veille_article', 'account_signal', 'intelligence_document']);\n  for (const ref of input.refs) {\n    if (!ref || typeof ref !== 'object' || !allowedKinds.has(ref.kind) || typeof ref.id !== 'string' || !ref.id.trim()) {\n      throw new Error('Référence invalide dans refs');\n    }\n    if (ref.kind === 'veille_digest' && ref.articleIds !== undefined) {\n      if (!Array.isArray(ref.articleIds) || ref.articleIds.length === 0 || ref.articleIds.some(id => typeof id !== 'string' || !id.trim())) {\n        throw new Error('articleIds de digest invalides');\n      }\n    }\n  }\n  return [{ json: { schemaVersion: 2, runId: body.runId, workspaceId: body.workspaceId, userId: body.userId, callbackUrl: body.callbackUrl, input } }];\n} else {\n  throw new Error('schemaVersion invalide : ' + input.schemaVersion);\n}"
       },
       "id": "validate",
       "name": "Validate Input",
@@ -43,6 +43,17 @@
       "typeVersion": 2,
       "position": [620, 280],
       "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nif (item.schemaVersion === 2) {\n  return [ [], [{ json: item }] ];\n}\nreturn [ [{ json: item }], [] ];"
+      },
+      "id": "route-schema-version",
+      "name": "Route Schema Version",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [730, 280]
     },
     {
       "parameters": {
@@ -153,6 +164,95 @@
     },
     {
       "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs?id=eq.{{ $json.runId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Prefer", "value": "return=minimal" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: 'running', started_at: new Date().toISOString() } }}",
+        "options": {}
+      },
+      "id": "mark-running-v2",
+      "name": "Mark Run Running V2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [840, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const base = $('Route Schema Version').item.json;\nconst workspaceId = base.workspaceId;\nconst refs = base.input.refs || [];\n\nconst supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jvzgmhvwirsbdkjpmvla.supabase.co';\nconst supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';\n\nasync function querySupabase(table, queryStr) {\n  const url = `${supabaseUrl}/rest/v1/${table}?${queryStr}`;\n  if (typeof this !== 'undefined' && this.helpers && typeof this.helpers.httpRequest === 'function') {\n    return await this.helpers.httpRequest({\n      method: 'GET',\n      url,\n      headers: {\n        'apikey': supabaseKey,\n        'Authorization': `Bearer ${supabaseKey}`,\n        'Accept': 'application/json'\n      },\n      json: true\n    });\n  } else if (typeof fetch === 'function') {\n    const res = await fetch(url, {\n      headers: {\n        'apikey': supabaseKey,\n        'Authorization': `Bearer ${supabaseKey}`,\n        'Accept': 'application/json'\n      }\n    });\n    if (!res.ok) throw new Error(`HTTP ${res.status} on ${table}`);\n    return await res.json();\n  } else {\n    throw new Error('Aucun client HTTP disponible pour querySupabase');\n  }\n}\n\nconst hydratedItems = [];\n\nfor (const ref of refs) {\n  if (ref.kind === 'veille_digest') {\n    let query;\n    if (Array.isArray(ref.articleIds) && ref.articleIds.length > 0) {\n      const idsStr = ref.articleIds.join(',');\n      query = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&id=in.(${idsStr})&workspace_id=eq.${workspaceId}`;\n    } else {\n      query = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&digest_id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    }\n    const rows = await querySupabase('veille_articles', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    if (list.length === 0 || (Array.isArray(ref.articleIds) && list.length < ref.articleIds.length)) {\n      throw new Error('Référence non hydratable : veille_digest ' + ref.id);\n    }\n    for (const item of list) {\n      if (!item || !item.id) continue;\n      hydratedItems.push({\n        kind: 'veille_article',\n        id: item.id,\n        title: item.titre_fr || 'Article de veille',\n        provenance: item.source_name || 'Veille KREDO',\n        content: JSON.stringify({\n          titre: item.titre_fr,\n          resume: item.resume,\n          analyse_kredo: item.analyse_kredo,\n          action_commerciale: item.action_commerciale,\n          categorie: item.categorie,\n          secteur: item.secteur_principal,\n          published_at: item.published_at\n        })\n      });\n    }\n  } else if (ref.kind === 'veille_article') {\n    const query = `select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    const rows = await querySupabase('veille_articles', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    const item = list[0];\n    if (!item || !item.id) throw new Error('Référence non hydratable : veille_article ' + ref.id);\n    hydratedItems.push({\n      kind: 'veille_article',\n      id: item.id,\n      title: item.titre_fr || 'Article de veille',\n      provenance: item.source_name || 'Veille KREDO',\n      content: JSON.stringify({\n        titre: item.titre_fr,\n        resume: item.resume,\n        analyse_kredo: item.analyse_kredo,\n        action_commerciale: item.action_commerciale,\n        categorie: item.categorie,\n        secteur: item.secteur_principal,\n        published_at: item.published_at\n      })\n    });\n  } else if (ref.kind === 'account_signal') {\n    const query = `select=id,company_id,title,summary,category,detected_at,recommended_action&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    const rows = await querySupabase('account_signals', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    const item = list[0];\n    if (!item || !item.id) throw new Error('Référence non hydratable : account_signal ' + ref.id);\n    hydratedItems.push({\n      kind: 'account_signal',\n      id: item.id,\n      title: item.title || 'Signal compte',\n      provenance: 'Signal compte KREDO',\n      content: JSON.stringify({\n        title: item.title,\n        summary: item.summary,\n        category: item.category,\n        detected_at: item.detected_at,\n        recommended_action: item.recommended_action\n      })\n    });\n  } else if (ref.kind === 'intelligence_document') {\n    const query = `select=id,title,document_type,current_content_text,current_content_json&id=eq.${ref.id}&workspace_id=eq.${workspaceId}`;\n    const rows = await querySupabase('intelligence_documents', query);\n    const list = Array.isArray(rows) ? rows : [rows];\n    const item = list[0];\n    if (!item || !item.id) throw new Error('Référence non hydratable : intelligence_document ' + ref.id);\n    hydratedItems.push({\n      kind: 'intelligence_document',\n      id: item.id,\n      title: item.title || 'Document KREDO',\n      provenance: 'Bibliothèque documentaire KREDO',\n      content: item.current_content_text || JSON.stringify(item.current_content_json || {})\n    });\n  }\n}\n\nconst dedupedMap = new Map();\nfor (const item of hydratedItems) {\n  const key = `${item.kind}:${item.id}`;\n  if (!dedupedMap.has(key)) {\n    dedupedMap.set(key, item);\n  }\n}\n\nconst hydratedCorpus = Array.from(dedupedMap.values());\nif (hydratedCorpus.length === 0) throw new Error('Corpus V2 vide');\n\nreturn [{ json: { ...base, hydratedCorpus } }];"
+      },
+      "id": "hydrate-corpus-v2",
+      "name": "Hydrate Corpus V2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1060, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const base = $('Hydrate Corpus V2').item.json;\nconst intention = base.input.intention;\nconst corpus = base.hydratedCorpus || [];\n\nconst systemPrompt = `Tu produis une analyse stratégique sur mesure à partir du corpus fourni et de l'intention utilisateur.\nRègles absolues :\n1. N'effectue aucune recherche externe.\n2. Utilise uniquement le corpus fourni. Aucun fait inventé.\n3. Chaque conclusion (tendance, signal faible, évolution réglementaire, opportunité commerciale, risque, action prioritaire) DOIT citer au moins une preuve valide via \"evidenceRefs\".\n4. Chaque \"evidenceRef\" doit être un objet contenant uniquement : {\"kind\": \"...\", \"id\": \"...\"}.\n   Kinds autorisés : \"veille_article\", \"account_signal\", \"intelligence_document\".\n   Seuls les IDs présents dans le corpus sont autorisés.\n5. La sortie doit être un JSON strict respectant exactement le schéma demandé.`;\n\nconst schemaExpected = {\n  schemaVersion: 2,\n  analysisKind: \"manual_custom\",\n  title: \"Titre explicite de l'analyse synthétisant l'angle\",\n  executiveSummary: \"Synthèse exécutive guidée par l'intention utilisateur\",\n  majorTrends: [{\n    title: \"string\",\n    synthesis: \"string\",\n    sectors: [\"string\"],\n    confidence: 0.85,\n    evidenceRefs: [{ kind: \"veille_article\", id: \"uuid\" }]\n  }],\n  weakSignals: [{\n    title: \"string\",\n    synthesis: \"string\",\n    evidenceRefs: [{ kind: \"account_signal\", id: \"uuid\" }]\n  }],\n  regulatoryDevelopments: [{\n    title: \"string\",\n    impact: \"string\",\n    evidenceRefs: [{ kind: \"intelligence_document\", id: \"uuid\" }]\n  }],\n  commercialOpportunities: [{\n    title: \"string\",\n    rationale: \"string\",\n    recommendedAction: \"string\",\n    practices: [\"string\"],\n    evidenceRefs: [{ kind: \"veille_article\", id: \"uuid\" }]\n  }],\n  risksAndWatchpoints: [{\n    title: \"string\",\n    explanation: \"string\",\n    evidenceRefs: [{ kind: \"account_signal\", id: \"uuid\" }]\n  }],\n  priorityActions: [{\n    title: \"string\",\n    action: \"string\",\n    horizon: \"immediate\",\n    evidenceRefs: [{ kind: \"veille_article\", id: \"uuid\" }]\n  }]\n};\n\nconst userPrompt = `INTENTION UTILISATEUR :\\n${intention}\\n\\nSCHÉMA JSON ATTENDU :\\n${JSON.stringify(schemaExpected, null, 2)}\\n\\nCORPUS DE SOURCES FOURNI :\\n${JSON.stringify(corpus, null, 2)}`;\n\nreturn [{ json: { ...base, systemPrompt, userPrompt } }];"
+      },
+      "id": "assemble-v2",
+      "name": "Assemble Prompt V2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "anthropic-version", "value": "2023-06-01" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: 'claude-sonnet-5', max_tokens: 5000, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] } }}",
+        "options": { "timeout": 90000 }
+      },
+      "id": "llm-v2",
+      "name": "Call LLM V2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1720, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst base = $('Assemble Prompt V2').item.json;\nconst text = (response.content || []).find(b => b.type === 'text')?.text || '';\n\nlet output;\ntry {\n  output = JSON.parse(text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim());\n} catch {\n  throw new Error('Réponse LLM non JSON');\n}\n\nconst sectionsWithEvidence = [\n  'majorTrends',\n  'weakSignals',\n  'regulatoryDevelopments',\n  'commercialOpportunities',\n  'risksAndWatchpoints',\n  'priorityActions'\n];\n\nif (\n  output.schemaVersion !== 2 ||\n  output.analysisKind !== 'manual_custom' ||\n  !output.title ||\n  !output.executiveSummary ||\n  sectionsWithEvidence.some(k => !Array.isArray(output[k]))\n) {\n  throw new Error('Sortie structurée V2 invalide');\n}\n\nconst corpusMap = new Map();\nfor (const item of (base.hydratedCorpus || [])) {\n  corpusMap.set(`${item.kind}:${item.id}`, item);\n}\n\nfor (const secKey of sectionsWithEvidence) {\n  const items = output[secKey];\n  for (const item of items) {\n    if (!Array.isArray(item.evidenceRefs) || item.evidenceRefs.length === 0) {\n      throw new Error(`evidenceRefs manquants ou vides dans ${secKey}`);\n    }\n    const validatedRefs = [];\n    for (const ref of item.evidenceRefs) {\n      if (!ref || typeof ref !== 'object' || !ref.kind || !ref.id) {\n        throw new Error(`evidenceRef malformé dans ${secKey}`);\n      }\n      const key = `${ref.kind}:${ref.id}`;\n      const canonical = corpusMap.get(key);\n      if (!canonical) {\n        throw new Error(`evidenceRef inconnu ou hors corpus dans ${secKey} : ${key}`);\n      }\n      validatedRefs.push({\n        kind: ref.kind,\n        id: ref.id,\n        title: canonical.title,\n        provenance: canonical.provenance\n      });\n    }\n    item.evidenceRefs = validatedRefs;\n  }\n}\n\nconst articlesCount = base.hydratedCorpus.filter(i => i.kind === 'veille_article').length;\nconst signalsCount = base.hydratedCorpus.filter(i => i.kind === 'account_signal').length;\nconst documentsCount = base.hydratedCorpus.filter(i => i.kind === 'intelligence_document').length;\n\noutput.coverage = {\n  sourceGroups: base.input.stats?.sourceGroups || base.input.sources?.length || 0,\n  resolvedRefs: base.input.stats?.resolvedRefs || base.input.refs?.length || 0,\n  articlesCount,\n  signalsCount,\n  documentsCount,\n  totalItems: base.hydratedCorpus.length\n};\n\nconst qaFlags = [\n  { check: 'evidence_traceability', passed: true },\n  { check: 'resolved_refs_only', passed: true },\n  { check: 'no_external_collection', passed: true },\n  { check: 'coverage_from_hydrated_corpus', passed: true }\n];\n\nreturn [{\n  json: {\n    ...base,\n    output,\n    qaFlags,\n    llmUsage: response.usage || {},\n    model: response.model || 'claude-sonnet-5'\n  }\n}];"
+      },
+      "id": "validate-output-v2",
+      "name": "Validate Output V2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1940, 480],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const d = $input.first().json;\nconst o = d.output;\n\nconst lines = [\n  '# ' + o.title,\n  o.executiveSummary,\n  '',\n  '## Tendances majeures',\n  ...o.majorTrends.map(x => '- ' + x.title + ' — ' + x.synthesis),\n  '',\n  '## Signaux faibles',\n  ...o.weakSignals.map(x => '- ' + x.title + ' — ' + x.synthesis),\n  '',\n  '## Évolutions réglementaires',\n  ...o.regulatoryDevelopments.map(x => '- ' + x.title + ' — ' + x.impact),\n  '',\n  '## Opportunités commerciales',\n  ...o.commercialOpportunities.map(x => '- ' + x.title + ' — ' + x.recommendedAction),\n  '',\n  '## Risques et points de veille',\n  ...o.risksAndWatchpoints.map(x => '- ' + x.title + ' — ' + x.explanation),\n  '',\n  '## Actions prioritaires',\n  ...o.priorityActions.map(x => '- ' + x.title + ' — ' + x.action)\n];\n\nconst sourceRefs = (d.hydratedCorpus || []).map(item => ({\n  entityType: item.kind,\n  entityId: item.id,\n  label: item.title,\n  sourceName: item.provenance\n}));\n\nconst contextSnapshot = {\n  schemaVersion: 2,\n  triggerMode: 'manual_custom',\n  intention: d.input.intention,\n  requestedAt: d.input.requestedAt,\n  refs: d.input.refs,\n  stats: d.input.stats\n};\n\nconst callback = {\n  n8nExecutionId: typeof $execution !== 'undefined' ? $execution.id : 'test-exec-id',\n  n8nWorkflowId: typeof $workflow !== 'undefined' ? $workflow.id : 'intel-021-monthly-watch-analysis',\n  runId: d.runId,\n  phase: 1,\n  resultType: 'strategic_watch_analysis',\n  status: 'succeeded',\n  contentJson: o,\n  contentText: lines.join('\\n'),\n  title: o.title,\n  modelProvider: 'anthropic',\n  modelUsed: d.model,\n  tokensInput: d.llmUsage.input_tokens || null,\n  tokensOutput: d.llmUsage.output_tokens || null,\n  contextSnapshot,\n  sourceRefs,\n  qaFlags: d.qaFlags\n};\n\nreturn [{ json: { callbackUrl: d.callbackUrl, rawBody: JSON.stringify(callback) } }];"
+      },
+      "id": "prepare-callback-v2",
+      "name": "Prepare Callback V2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 480]
+    },
+    {
+      "parameters": {
         "action": "hmac",
         "type": "SHA256",
         "value": "={{ $json.rawBody }}",
@@ -169,13 +269,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Prepare Callback').item.json.callbackUrl }}",
+        "url": "={{ $('Prepare Callback').item ? $('Prepare Callback').item.json.callbackUrl : $('Prepare Callback V2').item.json.callbackUrl }}",
         "sendHeaders": true,
         "headerParameters": { "parameters": [{ "name": "x-kredo-signature", "value": "=sha256={{ $json.computedSignature }}" }, { "name": "content-type", "value": "application/json" }] },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ $('Prepare Callback').item.json.rawBody }}",
+        "body": "={{ $json.rawBody }}",
         "options": { "timeout": 30000 }
       },
       "id": "callback",
@@ -187,13 +287,13 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const failure = $input.first().json;\nconst webhook = $('Webhook — Monthly Watch').item.json.body || {};\nconst validated = (() => { try { return $('Validate Input').item.json; } catch { return null; } })();\nconst runId = validated?.runId || webhook.runId;\nconst callbackUrl = validated?.callbackUrl || webhook.callbackUrl;\nif (!runId || !callbackUrl) throw new Error('Impossible de notifier l’échec : runId/callbackUrl absents');\nconst message = failure.error?.message || failure.message || failure.errorMessage || 'Échec du workflow INTEL-021';\nconst callback = { n8nExecutionId:$execution.id, n8nWorkflowId:$workflow.id, runId, phase:1, resultType:'strategic_watch_analysis', status:'failed', contentJson:{ error:message }, contentText:'', title:'Analyse stratégique de la veille — échec', errorMessage:message };\nreturn [{ json:{ callbackUrl, rawBody:JSON.stringify(callback) } }];"
+        "jsCode": "const failure = $input.first().json;\nconst webhook = $('Webhook — Monthly Watch').item.json.body || {};\nconst validated = (() => {\n  try { return $('Validate Input').item.json; } catch { return null; }\n})();\nconst runId = validated?.runId || webhook.runId;\nconst callbackUrl = validated?.callbackUrl || webhook.callbackUrl;\nif (!runId || !callbackUrl) throw new Error('Impossible de notifier l’échec : runId/callbackUrl absents');\nconst message = failure.error?.message || failure.message || failure.errorMessage || 'Échec du workflow INTEL-021';\nconst callback = {\n  n8nExecutionId: typeof $execution !== 'undefined' ? $execution.id : 'test-exec-id',\n  n8nWorkflowId: typeof $workflow !== 'undefined' ? $workflow.id : 'intel-021-monthly-watch-analysis',\n  runId,\n  phase: 1,\n  resultType: 'strategic_watch_analysis',\n  status: 'failed',\n  contentJson: { error: message },\n  contentText: '',\n  title: 'Analyse stratégique de la veille — échec',\n  errorMessage: message\n};\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callback) } }];"
       },
       "id": "prepare-failure",
       "name": "Prepare Failure Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2160, 480]
+      "position": [2160, 680]
     },
     {
       "parameters": {
@@ -208,7 +308,7 @@
       "name": "Sign Failure Callback",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
-      "position": [2380, 480]
+      "position": [2380, 680]
     },
     {
       "parameters": {
@@ -226,7 +326,7 @@
       "name": "Callback (Failure)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2600, 480]
+      "position": [2600, 680]
     },
     {
       "parameters": { "rule": { "interval": [{ "field": "months", "monthsInterval": 1, "triggerAtDayOfMonth": 2, "triggerAtHour": 6 }] } },
@@ -234,7 +334,7 @@
       "name": "Schedule — Monthly",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [180, 560]
+      "position": [180, 800]
     },
     {
       "parameters": {
@@ -248,13 +348,19 @@
       "name": "Trigger Scheduled Contract",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [420, 560]
+      "position": [420, 800]
     }
   ],
   "connections": {
     "Webhook — Monthly Watch": { "main": [[{ "node": "Verify Signature", "type": "main", "index": 0 }]] },
     "Verify Signature": { "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]] },
-    "Validate Input": { "main": [[{ "node": "Mark Run Running", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Validate Input": { "main": [[{ "node": "Route Schema Version", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Route Schema Version": {
+      "main": [
+        [{ "node": "Mark Run Running", "type": "main", "index": 0 }],
+        [{ "node": "Mark Run Running V2", "type": "main", "index": 0 }]
+      ]
+    },
     "Mark Run Running": { "main": [[{ "node": "Load Digests", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Load Digests": { "main": [[{ "node": "Load Articles", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Load Articles": { "main": [[{ "node": "Assemble Prompt", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
@@ -262,6 +368,12 @@
     "Call LLM": { "main": [[{ "node": "Validate Output", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Validate Output": { "main": [[{ "node": "Prepare Callback", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
     "Prepare Callback": { "main": [[{ "node": "Sign Callback", "type": "main", "index": 0 }]] },
+    "Mark Run Running V2": { "main": [[{ "node": "Hydrate Corpus V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Hydrate Corpus V2": { "main": [[{ "node": "Assemble Prompt V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Assemble Prompt V2": { "main": [[{ "node": "Call LLM V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Call LLM V2": { "main": [[{ "node": "Validate Output V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Validate Output V2": { "main": [[{ "node": "Prepare Callback V2", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Prepare Callback V2": { "main": [[{ "node": "Sign Callback", "type": "main", "index": 0 }]] },
     "Sign Callback": { "main": [[{ "node": "Callback", "type": "main", "index": 0 }]] },
     "Prepare Failure Callback": { "main": [[{ "node": "Sign Failure Callback", "type": "main", "index": 0 }]] },
     "Sign Failure Callback": { "main": [[{ "node": "Callback (Failure)", "type": "main", "index": 0 }]] },

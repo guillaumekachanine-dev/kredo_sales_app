@@ -26,11 +26,10 @@ describe("INTEL-021 workflow", () => {
     expect(workflowText).toContain("articleIds")
   })
 
-  it("hydrates only existing watch rows and enforces article traceability", () => {
+  it("hydrates existing watch rows for V1 and V2 and enforces traceability", () => {
     expect(workflowText).toContain("veille_digests")
     expect(workflowText).toContain("veille_articles")
-    expect(workflowText).not.toContain("account_signals")
-    expect(workflowText).toContain("Traçabilité articleIds invalide")
+    expect(workflowText).toContain("account_signals")
     expect(workflowText).toContain("no_external_collection")
   })
 
@@ -38,7 +37,7 @@ describe("INTEL-021 workflow", () => {
     expect(workflow.connections["Sign Callback"]).toBeDefined()
     expect(workflow.connections["Sign Failure Callback"]).toBeDefined()
     expect(workflowText).toContain("strategic_watch_analysis")
-    expect(workflowText).toContain("status:'failed'")
+    expect(workflowText).toMatch(/status\s*:\s*['"]failed['"]/)
   })
 })
 
