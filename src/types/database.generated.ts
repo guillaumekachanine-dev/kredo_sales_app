@@ -2711,6 +2711,7 @@ export type Database = {
           sector_id: string
           segment_id: string | null
           source_document_id: string | null
+          source_run_id: string | null
           study_snapshot_date: string
           updated_at: string
           vulnerabilite: string | null
@@ -2735,6 +2736,7 @@ export type Database = {
           sector_id: string
           segment_id?: string | null
           source_document_id?: string | null
+          source_run_id?: string | null
           study_snapshot_date: string
           updated_at?: string
           vulnerabilite?: string | null
@@ -2759,6 +2761,7 @@ export type Database = {
           sector_id?: string
           segment_id?: string | null
           source_document_id?: string | null
+          source_run_id?: string | null
           study_snapshot_date?: string
           updated_at?: string
           vulnerabilite?: string | null
@@ -2841,6 +2844,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "intelligence_documents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitive_map_entries_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitive_map_entries_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
           },
           {
             foreignKeyName: "competitive_map_entries_workspace_id_fkey"
@@ -5942,6 +5959,7 @@ export type Database = {
           event_type: string
           id: string
           sector_id: string
+          source_run_id: string | null
           source_url: string | null
           status: string
           title: string
@@ -5956,6 +5974,7 @@ export type Database = {
           event_type: string
           id?: string
           sector_id: string
+          source_run_id?: string | null
           source_url?: string | null
           status?: string
           title: string
@@ -5970,6 +5989,7 @@ export type Database = {
           event_type?: string
           id?: string
           sector_id?: string
+          source_run_id?: string | null
           source_url?: string | null
           status?: string
           title?: string
@@ -5997,6 +6017,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_sector_knowledge_resolved"
             referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "sector_events_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_events_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
           },
           {
             foreignKeyName: "sector_events_workspace_id_fkey"
@@ -6028,8 +6062,11 @@ export type Database = {
           parent_id: string | null
           playbook: Json
           practices_fit: Json
+          resolution_locks: Json
           slug: string
+          source_run_id: string | null
           status: string
+          study_snapshot_date: string | null
           updated_at: string
           workspace_id: string
         }
@@ -6053,8 +6090,11 @@ export type Database = {
           parent_id?: string | null
           playbook?: Json
           practices_fit?: Json
+          resolution_locks?: Json
           slug: string
+          source_run_id?: string | null
           status?: string
+          study_snapshot_date?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -6078,8 +6118,11 @@ export type Database = {
           parent_id?: string | null
           playbook?: Json
           practices_fit?: Json
+          resolution_locks?: Json
           slug?: string
+          source_run_id?: string | null
           status?: string
+          study_snapshot_date?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -6104,6 +6147,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_sector_knowledge_resolved"
             referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "sector_intelligence_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_intelligence_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
           },
           {
             foreignKeyName: "sector_intelligence_workspace_id_fkey"
@@ -6214,6 +6271,7 @@ export type Database = {
           kredo_practice: string | null
           sector_id: string
           source_company_ids: string[]
+          source_run_id: string | null
           title: string
           updated_at: string
           verbatim: string | null
@@ -6227,6 +6285,7 @@ export type Database = {
           kredo_practice?: string | null
           sector_id: string
           source_company_ids?: string[]
+          source_run_id?: string | null
           title: string
           updated_at?: string
           verbatim?: string | null
@@ -6240,6 +6299,7 @@ export type Database = {
           kredo_practice?: string | null
           sector_id?: string
           source_company_ids?: string[]
+          source_run_id?: string | null
           title?: string
           updated_at?: string
           verbatim?: string | null
@@ -6266,6 +6326,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_sector_knowledge_resolved"
             referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "sector_pain_points_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_pain_points_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
           },
           {
             foreignKeyName: "sector_pain_points_workspace_id_fkey"
@@ -6365,6 +6439,7 @@ export type Database = {
           kredo_practice: string | null
           name: string
           sector_id: string
+          source_run_id: string | null
           source_url: string | null
           updated_at: string
           urgency: string
@@ -6381,6 +6456,7 @@ export type Database = {
           kredo_practice?: string | null
           name: string
           sector_id: string
+          source_run_id?: string | null
           source_url?: string | null
           updated_at?: string
           urgency?: string
@@ -6397,6 +6473,7 @@ export type Database = {
           kredo_practice?: string | null
           name?: string
           sector_id?: string
+          source_run_id?: string | null
           source_url?: string | null
           updated_at?: string
           urgency?: string
@@ -6423,6 +6500,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_sector_knowledge_resolved"
             referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "sector_regulatory_items_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_regulatory_items_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
           },
           {
             foreignKeyName: "sector_regulatory_items_workspace_id_fkey"
@@ -6614,6 +6705,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "source_collection_metrics_corpus_id_fkey"
@@ -7056,6 +7168,7 @@ export type Database = {
           maillon: number | null
           rang: number
           sector_id: string
+          source_run_id: string | null
           updated_at: string
           workspace_id: string
         }
@@ -7071,6 +7184,7 @@ export type Database = {
           maillon?: number | null
           rang?: number
           sector_id: string
+          source_run_id?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -7086,6 +7200,7 @@ export type Database = {
           maillon?: number | null
           rang?: number
           sector_id?: string
+          source_run_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -7110,6 +7225,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_sector_knowledge_resolved"
             referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "value_chain_nodes_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "value_chain_nodes_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
           },
           {
             foreignKeyName: "value_chain_nodes_workspace_id_fkey"
@@ -7419,38 +7548,6 @@ export type Database = {
       }
     }
     Views: {
-      v_source_effectiveness_30d: {
-        Row: {
-          effectiveness_score: number | null
-          items_after_dedup: number | null
-          items_collected: number | null
-          items_retained: number | null
-          observations: number | null
-          productive_observations: number | null
-          productive_run_rate: number | null
-          reliability_rate: number | null
-          retention_rate: number | null
-          source_catalog_id: string | null
-          successful_observations: number | null
-          workspace_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "source_collection_metrics_source_catalog_id_fkey"
-            columns: ["source_catalog_id"]
-            isOneToOne: false
-            referencedRelation: "source_catalog"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "source_collection_metrics_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       account_score_current: {
         Row: {
           calculated_at: string | null
@@ -8312,6 +8409,7 @@ export type Database = {
       v_sector_knowledge_resolved: {
         Row: {
           attractiveness_score: number | null
+          attractiveness_score_level: string | null
           avg_tjm_max: number | null
           avg_tjm_min: number | null
           caveats: Json | null
@@ -8326,7 +8424,9 @@ export type Database = {
           macro_slug: string | null
           macro_status: string | null
           market_growth_pct: number | null
+          market_growth_pct_level: string | null
           market_size_eur_bn: number | null
+          market_size_eur_bn_level: string | null
           playbook: Json | null
           playbook_level: string | null
           practices_fit: Json | null
@@ -8335,11 +8435,59 @@ export type Database = {
           segment_name: string | null
           segment_slug: string | null
           segment_status: string | null
+          source_run_id: string | null
+          study_snapshot_date: string | null
           workspace_id: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "sector_intelligence_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_intelligence_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
+          },
+          {
             foreignKeyName: "sector_intelligence_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_source_effectiveness_30d: {
+        Row: {
+          effectiveness_score: number | null
+          items_after_dedup: number | null
+          items_collected: number | null
+          items_retained: number | null
+          observations: number | null
+          productive_observations: number | null
+          productive_run_rate: number | null
+          reliability_rate: number | null
+          retention_rate: number | null
+          source_catalog_id: string | null
+          successful_observations: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_collection_metrics_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "source_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -8412,13 +8560,6 @@ export type Database = {
           status: string
           updated_at: string
         }[]
-      }
-      replace_veille_digest_articles: {
-        Args: {
-          p_articles: Json
-          p_digest_id: string
-        }
-        Returns: Database["public"]["Tables"]["veille_articles"]["Row"][]
       }
       archive_stale_account_signals: { Args: never; Returns: number }
       compute_conviction_score_v1: {
@@ -8602,6 +8743,39 @@ export type Database = {
           running_timeout_minutes?: number
         }
         Returns: number
+      }
+      replace_veille_digest_articles: {
+        Args: { p_articles: Json; p_digest_id: string }
+        Returns: {
+          action_commerciale: string
+          analyse_kredo: string
+          categorie: string
+          company_id: string | null
+          convergences: Json | null
+          created_at: string
+          digest_id: string
+          id: string
+          published_at: string | null
+          resume: string
+          secteur_principal: string
+          secteur_secondaire: string
+          selection_rank: number
+          source_catalog_id: string | null
+          source_name: string
+          superseded_at: string | null
+          tags: string[]
+          titre_fr: string
+          updated_at: string
+          url: string
+          url_hash: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "veille_articles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       resolve_company_candidates: {
         Args: { p_name: string; p_siren?: string }

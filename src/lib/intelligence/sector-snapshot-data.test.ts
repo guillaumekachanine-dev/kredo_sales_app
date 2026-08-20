@@ -75,6 +75,9 @@ function resolvedRow(overrides: Row = {}): Row {
     key_players_national: [],
     description_level: "macro",
     playbook_level: "macro",
+    attractiveness_score_level: "macro",
+    market_size_eur_bn_level: "macro",
+    market_growth_pct_level: "macro",
     has_segment_knowledge: false,
     ...overrides,
   }
@@ -257,5 +260,42 @@ describe("getSectorSnapshot — état vide explicite", () => {
     const view = await getSectorSnapshot(SEGMENT_ID, OPTIONS)
 
     expect(view!.hasAnyKnowledge).toBe(true)
+  })
+})
+
+// L1 (ADR-0021) — transmission de la provenance scalaire résolue par la vue
+// (macro, segment, locked). Le loader transmet fidèlement les colonnes SQL.
+describe("getSectorSnapshot — transmission de la provenance scalaire (L1)", () => {
+  it("hérite les trois chiffres du macro par défaut sans altération", async () => {
+    const view = await getSectorSnapshot(SEGMENT_ID, OPTIONS)
+
+    expect(view!.attractivenessScoreLevel).toBe("macro")
+    expect(view!.marketSizeLevel).toBe("macro")
+    expect(view!.marketGrowthLevel).toBe("macro")
+    expect(view!.attractivenessScore).toBe(4.2)
+  })
+
+  it("transmet fidèlement un niveau locked et une valeur null sans lever d'erreur", async () => {
+    state.resolved = resolvedRow({
+      market_size_eur_bn_level: "locked",
+      market_size_eur_bn: null,
+    })
+
+    const view = await getSectorSnapshot(SEGMENT_ID, OPTIONS)
+
+    expect(view!.marketSizeLevel).toBe("locked")
+    expect(view!.marketSizeEurBn).toBeNull()
+  })
+
+  it("transmet fidèlement un niveau segment", async () => {
+    state.resolved = resolvedRow({
+      market_growth_pct_level: "segment",
+      market_growth_pct: 7.5,
+    })
+
+    const view = await getSectorSnapshot(SEGMENT_ID, OPTIONS)
+
+    expect(view!.marketGrowthLevel).toBe("segment")
+    expect(view!.marketGrowthPct).toBe(7.5)
   })
 })

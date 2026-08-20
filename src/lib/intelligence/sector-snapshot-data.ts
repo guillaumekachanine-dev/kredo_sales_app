@@ -62,6 +62,9 @@ type SectorKnowledgeResolvedRow = {
   key_players_national: unknown
   description_level: string
   playbook_level: string
+  attractiveness_score_level: string
+  market_size_eur_bn_level: string
+  market_growth_pct_level: string
   has_segment_knowledge: boolean
 }
 
@@ -103,6 +106,10 @@ function toResolvedLevel(value: string | null | undefined): SectorResolvedLevel 
   return value === "segment" ? "segment" : "macro"
 }
 
+function toScalarLevel(value: string | null | undefined): SectorResolvedLevel {
+  return value === "segment" || value === "locked" ? value : "macro"
+}
+
 function toCompanySources(rows: Array<{ id: string; name: string; legal_name: string | null; segment: string | null; metadata: unknown }> | null): SectorCompanySource[] {
   return (rows ?? []).map((row) => ({
     id: row.id,
@@ -124,15 +131,14 @@ export async function getSectorSnapshot(
 ): Promise<SectorSnapshotView | null> {
   const supabase = await createClient()
 
-  const resolvedResult = await supabase
+  const { data: resolved } = await supabase
     .from("v_sector_knowledge_resolved")
     // Littéral d'un seul tenant : PostgREST infère le type de ligne en parsant
     // cette chaîne, une concaténation la rendrait opaque.
-    .select("segment_id,segment_name,segment_slug,segment_status,macro_id,macro_name,macro_slug,macro_status,description,attractiveness_score,market_size_eur_bn,market_growth_pct,key_players_paca,key_players_national,description_level,playbook_level,has_segment_knowledge")
+    .select("segment_id,segment_name,segment_slug,segment_status,macro_id,macro_name,macro_slug,macro_status,description,attractiveness_score,market_size_eur_bn,market_growth_pct,key_players_paca,key_players_national,description_level,playbook_level,attractiveness_score_level,market_size_eur_bn_level,market_growth_pct_level,has_segment_knowledge")
     .eq("segment_id", segmentId)
     .maybeSingle<SectorKnowledgeResolvedRow>()
 
-  const resolved = resolvedResult.data
   if (!resolved) return null
 
   // Le macro parent est connu ici seulement : la liste de repli ne peut pas
@@ -230,6 +236,9 @@ export async function getSectorSnapshot(
       macroSlug: resolved.macro_slug,
       descriptionLevel: toResolvedLevel(resolved.description_level),
       playbookLevel,
+      attractivenessScoreLevel: toScalarLevel(resolved.attractiveness_score_level),
+      marketSizeLevel: toScalarLevel(resolved.market_size_eur_bn_level),
+      marketGrowthLevel: toScalarLevel(resolved.market_growth_pct_level),
       hasSegmentKnowledge: Boolean(resolved.has_segment_knowledge),
     },
     currentCompanyId: options.currentCompanyId,

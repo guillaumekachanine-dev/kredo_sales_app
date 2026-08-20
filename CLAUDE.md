@@ -158,6 +158,7 @@ Quatre pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260818101855 | guard_ai_intelligence_summary_mission_runs (ADR-0020 M-4 — exclut `run_type LIKE 'mission:%'` de la latérale `res`) |
 | 20260818110944 | guard_ai_intelligence_summary_mission_runs_counters (M-4, complément — la latérale `runs` restait polluée : `count_runs`/`latest_run_*`) |
 | 20260818140533 | 086_mission_report_document_type (ADR-0020 L3 — `intelligence_document_type` += `mission_report`, seule écriture de schéma du lot) |
+| 20260820200000 | master_study_provenance_columns (ADR-0021 L1 — provenance atomique `source_run_id` sur 6 tables, `study_snapshot_date` et `resolution_locks jsonb` sur `sector_intelligence`, fonctions `private` de résolution scalaire, réécriture de `v_sector_knowledge_resolved` avec gestion `locked`) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -269,7 +270,7 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 #### Domaine Intelligence sectorielle
 | Table | Rows | Description |
 |---|---|---|
-| `sector_intelligence` | 53 | Référentiel sectoriel à 2 niveaux via `parent_id` (15 `macro` + 38 `segment`) — name, slug, `level`, `display_code`, attractiveness_score, practices_fit JSONB, playbook JSONB. UNIQUE(workspace_id, slug). **Le `slug` est la seule clé fonctionnelle** : `apply_account_classification()` et le workflow n8n INTEL-010 matchent dessus, jamais sur `name`. `display_code` (migration 072) garde la numérotation historique « 5.1 » **hors** du libellé — documentaire, à ne jamais réafficher devant un nom |
+| `sector_intelligence` | 53 | Référentiel sectoriel à 2 niveaux via `parent_id` (15 `macro` + 38 `segment`) — name, slug, `level`, `display_code`, attractiveness_score, practices_fit JSONB, playbook JSONB, `source_run_id` uuid (FK `ai_intelligence_runs`), `study_snapshot_date` date, `resolution_locks` JSONB DEFAULT '{}' (ADR-0021 L1). UNIQUE(workspace_id, slug). **Le `slug` est la seule clé fonctionnelle** : `apply_account_classification()` et le workflow n8n INTEL-010 matchent dessus, jamais sur `name`. `display_code` (migration 072) garde la numérotation historique « 5.1 » **hors** du libellé — documentaire, à ne jamais réafficher devant un nom |
 | `sector_news` | 7 | Actualités par secteur (published_at, relevance_score, is_trigger_event, tags[]) |
 | `sector_events` | 15 | Événements commerciaux (event_type, event_date, commercial_opportunity) |
 | `sector_pain_points` | 22 | Points de douleur consolidés (frequency_count, source_company_ids uuid[]) |
@@ -478,7 +479,7 @@ Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par 
 | `v_financial_model_pricing_anchors` | Ancrages tarifaires (agreement/mission/opportunity) consommés par le moteur de simulation |
 | `v_commercial_performance_monthly` | Réalisé vs objectif par mois et par plan de performance |
 | `v_performance_criteria_compensation` | Montant variable alloué par critère de performance |
-| `v_sector_knowledge_resolved` (`security_invoker`) | **Lot 0** — 1 ligne par fiche `sector_intelligence` de niveau `segment`, champs scalaires / `playbook` / `practices_fit` résolus par **substitution** champ par champ depuis le macro parent. `description_level` / `playbook_level` / `practices_fit_level` portent la provenance. C'est la **seule** source de la connaissance sectorielle d'un compte |
+| `v_sector_knowledge_resolved` (`security_invoker`) | **Lot 0 + L1 ADR-0021** — 1 ligne par fiche `sector_intelligence` de niveau `segment`, champs scalaires / `playbook` / `practices_fit` résolus par **substitution** champ par champ depuis le macro parent. `description_level` / `playbook_level` / `practices_fit_level` / `attractiveness_score_level` / `market_size_eur_bn_level` / `market_growth_pct_level` portent la provenance (`segment`, `macro`, `locked` via `resolution_locks`). C'est la **seule** source de la connaissance sectorielle d'un compte |
 | `v_sector_knowledge_items` (`security_invoker`) | **Lot 0** — 1 ligne par item (`regulatory` / `pain_point` / `event` / `news`) visible depuis un segment, par **UNION** segment + macro (jamais substitution : deux faits distincts). `resolved_level` porte la provenance |
 
 ### Triggers actifs

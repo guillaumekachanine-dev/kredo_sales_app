@@ -31,7 +31,7 @@ export type SectorActorView = {
 // compte) ou `macro` (héritée du macro-secteur parent). L'UI DOIT pouvoir dire
 // « cette information vient du macro-secteur » — sans quoi l'utilisateur croit
 // qu'elle est spécifique à son segment, ce qui est une régression de confiance.
-export type SectorResolvedLevel = "segment" | "macro"
+export type SectorResolvedLevel = "segment" | "macro" | "locked"
 
 export type SectorPainPointView = {
   id: string
@@ -119,6 +119,13 @@ export type ClientIntelligenceSectorView = {
   // scalaire ou une clé de playbook vient du segment lui-même.
   descriptionLevel: SectorResolvedLevel
   playbookLevel: SectorResolvedLevel
+  // L0 — provenance par chiffre, indépendante de descriptionLevel : un segment
+  // peut avoir sa propre description sans avoir sa propre taille de marché (cas
+  // ROBERTET, ADR-0021 §1.3a). L'UI DOIT afficher ce niveau à côté de chaque
+  // chiffre, jamais réutiliser descriptionLevel comme proxy.
+  attractivenessScoreLevel: SectorResolvedLevel
+  marketSizeLevel: SectorResolvedLevel
+  marketGrowthLevel: SectorResolvedLevel
   hasSegmentKnowledge: boolean
   // Maille de la liste de pairs affichée : `segment` (concurrents directs) ou
   // `macro` quand le segment compte moins de PEER_SEGMENT_MIN comptes.
@@ -190,6 +197,14 @@ export type SectorIntelligenceSource = {
   macroSlug: string | null
   descriptionLevel: SectorResolvedLevel
   playbookLevel: SectorResolvedLevel
+  // L0 — la vue résout attractiveness_score / market_size_eur_bn / market_growth_pct
+  // par COALESCE indépendant, sans témoin de provenance par champ (contrairement à
+  // description_level). Sans ce niveau, un chiffre hérité du macro s'affiche comme
+  // s'il caractérisait le segment — c'est le défaut constaté sur ROBERTET (80 Md€
+  // affiché comme taille du segment Parfumerie, en réalité celle du macro).
+  attractivenessScoreLevel: SectorResolvedLevel
+  marketSizeLevel: SectorResolvedLevel
+  marketGrowthLevel: SectorResolvedLevel
   hasSegmentKnowledge: boolean
 }
 
@@ -663,6 +678,9 @@ export function buildClientIntelligenceSectorView(source: ClientIntelligenceSect
     unclassifiedKredoAccountsCount,
     descriptionLevel: source.sector.descriptionLevel,
     playbookLevel: source.sector.playbookLevel,
+    attractivenessScoreLevel: source.sector.attractivenessScoreLevel,
+    marketSizeLevel: source.sector.marketSizeLevel,
+    marketGrowthLevel: source.sector.marketGrowthLevel,
     hasSegmentKnowledge: source.sector.hasSegmentKnowledge,
     peersLevel: source.peersLevel ?? "macro",
     hasAnyKnowledge:
@@ -697,6 +715,9 @@ export function buildFolioFallbackSectorView(input: {
       macroSlug: null,
       descriptionLevel: "segment",
       playbookLevel: "segment",
+      attractivenessScoreLevel: "segment",
+      marketSizeLevel: "segment",
+      marketGrowthLevel: "segment",
       hasSegmentKnowledge: false,
     },
     currentCompanyId: input.companyId,

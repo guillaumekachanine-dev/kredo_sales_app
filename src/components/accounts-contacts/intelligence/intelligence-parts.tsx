@@ -66,6 +66,16 @@ export function FactProvenanceBadge({ provenance }: { provenance: IntelligencePr
 // spécifique à son segment : c'est une perte de confiance, pas un détail.
 export function SectorLevelBadge({ level, macroName }: { level: SectorResolvedLevel; macroName?: string | null }) {
   if (level === "segment") return null
+  if (level === "locked") {
+    return (
+      <span
+        title="Secteur étudié — donnée non publiée pour ce segment"
+        className="inline-flex shrink-0 items-center gap-1 rounded border border-warning/25 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-warning"
+      >
+        Non publié
+      </span>
+    )
+  }
   return (
     <span
       title={macroName ? `Hérité du macro-secteur « ${macroName} »` : "Hérité du macro-secteur"}

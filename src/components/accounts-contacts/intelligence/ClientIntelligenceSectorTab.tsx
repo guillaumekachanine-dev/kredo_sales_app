@@ -78,15 +78,37 @@ export function ClientIntelligenceSectorMobileTab(props: ClientIntelligenceSecto
 
 function SectorIntroduction({ data, compact = false }: { data: ClientIntelligenceSectorView; compact?: boolean }) {
   const folioAddsInformation = data.folioSummary && data.folioSummary.trim() !== data.description?.trim()
+  // L0 — un chiffre hérité du macro porte le même badge que la description
+  // héritée (SectorLevelBadge). `level: null` = pas de notion de provenance
+  // pour ce stat (les pairs portent déjà leur maille dans le libellé).
   const stats = [
-    data.attractivenessScore !== null ? { label: "Attractivité", value: `${data.attractivenessScore}/5` } : null,
-    data.marketSizeEurBn !== null ? { label: "Taille marché KREDO", value: `${data.marketSizeEurBn} Md€` } : null,
-    data.marketGrowthPct !== null ? { label: "Croissance KREDO", value: `${data.marketGrowthPct}%` } : null,
+    data.attractivenessScore !== null || data.attractivenessScoreLevel === "locked"
+      ? {
+          label: "Attractivité",
+          value: data.attractivenessScoreLevel === "locked" ? "Non publié" : `${data.attractivenessScore}/5`,
+          level: data.attractivenessScoreLevel,
+        }
+      : null,
+    data.marketSizeEurBn !== null || data.marketSizeLevel === "locked"
+      ? {
+          label: "Taille marché KREDO",
+          value: data.marketSizeLevel === "locked" ? "Non publié" : `${data.marketSizeEurBn} Md€`,
+          level: data.marketSizeLevel,
+        }
+      : null,
+    data.marketGrowthPct !== null || data.marketGrowthLevel === "locked"
+      ? {
+          label: "Croissance KREDO",
+          value: data.marketGrowthLevel === "locked" ? "Non publié" : `${data.marketGrowthPct}%`,
+          level: data.marketGrowthLevel,
+        }
+      : null,
     {
       label: data.peersLevel === "segment" ? "Pairs du segment" : "Pairs du macro-secteur",
       value: `${data.exposedAccountsCount} compte${data.exposedAccountsCount > 1 ? "s" : ""}`,
+      level: null,
     },
-  ].filter((item): item is { label: string; value: string } => Boolean(item))
+  ].filter((item): item is { label: string; value: string; level: ClientIntelligenceSectorView["attractivenessScoreLevel"] | null } => Boolean(item))
 
   return (
     <SectionBlock title={data.name} action={<span className="text-[10px] font-semibold uppercase tracking-wider text-white/75">Chapeau sectoriel</span>}>
@@ -115,7 +137,10 @@ function SectorIntroduction({ data, compact = false }: { data: ClientIntelligenc
         <dl className={compact ? "grid grid-cols-2 gap-2" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-4"}>
           {stats.map((stat) => (
             <div key={stat.label} className="border-t border-border pt-2">
-              <dt className="text-[9px] font-bold uppercase tracking-wider text-muted">{stat.label}</dt>
+              <dt className="flex flex-wrap items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-muted">
+                {stat.label}
+                {stat.level ? <SectorLevelBadge level={stat.level} macroName={data.macroName} /> : null}
+              </dt>
               <dd className="mt-0.5 text-base font-bold text-heading">{stat.value}</dd>
             </div>
           ))}

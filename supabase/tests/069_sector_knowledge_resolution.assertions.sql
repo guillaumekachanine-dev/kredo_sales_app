@@ -171,3 +171,51 @@ begin
 
   raise notice 'Vues : 5/5 assertions vertes.';
 end $$;
+
+do $$
+begin
+  -- 15. Le verrou l'emporte toujours, même si une valeur brute existe des deux côtés
+  --     (défense contre un état incohérent que l'importeur ne devrait jamais produire,
+  --     mais que la vue ne doit jamais laisser passer si un bug le produit quand même).
+  if private.sector_resolve_scalar(4.9, 4.2, true) is not null then
+    raise exception 'ASSERT 15a — le verrou devrait forcer NULL même avec une valeur segment ET macro';
+  end if;
+  if private.sector_scalar_level(4.9, true) <> 'locked' then
+    raise exception 'ASSERT 15b — un segment verrouillé doit rester `locked` même s''il porte une valeur brute';
+  end if;
+
+  -- 16. Sans verrou, le comportement est inchangé (non-régression du COALESCE existant).
+  if private.sector_resolve_scalar(4.9, 4.2, false) <> 4.9 then
+    raise exception 'ASSERT 16a — sans verrou, la valeur segment doit primer';
+  end if;
+  if private.sector_resolve_scalar(null, 4.2, false) <> 4.2 then
+    raise exception 'ASSERT 16b — sans verrou et sans valeur segment, le macro doit passer';
+  end if;
+  if private.sector_scalar_level(4.9, false) <> 'segment' or private.sector_scalar_level(null, false) <> 'macro' then
+    raise exception 'ASSERT 16c — provenance segment/macro incorrecte sans verrou';
+  end if;
+
+  -- 17. Aucune fiche existante n'est verrouillée avant la première ingestion Master Study
+  --     (resolution_locks doit valoir ''{}'' partout tant que L2/L3 n'ont encore rien écrit).
+  --     Cette assertion cessera d'être vraie après le premier import réel (L3) — c'est attendu,
+  --     elle vérifie l'état DE CETTE MIGRATION, pas un invariant permanent. Si elle échoue à ce
+  --     stade, quelque chose a écrit dans resolution_locks avant l'heure : investiguer avant de
+  --     continuer, ne pas l'assouplir en silence.
+  if (select count(*) from public.sector_intelligence where resolution_locks <> '{}'::jsonb) <> 0 then
+    raise exception 'ASSERT 17 — resolution_locks non vide avant toute ingestion Master Study (L2/L3 pas encore livrés)';
+  end if;
+
+  -- 18. v_sector_knowledge_resolved expose bien les 3 nouvelles colonnes de niveau, avec des
+  --     valeurs dans le domaine attendu (jamais autre chose que segment/macro/locked).
+  if exists (
+    select 1 from public.v_sector_knowledge_resolved
+    where attractiveness_score_level not in ('segment','macro','locked')
+       or market_size_eur_bn_level not in ('segment','macro','locked')
+       or market_growth_pct_level not in ('segment','macro','locked')
+  ) then
+    raise exception 'ASSERT 18 — un niveau de provenance hors domaine (segment/macro/locked)';
+  end if;
+
+  raise notice 'L1 — provenance et verrou : 4/4 assertions supplémentaires vertes.';
+end $$;
+
