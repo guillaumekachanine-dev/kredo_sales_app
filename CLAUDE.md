@@ -582,7 +582,7 @@ Utiliser EXCLUSIVEMENT les variables de couleurs du projet.
 | Audit de performance | `docs/audits/AUDIT-PERFORMANCE-KREDO.md` |
 | Workflows n8n (JSON + SETUP) | `n8n/workflows/` |
 | **Production de la connaissance commerciale** | **`docs/MASTER-STUDY/`** — source unique |
-| **Missions d'intelligence** (moteur déclaratif ADR-0020) | **`docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md`** — point de reprise autoportant, à lire AVANT l'ADR |
+| **Missions d'intelligence** (moteur déclaratif ADR-0020) | **`docs/FEATURES/intelligence_missions/07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md`** — point de reprise autoportant, à lire AVANT l'ADR. Les handoffs `05` et `06` sont de l'historique |
 | Étude sectorielle (matière brute, archives) | `docs/FEATURES/sector_intelligence/` |
 
 > 🔴 **`docs/MASTER-STUDY/` fait autorité sur tout ce qui concerne la production de
@@ -682,7 +682,7 @@ de la base.
 
 | Chantier | État | Où |
 |---|---|---|
-| **ADR-0020 — Missions d'intelligence** (moteur déclaratif : le métier IA en TypeScript, n8n en exécuteur sans métier) | **L0 → L3 livrés (2026-08-18)** — contrats, catalogue, garde M-4, 3 providers de corpus, budget déterministe, résolveur, branche `missionSlug` dans `/api/n8n/trigger`, workflow `mission-001-run`, et le portail de callback (validateur `MissionReportV1`, `resultType`/`phase` imposés, enum `mission_report`). **Deux dépendances hors code** : import VPS de `mission-001-run` (manuel, Guillaume) et lancement depuis `intelligence-registry.ts`. **Prochain : L5** (pilote `intel-021` rejoué en preset) ; L4 (composeur UX) reste suspendu jusqu'à la preuve du pilote | `docs/FEATURES/intelligence_missions/05-HANDOFF-IMPLEMENTATION.md` — **commencer par le §2** |
+| **ADR-0020 — Missions d'intelligence** (moteur déclaratif : le métier IA en TypeScript, n8n en exécuteur sans métier) | **L0 → L5 livrés et prouvés (2026-08-20)** — contrats, catalogue, garde M-4, 3 providers de corpus, budget déterministe, résolveur, branche `missionSlug` dans `/api/n8n/trigger`, workflow générique `mission-001-run`, callback validé (`MissionReportV1`, `resultType`/`phase` imposés, enum `mission_report`), **composeur UX L4** (commit `08482338`) et **pilote L5 validé en production** (run `581e4732…`). Catalogue = **1 mission**. **Prochain : L6** — mission `rentabilite-portefeuille`, cadrée, à implémenter. Elle ne demande **ni JSON n8n ni import VPS** : `mission-001-run.json` ne porte aucune référence à la veille | `docs/FEATURES/intelligence_missions/07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md` — **autoportant, commencer par le §2** |
 | **ADR-0018 — refonte shell navigation desktop** (rail de section, 12 modules) | Proposé, en cours | `docs/adr/ADR-0018-*.md` + ledger `docs/FEATURES/dynamic_content_generator(redaction assistee)/SHELL-0018-implementation-ledger.md` — **commencer par le ledger** |
 | **Taxonomie sectorielle + classification comptes** | Figé en migration (commit `a0338ab9`) | 98/98 comptes classifiés, 53 fiches `sector_intelligence` (15 macro + 38 segment) |
 | **Connaissance & intelligence sectorielle** | **Lot 0 livré (2026-08-12)** — lecture à la maille segment avec héritage macro | `docs/FEATURES/sector_intelligence/HANDOFF-LOT0-RESOLUTION-SECTORIELLE.md` + `ARCHITECTURE-CONNAISSANCE-INTELLIGENCE.md`. Reste Lots 1-9. **Hors périmètre du Lot 0, à trancher** : `/prospection/approche-sectorielle` (`build-sector-activation-model.ts`) reste groupé au macro |

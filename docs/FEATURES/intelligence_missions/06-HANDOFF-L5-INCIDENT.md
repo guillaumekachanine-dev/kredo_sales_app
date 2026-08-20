@@ -1,5 +1,13 @@
 # 06 — Handoff post-L5 : incident résolu, pilote validé
 
+> ---
+> 🗄️ **HISTORIQUE — incident L5 et preuve du pilote veille. Ne plus utiliser comme état courant.**
+> L4 (composeur Desktop + Mobile) est livré depuis, commit `08482338` : la ligne « L4 ⏸️ à
+> décider » du tableau ci-dessous est périmée.
+> **État courant et suite du chantier : [`07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md`](./07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md).**
+> *(bandeau ajouté le 2026-08-20)*
+> ---
+
 > **Statut** : ✅ incident clos — **L5 validé en production**.
 > **Dernière mise à jour** : 2026-08-20.
 > **Autorité normative** : `docs/adr/ADR-0020-missions-intelligence.md` (M-1 à M-7).

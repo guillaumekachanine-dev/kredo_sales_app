@@ -1,5 +1,13 @@
 # 05 — Handoff d'implémentation « Missions d'intelligence »
 
+> ---
+> 🗄️ **HISTORIQUE D'IMPLÉMENTATION L0 → L3. Ne plus utiliser comme état courant.**
+> Ce document annonce encore L3 et L5 comme travaux futurs : ils sont livrés et validés.
+> **État courant et suite du chantier : [`07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md`](./07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md).**
+> Son contenu est conservé intact : il documente précisément comment L0 → L3 ont été construits.
+> *(bandeau ajouté le 2026-08-20)*
+> ---
+
 > **Statut** : opérationnel — document de reprise pour tout agent entrant.
 > **Autorité** : `docs/adr/ADR-0020-missions-intelligence.md` (**Accepté** le 2026-08-18).
 > En cas de divergence avec `02` ou `03`, **l'ADR fait foi**.
