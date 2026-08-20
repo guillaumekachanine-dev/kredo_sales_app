@@ -141,7 +141,7 @@ describe("POST /api/n8n/trigger — branche mission", () => {
     expect(call.runType).toBe("mission:veille-analyse-mensuelle")
     expect(call.extraConfig).toMatchObject({
       missionSlug: "veille-analyse-mensuelle",
-      missionVersion: 1,
+      missionVersion: 3,
     })
   })
 

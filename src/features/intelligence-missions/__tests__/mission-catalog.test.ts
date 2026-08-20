@@ -44,7 +44,7 @@ describe("MISSION_CATALOG", () => {
     expect(preset).toBeDefined()
     if (!preset) return
 
-    expect(preset.version).toBeGreaterThan(0)
+    expect(preset.version).toBe(3)
     expect(preset.label.trim()).not.toBe("")
     expect(preset.description.trim()).not.toBe("")
     expect(preset.intent.preset.trim()).not.toBe("")
@@ -55,7 +55,7 @@ describe("MISSION_CATALOG", () => {
     expect(preset.corpus.budget.maxItems).toBeGreaterThan(0)
     expect(preset.model.provider).toBe("anthropic")
     expect(preset.model.model.trim()).not.toBe("")
-    expect(preset.model.maxOutputTokens).toBeGreaterThan(0)
+    expect(preset.model.maxOutputTokens).toBe(8_000)
 
     expect(preset.corpus.requiredAtLaunch.length + preset.corpus.base.length).toBeGreaterThan(
       0,
@@ -64,5 +64,20 @@ describe("MISSION_CATALOG", () => {
     expect(preset).not.toHaveProperty("resultType")
     expect(preset).not.toHaveProperty("outputSchema")
     expect(preset).not.toHaveProperty("qaRules")
+  })
+
+  it("impose les regles de concision et de selection dans le promptTemplate de veille-analyse-mensuelle", () => {
+    const preset = MISSION_CATALOG[0]
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    expect(preset.promptTemplate).toContain("executiveSummary (maximum 8 phrases)")
+    expect(preset.promptTemplate).toContain("findings (maximum 8 constats au total)")
+    expect(preset.promptTemplate).toContain("chaque statement de constat fait maximum 3 phrases")
+    expect(preset.promptTemplate).toContain("recommendations les actions prioritaires découlant des constats (maximum 5 recommandations)")
+    expect(preset.promptTemplate).toContain("chaque rationale de recommandation fait maximum 3 phrases")
+    expect(preset.promptTemplate).toContain("sans jamais répéter plusieurs fois la même source")
+    expect(preset.promptTemplate).toContain("Le rapport doit rester synthétique. Ne cherche pas à restituer chaque élément du corpus. Sélectionne uniquement les constats et recommandations les plus significatifs.")
+    expect(preset.promptTemplate).toContain("Privilégie les constats les plus structurants plutôt que l'exhaustivité.")
   })
 })

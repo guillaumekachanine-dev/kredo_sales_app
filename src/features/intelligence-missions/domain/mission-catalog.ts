@@ -3,7 +3,7 @@ import type { MissionSpec } from "./mission-contracts"
 export const MISSION_CATALOG = [
   {
     slug: "veille-analyse-mensuelle",
-    version: 2,
+    version: 3,
     label: "Analyse mensuelle de la veille",
     description:
       "Analyse stratégique mensuelle de la veille Kredo : tendances, signaux faibles, réglementation, opportunités, risques et actions prioritaires.",
@@ -40,18 +40,23 @@ export const MISSION_CATALOG = [
     promptTemplate: `Tu produis une analyse stratégique mensuelle de veille destinée à un manager commercial d'ESN.
 
 À partir du corpus fourni uniquement :
-- synthétise les évolutions majeures dans executiveSummary ;
-- classe les constats dans findings avec les catégories tendance, signal_faible, reglementaire, opportunite ou risque ;
+- synthétise les évolutions majeures dans executiveSummary (maximum 8 phrases) ;
+- classe les constats dans findings (maximum 8 constats au total) avec les catégories tendance, signal_faible, reglementaire, opportunite ou risque ;
+- chaque statement de constat fait maximum 3 phrases ;
 - utilise autre uniquement lorsqu'un constat utile n'entre réellement dans aucune des cinq catégories précédentes ;
-- formule dans recommendations les actions prioritaires découlant des constats ;
+- formule dans recommendations les actions prioritaires découlant des constats (maximum 5 recommandations) ;
+- chaque rationale de recommandation fait maximum 3 phrases ;
 - rattache chaque finding et chaque recommandation à ses preuves via SourceRef ;
-- consolide dans sourceRefs les sources effectivement mobilisées.
+- consolide dans sourceRefs les sources effectivement mobilisées, sans jamais répéter plusieurs fois la même source.
 
-Ne transforme jamais une absence d'information en conclusion. Si le corpus ne permet pas d'étayer un point, ne l'affirme pas.`,
+Règles de concision et de sélection :
+- Le rapport doit rester synthétique. Ne cherche pas à restituer chaque élément du corpus. Sélectionne uniquement les constats et recommandations les plus significatifs.
+- Privilégie les constats les plus structurants plutôt que l'exhaustivité.
+- Ne transforme jamais une absence d'information en conclusion. Si le corpus ne permet pas d'étayer un point, ne l'affirme pas.`,
     model: {
       provider: "anthropic",
       model: "claude-sonnet-5",
-      maxOutputTokens: 5_000,
+      maxOutputTokens: 8_000,
     },
   },
 ] satisfies MissionSpec[]
