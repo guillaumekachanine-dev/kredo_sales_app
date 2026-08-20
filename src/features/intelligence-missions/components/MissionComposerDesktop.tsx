@@ -5,7 +5,11 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { defaultMissionMonth, type MissionComposerStatus } from "./mission-composer-model"
+import {
+  defaultMissionMonth,
+  type MissionComposerConfig,
+  type MissionComposerStatus,
+} from "./mission-composer-model"
 import { useMissionLauncher } from "./use-mission-launcher"
 
 const STATUS_COPY: Record<Exclude<MissionComposerStatus, "idle" | "succeeded" | "failed" | "timeout">, string> = {
@@ -14,9 +18,9 @@ const STATUS_COPY: Record<Exclude<MissionComposerStatus, "idle" | "succeeded" | 
   running: "Analyse en cours…",
 }
 
-export function MissionComposerDesktop() {
+export function MissionComposerDesktop({ config }: { config: MissionComposerConfig }) {
   const [month, setMonth] = useState(defaultMissionMonth)
-  const launcher = useMissionLauncher()
+  const launcher = useMissionLauncher(config)
   const isBusy = ["launching", "queued", "running"].includes(launcher.status)
 
   return (
@@ -24,10 +28,10 @@ export function MissionComposerDesktop() {
       <header className="space-y-2 border-b border-primary-fg/12 pb-4">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">Mission prédéfinie</p>
         <h3 id="mission-composer-desktop-title" className="text-base font-bold leading-tight text-primary-fg">
-          Analyse mensuelle de la veille
+          {config.label}
         </h3>
         <p className="text-[11px] leading-5 text-primary-fg/65">
-          Identifier les tendances, signaux faibles, évolutions réglementaires, opportunités, risques et actions prioritaires d’une période de veille.
+          {config.description}
         </p>
       </header>
 

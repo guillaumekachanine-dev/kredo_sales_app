@@ -35,7 +35,10 @@ import {
   type DeterministicIntelligenceActionId,
 } from "./action-results/IntelligenceActionResultContent"
 import { MissionComposerMobile } from "@/features/intelligence-missions/components/MissionComposerMobile"
-import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
+import {
+  MONTHLY_WATCH_MISSION_ACTION_ID,
+  VEILLE_MISSION_COMPOSER_CONFIG,
+} from "@/features/intelligence-missions/components/mission-composer-model"
 
 const AgendaEventTypePicker = dynamic(
   () => import("@/components/agenda/AgendaEventTypePicker").then((module) => module.AgendaEventTypePicker),
@@ -489,7 +492,7 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
   const missionAction = resolved.contextualActions.find((action) => action.id === MONTHLY_WATCH_MISSION_ACTION_ID)
 
   if (missionComposerOpen && missionAction) {
-    return <MissionComposerMobile onBack={() => setMissionComposerOpen(false)} />
+    return <MissionComposerMobile config={VEILLE_MISSION_COMPOSER_CONFIG} onBack={() => setMissionComposerOpen(false)} />
   }
 
   const primaryActions: RegistryButtonAction[] = [

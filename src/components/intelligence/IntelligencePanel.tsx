@@ -29,7 +29,10 @@ import {
   buildDefaultBrief,
 } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { MissionComposerDesktop } from "@/features/intelligence-missions/components/MissionComposerDesktop"
-import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
+import {
+  MONTHLY_WATCH_MISSION_ACTION_ID,
+  VEILLE_MISSION_COMPOSER_CONFIG,
+} from "@/features/intelligence-missions/components/mission-composer-model"
 
 type AccountPanelAction = "pitch" | "summary" | null
 
@@ -277,7 +280,7 @@ function RegistryPanelContent() {
           Retour
         </button>
         {isAvailableMissionAction ? (
-          <MissionComposerDesktop />
+          <MissionComposerDesktop config={VEILLE_MISSION_COMPOSER_CONFIG} />
         ) : isDeterministicIntelligenceAction(activeActionId) ? (
           <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
             <IntelligenceActionResultContent actionId={activeActionId} />

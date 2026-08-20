@@ -136,3 +136,90 @@ describe("assembleMissionPrompt — prompt utilisateur", () => {
     expect(userPrompt).toContain("date: inconnue")
   })
 })
+
+const RENTABILITE_SPEC = findMissionSpec("rentabilite-portefeuille") as MissionSpec
+
+const RENTABILITE_CORPUS: ResolvedCorpus = {
+  items: [
+    {
+      ref: { kind: "delivery_period", table: "pnl_monthly", id: "pnl-july-2026" },
+      title: "P&L mensuel · juillet 2026",
+      date: "2026-07-01",
+      provenance: "pnl_monthly",
+      content:
+        "Mois : juillet 2026\nChiffre d'affaires : 197 430 € (−65 450 € (−24,9 %) vs juin 2026)\nMarge brute : 28,76 % (−19,26 pts vs juin 2026) (56 780 €)",
+      chars: 172,
+    },
+    {
+      ref: {
+        kind: "delivery_period",
+        table: "v_collaborator_activity_summary",
+        id: "collab-1:2026-07-01",
+      },
+      title: "Activité · Alice Martin · juillet 2026",
+      date: "2026-07-01",
+      provenance: "v_collaborator_activity_summary",
+      content:
+        "Collaborateur : Alice Martin\nPériode : juillet 2026\nJours facturables : 12\nTaux d'activité : 57,14 %\nMarge réelle (%) : 22,50 %",
+      chars: 145,
+    },
+  ],
+  stats: { requested: 2, kept: 2, dropped: 0, totalChars: 317 },
+  trace: [],
+}
+
+describe("assembleMissionPrompt — preset rentabilite-portefeuille", () => {
+  it("assemble le prompt sans lever d'erreur et de manière déterministe", () => {
+    expect(RENTABILITE_SPEC).toBeDefined()
+    const result1 = assembleMissionPrompt(RENTABILITE_SPEC, RENTABILITE_CORPUS)
+    const result2 = assembleMissionPrompt(RENTABILITE_SPEC, RENTABILITE_CORPUS)
+
+    expect(result1).toEqual(result2)
+    expect(result1.systemPrompt.trim()).not.toBe("")
+    expect(result1.userPrompt.trim()).not.toBe("")
+  })
+
+  it("génère un prompt système contenant les 6 catégories de Finding et la règle anti-recalcul", () => {
+    const { systemPrompt } = assembleMissionPrompt(RENTABILITE_SPEC, RENTABILITE_CORPUS)
+
+    // Les 6 catégories de Finding doivent apparaître
+    for (const category of [
+      "tendance",
+      "signal_faible",
+      "reglementaire",
+      "opportunite",
+      "risque",
+      "autre",
+    ]) {
+      expect(systemPrompt).toContain(`\`${category}\``)
+    }
+
+    // Les 3 horizons
+    for (const horizon of ["immediate", "30_days", "quarter"]) {
+      expect(systemPrompt).toContain(`\`${horizon}\``)
+    }
+
+    // La règle anti-recalcul
+    expect(systemPrompt).toContain("Ne recalcule aucun ratio ni aucun écart")
+    expect(systemPrompt).toContain("Tous les chiffres et toutes les variations nécessaires sont déjà fournis")
+  })
+
+  it("génère un prompt utilisateur structuré avec le label, l'intention, le template et les sources delivery_period", () => {
+    const { userPrompt } = assembleMissionPrompt(RENTABILITE_SPEC, RENTABILITE_CORPUS)
+
+    expect(userPrompt).toContain("## Mission — Rentabilité du portefeuille")
+    expect(userPrompt).toContain(RENTABILITE_SPEC.intent.preset)
+    expect(userPrompt).toContain("Sources retenues : 2 sur 2 considérées (317 caractères).")
+    expect(userPrompt).toContain(
+      "chaque constat dans findings doit obligatoirement être imputé à une mission, un client ou un consultant nommé",
+    )
+    for (const source of RENTABILITE_CORPUS.items) {
+      expect(userPrompt).toContain(`kind: ${source.ref.kind}`)
+      expect(userPrompt).toContain(`table: ${source.ref.table}`)
+      expect(userPrompt).toContain(`id: ${source.ref.id}`)
+      expect(userPrompt).toContain(source.title)
+      expect(userPrompt).toContain(source.provenance)
+      expect(userPrompt).toContain(source.content)
+    }
+  })
+})

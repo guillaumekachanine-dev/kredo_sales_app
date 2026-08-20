@@ -5,12 +5,21 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { defaultMissionMonth } from "./mission-composer-model"
+import {
+  defaultMissionMonth,
+  type MissionComposerConfig,
+} from "./mission-composer-model"
 import { useMissionLauncher } from "./use-mission-launcher"
 
-export function MissionComposerMobile({ onBack }: { onBack: () => void }) {
+export function MissionComposerMobile({
+  config,
+  onBack,
+}: {
+  config: MissionComposerConfig
+  onBack: () => void
+}) {
   const [month, setMonth] = useState(defaultMissionMonth)
-  const launcher = useMissionLauncher()
+  const launcher = useMissionLauncher(config)
   const isBusy = ["launching", "queued", "running"].includes(launcher.status)
 
   const statusCopy = launcher.status === "queued"
@@ -29,8 +38,8 @@ export function MissionComposerMobile({ onBack }: { onBack: () => void }) {
 
       <header className="space-y-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">Mission prédéfinie</p>
-        <h3 id="mission-composer-mobile-title" className="text-xl font-bold leading-tight text-white">Analyse mensuelle de la veille</h3>
-        <p className="text-sm leading-5 text-white/70">Tendances, signaux faibles, risques et actions prioritaires du mois.</p>
+        <h3 id="mission-composer-mobile-title" className="text-xl font-bold leading-tight text-white">{config.label}</h3>
+        <p className="text-sm leading-5 text-white/70">{config.description}</p>
       </header>
 
       <div className="space-y-2">

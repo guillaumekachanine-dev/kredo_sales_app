@@ -25,9 +25,26 @@ export type MissionComposerStatus =
 
 export type MissionComposerResult = MissionReportV1
 
+export type MissionComposerConfig = {
+  /** Slug catalogue — la seule chose envoyée au serveur avec les sélecteurs. */
+  missionSlug: string
+  /** Titre affiché en en-tête du composeur (Desktop ET Mobile). */
+  label: string
+  /** Phrase descriptive sous le titre — copie UI, n'a pas à recopier mot pour mot
+   *  `MissionSpec.description` du catalogue (registres différents : l'un nominal
+   *  pour un catalogue, l'autre pour un utilisateur qui va cliquer "Lancer"). */
+  description: string
+  /** Construit les sélecteurs à partir du mois choisi dans le formulaire. */
+  buildSelectors: (month: string) => CorpusSelector[]
+}
+
 const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/
 
-export function monthToVeillePeriod(month: string): Extract<CorpusSelector, { kind: "veille_period" }> {
+/**
+ * Calcule les dates de début et de fin de mois UTC à partir d'un mois au format "AAAA-MM".
+ * Helper partagé entre les différents constructeurs de sélecteurs temporels.
+ */
+function computeMonthBoundaries(month: string): { periodStart: string; periodEnd: string } {
   const match = MONTH_PATTERN.exec(month)
   if (!match) throw new Error("La période doit être un mois au format AAAA-MM.")
 
@@ -36,15 +53,39 @@ export function monthToVeillePeriod(month: string): Extract<CorpusSelector, { ki
   const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
 
   return {
-    kind: "veille_period",
     periodStart: `${month}-01`,
     periodEnd: `${month}-${String(lastDay).padStart(2, "0")}`,
+  }
+}
+
+export function monthToVeillePeriod(month: string): Extract<CorpusSelector, { kind: "veille_period" }> {
+  const { periodStart, periodEnd } = computeMonthBoundaries(month)
+  return {
+    kind: "veille_period",
+    periodStart,
+    periodEnd,
+  }
+}
+
+export function monthToDeliveryPeriod(month: string): Extract<CorpusSelector, { kind: "delivery_period" }> {
+  const { periodStart, periodEnd } = computeMonthBoundaries(month)
+  return {
+    kind: "delivery_period",
+    periodStart,
+    periodEnd,
   }
 }
 
 export function defaultMissionMonth(reference = new Date()): string {
   const previousMonth = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() - 1, 1))
   return previousMonth.toISOString().slice(0, 7)
+}
+
+export function buildMissionLaunchPayload(
+  missionSlug: string,
+  selectors: CorpusSelector[],
+): { missionSlug: string; selectors: CorpusSelector[] } {
+  return { missionSlug, selectors }
 }
 
 export function buildMonthlyWatchMissionPayload(month: string): MonthlyWatchMissionPayload {
@@ -56,25 +97,55 @@ export function buildMonthlyWatchMissionPayload(month: string): MonthlyWatchMiss
 
 type FetchLike = (input: string, init: RequestInit) => Promise<Pick<Response, "ok" | "json">>
 
-export async function launchMonthlyWatchMission(
-  month: string,
+export async function launchMission(
+  missionSlug: string,
+  selectors: CorpusSelector[],
   fetcher: FetchLike = fetch,
 ): Promise<MissionLaunchResponse> {
   const response = await fetcher("/api/n8n/trigger", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(buildMonthlyWatchMissionPayload(month)),
+    body: JSON.stringify(buildMissionLaunchPayload(missionSlug, selectors)),
   })
-  const body = await response.json().catch(() => null) as { runId?: unknown; status?: unknown; error?: unknown } | null
+  const body = (await response.json().catch(() => null)) as {
+    runId?: unknown
+    status?: unknown
+    error?: unknown
+  } | null
 
   if (!response.ok) {
-    throw new Error(typeof body?.error === "string" && body.error.trim()
-      ? body.error
-      : "Le lancement de l’analyse a échoué.")
+    throw new Error(
+      typeof body?.error === "string" && body.error.trim()
+        ? body.error
+        : "Le lancement de l’analyse a échoué.",
+    )
   }
   if (typeof body?.runId !== "string" || !body.runId) {
     throw new Error("Le serveur n’a pas renvoyé d’identifiant de traitement.")
   }
 
   return { runId: body.runId, status: "queued" }
+}
+
+export async function launchMonthlyWatchMission(
+  month: string,
+  fetcher: FetchLike = fetch,
+): Promise<MissionLaunchResponse> {
+  return launchMission(MONTHLY_WATCH_MISSION_SLUG, [monthToVeillePeriod(month)], fetcher)
+}
+
+export const VEILLE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
+  missionSlug: MONTHLY_WATCH_MISSION_SLUG,
+  label: "Analyse mensuelle de la veille",
+  description:
+    "Identifier les tendances, signaux faibles, évolutions réglementaires, opportunités, risques et actions prioritaires d'une période de veille.",
+  buildSelectors: (month) => [monthToVeillePeriod(month)],
+}
+
+export const RENTABILITE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
+  missionSlug: "rentabilite-portefeuille",
+  label: "Rentabilité du portefeuille",
+  description:
+    "Analyser les marges réelles, identifier les dérives par mission, client ou consultant et dégager les actions de redressement de la rentabilité.",
+  buildSelectors: (month) => [monthToDeliveryPeriod(month)],
 }
