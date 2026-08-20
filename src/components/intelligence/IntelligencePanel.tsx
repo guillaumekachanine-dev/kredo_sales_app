@@ -28,6 +28,8 @@ import {
   applyCommunicationEntryPoint,
   buildDefaultBrief,
 } from "@/components/accounts-contacts/intelligence/communication-brief-options"
+import { MissionComposerDesktop } from "@/features/intelligence-missions/components/MissionComposerDesktop"
+import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
 
 type AccountPanelAction = "pitch" | "summary" | null
 
@@ -256,10 +258,12 @@ function GenericEntityPanelContent() {
 
 function RegistryPanelContent() {
   const pathname = usePathname()
-  const [activeActionId, setActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
+  const [activeActionId, setActiveActionId] = useState<string | null>(null)
   const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+  const isAvailableMissionAction = activeActionId === MONTHLY_WATCH_MISSION_ACTION_ID
+    && resolved.contextualActions.some((action) => action.id === activeActionId)
 
-  if (activeActionId) {
+  if (activeActionId && (isAvailableMissionAction || isDeterministicIntelligenceAction(activeActionId))) {
     return (
       <>
         <button
@@ -272,9 +276,13 @@ function RegistryPanelContent() {
           </svg>
           Retour
         </button>
-        <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
-          <IntelligenceActionResultContent actionId={activeActionId} />
-        </div>
+        {isAvailableMissionAction ? (
+          <MissionComposerDesktop />
+        ) : isDeterministicIntelligenceAction(activeActionId) ? (
+          <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
+            <IntelligenceActionResultContent actionId={activeActionId} />
+          </div>
+        ) : null}
       </>
     )
   }
@@ -291,7 +299,9 @@ function RegistryPanelContent() {
                 action={action}
                 tone="dark"
                 onActionClick={(actionId) => {
-                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                  if (actionId === MONTHLY_WATCH_MISSION_ACTION_ID || isDeterministicIntelligenceAction(actionId)) {
+                    setActiveActionId(actionId)
+                  }
                 }}
               />
             ))}

@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useMemo, type CSSProperties } from "react"
 import dynamic from "next/dynamic"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 import {
   resolveEntityActions,
+  resolveIntelligenceActions,
   ENTITY_TYPE_LABELS,
   type IntelligenceEntityType,
 } from "@/lib/intelligence/intelligence-registry"
@@ -33,6 +34,8 @@ import {
   isDeterministicIntelligenceAction,
   type DeterministicIntelligenceActionId,
 } from "./action-results/IntelligenceActionResultContent"
+import { MissionComposerMobile } from "@/features/intelligence-missions/components/MissionComposerMobile"
+import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
 
 const AgendaEventTypePicker = dynamic(
   () => import("@/components/agenda/AgendaEventTypePicker").then((module) => module.AgendaEventTypePicker),
@@ -480,6 +483,15 @@ interface RegistryMobileContentProps {
 }
 
 function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
+  const pathname = usePathname()
+  const [missionComposerOpen, setMissionComposerOpen] = useState(false)
+  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+  const missionAction = resolved.contextualActions.find((action) => action.id === MONTHLY_WATCH_MISSION_ACTION_ID)
+
+  if (missionComposerOpen && missionAction) {
+    return <MissionComposerMobile onBack={() => setMissionComposerOpen(false)} />
+  }
+
   const primaryActions: RegistryButtonAction[] = [
     { id: "brief", label: "Brief hebdomadaire", iconSrc: cockpitActionIcons.brief },
     { id: "pitch", label: "Rédiger un mail", iconSrc: cockpitActionIcons.message },
@@ -493,6 +505,17 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
 
   return (
     <div className="space-y-7">
+      {missionAction ? (
+        <section>
+          <MobileSectionHeading title={resolved.label} />
+          <IntelligenceActionCard
+            action={missionAction}
+            tone="light"
+            onActionClick={() => setMissionComposerOpen(true)}
+          />
+        </section>
+      ) : null}
+
       <section>
         <MobileSectionHeading title="Actions prioritaires" />
         <div className="grid grid-cols-2 gap-2.5">
