@@ -8,6 +8,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { cockpitIconForAction } from "./cockpit-action-icons"
 import { isDeterministicIntelligenceAction } from "./action-results/IntelligenceActionResultContent"
+import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
 
 interface IntelligenceActionCardProps {
   action: IntelligenceAction
@@ -171,11 +172,17 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
   const isWeeklyBrief = action.id === "weekly_brief"
   const isSupportedReportAction = isCommonReport || isActivityReport || isWeeklyBrief
   const isDeterministicAction = isDeterministicIntelligenceAction(action.id)
-  const isInteractive = isDeterministicAction || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
+  const isMissionComposerAction = action.id === MONTHLY_WATCH_MISSION_ACTION_ID
+  const isInteractive = isMissionComposerAction || isDeterministicAction || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
   const isComingSoon = action.status === "coming_soon" && !isInteractive
   const iconSrc = cockpitIconForAction(action.id, action.icon)
 
   function handleClick() {
+    if (isMissionComposerAction) {
+      onActionClick?.(action.id)
+      return
+    }
+
     if (isDeterministicAction) {
       onActionClick?.(action.id)
       return

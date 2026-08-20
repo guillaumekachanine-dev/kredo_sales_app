@@ -15,6 +15,35 @@
 
 ---
 
+### Session 49 — Missions d'intelligence, lot L4 : composeur UX desktop + mobile (2026-08-20)
+
+Le pilote L5 étant validé en production, L4 rend le seul preset réel
+`veille-analyse-mensuelle` lançable depuis son contexte naturel : le Cockpit Intelligence de
+`/veille`. L'action `Analyse mensuelle de la veille` est inscrite dans
+`intelligence-registry.ts` sur cette route uniquement ; les autres routes conservent leurs
+actions existantes et ne reçoivent aucune entrée mission globale.
+
+Deux arbres UI distincts ont été livrés. `MissionComposerDesktop` reste compact et orienté
+contrôle dans le rail ; `MissionComposerMobile` privilégie le mois, un CTA tactile et une
+restitution courte dans le drawer. Ils partagent uniquement le modèle pur et
+`useMissionLauncher`. Le sélecteur transforme `AAAA-MM` en bornes mensuelles UTC exactes, y
+compris février bissextile. Le POST client contient strictement `missionSlug` et le selector
+`veille_period` ; aucun identifiant d'infrastructure, corpus, prompt, budget, workspace ou type
+de résultat ne quitte le navigateur.
+
+Le suivi réutilise exclusivement `useRunTracker` avec `mission_report`. Les états file, exécution,
+succès, échec et timeout ont chacun une copie explicite ; le timeout précise que le serveur peut
+continuer. Le succès expose le titre et `executiveSummary` du rapport puis renvoie vers `/reports`,
+sans construire de viewer L4. Aucun fichier `watch-analysis`, Supabase ou n8n n'a été touché.
+
+Tests ajoutés : bornes de mois (28/29/30/31 jours), payload allowlisté et champs interdits absents,
+succès/erreur de la gateway, filtrage du tracker sur `mission_report`, action active sur `/veille`
+et absente des autres routes. Boucle complète : typecheck ✅ · **1 644 tests / 166 fichiers, 0
+échec** · frontière serveur/client ✅ · lint ✅ · build ✅, 64/64 pages après purge de `.next`.
+La QA visuelle reste manuelle, conformément au cahier des charges.
+
+---
+
 ### Session 48 — Missions d'intelligence, correctif d'aiguillage post-L3 (2026-08-18)
 
 Suivi immédiat de la Session 47. La revue `feature-dev:code-reviewer` déclenchée en sortie du

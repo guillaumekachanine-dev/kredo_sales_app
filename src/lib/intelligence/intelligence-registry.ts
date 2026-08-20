@@ -6,6 +6,8 @@
 //  et utilise AccountPanelContent — ce registre ne pilote que le mode Page.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
+
 export type IntelligenceActionStatus = "active" | "coming_soon"
 
 export type IntelligenceActionCategory = "contextual" | "common"
@@ -291,6 +293,14 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     category: "contextual",
     status: "coming_soon",
   },
+  [MONTHLY_WATCH_MISSION_ACTION_ID]: {
+    id: MONTHLY_WATCH_MISSION_ACTION_ID,
+    label: "Analyse mensuelle de la veille",
+    description: "Identifier les tendances, signaux faibles, évolutions réglementaires, opportunités, risques et actions prioritaires d’une période de veille.",
+    icon: "deep_analysis",
+    category: "contextual",
+    status: "active",
+  },
 
   // ── Plus d'actions — transverses, disponibles sur toutes les pages ──────
 
@@ -371,6 +381,11 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
     pattern: "/intelligence",
     label: "Business Intelligence",
     actionIds: ["common_sector_analysis", "search_news", "build_roadmap"],
+  },
+  {
+    pattern: "/veille",
+    label: "Veille & Actualités",
+    actionIds: [MONTHLY_WATCH_MISSION_ACTION_ID],
   },
   {
     pattern: "/prospection",

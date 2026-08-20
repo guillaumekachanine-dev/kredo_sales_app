@@ -1,5 +1,37 @@
 # 06 — Handoff incident : lot L5 bloqué (missions d'intelligence)
 
+> **Statut actuel — 2026-08-20 : incident clos, L5 validé, L4 livré.**
+> Le texte ci-dessous est conservé comme historique factuel de l'incident du 18 août ; ses
+> formulations « bloqué », « à vérifier » et « prochaines étapes » ne décrivent plus l'état
+> courant du chantier.
+
+## État après résolution et suite logique
+
+Le pilote L5 a abouti en production avec le preset `veille-analyse-mensuelle`, version 3 :
+
+- run `581e4732-b949-4000-822f-14d86b951351` (`mission:veille-analyse-mensuelle`) ;
+- exécution n8n `#83406` ;
+- 12/12 sources conservées, 11 900 caractères ;
+- résultat `e476ba8b-a8e0-4701-b97d-3cd86e0ec372`, `mission_report`, `succeeded` ;
+- document `mission_report` matérialisé dans `intelligence_documents`.
+
+Le lot L4 expose désormais cette mission dans le Cockpit Intelligence de `/veille`, et sur
+cette route uniquement. Deux composeurs distincts répondent aux usages desktop (contrôle) et
+mobile (action rapide). Le navigateur envoie exclusivement `{ missionSlug, selectors }` à la
+gateway existante ; le suivi réutilise `useRunTracker` avec `resultType = "mission_report"` et
+présente les états `queued`, `running`, `succeeded`, `failed` et `timeout`. Un succès affiche la
+synthèse puis renvoie vers `/reports`.
+
+L4 n'a créé aucune migration, table, colonne, RPC, policy ou abstraction de catalogue en base.
+Aucun workflow n8n — notamment `mission-001-run.json` — ni aucun fichier de `watch-analysis` n'a
+été modifié. La suite logique est désormais l'usage réel et la QA visuelle manuelle du composeur ;
+aucun nouveau lot produit n'est engagé par ce handoff.
+
+Validation L4 : `typecheck` ✅ · **1 644 tests / 166 fichiers** ✅ · frontière serveur/client ✅ ·
+lint ✅ · build Next.js 16.2.7 ✅, 64/64 pages après purge du cache `.next`.
+
+---
+
 Rédigé le 2026-08-18 pour reprise par un autre agent (ChatGPT). Lecture seule effectuée
 jusqu'ici — **aucune correction appliquée**, aucun fichier modifié. Document autoportant :
 lire dans l'ordre, sans supposer de contexte préalable.
