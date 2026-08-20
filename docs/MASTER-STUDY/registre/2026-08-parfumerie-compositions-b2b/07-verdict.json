@@ -1,0 +1,37 @@
+{
+  "run_id": "522cfe06-f241-4620-a820-a0806a902571",
+  "segment_slug": "seg-parfumerie-compositions-b2b",
+  "date_snapshot": "2026-08-14",
+  "date_verdict": "2026-08-20",
+  "gates": {
+    "g0": "go",
+    "g1": "fail_with_reserves",
+    "g2": "not_run",
+    "g3": "partial"
+  },
+  "verdict": "usable_with_caveats",
+  "verdict_rendu_par": "Guillaume Kasanin",
+  "taux": {
+    "couche_esn": 1.0,
+    "identite_top3_resolue_e2": 1.0,
+    "identite_top3_ecrite_en_base": 0.0,
+    "sources_resolvables": 1.0,
+    "blocs_avec_donc_commercialement": 1.0
+  },
+  "peremption": {
+    "triggers": "2026-11-14",
+    "financier": "2027-08-14",
+    "cartographie": "2027-08-14",
+    "economie": "2028-08-14"
+  },
+  "reserves": [
+    "G1 rejoué le 2026-08-20 (--today 2026-08-20) : 38 PASS / 5 FAIL / 3 NON EXÉCUTÉ (--check-urls non lancé). Verdict brut du script : FAIL. Le détail des 5 FAIL est ci-dessous — ce verdict G3 les accepte explicitement, il ne les corrige pas dans le JSON.",
+    "03-journal.md (E3) absent + 03-sources.json > compteurs.requetes = 0 (schéma exige ≥15) : E3 n'a jamais été rejoué avec un journal de requêtes réellement tenu. Les 29 sources de 03-sources.json restent valides et sourcées (contrôles PACKS/SOURCES/EDITEUR tous PASS) mais leur traçabilité de collecte est incomplète. Accepté comme lacune de matière connue, pas comme un défaut corrigé — ne pas fabriquer de journal a posteriori.",
+    "echeance_pivot (notification amendement 52 IFRA, 2026-11-30) sourcée sur ifrafragrance.org : jugée non officielle par le script (accepte seulement .gouv.*/.europa.eu). Arbitrage G3 rendu le 2026-08-20 : IFRA Standards fait autorité de fait dans la filière parfumerie sans être un organisme gouvernemental — source retenue comme officielle pour ce run. Le faux positif du script reste à corriger séparément (élargir la liste des autorités reconnues aux organismes normatifs sectoriels, cf. registre/README.md).",
+    "revalides_le = 2026-08-14, non revalidé au jour de ce verdict (2026-08-20) : contrôle mécaniquement voué à échouer tant que les échéances ne sont pas revérifiées le jour même. Accepté sans revalidation pour ce verdict ; à revalider explicitement au jour de l'exécution --live si celle-ci a lieu un autre jour.",
+    "3 items réglementaires de 04-secteur.json écrits au niveau MACRO (IFRA 52e amendement, IFRA régime permanent, REACH) : arbitrage de portée déjà rendu le 2026-08-14 (registre/README.md) et reconfirmé le 2026-08-20 — authentiquement transversaux à toute la famille parfumerie/arômes, pas propres au segment. Ce FAIL est permanent par construction : le script ne peut pas certifier une transversalité. Ces 3 items ne sont PAS ingérés par la RPC segment-scopée ingest_master_study_e4 (portée='macro' → ignoré, tracé dans meta.ignoredMacroRegulations) ; un import macro séparé reste à faire si on veut les matérialiser.",
+    "G3 complet (10-ETAPE-E7 §5 — confrontation compte étalon, lecture à voix haute du message sectoriel, répétition de l'appel du compte n°1) NON fait à ce jour. Ce verdict ne couvre que l'arbitrage de portée réglementaire (A4) et la question de source IFRA, pas la recette métier complète. À faire par Guillaume avant --live, ou à assumer explicitement comme un risque pris si --live est déclenché sans elle.",
+    "L'écriture en base des identités de compte (companies.siren/naf_code, account_facts) issues de E2 n'a pas eu lieu : faits_avec_source.total = 0 dans 02-socle.json, alors que 9 comptes sont structurellement résolus. C'est un chantier distinct de l'ingestion E4 (RPC ingest_master_study_e4 ne touche pas companies/account_facts) — non bloquant pour L3, mais reste une décision ouverte et documentée séparément dans registre/README.md.",
+    "Ingestion --live exécutée le 2026-08-20 (run_id ci-dessus). Vérification indépendante post-ingestion : ASSERT 14 de supabase/tests/069_sector_knowledge_resolution.assertions.sql a échoué (10 comptes) — sector_intelligence.status du segment était resté 'development' après l'ingestion, alors que le playbook est désormais résolu au niveau segment. Impact réel constaté : src/lib/prospection/get-playbook-sectors.ts filtre sur status='active' et n'aurait pas montré ce segment dans Prospection · Fenêtres malgré l'étude ingérée. Corrigé par UPDATE ponctuel (status → 'active') sur ce seul segment, décidé par Guillaume le 2026-08-20 — pas par la RPC, qui ne touche jamais ce champ. Les 18 assertions sont vertes après ce correctif. À trancher pour L4 : la RPC ingest_master_study_e4 doit-elle promouvoir systématiquement status → 'active' sur une ingestion réussie, ou cela doit-il rester un geste humain distinct ?"
+  ]
+}

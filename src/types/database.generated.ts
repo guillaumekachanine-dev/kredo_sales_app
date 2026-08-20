@@ -8722,9 +8722,10 @@ export type Database = {
         Returns: Json
       }
       ingest_competitive_map_batch: {
-        Args: { p_decisions: Json; p_reason?: string }
+        Args: { p_decisions: Json; p_reason?: string; p_source_run_id?: string }
         Returns: Json
       }
+      ingest_master_study_e4: { Args: { p_payload: Json }; Returns: Json }
       ingest_source_corpus: {
         Args: { p_payload: Json; p_reason: string; p_segment_slug: string }
         Returns: Json

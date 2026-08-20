@@ -159,6 +159,8 @@ Quatre pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260818110944 | guard_ai_intelligence_summary_mission_runs_counters (M-4, complément — la latérale `runs` restait polluée : `count_runs`/`latest_run_*`) |
 | 20260818140533 | 086_mission_report_document_type (ADR-0020 L3 — `intelligence_document_type` += `mission_report`, seule écriture de schéma du lot) |
 | 20260820200000 | master_study_provenance_columns (ADR-0021 L1 — provenance atomique `source_run_id` sur 6 tables, `study_snapshot_date` et `resolution_locks jsonb` sur `sector_intelligence`, fonctions `private` de résolution scalaire, réécriture de `v_sector_knowledge_resolved` avec gestion `locked`) |
+| 20260820200001 | master_study_value_chain_amorce_fix_workspace_scoping (ADR-0021 L2 — `value_chain_nodes.maillon` sans plafond, `vcn_capture_si_chaine` retirée pour l'amorce E4 sans captation ; RPC `ingest_master_study_e4` créée puis corrigée : `workspace_id` dérivé du segment cible et explicite sur tous les `INSERT`, pas de `private.current_workspace_id()`/`auth.uid()` sous service-role) |
+| 20260820200002 | master_study_move_e4_rpc_to_public_schema (ADR-0021 L2 — `ingest_master_study_e4` déplacée de `private` vers `public` : PostgREST n'expose jamais `private.*`, trouvé en vérification indépendante avant tout appel `--live`) |
 
 
 ### Architecture multi-tenant (ACTIF)

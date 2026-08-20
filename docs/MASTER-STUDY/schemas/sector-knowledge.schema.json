@@ -59,7 +59,9 @@
       "required": ["perimetre", "src_ids"],
       "properties": {
         "taille_eur_bn": { "type": ["number", "null"] },
+        "taille_statut": { "enum": ["published", "not_published", "not_applicable"], "default": "published" },
         "croissance_pct": { "type": ["number", "null"] },
+        "croissance_statut": { "enum": ["published", "not_published", "not_applicable"], "default": "published" },
         "perimetre": { "type": "string", "description": "France | UE | monde — obligatoire (axiome A3)" },
         "exercice": { "type": ["integer", "null"] },
         "src_ids": { "$ref": "#/$defs/srcIds" }
@@ -220,19 +222,6 @@
         "economic_models": { "type": "array", "items": { "type": "object" } },
         "tech_fronts": { "type": "array", "items": { "type": "object" } },
         "risks": { "type": "array", "items": { "type": "object" } }
-      }
-    },
-    "budgets_18_36_mois": {
-      "type": "array",
-      "description": "CONVERSION 4 — trajectoires du secteur RETOURNEES en familles de budget",
-      "items": {
-        "type": "object",
-        "required": ["trajectoire", "famille_de_budget"],
-        "properties": {
-          "trajectoire": { "type": "string" },
-          "famille_de_budget": { "type": "string" },
-          "offer_slug": { "type": ["string", "null"] }
-        }
       }
     },
     "sources": {

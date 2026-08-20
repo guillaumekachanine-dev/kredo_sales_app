@@ -126,6 +126,7 @@ export async function confirmCompetitiveMapIngestion(
   decisions: CompetitiveMapIngestionDecision[],
   context: CompetitiveMapImportContext,
   reason?: string,
+  sourceRunId?: string,
 ): Promise<ConfirmCompetitiveMapIngestionResult> {
   if (decisions.length === 0) {
     return { ...EMPTY, error: "Aucune décision à appliquer." }
@@ -151,6 +152,7 @@ export async function confirmCompetitiveMapIngestion(
   const { data, error } = await supabase.rpc("ingest_competitive_map_batch", {
     p_decisions: decisions,
     ...(reason ? { p_reason: reason } : {}),
+    ...(sourceRunId ? { p_source_run_id: sourceRunId } : {}),
   })
 
   if (error) {
@@ -265,12 +267,14 @@ async function archiveCompetitiveMapImport(params: {
     })
 
     if (!result.success) {
+      console.error("[competitive-map-import] Échec de l'archivage du document :", result.error)
       return { reportDocumentId: null, reportError: result.error }
     }
 
     revalidatePath("/reports")
     return { reportDocumentId: result.documentId, reportError: null }
   } catch (cause) {
+    console.error("[competitive-map-import] Exception inattendue lors de l'archivage du document :", cause)
     return {
       reportDocumentId: null,
       reportError: cause instanceof Error ? cause.message : "Échec inattendu de l'archivage du rapport.",

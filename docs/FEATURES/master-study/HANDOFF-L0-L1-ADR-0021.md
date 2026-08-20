@@ -6,9 +6,15 @@ d'avoir lu la conversation qui a produit l'ADR. Commencez par la section 1.
 - **ADR de référence** : `docs/adr/ADR-0021-master-study-ingestion-projections-distribution.md`
   (v2.0, **Accepté** le 2026-08-20). Toute décision normative (MS-1 → MS-20) citée ici y est
   définie en détail — ce handoff ne les reformule pas, il dit où en est leur mise en œuvre.
-- **État au 2026-08-20, fin de journée** : **L0 et L1 livrés et validés indépendamment**
-  (build vert, migration appliquée en base, assertions rejouées deux fois — par l'exécutant et
-  séparément par vérification indépendante). **L2 non commencé.**
+- **État au 2026-08-20, fin de journée** : **L0, L1, L2 et L3 livrés et vérifiés
+  indépendamment** (build vert, migrations appliquées en base, assertions et RPC rejouées
+  séparément, ingestion `--live` exécutée et vérifiée avec
+  `run_id: 522cfe06-f241-4620-a820-a0806a902571`). **Un défaut réel trouvé à la vérification, absent
+  du rapport de livraison, corrigé avant de clore le lot** — `sector_intelligence.status` restait
+  `development` après ingestion, rendant le segment invisible à Prospection · Fenêtres ; voir §4.7.
+  Gate G3 métier confirmé fait par Guillaume avant ingestion (déclaratif, non re-vérifiable
+  autrement que par sa parole). 8 `competitive_map_entries` orphelines laissées intactes (décision
+  différée L4/L5). Prochaine étape : **L4** (read model & BI).
 - **Segment pilote** : `seg-parfumerie-compositions-b2b` (`db34f8a0-9d9e-4585-acd6-2fbbdd1baad6`).
   **Compte pilote** : ROBERTET (`67b346ff-68c8-4f36-a510-13024955856f`).
 
@@ -189,41 +195,235 @@ genre d'incohérence qui égare le prochain agent qui lit la doc avant le code.
 
 ---
 
-## 3. Prochain lot — L2 « importeur E4 + RPC transactionnelles »
+## 3. Ce qui est livré — L2 « importeur E4 + RPC transactionnelle »
 
-**Ne pas commencer avant d'avoir lu `docs/adr/ADR-0021-…` §7 (l'importeur) et §9.1/§9.2
-(amendements E4/E6, dont `budgets_18_36_mois` retiré du contrat) en entier.**
+Réalisé par un agent externe (Gemini) sur la base du prompt
+`docs/MASTER-STUDY/registre/HANDOFF-L2-GEMINI.md`, puis **revérifié indépendamment** (migration
+relue, RPC rejouée en transaction annulée avec un payload réaliste, code TypeScript relu ligne à
+ligne, assertions 069 rejouées une troisième fois). **Deux défauts bloquants trouvés à la
+vérification, absents du rapport de livraison, corrigés avant tout `--live`** — voir §3.4.
 
-Résumé du périmètre (le détail complet est dans l'ADR §7 et §11, ligne L2 — ne pas le reformuler
-ici avant d'avoir lu ces sections) :
+### 3.1 Ce que Gemini a livré correctement, tel quel
 
-- `src/features/master-study/domain/` : contrats TypeScript dérivés de `docs/MASTER-STUDY/schemas/`.
-- Mapping E4 (`04-secteur.json` du run pilote) → canon `sector_intelligence` / `sector_events` /
-  `sector_pain_points` / `sector_regulatory_items` / `value_chain_nodes`, chacun estampillé du
-  même `source_run_id` — **l'infrastructure de colonnes existe depuis L1**, ce lot est le premier
-  écrivain.
-- RPC `SECURITY DEFINER` transactionnelle par famille de blocs (MS-10) : le run, le document et les
-  lignes canoniques entrent ensemble, ou rien n'entre. `ingest-competitive-map.ts` est amené au
-  même régime dans le même lot — c'est lui qui a perdu son document d'archive en silence sur le
-  segment pilote (ADR §1.3b), la preuve qu'une écriture non atomique n'est pas hypothétique ici.
-- `scripts/ingest-master-study.mts`, `--dry-run` par défaut, calqué sur le patron
-  `scripts/measure-hiring-intensity.mts`.
-- Amendements de contrat déjà tranchés à appliquer dans ce lot : `budgets_18_36_mois` retiré de
-  `docs/MASTER-STUDY/schemas/sector-knowledge.schema.json` et du prompt E4 ; E4 écrit désormais
-  dans `value_chain_nodes` (amorce), `09-ETAPE-E6-CHAINE-DE-VALEUR.md` amendé en conséquence.
+- Migration `20260820200001_master_study_value_chain_amorce_fix_workspace_scoping.sql` (nom
+  d'origine) : `value_chain_nodes.maillon` sans plafond, `vcn_capture_si_chaine` retirée — les
+  deux vérifiées en base après coup, aucun impact sur les 7 lignes BTP existantes.
+- `src/features/master-study/domain/map-e4-to-canon.ts` : le mapping E4 → canon est **exact et
+  complet**, y compris le piège le plus dangereux du lot — `maillons[i].rang` (E4) devient
+  `value_chain_nodes.maillon`, jamais `.rang` (toujours `1`, une ligne par maillon E4). Le
+  commentaire du code cite explicitement « Piège §4.1 ». Vérifié par lecture, pas par confiance
+  dans le nom de la fonction.
+- `mapOfferPracticeToKredoPractice()` correctement rebranché sur `regulation[].kredo_practice`
+  avant écriture — le vocabulaire `data-ai` (E4) devient `data_ai` (contrainte DB), vérifié en
+  base sur un appel réel.
+- Le filtrage `regulation[].portee === 'macro'` (item ignoré, tracé dans `meta.ignoredMacroRegulations`,
+  jamais silencieusement perdu) est implémenté exactement comme demandé.
+- `dependances_critiques` → `playbook.dependances_critiques` (décision prise en cours de route,
+  voir §3.3) et non vers `value_chain_nodes`, qui n'a aucune colonne pour l'accueillir.
+- `src/features/master-study/domain/map-e4-to-canon.test.ts` inclut un test contre le **fixture
+  réel** du run pilote lu depuis le disque (pas un fixture synthétique qui dériverait sans qu'on
+  s'en aperçoive) : les 6 maillons, les verrous `not_published`, le filtrage macro y sont
+  vérifiés contre `04-secteur.json` tel qu'il existe réellement.
+- `ingest-competitive-map.ts` : `console.error` ajouté sur l'échec d'archivage (auparavant
+  totalement silencieux — c'est ce qui explique les 8 `competitive_map_entries` sans document du
+  14/08) ; `p_source_run_id` optionnel ajouté à `ingest_competitive_map_batch` sans changer son
+  comportement par défaut.
+- Le `--dry-run` du script respecte la limite du lot : `isLive`/`isDryRun` avec `--dry-run` par
+  défaut, aucune écriture avant le flag `--live` explicite.
 
-**Ce que L2 ne fait pas** : ingérer réellement le segment pilote (`--dry-run` seulement — c'est
-L3), toucher aux read models de lecture (L4/L5).
+### 3.2 Le corpus MASTER-STUDY, correctement amendé
+
+`budgets_18_36_mois` retiré (schéma **et** prompt E4, `grep` vérifié : plus aucune occurrence).
+`taille_statut`/`croissance_statut` ajoutés au schéma (ADR §13.2, jamais fait avant ce lot).
+`09-ETAPE-E6-CHAINE-DE-VALEUR.md` §4.1 amendé (plafond retiré, articulation E4 amorce / E6
+approfondit explicitée, citant MS-19). Le run pilote lui-même patché avec
+`taille_statut: "not_published"` / `croissance_statut: "not_published"` — une transcription du
+fait déjà établi en prose par `incertitudes[0]`, pas une invention.
+
+### 3.3 Une décision d'architecture posée avant que Gemini ne commence
+
+En préparant ce prompt, j'ai trouvé que `dependances_critiques[]` (criticité, risque, prestation
+ouverte, practice) n'a **aucune colonne d'accueil** dans `value_chain_nodes` — le §9.1 de l'ADR
+affirmait une correspondance qui ne tenait pas face aux colonnes réelles de la table. Soumis à
+Guillaume avant d'écrire le prompt : **`playbook.dependances_critiques`**, zéro migration,
+cohérent avec `playbook.risks` déjà existant. L'ADR §9.1 a été corrigé en conséquence (il ne dit
+plus une chose que ce lot contredirait).
+
+### 3.4 Deux défauts bloquants trouvés à la vérification — absents du rapport
+
+Le rapport de livraison disait « intégralement implémenté et validé ». Les deux défauts suivants
+n'auraient été détectés **qu'au premier `--live` réel** — c'est-à-dire en L3, sur la base de
+production — puisque le périmètre du lot exclut explicitement d'exercer ce chemin. Trouvés en
+lisant le code contre le schéma cible, pas en faisant confiance au rapport.
+
+1. **La RPC vivait en schéma `private`.** `private.ingest_master_study_e4` n'est **jamais**
+   exposée par PostgREST — `CLAUDE.md` le documente explicitement (« elles ne sont pas exposées
+   par PostgREST, donc jamais appelables en `.rpc()` depuis le front »), et l'analogue fonctionnel
+   (`ingest_competitive_map_batch`) est bien en `public`. Cette erreur de conception vient du
+   **prompt**, pas de Gemini : `HANDOFF-L2-GEMINI.md` §5.2 spécifiait `private.*`, en confondant
+   avec le patron des fonctions `private.sector_resolve_scalar`/`sector_scalar_level` de L1 —
+   celles-là ne sont jamais appelées en `.rpc()`, seulement depuis SQL par la vue. Corrigé par
+   migration `20260820200002_master_study_move_e4_rpc_to_public_schema.sql` : la fonction déplacée
+   en `public`, testée à nouveau, `npm run db:types` régénéré, le point d'appel TypeScript nettoyé
+   (il portait un contournement de typage `as unknown as …` pour compenser l'absence de la
+   fonction dans les types générés — plus nécessaire une fois en `public`).
+2. **`workspace_id` non résolvable sous service-role.** La RPC dérivait `workspace_id` de
+   `private.current_workspace_id()` (lui-même basé sur `auth.uid()`). Le seul appelant réel de
+   cette fonction est `scripts/ingest-master-study.mts`, qui se connecte avec
+   `SUPABASE_SERVICE_ROLE_KEY` — sous ce rôle, `auth.uid()` ne résout à rien, donc
+   `current_workspace_id()` renvoie `NULL`, et la garde `workspace_id = v_workspace_id` échoue
+   sur **toute** ligne. Pire : les 4 tables d'items (`sector_events`, `sector_pain_points`,
+   `sector_regulatory_items`, `value_chain_nodes`) ont `workspace_id NOT NULL` **sans aucun
+   défaut** — la RPC ne le renseignait dans aucun de ses `INSERT`, ce qui aurait fait échouer
+   l'ingestion dès le premier item, **quel que soit l'appelant**, session utilisateur incluse.
+   Corrigé dans la même migration `20260820200001` (renommée dans son contenu, le fichier gardait
+   son nom d'origine sur disque) : `workspace_id` lu depuis la ligne `sector_intelligence` cible
+   elle-même (source de vérité robuste au contexte d'appel), puis passé explicitement à
+   **chacun** des 7 `INSERT` de la fonction.
+
+**Preuve, pas affirmation** : les deux corrections ont été rejouées en transaction `ROLLBACK`
+avec un payload couvrant tous les points sensibles à la fois (`maillon=6`, verrou de résolution,
+`kredo_practice` déjà traduit, `dependances_critiques`, `incertitudes`) — succès complet, `rollback`
+confirmé sans résidu (`ai_intelligence_runs`/`value_chain_nodes` à 0 après coup).
+
+**Un troisième problème, purement de registre** : les deux migrations correctives ont été
+enregistrées par l'outil d'application avec des timestamps **antérieurs** à celui de L1
+(`20260820190521` puis `20260820190811`, alors que L1 est `20260820200000`) — un décalage
+d'horloge de l'outil, pas une erreur de ma part ni de Gemini. Un `db reset` les aurait rejouées
+**avant** L1, dont elles dépendent (colonnes de provenance). Corrigé par `UPDATE` direct sur
+`supabase_migrations.schema_migrations.version` (`200001`, `200002`) et renommage des fichiers
+locaux pour correspondre exactement — même piège que celui documenté dans `CLAUDE.md` pour L1,
+sous une forme différente (ici l'outil dérive, pas l'agent).
+
+### 3.5 Validation — relancée indépendamment après corrections
+
+`typecheck` / `test` (169 fichiers, 1686 tests — +2 fichiers/+8 tests vs L1, les nouveaux tests
+`master-study`) / `check:server-boundary` / `lint` (0 erreur) / `rm -rf .next && npm run build`
+(exit 0) : tous relancés depuis zéro **après** les deux corrections, tous verts. Les 18 assertions
+`069_sector_knowledge_resolution.assertions.sql` rejouées une troisième fois (après L1, après ce
+lot) : toujours vertes, aucune régression.
+
+Invariants live confirmés à l'issue du lot : `ai_intelligence_runs` (`run_type='master_study'`),
+`intelligence_documents` (`document_type='master_study'`) et toutes les lignes à `source_run_id`
+non nul → **0** partout. **L2 pose l'outillage sans rien ingérer, comme L1 avait posé
+l'infrastructure sans verrouiller.**
+
+### 3.6 Ce que L2 ne fait toujours pas
+
+- Aucune écriture en base de production — c'est **L3**.
+- Pas de lecture/projection (`SectorKnowledgeReadModel`, `AccountSectorPerspective`) — **L4/L5**.
+- `intelligence_source_links` non étendu (ADR MS-15, hors V1).
 
 ---
 
-## 4. Où lire quoi
+## 4. L3 « ingestion réelle du pilote » — **exécuté et vérifié indépendamment le 2026-08-20**
+
+> ✅ **`--live` exécuté par un agent externe (Gemini) sur la base de
+> `docs/MASTER-STUDY/registre/HANDOFF-L3-GEMINI.md`, puis revérifié indépendamment** (requêtes
+> SQL rejouées séparément contre la base live, pas seulement le rapport de livraison lu) —
+> **un défaut réel trouvé, absent du rapport, corrigé avant de clore le lot** : voir §4.7. Même
+> doctrine qu'à L1 et L2 : « le producteur n'est jamais son propre jury ».
+>
+> `run_id: 522cfe06-f241-4620-a820-a0806a902571` · `document_id: c8e7aa8b-8ecd-4af4-9e9e-5b04884d1b35`
+> · segment `db34f8a0-9d9e-4585-acd6-2fbbdd1baad6`.
+
+### 4.7 Le défaut trouvé à la vérification — absent du rapport de Gemini
+
+Les 18 assertions `supabase/tests/069_sector_knowledge_resolution.assertions.sql` ont été
+rejouées une à une (pas en bloc, pour isoler un éventuel échec) : 17/18 vertes, **ASSERT 14 en
+échec sur 10 comptes** — exactement les 10 comptes du segment pilote.
+
+**Cause** : la RPC `ingest_master_study_e4` ne touche jamais `sector_intelligence.status`. Avant
+l'ingestion, le segment (`status='development'`) résolvait son playbook au niveau macro
+(`status='active'` du macro), donc passait. Après l'ingestion, le segment a désormais son propre
+playbook (personas/objections/entry_points/roi_arguments réellement peuplés) — `playbook_level`
+bascule à `'segment'`, et c'est alors `segment_status` qui est lu, resté `'development'`.
+
+**Impact réel, pas seulement une assertion SQL** : `src/lib/prospection/get-playbook-sectors.ts`
+filtre explicitement `.eq("status", "active")` (commentaire du fichier : « Ne renvoie QUE les
+secteurs dont l'étude a réellement été produite »). Sans correction, **Prospection · Fenêtres
+n'aurait montré aucun résultat pour ce segment**, malgré une étude réellement ingérée — exactement
+le point 5 de la recette écran de `10-ETAPE-E7…` §6.4. Le Cockpit > Secteur (L0) n'était lui pas
+affecté : rien n'y filtre sur ce `status`.
+
+**Correction** : `UPDATE sector_intelligence SET status = 'active' WHERE id = 'db34f8a0-…'`,
+décidée explicitement par Guillaume (pas un choix pris seul), appliquée sur ce seul segment — pas
+un correctif de la RPC. Les 18 assertions sont vertes après ce correctif. Documenté dans
+`07-verdict.json` (réserve ajoutée) et `registre/README.md`.
+
+**Reste à trancher pour L4** : la RPC doit-elle promouvoir systématiquement `status → 'active'`
+sur une ingestion réussie, ou est-ce volontairement laissé à un geste humain distinct (une étude
+ingérée n'est pas forcément prête à être exposée en Prospection le jour même) ? Pas tranché ici.
+
+### 4.6 Historique de la reprise (2026-08-20, avant exécution)
+
+> ✅ **Reprise autorisée le 2026-08-20**, après re-vérification à la source (pas de confiance dans
+> le rapport périmé) et deux arbitrages G3 explicites de Guillaume. Séquence complète :
+>
+> 1. G1 rejoué (`--today 2026-08-20`) : **toujours FAIL, 38 PASS/5 FAIL**, à l'identique de l'état
+>    qui avait motivé la suspension — rien n'avait changé entre-temps.
+> 2. Guillaume a choisi, sur les 3 options posées, **« ingérer avec réserves documentées »**
+>    plutôt que corriger d'abord ou re-suspendre.
+> 3. Deux points de jugement G3 tranchés explicitement par Guillaume :
+>    - **Source IFRA retenue comme officielle** pour `echeance_pivot`, malgré le domaine non
+>      `.gouv.*` (IFRA fait autorité de fait dans la filière parfumerie) — le faux positif du
+>      script reste à corriger séparément, hors périmètre de ce lot.
+>    - **3 items réglementaires macro (IFRA 52e amendement, IFRA régime permanent, REACH)
+>      reconfirmés transversaux** — décision déjà rendue le 14/08 (`registre/README.md`),
+>      reconfirmée le 20/08. Ces 3 items ne sont **pas** ingérés par la RPC segment-scopée : ils
+>      restent hors périmètre, un import macro séparé resterait à faire pour les matérialiser.
+> 4. Un cinquième point (`03-journal.md` absent, `03-sources.json > compteurs.requetes = 0`) **n'a
+>    pas été corrigé** — c'est une vraie lacune de matière (E3 jamais rejoué avec un journal de
+>    requêtes tenu), pas un défaut de contrat ou un jugement G3 : le corriger exigerait de
+>    refaire la recherche, pas d'éditer un JSON. Accepté comme réserve documentée, tel quel.
+> 5. **`registre/2026-08-parfumerie-compositions-b2b/07-verdict.json` créé** (manquait
+>    entièrement) — verdict `usable_with_caveats`, les 6 réserves ci-dessus y sont détaillées
+>    littéralement, avec les taux et péremptions attendus par `10-ETAPE-E7…` §8.
+>    `registre/README.md` mis à jour en cohérence (le tableau portait encore un compteur `28/5`
+>    périmé).
+> 6. **Vérifié en base avant d'écrire le prompt** (pas seulement dans les fichiers) : les 3
+>    migrations L1/L2 sont bien appliquées (`20260820200000/1/2`), `ingest_master_study_e4` est
+>    bien en schéma `public` (le correctif L2 a tenu), les 2 contraintes `value_chain_nodes` sont
+>    bien relâchées, le segment pilote porte `source_run_id IS NULL` (rien ingéré), et les 8
+>    `competitive_map_entries` du pilote sont bien orphelines de document (`source_document_id
+>    IS NULL`) — confirmant le constat du §3.4.
+>
+> **Ce qui reste un vrai gate humain, non levé par cette reprise** : le G3 complet
+> (`10-ETAPE-E7…` §5 — confrontation compte étalon, lecture à voix haute du message sectoriel,
+> répétition de l'appel du compte n°1) **n'a pas été fait**. Les deux arbitrages ci-dessus ne
+> couvrent que la portée réglementaire et la source IFRA, pas la recette métier complète. Le
+> prompt L3 (`docs/MASTER-STUDY/registre/HANDOFF-L3-GEMINI.md`) en fait un pré-requis explicite
+> avant `--live`, pas une case cochée d'office.
+
+Résumé de ce que L3 fait (détail complet dans le prompt `HANDOFF-L3-GEMINI.md` et dans l'ADR §11
+ligne L3, ne pas le reformuler avant de les avoir lus) :
+
+- Exécuter `tsx --conditions=react-server --env-file=.env.local scripts/ingest-master-study.mts
+  docs/MASTER-STUDY/registre/2026-08-parfumerie-compositions-b2b/ --live` — la première exécution
+  réelle de la RPC `public.ingest_master_study_e4` contre le segment pilote.
+- Vérifier après coup : `sector_intelligence.source_run_id`/`resolution_locks` peuplés pour
+  `seg-parfumerie-compositions-b2b`, un document `master_study` archivé, les 6 `value_chain_nodes`
+  créés avec `maillon` 1 à 6, les 8 `competitive_map_entries` existantes rattachées (E5, arbitrage
+  humain déjà fait le 14/08) — sans les réimporter, seulement via un éventuel `p_source_run_id` si
+  le rattachement rétroactif est jugé utile (à trancher, pas fait par défaut).
+- Recette écran : ouvrir `/intelligence` et confirmer que la fiche du segment porte désormais une
+  description, un marché (ou son verrou), un playbook non vide — même si **rien ne consomme
+  encore ce contenu proprement** (c'est L4/L5 qui rebranchent BI et le Cockpit dessus).
+
+**Ce que L3 ne fait pas** : rebrancher BI ou le Cockpit sur le nouveau contenu (L4/L5), étendre
+`intelligence_source_links`.
+
+---
+
+## 5. Où lire quoi
 
 | Besoin | Fichier |
 |---|---|
 | La décision complète, les 20 règles MS-1→MS-20, le plan L0→L6 | `docs/adr/ADR-0021-master-study-ingestion-projections-distribution.md` |
-| Le prompt qui a produit L1 (pour calibrer un futur prompt L2) | `docs/MASTER-STUDY/registre/HANDOFF-L1-GEMINI.md` |
+| Le prompt qui a produit L1 | `docs/MASTER-STUDY/registre/HANDOFF-L1-GEMINI.md` |
+| Le prompt qui a produit L2 (pour calibrer un futur prompt) | `docs/MASTER-STUDY/registre/HANDOFF-L2-GEMINI.md` |
 | Le corpus Master Study lui-même (E0→E7, gates) | `docs/MASTER-STUDY/README.md` |
 | L'état d'exécution du corpus (segments produits, défauts de contrat) | `docs/MASTER-STUDY/registre/ROADMAP-CORRECTIONS.md` |
-| Le run pilote complet (7 livrables JSON) | `docs/MASTER-STUDY/registre/2026-08-parfumerie-compositions-b2b/` |
+| Le run pilote complet (7 livrables JSON, patché §3.2) | `docs/MASTER-STUDY/registre/2026-08-parfumerie-compositions-b2b/` |
 | Les invariants SQL du canon segment/macro, à ne pas casser | `supabase/tests/069_sector_knowledge_resolution.assertions.sql` (18 assertions) |
+| Le domaine d'import E4 | `src/features/master-study/` |

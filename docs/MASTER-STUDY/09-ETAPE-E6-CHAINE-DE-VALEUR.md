@@ -66,16 +66,23 @@ la demi-journée.
 ### 4.1 Le modèle
 
 ```
-value_chain_nodes    maillons (couche='chaine', maillon 1..5, rang 1..3)
+value_chain_nodes    maillons (couche='chaine', maillon >= 1, rang 1..3)
                      + couches transverses (prescripteur | financeur | technologie)
 value_chain_actors   comptes KREDO (company_id) ET acteurs hors portefeuille (company_id NULL + source)
 value_chain_links    dépendances : fournit | prescrit | finance | outille, intensité 1..3
 ```
 
+> **Articulation E4 / E6 (ADR-0021 §9.1 & MS-19)** : **E4 amorce** un nœud par maillon
+> (`rang=1`, `capture_valeur` NULL) lors de l'ingestion canonique. **E6 approfondit** ensuite
+> par modélisation et arbitrage humain : positionnement des acteurs (`value_chain_actors`),
+> traçage des liens (`value_chain_links`), et complétion de `capture_valeur` /
+> `capture_justification` par `UPDATE`.
+
 ### 4.2 Le déroulé
 
-1. **Poser les maillons** depuis E4 §2.3. Un maillon n'existe que s'il a au moins deux acteurs
-   nommés. Sinon il fusionne avec le voisin.
+1. **Les maillons existent déjà, amorcés par l'import E4** ; ce lot les complète, il ne les
+   recrée pas. Si un maillon n'a aucun acteur nommé à l'issue de l'analyse, il fusionne avec
+   le voisin par arbitrage.
 2. **Positionner les acteurs.** D'abord les comptes KREDO, **tous macros confondus** — c'est là
    que se produit la découverte. Puis les acteurs de E5. Puis les manquants sourcés.
 3. **Tracer les dépendances** avec leur nature et leur intensité.

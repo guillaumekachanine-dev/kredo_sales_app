@@ -33,7 +33,7 @@
 | 5 | `study_snapshot_date` sur 5 tables | `source_run_id` partout, `study_snapshot_date` **uniquement** où c'est déjà une clé de jointure | Un fait dérivable du run, dupliqué, divergera |
 | 6 | Séquencement : provenance → E4 → projections | **L0 vérité d'affichage → L1 verrou → L2 importeur → L3 ingestion → L4/L5 lectures** | Poser des colonnes sur des tables vides ne prouve rien ; dessiner des projections avant E4, c'est les dessiner contre de la donnée imaginée |
 | 7 | §21 : suspendre le redesign Cockpit > Secteur | Le redesign attend L5, mais **le chiffre faux se corrige en L0**, immédiatement | Ce n'est pas une question de design |
-| 8 | — | **6 blocs de l'E4 pilote n'avaient aucune destination.** Tranché : `maillons`/`dependances_critiques` → `value_chain_*` ; `budgets_18_36_mois` **retiré du contrat** | `02-DISTRIBUTION` : « un bloc qui n'apparaît nulle part n'a pas de raison d'être produit » |
+| 8 | — | **6 blocs de l'E4 pilote n'avaient aucune destination.** Tranché : `maillons` → `value_chain_nodes` ; `dependances_critiques` → `playbook.dependances_critiques` (précisé L2, §9.1) ; `budgets_18_36_mois` **retiré du contrat** | `02-DISTRIBUTION` : « un bloc qui n'apparaît nulle part n'a pas de raison d'être produit » |
 
 ---
 
@@ -514,17 +514,24 @@ l'étude.** Une étape humaine n'interrompt pas la cohérence du run.
 
 Ces amendements sont **partie intégrante de la décision**, pas un suivi.
 
-## 9.1 `maillons` et `dependances_critiques` — E4 amorce, E6 approfondit
+## 9.1 `maillons` et `dependances_critiques` — deux destinations distinctes, aucune perdue
 
 `04-secteur.json` du pilote porte 6 `maillons` (avec `position_compte_etalon`,
 `ou_lesn_se_branche`, `qui_y_est_deja`, `donc_commercialement`) et 6 `dependances_critiques` (avec
 `criticite`, `risque`, `prestation_ouverte`, `practice_kredo`). `01-CARTE` assigne S8 à
-`value_chain_*` et déclare E6 producteur.
+`value_chain_*` et déclare E6 producteur — mais `value_chain_nodes` ne modélise que des acteurs
+positionnés (`couche`/`maillon`/`rang`/`capture_valeur`), sans colonne pour une criticité, un
+risque ou une prestation ouverte : `dependances_critiques` n'y a jamais eu de place réelle.
 
-> **Tranché.** L'importeur E4 **écrit dans `value_chain_nodes`** avec son `source_run_id`.
-> `09-ETAPE-E6-CHAINE-DE-VALEUR.md` est amendé : **E4 amorce les maillons, E6 les approfondit**
-> (acteurs positionnés, liens, captation). Les deux écrivent dans la même table ; le
-> `source_run_id` et le rang d'étape arbitrent.
+> **Tranché (précisé au lot L2, 2026-08-20).** L'importeur E4 **écrit `maillons` dans
+> `value_chain_nodes`** avec son `source_run_id` — amorce sans captation
+> (`capture_valeur = NULL`), que E6 complète ensuite par arbitrage humain (acteurs positionnés,
+> liens, captation). `09-ETAPE-E6-CHAINE-DE-VALEUR.md` §4.1 est amendé en conséquence : le
+> plafond `maillon 1..5`, calé sur le seul BTP, est retiré (le pilote Parfumerie en compte 6).
+>
+> `dependances_critiques` **n'écrit pas dans `value_chain_nodes`** : nouvelle clé
+> `sector_intelligence.playbook.dependances_critiques`, même régime que les autres clés `★` de
+> `01-CARTE` §7.2 — zéro table, résolue par le mécanisme clé-par-clé existant du playbook.
 
 L'alternative — jeter ces deux blocs — perdrait 12 blocs sourcés du pilote pour une pureté
 d'étape qui n'a aucun lecteur.
@@ -593,8 +600,8 @@ du bloc `compteurs` du livrable, il ne connaît aucun nom de liste en dur.
 |---|---|---|---|
 | **L0** ✅ | **Vérité d'affichage — livré le 2026-08-20.** `marketSizeEurBn` / `marketGrowthPct` / `attractivenessScore` héritées portent `SectorLevelBadge`, comme `description`. Aucun schéma, aucune migration — requête parallèle sur la table brute. Handoff : `docs/FEATURES/master-study/HANDOFF-L0-L1-ADR-0021.md` | ~2 h | Supprimait un chiffre faux en production sur le compte pilote (80 Md€ affiché comme taille du segment Parfumerie, en réalité celle du macro) |
 | **L1** ✅ | **Migration additive — livré le 2026-08-20** (`20260820200000_master_study_provenance_columns.sql`). 8 colonnes + `resolution_locks`, réécriture de `v_sector_knowledge_resolved` avec les verrous et les `*_level`, assertions 069 étendues 14→18. Le pis-aller TypeScript de L0 a été retiré dans le même lot. Détail : `docs/FEATURES/master-study/HANDOFF-L0-L1-ADR-0021.md` §2 | ½ j | Le verrou doit exister **avant** la première écriture E4, sinon on ingère puis on corrige |
-| **L2** | `src/features/master-study/` : contrats TS dérivés de `schemas/`, mapping E4 → canon, RPC transactionnelles, `scripts/ingest-master-study.mts --dry-run` · mise au même régime de `ingest-competitive-map.ts` · amendements §9.1 et §9.2 | 2 j | Le dry-run sur le run parfumerie **est** la validation du mapping |
-| **L3** | **Ingestion réelle du pilote.** Document `master_study` + run + E4 canon + `value_chain_*` + rattachement des 8 entrées E5 au même `source_run_id`. Recette : compteurs 0 → N par bloc de `01-CARTE` | ½ j | **Point de bascule.** Rien en aval n'est testable avant |
+| **L2** ✅ | **Importeur E4 — livré le 2026-08-20** (`20260820200001`/`002_*.sql`). `src/features/master-study/` (contrats TS, mapping, RPC `public.ingest_master_study_e4`), `scripts/ingest-master-study.mts --dry-run`, `ingest-competitive-map.ts` mis au régime `source_run_id` + logs d'échec. Amendements §9.1/§9.2 appliqués. Deux défauts trouvés en vérification indépendante et corrigés avant tout `--live` : RPC placée par erreur en schéma `private` (jamais exposée par PostgREST) et `workspace_id` non résolvable sous service-role. Détail : `docs/FEATURES/master-study/HANDOFF-L0-L1-ADR-0021.md` §3 | 2 j | Le dry-run sur le run parfumerie **est** la validation du mapping |
+| **L3** ✅ | **Ingestion réelle du pilote — livré le 2026-08-20.** Document `master_study` (`c8e7aa8b-8ecd-4af4-9e9e-5b04884d1b35`) + run `master_study` (`522cfe06-f241-4620-a820-a0806a902571`) + E4 canon (`sector_intelligence` patchée, verrous `not_published` posés) + 6 `value_chain_nodes` + 2 `sector_regulatory_items` + 4 `sector_pain_points` + 7 `sector_events`. 8 `competitive_map_entries` orphelines maintenues (décision différée à L4/L5). Recette SQL validée. | ½ j | **Point de bascule.** Rien en aval n'est testable avant |
 | **L4** | `SectorKnowledgeReadModel(segmentId)` · rebranchement de BI sur les vues résolues · démontage du chargement global · repointage de `MasterStudyReader` et de `build-sector-playbook-model` | 2 j | Correctif réel de « BI ne voit pas la Master Study » |
 | **L5** | `AccountSectorPerspective` → **GATE B design** → Cockpit > Secteur | 2 j | Contre de la donnée réelle, pas imaginée |
 | **L6+** | Preuves (`intelligence_source_links`), références croisées E4↔E5, projections Prospection | — | Après mesure d'usage |

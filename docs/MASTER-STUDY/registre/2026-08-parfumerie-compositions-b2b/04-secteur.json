@@ -82,7 +82,9 @@
   ],
   "marche": {
     "taille_eur_bn": null,
+    "taille_statut": "not_published",
     "croissance_pct": null,
+    "croissance_statut": "not_published",
     "perimetre": "France — segment E4 non isolé statistiquement ; repères macro et de filière uniquement.",
     "exercice": null,
     "src_ids": [

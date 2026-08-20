@@ -41,7 +41,7 @@ ATTENTION AU DESTINATAIRE — erreur la plus fréquente sur cet exercice :
 tu n'écris PAS pour le compte étalon. Tu n'écris pas « les options stratégiques recommandées
 pour un acteur comme X ». Un tel document, remis à un commercial, ne donne ni cible, ni ordre
 d'attaque, ni interlocuteur, ni motif d'appel. Tu écris pour celui qui veut VENDRE à ce
-secteur. La seule forme autorisée du bloc « trajectoires » est sa forme retournée (§2.9).
+secteur.
 
 --------------------------------------------------------------------
 ÉTAPE 0 — CONTRÔLE PRÉALABLE (obligatoire, avant toute production)
@@ -119,6 +119,9 @@ COUCHE 2 — COMPRENDRE (8-10 pages, réservoir de crédibilité)
   2.1 ÉCONOMIE DU SECTEUR
       Taille et financement sur périmètre déclaré, croissance, moteurs.
       Les blocs de clients : qui paie, avec quel argent, selon quel cycle budgétaire.
+      Quand la taille ou la croissance n'est pas publiée ou non applicable, renseigner
+      explicitement taille_statut / croissance_statut (published | not_published | not_applicable)
+      avec la valeur null correspondante, dans le même esprit que les incertitudes.
   2.2 ► MODÈLES ÉCONOMIQUES — tableau
       Colonnes : modèle | description | qui signe | quand le budget est engagé |
                  ★ CE QUE CE MODÈLE IMPLIQUE POUR L'ACHAT DE PRESTATION
@@ -147,14 +150,10 @@ COUCHE 2 — COMPRENDRE (8-10 pages, réservoir de crédibilité)
   2.7 CHRONOLOGIE DES RUPTURES — 8 ans, jalons datés et sourcés
   2.8 RISQUES × OPPORTUNITÉS — tableau
       Chaque ligne associe un risque du secteur à l'opportunité commerciale correspondante.
-  2.9 ► TRAJECTOIRES ET BUDGETS À 18-36 MOIS
-      Décris 3 à 5 trajectoires d'investissement plausibles du secteur.
-      Puis RETOURNE-LES : « si le secteur prend cette trajectoire, quels budgets s'ouvrent,
-      et quelle offre KREDO les adresse ». C'est la seule forme autorisée de ce bloc.
-  2.10 PAIN POINTS SECTORIELS
+  2.9 PAIN POINTS SECTORIELS
       Pour chacun : libellé, et une FRÉQUENCE QUI EST UN COMPTAGE — « 5 acteurs » signifie
       que tu as listé les 5, et tu les nommes. Pas d'impression, pas de « souvent ».
-  2.11 PERSONAS, OBJECTIONS, ARGUMENTS ROI
+  2.10 PERSONAS, OBJECTIONS, ARGUMENTS ROI
       Personas : fonction, ce dont cette personne répond, ce qui la réveille la nuit.
       Objections : l'objection telle qu'elle se dit, puis la réponse telle qu'elle se dit.
       Arguments ROI : chaque argument porte sa source DANS SA PHRASE, pas en annexe —
@@ -181,7 +180,7 @@ CONTRÔLE QUALITÉ — à exécuter avant de livrer, et à AFFICHER
   [ ] Chaque chiffre porte millésime, périmètre et source résolvable
   [ ] Aucun chiffre de groupe utilisé pour caractériser une branche
   [ ] Aucune donnée du régime déterministe produite par toi
-  [ ] Les 4 colonnes de conversion (2.2, 2.3, 2.5, 2.9) sont présentes et remplies
+  [ ] Les 3 colonnes de conversion (2.2, 2.3, 2.5) sont présentes et remplies
   [ ] Chaque bloc de la couche 2 porte son « DONC, commercialement »
   [ ] Chaque fréquence de pain point est un comptage avec les acteurs nommés
   [ ] Chaque texte réglementaire porte son statut acquis / proposition
