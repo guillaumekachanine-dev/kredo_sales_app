@@ -61,7 +61,8 @@ describe("Business Intelligence snapshot", () => {
     expect(source).toContain('state: "ready"')
     expect(source).toContain("accounts: portfolioSnapshot.accounts")
     expect(source).toContain("signals,")
-    expect(source).toContain("baseSnapshot.sectors = activationModel.sectors")
+    expect(source).toContain("sectors: activationModel.sectors")
+    expect(source).toContain("getSectorKnowledgeReadModels")
   })
 
   it("rend les erreurs explicites sur Desktop et Mobile", () => {

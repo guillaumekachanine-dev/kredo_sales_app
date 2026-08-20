@@ -1,5 +1,6 @@
-import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
-import type { PracticeKey } from "@/types/sector"
+import type { PracticeKey, SectorStatus } from "@/types/sector"
+import type { SectorKnowledgeReadModel, SectorKnowledgePainPointItem } from "@/features/master-study/data/get-sector-knowledge-read-model"
+import type { ProspectionPortfolioAccount } from "@/lib/prospection/portfolio-account-metrics"
 import {
   SECTOR_ACTIVATION_PRACTICE_LABELS,
   type SectorActivationFilterOptions,
@@ -23,8 +24,8 @@ const PRIORITY_ORDER: Record<SectorActivationTemporalStatus, number> = {
 }
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
-  regulatory: "Evenement reglementaire",
-  market: "Signal de marche",
+  regulatory: "Événement réglementaire",
+  market: "Signal de marché",
   competitor: "Signal concurrentiel",
   appointment: "Rendez-vous",
   tender: "Appel d'offres",
@@ -54,7 +55,7 @@ function clamp(value: number, min = 0, max = 100) {
 
 function parsePracticesFit(value: unknown): Record<PracticeKey, number> {
   const record = value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {}
 
   return {
@@ -66,8 +67,9 @@ function parsePracticesFit(value: unknown): Record<PracticeKey, number> {
 }
 
 function sortPracticeEntries(practicesFit: Record<PracticeKey, number>) {
-  return (Object.entries(practicesFit) as Array<[PracticeKey, number]>)
-    .toSorted((left, right) => right[1] - left[1])
+  return (Object.entries(practicesFit) as Array<[PracticeKey, number]>).toSorted(
+    (left, right) => right[1] - left[1],
+  )
 }
 
 function getTopPracticeKey(practicesFit: Record<PracticeKey, number>): PracticeKey {
@@ -118,7 +120,6 @@ function computeNewsTemporalStatus(value: string | null, now: number): SectorAct
 function computeFreshnessBand(
   value: string | null,
   now: number,
-  sourceType: SectorActivationSourceType,
 ): SectorActivationFreshnessBand {
   const ageDays = getAgeDays(value, now)
   if (ageDays === null) return "undated"
@@ -165,17 +166,17 @@ function getWindowUrgencyScore(params: {
 
 function getSourceLabel(
   sourceType: SectorActivationSourceType,
-  row: any,
+  row: { source?: string | null; authority?: string | null; event_type?: string | null },
 ): string {
   if (sourceType === "news") {
     const source = row.source
-    return hasText(source) ? source : "Source non identifiee"
+    return hasText(source) ? source : "Source non identifiée"
   }
   if (sourceType === "regulation") {
     const authority = row.authority
-    return hasText(authority) ? authority : "Reglementation sectorielle"
+    return hasText(authority) ? authority : "Réglementation sectorielle"
   }
-  return EVENT_TYPE_LABELS[row.event_type] ?? "Signal sectoriel"
+  return EVENT_TYPE_LABELS[row.event_type ?? ""] ?? "Signal sectoriel"
 }
 
 function pickPracticeKey(preferred: PracticeKey | "multi" | null, fallback: PracticeKey): PracticeKey {
@@ -185,21 +186,24 @@ function pickPracticeKey(preferred: PracticeKey | "multi" | null, fallback: Prac
   return fallback
 }
 
-function getAccountsAverage(accounts: any[], field: string) {
+function getAccountsAverage(
+  accounts: Array<{ [key: string]: unknown }>,
+  field: string,
+): number | null {
   if (accounts.length === 0) return null
-  const total = accounts.reduce((sum, account) => sum + (account[field] ?? 0), 0)
+  const total = accounts.reduce((sum, account) => sum + (Number(account[field]) || 0), 0)
   return Math.round(total / accounts.length)
 }
 
 function getPainPointSummary(
-  painPoints: any[],
+  painPoints: SectorKnowledgePainPointItem[],
   practiceKey: PracticeKey,
 ) {
   const matching = painPoints
-    .filter((painPoint) => painPoint.kredo_practice === practiceKey || painPoint.kredo_practice === "multi")
-    .toSorted((left, right) => right.frequency_count - left.frequency_count)
+    .filter((painPoint) => painPoint.kredoPractice === practiceKey || painPoint.kredoPractice === "multi")
+    .toSorted((left, right) => right.frequencyCount - left.frequencyCount)
 
-  return matching[0] ?? painPoints.toSorted((left, right) => right.frequency_count - left.frequency_count)[0] ?? null
+  return matching[0] ?? painPoints.toSorted((left, right) => right.frequencyCount - left.frequencyCount)[0] ?? null
 }
 
 function createSuggestedAction(params: {
@@ -215,18 +219,18 @@ function createSuggestedAction(params: {
   const deadlineContext = hasText(deadlineAt) ? ` avant ${deadlineAt}` : ""
 
   if (sourceType === "regulation") {
-    return `Cadrer une reponse ${practiceLabel}${deadlineContext} et qualifier un compte expose.`
+    return `Cadrer une réponse ${practiceLabel}${deadlineContext} et qualifier un compte exposé.`
   }
   if (sourceType === "news") {
-    return `Verifier la materialite du signal puis ouvrir une prise de contact ${practiceLabel.toLowerCase()} sur les comptes exposes.`
+    return `Vérifier la matérialité du signal puis ouvrir une prise de contact ${practiceLabel.toLowerCase()} sur les comptes exposés.`
   }
   if (painPointTitle) {
     return `Qualifier le signal, relier ${painPointTitle.toLowerCase()} et proposer un atelier ${practiceLabel.toLowerCase()}.`
   }
   if (temporalStatus === "close") {
-    return `Activer un playbook court ${practiceLabel.toLowerCase()} avant refroidissement de la fenetre.`
+    return `Activer un playbook court ${practiceLabel.toLowerCase()} avant refroidissement de la fenêtre.`
   }
-  return `Transformer le signal en hypothese de besoin ${practiceLabel.toLowerCase()} sur un compte prioritaire.`
+  return `Transformer le signal en hypothèse de besoin ${practiceLabel.toLowerCase()} sur un compte prioritaire.`
 }
 
 function createPlaybookSummary(params: {
@@ -241,12 +245,12 @@ function createPlaybookSummary(params: {
     return `Angle ${practiceLabel} sur ${painPointTitle.toLowerCase()}.`
   }
   if (sourceType === "regulation") {
-    return `Playbook de conformite et delivery ${practiceLabel.toLowerCase()}.`
+    return `Playbook de conformité et delivery ${practiceLabel.toLowerCase()}.`
   }
   if (sourceType === "news") {
     return `Playbook de qualification rapide ${practiceLabel.toLowerCase()}.`
   }
-  return `Playbook d'activation ${practiceLabel.toLowerCase()} sur un compte expose.`
+  return `Playbook d'activation ${practiceLabel.toLowerCase()} sur un compte exposé.`
 }
 
 function getSectorActivationState(params: {
@@ -300,52 +304,220 @@ function compareWindows(left: SectorActivationWindow, right: SectorActivationWin
   return (right.sectorAttractivenessScore ?? 0) - (left.sectorAttractivenessScore ?? 0)
 }
 
-export function buildSectorActivationModel(
-  snapshot: any,
-  options: { now: number }
-): { sectors: SectorActivationSector[]; windows: SectorActivationWindow[]; filterOptions: SectorActivationFilterOptions } {
-  const { now } = options
-  const { _rawSources, accounts } = snapshot
-  if (!_rawSources) {
-    return { sectors: [], windows: [], filterOptions: { sectors: [], lifecycles: [], priorities: [], practices: [], sourceTypes: [], priorityBands: [], temporalStatuses: [], statusFilters: [] } as any }
+type RawSourcesInput = {
+  sectorRows?: Array<Record<string, unknown>>
+  painPointRows?: Array<Record<string, unknown>>
+  eventRows?: Array<Record<string, unknown>>
+  newsRows?: Array<Record<string, unknown>>
+  regulatoryRows?: Array<Record<string, unknown>>
+}
+
+function convertRawSourcesToReadModels(rawSources: RawSourcesInput): SectorKnowledgeReadModel[] {
+  const { sectorRows = [], painPointRows = [], eventRows = [], newsRows = [], regulatoryRows = [] } = rawSources
+
+  const painPointsBySectorId = new Map<string, Array<Record<string, unknown>>>()
+  for (const pp of painPointRows) {
+    const sid = String(pp.sector_id ?? "")
+    const list = painPointsBySectorId.get(sid) ?? []
+    list.push(pp)
+    painPointsBySectorId.set(sid, list)
   }
 
-  const { sectorRows, painPointRows, eventRows, newsRows, regulatoryRows } = _rawSources
-
-  const accountsBySectorId = new Map<string, any[]>()
-  for (const account of accounts) {
-    if (!account.sectorId) continue
-    const current = accountsBySectorId.get(account.sectorId) ?? []
-    current.push(account)
-    accountsBySectorId.set(account.sectorId, current)
+  const eventsBySectorId = new Map<string, Array<Record<string, unknown>>>()
+  for (const ev of eventRows) {
+    const sid = String(ev.sector_id ?? "")
+    const list = eventsBySectorId.get(sid) ?? []
+    list.push(ev)
+    eventsBySectorId.set(sid, list)
   }
 
-  const painPointsBySectorId = new Map<string, any[]>()
-  for (const painPoint of painPointRows) {
-    const current = painPointsBySectorId.get(painPoint.sector_id) ?? []
-    current.push(painPoint)
-    painPointsBySectorId.set(painPoint.sector_id, current)
+  const newsBySectorId = new Map<string, Array<Record<string, unknown>>>()
+  for (const nw of newsRows) {
+    const sid = String(nw.sector_id ?? "")
+    const list = newsBySectorId.get(sid) ?? []
+    list.push(nw)
+    newsBySectorId.set(sid, list)
   }
 
-  const sectorMetrics = sectorRows.map((sector: any) => {
-    const practiceScores = parsePracticesFit(sector.practices_fit)
-    const linkedAccounts = accountsBySectorId.get(sector.id) ?? []
-    const topPracticeKey = getTopPracticeKey(practiceScores)
-    const coveredAccountCount = linkedAccounts.filter((account) => account.legacyFolioScore !== null).length
-    const averagePotentialScore = getAccountsAverage(linkedAccounts, "potentialScore")
-    const averageReachScore = getAccountsAverage(linkedAccounts, "reachScore")
+  const regulatoryBySectorId = new Map<string, Array<Record<string, unknown>>>()
+  for (const rg of regulatoryRows) {
+    const sid = String(rg.sector_id ?? "")
+    const list = regulatoryBySectorId.get(sid) ?? []
+    list.push(rg)
+    regulatoryBySectorId.set(sid, list)
+  }
+
+  return sectorRows.map((sector) => {
+    const sectorId = String(sector.id ?? "")
+    const pps = (painPointsBySectorId.get(sectorId) ?? []).map((pp) => ({
+      id: String(pp.id ?? ""),
+      title: String(pp.title ?? ""),
+      description: typeof pp.description === "string" ? pp.description : null,
+      frequencyCount: Number(pp.frequency_count ?? 0),
+      kredoPractice: typeof pp.kredo_practice === "string" ? pp.kredo_practice : null,
+      verbatim: typeof pp.verbatim === "string" ? pp.verbatim : null,
+      sourceCompanyIds: Array.isArray(pp.source_company_ids) ? (pp.source_company_ids as string[]) : [],
+      resolvedLevel: (pp.resolved_level === "macro" ? "macro" : "segment") as "segment" | "macro",
+    }))
+
+    const evs = (eventsBySectorId.get(sectorId) ?? []).map((ev) => ({
+      id: String(ev.id ?? ""),
+      title: String(ev.title ?? ""),
+      description: typeof ev.description === "string" ? ev.description : null,
+      eventType: typeof ev.event_type === "string" ? ev.event_type : "autre",
+      eventDate: typeof ev.event_date === "string" ? ev.event_date : null,
+      eventStatus: typeof ev.status === "string" ? ev.status : "pending",
+      sourceUrl: typeof ev.source_url === "string" ? ev.source_url : null,
+      commercialOpportunity: typeof ev.commercial_opportunity === "string" ? ev.commercial_opportunity : null,
+      resolvedLevel: (ev.resolved_level === "macro" ? "macro" : "segment") as "segment" | "macro",
+      createdAt: typeof ev.created_at === "string" ? ev.created_at : null,
+      updatedAt: typeof ev.updated_at === "string" ? ev.updated_at : null,
+    }))
+
+    const nws = (newsBySectorId.get(sectorId) ?? []).map((nw) => ({
+      id: String(nw.id ?? ""),
+      title: String(nw.title ?? ""),
+      source: typeof nw.source === "string" ? nw.source : null,
+      url: typeof nw.url === "string" ? nw.url : null,
+      summary: typeof nw.summary === "string" ? nw.summary : null,
+      publishedAt: typeof nw.published_at === "string" ? nw.published_at : null,
+      relevanceScore: asNumber(nw.relevance_score as number | string | null),
+      isTriggerEvent: Boolean(nw.is_trigger_event),
+      resolvedLevel: (nw.resolved_level === "macro" ? "macro" : "segment") as "segment" | "macro",
+    }))
+
+    const rgs = (regulatoryBySectorId.get(sectorId) ?? []).map((rg) => ({
+      id: String(rg.id ?? ""),
+      name: String(rg.name ?? rg.title ?? ""),
+      authority: typeof rg.authority === "string" ? rg.authority : null,
+      description: typeof rg.description === "string" ? rg.description : null,
+      deadlineDate: typeof rg.deadline_date === "string" ? rg.deadline_date : null,
+      urgency: typeof rg.urgency === "string" ? rg.urgency : "normal",
+      kredoPractice: typeof rg.kredo_practice === "string" ? rg.kredo_practice : null,
+      commercialAngle: typeof rg.commercial_angle === "string" ? rg.commercial_angle : null,
+      isCommercialWindow: Boolean(rg.is_commercial_window),
+      sourceUrl: typeof rg.source_url === "string" ? rg.source_url : null,
+      resolvedLevel: (rg.resolved_level === "macro" ? "macro" : "segment") as "segment" | "macro",
+      createdAt: typeof rg.created_at === "string" ? rg.created_at : null,
+      updatedAt: typeof rg.updated_at === "string" ? rg.updated_at : null,
+    }))
+
+    const rawStatus = typeof sector.status === "string" ? sector.status : "development"
+    const validStatus: SectorStatus = rawStatus === "active" ? "active" : rawStatus === "watch" ? "watch" : "development"
 
     return {
-      id: sector.id,
-      slug: sector.slug,
-      name: sector.name,
-      status: sector.status,
-      attractivenessScore: asNumber(sector.attractiveness_score),
-      digitalMaturity: sector.digital_maturity,
+      segmentId: sectorId,
+      segmentName: String(sector.name ?? ""),
+      segmentSlug: String(sector.slug ?? ""),
+      segmentStatus: validStatus,
+      macroId: typeof sector.macro_id === "string" ? sector.macro_id : null,
+      macroName: typeof sector.macro_name === "string" ? sector.macro_name : null,
+      macroSlug: typeof sector.macro_slug === "string" ? sector.macro_slug : null,
+      macroStatus: typeof sector.macro_status === "string" ? sector.macro_status : null,
+      description: typeof sector.description === "string" ? sector.description : null,
+      descriptionLevel: (sector.description_level === "macro" ? "macro" : "segment") as "segment" | "macro" | "locked",
+      attractivenessScore: asNumber(sector.attractiveness_score as number | string | null),
+      attractivenessScoreLevel: "segment",
+      marketSizeEurBn: asNumber(sector.market_size_eur_bn as number | string | null),
+      marketSizeEurBnLevel: "segment",
+      marketGrowthPct: asNumber(sector.market_growth_pct as number | string | null),
+      marketGrowthPctLevel: "segment",
+      playbook: (sector.playbook && typeof sector.playbook === "object" ? (sector.playbook as Record<string, unknown>) : null),
+      playbookLevel: "segment",
+      practicesFit: (sector.practices_fit && typeof sector.practices_fit === "object" ? (sector.practices_fit as Record<string, unknown>) : null),
+      practicesFitLevel: "segment",
+      keyPlayersPaca: sector.key_players_paca ?? [],
+      keyPlayersNational: sector.key_players_national ?? [],
+      hasSegmentKnowledge: Boolean(sector.has_segment_knowledge ?? true),
+      digitalMaturity: typeof sector.digital_maturity === "string" ? sector.digital_maturity : null,
+      avgTjmMin: asNumber(sector.avg_tjm_min as number | string | null),
+      avgTjmMax: asNumber(sector.avg_tjm_max as number | string | null),
+      caveats: sector.caveats ?? null,
+      sourceRunId: typeof sector.source_run_id === "string" ? sector.source_run_id : null,
+      studySnapshotDate: typeof sector.study_snapshot_date === "string" ? sector.study_snapshot_date : null,
+      effectiveStatus: validStatus,
+
+      items: {
+        painPoints: pps,
+        events: evs,
+        news: nws,
+        regulatory: rgs,
+      },
+      painPoints: pps,
+      events: evs,
+      news: nws,
+      regulatory: rgs,
+    }
+  })
+}
+
+export function buildSectorActivationModel(
+  snapshot: {
+    accounts?: Array<Partial<ProspectionPortfolioAccount>>
+    sectorKnowledgeModels?: SectorKnowledgeReadModel[]
+    _rawSources?: RawSourcesInput
+  },
+  options: { now: number },
+): { sectors: SectorActivationSector[]; windows: SectorActivationWindow[]; filterOptions: SectorActivationFilterOptions } {
+  const { now } = options
+  const accounts = snapshot.accounts ?? []
+
+  let sectorKnowledgeModels = snapshot.sectorKnowledgeModels
+  if (!sectorKnowledgeModels && snapshot._rawSources) {
+    sectorKnowledgeModels = convertRawSourcesToReadModels(snapshot._rawSources)
+  }
+
+  if (!sectorKnowledgeModels || sectorKnowledgeModels.length === 0) {
+    return {
+      sectors: [],
+      windows: [],
+      filterOptions: {
+        sectors: [],
+        practices: [],
+        sourceTypes: [],
+        priorityBands: [],
+        temporalStatuses: [],
+        statusFilters: [],
+      },
+    }
+  }
+
+  // LOT 4 : Groupement sur `account.segmentId` (le niveau réel de classification),
+  // JAMAIS sur `account.sectorId` (la projection macro).
+  const accountsBySegmentId = new Map<string, Array<Partial<ProspectionPortfolioAccount>>>()
+  for (const account of accounts) {
+    const segmentKey = account.segmentId ?? account.sectorId
+    if (!segmentKey) continue
+    const current = accountsBySegmentId.get(segmentKey) ?? []
+    current.push(account)
+    accountsBySegmentId.set(segmentKey, current)
+  }
+
+  const sectorMetrics: SectorActivationSector[] = sectorKnowledgeModels.map((model) => {
+    const practiceScores = parsePracticesFit(model.practicesFit)
+    const linkedAccounts = accountsBySegmentId.get(model.segmentId) ?? []
+    const topPracticeKey = getTopPracticeKey(practiceScores)
+    const coveredAccountCount = linkedAccounts.filter((account) => account.legacyFolioScore !== null && account.legacyFolioScore !== undefined).length
+    const averagePotentialScore = getAccountsAverage(linkedAccounts as Array<{ [key: string]: unknown }>, "potentialScore")
+    const averageReachScore = getAccountsAverage(linkedAccounts as Array<{ [key: string]: unknown }>, "reachScore")
+
+    const linkedAccountIds = linkedAccounts
+      .map((account) => account.id)
+      .filter((id): id is string => typeof id === "string")
+
+    const sectorStatus: SectorStatus = model.effectiveStatus === "active" ? "active" : model.effectiveStatus === "watch" ? "watch" : "development"
+
+    return {
+      id: model.segmentId,
+      slug: model.segmentSlug,
+      name: model.segmentName,
+      status: sectorStatus,
+      attractivenessScore: asNumber(model.attractivenessScore),
+      digitalMaturity: (model.digitalMaturity === "low" || model.digitalMaturity === "medium" || model.digitalMaturity === "high" ? (model.digitalMaturity as "low" | "medium" | "high") : null),
       topPracticeKey,
-      topPracticeLabel: SECTOR_ACTIVATION_PRACTICE_LABELS[topPracticeKey as PracticeKey],
+      topPracticeLabel: SECTOR_ACTIVATION_PRACTICE_LABELS[topPracticeKey],
       practiceScores,
-      linkedAccountIds: linkedAccounts.map((account) => account.id),
+      linkedAccountIds,
       linkedAccountCount: linkedAccounts.length,
       coveredAccountCount,
       averagePotentialScore,
@@ -357,227 +529,228 @@ export function buildSectorActivationModel(
       undatedWindowCount: 0,
       expiredWindowCount: 0,
       activationState: "data_insufficient" as const,
-      painPoints: (painPointsBySectorId.get(sector.id) ?? []).map((pp: any) => ({
+      painPoints: model.painPoints.map((pp) => ({
         id: pp.id,
         title: pp.title,
         description: pp.description,
-        frequencyCount: Number(pp.frequency_count),
-        kredoPractice: pp.kredo_practice,
+        frequencyCount: pp.frequencyCount,
+        kredoPractice: pp.kredoPractice,
         verbatim: pp.verbatim,
       })),
-      description: sector.description,
+      description: model.description,
 
-      marketSizeEurBn: asNumber(sector.market_size_eur_bn),
-      marketGrowthPct: asNumber(sector.market_growth_pct),
-      keyPlayersPaca: sector.key_players_paca,
-      keyPlayersNational: sector.key_players_national,
-      avgTjmMin: asNumber(sector.avg_tjm_min),
-      avgTjmMax: asNumber(sector.avg_tjm_max),
-      caveats: sector.caveats,
-      playbook: sector.playbook,
-      updatedAt: sector.updated_at,
+      marketSizeEurBn: asNumber(model.marketSizeEurBn),
+      marketGrowthPct: asNumber(model.marketGrowthPct),
+      keyPlayersPaca: Array.isArray(model.keyPlayersPaca) ? (model.keyPlayersPaca as Array<{ name: string; note: string; size: string }>) : [],
+      keyPlayersNational: Array.isArray(model.keyPlayersNational) ? (model.keyPlayersNational as Array<{ name: string; note: string; size: string }>) : [],
+      avgTjmMin: asNumber(model.avgTjmMin),
+      avgTjmMax: asNumber(model.avgTjmMax),
+      caveats: model.caveats,
+      playbook: model.playbook,
+      updatedAt: model.studySnapshotDate,
     }
-
-
-  }).toSorted((left: any, right: any) => {
+  }).toSorted((left, right) => {
     return (right.attractivenessScore ?? 0) - (left.attractivenessScore ?? 0)
   })
 
-  const sectorById = new Map<string, any>(sectorMetrics.map((sector: any) => [sector.id, sector]))
+  // `sectorById` indexé par `segmentId`, pas par `macroId`.
+  const sectorById = new Map<string, SectorActivationSector>(sectorMetrics.map((sector) => [sector.id, sector]))
   const windows: SectorActivationWindow[] = []
 
-  for (const row of eventRows) {
-    if (row.status !== "pending") continue
-    const sector = sectorById.get(row.sector_id)
+  for (const model of sectorKnowledgeModels) {
+    const sector = sectorById.get(model.segmentId)
     if (!sector) continue
+    const exposedAccounts = accountsBySegmentId.get(model.segmentId) ?? []
+    const exposedAccountIds = exposedAccounts
+      .map((account) => account.id)
+      .filter((id): id is string => typeof id === "string")
 
-    const practiceKey = sector.topPracticeKey
-    const practiceLabel = SECTOR_ACTIVATION_PRACTICE_LABELS[practiceKey as PracticeKey]
-    const painPoint = getPainPointSummary(painPointsBySectorId.get(row.sector_id) ?? [], practiceKey)
-    const detectedAt = row.updated_at ?? row.created_at
-    const temporalStatus = computeTemporalStatus(row.event_date, now)
-    const urgencyScore = getWindowUrgencyScore({
-      sourceType: "event",
-      temporalStatus,
-    })
-    const exposedAccounts = accountsBySectorId.get(row.sector_id) ?? []
+    // 1. Événements
+    for (const event of model.events) {
+      if (event.eventStatus && event.eventStatus !== "pending") continue
 
-    windows.push({
-      id: `event-${row.id}`,
-      sourceType: "event",
-      sourceId: row.id,
-      sourceLabel: getSourceLabel("event", row),
-      sourceUrl: row.source_url,
-      dataOrigin: "REAL_NATIVE",
-      sectorId: sector.id,
-      sectorSlug: sector.slug,
-      sectorName: sector.name,
-      title: row.title,
-      subtitle: row.description ?? row.commercial_opportunity ?? `Signal ${practiceLabel.toLowerCase()} a qualifier.`,
-      practiceKey,
-      practiceLabel,
-      detectedAt,
-      deadlineAt: row.event_date,
-      temporalStatus,
-      freshnessBand: computeFreshnessBand(detectedAt, now, "event"),
-      urgencyScore,
-      priorityBand: getPriorityBand(urgencyScore),
-      isOpenNow: temporalStatus === "close" || temporalStatus === "active",
-      exposedAccountIds: exposedAccounts.map((account) => account.id),
-      exposedAccountCount: exposedAccounts.length,
-      averagePotentialScore: sector.averagePotentialScore,
-      averageReachScore: sector.averageReachScore,
-      coverageGap: sector.coverageGap,
-      suggestedAction: createSuggestedAction({
+      const practiceKey = sector.topPracticeKey
+      const practiceLabel = SECTOR_ACTIVATION_PRACTICE_LABELS[practiceKey]
+      const painPoint = getPainPointSummary(model.painPoints, practiceKey)
+      const detectedAt = event.updatedAt ?? event.createdAt
+      const temporalStatus = computeTemporalStatus(event.eventDate, now)
+      const urgencyScore = getWindowUrgencyScore({
         sourceType: "event",
+        temporalStatus,
+      })
+
+      windows.push({
+        id: `event-${event.id}`,
+        sourceType: "event",
+        sourceId: event.id,
+        sourceLabel: getSourceLabel("event", { event_type: event.eventType }),
+        sourceUrl: event.sourceUrl,
+        dataOrigin: "REAL_NATIVE",
+        sectorId: sector.id,
+        sectorSlug: sector.slug,
+        sectorName: sector.name,
+        title: event.title,
+        subtitle: event.description ?? event.commercialOpportunity ?? `Signal ${practiceLabel.toLowerCase()} à qualifier.`,
         practiceKey,
         practiceLabel,
+        detectedAt,
+        deadlineAt: event.eventDate,
         temporalStatus,
-        title: row.title,
-        deadlineAt: row.event_date,
-        painPointTitle: painPoint?.title ?? null,
-      }),
-      playbookSummary: createPlaybookSummary({
-        sourceType: "event",
-        practiceLabel,
-        painPointTitle: painPoint?.title ?? null,
-        commercialText: row.commercial_opportunity,
-      }),
-      sectorAttractivenessScore: sector.attractivenessScore,
-    })
-  }
+        freshnessBand: computeFreshnessBand(detectedAt, now),
+        urgencyScore,
+        priorityBand: getPriorityBand(urgencyScore),
+        isOpenNow: temporalStatus === "close" || temporalStatus === "active",
+        exposedAccountIds,
+        exposedAccountCount: exposedAccounts.length,
+        averagePotentialScore: sector.averagePotentialScore,
+        averageReachScore: sector.averageReachScore,
+        coverageGap: sector.coverageGap,
+        suggestedAction: createSuggestedAction({
+          sourceType: "event",
+          practiceKey,
+          practiceLabel,
+          temporalStatus,
+          title: event.title,
+          deadlineAt: event.eventDate,
+          painPointTitle: painPoint?.title ?? null,
+        }),
+        playbookSummary: createPlaybookSummary({
+          sourceType: "event",
+          practiceLabel,
+          painPointTitle: painPoint?.title ?? null,
+          commercialText: event.commercialOpportunity,
+        }),
+        sectorAttractivenessScore: sector.attractivenessScore,
+      })
+    }
 
-  for (const row of newsRows) {
-    const relevanceScore = asNumber(row.relevance_score)
-    if (!row.is_trigger_event) continue
-    if (relevanceScore === null || relevanceScore < NEWS_RELEVANCE_THRESHOLD) continue
-    if (!hasText(row.source) || !hasText(row.summary)) continue
-    const temporalStatus = computeNewsTemporalStatus(row.published_at, now)
-    if (temporalStatus === "undated") continue
+    // 2. Actualités
+    for (const newsItem of model.news) {
+      const relevanceScore = asNumber(newsItem.relevanceScore)
+      if (!newsItem.isTriggerEvent) continue
+      if (relevanceScore === null || relevanceScore < NEWS_RELEVANCE_THRESHOLD) continue
+      if (!hasText(newsItem.source) || !hasText(newsItem.summary)) continue
+      const temporalStatus = computeNewsTemporalStatus(newsItem.publishedAt, now)
+      if (temporalStatus === "undated") continue
 
-    const sector = sectorById.get(row.sector_id)
-    if (!sector) continue
-
-    const practiceKey = sector.topPracticeKey
-    const practiceLabel = SECTOR_ACTIVATION_PRACTICE_LABELS[practiceKey as PracticeKey]
-    const painPoint = getPainPointSummary(painPointsBySectorId.get(row.sector_id) ?? [], practiceKey)
-    const urgencyScore = getWindowUrgencyScore({
-      sourceType: "news",
-      temporalStatus,
-      relevanceScore,
-    })
-    const exposedAccounts = accountsBySectorId.get(row.sector_id) ?? []
-
-    windows.push({
-      id: `news-${row.id}`,
-      sourceType: "news",
-      sourceId: row.id,
-      sourceLabel: getSourceLabel("news", row),
-      sourceUrl: row.url,
-      dataOrigin: "REAL_NATIVE",
-      sectorId: sector.id,
-      sectorSlug: sector.slug,
-      sectorName: sector.name,
-      title: row.title,
-      subtitle: row.summary,
-      practiceKey,
-      practiceLabel,
-      detectedAt: row.published_at,
-      deadlineAt: null,
-      temporalStatus,
-      freshnessBand: computeFreshnessBand(row.published_at, now, "news"),
-      urgencyScore,
-      priorityBand: getPriorityBand(urgencyScore),
-      isOpenNow: temporalStatus === "close" || temporalStatus === "active",
-      exposedAccountIds: exposedAccounts.map((account) => account.id),
-      exposedAccountCount: exposedAccounts.length,
-      averagePotentialScore: sector.averagePotentialScore,
-      averageReachScore: sector.averageReachScore,
-      coverageGap: sector.coverageGap,
-      suggestedAction: createSuggestedAction({
+      const practiceKey = sector.topPracticeKey
+      const practiceLabel = SECTOR_ACTIVATION_PRACTICE_LABELS[practiceKey]
+      const painPoint = getPainPointSummary(model.painPoints, practiceKey)
+      const urgencyScore = getWindowUrgencyScore({
         sourceType: "news",
+        temporalStatus,
+        relevanceScore,
+      })
+
+      windows.push({
+        id: `news-${newsItem.id}`,
+        sourceType: "news",
+        sourceId: newsItem.id,
+        sourceLabel: getSourceLabel("news", { source: newsItem.source }),
+        sourceUrl: newsItem.url,
+        dataOrigin: "REAL_NATIVE",
+        sectorId: sector.id,
+        sectorSlug: sector.slug,
+        sectorName: sector.name,
+        title: newsItem.title,
+        subtitle: newsItem.summary,
         practiceKey,
         practiceLabel,
-        temporalStatus,
-        title: row.title,
+        detectedAt: newsItem.publishedAt,
         deadlineAt: null,
-        painPointTitle: painPoint?.title ?? null,
-      }),
-      playbookSummary: createPlaybookSummary({
-        sourceType: "news",
-        practiceLabel,
-        painPointTitle: painPoint?.title ?? null,
-        commercialText: row.summary,
-      }),
-      sectorAttractivenessScore: sector.attractivenessScore,
-    })
-  }
+        temporalStatus,
+        freshnessBand: computeFreshnessBand(newsItem.publishedAt, now),
+        urgencyScore,
+        priorityBand: getPriorityBand(urgencyScore),
+        isOpenNow: temporalStatus === "close" || temporalStatus === "active",
+        exposedAccountIds,
+        exposedAccountCount: exposedAccounts.length,
+        averagePotentialScore: sector.averagePotentialScore,
+        averageReachScore: sector.averageReachScore,
+        coverageGap: sector.coverageGap,
+        suggestedAction: createSuggestedAction({
+          sourceType: "news",
+          practiceKey,
+          practiceLabel,
+          temporalStatus,
+          title: newsItem.title,
+          deadlineAt: null,
+          painPointTitle: painPoint?.title ?? null,
+        }),
+        playbookSummary: createPlaybookSummary({
+          sourceType: "news",
+          practiceLabel,
+          painPointTitle: painPoint?.title ?? null,
+          commercialText: newsItem.summary,
+        }),
+        sectorAttractivenessScore: sector.attractivenessScore,
+      })
+    }
 
-  for (const row of regulatoryRows) {
-    if (!row.is_commercial_window) continue
-    const sector = sectorById.get(row.sector_id)
-    if (!sector) continue
+    // 3. Réglementations
+    for (const reg of model.regulatory) {
+      if (!reg.isCommercialWindow) continue
 
-    const practiceKey = pickPracticeKey(row.kredo_practice, sector.topPracticeKey)
-    const practiceLabel = SECTOR_ACTIVATION_PRACTICE_LABELS[practiceKey as PracticeKey]
-    const painPoint = getPainPointSummary(painPointsBySectorId.get(row.sector_id) ?? [], practiceKey)
-    const detectedAt = row.updated_at ?? row.created_at
-    const temporalStatus = computeTemporalStatus(row.deadline_date, now)
-    const urgencyScore = getWindowUrgencyScore({
-      sourceType: "regulation",
-      temporalStatus,
-      urgency: row.urgency,
-    })
-    const exposedAccounts = accountsBySectorId.get(row.sector_id) ?? []
-
-    windows.push({
-      id: `regulation-${row.id}`,
-      sourceType: "regulation",
-      sourceId: row.id,
-      sourceLabel: getSourceLabel("regulation", row),
-      sourceUrl: null,
-      dataOrigin: "REAL_NATIVE",
-      sectorId: sector.id,
-      sectorSlug: sector.slug,
-      sectorName: sector.name,
-      title: row.name,
-      subtitle: row.description ?? row.commercial_angle ?? `Fenetre ${practiceLabel.toLowerCase()} a convertir en action commerciale.`,
-      practiceKey,
-      practiceLabel,
-      detectedAt,
-      deadlineAt: row.deadline_date,
-      temporalStatus,
-      freshnessBand: computeFreshnessBand(detectedAt, now, "regulation"),
-      urgencyScore,
-      priorityBand: getPriorityBand(urgencyScore),
-      isOpenNow: temporalStatus === "close" || temporalStatus === "active",
-      exposedAccountIds: exposedAccounts.map((account) => account.id),
-      exposedAccountCount: exposedAccounts.length,
-      averagePotentialScore: sector.averagePotentialScore,
-      averageReachScore: sector.averageReachScore,
-      coverageGap: sector.coverageGap,
-      suggestedAction: createSuggestedAction({
+      const practiceKey = pickPracticeKey(reg.kredoPractice as PracticeKey | null, sector.topPracticeKey)
+      const practiceLabel = SECTOR_ACTIVATION_PRACTICE_LABELS[practiceKey]
+      const painPoint = getPainPointSummary(model.painPoints, practiceKey)
+      const detectedAt = reg.updatedAt ?? reg.createdAt
+      const temporalStatus = computeTemporalStatus(reg.deadlineDate, now)
+      const urgencyScore = getWindowUrgencyScore({
         sourceType: "regulation",
+        temporalStatus,
+        urgency: reg.urgency,
+      })
+
+      windows.push({
+        id: `regulation-${reg.id}`,
+        sourceType: "regulation",
+        sourceId: reg.id,
+        sourceLabel: getSourceLabel("regulation", { authority: reg.authority }),
+        sourceUrl: reg.sourceUrl ?? null,
+        dataOrigin: "REAL_NATIVE",
+        sectorId: sector.id,
+        sectorSlug: sector.slug,
+        sectorName: sector.name,
+        title: reg.name,
+        subtitle: reg.description ?? reg.commercialAngle ?? `Fenêtre ${practiceLabel.toLowerCase()} à convertir en action commerciale.`,
         practiceKey,
         practiceLabel,
+        detectedAt,
+        deadlineAt: reg.deadlineDate,
         temporalStatus,
-        title: row.name,
-        deadlineAt: row.deadline_date,
-        painPointTitle: painPoint?.title ?? null,
-      }),
-      playbookSummary: createPlaybookSummary({
-        sourceType: "regulation",
-        practiceLabel,
-        painPointTitle: painPoint?.title ?? null,
-        commercialText: row.commercial_angle,
-      }),
-      sectorAttractivenessScore: sector.attractivenessScore,
-    })
+        freshnessBand: computeFreshnessBand(detectedAt, now),
+        urgencyScore,
+        priorityBand: getPriorityBand(urgencyScore),
+        isOpenNow: temporalStatus === "close" || temporalStatus === "active",
+        exposedAccountIds,
+        exposedAccountCount: exposedAccounts.length,
+        averagePotentialScore: sector.averagePotentialScore,
+        averageReachScore: sector.averageReachScore,
+        coverageGap: sector.coverageGap,
+        suggestedAction: createSuggestedAction({
+          sourceType: "regulation",
+          practiceKey,
+          practiceLabel,
+          temporalStatus,
+          title: reg.name,
+          deadlineAt: reg.deadlineDate,
+          painPointTitle: painPoint?.title ?? null,
+        }),
+        playbookSummary: createPlaybookSummary({
+          sourceType: "regulation",
+          practiceLabel,
+          painPointTitle: painPoint?.title ?? null,
+          commercialText: reg.commercialAngle,
+        }),
+        sectorAttractivenessScore: sector.attractivenessScore,
+      })
+    }
   }
 
   const sortedWindows = windows.toSorted(compareWindows)
 
-  const windowsBySectorSlug = new Map<string, any[]>()
+  const windowsBySectorSlug = new Map<string, SectorActivationWindow[]>()
   const windowStatsBySectorId = new Map<
     string,
     { open: number; future: number; undated: number; expired: number }
@@ -607,7 +780,7 @@ export function buildSectorActivationModel(
     windowStatsBySectorId.set(window.sectorId, stats)
   }
 
-  const sectors = sectorMetrics.map((sector: any) => {
+  const sectors: SectorActivationSector[] = sectorMetrics.map((sector) => {
     const stats = windowStatsBySectorId.get(sector.id) ?? {
       open: 0,
       future: 0,
@@ -636,7 +809,7 @@ export function buildSectorActivationModel(
     }
   })
 
-  const sectorOptions = sectors.map((sector: any) => ({
+  const sectorOptions = sectors.map((sector) => ({
     value: sector.slug,
     label: sector.name,
   }))
@@ -646,13 +819,13 @@ export function buildSectorActivationModel(
   const availablePriorityBands = Array.from(new Set(windows.map((window) => window.priorityBand)))
   const availableTemporalStatuses = Array.from(new Set(windows.map((window) => window.temporalStatus)))
 
-  const filterOptions = {
+  const filterOptions: SectorActivationFilterOptions = {
     sectors: sectorOptions,
     practices: availablePracticeKeys.map((key) => ({
       value: key,
-      label: SECTOR_ACTIVATION_PRACTICE_LABELS[key as PracticeKey],
+      label: SECTOR_ACTIVATION_PRACTICE_LABELS[key],
     })),
-      sourceTypes: availableSourceTypes.map((value) => ({
+    sourceTypes: availableSourceTypes.map((value) => ({
       value,
       label: value === "event" ? "Événements" : value === "news" ? "Actualités" : "Réglementations",
     })),
@@ -673,20 +846,20 @@ export function buildSectorActivationModel(
         : value === "active"
           ? "Active"
           : value === "future"
-          ? "Future"
-          : value === "undated"
+            ? "Future"
+            : value === "undated"
               ? "Non datée"
               : "Expirée",
     })),
     statusFilters: [
-      { value: "open" as const, label: "Ouvertes" },
-      { value: "all" as const, label: "Toutes" },
+      { value: "open", label: "Ouvertes" },
+      { value: "all", label: "Toutes" },
     ],
   }
 
   return {
-    sectors: sectors as any,
+    sectors,
     windows: sortedWindows,
-    filterOptions: filterOptions as any,
+    filterOptions,
   }
 }

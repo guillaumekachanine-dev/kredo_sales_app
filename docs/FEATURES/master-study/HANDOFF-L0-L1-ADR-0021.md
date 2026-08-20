@@ -14,7 +14,12 @@ d'avoir lu la conversation qui a produit l'ADR. Commencez par la section 1.
   `development` après ingestion, rendant le segment invisible à Prospection · Fenêtres ; voir §4.7.
   Gate G3 métier confirmé fait par Guillaume avant ingestion (déclaratif, non re-vérifiable
   autrement que par sa parole). 8 `competitive_map_entries` orphelines laissées intactes (décision
-  différée L4/L5). Prochaine étape : **L4** (read model & BI).
+  différée L4/L5). **La promotion `status → 'active'` a été automatisée dans la RPC**
+  (`supabase/migrations/20260820201853_master_study_e4_promote_segment_status.sql`, décision
+  Guillaume) — voir §4.7. **L4 livré et vérifié indépendamment** (§4.8) — `SectorKnowledgeReadModel`,
+  démontage du chargement global de BI, groupement corrigé macro→segment. **Aucun défaut bloquant
+  trouvé**, contraste net avec L1/L2/L3. Prochaine étape : **L5** (`AccountSectorPerspective`,
+  redesign Cockpit > Secteur).
 - **Segment pilote** : `seg-parfumerie-compositions-b2b` (`db34f8a0-9d9e-4585-acd6-2fbbdd1baad6`).
   **Compte pilote** : ROBERTET (`67b346ff-68c8-4f36-a510-13024955856f`).
 
@@ -351,9 +356,11 @@ décidée explicitement par Guillaume (pas un choix pris seul), appliquée sur c
 un correctif de la RPC. Les 18 assertions sont vertes après ce correctif. Documenté dans
 `07-verdict.json` (réserve ajoutée) et `registre/README.md`.
 
-**Reste à trancher pour L4** : la RPC doit-elle promouvoir systématiquement `status → 'active'`
-sur une ingestion réussie, ou est-ce volontairement laissé à un geste humain distinct (une étude
-ingérée n'est pas forcément prête à être exposée en Prospection le jour même) ? Pas tranché ici.
+**Tranché le 2026-08-20** : automatiser, dans la RPC — pas un geste humain répété à chaque run.
+`supabase/migrations/20260820201853_master_study_e4_promote_segment_status.sql` ajoute
+`status = 'active'` à l'`UPDATE sector_intelligence` de `ingest_master_study_e4`, inconditionnel
+(la fonction ne fait que promouvoir, jamais rétrograder). Vérifié en base : la fonction contient
+désormais `status = 'active'` (`pg_get_functiondef`), et les 18 assertions restent vertes.
 
 ### 4.6 Historique de la reprise (2026-08-20, avant exécution)
 
@@ -412,6 +419,58 @@ ligne L3, ne pas le reformuler avant de les avoir lus) :
 
 **Ce que L3 ne fait pas** : rebrancher BI ou le Cockpit sur le nouveau contenu (L4/L5), étendre
 `intelligence_source_links`.
+
+---
+
+## 4.8 Ce qui est livré — L4 « SectorKnowledgeReadModel + rebranchement BI »
+
+Réalisé par un agent externe (Gemini) sur la base du prompt
+`docs/MASTER-STUDY/registre/HANDOFF-L4-GEMINI.md`, puis **revérifié indépendamment** (code relu
+fichier par fichier, `typecheck`/`test`/`check:server-boundary`/`eslint`/`build` relancés depuis
+zéro par l'agent de vérification, pas seulement lus dans le rapport). **Aucun défaut bloquant
+trouvé** — première fois dans ce chantier que la vérification indépendante ne trouve rien à
+corriger (contraste avec L1 : RPC en mauvais schéma ; L2 : `workspace_id` non résolvable ; L3 :
+`status` jamais promu).
+
+**Livré, vérifié ligne par ligne** :
+- `src/features/master-study/data/get-sector-knowledge-read-model.ts` — deux fonctions
+  (`getSectorKnowledgeReadModels` liste batchée, `getSectorKnowledgeReadModel` détail), lit
+  exclusivement `v_sector_knowledge_resolved`/`v_sector_knowledge_items` via `.in("segment_id",
+  …)`, un seul aller-retour réseau par vue quel que soit le nombre de segments. Garde
+  anti-lecture-directe (`readFileSync`/`not.toContain`, patron déjà utilisé dans le repo) vérifiée
+  présente et correcte.
+- `get-business-intelligence-snapshot.ts` — les 5 requêtes sur tables brutes
+  (`sector_intelligence`/`sector_pain_points`/`sector_events`/`sector_news`/
+  `sector_regulatory_items`) ont disparu ; `segmentId` dérivé de
+  `portfolioSnapshot.accounts[].segmentId` (pas `.sectorId`), un seul appel
+  `getSectorKnowledgeReadModels` en parallèle des requêtes signaux/scores.
+- `build-sector-activation-model.ts` — le groupement macro (`account.sectorId`) corrigé en
+  groupement segment (`account.segmentId`), **cascade tracée jusqu'aux `windows`** (`sectorById`
+  réindexé, pas seulement la ligne de regroupement des comptes). Test de non-régression réel
+  (`business-intelligence-models.test.ts`, deux comptes de deux segments BTP distincts du même
+  macro) : construit avec des données réalistes, vérifie explicitement l'absence de fusion —
+  aurait échoué sous l'ancien code, vérifié en le relisant, pas en faisant confiance au nom du
+  test.
+- `build-sector-playbook-model.ts` / `SectorStudiesModal.tsx` — changements minimaux, contrat de
+  sortie préservé, vérifiés champ par champ.
+
+**Validation — relancée intégralement, indépendamment** : `typecheck` (vert), `test` (170
+fichiers, 1693 tests, identique au rapport), `check:server-boundary` (vert), `eslint` sur les 5
+fichiers touchés (vert), `rm -rf .next && npm run build` (**relancé après avoir arrêté un `next
+dev` qui tournait et aurait été corrompu par la suppression de `.next` sous lui** — `exit 0`,
+`✓ Compiled successfully`, seuls les `DYNAMIC_SERVER_USAGE` déjà documentés comme bruit attendu).
+
+**Un point resté ouvert, non exigé par le prompt, à noter pour plus tard** : `SectorActivationSector`
+ne porte toujours aucun champ de provenance (`*_Level`) — les valeurs verrouillées remontent
+correctement en `null`, mais BI ne peut pas encore afficher un badge « verrouillé »/« hérité du
+macro » comme le fait déjà le Cockpit > Secteur depuis L0. Pas un défaut de ce lot : explicitement
+laissé hors périmètre par le prompt (§5, « provenance display… nice-to-have, pas une exigence
+dure »).
+
+**Chiffres réels vérifiés en base à la clôture** : 112 comptes, tous avec `segment_id` renseigné,
+38 segments distincts porteurs d'au moins un compte (contre 15 macros avec l'ancien groupement).
+2 segments `status='active'` : le pilote (10 comptes, réellement ingéré, `source_run_id` renseigné)
+et `nutraceutique-sante-naturelle` (2 comptes, antérieur à ce chantier).
 
 ---
 

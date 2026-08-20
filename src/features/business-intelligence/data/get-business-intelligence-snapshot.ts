@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getPortfolioIntelligenceSnapshot } from "./get-portfolio-intelligence-snapshot"
 import type { BusinessIntelligenceSnapshot } from "./business-intelligence-types"
 import { buildSectorActivationModel } from "../models/build-sector-activation-model"
+import { getSectorKnowledgeReadModels } from "@/features/master-study/data/get-sector-knowledge-read-model"
 
 type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 type LooseTable = { select<T>(columns: string): LooseQuery<T> }
@@ -20,6 +21,27 @@ type AccountSignalRow = {
   urgency_score: number | string
   detected_at: string
   recommended_action: string | null
+}
+
+type AccountScoreCurrentRow = {
+  run_id: string
+  company_id: string
+  score_version: string
+  score_value: number | string
+  score_band: string
+  confidence_score: number | string
+  calculated_at: string
+  summary: string | null
+}
+
+type AccountScoreComponentRow = {
+  score_run_id: string
+  component_key: string
+  component_label: string
+  normalized_score: number | string
+  weight: number | string
+  weighted_contribution: number | string
+  freshness_status: string
 }
 
 export function mapAccountSignalRows(signalRows: AccountSignalRow[]) {
@@ -46,12 +68,55 @@ export function createBusinessIntelligenceSnapshotError(): BusinessIntelligenceS
     scores: {},
     sectors: [],
     windows: [],
-    filterOptions: { sectors: [], lifecycles: [], priorities: [], practices: [], sourceTypes: [], priorityBands: [], temporalStatuses: [], statusFilters: [] } as any,
+    filterOptions: {
+      sectors: [],
+      practices: [],
+      sourceTypes: [],
+      priorityBands: [],
+      temporalStatuses: [],
+      statusFilters: [],
+    },
     trust: {
-      accountPotential: {} as any,
-      accountReach: {} as any,
-      accountMomentum: {} as any,
-      priorityCalculated: {} as any,
+      accountPotential: {
+        id: "account-potential",
+        label: "Potentiel",
+        primaryOrigin: "PROXY",
+        origins: ["PROXY"],
+        formula: "",
+        freshness: { latestAt: null, label: "Indisponible" },
+        completeness: { value: 0, label: "0%" },
+        limitations: [],
+      },
+      accountReach: {
+        id: "account-reach",
+        label: "Couverture",
+        primaryOrigin: "PROXY",
+        origins: ["PROXY"],
+        formula: "",
+        freshness: { latestAt: null, label: "Indisponible" },
+        completeness: { value: 0, label: "0%" },
+        limitations: [],
+      },
+      accountMomentum: {
+        id: "account-momentum",
+        label: "Dynamique",
+        primaryOrigin: "PROXY",
+        origins: ["PROXY"],
+        formula: "",
+        freshness: { latestAt: null, label: "Indisponible" },
+        completeness: { value: 0, label: "0%" },
+        limitations: [],
+      },
+      priorityCalculated: {
+        id: "priority-calculated",
+        label: "Priorité calculée",
+        primaryOrigin: "PROXY",
+        origins: ["PROXY"],
+        formula: "",
+        freshness: { latestAt: null, label: "Indisponible" },
+        completeness: { value: 0, label: "0%" },
+        limitations: [],
+      },
     },
     dataQuality: {
       syntheticInteractionsCount: 0,
@@ -74,39 +139,43 @@ export const getBusinessIntelligenceSnapshot = cache(async (): Promise<BusinessI
     const portfolioSnapshot = await getPortfolioIntelligenceSnapshot()
     const supabase = (await createClient()) as unknown as LooseClient
 
+    // Dériver la liste dédupliquée des segmentIds réellement présents dans le portefeuille
+    const segmentIds = Array.from(
+      new Set(
+        portfolioSnapshot.accounts
+          .map((account) => account.segmentId)
+          .filter((id): id is string => typeof id === "string" && id.trim().length > 0),
+      ),
+    )
+
+    // Un seul appel getSectorKnowledgeReadModels pour tous les segments demandés,
+    // en parallèle des requêtes de signaux et scores.
+    // Démontage complet des 5 requêtes brutes (sector_intelligence, sector_pain_points,
+    // sector_events, sector_news, sector_regulatory_items).
     const [
-      sectorsResult,
-      painPointsResult,
-      sectorEventsResult,
-      sectorNewsResult,
-      sectorRegulatoryResult,
+      sectorKnowledgeModels,
       signalsResult,
       scoreRunsResult,
       scoreComponentsResult,
     ] = await Promise.all([
-      supabase.from("sector_intelligence").select<any>("id,slug,name,description,status,attractiveness_score,market_size_eur_bn,market_growth_pct,digital_maturity,practices_fit,key_players_paca,key_players_national,avg_tjm_min,avg_tjm_max,playbook,caveats,updated_at"),
-
-      supabase.from("sector_pain_points").select<any>("sector_id,id,title,description,frequency_count,kredo_practice,verbatim"),
-
-      supabase.from("sector_events").select<any>("id,sector_id,title,event_type,description,event_date,source_url,commercial_opportunity,status,created_at,updated_at"),
-      supabase.from("sector_news").select<any>("id,sector_id,title,source,url,summary,published_at,relevance_score,is_trigger_event,created_at"),
-      supabase.from("sector_regulatory_items").select<any>("id,sector_id,name,authority,description,deadline_date,urgency,kredo_practice,commercial_angle,is_commercial_window,source_url,created_at,updated_at"),
-
+      getSectorKnowledgeReadModels(segmentIds),
       supabase.from("account_signals").select<AccountSignalRow>("id,company_id,title,summary,signal_type,relevance_score,urgency_score,detected_at,recommended_action"),
-      supabase.from("account_score_current").select<any>("run_id,company_id,score_version,score_value,score_band,confidence_score,calculated_at,summary"),
-      supabase.from("account_score_components").select<any>("score_run_id,component_key,component_label,normalized_score,weight,weighted_contribution,freshness_status"),
+      supabase.from("account_score_current").select<AccountScoreCurrentRow>("run_id,company_id,score_version,score_value,score_band,confidence_score,calculated_at,summary"),
+      supabase.from("account_score_components").select<AccountScoreComponentRow>("score_run_id,component_key,component_label,normalized_score,weight,weighted_contribution,freshness_status"),
     ])
 
-    const sectorRows = unwrapQueryResult("sector_intelligence", sectorsResult)
-    const painPointRows = unwrapQueryResult("sector_pain_points", painPointsResult)
-    const eventRows = unwrapQueryResult("sector_events", sectorEventsResult)
-    const newsRows = unwrapQueryResult("sector_news", sectorNewsResult)
-    const regulatoryRows = unwrapQueryResult("sector_regulatory_items", sectorRegulatoryResult)
     const signalRows = unwrapQueryResult("account_signals", signalsResult)
     const scoreRunRows = unwrapQueryResult("account_score_current", scoreRunsResult)
     const scoreComponentRows = unwrapQueryResult("account_score_components", scoreComponentsResult)
 
-    const componentsByRunId = new Map<string, any[]>()
+    const componentsByRunId = new Map<string, Array<{
+      key: string
+      label: string
+      normalizedScore: number
+      weight: number
+      weightedContribution: number
+      freshnessStatus: string
+    }>>()
     for (const comp of scoreComponentRows) {
       const list = componentsByRunId.get(comp.score_run_id) ?? []
       list.push({
@@ -120,7 +189,7 @@ export const getBusinessIntelligenceSnapshot = cache(async (): Promise<BusinessI
       componentsByRunId.set(comp.score_run_id, list)
     }
 
-    const scores: Record<string, any> = {}
+    const scores: BusinessIntelligenceSnapshot["scores"] = {}
     for (const run of scoreRunRows) {
       scores[run.company_id] = {
         runId: run.run_id,
@@ -136,41 +205,35 @@ export const getBusinessIntelligenceSnapshot = cache(async (): Promise<BusinessI
 
     const signals = mapAccountSignalRows(signalRows)
 
-    // We still use buildSectorActivationModel internally to generate sectors, windows and filterOptions from BI snapshot.
-    // Wait, the prompt says "buildSectorActivationModel(snapshot, options) Doit produire : les fenêtres triées, les secteurs à activer..."
-    // We should build the snapshot state first.
+    // Modèle d'activation alimenté directement par le read model
+    const activationModel = buildSectorActivationModel(
+      {
+        accounts: portfolioSnapshot.accounts,
+        sectorKnowledgeModels,
+      },
+      { now: Date.now() },
+    )
 
-    const baseSnapshot: any = {
+    const baseSnapshot: BusinessIntelligenceSnapshot = {
       state: "ready",
       generatedAt: portfolioSnapshot.generatedAt,
       lastUpdatedAt: new Date().toISOString(),
       accounts: portfolioSnapshot.accounts,
       signals,
       scores,
-      sectors: [], // We will compute this using buildSectorActivationModel or it's returned by the model
-      windows: [],
-      filterOptions: portfolioSnapshot.filterOptions,
-      trust: portfolioSnapshot.trust,
+      sectors: activationModel.sectors,
+      windows: activationModel.windows,
+      filterOptions: activationModel.filterOptions,
+      trust: {
+        accountPotential: portfolioSnapshot.trust.accountPotential,
+        accountReach: portfolioSnapshot.trust.accountReach,
+        accountMomentum: portfolioSnapshot.trust.accountMomentum30d,
+        priorityCalculated: portfolioSnapshot.trust.commandCenterPriority,
+      },
       dataQuality: portfolioSnapshot.dataQuality,
-      _rawSources: {
-        sectorRows,
-        painPointRows,
-        eventRows,
-        newsRows,
-        regulatoryRows,
-      }
     }
 
-    // Now call the pure model to populate sectors and windows
-    const activationModel = buildSectorActivationModel(baseSnapshot, { now: Date.now() })
-    baseSnapshot.sectors = activationModel.sectors
-    baseSnapshot.windows = activationModel.windows
-    baseSnapshot.filterOptions = activationModel.filterOptions
-
-    // Clean up internal raw sources
-    delete baseSnapshot._rawSources
-
-    return baseSnapshot as BusinessIntelligenceSnapshot
+    return baseSnapshot
   } catch (error) {
     console.error("[BusinessIntelligenceSnapshot] load failed", {
       message: error instanceof Error ? error.message : String(error),
