@@ -220,4 +220,113 @@ describe("BI Models", () => {
     expect(materiaux?.name).toBe("Matériaux & Négoce BTP")
     expect(materiaux?.status).toBe("active")
   })
+
+  it("garantit l'unicité stricte des IDs de fenêtres (keys React) pour un item partagé entre segments", () => {
+    const SHARED_REG_ID = "768a6805-658f-4dd6-a400-b36f42e2cb6e"
+    const sharedRegulatoryItem = {
+      id: SHARED_REG_ID,
+      name: "Directive CSRD",
+      authority: "UE",
+      description: "Reporting de durabilité",
+      deadlineDate: "2026-12-31",
+      urgency: "critical",
+      kredoPractice: "data_ai",
+      commercialAngle: "Audit et conformité CSRD",
+      isCommercialWindow: true,
+      sourceUrl: null,
+      resolvedLevel: "macro" as const,
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+    }
+
+    const sectorKnowledgeModels: SectorKnowledgeReadModel[] = [
+      {
+        segmentId: "seg-1",
+        segmentName: "Segment 1",
+        segmentSlug: "seg-1",
+        segmentStatus: "active",
+        macroId: "macro-1",
+        macroName: "Macro 1",
+        macroSlug: "macro-1",
+        macroStatus: "active",
+        description: null,
+        descriptionLevel: "segment",
+        attractivenessScore: 4,
+        attractivenessScoreLevel: "segment",
+        marketSizeEurBn: null,
+        marketSizeEurBnLevel: "segment",
+        marketGrowthPct: null,
+        marketGrowthPctLevel: "segment",
+        playbook: null,
+        playbookLevel: "segment",
+        practicesFit: null,
+        practicesFitLevel: "segment",
+        keyPlayersPaca: [],
+        keyPlayersNational: [],
+        hasSegmentKnowledge: true,
+        digitalMaturity: null,
+        avgTjmMin: null,
+        avgTjmMax: null,
+        caveats: null,
+        sourceRunId: null,
+        studySnapshotDate: null,
+        effectiveStatus: "active",
+        items: { painPoints: [], events: [], news: [], regulatory: [sharedRegulatoryItem] },
+        painPoints: [],
+        events: [],
+        news: [],
+        regulatory: [sharedRegulatoryItem],
+      },
+      {
+        segmentId: "seg-2",
+        segmentName: "Segment 2",
+        segmentSlug: "seg-2",
+        segmentStatus: "active",
+        macroId: "macro-1",
+        macroName: "Macro 1",
+        macroSlug: "macro-1",
+        macroStatus: "active",
+        description: null,
+        descriptionLevel: "segment",
+        attractivenessScore: 4,
+        attractivenessScoreLevel: "segment",
+        marketSizeEurBn: null,
+        marketSizeEurBnLevel: "segment",
+        marketGrowthPct: null,
+        marketGrowthPctLevel: "segment",
+        playbook: null,
+        playbookLevel: "segment",
+        practicesFit: null,
+        practicesFitLevel: "segment",
+        keyPlayersPaca: [],
+        keyPlayersNational: [],
+        hasSegmentKnowledge: true,
+        digitalMaturity: null,
+        avgTjmMin: null,
+        avgTjmMax: null,
+        caveats: null,
+        sourceRunId: null,
+        studySnapshotDate: null,
+        effectiveStatus: "active",
+        items: { painPoints: [], events: [], news: [], regulatory: [sharedRegulatoryItem] },
+        painPoints: [],
+        events: [],
+        news: [],
+        regulatory: [sharedRegulatoryItem],
+      },
+    ]
+
+    const result = buildSectorActivationModel(
+      { accounts: [], sectorKnowledgeModels },
+      { now: Date.now() },
+    )
+
+    expect(result.windows).toHaveLength(2)
+    const windowIds = result.windows.map((w) => w.id)
+    const uniqueIds = new Set(windowIds)
+
+    expect(uniqueIds.size).toBe(2)
+    expect(windowIds).toContain(`regulation-seg-1-${SHARED_REG_ID}`)
+    expect(windowIds).toContain(`regulation-seg-2-${SHARED_REG_ID}`)
+  })
 })

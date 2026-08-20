@@ -65,13 +65,6 @@ export interface SectorMapCatalog {
   generatedAt: string
 }
 
-const STAGE_LABELS = [
-  "Amont & ressources",
-  "Transformation",
-  "Intégration & réalisation",
-  "Mise sur le marché",
-  "Usage & client final",
-] as const
 
 const LAYER_DEFINITIONS = {
   prescripteur: { kind: "regulation", label: "Prescripteurs & régulation", order: 1 },
@@ -148,17 +141,43 @@ function buildSectorMap(
   const chainNodes = nodes.filter((node) => node.couche === "chaine" && node.maillon !== null)
   if (chainNodes.length === 0) return null
 
-  const stages = STAGE_LABELS.map((label, index) => ({
-    id: `${sector.id}:stage:${index + 1}`,
-    label,
-    order: index + 1,
-  }))
-  const activities = chainNodes.map((node) => ({
-    id: node.id,
-    stageId: `${sector.id}:stage:${node.maillon}`,
-    label: node.label,
-    order: node.rang,
-  }))
+  const STAGE_LABELS = [
+    "Amont & ressources",
+    "Transformation",
+    "Intégration & réalisation",
+    "Mise sur le marché",
+    "Usage & client final",
+  ] as const
+
+  const STAGE_EXTRA_LABELS: Record<number, string> = {
+    6: "Suivi aval & services",
+    7: "Recyclage & valorisation",
+  }
+
+  const maxStageOrder = Math.max(
+    STAGE_LABELS.length,
+    ...chainNodes.map((node) => (typeof node.maillon === "number" && node.maillon >= 1 ? node.maillon : 1)),
+  )
+
+  const stages = Array.from({ length: maxStageOrder }, (_, index) => {
+    const order = index + 1
+    const label = STAGE_LABELS[index] ?? STAGE_EXTRA_LABELS[order] ?? `Étape ${order}`
+    return {
+      id: `${sector.id}:stage:${order}`,
+      label,
+      order,
+    }
+  })
+
+  const activities = chainNodes.map((node) => {
+    const maillonOrder = typeof node.maillon === "number" && node.maillon >= 1 ? node.maillon : 1
+    return {
+      id: node.id,
+      stageId: `${sector.id}:stage:${maillonOrder}`,
+      label: node.label,
+      order: node.rang,
+    }
+  })
   const ecosystemLayers = nodes.flatMap((node) => {
     if (!(node.couche in LAYER_DEFINITIONS)) return []
     const definition = LAYER_DEFINITIONS[node.couche as keyof typeof LAYER_DEFINITIONS]

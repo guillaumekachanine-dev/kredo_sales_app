@@ -580,7 +580,7 @@ export function buildSectorActivationModel(
       })
 
       windows.push({
-        id: `event-${event.id}`,
+        id: `event-${sector.id}-${event.id}`,
         sourceType: "event",
         sourceId: event.id,
         sourceLabel: getSourceLabel("event", { event_type: event.eventType }),
@@ -643,7 +643,7 @@ export function buildSectorActivationModel(
       })
 
       windows.push({
-        id: `news-${newsItem.id}`,
+        id: `news-${sector.id}-${newsItem.id}`,
         sourceType: "news",
         sourceId: newsItem.id,
         sourceLabel: getSourceLabel("news", { source: newsItem.source }),
@@ -703,7 +703,7 @@ export function buildSectorActivationModel(
       })
 
       windows.push({
-        id: `regulation-${reg.id}`,
+        id: `regulation-${sector.id}-${reg.id}`,
         sourceType: "regulation",
         sourceId: reg.id,
         sourceLabel: getSourceLabel("regulation", { authority: reg.authority }),
