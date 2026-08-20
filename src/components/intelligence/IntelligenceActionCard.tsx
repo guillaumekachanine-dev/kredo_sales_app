@@ -8,7 +8,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { cockpitIconForAction } from "./cockpit-action-icons"
 import { isDeterministicIntelligenceAction } from "./action-results/IntelligenceActionResultContent"
-import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
+import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
 
 interface IntelligenceActionCardProps {
   action: IntelligenceAction
@@ -115,9 +115,10 @@ function resolveCommunicationConfig(
       return { scenario: "quarterly_business_review", objective: "align_internal", tone: "direct", scope: "internal" }
     case "forecast_availability":
       return { scenario: "intercontract_exit_pitch", objective: "secure_resources", tone: "assertive" }
-    case "analyze_margins":
-    case "detect_anomalies":
-      return { scenario: "investment_arbitrage_argument", objective: "secure_resources", tone: "direct", scope: "internal" }
+    // "detect_anomalies" est status: "coming_soon" dans le registre : elle ne doit avoir
+    // AUCUN chemin interactif, sinon `isComingSoon` (= status coming_soon && !isInteractive)
+    // redevient false et la carte s'ouvre sur un composeur de rédaction qui n'a rien à voir
+    // avec la capacité annoncée. Ne pas lui redonner de config ici.
     case "analyze_funnel":
       return { scenario: "recruiter_briefing_pre_interview", objective: "align_internal", tone: "direct", scope: "internal" }
     default:
@@ -172,7 +173,7 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
   const isWeeklyBrief = action.id === "weekly_brief"
   const isSupportedReportAction = isCommonReport || isActivityReport || isWeeklyBrief
   const isDeterministicAction = isDeterministicIntelligenceAction(action.id)
-  const isMissionComposerAction = action.id === MONTHLY_WATCH_MISSION_ACTION_ID
+  const isMissionComposerAction = action.id in MISSION_COMPOSER_ACTION_CONFIGS
   const isInteractive = isMissionComposerAction || isDeterministicAction || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
   const isComingSoon = action.status === "coming_soon" && !isInteractive
   const iconSrc = cockpitIconForAction(action.id, action.icon)

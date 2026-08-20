@@ -29,10 +29,7 @@ import {
   buildDefaultBrief,
 } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { MissionComposerDesktop } from "@/features/intelligence-missions/components/MissionComposerDesktop"
-import {
-  MONTHLY_WATCH_MISSION_ACTION_ID,
-  VEILLE_MISSION_COMPOSER_CONFIG,
-} from "@/features/intelligence-missions/components/mission-composer-model"
+import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
 
 type AccountPanelAction = "pitch" | "summary" | null
 
@@ -263,7 +260,8 @@ function RegistryPanelContent() {
   const pathname = usePathname()
   const [activeActionId, setActiveActionId] = useState<string | null>(null)
   const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
-  const isAvailableMissionAction = activeActionId === MONTHLY_WATCH_MISSION_ACTION_ID
+  const isAvailableMissionAction = activeActionId !== null
+    && activeActionId in MISSION_COMPOSER_ACTION_CONFIGS
     && resolved.contextualActions.some((action) => action.id === activeActionId)
 
   if (activeActionId && (isAvailableMissionAction || isDeterministicIntelligenceAction(activeActionId))) {
@@ -280,7 +278,7 @@ function RegistryPanelContent() {
           Retour
         </button>
         {isAvailableMissionAction ? (
-          <MissionComposerDesktop config={VEILLE_MISSION_COMPOSER_CONFIG} />
+          <MissionComposerDesktop config={MISSION_COMPOSER_ACTION_CONFIGS[activeActionId]} />
         ) : isDeterministicIntelligenceAction(activeActionId) ? (
           <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
             <IntelligenceActionResultContent actionId={activeActionId} />
@@ -302,7 +300,7 @@ function RegistryPanelContent() {
                 action={action}
                 tone="dark"
                 onActionClick={(actionId) => {
-                  if (actionId === MONTHLY_WATCH_MISSION_ACTION_ID || isDeterministicIntelligenceAction(actionId)) {
+                  if (actionId in MISSION_COMPOSER_ACTION_CONFIGS || isDeterministicIntelligenceAction(actionId)) {
                     setActiveActionId(actionId)
                   }
                 }}

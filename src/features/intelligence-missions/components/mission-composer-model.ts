@@ -149,3 +149,15 @@ export const RENTABILITE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
     "Analyser les marges réelles, identifier les dérives par mission, client ou consultant et dégager les actions de redressement de la rentabilité.",
   buildSelectors: (month) => [monthToDeliveryPeriod(month)],
 }
+
+/**
+ * Une action du cockpit peut déclencher le composeur de mission plutôt que la rédaction
+ * ou un rapport déterministe. Cette table est la SEULE source de vérité de ce mapping —
+ * elle remplace la comparaison à un id unique (`MONTHLY_WATCH_MISSION_ACTION_ID`) qui ne
+ * supportait qu'une mission à la fois.
+ */
+export const MISSION_COMPOSER_ACTION_CONFIGS: Record<string, MissionComposerConfig> = {
+  [MONTHLY_WATCH_MISSION_ACTION_ID]: VEILLE_MISSION_COMPOSER_CONFIG,
+  analyze_margins: RENTABILITE_MISSION_COMPOSER_CONFIG,
+}
+

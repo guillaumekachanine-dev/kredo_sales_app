@@ -35,10 +35,7 @@ import {
   type DeterministicIntelligenceActionId,
 } from "./action-results/IntelligenceActionResultContent"
 import { MissionComposerMobile } from "@/features/intelligence-missions/components/MissionComposerMobile"
-import {
-  MONTHLY_WATCH_MISSION_ACTION_ID,
-  VEILLE_MISSION_COMPOSER_CONFIG,
-} from "@/features/intelligence-missions/components/mission-composer-model"
+import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
 
 const AgendaEventTypePicker = dynamic(
   () => import("@/components/agenda/AgendaEventTypePicker").then((module) => module.AgendaEventTypePicker),
@@ -489,10 +486,17 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
   const pathname = usePathname()
   const [missionComposerOpen, setMissionComposerOpen] = useState(false)
   const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
-  const missionAction = resolved.contextualActions.find((action) => action.id === MONTHLY_WATCH_MISSION_ACTION_ID)
+  const missionAction = resolved.contextualActions.find(
+    (action) => action.id in MISSION_COMPOSER_ACTION_CONFIGS,
+  )
 
   if (missionComposerOpen && missionAction) {
-    return <MissionComposerMobile config={VEILLE_MISSION_COMPOSER_CONFIG} onBack={() => setMissionComposerOpen(false)} />
+    return (
+      <MissionComposerMobile
+        config={MISSION_COMPOSER_ACTION_CONFIGS[missionAction.id]}
+        onBack={() => setMissionComposerOpen(false)}
+      />
+    )
   }
 
   const primaryActions: RegistryButtonAction[] = [

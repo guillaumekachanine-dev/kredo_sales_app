@@ -4,7 +4,11 @@ import {
   buildMonthlyWatchMissionPayload,
   defaultMissionMonth,
   launchMonthlyWatchMission,
+  MISSION_COMPOSER_ACTION_CONFIGS,
+  MONTHLY_WATCH_MISSION_ACTION_ID,
   monthToVeillePeriod,
+  RENTABILITE_MISSION_COMPOSER_CONFIG,
+  VEILLE_MISSION_COMPOSER_CONFIG,
 } from "../components/mission-composer-model"
 import { resolveRunOutcome } from "@/lib/n8n/run-tracker-policy"
 
@@ -66,3 +70,19 @@ describe("mission composer launch contract", () => {
     })).toEqual({ settled: true, outcome: "succeeded", resultId: "mission", message: null })
   })
 })
+
+describe("mission composer action configs mapping", () => {
+  it("maps monthly watch and analyze_margins to their respective configs", () => {
+    expect(MISSION_COMPOSER_ACTION_CONFIGS[MONTHLY_WATCH_MISSION_ACTION_ID]).toEqual(VEILLE_MISSION_COMPOSER_CONFIG)
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.analyze_margins).toEqual(RENTABILITE_MISSION_COMPOSER_CONFIG)
+  })
+
+  it("builds delivery_period selectors for analyze_margins", () => {
+    const config = MISSION_COMPOSER_ACTION_CONFIGS.analyze_margins
+    expect(config.missionSlug).toBe("rentabilite-portefeuille")
+    expect(config.buildSelectors("2026-07")).toEqual([
+      { kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" },
+    ])
+  })
+})
+

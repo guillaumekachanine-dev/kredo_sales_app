@@ -22,3 +22,20 @@ describe("intelligence registry — monthly watch mission", () => {
     expect(resolveIntelligenceActions("/veille").commonActions.length).toBeGreaterThan(0)
   })
 })
+
+describe("intelligence registry — analyze_margins mission action", () => {
+  it.each(["/missions", "/missions/actives", "/missions/projets", "/finance"])(
+    "exposes active analyze_margins on %s",
+    (pathname) => {
+      const resolved = resolveIntelligenceActions(pathname)
+      expect(resolved.contextualActions).toContainEqual(
+        expect.objectContaining({
+          id: "analyze_margins",
+          label: "Analyse des marges",
+          status: "active",
+        }),
+      )
+    },
+  )
+})
+
