@@ -97,19 +97,48 @@ export function buildSectorPlaybookModel(
   const rawPlaybook = (sector.playbook && typeof sector.playbook === "object" ? sector.playbook : {}) as Record<string, unknown>
   const status = (sector.status === "active" ? "active" : "watch") as "active" | "watch"
 
+  // Deux formes coexistent selon la provenance du secteur : les segments
+  // seedés avant ce chantier portent des chaînes brutes / clés role-enjeu-peur
+  // (ex. nutraceutique-sante-naturelle) ; les segments ingérés par la Master
+  // Study (ADR-0021, E4) portent des objets structurés sourcés
+  // (ex. seg-parfumerie-compositions-b2b : `{src_ids, argument}`,
+  // `{angle, signal, src_ids, interlocuteur}`, `{fonction, repond_de,
+  // ce_qui_le_reveille}`). Un cast aveugle vers `string[]` plante au rendu
+  // (React #31, objet passé comme enfant) — jamais détecté avant l'ingestion
+  // réelle du premier segment E4, aucun autre secteur n'exerçait ce chemin.
+  const textFromRecord = (value: unknown, keys: string[]): string | null => {
+    if (typeof value === "string") {
+      const trimmed = value.trim()
+      return trimmed.length > 0 ? trimmed : null
+    }
+    if (value && typeof value === "object") {
+      const record = value as Record<string, unknown>
+      for (const key of keys) {
+        const candidate = record[key]
+        if (typeof candidate === "string" && candidate.trim().length > 0) return candidate.trim()
+      }
+    }
+    return null
+  }
+
   const rawPersonas = Array.isArray(rawPlaybook.personas)
-    ? (rawPlaybook.personas as Array<{ role?: string; enjeu?: string; peur?: string }>)
+    ? (rawPlaybook.personas as Array<Record<string, unknown>>)
     : []
   const personas: SectorPlaybookPersona[] = status === "active"
     ? rawPersonas.map((p) => ({
-        role: p.role ?? "",
-        enjeu: p.enjeu ?? "",
-        peur: p.peur ?? "",
+        role: textFromRecord(p.role, []) ?? textFromRecord(p.fonction, []) ?? "",
+        enjeu: textFromRecord(p.enjeu, []) ?? textFromRecord(p.repond_de, []) ?? "",
+        peur: textFromRecord(p.peur, []) ?? textFromRecord(p.ce_qui_le_reveille, []) ?? "",
       }))
     : []
 
-  const roiArguments: string[] = status === "active" && Array.isArray(rawPlaybook.roi_arguments)
-    ? (rawPlaybook.roi_arguments as string[])
+  const rawRoiArguments = Array.isArray(rawPlaybook.roi_arguments)
+    ? (rawPlaybook.roi_arguments as unknown[])
+    : []
+  const roiArguments: string[] = status === "active"
+    ? rawRoiArguments
+        .map((item) => textFromRecord(item, ["argument"]))
+        .filter((value): value is string => value !== null)
     : []
 
   const rawObjections = Array.isArray(rawPlaybook.objections)
@@ -122,8 +151,20 @@ export function buildSectorPlaybookModel(
       }))
     : []
 
-  const entryPoints: string[] = status === "active" && Array.isArray(rawPlaybook.entry_points)
-    ? (rawPlaybook.entry_points as string[])
+  const rawEntryPoints = Array.isArray(rawPlaybook.entry_points)
+    ? (rawPlaybook.entry_points as unknown[])
+    : []
+  const entryPoints: string[] = status === "active"
+    ? rawEntryPoints
+        .map((item) => {
+          if (typeof item === "string") return textFromRecord(item, [])
+          const record = item && typeof item === "object" ? (item as Record<string, unknown>) : null
+          const signal = record ? textFromRecord(record.signal, []) : null
+          const angle = record ? textFromRecord(record.angle, []) : null
+          if (!angle) return signal
+          return signal ? `${signal} — ${angle}` : angle
+        })
+        .filter((value): value is string => value !== null)
     : []
 
   // Pain points

@@ -325,6 +325,85 @@ describe("Business Intelligence Playbooks Tests", () => {
     const filteredPartial = p30.priorityBoard.filter(a => a.sectorId === "sec-active-partial")
     expect(filteredPartial).toHaveLength(0)
   })
+
+  it("extrait des chaînes affichables depuis la forme objet du playbook Master Study (ADR-0021, E4) sans planter", () => {
+    // Régression : le contrat E4 réel (segment pilote seg-parfumerie-compositions-b2b)
+    // porte roi_arguments/entry_points/personas en objets structurés sourcés, pas en
+    // chaînes brutes ni en clés role/enjeu/peur. Un cast aveugle vers string[] faisait
+    // planter le rendu (React #31, objet passé comme enfant) — jamais détecté avant la
+    // première ingestion réelle, seul secteur seedé pré-chantier exerçait ce chemin.
+    const e4Snapshot = {
+      ...mockSnapshot,
+      sectors: [
+        ...mockSnapshot.sectors,
+        {
+          id: "sec-e4-shape",
+          slug: "seg-parfumerie-compositions-b2b",
+          name: "Compositions & ingrédients B2B",
+          status: "active",
+          attractivenessScore: 4.8,
+          digitalMaturity: "high",
+          topPracticeKey: "data_ai",
+          topPracticeLabel: "Data & AI",
+          practiceScores: { data_ai: 90, cyber: 10, cloud_eng: 10, product: 10 },
+          linkedAccountIds: [],
+          linkedAccountCount: 0,
+          coveredAccountCount: 0,
+          averagePotentialScore: null,
+          averageReachScore: null,
+          coverageGap: null,
+          dataCoverageRatio: 0,
+          openWindowCount: 0,
+          futureWindowCount: 0,
+          undatedWindowCount: 0,
+          expiredWindowCount: 0,
+          activationState: "to_activate",
+          updatedAt: "2026-08-14T00:00:00Z",
+          description: "Segment pilote Master Study",
+          marketSizeEurBn: null,
+          marketGrowthPct: null,
+          keyPlayersPaca: [],
+          keyPlayersNational: [],
+          avgTjmMin: null,
+          avgTjmMax: null,
+          caveats: null,
+          playbook: {
+            personas: [
+              { fonction: "DSI / responsable SI", repond_de: "Fiabilité du SI et des intégrations.", ce_qui_le_reveille: "Un ramp-up industriel qui dépend d'interfaces fragiles." },
+            ],
+            roi_arguments: [
+              { src_ids: [6], argument: "IFRA notifie l'amendement 52 fin novembre 2026 : réduire le temps de qualification du portefeuille impacté." },
+            ],
+            objections: [
+              { objection: "IFRA, c'est le métier du réglementaire, pas du SI.", reponse: "Le sujet SI est le temps pour relier la règle aux matières, formules et clients." },
+            ],
+            entry_points: [
+              { angle: "Être capable de mesurer l'impact portefeuille dès la notification.", signal: "Notification IFRA 52 attendue fin novembre 2026", src_ids: [6], interlocuteur: "Affaires réglementaires" },
+            ],
+          },
+          painPoints: [],
+        },
+      ],
+    }
+
+    const profile = buildSectorPlaybookModel(e4Snapshot, "sec-e4-shape")
+    expect(profile).not.toBeNull()
+
+    expect(profile!.playbook.personas).toHaveLength(1)
+    expect(profile!.playbook.personas[0].role).toBe("DSI / responsable SI")
+    expect(profile!.playbook.personas[0].enjeu).toBe("Fiabilité du SI et des intégrations.")
+    expect(profile!.playbook.personas[0].peur).toBe("Un ramp-up industriel qui dépend d'interfaces fragiles.")
+
+    expect(profile!.playbook.roiArguments).toHaveLength(1)
+    expect(profile!.playbook.roiArguments[0]).toContain("IFRA notifie l'amendement 52")
+    expect(profile!.playbook.roiArguments.every((value) => typeof value === "string")).toBe(true)
+
+    expect(profile!.playbook.entryPoints).toHaveLength(1)
+    expect(profile!.playbook.entryPoints[0]).toBe(
+      "Notification IFRA 52 attendue fin novembre 2026 — Être capable de mesurer l'impact portefeuille dès la notification.",
+    )
+    expect(profile!.playbook.entryPoints.every((value) => typeof value === "string")).toBe(true)
+  })
 })
 
 
