@@ -18,8 +18,13 @@ d'avoir lu la conversation qui a produit l'ADR. Commencez par la section 1.
   (`supabase/migrations/20260820201853_master_study_e4_promote_segment_status.sql`, décision
   Guillaume) — voir §4.7. **L4 livré et vérifié indépendamment** (§4.8) — `SectorKnowledgeReadModel`,
   démontage du chargement global de BI, groupement corrigé macro→segment. **Aucun défaut bloquant
-  trouvé**, contraste net avec L1/L2/L3. Prochaine étape : **L5** (`AccountSectorPerspective`,
-  redesign Cockpit > Secteur).
+  trouvé**, contraste net avec L1/L2/L3. **L5 livré et vérifié indépendamment le 2026-08-20**
+  (§4.9) — `AccountSectorPerspective(companyId)`, data layer pur, aucun consommateur UI. **Aucun
+  défaut fonctionnel trouvé** — deuxième lot consécutif sans défaut bloquant, après L4. Un seul
+  écart de méthode corrigé à la vérification (tests qui frappaient la prod dans `npm test`, voir
+  §4.9). Correctif de provenance des 8 `competitive_map_entries` orphelines exécuté dans ce même
+  lot (décision différée depuis L3/L4, close ici). Prochaine étape : **GATE B design** puis
+  redesign de Cockpit > Secteur (hors périmètre de L5, volontairement).
 - **Segment pilote** : `seg-parfumerie-compositions-b2b` (`db34f8a0-9d9e-4585-acd6-2fbbdd1baad6`).
   **Compte pilote** : ROBERTET (`67b346ff-68c8-4f36-a510-13024955856f`).
 
@@ -474,6 +479,109 @@ et `nutraceutique-sante-naturelle` (2 comptes, antérieur à ce chantier).
 
 ---
 
+## 4.9 Ce qui est livré — L5 « `AccountSectorPerspective` »
+
+Réalisé par un agent externe (Gemini) sur la base du prompt
+`docs/MASTER-STUDY/registre/HANDOFF-L5-GEMINI.md`, puis **revérifié indépendamment** (code relu
+fichier par fichier contre les deux décisions tranchées dans le prompt, `typecheck`/`test`/
+`check:server-boundary`/`eslint`/`build` relancés depuis zéro, correctif SQL de provenance revérifié
+par requête directe séparée — pas seulement le rapport de livraison lu). **Aucun défaut
+fonctionnel trouvé** — le contrat, le mapping champ par champ et le correctif de données sont
+corrects. Un seul écart corrigé à la vérification, de méthode de test, pas de logique métier : voir
+§4.9.3.
+
+### 4.9.1 Le contrat livré
+
+`src/features/master-study/data/get-account-sector-perspective.ts` — `getAccountSectorPerspective(companyId)`,
+`import "server-only"`, aucun consommateur UI (conforme au périmètre : ce lot est data layer pur,
+le redesign Cockpit > Secteur reste un chantier séparé, GATE B design, non commencé).
+
+Composition vérifiée par lecture ligne à ligne :
+- `companies.segment_id` résout le segment ; `null`/compte introuvable → `null` (pas d'exception).
+- `getSectorKnowledgeReadModel(segmentId)` (L4, réutilisée sans modification) fournit
+  `essentialContext`/`whyNow`/`valueChainPosition.dependencies`, chacun avec son `*Level`
+  (`segment`/`macro`/`locked`) — **les deux écarts tranchés dans le prompt sont respectés** :
+  aucun champ résolu n'est exposé sans sa provenance (MS-18), et `valueChainPosition.node` (singulier,
+  schéma illustratif de l'ADR §4.2) est bien devenu `segmentNodes` (liste complète des 6 nœuds du
+  segment) — **aucune tentative de parser `profile_json.maillon` par regex**, vérifié par lecture :
+  la prose est exposée telle quelle sous `accountInterpretation.maillonNarrative`.
+- `getCompetitiveMapCitation(companyId)` (GATE A) réutilisée **sans aucune modification** — vérifié
+  par `git diff` sur `get-competitive-map-citation.ts` : vide.
+- `value_chain_nodes` interrogée directement (`.eq("sector_id", segmentId)` — la bonne colonne,
+  pas `segment_id`, piège signalé dans le prompt et évité), pas via `getSectorMapCatalog()` qui
+  aurait chargé les 3 secteurs entiers pour un seul besoin.
+- `intelligence_documents` interrogée pour `provenance.documentId` par
+  `(document_type, primary_entity_type, primary_entity_id)`, exactement le lookup ponctuel demandé
+  — `getAcceptedMasterStudyRun()` (évoqué par l'ADR §5.4) n'a **pas** été construit, correct :
+  hors périmètre de ce lot.
+- Parsing défensif de `playbook.market_thesis`/`tech_fronts`/`dependances_critiques` (blobs JSON
+  non typés) : vérifié tolérant aux formes inattendues (élément ignoré plutôt que crash), patron
+  `asRecord`/`asArray`/`cleanText` cohérent avec `client-intelligence-sector.ts` sans en dépendre.
+
+**Aucun fichier de `src/components/accounts-contacts/intelligence/` ni
+`src/lib/intelligence/client-intelligence-sector.ts` touché** — vérifié par `git status`, conforme
+à l'exclusion explicite du prompt.
+
+### 4.9.2 Correctif de provenance — exécuté et revérifié séparément
+
+Le prompt tranchait la question laissée ouverte depuis L3 (§4.6 point 3) : rattacher les 8
+`competitive_map_entries` orphelines du segment pilote au run `522cfe06-f241-4620-a820-a0806a902571`,
+seul run Master Study jamais exécuté sur ce segment. Exécuté par Gemini, **revérifié par requête
+directe indépendante** (pas la requête du rapport) :
+
+```
+segment_id = db34f8a0…  (pilote)     → 8 lignes, 0 avec source_run_id NULL
+segment_id = 90047b4e…  (tourisme)   → 5 lignes, 5 avec source_run_id NULL (intactes)
+segment_id = fdc0c713…  (aérospatial)→ 10 lignes, 10 avec source_run_id NULL (intactes)
+```
+
+Exactement la recette attendue par le prompt §5.2 : 0 orpheline sur le pilote, les 15 lignes des
+deux autres segments non touchées.
+
+### 4.9.3 Un écart trouvé à la vérification — de méthode, pas de logique métier
+
+Le prompt demandait la recette du §5.2 « via un script ponctuel ou une requête manuelle — pas un
+`console.log` laissé dans le code livré ». Gemini a livré autre chose : trois tests
+`it.runIf(hasLiveEnv)` dans `get-account-sector-perspective.test.ts`, qui frappent directement
+Supabase en production quand `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` sont
+disponibles dans l'environnement d'exécution.
+
+**Pourquoi c'est un défaut, pas une amélioration** : `npm test` (`vitest run`, sans
+`--env-file`) ne charge pas `.env.local` automatiquement — vérifié en relançant `npm test` dans cet
+environnement, où les 2 variables **sont** présentes dans `.env.local` : les 3 tests ressortaient
+`skipped`, jamais exécutés (`171 passed | 3 skipped`, confirmé en relançant depuis zéro). Le rapport
+de livraison affirmait « 171 suites, 1701 tests passés » sans mentionner les 3 `skipped` — les
+valeurs de recette n'ont donc été prouvées que par l'exécution ponctuelle de Gemini, pas par la
+suite committée, qui les rend silencieusement inertes pour quiconque relance `npm test` sans
+exporter manuellement les deux variables. Pire à terme : l'assertion `otherNullCount === 15` fige un
+compte de production dans un test permanent — elle **cassera légitimement** dès qu'un lot futur
+(L6+) ingère un nouveau segment, pour une raison qui n'a rien à voir avec une régression du code.
+
+**Corrigé dans cette passe de vérification** : les trois tests retirés de
+`get-account-sector-perspective.test.ts` — la couverture fonctionnelle équivalente existe déjà dans
+les tests mockés (test 5 du §4 du prompt, contre le fixture réel du run pilote). `npm test` relancé
+après retrait : **171 fichiers, 1701 tests, tous verts, zéro `skipped`**.
+
+### 4.9.4 Validation — relancée intégralement, indépendamment
+
+`typecheck` (vert) / `test` (171 fichiers, 1701 tests, après retrait du §4.9.3 — vert, zéro skip) /
+`check:server-boundary` (vert) / `eslint` sur les 2 fichiers touchés (vert, 0 warning) / `rm -rf
+.next && npm run build` (**relancé après une collision transitoire avec un `next dev` déjà en
+cours** — même piège que L4, `.next` supprimé avec succès au deuxième essai, `exit 0`, seuls les
+`DYNAMIC_SERVER_USAGE` déjà documentés comme bruit attendu) : tous relancés depuis zéro, tous
+verts.
+
+### 4.9.5 Ce que L5 ne fait toujours pas
+
+- Aucun composant React, aucune page, aucun wiring dans `ClientIntelligenceSectorTab.tsx` —
+  volontairement hors périmètre (GATE B design, §11 de l'ADR).
+- `getAcceptedMasterStudyRun()` généralisé (ADR §5.4) — non construit, un lookup ponctuel a suffi.
+- Références croisées E4↔E5 structurées (MS-16) — différées après validation du contrat, donc
+  après ce lot.
+- `intelligence_source_links` (MS-15, hors V1).
+
+---
+
 ## 5. Où lire quoi
 
 | Besoin | Fichier |
@@ -481,6 +589,8 @@ et `nutraceutique-sante-naturelle` (2 comptes, antérieur à ce chantier).
 | La décision complète, les 20 règles MS-1→MS-20, le plan L0→L6 | `docs/adr/ADR-0021-master-study-ingestion-projections-distribution.md` |
 | Le prompt qui a produit L1 | `docs/MASTER-STUDY/registre/HANDOFF-L1-GEMINI.md` |
 | Le prompt qui a produit L2 (pour calibrer un futur prompt) | `docs/MASTER-STUDY/registre/HANDOFF-L2-GEMINI.md` |
+| Le prompt qui a produit L4 (pour calibrer un futur prompt) | `docs/MASTER-STUDY/registre/HANDOFF-L4-GEMINI.md` |
+| Le prompt qui a produit L5 (`AccountSectorPerspective`, livré et vérifié le 2026-08-20) | `docs/MASTER-STUDY/registre/HANDOFF-L5-GEMINI.md` |
 | Le corpus Master Study lui-même (E0→E7, gates) | `docs/MASTER-STUDY/README.md` |
 | L'état d'exécution du corpus (segments produits, défauts de contrat) | `docs/MASTER-STUDY/registre/ROADMAP-CORRECTIONS.md` |
 | Le run pilote complet (7 livrables JSON, patché §3.2) | `docs/MASTER-STUDY/registre/2026-08-parfumerie-compositions-b2b/` |
