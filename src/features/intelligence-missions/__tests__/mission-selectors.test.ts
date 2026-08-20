@@ -33,6 +33,30 @@ describe("parseCorpusSelector — veille_period", () => {
   })
 })
 
+describe("parseCorpusSelector — delivery_period", () => {
+  it("accepte un intervalle de dates calendaires valide", () => {
+    expect(
+      parseCorpusSelector({ kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" }),
+    ).toEqual({ kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" })
+  })
+
+  it("refuse une date qui n'existe pas, malgré une forme correcte", () => {
+    expect(
+      parseCorpusSelector({ kind: "delivery_period", periodStart: "2026-02-31", periodEnd: "2026-03-01" }),
+    ).toBeNull()
+  })
+
+  it("refuse un horodatage, une date partielle et un intervalle inversé", () => {
+    expect(
+      parseCorpusSelector({ kind: "delivery_period", periodStart: "2026-07-01T00:00:00Z", periodEnd: "2026-07-31" }),
+    ).toBeNull()
+    expect(parseCorpusSelector({ kind: "delivery_period", periodStart: "2026-07", periodEnd: "2026-07-31" })).toBeNull()
+    expect(
+      parseCorpusSelector({ kind: "delivery_period", periodStart: "2026-07-31", periodEnd: "2026-07-01" }),
+    ).toBeNull()
+  })
+})
+
 describe("parseCorpusSelector — intelligence_document", () => {
   it("accepte des uuid et les déduplique", () => {
     expect(parseCorpusSelector({ kind: "intelligence_document", ids: [UUID_A, UUID_A, UUID_B] })).toEqual({
@@ -96,6 +120,14 @@ describe("parseCorpusSelectors", () => {
     expect(result).toEqual({ error: "Sélecteur de corpus invalide à l'index 1." })
   })
 
+  it("refuse tout le lot si un sélecteur delivery_period est invalide", () => {
+    const result = parseCorpusSelectors([
+      { kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" },
+      { kind: "delivery_period", periodStart: "2026-07-31", periodEnd: "2026-07-01" },
+    ])
+    expect(result).toEqual({ error: "Sélecteur de corpus invalide à l'index 1." })
+  })
+
   it("refuse autre chose qu'un tableau", () => {
     expect(parseCorpusSelectors({ kind: "account_context", companyId: UUID_A })).toEqual({
       error: "`selectors` doit être un tableau.",
@@ -114,5 +146,11 @@ describe("corpusSelectorKey", () => {
     expect(corpusSelectorKey({ kind: "veille_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" })).not.toBe(
       corpusSelectorKey({ kind: "veille_period", periodStart: "2026-08-01", periodEnd: "2026-08-31" }),
     )
+  })
+
+  it("rend la clé attendue pour un sélecteur delivery_period", () => {
+    expect(
+      corpusSelectorKey({ kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" }),
+    ).toBe("delivery_period:2026-07-01:2026-07-31")
   })
 })

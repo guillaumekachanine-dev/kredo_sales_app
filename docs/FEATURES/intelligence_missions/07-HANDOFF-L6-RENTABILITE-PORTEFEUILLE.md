@@ -150,21 +150,49 @@ traite l'identifiant comme une **chaîne opaque**
 le validateur ne fait que comparer une citation aux entrées `kept: true` de la trace. Aucun
 contrôle de format uuid n'existe à ce niveau.
 
-### 4.3 Mode d'exécution : `user_rls` — et c'est une décision de sécurité
+### 4.3 Mode d'exécution : `user_rls` — et la vraie frontière de confidentialité
 
-Ces vues dérivent de `collaborator_compensation`, dont **les 4 policies RLS exigent
-`is_workspace_admin()`**. Elles sont toutes `security_invoker = true`.
+> 🔴 **Correction du 2026-08-20, après lecture de `pg_get_viewdef()` sur les trois vues.**
+> La version précédente de cette section affirmait qu'un non-admin obtiendrait « zéro ligne
+> de coût » sous RLS invocateur, par analogie avec `collaborator_compensation`. **C'est faux,
+> vérifié sur les définitions réelles — ne pas le répéter.**
 
-Conséquence, et c'est l'effet recherché : sous le client Supabase de l'utilisateur, **un
-non-admin obtient simplement zéro ligne de coût**. La confidentialité de la rémunération est
-portée par la base, jamais par le prompt.
+`v_collaborator_activity_summary` et `v_profitability_alerts` font un **`LEFT JOIN
+collaborator_compensation … COALESCE(cc.gross_annual * (1+charges_rate) / working_days_per_year,
+mar.cjm_snapshot)`**. Un `LEFT JOIN` ne fait *disparaître aucune ligne* : quand la ligne
+`collaborator_compensation` est invisible (non-admin), `cc.*` vaut `NULL` et le `COALESCE`
+retombe sur `mar.cjm_snapshot` — une colonne de `mission_activity_reports`, table à **RLS
+workspace standard**, déjà lisible par tout le monde. Résultat mesuré sur les définitions
+live : `revenue`, `employer_cost`, `real_margin`, `real_margin_pct`, `daily_employer_cost`
+restent renseignés pour un non-admin, avec une valeur légèrement différente (dérivée du
+snapshot CRA plutôt que du taux de rémunération courant) — **pas un corpus vide**.
 
-> 🔴 **Un provider `service_role` ici serait une fuite de rémunération dans un rapport LLM
-> archivé.** Ne pas « corriger » un corpus vide en basculant en service-role : un corpus vide
-> pour un non-admin est le comportement correct.
+`v_mission_quarterly_revenue` ne joint **jamais** `collaborator_compensation` : son coût est
+`mar.cjm_snapshot` pur. Aucune restriction admin n'existe sur cette vue, à aucun rôle.
 
-Comme ses trois pairs, le provider porte quand même un `.eq("workspace_id", …)` explicite —
-seconde serrure, doctrine du repo, jamais la protection principale.
+**La seule colonne réellement admin-gated des trois vues est `gross_annual`** dans
+`v_collaborator_activity_summary` — un `SELECT cc.gross_annual` nu, sans `COALESCE` : elle
+vaut `NULL` pour un non-admin, `is_workspace_admin()` oblige.
+
+> 🔴 **Et même correcte, cette frontière ne suffit pas.** Le lanceur d'une mission n'est pas
+> forcément le lecteur du rapport : `ai_intelligence_results` / `intelligence_documents` sont
+> à **RLS workspace standard**, lisibles par tout le workspace (`viewer` compris), pas par
+> `is_workspace_admin()`. Si un admin lance la mission et que le provider laisse passer
+> `gross_annual`, **le salaire brut atterrit dans un document lisible par n'importe quel
+> rôle.** Compter sur « qui a lancé le run » protège le mauvais maillon.
+
+**Conséquence pour le provider — une exclusion déterministe, pas un espoir de RLS :**
+
+> Le provider ne sélectionne **jamais** `gross_annual`, `charges_rate` ni
+> `working_days_per_year` sur `v_collaborator_activity_summary`. Aucune de ces trois colonnes
+> n'entre dans `content`, quel que soit le rôle de l'appelant. `revenue`, `employer_cost`,
+> `real_margin(_pct)`, `daily_employer_cost` restent utilisables : ce sont des figures de
+> coût déjà exposées ailleurs dans Kredo (mission-level `cjm`/`gross_margin_pct`, à RLS
+> standard) — la seule figure réellement nouvelle et sensible est le salaire annuel brut.
+
+Le mode d'exécution reste `user_rls`, comme ses trois pairs : c'est la doctrine du repo, et
+un `.eq("workspace_id", …)` explicite est porté en seconde serrure. Mais **ce n'est plus lui
+qui protège `gross_annual`** — c'est l'exclusion de colonne dans le code du provider.
 
 ### 4.4 Le point dur : un corpus de nombres, pas de prose
 
@@ -221,17 +249,58 @@ Six lots livrables indépendamment. **Aucun ne touche n8n, aucun ne touche la ba
 > parfaitement** et fait échouer tout lancement à l'exécution avec « Sélecteur de corpus
 > invalide à l'index 0 ». C'est le piège le plus coûteux de ce lot.
 
-**Critère de sortie** : `npm run typecheck` vert, et un test dans
+Les trois erreurs réellement produites par `tsc` après ouverture du `CorpusKind` — mesurées
+le 2026-08-20 en appliquant puis annulant le changement :
+
+```
+corpus-provider-registry.ts(28,14): TS2741  Property 'delivery_period' is missing …  ← fermée par L6.1
+mission-selectors.ts(82,62):        TS2366  Function lacks ending return statement    ← corpusSelectorKey
+validate-mission-report.ts(69,3):   TS1360  Type … does not satisfy 'Record<CorpusKind, true>'
+```
+
+> ⚠️ **`npm run typecheck` NE PEUT PAS être vert au terme de L6.0**, et ce n'est pas un
+> défaut : `CORPUS_PROVIDERS` est typé `Record<CorpusKind, CorpusProvider>`, donc l'ouverture
+> du kind exige un provider, livré en L6.1. Ne pas « réparer » ce rouge en dégradant le type
+> en `Partial<Record<…>>` : cet invariant — *tout kind a un provider* — est ce qui garantit
+> que `resolveMissionCorpus` n'a aucun cas indéfini à gérer.
+
+**Critère de sortie de L6.0** : `npm run typecheck` ne renvoie **plus qu'une seule erreur**,
+`TS2741` sur `corpus-provider-registry.ts` — les deux autres sont fermées. Cette erreur
+unique est le jeton de passage vers L6.1. Plus un test dans
 `__tests__/mission-selectors.test.ts` qui parse un sélecteur `delivery_period` valide, en
 rejette un aux dates inversées, et vérifie la clé rendue par `corpusSelectorKey`.
+
+`npm test` doit rester vert : Vitest ne typecheck pas, l'erreur résiduelle ne le concerne pas.
 
 ---
 
 ### L6.1 — Le provider
 
+✅ **Livré et vérifié le 2026-08-20** — `typecheck` 0 erreur, `test` 167/167 fichiers ·
+1663/1663 tests, `check:server-boundary` vert, `lint` silencieux (les quatre relancés
+indépendamment, pas seulement lus dans le rapport de livraison).
+
 **Fichier créé** : `src/features/intelligence-missions/data/corpus/delivery-period-provider.ts`
 — calqué sur `veille-period-provider.ts` (même en-tête documentaire, même `capExclusion`, même
 `import "server-only"`).
+
+> ⚠️ **`v_collaborator_activity_summary` et `v_profitability_alerts` n'exposent aucune colonne
+> `workspace_id`** (vérifié live) : le provider ne peut donc pas y poser le `.eq("workspace_id",
+> …)` de seconde serrure qu'il pose sur les trois autres sources — `tsc` l'aurait refusé. Ce
+> n'est pas un trou de sécurité : les deux vues sont `security_invoker = true` et rejoignent
+> `mission_activity_reports`, dont la policy `SELECT` filtre déjà sur
+> `workspace_id = current_workspace_id()` — la protection réelle vient de la RLS de la table
+> source, comme documenté partout ailleurs dans ce fichier (« seconde serrure, jamais la
+> protection principale »).
+>
+> **En revanche, le test « isolation de workspace » du fichier de tests ne le prouve PAS pour
+> ces deux sources** : `fake-supabase.ts` ne filtre que sur les `.eq()` réellement posés par le
+> code, et le jeu de données de test ne contient même pas de ligne d'un autre workspace pour
+> ces deux tables. Le test est donc réel et probant pour `pnl_monthly` / `v_mission_quarterly_
+> revenue` / `missions`, et **silencieusement vide de portée** pour les deux vues sans
+> `workspace_id`. C'est une limite acceptée du harnais (il ne modélise aucune RLS via jointure),
+> pas une régression à corriger — mais un futur agent ne doit pas croire ce test plus solide
+> qu'il ne l'est.
 
 **Points de vigilance :**
 - fenêtre d'historique **dérivée dans le provider** (D-5) ;
@@ -247,9 +316,14 @@ commentaire d'échelle du registre.
 **Tests** — `__tests__/delivery-period-provider.test.ts`, sur `fake-supabase.ts` :
 1. la fenêtre hydratée couvre bien 4 mois à partir d'un sélecteur d'un seul mois ;
 2. saturation d'une borne → exclusion `provider_limit` présente dans le résultat ;
-3. **un utilisateur non-admin (vues rendant 0 ligne de coût) obtient un corpus partiel, pas
-   une erreur** ;
+3. **`gross_annual` n'apparaît dans aucun `content` rendu**, même si la ligne source en porte
+   un (test qui échouerait si le provider se mettait un jour à le sélectionner) ;
 4. les `ref.id` composites sont stables et déterministes.
+
+> Le fait qu'un non-admin voit ou non `gross_annual` à `NULL` est un comportement de RLS
+> Postgres, **hors de portée de `fake-supabase.ts`** (qui ne modélise aucun rôle) — ne pas
+> écrire de test qui prétend le vérifier. Ce que le provider contrôle et doit prouver, c'est
+> qu'il n'émet jamais cette colonne, pour personne.
 
 **Critère de sortie** : `npm test` vert + `npm run check:server-boundary` vert.
 

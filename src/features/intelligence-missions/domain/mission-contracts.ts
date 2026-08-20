@@ -22,11 +22,13 @@ export type CorpusKind =
   | "veille_period"
   | "intelligence_document"
   | "account_context"
+  | "delivery_period"
 
 export type CorpusSelector =
   | { kind: "veille_period"; periodStart: string; periodEnd: string }
   | { kind: "intelligence_document"; ids: string[] }
   | { kind: "account_context"; companyId: string }
+  | { kind: "delivery_period"; periodStart: string; periodEnd: string }
 
 /** Élément normalisé — jamais une copie durable : hydraté à l'exécution. */
 export type CorpusItem = {
