@@ -3,7 +3,7 @@ import type { MissionSpec } from "./mission-contracts"
 export const MISSION_CATALOG = [
   {
     slug: "veille-analyse-mensuelle",
-    version: 1,
+    version: 2,
     label: "Analyse mensuelle de la veille",
     description:
       "Analyse stratégique mensuelle de la veille Kredo : tendances, signaux faibles, réglementation, opportunités, risques et actions prioritaires.",

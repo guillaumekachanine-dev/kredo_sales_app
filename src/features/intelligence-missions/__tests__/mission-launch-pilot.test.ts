@@ -116,7 +116,7 @@ describe("pilote veille-analyse-mensuelle — prompt et enveloppe", () => {
     const { corpus } = await resolvePilotCorpus()
     const { systemPrompt, userPrompt } = assembleMissionPrompt(SPEC, corpus)
 
-    expect(systemPrompt).toContain("Réponds UNIQUEMENT par un objet JSON valide")
+    expect(systemPrompt).toContain("Réponds UNIQUEMENT par l'objet JSON brut.")
     expect(userPrompt).toContain("Analyse mensuelle de la veille")
     expect(userPrompt).toContain("id: article-1")
     expect(userPrompt).toContain("Cibler les RSSI industriels.")

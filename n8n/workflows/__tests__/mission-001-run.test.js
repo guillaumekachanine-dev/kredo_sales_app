@@ -195,10 +195,34 @@ async function main() {
   check("Call LLM timeout 180000", llmNode?.parameters?.options?.timeout === 180000)
 
   const llmBody = llmNode?.parameters?.jsonBody || ""
-  check("Call LLM jsonBody référence $json.model.model", llmBody.includes("$json.model.model"))
-  check("Call LLM jsonBody référence $json.model.maxOutputTokens", llmBody.includes("$json.model.maxOutputTokens"))
-  check("Call LLM jsonBody référence $json.systemPrompt", llmBody.includes("$json.systemPrompt"))
-  check("Call LLM jsonBody référence $json.userPrompt", llmBody.includes("$json.userPrompt"))
+  check(
+    "Call LLM jsonBody référence explicitement Validate Envelope pour model.model",
+    llmBody.includes("$('Validate Envelope').item.json.model.model"),
+  )
+  check(
+    "Call LLM jsonBody référence explicitement Validate Envelope pour maxOutputTokens",
+    llmBody.includes("$('Validate Envelope').item.json.model.maxOutputTokens"),
+  )
+  check(
+    "Call LLM jsonBody référence explicitement Validate Envelope pour systemPrompt",
+    llmBody.includes("$('Validate Envelope').item.json.systemPrompt"),
+  )
+  check(
+    "Call LLM jsonBody référence explicitement Validate Envelope pour userPrompt",
+    llmBody.includes("$('Validate Envelope').item.json.userPrompt"),
+  )
+  check(
+    "Call LLM jsonBody ne dépend plus de $json.model",
+    !llmBody.includes("$json.model"),
+  )
+  check(
+    "Call LLM jsonBody ne dépend plus de $json.systemPrompt",
+    !llmBody.includes("$json.systemPrompt"),
+  )
+  check(
+    "Call LLM jsonBody ne dépend plus de $json.userPrompt",
+    !llmBody.includes("$json.userPrompt"),
+  )
   check(
     "Call LLM ne contient AUCUN identifiant 'claude-' en dur (M-6)",
     !llmBody.includes("claude-"),

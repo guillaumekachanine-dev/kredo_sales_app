@@ -71,6 +71,16 @@ describe("assembleMissionPrompt — prompt système", () => {
     }
   })
 
+  it("impose un format JSON brut sans balises ni blocs de code Markdown", () => {
+    const { systemPrompt } = assembleMissionPrompt(SPEC, CORPUS)
+    expect(systemPrompt).toContain("Réponds UNIQUEMENT par l'objet JSON brut.")
+    expect(systemPrompt).toContain("Le premier caractère de ta réponse doit être { et le dernier }.")
+    expect(systemPrompt).toContain("N'ajoute aucun texte avant ou après.")
+    expect(systemPrompt).toContain("N'utilise jamais de bloc Markdown, de balises ```json ou de backticks.")
+    expect(systemPrompt).not.toContain("```json\n{")
+    expect(systemPrompt).not.toContain("}\n```")
+  })
+
   it("ne contient aucun contenu de corpus — il ne dépend que du preset", () => {
     const { systemPrompt } = assembleMissionPrompt(SPEC, CORPUS)
     expect(systemPrompt).not.toContain("mouvements notables")

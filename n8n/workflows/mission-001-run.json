@@ -105,7 +105,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ { model: $json.model.model, max_tokens: $json.model.maxOutputTokens, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] } }}",
+        "jsonBody": "={{ { model: $('Validate Envelope').item.json.model.model, max_tokens: $('Validate Envelope').item.json.model.maxOutputTokens, thinking: { type: 'disabled' }, system: $('Validate Envelope').item.json.systemPrompt, messages: [{ role: 'user', content: $('Validate Envelope').item.json.userPrompt }] } }}",
         "options": {
           "timeout": 180000
         }
