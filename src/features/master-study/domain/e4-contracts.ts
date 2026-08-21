@@ -28,13 +28,15 @@ export interface E4These {
   donc_commercialement: string
 }
 
-export type E4MarketMetricStatus = 'published' | 'not_published' | 'not_applicable'
+export type E4MarketMetricStatus = 'published' | 'estimated' | 'not_published' | 'not_applicable'
 
 export interface E4Marche {
   taille_eur_bn?: number | null
   taille_statut?: E4MarketMetricStatus
+  taille_methodologie?: string | null
   croissance_pct?: number | null
   croissance_statut?: E4MarketMetricStatus
+  croissance_methodologie?: string | null
   perimetre: string
   exercice?: number | null
   src_ids: number[]

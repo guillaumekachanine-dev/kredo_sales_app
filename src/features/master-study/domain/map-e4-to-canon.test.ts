@@ -230,11 +230,14 @@ describe("mapE4ToCanon — Invariants et Mapping", () => {
     expect(meta.counts.sources).toBe(31)
     expect(meta.counts.trous).toBe(5)
 
-    // Vérification des verrous sur le marché (non publié sur le pilote)
-    expect(payload.sector_patch.market_size_eur_bn).toBeNull()
+    // Vérification des verrous sur le marché — croissance toujours non publiée ;
+    // taille triangulée depuis SNIAA/Insee le 2026-08-21 (amendement ADR-0021,
+    // statut "estimated") : porte désormais une vraie valeur segment, jamais
+    // héritée du macro, distincte d'un chiffre publié tel quel.
+    expect(payload.sector_patch.market_size_eur_bn).toBe(2.4)
     expect(payload.sector_patch.market_growth_pct).toBeNull()
     expect(payload.sector_patch.resolution_locks).toEqual({
-      market_size_eur_bn: "not_published",
+      market_size_eur_bn: "estimated",
       market_growth_pct: "not_published",
     })
   })
