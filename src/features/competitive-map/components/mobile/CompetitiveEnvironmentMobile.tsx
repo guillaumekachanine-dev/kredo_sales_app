@@ -1,8 +1,7 @@
 "use client"
 
-import Link from "next/link"
-import { useMemo, useState, useTransition, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import type { CompetitiveMapActor, CompetitiveMapWorkspace } from "../../data/competitive-map-workspace-types"
 import { buildCompetitiveMapUrl } from "../../domain/competitive-map-navigation"
 import { resolveCompetitiveMapSelection } from "../../domain/competitive-map-selection"
@@ -26,17 +25,6 @@ export function CompetitiveEnvironmentMobile({ workspace }: { workspace: Competi
   const selectedActorId = useMemo(() => resolveCompetitiveMapSelection(actors, requestedActorId), [actors, requestedActorId])
   const selectedActor = useMemo(() => actors.find((actor) => actor.id === selectedActorId) ?? null, [actors, selectedActorId])
   const [isImportOpen, setIsImportOpen] = useState(false)
-  const searchParams = useSearchParams()
-
-  useEffect(() => {
-    if (workspace.state === "ready" && workspace.selectedSegmentId) {
-      const requested = searchParams.get("competitiveSegment")
-      if (requested && requested !== workspace.selectedSegmentId) {
-        router.replace(buildCompetitiveMapUrl(workspace.selectedSegmentId), { scroll: false })
-      }
-    }
-  }, [workspace.state, workspace.selectedSegmentId, searchParams, router])
-
   if (workspace.state === "error") {
     return <section className="px-4 py-10 text-center"><h2 className="font-heading text-lg font-bold text-white">Cartographie indisponible</h2><p className="mt-2 text-sm text-white/55">{workspace.error}</p></section>
   }
@@ -66,7 +54,7 @@ export function CompetitiveEnvironmentMobile({ workspace }: { workspace: Competi
     <div className={isPending ? "opacity-70 transition-opacity motion-reduce:transition-none" : "transition-opacity motion-reduce:transition-none"} aria-busy={isPending}>
       <section className="space-y-3 px-4 py-4" aria-label="Choisir une cartographie concurrentielle">
         <label htmlFor="competitive-mobile-segment" className="block text-[10px] font-bold uppercase tracking-[0.09em] text-white/45">Secteur / segment</label>
-        <select id="competitive-mobile-segment" value={workspace.selectedSegmentId} disabled={isPending} onChange={(event) => handleSelectSegment(event.target.value)} className="min-h-11 w-full rounded-lg border border-white/15 bg-surface px-3 text-sm font-semibold text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass">
+        <select id="competitive-mobile-segment" value={workspace.selectedSegmentId} disabled={isPending || workspace.catalog.length <= 1} onChange={(event) => handleSelectSegment(event.target.value)} className="min-h-11 w-full rounded-lg border border-white/15 bg-surface px-3 text-sm font-semibold text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass">
           {workspace.catalog.map((item) => <option key={item.segmentId} value={item.segmentId}>{item.label}</option>)}
         </select>
         <div className="flex items-center justify-between">

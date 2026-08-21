@@ -1,8 +1,7 @@
 "use client"
 
-import Link from "next/link"
-import { useMemo, useState, useTransition, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import type { CompetitiveMapActor, CompetitiveMapWorkspace } from "../data/competitive-map-workspace-types"
 import { resolveCompetitiveMapSelection } from "../domain/competitive-map-selection"
 import { buildCompetitiveMapUrl } from "../domain/competitive-map-navigation"
@@ -28,17 +27,6 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
     [actors, selectedActorId],
   )
   const [isImportOpen, setIsImportOpen] = useState(false)
-  const searchParams = useSearchParams()
-
-  useEffect(() => {
-    if (workspace.state === "ready" && workspace.selectedSegmentId) {
-      const requested = searchParams.get("competitiveSegment")
-      if (requested && requested !== workspace.selectedSegmentId) {
-        router.replace(buildCompetitiveMapUrl(workspace.selectedSegmentId), { scroll: false })
-      }
-    }
-  }, [workspace.state, workspace.selectedSegmentId, searchParams, router])
-
   if (workspace.state === "error") {
     return (
       <section className="flex min-h-[32rem] items-center justify-center bg-edito-surface px-6 text-center">

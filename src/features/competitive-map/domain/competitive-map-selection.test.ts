@@ -55,7 +55,7 @@ describe("sélection de la cartographie concurrentielle", () => {
 
   it("construit l'URL canonique d'un changement de segment", () => {
     expect(buildCompetitiveMapUrl("segment spatial")).toBe(
-      "/intelligence?tab=competitive_env&competitiveSegment=segment+spatial",
+      "/intelligence?tab=competitive_env&segment=segment+spatial",
     )
   })
 })

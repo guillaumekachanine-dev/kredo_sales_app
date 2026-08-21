@@ -1,7 +1,7 @@
 export function buildCompetitiveMapUrl(segmentId: string): string {
   const params = new URLSearchParams({
     tab: "competitive_env",
-    competitiveSegment: segmentId,
+    segment: segmentId,
   })
 
   return `/intelligence?${params.toString()}`

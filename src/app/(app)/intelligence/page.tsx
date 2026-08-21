@@ -1,33 +1,54 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { getBusinessIntelligenceSnapshot } from "@/features/business-intelligence/data/get-business-intelligence-snapshot"
 import { buildBusinessIntelligenceDesktopModel } from "@/features/business-intelligence/presenters/build-business-intelligence-desktop-model"
 import { buildBusinessIntelligenceMobileModel } from "@/features/business-intelligence/presenters/build-business-intelligence-mobile-model"
 import { BusinessIntelligenceDesktop } from "@/features/business-intelligence/desktop/BusinessIntelligenceDesktop"
 import { BusinessIntelligenceMobile } from "@/features/business-intelligence/mobile/BusinessIntelligenceMobile"
-import { getSectorMapCatalog } from "@/features/sector-mapping/data/get-sector-map-catalog"
-import { getCompetitiveMapWorkspace } from "@/features/competitive-map/data/get-competitive-map-workspace"
+import { getBusinessIntelligenceCatalog } from "@/features/business-intelligence/data/get-business-intelligence-catalog"
+import { getBusinessIntelligenceSegmentWorkspace } from "@/features/business-intelligence/data/get-business-intelligence-segment-workspace"
+import { buildBusinessIntelligenceWorkspaceAdapter } from "@/features/business-intelligence/data/build-business-intelligence-workspace-adapter"
+import { resolveBusinessIntelligenceRoute } from "@/features/business-intelligence/data/resolve-business-intelligence-route"
+import { BusinessIntelligenceCatalogState } from "@/features/business-intelligence/catalog/BusinessIntelligenceCatalogState"
+import { redirect } from "next/navigation"
+import type { BiTabKey } from "@/features/business-intelligence/desktop/BusinessIntelligenceLocalNavigation"
 
 type BusinessIntelligencePageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-function firstQueryValue(value: string | string[] | undefined): string | null {
-  return Array.isArray(value) ? value[0] ?? null : value ?? null
+const BI_TABS = new Set<BiTabKey>(["priorities", "windows", "sectors", "value_chain", "competitive_env"])
+
+function resolveTab(value: string | null): BiTabKey {
+  return value && BI_TABS.has(value as BiTabKey) ? value as BiTabKey : "priorities"
 }
 
 export default async function BusinessIntelligencePage({ searchParams }: BusinessIntelligencePageProps) {
-  const paramsPromise = searchParams.then((params) => ({
-    segmentId: firstQueryValue(params.competitiveSegment),
-    tab: firstQueryValue(params.tab),
-  }))
-  const [device, params] = await Promise.all([getDashboardDevice(), paramsPromise])
-  
+  const route = await resolveBusinessIntelligenceRoute(await searchParams)
+  if (route.kind === "legacyRedirect") redirect(route.href)
+
+  if (route.kind === "catalog" || route.kind === "invalid") {
+    const catalog = await getBusinessIntelligenceCatalog()
+    return <BusinessIntelligenceCatalogState catalog={catalog} issue={route.kind === "invalid" ? route.reason : null} />
+  }
+
+  const [device, workspace] = await Promise.all([
+    getDashboardDevice(),
+    getBusinessIntelligenceSegmentWorkspace(route.segmentId),
+  ])
+  if (workspace.state === "error") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-canvas p-6 text-body">
+        <section className="max-w-md rounded-xl border border-border bg-surface p-6 text-center">
+          <h1 className="text-lg font-semibold text-heading">Workspace indisponible</h1>
+          <p className="mt-2 text-sm text-muted">{workspace.error}</p>
+        </section>
+      </main>
+    )
+  }
+
+  const { snapshot, sectorMapCatalog, competitiveMapWorkspace } = buildBusinessIntelligenceWorkspaceAdapter(workspace)
+  const tab = resolveTab(route.tab)
+
   if (device === "mobile") {
-    const [snapshot, sectorMapCatalog, competitiveMapWorkspace] = await Promise.all([
-      getBusinessIntelligenceSnapshot(),
-      getSectorMapCatalog(),
-      getCompetitiveMapWorkspace(params.segmentId),
-    ])
     const viewModel = buildBusinessIntelligenceMobileModel(snapshot)
     return (
       <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
@@ -36,17 +57,11 @@ export default async function BusinessIntelligencePage({ searchParams }: Busines
           snapshot={snapshot}
           sectorMapCatalog={sectorMapCatalog}
           competitiveMapWorkspace={competitiveMapWorkspace}
-          initialSection={params.tab === "competitive_env" ? "competitive_env" : "priorities"}
+          initialSection={tab}
         />
       </div>
     )
   }
-
-  const [snapshot, sectorMapCatalog, competitiveMapWorkspace] = await Promise.all([
-    getBusinessIntelligenceSnapshot(),
-    getSectorMapCatalog(),
-    getCompetitiveMapWorkspace(params.segmentId),
-  ])
 
   const viewModel = buildBusinessIntelligenceDesktopModel(snapshot)
 
@@ -57,7 +72,7 @@ export default async function BusinessIntelligencePage({ searchParams }: Busines
         snapshot={snapshot}
         sectorMapCatalog={sectorMapCatalog}
         competitiveMapWorkspace={competitiveMapWorkspace}
-        initialTab={params.tab === "competitive_env" ? "competitive_env" : "priorities"}
+        initialTab={tab}
       />
     </div>
   )

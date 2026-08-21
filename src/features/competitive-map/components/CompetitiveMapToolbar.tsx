@@ -1,4 +1,3 @@
-import Link from "next/link"
 import type { CompetitiveMapCatalogItem } from "../data/competitive-map-workspace-types"
 
 type CompetitiveMapToolbarProps = {
@@ -33,7 +32,7 @@ export function CompetitiveMapToolbar({
           aria-label="Secteur et segment de la cartographie"
           className="min-h-9 min-w-0 flex-1 rounded-md border border-edito-border bg-edito-surface px-3 text-sm font-semibold text-edito-navy outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/25"
           value={selectedSegmentId}
-          disabled={isPending}
+          disabled={isPending || catalog.length <= 1}
           onChange={(event) => onSelectSegment(event.target.value)}
         >
           {catalog.map((item) => (
