@@ -40,7 +40,7 @@ export function BusinessIntelligenceMobile(props: BusinessIntelligenceMobileProp
   return <BusinessIntelligenceWorkspaceMobile {...props} />
 }
 
-export function BusinessIntelligenceWorkspaceMobile({ snapshot, sectorMapCatalog, competitiveMapWorkspace, workspace, initialSection = "home" }: BusinessIntelligenceMobileProps) {
+export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competitiveMapWorkspace, workspace, initialSection = "home" }: BusinessIntelligenceMobileProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeChapter = resolveBiChapter(searchParams.get("tab") ?? initialSection)
@@ -130,8 +130,28 @@ export function BusinessIntelligenceWorkspaceMobile({ snapshot, sectorMapCatalog
         onCancel={() => setPendingSegment(null)}
         onConfirm={confirmSegment}
       />
-      {isStudiesOpen ? <SectorStudiesModal open onClose={() => setIsStudiesOpen(false)} snapshot={snapshot} initialSectorId={workspace.segment.id} isMobile /> : null}
-      {isPlaybooksOpen ? <SectorPlaybooksModal open onClose={() => setIsPlaybooksOpen(false)} snapshot={snapshot} initialSectorId={workspace.segment.id} onApplySector={() => setIsPlaybooksOpen(false)} isMobile /> : null}
+      {isStudiesOpen ? (
+        <SectorStudiesModal
+          open
+          onClose={() => setIsStudiesOpen(false)}
+          knowledge={workspace.knowledge}
+          segmentName={workspace.segment.name}
+          macroName={workspace.segment.macro?.name ?? null}
+          isMobile
+        />
+      ) : null}
+      {isPlaybooksOpen ? (
+        <SectorPlaybooksModal
+          open
+          onClose={() => setIsPlaybooksOpen(false)}
+          knowledge={workspace.knowledge}
+          segmentName={workspace.segment.name}
+          macroName={workspace.segment.macro?.name ?? null}
+          competitiveActors={workspace.competitiveMap?.actors ?? []}
+          priorityAccounts={workspace.portfolio.accounts}
+          isMobile
+        />
+      ) : null}
       {isSegmentPending ? <div className="absolute inset-0 z-50 flex items-center justify-center bg-canvas/75" role="status"><div className="border border-border bg-surface px-4 py-3 text-sm font-semibold text-heading">Chargement du nouveau segment…</div></div> : null}
     </main>
   )

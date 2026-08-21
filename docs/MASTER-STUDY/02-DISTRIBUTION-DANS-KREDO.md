@@ -24,22 +24,32 @@ répondent à la même question, l'une des deux est de trop.
 
 ---
 
-## 2. Business Intelligence — 4 onglets
+## 2. Business Intelligence — Workspace mono-segment à 6 chapitres
 
-État du code au 13/08 : cinq onglets existent
-(`BusinessIntelligenceLocalNavigation.tsx`) — Brief stratégique · Fenêtres · Analyse
-sectorielle · Chaîne de valeur · Environnement concurrentiel.
+Architecture stabilisée (Lots 1 à 4) : Business Intelligence est un **workspace mono-segment**
+scopé sur l'URL canonique `/intelligence?segment=<uuid>&tab=<chapter>`.
 
-**Cible : quatre.** « Brief stratégique » et « Fenêtres » migrent vers Prospection (ADR-0018
-les y place déjà) : ce sont des produits d'action, pas de connaissance. **BI garde la matière,
-Prospection garde l'usage.** Un onglet « Calendrier réglementaire » apparaît, aujourd'hui noyé.
+Tous les chapitres et tous les modules transverses partagent rigoureusement le même segment actif.
+Aucun catalogue multi-segment ni sélection parallèle n'existe dans les modules.
 
-| Onglet | Finalité | Ce qu'il produit chez le lecteur | Blocs | Composants existants |
+### Les six chapitres canoniques
+
+| Chapitre | Tab | Finalité | Blocs | Composants existants |
 |---|---|---|---|---|
-| **Étude sectorielle** | Comprendre le marché comme un praticien | Tenir 3 minutes sans être interchangeable | S1 S2 S3 S4 S5 S6 S9 S13 | `SectorPanorama`, `SectorStudiesModal` |
-| **Environnement concurrentiel** | Savoir qui est qui, et qui viser | Une file d'attente de comptes, ordonnée et justifiée | C1 C2 C2b C3 C4 C5 C6 | `CompetitiveEnvironmentWorkspace`, `CompetitiveMatrix`, `CompetitiveActorProfiles` ✅ livrés |
-| **Chaîne de valeur** | Savoir où l'ESN se branche et de quoi le secteur dépend | Un angle d'entrée par maillon + un outil de découverte en rendez-vous | S8 A12 | `SectorEcosystemDesktop`, `SectorValueDesktop`, `SectorMapMobile` ✅ |
-| **Calendrier réglementaire** | Savoir pourquoi maintenant | Un motif d'appel daté, vérifiable, prononçable | S7 | à construire — matière en base (64 items, 35 futures) |
+| **Accueil** | `home` | Cockpit de cadrage sectoriel, synthèse métriques et actions rapides | S1 S2 S9 | `SegmentHomeDashboardDesktop`, `SegmentHomeDashboardMobile` |
+| **Analyse sectorielle** | `sector-analysis` | Comprendre le marché en profondeur (économie, techno, risques) | S1 S2 S3 S4 S5 S6 S9 S13 | `SectorAnalysisChapterDesktop`, `SectorAnalysisChapterMobile` |
+| **Environnement concurrentiel** | `competitive-environment` | Cartographie des acteurs, matrice positionnement & fiches | C1 C2 C2b C3 C4 C5 C6 | `CompetitiveEnvironmentWorkspace`, `CompetitiveMatrix`, `CompetitiveActorProfiles` |
+| **Calendrier réglementaire** | `regulatory-calendar` | Échéances, fenêtres d'opportunité et contraintes de conformité | S7 | `RegulatoryCalendarChapterDesktop`, `RegulatoryCalendarChapterMobile` |
+| **Chaîne de valeur** | `value-chain` | Écosystème, maillons et interconnexions d'acteurs | S8 A12 | `BusinessIntelligenceSectorMapDesktop`, `BusinessIntelligenceSectorMapMobile` |
+| **Actualités sectorielles** | `sector-news` | Bibliothèque de veille, signaux d'affaires & déclencheur d'analyse | S10 S11 | `SectorNewsChapterDesktop`, `SectorNewsChapterMobile` |
+
+### Les modules transverses mono-segment (Lot 4)
+
+- **Étude sectorielle Light** (`SectorStudiesModal`) : lecteur structuré de l'étude active organisé en 6 sections métiers (Essentiel, Économie & modèles, Technologies & dépendances, Risques & dynamiques, Pain points & acteurs, Sources & limites).
+- **Playbook sectoriel** (`SectorPlaybooksModal`) : traduction commerciale opérationnelle du segment en 7 sections (Enjeux, Personas, Angles d’approche, Objections, ROI & offres, Pourquoi maintenant, Battle Cards).
+- **Battle Cards** (`BattleCardsSection`) : projection opérationnelle « 90 secondes avant l'appel » des acteurs dérivée de `competitive_map_entries.profile_json`.
+- **Analyse approfondie** (`manual_custom`) : intégration du compositeur d'analyse à la demande sur les signaux et sources éligibles du segment.
+- **CRM Launcher** : accès rapide au CRM conservant strictement le contexte segment et chapitre.
 
 ### Contrat de l'onglet Environnement concurrentiel
 

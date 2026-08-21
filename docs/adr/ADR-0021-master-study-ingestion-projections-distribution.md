@@ -762,6 +762,19 @@ macro — mais distincte d'un chiffre publié tel quel : c'est une triangulation
 
 ---
 
+# 16. Amendement 2026-08-22 — Distribution transverse Business Intelligence (Lot 4)
+
+Dans la continuité des Lots 1 à 3 (workspace mono-segment à 6 chapitres) :
+- Les modules transverses historiques (`SectorStudiesModal`, `SectorPlaybooksModal`) ne sont plus des catalogues multi-segments.
+- Ils deviennent des lecteurs contextuels du **segment actif déjà déterminé par le workspace serveur et l'URL** (`/intelligence?segment=<uuid>&tab=<chapter>`).
+- **Étude sectorielle Light** : navigation par sections de l'étude active (`Essentiel`, `Économie & modèles`, `Technologies & dépendances`, `Risques & dynamiques`, `Pain points & acteurs`, `Sources & limites`) avec omisssion des sections sans données sources.
+- **Playbook sectoriel** : projection commerciale opérationnelle du segment en 7 sections métier (`Enjeux`, `Personas`, `Angles d’approche`, `Objections`, `ROI & offres`, `Pourquoi maintenant`, `Battle Cards`).
+- **Battle Cards** : projection opérationnelle « 90 secondes avant l'appel » dérivée directement de `competitive_map_entries.profile_json` (aucun objet persisté, aucune table `battle_cards`, aucun LLM à la lecture).
+- **Analyse approfondie** : intégration du compositeur `manual_custom` existant sur les signaux et sources éligibles du segment actif, sans modification de workflow n8n.
+- **CRM Launcher** : préserve strictement `segment` et `tab` sans modifier le contexte Business Intelligence.
+
+---
+
 ## Sources de cadrage
 
 **Corpus** — `docs/MASTER-STUDY/` : `README.md` §5-§6, `00-DOCTRINE.md`,

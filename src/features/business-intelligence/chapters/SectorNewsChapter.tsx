@@ -1,8 +1,20 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import dynamic from "next/dynamic"
 import type { SegmentNewsLibrary, SegmentNewsLibraryItem } from "../data/business-intelligence-workspace-types"
 import { provenanceLabel } from "../home/home-model"
+import { Button } from "@/components/ui/Button"
+
+const WatchAnalysisComposerDesktop = dynamic(
+  () => import("@/features/watch-analysis/components/WatchAnalysisComposerDesktop").then((mod) => mod.WatchAnalysisComposerDesktop),
+  { ssr: false },
+)
+
+const WatchAnalysisComposerMobile = dynamic(
+  () => import("@/features/watch-analysis/components/WatchAnalysisComposerMobile").then((mod) => mod.WatchAnalysisComposerMobile),
+  { ssr: false },
+)
 
 type NewsTypeFilter = "all" | "news" | "signal"
 type NewsPeriodFilter = "all" | "30d" | "90d" | "365d"
@@ -28,6 +40,7 @@ function filterByPeriod(item: SegmentNewsLibraryItem, period: NewsPeriodFilter):
 export function SectorNewsChapterDesktop({ news }: { news: SegmentNewsLibrary }) {
   const [typeFilter, setTypeFilter] = useState<NewsTypeFilter>("all")
   const [periodFilter, setPeriodFilter] = useState<NewsPeriodFilter>("all")
+  const [isComposerOpen, setIsComposerOpen] = useState(false)
 
   const filteredItems = useMemo(() => {
     return news.items.filter((item) => {
@@ -51,10 +64,21 @@ export function SectorNewsChapterDesktop({ news }: { news: SegmentNewsLibrary })
               Bibliothèque de veille sectorielle et signaux actionnables du segment
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="rounded-md border border-edito-border bg-edito-canvas px-3 py-1.5 text-xs font-semibold text-edito-navy">
               {newsCount} actualité{newsCount > 1 ? "s" : ""} · {signalCount} signal{signalCount > 1 ? "aux" : ""}
             </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsComposerOpen(true)}
+              className="font-semibold text-xs"
+            >
+              <svg className="size-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693l-1.57-.393m15.6 0l1.17 4.68a1.5 1.5 0 01-1.455 1.864H4.485a1.5 1.5 0 01-1.455-1.864l1.17-4.68" />
+              </svg>
+              Analyse approfondie
+            </Button>
           </div>
         </div>
 
@@ -202,12 +226,25 @@ export function SectorNewsChapterDesktop({ news }: { news: SegmentNewsLibrary })
           </ul>
         </section>
       )}
+
+      {isComposerOpen ? (
+        <WatchAnalysisComposerDesktop
+          open
+          onClose={() => setIsComposerOpen(false)}
+          currentDigest={null}
+          currentDigestNumber={null}
+          pastDigests={[]}
+          knownArticles={[]}
+          onLaunched={() => setIsComposerOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }
 
 export function SectorNewsChapterMobile({ news }: { news: SegmentNewsLibrary }) {
   const [typeFilter, setTypeFilter] = useState<NewsTypeFilter>("all")
+  const [isComposerOpen, setIsComposerOpen] = useState(false)
 
   const filteredItems = useMemo(() => {
     if (typeFilter === "all") return news.items
@@ -220,11 +257,23 @@ export function SectorNewsChapterMobile({ news }: { news: SegmentNewsLibrary }) 
   return (
     <div className="space-y-4 px-4 py-4" data-chapter="sector-news-mobile">
       <section className="rounded-xl border border-border bg-surface p-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Veille sectorielle</p>
-        <h1 className="mt-1 font-heading text-xl font-bold text-heading">Actualités & Signaux</h1>
-        <p className="mt-1 text-xs text-muted">
-          {news.items.length} contenu{news.items.length > 1 ? "s" : ""} disponible{news.items.length > 1 ? "s" : ""}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Veille sectorielle</p>
+            <h1 className="mt-1 font-heading text-xl font-bold text-heading">Actualités & Signaux</h1>
+            <p className="mt-1 text-xs text-muted">
+              {news.items.length} contenu{news.items.length > 1 ? "s" : ""} disponible{news.items.length > 1 ? "s" : ""}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsComposerOpen(true)}
+            className="min-h-11 shrink-0 text-xs font-semibold"
+          >
+            Analyse
+          </Button>
+        </div>
 
         {/* Pilules de filtres mobiles */}
         <div className="mt-3 flex gap-2 border-t border-border pt-3">
@@ -313,6 +362,17 @@ export function SectorNewsChapterMobile({ news }: { news: SegmentNewsLibrary }) 
           ))}
         </ul>
       )}
+
+      {isComposerOpen ? (
+        <WatchAnalysisComposerMobile
+          open
+          onClose={() => setIsComposerOpen(false)}
+          currentDigest={null}
+          pastDigests={[]}
+          knownArticles={[]}
+          onLaunched={() => setIsComposerOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

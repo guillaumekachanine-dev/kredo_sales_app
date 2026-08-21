@@ -1,642 +1,566 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
-import { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
-import { buildSectorPlaybookModel, BusinessIntelligenceSectorProfile } from "../models/build-sector-playbook-model"
-import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
-import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+import type { SectorKnowledgeReadModel } from "@/features/master-study/data/get-sector-knowledge-read-model"
+import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
+import { BattleCardsSection } from "./BattleCardsSection"
 
+export type SectorPlaybookSectionKey =
+  | "enjeux"
+  | "personas"
+  | "angles"
+  | "objections"
+  | "roi"
+  | "pourquoi_maintenant"
+  | "battle_cards"
 
-interface SectorPlaybooksModalProps {
+type PlaybookSectionDef = {
+  key: SectorPlaybookSectionKey
+  label: string
+  hasData: boolean
+  countBadge?: number | null
+}
+
+export type SectorPlaybooksModalProps = {
   open: boolean
   onClose: () => void
-  snapshot: BusinessIntelligenceSnapshot
-  initialSectorId: string | "all"
-  onApplySector: (sectorId: string, firstAccountId: string | null) => void
+  knowledge: SectorKnowledgeReadModel
+  segmentName?: string
+  macroName?: string | null
+  competitiveActors?: CompetitiveMapActor[]
+  priorityAccounts?: Array<{
+    id: string
+    name: string
+    priority?: number | string
+    [key: string]: unknown
+  }>
   isMobile?: boolean
 }
 
-function calculateCompleteness(profile: BusinessIntelligenceSectorProfile | null): number {
-  if (!profile) return 0
-  const items = [
-    Boolean(profile.description),
-    profile.playbook.personas.length > 0,
-    profile.playbook.roiArguments.length > 0,
-    profile.playbook.objections.length > 0,
-    profile.playbook.entryPoints.length > 0,
-    profile.painPoints.length > 0,
-    profile.deadlines.length > 0,
-    Object.keys(profile.practiceScores).length > 0,
-  ]
-  const count = items.filter(Boolean).length
-  return Math.round((count / items.length) * 100)
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+}
+
+function textFromRecord(value: unknown, keys: string[]): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    for (const key of keys) {
+      const candidate = record[key]
+      if (typeof candidate === "string" && candidate.trim().length > 0) return candidate.trim()
+    }
+  }
+  return null
 }
 
 export function SectorPlaybooksModal({
   open,
   onClose,
-  snapshot,
-  initialSectorId,
-  onApplySector,
+  knowledge,
+  segmentName,
+  macroName,
+  competitiveActors = [],
+  priorityAccounts = [],
   isMobile = false,
 }: SectorPlaybooksModalProps) {
-  const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
+  const name = segmentName || knowledge.segmentName
+  const macro = macroName || knowledge.macroName
 
-  
-  // Resolve initial selected sector ID
-  const sectorsList = useMemo(() => {
-    return snapshot.sectors.map(s => {
-      const profile = buildSectorPlaybookModel(snapshot, s.id)
-      const completeness = calculateCompleteness(profile)
+  // Personas
+  const personas = useMemo(() => {
+    const raw = asArray(asRecord(knowledge.playbook).personas)
+    return raw.map((p) => {
+      const rec = asRecord(p)
       return {
-        id: s.id,
-        slug: s.slug,
-        name: s.name,
-        status: s.status,
-        linkedAccountCount: s.linkedAccountCount,
-        openWindowCount: s.openWindowCount,
-        updatedAt: s.updatedAt,
-        completeness,
-        profile,
+        role: textFromRecord(rec.role, []) ?? textFromRecord(rec.fonction, []) ?? "Rôle clé",
+        enjeu: textFromRecord(rec.enjeu, []) ?? textFromRecord(rec.repond_de, []) ?? "Enjeu principal non renseigné",
+        peur: textFromRecord(rec.peur, []) ?? textFromRecord(rec.ce_qui_le_reveille, []) ?? "Point de douleur non renseigné",
       }
     })
-  }, [snapshot])
+  }, [knowledge.playbook])
 
-  const initialId = useMemo(() => {
-    if (initialSectorId && initialSectorId !== "all") {
-      return initialSectorId
-    }
-    const activeSec = sectorsList.find(s => s.status === "active")
-    if (activeSec) return activeSec.id
-    return sectorsList[0]?.id ?? ""
-  }, [initialSectorId, sectorsList])
+  // Arguments ROI
+  const roiArguments = useMemo(() => {
+    const raw = asArray(asRecord(knowledge.playbook).roi_arguments)
+    return raw
+      .map((item) => textFromRecord(item, ["argument", "titre", "valeur"]))
+      .filter((v): v is string => Boolean(v))
+  }, [knowledge.playbook])
 
-  const [selectedSectorId, setSelectedSectorId] = useState<string>(initialId)
+  // Objections
+  const objections = useMemo(() => {
+    const raw = asArray(asRecord(knowledge.playbook).objections)
+    return raw.map((o) => {
+      const rec = asRecord(o)
+      return {
+        objection: typeof rec.objection === "string" ? rec.objection : "Objection non formalisée",
+        reponse: typeof rec.reponse === "string" ? rec.reponse : typeof rec.argument === "string" ? rec.argument : "Réponse à qualifier",
+      }
+    })
+  }, [knowledge.playbook])
 
-  const currentSector = useMemo(() => {
-    return sectorsList.find(s => s.id === selectedSectorId) ?? sectorsList[0]
-  }, [selectedSectorId, sectorsList])
+  // Angles d'approche & points d'entrée
+  const entryPoints = useMemo(() => {
+    const raw = asArray(asRecord(knowledge.playbook).entry_points)
+    return raw
+      .map((item) => {
+        if (typeof item === "string") return textFromRecord(item, [])
+        const rec = asRecord(item)
+        const signal = textFromRecord(rec.signal, [])
+        const angle = textFromRecord(rec.angle, [])
+        const interlocuteur = textFromRecord(rec.interlocuteur, [])
+        if (!angle && !signal) return null
+        return {
+          angle: angle ?? signal ?? "",
+          signal: signal ?? null,
+          interlocuteur: interlocuteur ?? null,
+        }
+      })
+      .filter((v): v is { angle: string; signal: string | null; interlocuteur: string | null } => Boolean(v))
+  }, [knowledge.playbook])
 
-  // Filtered sectors list for left pane
-  const filteredSectors = useMemo(() => {
-    return sectorsList.filter(s =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }, [sectorsList, searchQuery])
+  // Échéances réglementaires et fenêtres
+  const deadlines = knowledge.regulatory
 
-  const activeSectors = useMemo(() => filteredSectors.filter(s => s.status === "active"), [filteredSectors])
-  const watchSectors = useMemo(() => filteredSectors.filter(s => s.status !== "active"), [filteredSectors])
+  // Sections conditionnelles
+  const sections: PlaybookSectionDef[] = useMemo(() => {
+    const list: PlaybookSectionDef[] = [
+      {
+        key: "enjeux",
+        label: "Enjeux",
+        hasData: knowledge.painPoints.length > 0 || Boolean(knowledge.description),
+        countBadge: knowledge.painPoints.length || null,
+      },
+      {
+        key: "personas",
+        label: "Personas",
+        hasData: personas.length > 0,
+        countBadge: personas.length || null,
+      },
+      {
+        key: "angles",
+        label: "Angles d’approche",
+        hasData: entryPoints.length > 0,
+        countBadge: entryPoints.length || null,
+      },
+      {
+        key: "objections",
+        label: "Objections",
+        hasData: objections.length > 0,
+        countBadge: objections.length || null,
+      },
+      {
+        key: "roi",
+        label: "ROI & offres",
+        hasData: roiArguments.length > 0 || Boolean(knowledge.practicesFit && Object.keys(asRecord(knowledge.practicesFit)).length > 0),
+        countBadge: roiArguments.length || null,
+      },
+      {
+        key: "pourquoi_maintenant",
+        label: "Pourquoi maintenant",
+        hasData: deadlines.length > 0 || knowledge.events.length > 0,
+        countBadge: (deadlines.length + knowledge.events.length) || null,
+      },
+      {
+        key: "battle_cards",
+        label: "Battle Cards",
+        hasData: competitiveActors.length > 0,
+        countBadge: competitiveActors.length || null,
+      },
+    ]
 
-  // Selected priority account within the playbook right pane
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+    return list.filter((s) => s.hasData)
+  }, [knowledge, personas, entryPoints, objections, roiArguments, deadlines, competitiveActors])
 
-  // Derived active selected account ID
-  const activeAccountId = useMemo(() => {
-    const priorityAccounts = currentSector?.profile?.priorityAccounts ?? []
-    if (priorityAccounts.length === 0) return null
-    if (selectedAccountId && priorityAccounts.some(a => a.id === selectedAccountId)) {
-      return selectedAccountId
-    }
-    return priorityAccounts[0]?.id ?? null
-  }, [currentSector, selectedAccountId])
+  const [activeSectionKey, setActiveSectionKey] = useState<SectorPlaybookSectionKey>(
+    () => sections[0]?.key ?? "enjeux",
+  )
 
+  const activeSection = sections.find((s) => s.key === activeSectionKey) ?? sections[0]
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "N/A"
-    try {
-      const d = new Date(dateStr)
-      return d.toLocaleDateString("fr-FR", { month: "short", year: "numeric" })
-    } catch {
-      return "N/A"
-    }
-  }
-
-  // Left Pane component
   const leftPane = (
-    <div className="flex flex-col h-full bg-[#0d0f28] text-white">
-      <div className="p-4 border-b border-white/5 space-y-3 shrink-0">
-        <input
-          type="search"
-          placeholder="Rechercher un secteur..."
-          className="w-full bg-slate-950/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-brand-brass/60"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+    <div className="flex h-full flex-col bg-[#0d0f28] text-white">
+      <div className="border-b border-white/10 p-4 shrink-0">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-brand-brass">
+          Playbook commercial
+        </span>
+        <h3 className="mt-1 font-heading text-sm font-bold text-white truncate">
+          {name}
+        </h3>
+        {macro ? (
+          <p className="text-[11px] text-white/45 truncate">Macro : {macro}</p>
+        ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-4">
-        {/* Active Sectors Group */}
-        {activeSectors.length > 0 && (
-          <div className="space-y-1">
-            <h3 className="px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2">
-              Études opérationnelles
-            </h3>
-            {activeSectors.map(s => {
-              const isSelected = s.id === selectedSectorId
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedSectorId(s.id)}
-                  className={`w-full text-left p-3 rounded-xl transition-all border outline-none ${
-                    isSelected
-                      ? "bg-brand-brass/10 border-brand-brass/35 text-white"
-                      : "bg-transparent border-transparent text-white/70 hover:bg-white/[0.03] hover:text-white"
-                  }`}
-                  aria-current={isSelected ? "true" : undefined}
-                >
-                  <div className="flex justify-between items-start">
-                    <span className="font-semibold text-xs leading-tight block">{s.name}</span>
-                    <span className="text-[10px] font-mono font-bold text-brand-brass bg-brand-brass/15 px-1.5 py-0.5 rounded ml-2 shrink-0">
-                      {s.completeness}%
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2 text-[10px] text-white/40 font-medium">
-                    <span>{s.linkedAccountCount} comptes</span>
-                    <span>•</span>
-                    <span>{s.openWindowCount} fenêtres</span>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Watch Sectors Group */}
-        {watchSectors.length > 0 && (
-          <div className="space-y-1 pt-2">
-            <h3 className="px-3 text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2">
-              Secteurs en veille
-            </h3>
-            {watchSectors.map(s => {
-              const isSelected = s.id === selectedSectorId
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedSectorId(s.id)}
-                  className={`w-full text-left p-3 rounded-xl transition-all border outline-none ${
-                    isSelected
-                      ? "bg-white/[0.06] border-white/15 text-white"
-                      : "bg-transparent border-transparent text-white/50 hover:bg-white/[0.02] hover:text-white"
-                  }`}
-                  aria-current={isSelected ? "true" : undefined}
-                >
-                  <div className="flex justify-between items-start">
-                    <span className="font-semibold text-xs leading-tight block">{s.name}</span>
-                    <span className="text-[10px] text-white/30 border border-white/10 px-1 py-0.5 rounded ml-2 shrink-0">
-                      Veille
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2 text-[10px] text-white/30 font-medium">
-                    <span>{s.linkedAccountCount} comptes</span>
-                    <span>•</span>
-                    <span>MàJ {formatDate(s.updatedAt)}</span>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-
-        {activeSectors.length === 0 && watchSectors.length === 0 && (
-          <div className="text-center py-8 text-xs text-white/30 italic">
-            Aucun secteur trouvé
-          </div>
-        )}
+      <div className="min-h-0 flex-1 overflow-y-auto p-2 space-y-1">
+        <p className="px-3 pt-2 text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+          Sections du Playbook
+        </p>
+        {sections.map((section) => {
+          const isSelected = section.key === activeSection?.key
+          return (
+            <button
+              key={section.key}
+              type="button"
+              onClick={() => setActiveSectionKey(section.key)}
+              aria-current={isSelected ? "true" : undefined}
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl border p-3 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-brass",
+                isSelected
+                  ? "border-brand-brass/40 bg-brand-brass/10 text-white font-semibold"
+                  : "border-transparent text-white/70 hover:bg-white/[0.03] hover:text-white",
+              )}
+            >
+              <span className="text-xs leading-tight">{section.label}</span>
+              {section.countBadge ? (
+                <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-mono font-bold text-brand-brass">
+                  {section.countBadge}
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
 
-  const profile = currentSector?.profile
+  const renderSectionContent = () => {
+    if (!activeSection) {
+      return (
+        <div className="py-12 text-center text-xs text-white/40 italic">
+          Playbook sectoriel en préparation pour ce secteur.
+        </div>
+      )
+    }
 
-  // Right Pane content (Detailed Playbook view)
-  const rightPane = (
-    <div className="flex flex-col h-full bg-[#0a0b1e] text-white">
-      {profile ? (
-        <>
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Header info */}
-            <div className="border-b border-white/5 pb-4 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={profile.status === "active" ? "brand" : "neutral"} className="uppercase text-[9px] tracking-wider font-semibold">
-                  {profile.status === "active" ? "Étude active" : "En veille"}
-                </Badge>
-                {profile.topPracticeLabel && (
-                  <Badge variant="brass" className="text-[9px] tracking-wider font-semibold">
-                    Practice : {profile.topPracticeLabel}
-                  </Badge>
-                )}
-                {profile.updatedAt && (
-                  <span className="text-[10px] text-white/40 ml-auto">
-                    Mis à jour le {new Date(profile.updatedAt).toLocaleDateString("fr-FR")}
-                  </span>
-                )}
+    switch (activeSection.key) {
+      case "enjeux":
+        return (
+          <div className="space-y-5">
+            {knowledge.description ? (
+              <div className="rounded-xl border border-white/10 bg-slate-900/30 p-4 space-y-1.5">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                  Cadrage sectoriel
+                </h4>
+                <p className="text-xs text-white/80 leading-relaxed">{knowledge.description}</p>
               </div>
-              <h3 className="text-xl font-bold text-white">{profile.name}</h3>
-              {profile.description && (
-                <p className="text-xs text-white/70 leading-relaxed pt-1">{profile.description}</p>
-              )}
-            </div>
+            ) : null}
 
-            {profile.status === "watch" ? (
-              /* Watch State View */
-              <div className="space-y-6">
-                <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-center space-y-1">
-                  <span className="text-brand-brass text-xs font-bold uppercase tracking-wider block">
-                    Étude sectorielle en préparation
-                  </span>
-                  <p className="text-[11px] text-white/50">
-                    Ce secteur est actuellement en veille. Les playbooks et argumentaires complets seront disponibles dès la finalisation de l&apos;étude.
-                  </p>
-                </div>
-
-                {/* Market metrics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                    <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Comptes liés</span>
-                    <span className="block text-lg font-bold text-white">{profile.linkedAccountCount}</span>
-                  </div>
-                  <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                    <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Couverture moy.</span>
-                    <span className="block text-lg font-bold text-white">
-                      {profile.averageReach !== null ? `${profile.averageReach}%` : "N/A"}
-                    </span>
-                  </div>
-                  <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                    <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Attractivité</span>
-                    <span className="block text-lg font-bold text-white">
-                      {profile.attractivenessScore !== null ? `${profile.attractivenessScore} / 100` : "N/A"}
-                    </span>
-                  </div>
-                  <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                    <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Maturité Digitale</span>
-                    <span className="block text-sm font-bold text-white capitalize">{profile.digitalMaturity ?? "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Active State View */
-              <div className="space-y-6">
-                {/* Market metrics grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {profile.marketSizeEurBn !== null && (
-                    <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                      <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Taille de marché</span>
-                      <span className="block text-lg font-bold text-white">{profile.marketSizeEurBn} Md€</span>
-                    </div>
-                  )}
-
-                  {profile.marketGrowthPct !== null && (
-                    <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                      <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Croissance</span>
-                      <span className="block text-lg font-bold text-brand-brass">+{profile.marketGrowthPct}%</span>
-                    </div>
-                  )}
-                  {profile.averageReach !== null && (
-                    <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                      <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Couverture relationnelle</span>
-                      <span className="block text-lg font-bold text-white">{profile.averageReach}%</span>
-                    </div>
-                  )}
-                  {profile.digitalMaturity && (
-                    <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                      <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Maturité Digitale</span>
-                      <span className="block text-sm font-bold text-white capitalize">{profile.digitalMaturity}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Personas Section */}
-                {profile.playbook.personas.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-bold text-brand-brass uppercase tracking-wider">
-                      Personas cibles
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {profile.playbook.personas.map((p, idx) => (
-                        <div key={idx} className="bg-slate-900/40 border border-white/5 rounded-xl p-4 space-y-2">
-                          <span className="block text-xs font-bold text-white">{p.role}</span>
-                          <div className="text-[11px] space-y-1">
-                            <p className="text-white/70">
-                              <strong className="text-white/95">Enjeu principal :</strong> {p.enjeu}
-                            </p>
-                            <p className="text-white/70">
-                              <strong className="text-white/95">Point de douleur :</strong> {p.peur}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Pain Points Section */}
-                {profile.painPoints.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-bold text-brand-brass uppercase tracking-wider">
-                      Points de douleur sectoriels (Pain Points)
-                    </h4>
-                    <div className="space-y-2">
-                      {profile.painPoints.map((pp, idx) => (
-                        <div key={idx} className="bg-slate-900/25 border border-white/5 rounded-lg p-3 space-y-1.5">
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="text-xs font-semibold text-white">{pp.title}</span>
-                            <span className="text-[10px] font-mono text-white/40 shrink-0">
-                              Freq: {pp.frequencyCount}
-                            </span>
-                          </div>
-                          {pp.description && <p className="text-[11px] text-white/60">{pp.description}</p>}
-                          {pp.verbatim && (
-                            <blockquote className="border-l-2 border-brand-brass/40 pl-2 text-[10px] italic text-white/50">
-                              &ldquo;{pp.verbatim}&rdquo;
-                            </blockquote>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Arguments ROI */}
-                {profile.playbook.roiArguments.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-bold text-brand-brass uppercase tracking-wider">
-                      Arguments ROI de valeur
-                    </h4>
-                    <ul className="list-disc pl-4 text-xs text-white/75 space-y-1.5">
-                      {profile.playbook.roiArguments.map((arg, idx) => (
-                        <li key={idx} className="leading-relaxed">{arg}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Objections */}
-                {profile.playbook.objections.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-bold text-brand-brass uppercase tracking-wider">
-                      Objections & Réponses préparées
-                    </h4>
-                    <div className="space-y-3">
-                      {profile.playbook.objections.map((o, idx) => (
-                        <div key={idx} className="bg-slate-900/30 border border-white/5 rounded-xl p-4 space-y-2">
-                          <p className="text-xs font-bold text-red-400">« {o.objection} »</p>
-                          <p className="text-[11px] text-white/70 leading-relaxed">{o.reponse}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Deadlines Section */}
-                {profile.deadlines.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-bold text-brand-brass uppercase tracking-wider">
-                      Échéances réglementaires
-                    </h4>
-                    <div className="space-y-2">
-                      {profile.deadlines.map((d, idx) => (
-                        <div key={idx} className="bg-slate-900/35 border border-white/5 rounded-lg p-3 flex justify-between items-center gap-3">
-                          <div className="min-w-0">
-                            <span className="block text-xs font-semibold text-white truncate">{d.title}</span>
-                            <span className="block text-[10px] text-white/40 mt-0.5">
-                              {d.authority ?? "Régulateur"} • Urgence: {d.urgency}/100
-                            </span>
-                          </div>
-                          {d.date && (
-                            <span className="text-xs font-mono font-bold text-brand-brass shrink-0 bg-brand-brass/10 px-2.5 py-1 rounded">
-                              {new Date(d.date).toLocaleDateString("fr-FR")}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Key Players Section */}
-                {(profile.keyPlayers.paca.length > 0 || profile.keyPlayers.national.length > 0) && (
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-brand-brass uppercase tracking-wider">
-                      Acteurs clés & Ecosystème
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {profile.keyPlayers.paca.length > 0 && (
-                        <div className="space-y-2">
-                          <span className="block text-[11px] font-bold text-white/50">Acteurs PACA</span>
-                          <div className="space-y-2">
-                            {profile.keyPlayers.paca.map((p, idx) => (
-                              <div key={idx} className="bg-slate-900/40 border border-white/5 rounded-lg p-3 text-xs">
-                                <strong className="text-white block">{p.name} ({p.size})</strong>
-                                {p.note && <span className="block text-[10px] text-white/60 mt-1">{p.note}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {profile.keyPlayers.national.length > 0 && (
-                        <div className="space-y-2">
-                          <span className="block text-[11px] font-bold text-white/50">Acteurs Nationaux</span>
-                          <div className="space-y-2">
-                            {profile.keyPlayers.national.map((p, idx) => (
-                              <div key={idx} className="bg-slate-900/40 border border-white/5 rounded-lg p-3 text-xs">
-                                <strong className="text-white block">{p.name} ({p.size})</strong>
-                                {p.note && <span className="block text-[10px] text-white/60 mt-1">{p.note}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Caveats & Sources Section */}
-                {profile.caveats && (
-                  <div className="pt-2">
-                    <details className="group border border-white/5 rounded-xl bg-white/[0.01]">
-                      <summary className="p-3 text-xs font-bold text-white/50 hover:text-white cursor-pointer select-none outline-none flex justify-between items-center">
-                        <span>Réserves méthodologiques & Sources ({profile.sources.length})</span>
-                        <svg className="w-4 h-4 text-white/30 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </summary>
-                      <div className="p-4 border-t border-white/5 space-y-3 text-[11px] text-white/65 leading-relaxed bg-slate-950/20">
-                        {profile.caveats.corpus && (
-                          <p><strong>Taille du corpus :</strong> {profile.caveats.corpus}</p>
-                        )}
-                        {profile.caveats.verbatims && (
-                          <p><strong>Verbatims :</strong> {profile.caveats.verbatims}</p>
-                        )}
-                        {profile.caveats.frequences && (
-                          <p><strong>Fréquences d&apos;occurrence :</strong> {profile.caveats.frequences}</p>
-                        )}
-                        {profile.caveats.marche && (
-                          <p><strong>Chiffres marché :</strong> {profile.caveats.marche}</p>
-                        )}
-                        {profile.sources.length > 0 && (
-                          <div className="space-y-1 pt-1">
-                            <span className="block font-bold text-white/80">Sources consultées :</span>
-                            <ul className="list-disc pl-4 space-y-1 text-brand-brass">
-                              {profile.sources.map((src, idx) => (
-                                <li key={idx}>
-                                  <a href={src} target="_blank" rel="noreferrer" className="hover:underline truncate block max-w-full">
-                                    {src}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+            {knowledge.painPoints.length > 0 ? (
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                  Points de douleur & Enjeux prioritaires ({knowledge.painPoints.length})
+                </h4>
+                <div className="space-y-2.5">
+                  {knowledge.painPoints.map((pp) => (
+                    <div key={pp.id} className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-bold text-white">{pp.title}</span>
+                        <span className="text-[10px] font-mono text-white/40 shrink-0">
+                          Fréq : {pp.frequencyCount}
+                        </span>
                       </div>
-                    </details>
+                      {pp.description ? (
+                        <p className="text-xs text-white/70 leading-relaxed">{pp.description}</p>
+                      ) : null}
+                      {pp.verbatim ? (
+                        <blockquote className="border-l-2 border-brand-brass/40 pl-2.5 text-[11px] italic text-white/60">
+                          « {pp.verbatim} »
+                        </blockquote>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )
+
+      case "personas":
+        return (
+          <div className="space-y-3">
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+              Personas cibles & Interlocuteurs ({personas.length})
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {personas.map((p, idx) => (
+                <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2.5">
+                  <span className="block text-xs font-bold text-white border-b border-white/10 pb-1.5">
+                    {p.role}
+                  </span>
+                  <div className="text-xs space-y-2">
+                    <p className="text-white/80 leading-relaxed">
+                      <strong className="text-brand-brass">Enjeu principal : </strong>
+                      {p.enjeu}
+                    </p>
+                    <p className="text-white/80 leading-relaxed">
+                      <strong className="text-rose-400">Ce qui le préoccupe : </strong>
+                      {p.peur}
+                    </p>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Priority accounts section */}
-            <div className="border-t border-white/5 pt-6 space-y-3">
-              <h4 className="text-[10px] font-bold text-brand-brass uppercase tracking-wider">
-                Comptes prioritaires liés
-              </h4>
-              <div className="space-y-2">
-                {profile.priorityAccounts.length === 0 ? (
-                  <p className="text-xs text-white/40 italic">Aucun compte lié trouvé dans le portefeuille actuel.</p>
-                ) : (
-                  profile.priorityAccounts.map(a => {
-                    const isSelected = a.id === activeAccountId
-                    return (
-                      <div
-                        key={a.id}
-                        onClick={() => setSelectedAccountId(a.id)}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-wrap items-center justify-between gap-3 ${
-                          isSelected
-                            ? "bg-brand-brass/10 border-brand-brass/30"
-                            : "bg-slate-900/30 border-white/5 hover:bg-slate-900/60"
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <span className="block text-xs font-bold text-white">{a.name}</span>
-                          <div className="flex items-center gap-2 text-[10px] text-white/40 mt-1">
-                            <span>Priorité : {a.priority}</span>
-                            <span>•</span>
-                            <span>Potentiel/Reach: P:{a.potential} | R:{a.reach}</span>
-                            {a.nativeScore !== null && (
-                              <>
-                                <span>•</span>
-                                <span>Score Natif : {a.nativeScore}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {a.action && (
-                          <span className="text-[10px] text-white/60 bg-white/[0.04] px-2 py-1 rounded shrink-0 max-w-[200px] truncate" title={a.action}>
-                            Action: {a.action}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })
-                )}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
+        )
 
-          {/* Action footer */}
-          <footer className="shrink-0 p-4 border-t border-white/5 bg-slate-950/40 flex flex-wrap items-center justify-between gap-3">
-            <Button
-              variant="brass"
-              size="sm"
-              onClick={() => onApplySector(currentSector.id, activeAccountId)}
-            >
-              Appliquer au portefeuille
-            </Button>
+      case "angles":
+        return (
+          <div className="space-y-3">
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+              Angles d’approche & Points d’entrée ({entryPoints.length})
+            </h4>
+            <div className="space-y-2.5">
+              {entryPoints.map((ep, idx) => (
+                <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-bold text-white">{ep.angle}</span>
+                    {ep.interlocuteur ? (
+                      <span className="rounded bg-brand-brass/10 px-2 py-0.5 text-[10px] font-medium text-brand-brass shrink-0">
+                        Cible : {ep.interlocuteur}
+                      </span>
+                    ) : null}
+                  </div>
+                  {ep.signal ? (
+                    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5 text-xs text-white/70">
+                      <strong className="text-white/90">Signal déclencheur : </strong>
+                      {ep.signal}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        )
 
-            {activeAccountId ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  router.push(`/prospection/accounts/${activeAccountId}`)
-                }}
-              >
-                Ouvrir le compte prioritaire
-              </Button>
-            ) : (
-              <Button variant="secondary" size="sm" disabled>
-                Ouvrir le compte prioritaire
-              </Button>
-            )}
-          </footer>
+      case "objections":
+        return (
+          <div className="space-y-3">
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+              Objections & Réponses préparées ({objections.length})
+            </h4>
+            <div className="space-y-3">
+              {objections.map((o, idx) => (
+                <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2">
+                  <p className="text-xs font-bold text-rose-300">« {o.objection} »</p>
+                  <div className="border-l-2 border-brand-brass/50 pl-3 pt-0.5">
+                    <p className="text-xs leading-relaxed text-white/85">{o.reponse}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
 
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-xs text-white/40 italic">
-          Sélectionnez un secteur pour afficher son playbook
+      case "roi":
+        return (
+          <div className="space-y-5">
+            {roiArguments.length > 0 ? (
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                  Arguments ROI de valeur ({roiArguments.length})
+                </h4>
+                <div className="space-y-2">
+                  {roiArguments.map((arg, idx) => (
+                    <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/30 p-3.5 flex items-start gap-3">
+                      <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-brand-brass" />
+                      <p className="text-xs leading-relaxed text-white/85">{arg}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {knowledge.practicesFit && Object.keys(asRecord(knowledge.practicesFit)).length > 0 ? (
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                  Adéquation des Practices KREDO (Practices Fit)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {Object.entries(asRecord(knowledge.practicesFit)).map(([slug, fit]) => {
+                    const fitRec = asRecord(fit)
+                    const score = typeof fitRec.score === "number" ? fitRec.score : typeof fit === "number" ? fit : null
+                    const comment = typeof fitRec.rationale === "string" ? fitRec.rationale : typeof fitRec.justification === "string" ? fitRec.justification : null
+                    return (
+                      <div key={slug} className="rounded-xl border border-white/5 bg-slate-900/30 p-3 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white capitalize">{slug.replace(/-/g, " ")}</span>
+                          {score !== null ? (
+                            <span className="font-mono text-xs font-bold text-brand-brass">{score}/100</span>
+                          ) : null}
+                        </div>
+                        {comment ? (
+                          <p className="text-[11px] text-white/60 leading-snug">{comment}</p>
+                        ) : null}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )
+
+      case "pourquoi_maintenant":
+        return (
+          <div className="space-y-5">
+            {deadlines.length > 0 ? (
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                  Échéances réglementaires & Fenêtres d’opportunité ({deadlines.length})
+                </h4>
+                <div className="space-y-2">
+                  {deadlines.map((d) => (
+                    <div key={d.id} className="rounded-xl border border-white/10 bg-slate-900/30 p-3.5 flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-white">{d.name}</span>
+                          {d.authority ? (
+                            <span className="text-[10px] text-white/40">· {d.authority}</span>
+                          ) : null}
+                        </div>
+                        {d.description ? (
+                          <p className="text-[11px] text-white/65 mt-1">{d.description}</p>
+                        ) : null}
+                      </div>
+                      {d.deadlineDate ? (
+                        <span className="font-mono text-xs font-bold text-brand-brass bg-brand-brass/10 px-2.5 py-1 rounded shrink-0">
+                          {new Date(d.deadlineDate).toLocaleDateString("fr-FR")}
+                        </span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {knowledge.events.length > 0 ? (
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                  Événements structurants & Salons ({knowledge.events.length})
+                </h4>
+                <div className="space-y-2">
+                  {knowledge.events.map((e) => (
+                    <div key={e.id} className="rounded-xl border border-white/5 bg-slate-900/30 p-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-semibold text-white block">{e.title}</span>
+                        {e.commercialOpportunity ? (
+                          <p className="text-[11px] text-brand-brass mt-0.5">{e.commercialOpportunity}</p>
+                        ) : null}
+                      </div>
+                      {e.eventDate ? (
+                        <span className="font-mono text-xs text-white/70">
+                          {new Date(e.eventDate).toLocaleDateString("fr-FR")}
+                        </span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )
+
+      case "battle_cards":
+        return <BattleCardsSection actors={competitiveActors} isMobile={isMobile} />
+    }
+  }
+
+  const rightPane = (
+    <div className="flex h-full min-h-0 flex-col bg-[#0a0b1e] text-white">
+      {/* Header */}
+      <div className="border-b border-white/10 px-6 py-5 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-brand-brass/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+              Playbook actif
+            </span>
+            {macro ? (
+              <span className="text-[10px] text-white/40">Macro : {macro}</span>
+            ) : null}
+          </div>
+          {priorityAccounts.length > 0 ? (
+            <span className="text-[10px] text-white/45">
+              {priorityAccounts.length} compte{priorityAccounts.length > 1 ? "s" : ""} prioritaire{priorityAccounts.length > 1 ? "s" : ""} lié{priorityAccounts.length > 1 ? "s" : ""}
+            </span>
+          ) : null}
         </div>
-      )}
+        <h2 className="mt-2 font-heading text-xl font-bold text-white">
+          {name} — {activeSection?.label}
+        </h2>
+      </div>
+
+      {/* Contenu de la section active */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-6">
+        {renderSectionContent()}
+      </div>
+
+      {/* Footer */}
+      <footer className="flex shrink-0 justify-end border-t border-white/10 bg-slate-950/40 p-4">
+        <Button variant="secondary" onClick={onClose}>
+          Fermer
+        </Button>
+      </footer>
     </div>
   )
 
   const mobileContent = (
     <div className="flex min-h-0 flex-1 flex-col bg-[#0a0b1e] text-white">
-      <div className="shrink-0 border-b border-white/5 px-4 py-3">
-        <label htmlFor="mobile-playbook-sector" className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-white/45">
-          Secteur
-        </label>
-        <select
-          id="mobile-playbook-sector"
-          value={currentSector?.id ?? ""}
-          onChange={(event) => setSelectedSectorId(event.target.value)}
-          className="min-h-11 w-full rounded-lg border border-white/10 bg-slate-950/50 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-brass"
-        >
-          {sectorsList.map((sector) => (
-            <option key={sector.id} value={sector.id}>{sector.name}{sector.status === "watch" ? " — veille" : ""}</option>
-          ))}
-        </select>
+      {/* Header Mobile */}
+      <div className="shrink-0 border-b border-white/10 p-4">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+          Playbook commercial
+        </span>
+        <h3 className="mt-0.5 font-heading text-lg font-bold text-white">{name}</h3>
       </div>
-      {profile ? (
-        <>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5">
-            <div className="space-y-2 border-b border-white/10 pb-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${profile.status === "active" ? "bg-brand-brass/10 text-brand-brass" : "bg-white/5 text-white/45"}`}>
-                  {profile.status === "active" ? "Étude opérationnelle" : "Secteur en veille"}
-                </span>
-                <span className="text-[10px] text-white/45">{profile.topPracticeLabel}</span>
-              </div>
-              <h3 className="text-xl font-bold text-white">{profile.name}</h3>
-              {profile.description ? <p className="text-xs leading-relaxed text-white/65">{profile.description}</p> : null}
-            </div>
-            {profile.status === "watch" ? (
-              <div className="py-8 text-center">
-                <p className="text-sm font-semibold text-brand-brass">Étude en préparation</p>
-                <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-white/55">Le playbook n&apos;est pas encore disponible pour ce secteur. Aucune recommandation n&apos;est inventée.</p>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-2">
-                <MobilePlaybookSection title="Synthèse"><p>{profile.summary}</p></MobilePlaybookSection>
-                <MobilePlaybookSection title="Personas"><MobileTextList items={profile.playbook.personas.map((persona) => `${persona.role} — ${persona.enjeu}`)} empty="Aucun persona renseigné." /></MobilePlaybookSection>
-                <MobilePlaybookSection title="Pain points"><MobileTextList items={profile.painPoints.map((point) => point.title)} empty="Aucun pain point renseigné." /></MobilePlaybookSection>
-                <MobilePlaybookSection title="Arguments ROI"><MobileTextList items={profile.playbook.roiArguments} empty="Aucun argument ROI renseigné." /></MobilePlaybookSection>
-                <MobilePlaybookSection title="Objections"><MobileTextList items={profile.playbook.objections.map((objection) => `${objection.objection} — ${objection.reponse}`)} empty="Aucune objection renseignée." /></MobilePlaybookSection>
-                <MobilePlaybookSection title="Échéances"><MobileTextList items={profile.deadlines.map((deadline) => `${deadline.title}${deadline.date ? ` · ${new Date(deadline.date).toLocaleDateString("fr-FR")}` : ""}`)} empty="Aucune échéance renseignée." /></MobilePlaybookSection>
-                <MobilePlaybookSection title="Comptes prioritaires"><MobileTextList items={profile.priorityAccounts.map((account) => `${account.name} · priorité ${account.priority}`)} empty="Aucun compte prioritaire lié." /></MobilePlaybookSection>
-                <MobilePlaybookSection title={`Caveats et sources${profile.sources.length ? ` (${profile.sources.length})` : ""}`}><MobileTextList items={[profile.caveats?.corpus, profile.caveats?.verbatims, profile.caveats?.frequences, profile.caveats?.marche, ...profile.sources].filter((value): value is string => Boolean(value))} empty="Aucune réserve ou source renseignée." /></MobilePlaybookSection>
-              </div>
-            )}
-          </div>
-          <footer className="flex shrink-0 gap-2 border-t border-white/10 bg-slate-950/40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <Button variant="brass" size="sm" className="min-h-11 flex-1" onClick={() => onApplySector(currentSector.id, activeAccountId)}>Appliquer au portefeuille</Button>
-            {activeAccountId ? <Button variant="secondary" size="sm" className="min-h-11 flex-1" onClick={() => router.push(`/prospection/accounts/${activeAccountId}`)}>Ouvrir le compte</Button> : null}
-          </footer>
-        </>
-      ) : <div className="flex flex-1 items-center justify-center px-4 text-center text-xs text-white/45">Aucun secteur disponible.</div>}
+
+      {/* Rail de navigation tactile horizontal */}
+      <nav
+        aria-label="Sections du Playbook"
+        className="sticky top-0 z-10 flex overflow-x-auto border-b border-white/10 bg-slate-950 px-2 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {sections.map((section) => {
+          const isSelected = section.key === activeSection?.key
+          return (
+            <button
+              key={section.key}
+              type="button"
+              onClick={() => setActiveSectionKey(section.key)}
+              aria-current={isSelected ? "page" : undefined}
+              className={cn(
+                "min-h-11 shrink-0 rounded-lg px-3 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass",
+                isSelected
+                  ? "bg-brand-brass/20 text-brand-brass font-bold"
+                  : "text-white/60 hover:text-white",
+              )}
+            >
+              {section.label}
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* Contenu Mobile */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
+        {renderSectionContent()}
+      </div>
+
+      {/* Footer Mobile */}
+      <footer className="shrink-0 border-t border-white/10 bg-slate-950 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <Button variant="secondary" className="min-h-11 w-full" onClick={onClose}>
+          Fermer
+        </Button>
+      </footer>
     </div>
   )
 
@@ -644,30 +568,13 @@ export function SectorPlaybooksModal({
     <IntelligenceSplitModalShell
       open={open}
       onClose={onClose}
-      title="Playbooks sectoriels"
-      subtitle="Études, angles d’approche et argumentaires adaptés à chaque secteur."
-      leftPaneWidth="32%"
+      title={`Playbook commercial — ${name}`}
+      subtitle="Traduction opérationnelle et commerciale de la connaissance sectorielle."
       leftPane={leftPane}
       rightPane={rightPane}
       content={isMobile ? mobileContent : undefined}
+      leftPaneWidth="30%"
       isMobile={isMobile}
     />
   )
-}
-
-function MobilePlaybookSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <details className="rounded-lg border border-white/10 bg-white/[0.025]">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 text-xs font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass">
-        {title}
-        <svg className="size-4 text-white/45" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
-      </summary>
-      <div className="border-t border-white/10 px-3 py-3 text-xs leading-relaxed text-white/70">{children}</div>
-    </details>
-  )
-}
-
-function MobileTextList({ items, empty }: { items: string[]; empty: string }) {
-  if (items.length === 0) return <p className="italic text-white/45">{empty}</p>
-  return <ul className="space-y-2">{items.map((item) => <li key={item} className="flex gap-2"><span className="mt-1.5 size-1 shrink-0 rounded-full bg-brand-brass" aria-hidden="true" />{item}</li>)}</ul>
 }

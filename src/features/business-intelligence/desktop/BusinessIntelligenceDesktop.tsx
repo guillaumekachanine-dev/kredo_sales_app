@@ -49,7 +49,7 @@ export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopPr
   return <BusinessIntelligenceWorkspaceDesktop {...props} />
 }
 
-export function BusinessIntelligenceWorkspaceDesktop({ snapshot, sectorMapCatalog, competitiveMapWorkspace, workspace, initialTab = "home" }: BusinessIntelligenceDesktopProps) {
+export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competitiveMapWorkspace, workspace, initialTab = "home" }: BusinessIntelligenceDesktopProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeChapter = resolveBiChapter(searchParams.get("tab") ?? initialTab)
@@ -164,17 +164,20 @@ export function BusinessIntelligenceWorkspaceDesktop({ snapshot, sectorMapCatalo
         <SectorPlaybooksModal
           open
           onClose={() => setIsPlaybooksOpen(false)}
-          snapshot={snapshot}
-          initialSectorId={workspace.segment.id}
-          onApplySector={() => setIsPlaybooksOpen(false)}
+          knowledge={workspace.knowledge}
+          segmentName={workspace.segment.name}
+          macroName={workspace.segment.macro?.name ?? null}
+          competitiveActors={workspace.competitiveMap?.actors ?? []}
+          priorityAccounts={workspace.portfolio.accounts}
         />
       ) : null}
       {isStudiesOpen ? (
         <SectorStudiesModal
           open
           onClose={() => setIsStudiesOpen(false)}
-          snapshot={snapshot}
-          initialSectorId={workspace.segment.id}
+          knowledge={workspace.knowledge}
+          segmentName={workspace.segment.name}
+          macroName={workspace.segment.macro?.name ?? null}
         />
       ) : null}
       {isSegmentPending ? (

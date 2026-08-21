@@ -1,6 +1,8 @@
 # Lot 3 Business Intelligence - Playbooks Sectoriels & Stabilisation
 
-Ce document décrit l'architecture, les données exploitées, les corrections apportées et l'état de stabilisation de l'intégration des playbooks sectoriels (Lot 3) sur KREDO.
+> ⚠️ **SUPERSEDED PAR LE LOT 4 (2026-08-22)** : L'architecture catalogue multi-segments décrite dans ce document historique a été remplacée au Lot 4 par le lecteur contextuel mono-segment structuré en 7 sections métier (`Enjeux`, `Personas`, `Angles d’approche`, `Objections`, `ROI & offres`, `Pourquoi maintenant`, `Battle Cards`). Voir `docs/MASTER-STUDY/02-DISTRIBUTION-DANS-KREDO.md`.
+
+Ce document décrit l'architecture historique du Lot 3.
 
 ## Architecture de la Modale
 
