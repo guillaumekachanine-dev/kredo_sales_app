@@ -23,8 +23,11 @@ d'avoir lu la conversation qui a produit l'ADR. Commencez par la section 1.
   défaut fonctionnel trouvé** — deuxième lot consécutif sans défaut bloquant, après L4. Un seul
   écart de méthode corrigé à la vérification (tests qui frappaient la prod dans `npm test`, voir
   §4.9). Correctif de provenance des 8 `competitive_map_entries` orphelines exécuté dans ce même
-  lot (décision différée depuis L3/L4, close ici). Prochaine étape : **GATE B design** puis
-  redesign de Cockpit > Secteur (hors périmètre de L5, volontairement).
+  lot (décision différée depuis L3/L4, close ici). **Amendement MS-21 livré le 2026-08-21** (§4.10,
+  ADR §15) — troisième statut `estimated` pour un chiffre triangulé depuis une décomposition
+  officielle sourcée (SNIAA/Insee), distinct de `not_published` ; segment pilote corrigé,
+  `taille_eur_bn: 2.4`. Prochaine étape : **GATE B design** puis redesign de Cockpit > Secteur (hors
+  périmètre de L5, volontairement).
 - **Segment pilote** : `seg-parfumerie-compositions-b2b` (`db34f8a0-9d9e-4585-acd6-2fbbdd1baad6`).
   **Compte pilote** : ROBERTET (`67b346ff-68c8-4f36-a510-13024955856f`).
 
@@ -579,6 +582,70 @@ verts.
 - Références croisées E4↔E5 structurées (MS-16) — différées après validation du contrat, donc
   après ce lot.
 - `intelligence_source_links` (MS-15, hors V1).
+
+---
+
+## 4.10 Amendement MS-21 — statut `estimated` (2026-08-21)
+
+Signalé par Guillaume après ouverture de l'écran BI corrigé (§4.9) : le TAM du segment pilote
+affichait `not_published` alors qu'une recherche indépendante de cinq lignes de prompt a produit un
+document exploitable en quelques minutes (SNIAA/PRODAROM/INSEE). Détail complet, décision et
+justification : **ADR-0021 §15** (nouveau), décision **MS-21**.
+
+**Cause réelle, pas un manque de rigueur générique** : `03-sources.json` du run pilote documente que
+SNIAA avait été trouvé par la recherche Gemini du 14/08 puis écarté à la fusion mécanique des deux
+corpus E3, faute d'URL vérifiable dans le JSON source — un défaut du script de fusion, pas de la
+recherche. Le prompt E4 interdisait par ailleurs, à raison, de reconstituer un chiffre de branche
+depuis le CA d'un groupe — mais la formulation bloquait aussi la triangulation légitime depuis la
+décomposition officiellement publiée d'un marché par son propre syndicat.
+
+**Livré et vérifié dans la foulée** (pas par un agent externe cette fois — travail direct, avec
+vérification à chaque étape avant de passer à la suivante) :
+- Migration `20260821010415_sector_knowledge_estimated_status.sql` : `sector_resolve_scalar`/
+  `sector_scalar_level` reparamétrées sur le statut texte du verrou (plus un simple booléen),
+  `v_sector_knowledge_resolved` recréée. **19 assertions SQL rejouées, 0 régression** — dont 5
+  nouvelles pour `estimated` et une réécriture de l'ancienne assertion 17, devenue fausse dès L3
+  (documenté comme attendu à l'époque, corrigé ici en invariant permanent).
+- **Un vrai écart de vocabulaire trouvé en écrivant la migration** : cette ADR documentait
+  `explicit_unknown` comme valeur de verrou (§6.3, v2.0 initiale) ; l'importeur L2 écrit en réalité
+  `not_published` — jamais `explicit_unknown`, qui n'existe nulle part dans le code. Corrigé avant
+  d'écrire la moindre assertion avec le mauvais mot ; recherché puis vérifié par `grep` sur tout
+  `src/`, pas supposé.
+- TypeScript : `SectorResolvedLevel` (2 définitions) + `SectorLevelBadge` (badge « Estimation »,
+  `text-info`) + `E4MarketMetricStatus`.
+- Corpus : `schemas/sector-knowledge.schema.json` (+`estimated`, +2 champs `*_methodologie`),
+  `prompts/E4-etude-sectorielle.md` (règle de comparabilité amendée, 4 conditions).
+- Segment pilote : `taille_eur_bn: 2.4` (`estimated`), méthodologie de triangulation documentée en
+  toutes lettres dans `04-secteur.json`, sources SNIAA/Insee ajoutées et vérifiées (`03-sources.json`,
+  SRC-030/031). `croissance_pct` **reste** `not_published` — aucune décomposition sourcée trouvée
+  pour la croissance, MS-21 n'invente pas de précision.
+
+**Incident d'environnement en cours de route, sans impact sur le résultat** : perte d'accès complète
+au dossier `~/Desktop` (Bash et lecture de fichiers) pendant la rédaction, résolue après relance de
+l'app suite à une permission macOS. Pendant la coupure, une session parallèle de Guillaume a committé
+son propre travail (`feat(reports): harmonisation…`, `ccac5865`) et son `git add` a **embarqué les
+fichiers déjà modifiés par ce lot** (migration, corpus, TypeScript) dans son commit — mélange
+d'attribution regrettable mais sans perte : chaque fichier vérifié individuellement après coup,
+contenu identique à ce qui avait été écrit. Deux vrais défauts trouvés à cette vérification, corrigés
+et committés séparément (`7e6c8576`) :
+- `map-e4-to-canon.test.ts` — le test contre le fixture réel du run pilote attendait encore l'ancien
+  `market_size_eur_bn: null`/`not_published` : cassé par le correctif ci-dessus, pas vu tant que
+  `npm test` n'avait pas été relancé après l'incident.
+- `e4-contracts.ts` — `E4MarketMetricStatus` ne listait pas `"estimated"`. Le mapper
+  (`map-e4-to-canon.ts`) gérait déjà correctement la valeur par construction générique (seuls
+  `not_published`/`not_applicable` forcent `NULL`, tout le reste passe la valeur telle quelle) —
+  aucun changement de logique nécessaire, seulement le typage.
+
+**Validation finale, relancée après l'incident** : `typecheck` (vert), `test` (173 fichiers, 1710
+tests, vert), `check:server-boundary` (vert), `eslint` sur les fichiers touchés (0 erreur, les 2
+warnings `<img>` déjà connus), `rm -rf .next && npm run build` (exit 0). Vérifié en base après coup,
+indépendamment du code : `market_size_eur_bn = 2.40`, `market_size_eur_bn_level = 'estimated'` sur
+`v_sector_knowledge_resolved` pour le segment pilote.
+
+**Hors périmètre de cet amendement, à noter pour la suite** : `croissance_pct` du pilote reste non
+triangulé (aucune décomposition officielle équivalente à SNIAA trouvée pour la croissance) ; le
+badge « Estimation » n'a pas été vérifié à l'écran (Cockpit > Secteur affiche déjà les badges de
+provenance depuis L0, donc le rendu devrait suivre automatiquement, mais pas confirmé visuellement).
 
 ---
 

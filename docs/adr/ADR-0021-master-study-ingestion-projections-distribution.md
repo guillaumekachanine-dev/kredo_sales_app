@@ -591,6 +591,7 @@ du bloc `compteurs` du livrable, il ne connaît aucun nom de liste en dur.
 | **MS-18** | **L'affichage d'une valeur héritée du macro porte toujours sa provenance.** Un chiffre sans badge est un chiffre présenté comme spécifique au segment. |
 | **MS-19** | **E4 amorce la chaîne de valeur, E6 l'approfondit.** Les deux écrivent dans `value_chain_*`, arbitrés par `source_run_id`. |
 | **MS-20** | **Aucune synthèse n'est persistée.** Pas de table `sector_digest_cache`, pas de `account_sector_perspectives`, pas de résumé par compte. C'est ce qui garde toute décision de lecture réversible. |
+| **MS-21** | **`NULL` ne vaut pas non plus « impossible à estimer ».** Un troisième statut, **`estimated`**, distingue une valeur triangulée depuis la décomposition sourcée d'un marché (tier 1-2, méthodologie documentée) d'une valeur publiée telle quelle (`segment`/`macro`) et d'un inconnu explicite (`locked`, MS-12). `estimated` porte une vraie valeur, jamais héritée du macro, avec sa provenance affichée (badge dédié, MS-18 étendu). Amendement du 2026-08-21 — voir §15. |
 
 ---
 
@@ -691,6 +692,76 @@ antérieur ne sont pas touchées » est la seule barrière ; il est bloquant.
 
 ---
 
+# 15. Amendement — 2026-08-21 : le statut `estimated`
+
+## 15.1 Le problème signalé
+
+Le TAM du segment pilote (`seg-parfumerie-compositions-b2b`) était `not_published` alors qu'une
+recherche de cinq lignes de prompt a produit un document exploitable, sourcé SNIAA/PRODAROM/INSEE,
+en quelques minutes (Guillaume, 2026-08-21). Investigation : `03-sources.json` du run pilote
+documente que **SNIAA avait été identifié par la recherche Gemini Deep Research du 14/08, puis
+écarté à la fusion mécanique des deux corpus E3 faute d'URL vérifiable dans le JSON source** — pas
+un défaut de recherche, un défaut du script de fusion. Le prompt E4 (§ Règles de comparabilité)
+interdisait par ailleurs explicitement de « reconstituer par règle de trois » un chiffre de segment
+à partir d'un marché plus large — une règle correcte pour empêcher de faire passer le CA d'un
+groupe pour celui d'une branche, mais rédigée assez large pour bloquer aussi la triangulation
+légitime depuis la propre décomposition publiée d'un syndicat professionnel.
+
+## 15.2 Décision (MS-21)
+
+Un troisième statut, **`estimated`**, vient s'ajouter à `published`/`not_published`/`not_applicable`
+(côté corpus, `taille_statut`/`croissance_statut`) et à `segment`/`macro`/`locked` (côté canon,
+`resolution_locks` et `*_level`). Il porte une vraie valeur — jamais `NULL`, jamais héritée du
+macro — mais distincte d'un chiffre publié tel quel : c'est une triangulation, pas une citation.
+
+**Conditions non négociables** (portées dans le prompt E4, § Règles de comparabilité) :
+1. La décomposition elle-même doit être sourcée (tier 1-2) — jamais le chiffre final seul.
+2. `taille_methodologie`/`croissance_methodologie` (nouveaux champs du schéma) sont obligatoires
+   dès que le statut est `estimated` : lignes sommées, valeurs et parts telles que publiées,
+   millésime, ce qui a été exclu et pourquoi.
+3. La règle « jamais un chiffre de groupe pour une branche » reste absolue et inchangée — elle
+   couvre un cas différent (proxy depuis une seule entreprise), pas la décomposition d'un marché
+   par sa propre source officielle.
+
+## 15.3 Ce qui a changé, techniquement
+
+- **DB** (migration `20260821010415_sector_knowledge_estimated_status.sql`) : `private.sector_resolve_scalar`/
+  `sector_scalar_level` reparamétrées sur le **statut réel** du verrou (`text`), pas un booléen
+  verrouillé/pas verrouillé — nécessaire pour distinguer trois traitements (`not_published`/
+  `not_applicable` → `NULL` + `locked` ; `estimated` → valeur conservée + `estimated` ; rien →
+  résolution segment/macro normale). `v_sector_knowledge_resolved` recréée en conséquence
+  (`security_invoker` vérifié préservé). 19 assertions SQL rejouées, 0 régression.
+- **Correction de vocabulaire trouvée en cours de route** : cette ADR documentait `explicit_unknown`
+  comme valeur de verrou (§6.3) ; l'importeur L2 (`map-e4-to-canon.ts`) écrit en réalité
+  `not_published`, le vocabulaire du corpus lui-même. Les fonctions et assertions utilisent
+  `not_published`, pas `explicit_unknown` — ce paragraphe corrige la divergence, elle n'introduit
+  pas de nouveau nom.
+- **TypeScript** : `SectorResolvedLevel` passe à 4 valeurs dans ses deux définitions
+  (`get-sector-knowledge-read-model.ts`, `client-intelligence-sector.ts`) ; `SectorLevelBadge`
+  affiche un badge « Estimation » distinct (`text-info`, jamais confondu avec `warning` = verrouillé
+  ni `muted` = hérité du macro) ; `E4MarketMetricStatus` étendu.
+- **Corpus** : `schemas/sector-knowledge.schema.json` (`taille_statut`/`croissance_statut` + 2 champs
+  `*_methodologie`), `prompts/E4-etude-sectorielle.md` (règle de comparabilité amendée avec les
+  4 conditions du §15.2).
+- **Segment pilote** : `taille_eur_bn` passe de `null`/`not_published` à **2,4** (`estimated`) —
+  95 % du CA filière SNIAA 2023 (compositions parfumantes 53 % + ingrédients aromatiques 23 % +
+  arômes formulés 19 %, les trois lignes que couvre la description canon du segment), corroboré par
+  Insee PRODCOM (1,637 Md€ de facturations NAF 20.53Z 2020). `croissance_pct` reste `not_published` :
+  aucune décomposition officielle équivalente n'a été trouvée pour la croissance, et MS-21 n'autorise
+  la triangulation que quand la décomposition elle-même est sourcée — pas de précision inventée.
+  Sources SNIAA/Insee ajoutées à `03-sources.json` (SRC-030/031) et `04-secteur.json` (src 30/31).
+
+## 15.4 Ce que ça ne change pas
+
+- `resolution_locks.market_growth_pct` reste `not_published` sur le pilote — MS-21 ne force aucune
+  triangulation, elle l'autorise seulement quand elle est défendable.
+- Aucune migration de `caveats` ni de `dependences_critiques` : le mécanisme est isolé au couple
+  scalaire taille/croissance, là où le problème a été signalé.
+- Rien ne change pour les segments qui n'ont jamais été étudiés (`resolution_locks = {}`) : ils
+  continuent d'hériter du macro normalement.
+
+---
+
 ## Sources de cadrage
 
 **Corpus** — `docs/MASTER-STUDY/` : `README.md` §5-§6, `00-DOCTRINE.md`,
@@ -713,4 +784,4 @@ antérieur ne sont pas touchées » est la seule barrière ; il est bloquant.
 `v_ai_intelligence_summary`, `pg_enum`, `pg_constraint`.
 
 > Les constats « live » de cette ADR doivent être réévalués si le schéma évolue.
-> Les décisions **MS-1 → MS-20** décrivent la doctrine cible et ne dépendent d'aucun relevé.
+> Les décisions **MS-1 → MS-21** décrivent la doctrine cible et ne dépendent d'aucun relevé.
