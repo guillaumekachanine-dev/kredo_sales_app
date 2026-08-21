@@ -25,6 +25,8 @@ export function SectorMapContextSelector({
   onSectorChange,
   onAccountChange,
 }: SectorMapContextSelectorProps) {
+  const currentSector = catalog.sectors.find((s) => s.id === sectorId) ?? catalog.sectors[0]
+
   return (
     <section className={styles.contextBar} aria-labelledby="sector-map-context-title">
       <div className={styles.contextHeading}>
@@ -38,9 +40,15 @@ export function SectorMapContextSelector({
       <label className={styles.contextSelect}>
         <span>{mode === "sector" ? "Secteur cartographié" : "Compte mis en évidence"}</span>
         {mode === "sector" ? (
-          <select value={sectorId} onChange={(event) => onSectorChange(event.target.value)}>
-            {catalog.sectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
-          </select>
+          catalog.sectors.length <= 1 ? (
+            <span className="flex min-h-9 items-center rounded-md border border-edito-border bg-edito-surface px-3 text-sm font-semibold text-edito-navy">
+              {currentSector?.name ?? "Secteur actif"}
+            </span>
+          ) : (
+            <select value={sectorId} onChange={(event) => onSectorChange(event.target.value)}>
+              {catalog.sectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
+            </select>
+          )
         ) : (
           <select value={accountId} onChange={(event) => onAccountChange(event.target.value)}>
             {catalog.accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
@@ -50,7 +58,7 @@ export function SectorMapContextSelector({
       <p className={styles.contextSummary} aria-live="polite">
         {mode === "account" && activeAccount
           ? <><strong>{activeAccount.name}</strong><span>{activeAccount.sectorName} · focus appliqué à la cartographie sectorielle</span></>
-          : <><strong>Vue sectorielle complète</strong><span>Un modèle unique pour Valeur et Écosystème</span></>}
+          : <><strong>Vue sectorielle complète</strong><span>{currentSector ? `Modèle de valeur pour ${currentSector.name}` : "Un modèle unique pour Valeur et Écosystème"}</span></>}
       </p>
     </section>
   )

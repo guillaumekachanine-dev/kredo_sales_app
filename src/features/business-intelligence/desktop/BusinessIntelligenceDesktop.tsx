@@ -4,7 +4,6 @@ import dynamic from "next/dynamic"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState, useTransition } from "react"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
-import type { SectorActivationWindow } from "@/lib/prospection/sector-activation-types"
 import type { BusinessIntelligenceDesktopViewModel } from "../presenters/build-business-intelligence-desktop-model"
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 import type { BusinessIntelligenceCatalogSegment, BusinessIntelligenceSegmentWorkspace } from "../data/business-intelligence-workspace-types"
@@ -12,13 +11,12 @@ import type { SectorMapCatalog } from "@/features/sector-mapping/data/sector-map
 import type { CompetitiveMapWorkspace } from "@/features/competitive-map/data/competitive-map-workspace-types"
 import { BusinessIntelligenceHeader } from "./BusinessIntelligenceHeader"
 import { BusinessIntelligenceLocalNavigation } from "./BusinessIntelligenceLocalNavigation"
-import { SectorWindowsTimeline } from "./SectorWindowsTimeline"
-import { SectorWindowsModal } from "./BusinessIntelligenceLedgerModals"
-import { Button } from "@/components/ui/Button"
 import { SegmentHomeDashboardDesktop } from "../home/SegmentHomeDashboardDesktop"
 import { SegmentPickerDialogDesktop } from "../catalog/SegmentPickerDialogDesktop"
 import { SegmentChangeConfirmDialog } from "../catalog/SegmentChangeConfirmDialog"
 import { BusinessIntelligenceChapterState } from "../chapters/BusinessIntelligenceChapterState"
+import { SectorAnalysisChapterDesktop } from "../chapters/SectorAnalysisChapterDesktop"
+import { RegulatoryCalendarChapterDesktop } from "../chapters/RegulatoryCalendarChapterDesktop"
 import { SectorNewsChapterDesktop } from "../chapters/SectorNewsChapter"
 import { buildBusinessIntelligenceHref, resolveBiChapter, replaceBiChapterInHref, type BiChapter } from "../navigation/business-intelligence-chapters"
 
@@ -51,14 +49,12 @@ export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopPr
   return <BusinessIntelligenceWorkspaceDesktop {...props} />
 }
 
-export function BusinessIntelligenceWorkspaceDesktop({ viewModel, snapshot, sectorMapCatalog, competitiveMapWorkspace, workspace, initialTab = "home" }: BusinessIntelligenceDesktopProps) {
+export function BusinessIntelligenceWorkspaceDesktop({ snapshot, sectorMapCatalog, competitiveMapWorkspace, workspace, initialTab = "home" }: BusinessIntelligenceDesktopProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeChapter = resolveBiChapter(searchParams.get("tab") ?? initialTab)
-  const [selectedWindowId, setSelectedWindowId] = useState<string | null>(null)
   const [isPlaybooksOpen, setIsPlaybooksOpen] = useState(false)
   const [isStudiesOpen, setIsStudiesOpen] = useState(false)
-  const [isWindowsOpen, setIsWindowsOpen] = useState(false)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [pendingSegment, setPendingSegment] = useState<BusinessIntelligenceCatalogSegment | null>(null)
   const [isSegmentPending, startSegmentTransition] = useTransition()
@@ -83,28 +79,111 @@ export function BusinessIntelligenceWorkspaceDesktop({ viewModel, snapshot, sect
     startSegmentTransition(() => router.push(buildBusinessIntelligenceHref(pendingSegment.id, activeChapter)))
   }
 
-  const unavailable = (title: string) => <BusinessIntelligenceChapterState title={`${title} indisponible`} description="Cette ressource n’existe pas encore pour le segment actif. Le chapitre reste dans son périmètre actuel." />
+  const unavailable = (title: string) => (
+    <BusinessIntelligenceChapterState
+      title={`${title} indisponible`}
+      description="Cette ressource n’existe pas encore pour le segment actif. Le chapitre reste dans son périmètre actuel."
+    />
+  )
 
-  return <div className="relative flex h-full min-h-0 overflow-hidden bg-canvas" aria-busy={isSegmentPending || undefined}>
-    <BusinessIntelligenceLocalNavigation active={activeChapter} onChange={navigateChapter} onStudiesClick={() => setIsStudiesOpen(true)} onPlaybooksClick={() => setIsPlaybooksOpen(true)} />
-    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <BusinessIntelligenceHeader title={CHAPTER_TITLES[activeChapter]} minimal={activeChapter === "competitive-environment"} segmentName={workspace.segment.name} macroName={workspace.segment.macro?.name ?? null} status={workspace.segment.status} onChangeSegment={() => setIsPickerOpen(true)} />
-      <main className={`min-h-0 flex-1 overflow-y-auto ${activeChapter === "competitive-environment" ? "" : "px-4 py-5 lg:px-8"}`}>
-        <div className={activeChapter === "competitive-environment" ? "" : "mx-auto w-full max-w-[1600px]"}>
-          {activeChapter === "home" ? <SegmentHomeDashboardDesktop workspace={workspace} onNavigate={navigateChapter} onOpenPlaybook={() => setIsPlaybooksOpen(true)} /> : null}
-          {activeChapter === "sector-analysis" ? workspace.coverage.study.available ? <div className="max-w-4xl border border-edito-border bg-edito-surface p-6"><h2 className="font-heading text-lg font-bold text-edito-navy">Étude du segment</h2><p className="mt-2 text-sm leading-relaxed text-edito-body">Consultez l’étude sectorielle existante dans son module actuel.</p><Button className="mt-5" variant="secondary" onClick={() => setIsStudiesOpen(true)}>Ouvrir l’étude sectorielle</Button></div> : unavailable("Analyse sectorielle") : null}
-          {activeChapter === "competitive-environment" ? workspace.coverage.competitiveMap.available ? <CompetitiveEnvironmentWorkspace workspace={competitiveMapWorkspace} /> : unavailable("Environnement concurrentiel") : null}
-          {activeChapter === "regulatory-calendar" ? workspace.coverage.regulatory.available ? <SectorWindowsTimeline windows={viewModel.windowsLedger} onSelectWindow={(window: SectorActivationWindow) => setSelectedWindowId(window.id)} selectedWindowId={selectedWindowId} onShowAll={() => setIsWindowsOpen(true)} /> : unavailable("Calendrier réglementaire") : null}
-          {activeChapter === "value-chain" ? workspace.coverage.valueChain.available ? <BusinessIntelligenceSectorMapDesktop catalog={sectorMapCatalog} /> : unavailable("Chaîne de valeur") : null}
-          {activeChapter === "sector-news" ? workspace.coverage.news.available ? <SectorNewsChapterDesktop news={workspace.news} /> : unavailable("Actualités sectorielles") : null}
+  return (
+    <div className="relative flex h-full min-h-0 overflow-hidden bg-canvas" aria-busy={isSegmentPending || undefined}>
+      <BusinessIntelligenceLocalNavigation
+        active={activeChapter}
+        onChange={navigateChapter}
+        onStudiesClick={() => setIsStudiesOpen(true)}
+        onPlaybooksClick={() => setIsPlaybooksOpen(true)}
+      />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <BusinessIntelligenceHeader
+          title={CHAPTER_TITLES[activeChapter]}
+          minimal={activeChapter === "competitive-environment"}
+          segmentName={workspace.segment.name}
+          macroName={workspace.segment.macro?.name ?? null}
+          status={workspace.segment.status}
+          onChangeSegment={() => setIsPickerOpen(true)}
+        />
+        <main className={`min-h-0 flex-1 overflow-y-auto ${activeChapter === "competitive-environment" ? "" : "px-4 py-5 lg:px-8"}`}>
+          <div className={activeChapter === "competitive-environment" ? "" : "mx-auto w-full max-w-[1600px]"}>
+            {activeChapter === "home" ? (
+              <SegmentHomeDashboardDesktop
+                workspace={workspace}
+                onNavigate={navigateChapter}
+                onOpenPlaybook={() => setIsPlaybooksOpen(true)}
+              />
+            ) : null}
+            {activeChapter === "sector-analysis" ? (
+              workspace.coverage.study.available ? (
+                <SectorAnalysisChapterDesktop
+                  knowledge={workspace.knowledge}
+                  segmentName={workspace.segment.name}
+                  macroName={workspace.segment.macro?.name ?? null}
+                />
+              ) : unavailable("Analyse sectorielle")
+            ) : null}
+            {activeChapter === "competitive-environment" ? (
+              workspace.coverage.competitiveMap.available ? (
+                <CompetitiveEnvironmentWorkspace workspace={competitiveMapWorkspace} />
+              ) : unavailable("Environnement concurrentiel")
+            ) : null}
+            {activeChapter === "regulatory-calendar" ? (
+              workspace.coverage.regulatory.available ? (
+                <RegulatoryCalendarChapterDesktop
+                  regulatory={workspace.knowledge.regulatory}
+                  segmentName={workspace.segment.name}
+                />
+              ) : unavailable("Calendrier réglementaire")
+            ) : null}
+            {activeChapter === "value-chain" ? (
+              workspace.coverage.valueChain.available ? (
+                <BusinessIntelligenceSectorMapDesktop catalog={sectorMapCatalog} />
+              ) : unavailable("Chaîne de valeur")
+            ) : null}
+            {activeChapter === "sector-news" ? (
+              workspace.coverage.news.available ? (
+                <SectorNewsChapterDesktop news={workspace.news} />
+              ) : unavailable("Actualités sectorielles")
+            ) : null}
+          </div>
+        </main>
+      </div>
+      <SegmentPickerDialogDesktop
+        open={isPickerOpen}
+        currentSegmentId={workspace.segment.id}
+        onOpenChange={setIsPickerOpen}
+        onSelect={selectSegment}
+      />
+      <SegmentChangeConfirmDialog
+        pendingSegment={pendingSegment}
+        currentSegmentName={workspace.segment.name}
+        isPending={isSegmentPending}
+        onCancel={() => setPendingSegment(null)}
+        onConfirm={confirmSegment}
+      />
+      {isPlaybooksOpen ? (
+        <SectorPlaybooksModal
+          open
+          onClose={() => setIsPlaybooksOpen(false)}
+          snapshot={snapshot}
+          initialSectorId={workspace.segment.id}
+          onApplySector={() => setIsPlaybooksOpen(false)}
+        />
+      ) : null}
+      {isStudiesOpen ? (
+        <SectorStudiesModal
+          open
+          onClose={() => setIsStudiesOpen(false)}
+          snapshot={snapshot}
+          initialSectorId={workspace.segment.id}
+        />
+      ) : null}
+      {isSegmentPending ? (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-canvas/70" role="status">
+          <div className="border border-border bg-surface px-5 py-3 text-sm font-semibold text-heading">
+            Chargement du nouveau segment…
+          </div>
         </div>
-      </main>
+      ) : null}
     </div>
-    <SegmentPickerDialogDesktop open={isPickerOpen} currentSegmentId={workspace.segment.id} onOpenChange={setIsPickerOpen} onSelect={selectSegment} />
-    <SegmentChangeConfirmDialog pendingSegment={pendingSegment} currentSegmentName={workspace.segment.name} isPending={isSegmentPending} onCancel={() => setPendingSegment(null)} onConfirm={confirmSegment} />
-    {isPlaybooksOpen ? <SectorPlaybooksModal open onClose={() => setIsPlaybooksOpen(false)} snapshot={snapshot} initialSectorId={workspace.segment.id} onApplySector={() => setIsPlaybooksOpen(false)} /> : null}
-    {isStudiesOpen ? <SectorStudiesModal open onClose={() => setIsStudiesOpen(false)} snapshot={snapshot} initialSectorId={workspace.segment.id} /> : null}
-    <SectorWindowsModal open={isWindowsOpen} onClose={() => setIsWindowsOpen(false)} windows={snapshot.windows} selectedWindowId={selectedWindowId} onSelectWindow={(window) => { setSelectedWindowId(window.id); setIsWindowsOpen(false) }} />
-    {isSegmentPending ? <div className="absolute inset-0 z-50 flex items-center justify-center bg-canvas/70" role="status"><div className="border border-border bg-surface px-5 py-3 text-sm font-semibold text-heading">Chargement du nouveau segment…</div></div> : null}
-  </div>
+  )
 }

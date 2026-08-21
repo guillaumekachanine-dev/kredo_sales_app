@@ -4,20 +4,21 @@ import { describe, expect, it } from "vitest"
 const read = (path: string) => readFileSync(path, "utf8")
 
 describe("Business Intelligence atelier analytique", () => {
-  it("affiche la frise Desktop de cinq jalons et conserve les modales exhaustives", () => {
+  it("monte les chapitres analytiques mono-segment sur Desktop et conserve les modales", () => {
     const desktop = read("src/features/business-intelligence/desktop/BusinessIntelligenceDesktop.tsx")
     const prospectionDesktop = read("src/features/prospection-intelligence/desktop/ProspectionIntelligenceDesktop.tsx")
 
     expect(prospectionDesktop).toContain("<AccountPriorityBoard")
     expect(prospectionDesktop).toContain("limit={5}")
-    expect(desktop).toContain("<SectorWindowsTimeline")
-    expect(desktop).toContain("onShowAll={() => setIsWindowsOpen(true)}")
-    expect(desktop).toContain("windows={snapshot.windows}")
-    expect(desktop).not.toContain("SectorWindowsLedger")
+    expect(desktop).toContain("<RegulatoryCalendarChapterDesktop")
+    expect(desktop).toContain("<SectorAnalysisChapterDesktop")
+    expect(desktop).toContain("<CompetitiveEnvironmentWorkspace")
+    expect(desktop).toContain("<BusinessIntelligenceSectorMapDesktop")
+    expect(desktop).toContain("<SectorNewsChapterDesktop")
     expect(prospectionDesktop).toContain("<PriorityAccountsModal")
-    expect(desktop).toContain("<SectorWindowsModal")
     expect(desktop).not.toContain("SectorPanorama")
   })
+
 
   it("garde les trois modales accessibles au clavier via leurs cadres partagés", () => {
     const ledgers = read("src/features/business-intelligence/desktop/BusinessIntelligenceLedgerModals.tsx")

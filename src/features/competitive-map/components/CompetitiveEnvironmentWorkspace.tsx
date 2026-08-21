@@ -1,10 +1,8 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
 import type { CompetitiveMapActor, CompetitiveMapWorkspace } from "../data/competitive-map-workspace-types"
 import { resolveCompetitiveMapSelection } from "../domain/competitive-map-selection"
-import { buildCompetitiveMapUrl } from "../domain/competitive-map-navigation"
 import { CompetitiveMapToolbar } from "./CompetitiveMapToolbar"
 import { CompetitiveMatrix } from "./CompetitiveMatrix"
 import { CompetitiveActorSummary } from "./CompetitiveActorSummary"
@@ -14,8 +12,6 @@ import { CompetitiveMapImportDialog } from "./CompetitiveMapImportWizard"
 const EMPTY_ACTORS: CompetitiveMapActor[] = []
 
 export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: CompetitiveMapWorkspace }) {
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
   const [requestedActorId, setRequestedActorId] = useState<string | null>(null)
   const actors = workspace.snapshot?.actors ?? EMPTY_ACTORS
   const selectedActorId = useMemo(
@@ -27,6 +23,7 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
     [actors, selectedActorId],
   )
   const [isImportOpen, setIsImportOpen] = useState(false)
+
   if (workspace.state === "error") {
     return (
       <section className="flex min-h-[32rem] items-center justify-center bg-edito-surface px-6 text-center">
@@ -44,7 +41,7 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
         <div>
           <h2 className="font-heading text-lg font-bold text-edito-navy">Aucune cartographie importée</h2>
           <p className="mt-2 text-sm text-edito-muted">Importez une étude pour faire apparaître son segment dans le catalogue.</p>
-          <button onClick={() => setIsImportOpen(true)} className="mt-5 inline-flex min-h-9 items-center rounded-md bg-edito-navy px-3 text-xs font-bold text-text-inverse">Importer une cartographie</button>
+          <button type="button" onClick={() => setIsImportOpen(true)} className="mt-5 inline-flex min-h-9 items-center rounded-md bg-edito-navy px-3 text-xs font-bold text-text-inverse">Importer une cartographie</button>
         </div>
         <CompetitiveMapImportDialog
           open={isImportOpen}
@@ -57,21 +54,14 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
     )
   }
 
-  const handleSelectSegment = (segmentId: string) => {
-    startTransition(() => {
-      router.replace(buildCompetitiveMapUrl(segmentId), { scroll: false })
-    })
-  }
-
   return (
-    <div className={isPending ? "opacity-70 transition-opacity" : "transition-opacity"} aria-busy={isPending}>
+    <div>
       <CompetitiveMapToolbar
         catalog={workspace.catalog}
         selectedSegmentId={workspace.selectedSegmentId}
         snapshotDate={workspace.snapshot.snapshotDate}
         actorCount={workspace.snapshot.actors.length}
-        isPending={isPending}
-        onSelectSegment={handleSelectSegment}
+        isPending={false}
         onOpenImport={() => setIsImportOpen(true)}
       />
 
