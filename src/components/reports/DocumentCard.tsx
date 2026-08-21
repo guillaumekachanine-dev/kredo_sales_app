@@ -47,6 +47,7 @@ function formatDate(value: string) {
 }
 
 export function DocumentCard({ document, onClick, selected = false }: DocumentCardProps) {
+  const isMasterStudy = document.documentType === "master_study"
   return (
     <button
       type="button"
@@ -55,12 +56,27 @@ export function DocumentCard({ document, onClick, selected = false }: DocumentCa
       className={cn(
         "group relative grid min-h-[92px] w-full grid-cols-[2.25rem_minmax(0,1fr)_1.5rem] items-center gap-3 border-b border-border bg-surface px-4 py-3 text-left outline-none transition-colors",
         "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
-        selected ? "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass" : "hover:bg-surface-hover/60",
+        selected
+          ? isMasterStudy
+            ? "bg-master-study-selected-bg before:absolute before:inset-y-0 before:left-0 before:w-[3.5px] before:bg-master-study-selected-border"
+            : "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass"
+          : isMasterStudy
+            ? "hover:bg-master-study-selected-bg/50"
+            : "hover:bg-surface-hover/60",
       )}
       aria-label={`Ouvrir ${document.title}`}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded bg-canvas" aria-hidden="true">
-        {getDocumentIcon(document.documentType, "size-5 shrink-0 text-muted")}
+      <span
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded transition-colors",
+          isMasterStudy ? "bg-master-study-selected-bg text-master-study-accent" : "bg-canvas text-muted",
+        )}
+        aria-hidden="true"
+      >
+        {getDocumentIcon(
+          document.documentType,
+          isMasterStudy ? "size-5 shrink-0 text-master-study-accent" : "size-5 shrink-0 text-muted",
+        )}
       </span>
 
       <span className="min-w-0">

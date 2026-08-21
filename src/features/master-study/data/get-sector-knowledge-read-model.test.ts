@@ -225,6 +225,35 @@ describe("getSectorKnowledgeReadModels — tests fonctionnels", () => {
     expect(result?.marketGrowthPctLevel).toBe("locked")
   })
 
+  it("gère le statut « estimated » (ADR-0021, amendement 2026-08-21) : renvoie la valeur segment telle quelle, jamais macro", async () => {
+    const mockSupabase = {
+      from: vi.fn((table: string) => ({
+        select: () => ({
+          in: async () => ({
+            data:
+              table === "v_sector_knowledge_resolved"
+                ? [
+                    mockResolvedRow({
+                      segment_id: SEGMENT_A,
+                      market_size_eur_bn: 2.4,
+                      market_size_eur_bn_level: "estimated",
+                    }),
+                  ]
+                : [],
+            error: null,
+          }),
+        }),
+      })),
+    }
+
+    const [result] = await getSectorKnowledgeReadModels([SEGMENT_A], {
+      supabase: mockSupabase as unknown as SupabaseClient<Database>,
+    })
+    expect(result).toBeDefined()
+    expect(result?.marketSizeEurBn).toBe(2.4)
+    expect(result?.marketSizeEurBnLevel).toBe("estimated")
+  })
+
   it("getSectorKnowledgeReadModel délègue à getSectorKnowledgeReadModels avec un seul id", async () => {
     const mockSupabase = {
       from: vi.fn((table: string) => ({

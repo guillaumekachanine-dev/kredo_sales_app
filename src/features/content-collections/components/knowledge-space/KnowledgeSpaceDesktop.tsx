@@ -35,17 +35,20 @@ const KIND_TABS: Array<{ id: CollectionKind; label: string }> = [
 ]
 
 /** Icône SVG selon le content-type — miroir de la Bibliothèque de documents. */
-function CollectionItemIcon({ contentType }: { contentType: ResolvedCollectionItem["contentType"] }) {
-  // intelligence_document → icône calendrier/rapport (default)
-  // veille_article → icône enveloppe (communication)
-  // knowledge_list → icône document générique
+function CollectionItemIcon({ item }: { item: ResolvedCollectionItem }) {
+  const isMasterStudy = item.documentType === "master_study"
   const docType =
-    contentType === "veille_article"
-      ? "communication"
-      : contentType === "knowledge_list"
-        ? "client_summary"
-        : "planning_deadlines" // default calendar = rapport générique
-  return getDocumentIcon(docType, "size-[18px] shrink-0 text-muted")
+    item.contentType === "veille_article"
+      ? "veille_article"
+      : item.contentType === "knowledge_list"
+        ? "knowledge_list"
+        : item.documentType || "client_summary"
+
+  const iconClass = isMasterStudy
+    ? "size-[18px] shrink-0 text-master-study-accent"
+    : "size-[18px] shrink-0 text-muted"
+
+  return getDocumentIcon(docType, iconClass)
 }
 
 function KnowledgeCollectionRow({
@@ -57,6 +60,7 @@ function KnowledgeCollectionRow({
   active: boolean
   onSelect: () => void
 }) {
+  const collectionIconType = collection.kind === "corpus" ? "knowledge_corpus" : "knowledge_list"
   return (
     <li>
       <button
@@ -70,8 +74,8 @@ function KnowledgeCollectionRow({
       >
         <span className="flex min-w-0 flex-1 items-center gap-2 truncate">
           {getDocumentIcon(
-            collection.kind === "corpus" ? "commercial_strategy" : "planning_deadlines",
-            "size-[14px] shrink-0 text-muted opacity-80"
+            collectionIconType,
+            cn("size-[14px] shrink-0", active ? "text-primary" : "text-muted opacity-80"),
           )}
           <span className="truncate">{collection.name}</span>
         </span>
@@ -100,11 +104,11 @@ function KnowledgeItemRow({
 }) {
   const itemIconOrLink = item.url ? (
     <Link href={item.url} title={`Voir : ${item.title}`} className="mt-0.5 block shrink-0 rounded hover:opacity-70 transition-opacity">
-      <CollectionItemIcon contentType={item.contentType} />
+      <CollectionItemIcon item={item} />
     </Link>
   ) : (
     <span className="mt-0.5 shrink-0">
-      <CollectionItemIcon contentType={item.contentType} />
+      <CollectionItemIcon item={item} />
     </span>
   )
 

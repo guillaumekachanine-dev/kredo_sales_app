@@ -76,24 +76,27 @@
   ],
   "message_sectoriel": "Votre fenêtre n'est pas « faire de l'IA » : c'est être capable, dès la notification IFRA 52, de relier chaque restriction aux matières, formules, usages et certificats clients, pendant que vos nouveaux sites et vos capacités de création montent en charge.",
   "incertitudes": [
-    "Aucune source consultée n'isole proprement la taille économique exacte du segment français « Compositions & ingrédients B2B » ; le TAM reste donc non publié.",
+    "Correctif 2026-08-21 : aucune source ne publie directement le TAM du segment « Compositions & ingrédients B2B », mais SNIAA (src 30) publie sa propre décomposition du marché par ligne d'activité, corroborée par Insee PRODCOM (src 31) — taille_eur_bn est donc triangulé (statut 'estimated'), pas 'non publié'. Voir marche.taille_methodologie pour le détail du calcul. Le TAM d'un chiffre isolé, sans décomposition officielle sourcée, resterait non publié : ce n'est pas une levée générale de la règle A2/comparabilité, seulement l'application au cas où la décomposition elle-même est sourcée.",
     "Les processus d'achat IT, panels et ESN déjà en place chez les maisons indépendantes de Grasse sont peu publics et ne peuvent pas être affirmés.",
     "Les cas d'IA publiés par les leaders mondiaux constituent des benchmarks concurrentiels, pas une mesure du taux d'adoption des maisons ciblées du bassin de Grasse."
   ],
   "marche": {
-    "taille_eur_bn": null,
-    "taille_statut": "not_published",
+    "taille_eur_bn": 2.4,
+    "taille_statut": "estimated",
+    "taille_methodologie": "SNIAA (src 30) publie la décomposition du CA 2023 de la filière arômes et parfums France (2,5 Md€) : compositions parfumantes 53 % (1 325 M€), matières premières et ingrédients aromatiques 23 % (575 M€), arômes formulés 19 % (475 M€), autres 5 % (125 M€, hors segment). Le segment KREDO « Compositions & ingrédients B2B » couvre les trois premières lignes (sa description canon cite explicitement compositions parfumantes + ingrédients aromatiques + arômes formulés) : 53+23+19 = 95 % × 2,5 Md€ ≈ 2,375 Md€, arrondi à 2,4 Md€. Corroboré par Insee PRODCOM (src 31, NAF 20.53Z) : 1,637 Md€ de facturations françaises 2020 sur les seules huiles essentielles/mélanges odoriférants, cohérent en ordre de grandeur avec une composante du total. Non retenu comme figure unique : nécessite un jugement de périmètre (quelles lignes SNIAA appartiennent au segment) — à revoir si le découpage du segment change.",
     "croissance_pct": null,
     "croissance_statut": "not_published",
-    "perimetre": "France — segment E4 non isolé statistiquement ; repères macro et de filière uniquement.",
-    "exercice": null,
+    "perimetre": "France — décomposition par ligne d'activité publiée par SNIAA (2023), appliquée au périmètre du segment KREDO. Pas un chiffre de segment publié tel quel par une source unique.",
+    "exercice": 2023,
     "src_ids": [
       7,
       9,
+      30,
+      31,
       14
     ],
-    "lecture": "Le marché pertinent est piloté par les cycles de briefs, la capacité à sécuriser les matières, la conformité réglementaire et la montée en production. Les agrégats publics disponibles couvrent des périmètres plus larges que le segment.",
-    "donc_commercialement": "DONC, commercialement : ne pas utiliser un chiffre de filière comme accroche ; préférer une contrainte observable et datée du compte ou du segment."
+    "lecture": "Le marché pertinent est piloté par les cycles de briefs, la capacité à sécuriser les matières, la conformité réglementaire et la montée en production. Le TAM triangulé (2,4 Md€, statut estimated) donne un ordre de grandeur défendable mais reste une reconstruction, pas un chiffre publié tel quel pour le segment.",
+    "donc_commercialement": "DONC, commercialement : le TAM triangulé peut situer l'enjeu (« un marché de l'ordre de 2,4 Md€ ») mais ne remplace jamais une contrainte observable et datée du compte ou du segment comme accroche."
   },
   "blocs_clients": [
     {
@@ -1343,6 +1346,22 @@
       "tier": 1,
       "atteste": "Évaluation du risque et ressources relatives aux arômes alimentaires.",
       "consulted_at": "2026-08-14"
+    },
+    {
+      "src_id": 30,
+      "publisher": "Syndicat National des Ingrédients Aromatiques Alimentaires (SNIAA)",
+      "url": "https://www.sniaa.org/articles/tendances/ingredients-aromes-et-parfums-les-chiffres-cles-de-lexcellence-aromatique-francaise/",
+      "tier": 2,
+      "atteste": "Décomposition du CA 2023 de la filière arômes et parfums France (2,5 Md€) par segment : compositions parfumantes 53 % (1 325 M€), matières premières et ingrédients aromatiques 23 % (575 M€), arômes formulés 19 % (475 M€), autres 5 % (125 M€).",
+      "consulted_at": "2026-08-21"
+    },
+    {
+      "src_id": 31,
+      "publisher": "Institut national de la statistique et des études économiques (Insee)",
+      "url": "https://www.insee.fr/fr/statistiques/6434102",
+      "tier": 1,
+      "atteste": "Facturations françaises NAF 20.53Z (huiles essentielles et mélanges odoriférants) : 1,637 Md€ en 2020, dont 33,7 % destinés à l'alimentaire/boissons — corrobore l'ordre de grandeur SNIAA.",
+      "consulted_at": "2026-08-21"
     }
   ],
   "compteurs": {

@@ -1078,6 +1078,74 @@
       "consulted_at": "2026-08-14",
       "validation_status": "pending",
       "conditions_utilisation": "consultation manuelle recommandee"
+    },
+    {
+      "src_id": "SRC-030",
+      "publisher": "Syndicat National des Ingrédients Aromatiques Alimentaires (SNIAA)",
+      "domain": "sniaa.org",
+      "url": "https://www.sniaa.org/articles/tendances/ingredients-aromes-et-parfums-les-chiffres-cles-de-lexcellence-aromatique-francaise/",
+      "tier": 2,
+      "primary_role": "proof",
+      "utility_score": 88,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 20,
+        "couverture_besoins": 20,
+        "valeur_commerciale": 16,
+        "fraicheur": 12,
+        "autorite_editoriale": 15,
+        "automation_access": 5
+      },
+      "automation_fit": "manual_only",
+      "collection_url": null,
+      "search_domain": "sniaa.org",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "Décomposition du chiffre d'affaires 2023 de la filière arômes et parfums France (2,5 Md€) par segment d'activité : compositions parfumantes 53 % (1 325 M€), matières premières et ingrédients aromatiques 23 % (575 M€), arômes formulés 19 % (475 M€), autres 5 % (125 M€)",
+      "familles_couvertes": [
+        "marche_concurrence"
+      ],
+      "frequence_publication": "irrégulière",
+      "consulted_at": "2026-08-21",
+      "validation_status": "verified",
+      "conditions_utilisation": "Usage manuel/ponctuel ; page publique, aucune restriction d'accès constatée.",
+      "note_ajout": "Ajoutée le 2026-08-21 — identifiée par le corpus Gemini Deep Research initial (2026-08-14) mais écartée à la fusion mécanique faute d'URL vérifiable dans le JSON source (cf. note_normalisation) ; URL retrouvée et vérifiée manuellement. Corrige le TAM 'non publié' du bloc marche de 04-secteur.json."
+    },
+    {
+      "src_id": "SRC-031",
+      "publisher": "Institut national de la statistique et des études économiques (Insee)",
+      "domain": "insee.fr",
+      "url": "https://www.insee.fr/fr/statistiques/6434102",
+      "tier": 1,
+      "primary_role": "proof",
+      "utility_score": 82,
+      "utility_score_detail": {
+        "pertinence_sectorielle": 18,
+        "couverture_besoins": 16,
+        "valeur_commerciale": 12,
+        "fraicheur": 12,
+        "autorite_editoriale": 20,
+        "automation_access": 4
+      },
+      "automation_fit": "manual_only",
+      "collection_url": "https://www.insee.fr/fr/statistiques/6434102",
+      "search_domain": "insee.fr",
+      "content_temporality": "periodic",
+      "usage_scopes": [
+        "study"
+      ],
+      "pack": "enrichi",
+      "atteste": "France, second pays producteur d'huiles essentielles de l'UE — facturations françaises NAF 20.53Z (mélanges odoriférants et huiles essentielles) : 1,637 Md€ en 2020, dont 33,7 % (551 M€) de mélanges destinés à l'alimentaire/boissons",
+      "familles_couvertes": [
+        "marche_concurrence"
+      ],
+      "frequence_publication": "ad hoc",
+      "consulted_at": "2026-08-21",
+      "validation_status": "verified",
+      "conditions_utilisation": "Publication statistique officielle, libre de citation avec source.",
+      "note_ajout": "Ajoutée le 2026-08-21 — recoupe et corrobore SRC-030 pour la triangulation du TAM segment (amendement ADR-0021)."
     }
   ],
   "pack_minimal": [
@@ -1111,7 +1179,9 @@
     "SRC-026",
     "SRC-027",
     "SRC-028",
-    "SRC-029"
+    "SRC-029",
+    "SRC-030",
+    "SRC-031"
   ],
   "matrice_couverture": [
     {
@@ -1147,7 +1217,9 @@
         "SRC-019",
         "SRC-022",
         "SRC-023",
-        "SRC-025"
+        "SRC-025",
+        "SRC-030",
+        "SRC-031"
       ]
     },
     {
@@ -1287,7 +1359,8 @@
       "recherches_effectuees": [
         "site:insee.fr NAF 20.42 fabrication parfums produits toilette statistiques",
         "site:ec.europa.eu/eurostat essential oils PRODCOM France fragrance"
-      ]
+      ],
+      "note_correction_2026_08_21": "Ce gap concernait la longlist d'acteurs par code NAF, pas la taille de marché — ne pas confondre. La taille de marché a un traitement distinct depuis SRC-030/031 : la décomposition officielle SNIAA (par ligne d'activité, pas par NAF) permet une estimation triangulée du segment, statut 'estimated' (amendement ADR-0021). Ce gap NAF/PRODCOM reste vrai pour la longlist d'acteurs."
     },
     {
       "famille": "reglementation_normes",
@@ -1306,10 +1379,11 @@
     }
   ],
   "compteurs": {
-    "sources": 29,
+    "sources": 31,
     "pack_minimal": 12,
-    "pack_enrichi": 17,
+    "pack_enrichi": 19,
     "requetes": 0
   },
-  "note_normalisation": "Fusion mécanique de deux corpus E3 produits en parallèle (ChatGPT Deep Research, Gemini Deep Research), le 2026-08-14, sans nouvelle recherche. Base : le corpus ChatGPT (27 sources, 100% avec URL, meilleure couverture tier 1-2), dont les champs anglais/hors-contrat (information_needs, minimum_pack, extended_pack, coverage_matrix, mandatory_sector_sources, sector_relevance...) ont été renommés contre le schéma sans toucher au contenu. Deux sources Gemini non redondantes (domaines absents du corpus ChatGPT) et porteuses d'une URL réelle ont été ajoutées en pack enrichi : SRC-028, SRC-029. Huit autres domaines Gemini non redondants ont été écartés faute d'URL vérifiable dans le JSON source (ANSM, Coptis PLM, Innov'Alliance, InnovaGrasse, Robertet achats, SNIAA, Welcome to the Jungle) — inventer une URL aurait violé A2. Le verdict auto-déclaré du corpus ChatGPT (`usable_with_caveats`) a été retiré : A10 interdit au producteur de juger son propre livrable. AUCUN journal de recherche réellement rejoué n'accompagne ce fichier — G1 échouera sur ce point tant qu'aucun 03-journal.md n'est produit, et c'est le comportement attendu."
+  "note_normalisation": "Fusion mécanique de deux corpus E3 produits en parallèle (ChatGPT Deep Research, Gemini Deep Research), le 2026-08-14, sans nouvelle recherche. Base : le corpus ChatGPT (27 sources, 100% avec URL, meilleure couverture tier 1-2), dont les champs anglais/hors-contrat (information_needs, minimum_pack, extended_pack, coverage_matrix, mandatory_sector_sources, sector_relevance...) ont été renommés contre le schéma sans toucher au contenu. Deux sources Gemini non redondantes (domaines absents du corpus ChatGPT) et porteuses d'une URL réelle ont été ajoutées en pack enrichi : SRC-028, SRC-029. Huit autres domaines Gemini non redondants ont été écartés faute d'URL vérifiable dans le JSON source (ANSM, Coptis PLM, Innov'Alliance, InnovaGrasse, Robertet achats, SNIAA, Welcome to the Jungle) — inventer une URL aurait violé A2. Le verdict auto-déclaré du corpus ChatGPT (`usable_with_caveats`) a été retiré : A10 interdit au producteur de juger son propre livrable. AUCUN journal de recherche réellement rejoué n'accompagne ce fichier — G1 échouera sur ce point tant qu'aucun 03-journal.md n'est produit, et c'est le comportement attendu.",
+  "note_correction_2026_08_21": "SNIAA, écartée à tort le 2026-08-14 (voir note_normalisation), retrouvée et ajoutée en SRC-030 avec URL vérifiée manuellement — elle porte la décomposition officielle du marché qui permet de trianguler le TAM du segment (amendement ADR-0021, statut 'estimated'). SRC-031 (Insee PRODCOM 6434102) ajoutée en corroboration. Corrige 04-secteur.json > marche : taille_eur_bn passe de null/not_published à 2,4 (estimated)."
 }

@@ -38,17 +38,24 @@ const KIND_TABS: Array<{ id: CollectionKind; label: string }> = [
 type DrawerView = "create" | "detail" | "edit" | null
 
 /** Icône SVG selon le content-type — miroir de la Bibliothèque de documents. */
-function CollectionItemIcon({ contentType }: { contentType: ResolvedCollectionItem["contentType"] }) {
+function CollectionItemIcon({ item }: { item: ResolvedCollectionItem }) {
+  const isMasterStudy = item.documentType === "master_study"
   const docType =
-    contentType === "veille_article"
-      ? "communication"
-      : contentType === "knowledge_list"
-        ? "client_summary"
-        : "planning_deadlines"
-  return getDocumentIcon(docType, "size-[20px] shrink-0 text-muted")
+    item.contentType === "veille_article"
+      ? "veille_article"
+      : item.contentType === "knowledge_list"
+        ? "knowledge_list"
+        : item.documentType || "client_summary"
+
+  const iconClass = isMasterStudy
+    ? "size-[20px] shrink-0 text-master-study-accent"
+    : "size-[20px] shrink-0 text-muted"
+
+  return getDocumentIcon(docType, iconClass)
 }
 
 function KnowledgeCollectionCard({ collection, onOpen }: { collection: CollectionSummary; onOpen: () => void }) {
+  const collectionIconType = collection.kind === "corpus" ? "knowledge_corpus" : "knowledge_list"
   return (
     <button
       type="button"
@@ -58,8 +65,8 @@ function KnowledgeCollectionCard({ collection, onOpen }: { collection: Collectio
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <span className="shrink-0">
           {getDocumentIcon(
-            collection.kind === "corpus" ? "commercial_strategy" : "planning_deadlines",
-            "size-[18px] text-muted"
+            collectionIconType,
+            "size-[18px] text-muted",
           )}
         </span>
         <div className="min-w-0 flex-1">
@@ -93,11 +100,11 @@ function KnowledgeItemCard({
 }) {
   const itemIconOrLink = item.url ? (
     <Link href={item.url} title={`Voir : ${item.title}`} className="mt-0.5 block shrink-0 rounded hover:opacity-70 transition-opacity">
-      <CollectionItemIcon contentType={item.contentType} />
+      <CollectionItemIcon item={item} />
     </Link>
   ) : (
     <span className="mt-0.5 shrink-0">
-      <CollectionItemIcon contentType={item.contentType} />
+      <CollectionItemIcon item={item} />
     </span>
   )
 

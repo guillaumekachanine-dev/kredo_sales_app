@@ -166,8 +166,26 @@ RÈGLES DE COMPARABILITÉ
 --------------------------------------------------------------------
 · Chaque chiffre porte son millésime, son périmètre (groupe/branche, monde/France) et un
   numéro de source résolvable en URL.
-· JAMAIS un chiffre de groupe pour caractériser une branche. Si le chiffre de branche n'est
-  pas publié, écris « non publié ». Ne le reconstitue pas par règle de trois.
+· JAMAIS un chiffre de GROUPE (le CA total d'une entreprise) pour caractériser une BRANCHE
+  (son activité sur ce segment). Si le chiffre de branche n'est pas publié tel quel par une
+  source, écris « non publié ». Ne le reconstitue jamais à partir du CA d'une seule entreprise.
+· Ceci est différent de la TRIANGULATION depuis la décomposition officielle d'un MARCHÉ
+  (amendement ADR-0021, 2026-08-21). Quand une source tier 1-2 (syndicat professionnel,
+  institut statistique) publie elle-même une répartition du marché par ligne d'activité,
+  et que le segment étudié correspond à une ou plusieurs de ces lignes, tu PEUX en dériver
+  un chiffre de segment. Ce n'est pas une invention — c'est utiliser la propre segmentation
+  de la source. Conditions non négociables :
+    1. Au moins 2 sources tier 1-2 indépendantes corroborent la décomposition ou ses
+       composantes, ou une seule source syndicale/officielle explicite et datée si aucune
+       seconde source équivalente n'existe (documenter cette limite dans les incertitudes).
+    2. `taille_statut` (ou `croissance_statut`) devient `"estimated"`, jamais `"published"` —
+       ce n'est pas la même force probante, l'écran doit pouvoir le distinguer.
+    3. `taille_methodologie` (ou `croissance_methodologie`) est OBLIGATOIRE et détaille : les
+       lignes exactes sommées, leur part et leur valeur telles que publiées par la source,
+       le millésime, et ce qui a été exclu et pourquoi.
+    4. Si la décomposition elle-même n'existe dans aucune source (pas seulement le chiffre
+       final), reste sur `not_published` — la triangulation ne dispense jamais de sourcer
+       chaque brique du calcul.
 · Toute donnée fondant une décision est corroborée par 2 sources indépendantes ; sinon elle
   est marquée « source unique ».
 · Une source secondaire qui cite une source primaire NE DEVIENT PAS primaire. Le tier

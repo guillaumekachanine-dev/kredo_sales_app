@@ -31,7 +31,10 @@ export type SectorActorView = {
 // compte) ou `macro` (héritée du macro-secteur parent). L'UI DOIT pouvoir dire
 // « cette information vient du macro-secteur » — sans quoi l'utilisateur croit
 // qu'elle est spécifique à son segment, ce qui est une régression de confiance.
-export type SectorResolvedLevel = "segment" | "macro" | "locked"
+// "estimated" (ADR-0021, amendement 2026-08-21) : valeur segment triangulée
+// depuis une décomposition officielle sourcée, jamais héritée du macro, mais
+// distincte d'un chiffre publié directement — l'UI doit le dire.
+export type SectorResolvedLevel = "segment" | "macro" | "locked" | "estimated"
 
 export type SectorPainPointView = {
   id: string

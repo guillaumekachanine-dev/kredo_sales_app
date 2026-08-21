@@ -287,6 +287,18 @@ describe("getSectorSnapshot — transmission de la provenance scalaire (L1)", ()
     expect(view!.marketSizeEurBn).toBeNull()
   })
 
+  it("transmet fidèlement un niveau estimated (ADR-0021, amendement 2026-08-21) avec sa valeur", async () => {
+    state.resolved = resolvedRow({
+      market_size_eur_bn_level: "estimated",
+      market_size_eur_bn: 2.4,
+    })
+
+    const view = await getSectorSnapshot(SEGMENT_ID, OPTIONS)
+
+    expect(view!.marketSizeLevel).toBe("estimated")
+    expect(view!.marketSizeEurBn).toBe(2.4)
+  })
+
   it("transmet fidèlement un niveau segment", async () => {
     state.resolved = resolvedRow({
       market_growth_pct_level: "segment",

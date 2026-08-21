@@ -155,6 +155,7 @@ export async function fetchResolvedCollectionItems(collectionId: string): Promis
         date: meta.date,
         preview: meta.preview,
         categoryLabel: meta.categoryLabel ?? null,
+        documentType: meta.documentType ?? null,
         url: getContentTypeRegistryEntry(row.content_type).buildUrl(row.content_id),
       },
     ]

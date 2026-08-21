@@ -226,8 +226,8 @@ describe("mapE4ToCanon — Invariants et Mapping", () => {
     expect(meta.counts.techFronts).toBe(5)
     expect(meta.counts.risks).toBe(7)
 
-    // Vérification des sources (29) et trous (5)
-    expect(meta.counts.sources).toBe(29)
+    // Vérification des sources (31) et trous (5)
+    expect(meta.counts.sources).toBe(31)
     expect(meta.counts.trous).toBe(5)
 
     // Vérification des verrous sur le marché (non publié sur le pilote)

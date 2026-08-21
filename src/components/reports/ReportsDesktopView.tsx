@@ -14,6 +14,7 @@ import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { cn } from "@/lib/utils"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import {
@@ -274,6 +275,7 @@ export function ReportsDesktopView({
   const [addToListOpen, setAddToListOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState<PendingAction>(null)
   const [zoomLevel, setZoomLevel] = useState(100)
+  const [isAnalysisComposerOpen, setIsAnalysisComposerOpen] = useState(false)
 
   // Repli automatique de la sidebar principale
   useEffect(() => {
@@ -400,11 +402,14 @@ export function ReportsDesktopView({
         <header className="flex min-h-[76px] shrink-0 items-center justify-between gap-5 border-b border-border bg-surface px-5 py-4">
           <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">Rapports & rédaction</h1>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters}>
-              Filtrer{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            <Button
+              variant="brass"
+              size="sm"
+              onClick={() => setIsAnalysisComposerOpen(true)}
+              leftIcon={<IntelligenceIcon name="sparkle" className="size-4" preferVector />}
+            >
+              Générer une analyse
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => openCommunicationComposer({ origin: "global" })} leftIcon={<IntelligenceIcon name="write_email" className="size-4" preferVector />}>Rédiger un mail</Button>
-            <Button variant="brass" size="sm" onClick={() => openReportGeneration({ origin: "reports_library" })} leftIcon={<IntelligenceIcon name="report" className="size-4" preferVector />}>Générer un rapport</Button>
           </div>
         </header>
 
@@ -447,11 +452,33 @@ export function ReportsDesktopView({
                   <p className="px-5 py-12 text-center text-xs text-muted">Aucun document.</p>
                 ) : reportsData.items.map((item) => {
                   const active = item.id === selectedDocumentId
+                  const isMasterStudy = item.documentType === "master_study"
                   return (
-                    <button key={item.id} type="button" onClick={() => handleSelectDocument(item.id)} aria-current={active ? "true" : undefined} className={cn("relative w-full border-b border-border px-4 py-3 text-left outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset", active ? "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass" : "hover:bg-surface-hover/60")}>
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectDocument(item.id)}
+                      aria-current={active ? "true" : undefined}
+                      className={cn(
+                        "relative w-full border-b border-border px-4 py-3 text-left outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+                        active
+                          ? isMasterStudy
+                            ? "bg-master-study-selected-bg before:absolute before:inset-y-0 before:left-0 before:w-[3.5px] before:bg-master-study-selected-border"
+                            : "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass"
+                          : isMasterStudy
+                            ? "hover:bg-master-study-selected-bg/50"
+                            : "hover:bg-surface-hover/60",
+                      )}
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded bg-canvas">
-                          {getDocumentIcon(item.documentType)}
+                        <div className={cn(
+                          "flex size-7 shrink-0 items-center justify-center rounded transition-colors",
+                          isMasterStudy ? "bg-master-study-selected-bg text-master-study-accent" : "bg-canvas text-muted",
+                        )}>
+                          {getDocumentIcon(
+                            item.documentType,
+                            isMasterStudy ? "size-4 shrink-0 text-master-study-accent" : "size-4 shrink-0 text-muted",
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-[11px] font-bold leading-4 text-heading">{item.title}</span>
@@ -591,6 +618,19 @@ export function ReportsDesktopView({
         }}
       />
     ) : null}
+
+    <WatchAnalysisComposerDesktop
+      open={isAnalysisComposerOpen}
+      onClose={() => setIsAnalysisComposerOpen(false)}
+      currentDigest={null}
+      currentDigestNumber={null}
+      pastDigests={[]}
+      knownArticles={[]}
+      onLaunched={() => {
+        setIsAnalysisComposerOpen(false)
+        router.refresh()
+      }}
+    />
     </>
   )
 }

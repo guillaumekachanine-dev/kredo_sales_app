@@ -59,9 +59,11 @@
       "required": ["perimetre", "src_ids"],
       "properties": {
         "taille_eur_bn": { "type": ["number", "null"] },
-        "taille_statut": { "enum": ["published", "not_published", "not_applicable"], "default": "published" },
+        "taille_statut": { "enum": ["published", "estimated", "not_published", "not_applicable"], "default": "published" },
+        "taille_methodologie": { "type": ["string", "null"], "description": "Obligatoire quand taille_statut='estimated' : lignes sommées, sources et hypothèses de la triangulation. Amendement ADR-0021 du 2026-08-21 — jamais requis pour published/not_published/not_applicable." },
         "croissance_pct": { "type": ["number", "null"] },
-        "croissance_statut": { "enum": ["published", "not_published", "not_applicable"], "default": "published" },
+        "croissance_statut": { "enum": ["published", "estimated", "not_published", "not_applicable"], "default": "published" },
+        "croissance_methodologie": { "type": ["string", "null"], "description": "Même règle que taille_methodologie, pour croissance_pct." },
         "perimetre": { "type": "string", "description": "France | UE | monde — obligatoire (axiome A3)" },
         "exercice": { "type": ["integer", "null"] },
         "src_ids": { "$ref": "#/$defs/srcIds" }

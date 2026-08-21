@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/database"
 
-export type SectorResolvedLevel = "segment" | "macro" | "locked"
+// "estimated" (ADR-0021, amendement 2026-08-21) : la valeur est bien celle du
+// segment, jamais héritée du macro, mais elle provient d'une triangulation
+// (décomposition d'une source officielle sourcée), pas d'une publication
+// directe et propre — distinct de "segment" pour que l'UI l'affiche avec sa
+// provenance réelle plutôt que de laisser croire à un chiffre publié tel quel.
+export type SectorResolvedLevel = "segment" | "macro" | "locked" | "estimated"
 
 export type SectorKnowledgePainPointItem = {
   id: string
@@ -185,7 +190,7 @@ function toResolvedLevel(value: string | null | undefined): "segment" | "macro" 
 }
 
 function toScalarLevel(value: string | null | undefined): SectorResolvedLevel {
-  return value === "segment" || value === "locked" ? value : "macro"
+  return value === "segment" || value === "locked" || value === "estimated" ? value : "macro"
 }
 
 /**

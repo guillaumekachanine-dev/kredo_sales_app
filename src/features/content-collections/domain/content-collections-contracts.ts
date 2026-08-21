@@ -66,6 +66,7 @@ export type ResolvedCollectionItem = {
   date: string | null
   preview: string | null
   categoryLabel?: string | null
+  documentType?: string | null
   url: string | null
 }
 

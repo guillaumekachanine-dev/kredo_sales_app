@@ -257,18 +257,18 @@ describe("parseSourceRegistryOutput — corpus parfumerie (recette canonique, Lo
     expect(result.ok).toBe(true)
   })
 
-  it("conserve les 29 sources sans troncature", () => {
+  it("conserve les 31 sources sans troncature", () => {
     const result = parseSourceRegistryOutput(parfumerieRaw)
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.data.sources).toHaveLength(29)
+    expect(result.data.sources).toHaveLength(31)
   })
 
-  it("compte 21 sources collectables et 8 statiques", () => {
+  it("compte 23 sources collectables et 8 statiques", () => {
     const result = parseSourceRegistryOutput(parfumerieRaw)
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.data.collectableCount).toBe(21)
+    expect(result.data.collectableCount).toBe(23)
     expect(result.data.staticCount).toBe(8)
   })
 
@@ -293,7 +293,7 @@ describe("parseSourceRegistryOutput — corpus parfumerie (recette canonique, Lo
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.data.packMinimal).toHaveLength(12)
-    expect(result.data.packEnrichi).toHaveLength(17)
+    expect(result.data.packEnrichi).toHaveLength(19)
   })
 })
 
@@ -547,7 +547,7 @@ describe("buildIngestSourceCorpusPayload — assemblage du payload RPC (Lot 4 §
     expect(payload.source_document_hash).toBe("deadbeef")
   })
 
-  it("sur le corpus parfumerie complet : 21 sources actives par défaut, 8 exclues, éligibilités cohérentes", () => {
+  it("sur le corpus parfumerie complet : 23 sources actives par défaut, 8 exclues, éligibilités cohérentes", () => {
     const arbitrations: SourceCorpusItemArbitration[] = parsed.sources.map((source) => {
       const preview = buildSourceCorpusItemPreview(source, {
         secteur: parsed.meta.secteur,
@@ -559,8 +559,8 @@ describe("buildIngestSourceCorpusPayload — assemblage du payload RPC (Lot 4 §
     })
     const payload = buildIngestSourceCorpusPayload(parsed, arbitrations, { sourceDocumentPath: null, sourceDocumentHash: null, sourceFileName: null })
 
-    expect(payload.sources).toHaveLength(29)
-    expect(payload.sources.filter((s) => s.is_enabled)).toHaveLength(21)
+    expect(payload.sources).toHaveLength(31)
+    expect(payload.sources.filter((s) => s.is_enabled)).toHaveLength(23)
     expect(payload.sources.filter((s) => s.content_temporality === "static")).toHaveLength(8)
     for (const item of payload.sources.filter((s) => s.content_temporality === "static")) {
       expect(item.is_enabled).toBe(false)

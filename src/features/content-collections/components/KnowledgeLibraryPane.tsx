@@ -1,5 +1,6 @@
 "use client"
 
+import { getDocumentIcon } from "@/components/reports/document-display"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { cn } from "@/lib/utils"
@@ -197,9 +198,10 @@ export function KnowledgeLibraryPane({
                           : "bg-white/[0.05] text-white/50 group-hover:bg-white/10 group-hover:text-white/80",
                       )}
                     >
-                      <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h10" />
-                      </svg>
+                      {getDocumentIcon(
+                        col.kind === "corpus" ? "knowledge_corpus" : "knowledge_list",
+                        "size-3.5",
+                      )}
                     </div>
 
                     {/* Nom + compteur */}

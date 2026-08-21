@@ -210,6 +210,11 @@
   --color-edito-petrol-deep: #1E4A4F;
   --color-edito-gold: #FBBF24;
   --color-cockpit-petrol-medium: #1E5E99;
+
+  /* ── Master Study · academic intelligence theme ────────────── */
+  --color-master-study-accent: #0E7490;
+  --color-master-study-selected-bg: #ECFEFF;
+  --color-master-study-selected-border: #0E7490;
 }
 
 

@@ -18,6 +18,7 @@ export type ResolvedContentMeta = {
   date: string | null
   preview: string | null
   categoryLabel?: string | null
+  documentType?: string | null
 }
 
 export type ContentTypeRegistryEntry = {
@@ -28,24 +29,25 @@ export type ContentTypeRegistryEntry = {
   pluralLabel: string
   /** URL de navigation vers l'objet — best-effort : /veille n'a pas de deep-link par article. */
   buildUrl: (contentId: string) => string
-  /** Résolution en masse pour l'affichage dans Connaissances — jamais de copie, juste titre/date/aperçu. */
+  /** Résolution optimisée en lot pour la vue Liste/Corpus. */
   resolveMany: (
     supabase: SupabaseClient<Database>,
     ids: string[],
   ) => Promise<Map<string, ResolvedContentMeta>>
 }
 
-function truncate(value: string | null, maxLength: number): string | null {
-  if (!value) return null
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength - 1)}…` : trimmed
+function truncate(text: string | null, maxLen: number): string | null {
+  if (!text) return null
+  const cleaned = text.replace(/\s+/g, " ").trim()
+  if (!cleaned) return null
+  if (cleaned.length <= maxLen) return cleaned
+  return `${cleaned.slice(0, maxLen)}…`
 }
 
 const veilleArticleEntry: ContentTypeRegistryEntry = {
   contentType: "veille_article",
   label: "Article de veille",
-  pluralLabel: "articles de veille",
+  pluralLabel: "articles",
   buildUrl: () => "/veille",
   resolveMany: async (supabase, ids) => {
     const resolved = new Map<string, ResolvedContentMeta>()
@@ -84,6 +86,7 @@ const intelligenceDocumentEntry: ContentTypeRegistryEntry = {
         date: row.updated_at,
         preview: truncate(row.current_content_text, 160),
         categoryLabel: row.document_type ? getDocumentTypeLabel(row.document_type) : null,
+        documentType: row.document_type || null,
       })
     }
     return resolved

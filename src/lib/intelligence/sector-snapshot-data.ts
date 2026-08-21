@@ -107,7 +107,7 @@ function toResolvedLevel(value: string | null | undefined): SectorResolvedLevel 
 }
 
 function toScalarLevel(value: string | null | undefined): SectorResolvedLevel {
-  return value === "segment" || value === "locked" ? value : "macro"
+  return value === "segment" || value === "locked" || value === "estimated" ? value : "macro"
 }
 
 function toCompanySources(rows: Array<{ id: string; name: string; legal_name: string | null; segment: string | null; metadata: unknown }> | null): SectorCompanySource[] {

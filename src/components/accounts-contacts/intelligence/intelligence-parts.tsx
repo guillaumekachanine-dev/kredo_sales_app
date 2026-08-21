@@ -76,6 +76,16 @@ export function SectorLevelBadge({ level, macroName }: { level: SectorResolvedLe
       </span>
     )
   }
+  if (level === "estimated") {
+    return (
+      <span
+        title="Chiffre triangulé depuis une source officielle sourcée — pas une publication directe pour ce segment"
+        className="inline-flex shrink-0 items-center gap-1 rounded border border-info/25 bg-info/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-info"
+      >
+        Estimation
+      </span>
+    )
+  }
   return (
     <span
       title={macroName ? `Hérité du macro-secteur « ${macroName} »` : "Hérité du macro-secteur"}
