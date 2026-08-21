@@ -41,7 +41,7 @@ describe("resolveBusinessIntelligenceRoute", () => {
 
   it("accepte uniquement un segment métier canonique", async () => {
     const { resolveBusinessIntelligenceRoute } = await import("./resolve-business-intelligence-route")
-    await expect(resolveBusinessIntelligenceRoute({ segment: SEGMENT, tab: "competitive_env" })).resolves.toEqual({ kind: "workspace", segmentId: SEGMENT, tab: "competitive_env" })
+    await expect(resolveBusinessIntelligenceRoute({ segment: SEGMENT, tab: "competitive_env" })).resolves.toEqual({ kind: "workspace", segmentId: SEGMENT, segmentName: "Spatial", tab: "competitive_env" })
     await expect(resolveBusinessIntelligenceRoute({ segment: MACRO })).resolves.toEqual({ kind: "invalid", reason: "macro_not_allowed", tab: null })
   })
 
@@ -50,7 +50,8 @@ describe("resolveBusinessIntelligenceRoute", () => {
     await expect(resolveBusinessIntelligenceRoute({ competitiveSegment: "spatial", tab: "competitive_env" })).resolves.toEqual({
       kind: "legacyRedirect",
       segmentId: SEGMENT,
-      href: `/intelligence?segment=${SEGMENT}&tab=competitive_env`,
+      segmentName: "Spatial",
+      href: `/intelligence?segment=${SEGMENT}&tab=competitive-environment`,
       tab: "competitive_env",
     })
   })

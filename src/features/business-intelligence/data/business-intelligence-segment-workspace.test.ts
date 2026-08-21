@@ -26,6 +26,14 @@ describe("Business Intelligence segment workspace contracts", () => {
     const source = read("src/features/competitive-map/data/get-competitive-map-snapshot.ts")
     expect(source).toContain('.eq("segment_id", segmentId)')
     expect(source).not.toContain("catalog[0]")
+    expect(source).not.toContain("sector_intelligence!sector_intelligence_parent_id_fkey")
+  })
+
+  it("réutilise la macro résolue sans embed de relation Supabase", () => {
+    const source = read("src/features/business-intelligence/data/get-business-intelligence-segment-workspace.ts")
+    expect(source).toContain("knowledge.macroId")
+    expect(source).toContain("knowledge.macroName")
+    expect(source).not.toContain("sector_intelligence!sector_intelligence_parent_id_fkey")
   })
 
   it("centralise le fallback chaîne de valeur segment puis macro", () => {

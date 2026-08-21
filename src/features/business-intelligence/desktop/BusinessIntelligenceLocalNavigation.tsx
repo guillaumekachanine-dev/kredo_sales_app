@@ -2,18 +2,11 @@
 
 import { cn } from "@/lib/utils"
 import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
+import { BI_CHAPTERS, type BiChapter } from "../navigation/business-intelligence-chapters"
 
-export type BiTabKey = "priorities" | "windows" | "sectors" | "value_chain" | "competitive_env"
+export type BiTabKey = BiChapter
 
-const SECTIONS: Array<{ id: BiTabKey; label: string; icon: BiTabKey }> = [
-  { id: "priorities", label: "Accueil", icon: "priorities" },
-  { id: "windows", label: "Calendrier réglementaire", icon: "windows" },
-  { id: "sectors", label: "Analyse sectorielle", icon: "sectors" },
-  { id: "value_chain", label: "Chaîne de valeur", icon: "value_chain" },
-  { id: "competitive_env", label: "Environnement concurrentiel", icon: "competitive_env" },
-]
-
-function BiSidebarIcon({ name }: { name: BiTabKey }) {
+function BiSidebarIcon({ name }: { name: BiChapter }) {
   const commonProps = {
     className: "size-4 shrink-0",
     viewBox: "0 0 24 24",
@@ -25,14 +18,14 @@ function BiSidebarIcon({ name }: { name: BiTabKey }) {
     "aria-hidden": true,
   }
 
-  if (name === "priorities") {
+  if (name === "home") {
     return (
       <svg {...commonProps}>
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
       </svg>
     )
   }
-  if (name === "windows") {
+  if (name === "regulatory-calendar") {
     return (
       <svg {...commonProps}>
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -42,7 +35,7 @@ function BiSidebarIcon({ name }: { name: BiTabKey }) {
       </svg>
     )
   }
-  if (name === "value_chain") {
+  if (name === "value-chain") {
     return (
       <svg {...commonProps}>
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -50,7 +43,7 @@ function BiSidebarIcon({ name }: { name: BiTabKey }) {
       </svg>
     )
   }
-  if (name === "competitive_env") {
+  if (name === "competitive-environment") {
     return (
       <svg {...commonProps}>
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -96,7 +89,7 @@ export function BusinessIntelligenceLocalNavigation({
           Chapitres
         </p>
         <div className="mt-2 space-y-1">
-          {SECTIONS.map((section) => {
+          {BI_CHAPTERS.map((section) => {
             const isActive = active === section.id
             return (
               <button
@@ -113,7 +106,7 @@ export function BusinessIntelligenceLocalNavigation({
                 )}
               >
                 <span className={cn("text-edito-navy shrink-0", !isActive && "opacity-75")}>
-                  <BiSidebarIcon name={section.icon} />
+                  <BiSidebarIcon name={section.id} />
                 </span>
                 <span className="leading-[1.15] break-words">{section.label}</span>
               </button>

@@ -18,7 +18,6 @@ type SegmentRow = {
   slug: string
   status: string
   level: string
-  parent: { id: string; name: string; slug: string } | { id: string; name: string; slug: string }[] | null
 }
 
 type SignalRow = {
@@ -33,11 +32,6 @@ type SignalRow = {
   detected_at: string
   recommended_action: string | null
   status: string
-}
-
-function parentOf(row: SegmentRow): { id: string; name: string; slug: string } | null {
-  if (Array.isArray(row.parent)) return row.parent[0] ?? null
-  return row.parent
 }
 
 function hasNonEmptyObject(value: Record<string, unknown> | null): boolean {
@@ -62,7 +56,7 @@ export const getBusinessIntelligenceSegmentWorkspace = cache(async (
     const supabase = await createClient()
     const segmentResult = await supabase
       .from("sector_intelligence")
-      .select("id,name,slug,status,level,parent:sector_intelligence!sector_intelligence_parent_id_fkey(id,name,slug)")
+      .select("id,name,slug,status,level")
       .eq("id", segmentId)
       .maybeSingle()
 
@@ -176,7 +170,11 @@ export const getBusinessIntelligenceSegmentWorkspace = cache(async (
       name: row.name,
       slug: row.slug,
       status: row.status,
-      macro: parentOf(row),
+      macro: knowledge.macroId && knowledge.macroName && knowledge.macroSlug ? {
+        id: knowledge.macroId,
+        name: knowledge.macroName,
+        slug: knowledge.macroSlug,
+      } : null,
     }
     const hasResource = Object.values(coverage).some((item) => item.available)
     return {

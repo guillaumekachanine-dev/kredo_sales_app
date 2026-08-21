@@ -2,13 +2,14 @@ import "server-only"
 
 import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
+import { buildBusinessIntelligenceHref, resolveBiChapter } from "../navigation/business-intelligence-chapters"
 
 export type BusinessIntelligenceSearchParams = Record<string, string | string[] | undefined>
 
 export type BusinessIntelligenceRouteResolution =
   | { kind: "catalog"; tab: string | null }
-  | { kind: "workspace"; segmentId: string; tab: string | null }
-  | { kind: "legacyRedirect"; segmentId: string; href: string; tab: string | null }
+  | { kind: "workspace"; segmentId: string; segmentName: string; tab: string | null }
+  | { kind: "legacyRedirect"; segmentId: string; segmentName: string; href: string; tab: string | null }
   | {
       kind: "invalid"
       reason: "unknown_segment" | "macro_not_allowed" | "malformed_segment"
@@ -30,9 +31,7 @@ function firstValue(value: string | string[] | undefined): string | null {
 }
 
 function canonicalHref(segmentId: string, tab: string | null): string {
-  const params = new URLSearchParams({ segment: segmentId })
-  if (tab) params.set("tab", tab)
-  return `/intelligence?${params.toString()}`
+  return buildBusinessIntelligenceHref(segmentId, resolveBiChapter(tab))
 }
 
 const findSectorById = cache(async (id: string): Promise<SectorRouteRow | null> => {
@@ -71,7 +70,7 @@ export async function resolveBusinessIntelligenceRoute(
     const row = await findSectorById(segment)
     if (!row) return { kind: "invalid", reason: "unknown_segment", tab }
     if (row.level !== "segment") return { kind: "invalid", reason: "macro_not_allowed", tab }
-    return { kind: "workspace", segmentId: row.id, tab }
+    return { kind: "workspace", segmentId: row.id, segmentName: row.name, tab }
   }
 
   if (!legacySegment) return { kind: "catalog", tab }
@@ -79,5 +78,5 @@ export async function resolveBusinessIntelligenceRoute(
   const row = await findLegacySector(legacySegment)
   if (!row) return { kind: "invalid", reason: "unknown_segment", tab }
   if (row.level !== "segment") return { kind: "invalid", reason: "macro_not_allowed", tab }
-  return { kind: "legacyRedirect", segmentId: row.id, href: canonicalHref(row.id, tab), tab }
+  return { kind: "legacyRedirect", segmentId: row.id, segmentName: row.name, href: canonicalHref(row.id, tab), tab }
 }

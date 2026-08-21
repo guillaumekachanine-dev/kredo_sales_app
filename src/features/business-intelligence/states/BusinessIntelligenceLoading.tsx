@@ -1,0 +1,7 @@
+export function BusinessIntelligenceLoadingDesktop({ mode = "workspace" }: { mode?: "catalog" | "workspace" }) {
+  return <main className="min-h-screen bg-edito-canvas px-8 py-8" aria-label={`Chargement du ${mode === "catalog" ? "catalogue" : "workspace"}`}><div className="mx-auto max-w-6xl space-y-5"><div className="h-7 w-72 animate-pulse rounded bg-edito-chip" /><div className="h-16 animate-pulse rounded-xl bg-edito-surface" />{mode === "catalog" ? <><div className="h-16 animate-pulse bg-edito-surface" /><div className="h-36 animate-pulse bg-edito-surface" /><div className="h-16 animate-pulse bg-edito-surface" /></> : <><div className="grid grid-cols-2 gap-5"><div className="h-44 animate-pulse rounded-xl bg-edito-surface" /><div className="h-44 animate-pulse rounded-xl bg-edito-surface" /></div><div className="h-40 animate-pulse rounded-xl bg-edito-surface" /></>}</div></main>
+}
+
+export function BusinessIntelligenceLoadingMobile({ mode = "workspace" }: { mode?: "catalog" | "workspace" }) {
+  return <main className="min-h-dvh bg-canvas px-4 py-5" aria-label={`Chargement du ${mode === "catalog" ? "catalogue" : "workspace"}`}><div className="h-7 w-52 animate-pulse rounded bg-surface" /><div className="mt-5 h-20 animate-pulse bg-surface" /><div className="mt-4 space-y-2">{Array.from({ length: mode === "catalog" ? 5 : 3 }, (_, index) => <div key={index} className="h-14 animate-pulse border-y border-border bg-surface/45" />)}</div></main>
+}

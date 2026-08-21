@@ -7,47 +7,51 @@ import { getBusinessIntelligenceCatalog } from "@/features/business-intelligence
 import { getBusinessIntelligenceSegmentWorkspace } from "@/features/business-intelligence/data/get-business-intelligence-segment-workspace"
 import { buildBusinessIntelligenceWorkspaceAdapter } from "@/features/business-intelligence/data/build-business-intelligence-workspace-adapter"
 import { resolveBusinessIntelligenceRoute } from "@/features/business-intelligence/data/resolve-business-intelligence-route"
-import { BusinessIntelligenceCatalogState } from "@/features/business-intelligence/catalog/BusinessIntelligenceCatalogState"
+import { SegmentCatalogLandingDesktop } from "@/features/business-intelligence/catalog/SegmentCatalogLandingDesktop"
+import { SegmentCatalogLandingMobile } from "@/features/business-intelligence/catalog/SegmentCatalogLandingMobile"
+import { BusinessIntelligenceErrorState } from "@/features/business-intelligence/states/BusinessIntelligenceErrorState"
+import { BusinessIntelligenceLoadingDesktop, BusinessIntelligenceLoadingMobile } from "@/features/business-intelligence/states/BusinessIntelligenceLoading"
 import { redirect } from "next/navigation"
-import type { BiTabKey } from "@/features/business-intelligence/desktop/BusinessIntelligenceLocalNavigation"
+import { buildBusinessIntelligenceHref, isCanonicalBiChapter, resolveBiChapter } from "@/features/business-intelligence/navigation/business-intelligence-chapters"
+import { Suspense } from "react"
 
 type BusinessIntelligencePageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-const BI_TABS = new Set<BiTabKey>(["priorities", "windows", "sectors", "value_chain", "competitive_env"])
-
-function resolveTab(value: string | null): BiTabKey {
-  return value && BI_TABS.has(value as BiTabKey) ? value as BiTabKey : "priorities"
+export default async function BusinessIntelligencePage({ searchParams }: BusinessIntelligencePageProps) {
+  const [device, requestedSearchParams] = await Promise.all([getDashboardDevice(), searchParams])
+  const mode = requestedSearchParams.segment || requestedSearchParams.competitiveSegment ? "workspace" : "catalog"
+  const fallback = device === "mobile"
+    ? <BusinessIntelligenceLoadingMobile mode={mode} />
+    : <BusinessIntelligenceLoadingDesktop mode={mode} />
+  return <Suspense fallback={fallback}><BusinessIntelligencePageContent searchParams={Promise.resolve(requestedSearchParams)} /></Suspense>
 }
 
-export default async function BusinessIntelligencePage({ searchParams }: BusinessIntelligencePageProps) {
+async function BusinessIntelligencePageContent({ searchParams }: BusinessIntelligencePageProps) {
   const route = await resolveBusinessIntelligenceRoute(await searchParams)
   if (route.kind === "legacyRedirect") redirect(route.href)
 
   if (route.kind === "catalog" || route.kind === "invalid") {
-    const catalog = await getBusinessIntelligenceCatalog()
-    return <BusinessIntelligenceCatalogState catalog={catalog} issue={route.kind === "invalid" ? route.reason : null} />
+    const [device, catalog] = await Promise.all([getDashboardDevice(), getBusinessIntelligenceCatalog()])
+    const issue = route.kind === "invalid" ? route.reason : null
+    return device === "mobile"
+      ? <SegmentCatalogLandingMobile catalog={catalog} issue={issue} />
+      : <SegmentCatalogLandingDesktop catalog={catalog} issue={issue} />
   }
+
+  const chapter = resolveBiChapter(route.tab)
+  if (!isCanonicalBiChapter(route.tab)) redirect(buildBusinessIntelligenceHref(route.segmentId, chapter))
 
   const [device, workspace] = await Promise.all([
     getDashboardDevice(),
     getBusinessIntelligenceSegmentWorkspace(route.segmentId),
   ])
   if (workspace.state === "error") {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-canvas p-6 text-body">
-        <section className="max-w-md rounded-xl border border-border bg-surface p-6 text-center">
-          <h1 className="text-lg font-semibold text-heading">Workspace indisponible</h1>
-          <p className="mt-2 text-sm text-muted">{workspace.error}</p>
-        </section>
-      </main>
-    )
+    return <BusinessIntelligenceErrorState segmentName={route.segmentName} message={workspace.error} device={device} />
   }
 
   const { snapshot, sectorMapCatalog, competitiveMapWorkspace } = buildBusinessIntelligenceWorkspaceAdapter(workspace)
-  const tab = resolveTab(route.tab)
-
   if (device === "mobile") {
     const viewModel = buildBusinessIntelligenceMobileModel(snapshot)
     return (
@@ -57,7 +61,8 @@ export default async function BusinessIntelligencePage({ searchParams }: Busines
           snapshot={snapshot}
           sectorMapCatalog={sectorMapCatalog}
           competitiveMapWorkspace={competitiveMapWorkspace}
-          initialSection={tab}
+          workspace={workspace}
+          initialSection={chapter}
         />
       </div>
     )
@@ -66,13 +71,14 @@ export default async function BusinessIntelligencePage({ searchParams }: Busines
   const viewModel = buildBusinessIntelligenceDesktopModel(snapshot)
 
   return (
-    <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+    <div data-theme="edito-bright-cockpit" className="flex min-h-0 flex-1 bg-canvas text-body">
       <BusinessIntelligenceDesktop
         viewModel={viewModel}
         snapshot={snapshot}
         sectorMapCatalog={sectorMapCatalog}
         competitiveMapWorkspace={competitiveMapWorkspace}
-        initialTab={tab}
+        workspace={workspace}
+        initialTab={chapter}
       />
     </div>
   )

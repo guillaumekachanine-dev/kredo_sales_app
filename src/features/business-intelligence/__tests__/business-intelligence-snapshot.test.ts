@@ -66,13 +66,14 @@ describe("Business Intelligence snapshot", () => {
   })
 
   it("rend les erreurs explicites sur Desktop et Mobile", () => {
-    const desktop = readFileSync("src/features/business-intelligence/desktop/BusinessIntelligenceDesktop.tsx", "utf8")
-    const mobile = readFileSync("src/features/business-intelligence/mobile/BusinessIntelligenceMobile.tsx", "utf8")
+    const state = readFileSync("src/features/business-intelligence/states/BusinessIntelligenceErrorState.tsx", "utf8")
+    const page = readFileSync("src/app/(app)/intelligence/page.tsx", "utf8")
 
-    for (const source of [desktop, mobile]) {
-      expect(source).toContain("Données indisponibles")
-      expect(source).toContain("La Business Intelligence ne peut pas être chargée pour le moment.")
-    }
+    expect(state).toContain("Workspace indisponible")
+    expect(state).toContain("Réessayer")
+    expect(state).toContain("Changer de segment")
+    expect(page).toContain("<BusinessIntelligenceErrorState")
+    expect(page).toContain("device={device}")
   })
 
   it("sélectionne la branche Mobile avec un User-Agent iPhone et Desktop sinon", () => {

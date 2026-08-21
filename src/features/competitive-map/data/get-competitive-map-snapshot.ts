@@ -15,12 +15,7 @@ type SegmentRow = {
   slug: string
   name: string
   level: string
-  parent: { name: string } | { name: string }[] | null
-}
-
-function parentName(parent: SegmentRow["parent"]): string {
-  if (Array.isArray(parent)) return parent[0]?.name ?? ""
-  return parent?.name ?? ""
+  parent_id: string | null
 }
 
 export const getCompetitiveMapSnapshot = cache(async (segmentId: string): Promise<CompetitiveMapSnapshot | null> => {
@@ -28,7 +23,7 @@ export const getCompetitiveMapSnapshot = cache(async (segmentId: string): Promis
   const [segmentResult, latestResult] = await Promise.all([
     supabase
       .from("sector_intelligence")
-      .select("id,slug,name,level,parent:sector_intelligence!sector_intelligence_parent_id_fkey(name)")
+      .select("id,slug,name,level,parent_id")
       .eq("id", segmentId)
       .maybeSingle(),
     supabase
@@ -45,14 +40,19 @@ export const getCompetitiveMapSnapshot = cache(async (segmentId: string): Promis
 
   const segment = segmentResult.data as unknown as SegmentRow
   const snapshotDate = latestResult.data.study_snapshot_date
-  const entriesResult = await supabase
-    .from("competitive_map_entries")
-    .select("id,company_id,category,positioning,forces,vulnerabilite,angle_entree,appetence_score,accessibilite_score,appetence_provisoire,confiance,is_benchmark_account,profile_json,companies:companies!competitive_map_entries_company_id_fkey(id,name)")
-    .eq("segment_id", segmentId)
-    .eq("study_snapshot_date", snapshotDate)
-    .order("category", { ascending: true })
+  const [entriesResult, parentResult] = await Promise.all([
+    supabase
+      .from("competitive_map_entries")
+      .select("id,company_id,category,positioning,forces,vulnerabilite,angle_entree,appetence_score,accessibilite_score,appetence_provisoire,confiance,is_benchmark_account,profile_json,companies:companies!competitive_map_entries_company_id_fkey(id,name)")
+      .eq("segment_id", segmentId)
+      .eq("study_snapshot_date", snapshotDate)
+      .order("category", { ascending: true }),
+    segment.parent_id
+      ? supabase.from("sector_intelligence").select("name").eq("id", segment.parent_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
 
-  if (entriesResult.error) throw new Error(entriesResult.error.message)
+  if (entriesResult.error || parentResult.error) throw new Error((entriesResult.error ?? parentResult.error)?.message)
   const entryRows = (entriesResult.data ?? []) as unknown as CompetitiveMapWorkspaceEntryRow[]
   if (entryRows.length === 0) return null
 
@@ -70,7 +70,7 @@ export const getCompetitiveMapSnapshot = cache(async (segmentId: string): Promis
     factRows = (factsResult.data ?? []) as Array<Omit<CompetitiveMapFactRow, "value_json"> & { value_json: CompetitiveMapJsonValue | null }>
   }
 
-  const macroName = parentName(segment.parent)
+  const macroName = parentResult.data?.name ?? ""
   const catalogItem: CompetitiveMapCatalogItem = {
     segmentId,
     segmentSlug: segment.slug,

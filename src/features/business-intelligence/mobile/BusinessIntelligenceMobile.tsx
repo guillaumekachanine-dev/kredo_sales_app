@@ -1,72 +1,87 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useTransition } from "react"
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
-import {
-  getMobileSectorAccounts,
-  resolveMobilePriorityAccountId,
-  resolveMobileWindowAccountId,
-  type BusinessIntelligenceMobilePeriod,
-  type BusinessIntelligenceMobileViewModel,
-} from "../presenters/build-business-intelligence-mobile-model"
-import { BusinessIntelligenceMobileHeader } from "./BusinessIntelligenceMobileHeader"
-import { MobileAccountActionCard } from "./MobileAccountActionCard"
-import { MobileDecisionBrief, EmptyPanel } from "./MobileDecisionBrief"
-import { MobilePriorityAccounts } from "./MobilePriorityAccounts"
-import { MobileSectorWindows } from "./MobileSectorWindows"
-import { SectorWindowsModal } from "../desktop/BusinessIntelligenceLedgerModals"
+import type { BusinessIntelligenceCatalogSegment, BusinessIntelligenceSegmentWorkspace } from "../data/business-intelligence-workspace-types"
+import type { BusinessIntelligenceMobileViewModel } from "../presenters/build-business-intelligence-mobile-model"
 import type { SectorMapCatalog } from "@/features/sector-mapping/data/sector-map-catalog"
 import type { CompetitiveMapWorkspace } from "@/features/competitive-map/data/competitive-map-workspace-types"
+import { cn } from "@/lib/utils"
+import { BusinessIntelligenceMobileHeader } from "./BusinessIntelligenceMobileHeader"
+import { MobileSectorWindows } from "./MobileSectorWindows"
+import { SectorWindowsModal } from "../desktop/BusinessIntelligenceLedgerModals"
+import { SegmentHomeDashboardMobile } from "../home/SegmentHomeDashboardMobile"
+import { SegmentPickerDrawerMobile } from "../catalog/SegmentPickerDrawerMobile"
+import { SegmentChangeConfirmDialog } from "../catalog/SegmentChangeConfirmDialog"
+import { BusinessIntelligenceChapterState } from "../chapters/BusinessIntelligenceChapterState"
+import { SectorNewsChapterMobile } from "../chapters/SectorNewsChapter"
+import { BI_CHAPTERS, buildBusinessIntelligenceHref, replaceBiChapterInHref, resolveBiChapter, type BiChapter } from "../navigation/business-intelligence-chapters"
 
 const SectorStudiesModal = dynamic(() => import("../studies/SectorStudiesModal").then((module) => module.SectorStudiesModal), { ssr: false })
-const BusinessIntelligenceSectorMapMobile = dynamic(
-  () => import("@/features/sector-mapping/integration/BusinessIntelligenceSectorMapMobile").then((module) => module.BusinessIntelligenceSectorMapMobile),
-  { loading: () => <div className="mx-4 mt-4 min-h-64 animate-pulse rounded-xl bg-white/[0.035]" aria-label="Chargement de la cartographie" /> },
-)
-const CompetitiveEnvironmentMobile = dynamic(
-  () => import("@/features/competitive-map/components/mobile/CompetitiveEnvironmentMobile").then((module) => module.CompetitiveEnvironmentMobile),
-  { loading: () => <div className="mx-4 mt-4 min-h-72 animate-pulse rounded-xl bg-white/[0.035]" aria-label="Chargement de l’environnement concurrentiel" /> },
-)
+const SectorPlaybooksModal = dynamic(() => import("../playbooks/SectorPlaybooksModal").then((module) => module.SectorPlaybooksModal), { ssr: false })
+const BusinessIntelligenceSectorMapMobile = dynamic(() => import("@/features/sector-mapping/integration/BusinessIntelligenceSectorMapMobile").then((module) => module.BusinessIntelligenceSectorMapMobile), { loading: () => <div className="mx-4 mt-4 min-h-64 animate-pulse rounded-xl bg-surface/35" aria-label="Chargement de la cartographie" /> })
+const CompetitiveEnvironmentMobile = dynamic(() => import("@/features/competitive-map/components/mobile/CompetitiveEnvironmentMobile").then((module) => module.CompetitiveEnvironmentMobile), { loading: () => <div className="mx-4 mt-4 min-h-72 animate-pulse rounded-xl bg-surface/35" aria-label="Chargement de l’environnement concurrentiel" /> })
 
-export type MobileSection = "priorities" | "windows" | "sectors" | "value_chain" | "competitive_env"
+export type MobileSection = BiChapter
+type LoadedWorkspace = Extract<BusinessIntelligenceSegmentWorkspace, { state: "ready" | "empty" }>
 
-export function BusinessIntelligenceMobile({ viewModel, snapshot, sectorMapCatalog, competitiveMapWorkspace, initialSection = "priorities" }: { viewModel: BusinessIntelligenceMobileViewModel; snapshot: BusinessIntelligenceSnapshot; sectorMapCatalog: SectorMapCatalog; competitiveMapWorkspace: CompetitiveMapWorkspace; initialSection?: MobileSection }) {
-  const period: BusinessIntelligenceMobilePeriod = 30
-  const [section, setSection] = useState<MobileSection>(initialSection)
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
-  const [selectedSectorId, setSelectedSectorId] = useState<string | "all">("all")
-  const [isStudiesOpen, setIsStudiesOpen] = useState(false)
-  const [isWindowsOpen, setIsWindowsOpen] = useState(false)
-  const periodModel = viewModel.periods[period]
-  const displayedAccounts = getMobileSectorAccounts(periodModel, selectedSectorId)
-  const activeAccountId = resolveMobilePriorityAccountId(displayedAccounts, selectedAccountId)
-  const selectedAccount = displayedAccounts.find((account) => account.accountId === activeAccountId) ?? null
-
-  const selectWindow = (window: (typeof viewModel.windows)[number]) => {
-    setSelectedSectorId("all")
-    setSelectedAccountId(resolveMobileWindowAccountId(window))
-    setSection("priorities")
-  }
-
-  if (viewModel.state === "error") return <main className="min-h-dvh bg-canvas py-10"><EmptyPanel title="Données indisponibles" description="La Business Intelligence ne peut pas être chargée pour le moment." /></main>
-
-  return <main className="min-h-dvh overflow-x-hidden bg-canvas pb-[max(1rem,env(safe-area-inset-bottom))] text-white">
-    <BusinessIntelligenceMobileHeader />
-    <nav aria-label="Sections Business Intelligence" className="sticky top-0 z-20 grid shrink-0 grid-cols-5 border-y border-white/10 bg-[#0b1730]">{([['priorities', 'Priorités'], ['windows', 'Échéances'], ['sectors', 'Secteurs'], ['value_chain', 'Chaîne'], ['competitive_env', 'Concurrents']] as const).map(([id, label]) => { const selected = section === id; return <button key={id} id={`bi-mobile-tab-${id}`} type="button" role="tab" aria-selected={selected} aria-controls="bi-mobile-panel" onClick={() => setSection(id)} className={`relative min-h-12 px-0.5 text-[11px] font-semibold text-white outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-inset ${selected ? "font-bold after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-brand-brass" : "text-white/60 hover:bg-white/[0.05]"}`}>{label}</button> })}</nav>
-    {viewModel.hasDemoData && section !== "value_chain" && section !== "competitive_env" ? <p className="px-4 pt-3 text-[11px] text-white/50">Certaines activités de démonstration sont incluses.</p> : null}
-    <div id="bi-mobile-panel" role="tabpanel" aria-labelledby={`bi-mobile-tab-${section}`}>
-      {section === "priorities" ? <><section className="px-4 py-3" aria-label="Filtrer les priorités par secteur"><label htmlFor="bi-mobile-sector-filter" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-white/45">Portefeuille</label><select id="bi-mobile-sector-filter" value={selectedSectorId} onChange={(event) => { setSelectedSectorId(event.target.value); setSelectedAccountId(null) }} className="min-h-11 w-full rounded-lg border border-white/15 bg-[#0d1c38] px-3 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass"><option value="all">Tous les secteurs</option>{[...viewModel.activeSectors, ...viewModel.watchSectors].map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}</select></section><MobileDecisionBrief account={selectedAccount} period={periodModel} /><MobilePriorityAccounts accounts={displayedAccounts} selectedAccountId={activeAccountId} onSelectAccount={setSelectedAccountId} /><MobileAccountActionCard account={selectedAccount} /></> : null}
-      {section === "windows" ? <MobileSectorWindows windows={viewModel.windows} onSelectWindow={selectWindow} limit={5} onShowAll={() => setIsWindowsOpen(true)} /> : null}
-      {section === "sectors" ? <MobileSectorStudiesEntry activeCount={viewModel.activeSectors.length} watchCount={viewModel.watchSectors.length} onOpen={() => setIsStudiesOpen(true)} /> : null}
-      {section === "value_chain" ? <BusinessIntelligenceSectorMapMobile catalog={sectorMapCatalog} /> : null}
-      {section === "competitive_env" ? <CompetitiveEnvironmentMobile workspace={competitiveMapWorkspace} /> : null}
-    </div>
-    {isStudiesOpen ? <SectorStudiesModal open onClose={() => setIsStudiesOpen(false)} snapshot={snapshot} isMobile /> : null}
-    <SectorWindowsModal open={isWindowsOpen} onClose={() => setIsWindowsOpen(false)} windows={viewModel.windows} isMobile onSelectWindow={(window) => { const mobileWindow = viewModel.windows.find((item) => item.id === window.id); if (mobileWindow) { setIsWindowsOpen(false); selectWindow(mobileWindow) } }} />
-  </main>
+interface BusinessIntelligenceMobileProps {
+  viewModel: BusinessIntelligenceMobileViewModel
+  snapshot: BusinessIntelligenceSnapshot
+  sectorMapCatalog: SectorMapCatalog
+  competitiveMapWorkspace: CompetitiveMapWorkspace
+  workspace: LoadedWorkspace
+  initialSection?: BiChapter
 }
 
-function MobileSectorStudiesEntry({ activeCount, watchCount, onOpen }: { activeCount: number; watchCount: number; onOpen: () => void }) {
-  return <section className="space-y-4 px-4 py-5" aria-labelledby="mobile-sector-studies-title"><div className="rounded-xl border border-white/10 bg-white/[0.025] p-4"><div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-brand-brass/35 bg-brand-brass/10 text-brand-brass" aria-hidden="true">▧</span><div><h2 id="mobile-sector-studies-title" className="text-lg font-bold text-white">Études sectorielles</h2><p className="mt-1 text-xs leading-relaxed text-white/55">Accédez aux études actives et suivez les secteurs en veille.</p></div></div><div className="mt-5 divide-y divide-white/10 border-y border-white/10"><div className="flex items-center justify-between py-3"><span className="text-sm font-semibold text-white">Études opérationnelles</span><span className="text-sm font-bold text-brand-brass">{activeCount} actives</span></div><div className="flex items-center justify-between py-3"><span className="text-sm font-semibold text-white">Secteurs en veille</span><span className="text-sm font-bold text-white/60">{watchCount} en veille</span></div></div><button type="button" onClick={onOpen} className="mt-4 min-h-11 w-full rounded-lg border border-brand-brass/45 bg-brand-brass/10 px-3 text-xs font-bold text-brand-brass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Ouvrir les études sectorielles</button></div></section>
+export function BusinessIntelligenceMobile(props: BusinessIntelligenceMobileProps) {
+  return <BusinessIntelligenceWorkspaceMobile {...props} />
+}
+
+export function BusinessIntelligenceWorkspaceMobile({ viewModel, snapshot, sectorMapCatalog, competitiveMapWorkspace, workspace, initialSection = "home" }: BusinessIntelligenceMobileProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const activeChapter = resolveBiChapter(searchParams.get("tab") ?? initialSection)
+  const [isStudiesOpen, setIsStudiesOpen] = useState(false)
+  const [isPlaybooksOpen, setIsPlaybooksOpen] = useState(false)
+  const [isWindowsOpen, setIsWindowsOpen] = useState(false)
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [pendingSegment, setPendingSegment] = useState<BusinessIntelligenceCatalogSegment | null>(null)
+  const [isSegmentPending, startSegmentTransition] = useTransition()
+
+  const navigateChapter = (chapter: BiChapter) => {
+    const currentHref = `/intelligence?${searchParams.toString()}`
+    window.history.pushState(null, "", replaceBiChapterInHref(currentHref, workspace.segment.id, chapter))
+  }
+  const confirmSegment = () => {
+    if (!pendingSegment) return
+    startSegmentTransition(() => router.push(buildBusinessIntelligenceHref(pendingSegment.id, activeChapter)))
+  }
+  const unavailable = (title: string) => <BusinessIntelligenceChapterState title={`${title} indisponible`} description="Cette ressource n’existe pas encore pour le segment actif." />
+
+  return <main className="relative min-h-dvh overflow-x-hidden bg-canvas pb-[max(1rem,env(safe-area-inset-bottom))] text-body" aria-busy={isSegmentPending || undefined}>
+    <BusinessIntelligenceMobileHeader segmentName={workspace.segment.name} onChangeSegment={() => setIsPickerOpen(true)} />
+    <nav aria-label="Chapitres Business Intelligence" className="sticky top-0 z-20 flex overflow-x-auto border-y border-border bg-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {BI_CHAPTERS.map((chapter) => {
+        const selected = activeChapter === chapter.id
+        return <button key={chapter.id} type="button" aria-current={selected ? "page" : undefined} onClick={() => navigateChapter(chapter.id)} className={cn("relative min-h-12 shrink-0 px-4 text-xs font-semibold text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary", selected && "text-heading after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-brand-brass")}>{chapter.mobileLabel}</button>
+      })}
+    </nav>
+    <div>
+      {activeChapter === "home" ? <SegmentHomeDashboardMobile workspace={workspace} onNavigate={navigateChapter} onOpenPlaybook={() => setIsPlaybooksOpen(true)} /> : null}
+      {activeChapter === "sector-analysis" ? workspace.coverage.study.available ? <section className="px-4 py-5"><div className="border border-border bg-surface/35 p-4"><h2 className="font-heading text-lg font-bold text-heading">Étude du segment</h2><p className="mt-1 text-xs leading-relaxed text-body">Consultez l’étude sectorielle existante.</p><button type="button" onClick={() => setIsStudiesOpen(true)} className="mt-4 min-h-11 w-full border border-border bg-surface px-3 text-xs font-bold text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Ouvrir l’étude</button></div></section> : unavailable("Analyse sectorielle") : null}
+      {activeChapter === "competitive-environment" ? workspace.coverage.competitiveMap.available ? <CompetitiveEnvironmentMobile workspace={competitiveMapWorkspace} /> : unavailable("Environnement concurrentiel") : null}
+      {activeChapter === "regulatory-calendar" ? workspace.coverage.regulatory.available ? <MobileSectorWindows windows={viewModel.windows} onSelectWindow={() => {}} limit={5} onShowAll={() => setIsWindowsOpen(true)} /> : unavailable("Calendrier réglementaire") : null}
+      {activeChapter === "value-chain" ? workspace.coverage.valueChain.available ? <BusinessIntelligenceSectorMapMobile catalog={sectorMapCatalog} /> : unavailable("Chaîne de valeur") : null}
+      {activeChapter === "sector-news" ? workspace.coverage.news.available ? <SectorNewsChapterMobile news={workspace.news} /> : unavailable("Actualités sectorielles") : null}
+    </div>
+    <SegmentPickerDrawerMobile open={isPickerOpen} currentSegmentId={workspace.segment.id} onOpenChange={setIsPickerOpen} onSelect={(segment) => { setIsPickerOpen(false); setPendingSegment(segment) }} />
+    <SegmentChangeConfirmDialog pendingSegment={pendingSegment} currentSegmentName={workspace.segment.name} isPending={isSegmentPending} onCancel={() => setPendingSegment(null)} onConfirm={confirmSegment} />
+    {isStudiesOpen ? <SectorStudiesModal open onClose={() => setIsStudiesOpen(false)} snapshot={snapshot} initialSectorId={workspace.segment.id} isMobile /> : null}
+    {isPlaybooksOpen ? <SectorPlaybooksModal open onClose={() => setIsPlaybooksOpen(false)} snapshot={snapshot} initialSectorId={workspace.segment.id} onApplySector={() => setIsPlaybooksOpen(false)} isMobile /> : null}
+    <SectorWindowsModal open={isWindowsOpen} onClose={() => setIsWindowsOpen(false)} windows={snapshot.windows} isMobile onSelectWindow={() => setIsWindowsOpen(false)} />
+    {isSegmentPending ? <div className="absolute inset-0 z-50 flex items-center justify-center bg-canvas/75" role="status"><div className="border border-border bg-surface px-4 py-3 text-sm font-semibold text-heading">Chargement du nouveau segment…</div></div> : null}
+  </main>
 }
