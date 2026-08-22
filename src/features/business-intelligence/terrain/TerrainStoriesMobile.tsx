@@ -2,14 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import type { ResolvedSource } from "../shared/SourceChip"
+import { TerrainSourceSheet } from "./TerrainSourceSheet"
+import { TerrainSourceTriggerList } from "./TerrainSourceTrigger"
 import {
-  formatStorySourceIds,
   stripCommercialLabel,
   type TerrainStory,
 } from "./terrain-stories-model"
 
 export type TerrainStoriesMobileProps = {
   stories: TerrainStory[]
+  sourceResolution?: Record<number, ResolvedSource> | null
   initialIndex?: number
   onBack: () => void
   className?: string
@@ -19,6 +22,7 @@ const SWIPE_THRESHOLD_PX = 44
 
 export function TerrainStoriesMobile({
   stories,
+  sourceResolution,
   initialIndex = 0,
   onBack,
   className,
@@ -26,6 +30,7 @@ export function TerrainStoriesMobile({
   const [currentIndex, setCurrentIndex] = useState(() =>
     Math.max(0, Math.min(initialIndex, Math.max(0, stories.length - 1))),
   )
+  const [selectedSourceId, setSelectedSourceId] = useState<number | null>(null)
   const touchStartY = useRef<number | null>(null)
 
   const total = stories.length
@@ -44,6 +49,8 @@ export function TerrainStoriesMobile({
   // Navigation clavier (Flèches & Échap)
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (selectedSourceId !== null) return
+
       if (event.key === "ArrowDown" || event.key === "ArrowRight") {
         event.preventDefault()
         if (!isLast) handleNext()
@@ -57,7 +64,7 @@ export function TerrainStoriesMobile({
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isFirst, isLast, handleNext, handlePrevious, onBack])
+  }, [isFirst, isLast, handleNext, handlePrevious, onBack, selectedSourceId])
 
   // Gestion du swipe vertical (Touch events)
   const handleTouchStart = (event: React.TouchEvent) => {
@@ -203,16 +210,28 @@ export function TerrainStoriesMobile({
               ) : null}
 
               {currentStory.srcIds.length > 0 ? (
-                <p className="mt-4 text-[11px] font-bold tracking-wide text-edito-muted">
-                  {formatStorySourceIds(currentStory.srcIds)}
-                </p>
+                <div className="mt-4 pt-1">
+                  <TerrainSourceTriggerList
+                    sourceIds={currentStory.srcIds}
+                    sourceResolution={sourceResolution}
+                    onSelectSource={setSelectedSourceId}
+                  />
+                </div>
               ) : null}
             </div>
           )}
         </article>
       </div>
 
-      {/* 3. Contrôles de navigation séquentielle basse */}
+      {/* 3. Bottom Sheet de consultation interactive des sources */}
+      <TerrainSourceSheet
+        sourceId={selectedSourceId}
+        sourceResolution={sourceResolution}
+        open={selectedSourceId !== null}
+        onClose={() => setSelectedSourceId(null)}
+      />
+
+      {/* 4. Contrôles de navigation séquentielle basse */}
       <footer className="shrink-0 pt-2">
         <div className="grid grid-cols-2 gap-3">
           <button

@@ -7,16 +7,18 @@ import { buildTerrainHomeModel } from "./terrain-home-model"
 import { buildTerrainStories } from "./terrain-stories-model"
 import { buildTerrainRevisionCards } from "./terrain-revision-model"
 import { buildTerrainTopAccounts } from "./terrain-top-accounts-model"
+import { buildTerrainEssentials } from "./terrain-essentials-model"
 import { TerrainConfidenceBadge } from "./TerrainConfidenceBadge"
 import { TerrainRegulatoryCard } from "./TerrainRegulatoryCard"
 import { TerrainAngleCard } from "./TerrainAngleCard"
 import { TerrainStoriesMobile } from "./TerrainStoriesMobile"
 import { TerrainRevisionMobile } from "./TerrainRevisionMobile"
 import { TerrainTopAccountsMobile } from "./TerrainTopAccountsMobile"
+import { TerrainEssentialsMobile } from "./TerrainEssentialsMobile"
 
 type LoadedWorkspace = Extract<BusinessIntelligenceSegmentWorkspace, { state: "ready" | "empty" }>
 
-export type TerrainSurface = "home" | "stories" | "revision" | "top-accounts"
+export type TerrainSurface = "home" | "stories" | "revision" | "top-accounts" | "essentials"
 
 export function TerrainHomeDashboardMobile({
   workspace,
@@ -39,11 +41,16 @@ export function TerrainHomeDashboardMobile({
     () => buildTerrainTopAccounts(workspace.competitiveMap?.actors ?? []),
     [workspace.competitiveMap?.actors],
   )
+  const essentials = useMemo(
+    () => buildTerrainEssentials(workspace),
+    [workspace],
+  )
 
   if (surface === "stories" && stories.length > 0) {
     return (
       <TerrainStoriesMobile
         stories={stories}
+        sourceResolution={workspace.sourceResolution}
         onBack={() => setSurface("home")}
       />
     )
@@ -67,10 +74,29 @@ export function TerrainHomeDashboardMobile({
     )
   }
 
+  if (surface === "essentials" && essentials !== null) {
+    return (
+      <TerrainEssentialsMobile
+        model={essentials}
+        sourceResolution={workspace.sourceResolution}
+        onBack={() => setSurface("home")}
+      />
+    )
+  }
+
   const hasStories = stories.length > 0
   const hasRevision = revisionCards.length > 0
   const hasTopAccounts = topAccounts.ranked.length > 0
-  const modeCount = (hasStories ? 1 : 0) + (hasRevision ? 1 : 0) + (hasTopAccounts ? 1 : 0)
+  const hasEssentials = essentials !== null
+  const modeCount =
+    (hasStories ? 1 : 0) +
+    (hasRevision ? 1 : 0) +
+    (hasTopAccounts ? 1 : 0) +
+    (hasEssentials ? 1 : 0)
+
+  const essentialsCount = essentials
+    ? essentials.valueChainEndpoints.length + essentials.criticalDependencies.length
+    : 0
 
   return (
     <div
@@ -86,16 +112,16 @@ export function TerrainHomeDashboardMobile({
       {/* 3. Angle du jour & action de copie de l'accroche */}
       <TerrainAngleCard angle={model.dailyAngle} />
 
-      {/* 4. Accès aux modes Terrain (Stories, Révision, Top 3 selon disponibilité) */}
+      {/* 4. Accès aux modes Terrain (Stories, Révision, Top 3, Essentiel selon disponibilité) */}
       {modeCount > 0 ? (
         <section aria-label="Accès aux modes Terrain" className="pt-1">
           <div
             className={cn(
               "grid gap-2.5",
-              modeCount === 3
-                ? "grid-cols-3"
-                : modeCount === 2
-                  ? "grid-cols-2"
+              modeCount === 4 || modeCount === 2
+                ? "grid-cols-2"
+                : modeCount === 3
+                  ? "grid-cols-3"
                   : "grid-cols-1",
             )}
           >
@@ -104,11 +130,11 @@ export function TerrainHomeDashboardMobile({
                 type="button"
                 onClick={() => setSurface("stories")}
                 aria-label={`Ouvrir le mode Stories (${stories.length} ${stories.length > 1 ? "stories" : "story"})`}
-                className="flex min-h-12 cursor-pointer items-center justify-between rounded-xl border border-edito-navy bg-edito-navy px-3.5 py-3 text-xs font-extrabold text-white shadow-sm transition-colors hover:bg-edito-navy/90 active:bg-edito-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 select-none"
+                className="flex min-h-12 cursor-pointer items-center justify-between rounded-xl border border-edito-border bg-edito-surface px-3.5 py-3 text-xs font-extrabold text-edito-navy shadow-sm transition-colors hover:bg-edito-canvas active:bg-edito-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 select-none"
               >
                 <span className="tracking-wide">Stories</span>
                 <span className="flex items-center gap-1 text-edito-brass">
-                  <span className="text-[11px] font-bold text-white/75">
+                  <span className="text-[11px] font-bold text-edito-muted">
                     {String(stories.length).padStart(2, "0")}
                   </span>
                   <svg
@@ -173,10 +199,34 @@ export function TerrainHomeDashboardMobile({
                 </span>
               </button>
             ) : null}
+
+            {hasEssentials ? (
+              <button
+                type="button"
+                onClick={() => setSurface("essentials")}
+                aria-label={`Ouvrir le mode Essentiel (${essentialsCount} ${essentialsCount > 1 ? "éléments" : "élément"})`}
+                className="flex min-h-12 cursor-pointer items-center justify-between rounded-xl border border-edito-border bg-edito-surface px-3.5 py-3 text-xs font-extrabold text-edito-navy shadow-sm transition-colors hover:bg-edito-canvas active:bg-edito-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 select-none"
+              >
+                <span className="tracking-wide">Essentiel</span>
+                <span className="flex items-center gap-1 text-edito-brass">
+                  <span className="text-[11px] font-bold text-edito-muted">
+                    {String(essentialsCount).padStart(2, "0")}
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 stroke-[2.5]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}
     </div>
   )
 }
-

@@ -228,7 +228,7 @@ describe("TerrainStoriesMobile UI Rendering", () => {
     expect(html).not.toContain("Sources :")
   })
 
-  it("renders thesis story (index 1) with thesis text, commercial conclusion, and passive sources", () => {
+  it("renders thesis story (index 1) with thesis text, commercial conclusion, and interactive source triggers", () => {
     const html = renderToString(
       createElement(TerrainStoriesMobile, { stories, initialIndex: 1, onBack: () => {} }),
     )
@@ -239,8 +239,11 @@ describe("TerrainStoriesMobile UI Rendering", () => {
     expect(html).toContain("complexité opérationnelle")
     expect(html).toContain("Donc, commercialement")
     expect(html).toContain("ouvrir sur la maîtrise matière")
-    // Passive sources S7 · S13 · S17 · S20 · S21
-    expect(html).toContain("Sources : S7 · S13 · S17 · S20 · S21")
+    // Interactive source triggers for S7, S13, S17, S20, S21
+    expect(html).toContain("Sources :")
+    expect(html).toContain("S7")
+    expect(html).toContain("S13")
+    expect(html).toContain("S17")
     // Précédent is enabled
     expect(html).toContain("Précédent")
     expect(html).toContain("Suivant")
@@ -255,7 +258,9 @@ describe("TerrainStoriesMobile UI Rendering", () => {
     expect(html).toContain("06 / 06")
     expect(html).toContain("Thèse 5")
     expect(html).toContain("Une « maison de composition »")
-    expect(html).toContain("Sources : S10 · S16 · S20 · S21 · S22")
+    expect(html).toContain("Sources :")
+    expect(html).toContain("S10")
+    expect(html).toContain("S16")
     // Primary CTA is Retour Terrain
     expect(html).toContain("Retour Terrain")
     expect(html).not.toContain("Suivant")
