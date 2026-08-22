@@ -61,6 +61,13 @@ function KnowledgeCollectionRow({
   onSelect: () => void
 }) {
   const collectionIconType = collection.kind === "corpus" ? "knowledge_corpus" : "knowledge_list"
+  const itemTypeTag =
+    collection.kind === "corpus"
+      ? null
+      : collection.itemType === "intelligence_document"
+        ? "Documents"
+        : "Articles"
+
   return (
     <li>
       <button
@@ -79,7 +86,14 @@ function KnowledgeCollectionRow({
           )}
           <span className="truncate">{collection.name}</span>
         </span>
-        <span className="shrink-0 text-[10px] font-normal text-muted">{collection.itemCount}</span>
+        <span className="flex items-center gap-1.5 shrink-0 text-[10px] font-normal text-muted">
+          {itemTypeTag ? (
+            <span className="rounded bg-border/40 px-1 py-0.2 text-[9px] font-medium text-muted">
+              {itemTypeTag}
+            </span>
+          ) : null}
+          <span>{collection.itemCount}</span>
+        </span>
       </button>
     </li>
   )
@@ -187,6 +201,8 @@ export function KnowledgeSpaceDesktop() {
     setCreatingOpen,
     newName,
     setNewName,
+    newItemType,
+    setNewItemType,
     handleCreate,
     editing,
     startEditing,
@@ -275,6 +291,30 @@ export function KnowledgeSpaceDesktop() {
         <div className="shrink-0 border-t border-border p-2">
           {creatingOpen ? (
             <div className="space-y-2">
+              {kindFilter === "list" ? (
+                <div className="flex items-center gap-1 rounded bg-canvas p-0.5 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setNewItemType("intelligence_document")}
+                    className={cn(
+                      "flex-1 rounded py-1 font-semibold transition-colors",
+                      newItemType === "intelligence_document" ? "bg-surface text-heading shadow-sm" : "text-muted hover:text-heading",
+                    )}
+                  >
+                    Documents
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewItemType("veille_article")}
+                    className={cn(
+                      "flex-1 rounded py-1 font-semibold transition-colors",
+                      newItemType === "veille_article" ? "bg-surface text-heading shadow-sm" : "text-muted hover:text-heading",
+                    )}
+                  >
+                    Articles
+                  </button>
+                </div>
+              ) : null}
               <Input
                 autoFocus
                 size="sm"

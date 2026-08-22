@@ -12,8 +12,7 @@ import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
-import { openCommunicationComposer } from "@/lib/communication/communication-composer"
-import { openReportGeneration } from "@/lib/reports/report-generation"
+import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { cn } from "@/lib/utils"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
@@ -288,6 +287,15 @@ export function ReportsDesktopView({
   useEffect(() => {
     useSidebarCollapse.getState().requestCollapse()
     return () => useSidebarCollapse.getState().requestRestore()
+  }, [])
+
+  // Écoute de l'événement global pour ouvrir le compositeur d'analyse à la demande
+  useEffect(() => {
+    function handleOpen() {
+      setIsAnalysisComposerOpen(true)
+    }
+    window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpen)
+    return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpen)
   }, [])
 
   const activeFilterCount = countActiveFilters(filters)

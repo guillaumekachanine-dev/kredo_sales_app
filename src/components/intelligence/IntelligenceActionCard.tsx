@@ -177,6 +177,11 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
   const isInteractive = isMissionComposerAction || isDeterministicAction || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
   const isComingSoon = action.status === "coming_soon" && !isInteractive
   const iconSrc = cockpitIconForAction(action.id, action.icon)
+  const displayLabel = isMissionComposerAction
+    ? action.label.startsWith("Mission")
+      ? action.label
+      : `Mission ${action.label}`
+    : action.label
 
   function handleClick() {
     if (isMissionComposerAction) {
@@ -237,7 +242,7 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
 
         <div className="relative z-10 mt-2 min-w-0">
           <p className="text-xs font-semibold leading-tight text-white">
-            {action.label}
+            {displayLabel}
           </p>
         </div>
       </button>
@@ -267,7 +272,7 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
       />
 
       <span className="relative z-10 min-w-0 text-[11px] font-bold leading-tight text-white">
-        {action.label}
+        {displayLabel}
       </span>
     </button>
   )

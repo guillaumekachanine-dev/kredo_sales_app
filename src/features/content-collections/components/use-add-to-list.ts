@@ -103,6 +103,13 @@ export function useAddToListState(open: boolean, contentType: AddableContentType
         return
       }
 
+      setCollections((current) =>
+        current.map((c) =>
+          c.id === collection.id
+            ? { ...c, itemCount: Math.max(0, c.itemCount + (nextChecked ? 1 : -1)) }
+            : c,
+        ),
+      )
       setFeedback(nextChecked ? `Ajouté à « ${collection.name} ».` : `Retiré de « ${collection.name} ».`)
     })
   }
@@ -111,27 +118,35 @@ export function useAddToListState(open: boolean, contentType: AddableContentType
     setError(null)
     const name = newName
     startTransition(async () => {
-      const result = await createCollectionAction(name, undefined, contentType)
-      if (!result.success) {
-        setError(result.error)
+      const createRes = await createCollectionAction(name, undefined, contentType)
+      if (!createRes.success) {
+        setError(createRes.error)
         return
       }
+
+      const addRes = await addItemToCollectionAction(createRes.id, contentType, contentId)
+      if (!addRes.success) {
+        setError(addRes.error)
+        return
+      }
+
       const created: CollectionSummary = {
-        id: result.id,
+        id: createRes.id,
         kind: "list",
         itemType: contentType,
         name: name.trim(),
         description: null,
-        itemCount: 0,
+        itemCount: 1,
         createdBy: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
+
       setCollections((current) => [created, ...current])
+      setMemberIds((current) => new Set(current).add(created.id))
+      setFeedback(`Ajouté à « ${created.name} ».`)
       setNewName("")
       setCreatingOpen(false)
-      // Sélection automatique de la liste nouvellement créée.
-      toggle(created, true)
     })
   }
 

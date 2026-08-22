@@ -1,5 +1,6 @@
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import { openWatchAnalysisComposer } from "@/lib/reports/watch-analysis-launcher"
 
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 
@@ -209,7 +210,7 @@ export const REPORT_SUPPORTS: ReportSupportConfig[] = [
     mobileLabel: "Analyse libre",
     description: "Croiser librement jusqu'à 4 sujets",
     iconType: "sliders",
-    onClick: () => openReportGeneration({ origin: "reports_library" }),
+    onClick: () => openWatchAnalysisComposer(),
   },
 ]
 

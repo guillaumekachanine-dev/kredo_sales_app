@@ -17,6 +17,7 @@ import {
 } from "../../actions/content-collections-actions"
 import {
   groupResolvedItemsByType,
+  type AddableContentType,
   type CollectionKind,
   type CollectionSummary,
   type ResolvedCollectionItem,
@@ -46,6 +47,7 @@ export function useKnowledgeSpaceState() {
   const [isLoadingItems, setIsLoadingItems] = useState(false)
   const [creatingOpen, setCreatingOpen] = useState(false)
   const [newName, setNewName] = useState("")
+  const [newItemType, setNewItemType] = useState<AddableContentType>("intelligence_document")
   const [editing, setEditing] = useState<KnowledgeSpaceEditingState | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CollectionSummary | null>(null)
   const [addListDialogOpen, setAddListDialogOpen] = useState(false)
@@ -113,8 +115,12 @@ export function useKnowledgeSpaceState() {
   const handleCreate = () => {
     setError(null)
     const name = newName
+    const itemType = newItemType
     startTransition(async () => {
-      const result = kindFilter === "corpus" ? await createCorpusAction(name) : await createCollectionAction(name)
+      const result =
+        kindFilter === "corpus"
+          ? await createCorpusAction(name)
+          : await createCollectionAction(name, undefined, itemType)
       if (!result.success) {
         setError(result.error)
         return
@@ -234,6 +240,8 @@ export function useKnowledgeSpaceState() {
     setCreatingOpen,
     newName,
     setNewName,
+    newItemType,
+    setNewItemType,
     handleCreate,
     editing,
     startEditing,

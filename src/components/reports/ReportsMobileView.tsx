@@ -1,12 +1,14 @@
 "use client"
 
-import { startTransition, useRef, useState, type FormEvent } from "react"
+import { startTransition, useEffect, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { DocumentCard } from "@/components/reports/DocumentCard"
 import { DocumentMobileDetail } from "@/components/reports/DocumentMobileDetail"
 import { DOCUMENT_OBJECT_LABELS } from "@/components/reports/document-display"
 import { REPORT_SUPPORTS, ReportSupportIcon } from "@/components/reports/report-supports-config"
 import { KnowledgeSpaceMobile } from "@/features/content-collections/components/knowledge-space/KnowledgeSpaceMobile"
+import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"
+import { WatchAnalysisComposerMobile } from "@/features/watch-analysis/components/WatchAnalysisComposerMobile"
 import { IconSearch } from "@/components/cockpit/mobile/icons"
 import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
@@ -47,7 +49,16 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
   const [modalSearchText, setModalSearchText] = useState(filters.search ?? "")
   const [modalDocType, setModalDocType] = useState(filters.documentType ?? "all")
+  const [isAnalysisComposerOpen, setIsAnalysisComposerOpen] = useState(false)
   const documentTriggerRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    function handleOpen() {
+      setIsAnalysisComposerOpen(true)
+    }
+    window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpen)
+    return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpen)
+  }, [])
 
   const openDocument = (documentId: string, trigger: HTMLButtonElement) => {
     documentTriggerRef.current = trigger
@@ -310,6 +321,18 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
           </div>
         </div>
       ) : null}
+
+      <WatchAnalysisComposerMobile
+        open={isAnalysisComposerOpen}
+        onClose={() => setIsAnalysisComposerOpen(false)}
+        currentDigest={null}
+        pastDigests={[]}
+        knownArticles={[]}
+        onLaunched={() => {
+          setIsAnalysisComposerOpen(false)
+          router.refresh()
+        }}
+      />
     </div>
   )
 }

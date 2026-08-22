@@ -1,5 +1,7 @@
 import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
 
+import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
+
 const COCKPIT_ICON_BASE = "/icons_set/cockpit_intelligence"
 
 export const COCKPIT_PANEL_INDIGO = "var(--color-primary)"
@@ -10,6 +12,7 @@ export const cockpitActionIcons = {
   sectorAnalysis: `${COCKPIT_ICON_BASE}/analyse_sectorielle.png`,
   brief: `${COCKPIT_ICON_BASE}/brief_hebdo.png`,
   campaign: `${COCKPIT_ICON_BASE}/creer_campagne.png`,
+  cockpitIntelligence: `${COCKPIT_ICON_BASE}/cockpit_intelligence.png`,
   priorities: `${COCKPIT_ICON_BASE}/definition_priorites.png`,
   pitch: `${COCKPIT_ICON_BASE}/generation_pitch.png`,
   generatedReport: `${COCKPIT_ICON_BASE}/generer_rapport.png`,
@@ -65,6 +68,9 @@ export function cockpitIconForKey(icon: IntelligenceIconKey): string {
 }
 
 export function cockpitIconForAction(actionId: string, icon: IntelligenceIconKey): string {
+  if (actionId in MISSION_COMPOSER_ACTION_CONFIGS || actionId.includes("mission")) {
+    return cockpitActionIcons.cockpitIntelligence
+  }
   if (actionId.includes("brief")) return cockpitActionIcons.brief
   if (actionId.includes("email")) return cockpitActionIcons.message
   if (actionId.includes("pitch") || actionId.includes("offer") || actionId.includes("quote")) {
