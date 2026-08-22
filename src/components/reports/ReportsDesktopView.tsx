@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 import { Button } from "@/components/ui/Button"
 import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
+import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
 import { KnowledgeSpaceDesktop } from "@/features/content-collections/components/knowledge-space/KnowledgeSpaceDesktop"
 import { IconChevron } from "@/components/cockpit/mobile/icons"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
@@ -279,6 +280,7 @@ export function ReportsDesktopView({
   const [copied, setCopied] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [addToListOpen, setAddToListOpen] = useState(false)
+  const [manageListsOpen, setManageListsOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState<PendingAction>(null)
   const [zoomLevel, setZoomLevel] = useState(100)
   const [isAnalysisComposerOpen, setIsAnalysisComposerOpen] = useState(false)
@@ -637,10 +639,12 @@ export function ReportsDesktopView({
         contentId={selectedDocument.id}
         onManageLists={() => {
           setAddToListOpen(false)
-          setActiveSection("knowledge")
+          setManageListsOpen(true)
         }}
       />
     ) : null}
+
+    <ManageCollectionsDesktop open={manageListsOpen} onOpenChange={setManageListsOpen} />
 
     <WatchAnalysisComposerDesktop
       open={isAnalysisComposerOpen}

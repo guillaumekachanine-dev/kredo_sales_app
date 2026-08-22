@@ -27,6 +27,7 @@ import {
 import { useDigestArticles } from "../hooks/use-digest-articles"
 import { usePickerList } from "../hooks/use-picker-list"
 import { useWatchAnalysisComposer } from "../hooks/use-watch-analysis-composer"
+import { SourceItemViewer, type SourceViewerTarget } from "./SourceItemViewer"
 
 export type WatchAnalysisComposerDesktopProps = {
   open: boolean
@@ -309,26 +310,69 @@ function SourcePickerScreen({
   existingSlotSource: WatchAnalysisSource | null
   onValidate: (source: WatchAnalysisSource, label: SlotLabel) => void
 }) {
+  // Consulter une source ouvre un 3e volet à droite ; la nav des familles se
+  // replie en rail pour lui laisser la place — même mécanisme que
+  // `ManageCollectionsDesktop` (modale « Gérer la connaissance »).
+  const [viewerTarget, setViewerTarget] = useState<SourceViewerTarget | null>(null)
+  const isViewerOpen = viewerTarget !== null
+
+  const handleChangeFamily = (family: SourceFamily) => {
+    setViewerTarget(null)
+    onChangeFamily(family)
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-1 items-stretch">
-      <aside className="w-56 shrink-0 overflow-y-auto border-r border-white/10 p-3">
-        {SOURCE_FAMILIES.map((family) => (
-          <button
-            key={family}
-            type="button"
-            onClick={() => onChangeFamily(family)}
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors",
-              activeFamily === family ? "bg-primary text-primary-fg" : "text-white/70 hover:bg-white/5",
-            )}
-          >
-            <span aria-hidden="true">{FAMILY_ICONS[family]}</span>
-            {SOURCE_FAMILY_LABELS[family]}
-          </button>
-        ))}
+      <aside
+        className={cn(
+          "h-full shrink-0 overflow-y-auto border-r border-white/10 transition-all duration-500 ease-out",
+          isViewerOpen ? "w-14 p-2" : "w-56 p-3",
+        )}
+      >
+        {isViewerOpen ? (
+          <div className="flex flex-col items-center gap-2">
+            {SOURCE_FAMILIES.map((family) => (
+              <button
+                key={family}
+                type="button"
+                onClick={() => handleChangeFamily(family)}
+                className={cn(
+                  "flex size-9 items-center justify-center rounded-lg text-xs font-bold transition-colors",
+                  activeFamily === family
+                    ? "border border-brand-brass/40 bg-brand-brass/20 text-brand-brass"
+                    : "border border-white/5 bg-white/[0.03] text-white/60 hover:bg-white/10 hover:text-white",
+                )}
+                title={SOURCE_FAMILY_LABELS[family]}
+                aria-label={SOURCE_FAMILY_LABELS[family]}
+              >
+                <span aria-hidden="true">{FAMILY_ICONS[family]}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          SOURCE_FAMILIES.map((family) => (
+            <button
+              key={family}
+              type="button"
+              onClick={() => handleChangeFamily(family)}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors",
+                activeFamily === family ? "bg-primary text-primary-fg" : "text-white/70 hover:bg-white/5",
+              )}
+            >
+              <span aria-hidden="true">{FAMILY_ICONS[family]}</span>
+              {SOURCE_FAMILY_LABELS[family]}
+            </button>
+          ))
+        )}
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-950/20">
+      <div
+        className={cn(
+          "flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/20 transition-all duration-500 ease-out min-w-0",
+          isViewerOpen ? "w-[420px] shrink-0 border-r border-white/10" : "flex-1",
+        )}
+      >
         {activeFamily === "digest" ? (
           <DigestFamilyPanel
             currentDigest={currentDigest}
@@ -337,25 +381,58 @@ function SourcePickerScreen({
             knownArticles={knownArticles}
             existingSlotSource={existingSlotSource?.kind === "digest" ? existingSlotSource : null}
             onValidate={onValidate}
+            onOpenViewer={setViewerTarget}
+            activeViewerItemId={viewerTarget?.family === "digest" ? viewerTarget.id : null}
           />
         ) : activeFamily === "account_signals" ? (
           <AccountSignalsFamilyPanel
             existingSlotSource={existingSlotSource?.kind === "account_signals" ? existingSlotSource : null}
             onValidate={onValidate}
+            onOpenViewer={setViewerTarget}
+            activeViewerItemId={viewerTarget?.family === "account_signals" ? viewerTarget.id : null}
           />
         ) : activeFamily === "intelligence_documents" ? (
           <DocumentsFamilyPanel
             existingSlotSource={existingSlotSource?.kind === "intelligence_documents" ? existingSlotSource : null}
             onValidate={onValidate}
+            onOpenViewer={setViewerTarget}
+            activeViewerItemId={viewerTarget?.family === "intelligence_documents" ? viewerTarget.id : null}
           />
         ) : (
           <CollectionsFamilyPanel
             existingSlotSource={existingSlotSource?.kind === "knowledge_collection" ? existingSlotSource : null}
             onValidate={onValidate}
+            onOpenViewer={setViewerTarget}
+            activeViewerItemId={viewerTarget?.family === "knowledge_collection" ? viewerTarget.id : null}
           />
         )}
       </div>
+
+      {isViewerOpen ? (
+        <div className="h-full flex-1 min-w-0 transition-all duration-500 ease-out">
+          <SourceItemViewer target={viewerTarget} onClose={() => setViewerTarget(null)} />
+        </div>
+      ) : null}
     </div>
+  )
+}
+
+/** Bouton "Consulter" — même traitement visuel que le bouton "Voir" de `KnowledgeListPane`. */
+function ConsultButton({ isActive, onClick }: { isActive: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all",
+        isActive
+          ? "bg-brand-brass text-slate-950 shadow-sm"
+          : "bg-white/5 text-brand-brass border border-brand-brass/30 hover:bg-brand-brass/20",
+      )}
+    >
+      <span>Consulter</span>
+      <span aria-hidden="true">▸</span>
+    </button>
   )
 }
 
@@ -376,6 +453,8 @@ function DigestFamilyPanel({
   knownArticles,
   existingSlotSource,
   onValidate,
+  onOpenViewer,
+  activeViewerItemId,
 }: {
   currentDigest: VeilleDigest | null
   currentDigestNumber: number | null
@@ -383,6 +462,8 @@ function DigestFamilyPanel({
   knownArticles: VeilleArticle[]
   existingSlotSource: Extract<WatchAnalysisSource, { kind: "digest" }> | null
   onValidate: (source: WatchAnalysisSource, label: SlotLabel) => void
+  onOpenViewer: (target: SourceViewerTarget) => void
+  activeViewerItemId?: string | null
 }) {
   const digestOptions = useMemo(() => {
     const options: VeilleDigest[] = []
@@ -478,8 +559,8 @@ function DigestFamilyPanel({
             ) : (
               <ul className="space-y-1">
                 {articles.map((article) => (
-                  <li key={article.id}>
-                    <label className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
+                  <li key={article.id} className="flex items-center gap-1.5">
+                    <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
                       <input
                         type="checkbox"
                         checked={selectedArticleIds.has(article.id)}
@@ -489,6 +570,10 @@ function DigestFamilyPanel({
                       />
                       <span className="min-w-0 flex-1 truncate">{article.titre_fr}</span>
                     </label>
+                    <ConsultButton
+                      isActive={activeViewerItemId === article.id}
+                      onClick={() => onOpenViewer({ family: "digest", id: article.id, title: article.titre_fr })}
+                    />
                   </li>
                 ))}
               </ul>
@@ -504,9 +589,13 @@ function DigestFamilyPanel({
 function AccountSignalsFamilyPanel({
   existingSlotSource,
   onValidate,
+  onOpenViewer,
+  activeViewerItemId,
 }: {
   existingSlotSource: Extract<WatchAnalysisSource, { kind: "account_signals" }> | null
   onValidate: (source: WatchAnalysisSource, label: SlotLabel) => void
+  onOpenViewer: (target: SourceViewerTarget) => void
+  activeViewerItemId?: string | null
 }) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set(existingSlotSource?.signalIds ?? []))
   const matches = (signal: PickerAccountSignal, query: string) =>
@@ -551,8 +640,8 @@ function AccountSignalsFamilyPanel({
         ) : (
           <ul className="space-y-1">
             {filteredItems.map((signal) => (
-              <li key={signal.id}>
-                <label className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
+              <li key={signal.id} className="flex items-center gap-1.5">
+                <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
                   <input
                     type="checkbox"
                     checked={selected.has(signal.id)}
@@ -567,6 +656,10 @@ function AccountSignalsFamilyPanel({
                     </span>
                   </span>
                 </label>
+                <ConsultButton
+                  isActive={activeViewerItemId === signal.id}
+                  onClick={() => onOpenViewer({ family: "account_signals", id: signal.id, title: signal.title })}
+                />
               </li>
             ))}
           </ul>
@@ -580,9 +673,13 @@ function AccountSignalsFamilyPanel({
 function DocumentsFamilyPanel({
   existingSlotSource,
   onValidate,
+  onOpenViewer,
+  activeViewerItemId,
 }: {
   existingSlotSource: Extract<WatchAnalysisSource, { kind: "intelligence_documents" }> | null
   onValidate: (source: WatchAnalysisSource, label: SlotLabel) => void
+  onOpenViewer: (target: SourceViewerTarget) => void
+  activeViewerItemId?: string | null
 }) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set(existingSlotSource?.documentIds ?? []))
   const matches = (doc: PickerDocument, query: string) => doc.title.toLowerCase().includes(query)
@@ -626,8 +723,8 @@ function DocumentsFamilyPanel({
         ) : (
           <ul className="space-y-1">
             {filteredItems.map((doc) => (
-              <li key={doc.id}>
-                <label className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
+              <li key={doc.id} className="flex items-center gap-1.5">
+                <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
                   <input
                     type="checkbox"
                     checked={selected.has(doc.id)}
@@ -639,6 +736,10 @@ function DocumentsFamilyPanel({
                     <span className="block truncate text-xs text-white/50">{doc.documentType} · {formatDateFr(doc.updatedAt)}</span>
                   </span>
                 </label>
+                <ConsultButton
+                  isActive={activeViewerItemId === doc.id}
+                  onClick={() => onOpenViewer({ family: "intelligence_documents", id: doc.id, title: doc.title })}
+                />
               </li>
             ))}
           </ul>
@@ -652,9 +753,13 @@ function DocumentsFamilyPanel({
 function CollectionsFamilyPanel({
   existingSlotSource,
   onValidate,
+  onOpenViewer,
+  activeViewerItemId,
 }: {
   existingSlotSource: Extract<WatchAnalysisSource, { kind: "knowledge_collection" }> | null
   onValidate: (source: WatchAnalysisSource, label: SlotLabel) => void
+  onOpenViewer: (target: SourceViewerTarget) => void
+  activeViewerItemId?: string | null
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(existingSlotSource?.collectionId ?? null)
   const matches = (collection: CollectionSummary, query: string) => collection.name.toLowerCase().includes(query)
@@ -690,8 +795,8 @@ function CollectionsFamilyPanel({
         ) : (
           <ul className="space-y-1">
             {filteredItems.map((collection) => (
-              <li key={collection.id}>
-                <label className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
+              <li key={collection.id} className="flex items-center gap-1.5">
+                <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-sm text-white/85 hover:bg-white/5">
                   <input
                     type="radio"
                     name="watch-analysis-collection"
@@ -707,6 +812,10 @@ function CollectionsFamilyPanel({
                     </span>
                   </span>
                 </label>
+                <ConsultButton
+                  isActive={activeViewerItemId === collection.id}
+                  onClick={() => onOpenViewer({ family: "knowledge_collection", id: collection.id, title: collection.name })}
+                />
               </li>
             ))}
           </ul>

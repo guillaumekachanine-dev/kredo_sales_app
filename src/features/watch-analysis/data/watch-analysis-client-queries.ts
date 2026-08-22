@@ -48,6 +48,55 @@ export async function fetchAccountSignalsForPicker(): Promise<PickerAccountSigna
   })
 }
 
+export type PickerAccountSignalDetail = {
+  id: string
+  title: string
+  companyName: string | null
+  detectedAt: string
+  eventAt: string | null
+  globalScore: number
+  urgencyScore: number
+  confidenceScore: number
+  potentialValueScore: number
+  signalType: string
+  signalCategory: string
+  summary: string | null
+  recommendedAction: string | null
+  scoreJustification: string | null
+}
+
+/** Détail complet d'un signal compte pour la visionneuse « Consulter » du picker. */
+export async function fetchAccountSignalDetailForPicker(id: string): Promise<PickerAccountSignalDetail | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("account_signals")
+    .select(
+      "id, title, detected_at, event_at, global_score, urgency_score, confidence_score, potential_value_score, signal_type, signal_category, summary, recommended_action, score_justification, companies(name)",
+    )
+    .eq("id", id)
+    .maybeSingle()
+
+  if (error || !data) return null
+  const company = Array.isArray(data.companies) ? data.companies[0] : data.companies
+
+  return {
+    id: data.id,
+    title: data.title,
+    companyName: company?.name ?? null,
+    detectedAt: data.detected_at,
+    eventAt: data.event_at,
+    globalScore: data.global_score,
+    urgencyScore: data.urgency_score,
+    confidenceScore: data.confidence_score,
+    potentialValueScore: data.potential_value_score,
+    signalType: data.signal_type,
+    signalCategory: data.signal_category,
+    summary: data.summary,
+    recommendedAction: data.recommended_action,
+    scoreJustification: data.score_justification,
+  }
+}
+
 export type PickerDocument = {
   id: string
   title: string
