@@ -6860,6 +6860,7 @@ export type Database = {
           pack: Database["public"]["Enums"]["corpus_pack_type"]
           primary_role: Database["public"]["Enums"]["corpus_source_role"] | null
           source_id: string
+          src_number: number | null
           tier: string | null
           updated_at: string
           utility_score: number | null
@@ -6884,6 +6885,7 @@ export type Database = {
             | Database["public"]["Enums"]["corpus_source_role"]
             | null
           source_id: string
+          src_number?: number | null
           tier?: string | null
           updated_at?: string
           utility_score?: number | null
@@ -6908,6 +6910,7 @@ export type Database = {
             | Database["public"]["Enums"]["corpus_source_role"]
             | null
           source_id?: string
+          src_number?: number | null
           tier?: string | null
           updated_at?: string
           utility_score?: number | null
