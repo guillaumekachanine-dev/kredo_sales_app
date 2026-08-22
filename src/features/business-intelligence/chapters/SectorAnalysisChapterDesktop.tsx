@@ -12,12 +12,17 @@ import { formatStudyDate, provenanceLabel } from "../home/home-model"
 import { CorpusConfidenceBanner } from "../shared/CorpusConfidenceBanner"
 import {
   buildSectorMarketKpis,
+  formatPracticeName,
   parseCaveats,
+  parseCriticalDependencies,
   parseEconomicModels,
   parseKeyPlayers,
+  parseRiskOpportunities,
   parseTechFronts,
 } from "./sector-analysis-model"
+
 import { buildSectorValueChainSummary } from "./sector-value-chain-summary"
+import { buildSectorTimeline } from "./sector-timeline-model"
 
 export type SectorAnalysisProps = {
   competitiveMap?: CompetitiveMapSnapshot | null
@@ -28,6 +33,7 @@ export type SectorAnalysisProps = {
   sourceResolution?: Record<number, ResolvedSource>
   valueChain?: SegmentValueChainReadModel | null
   onOpenValueChain?: () => void
+  onOpenPlaybook?: () => void
 }
 
 function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "macro" | null | undefined }) {
@@ -36,6 +42,29 @@ function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "
   return (
     <span className="inline-flex items-center rounded border border-edito-border bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-edito-muted">
       {label}
+    </span>
+  )
+}
+
+function UrgencyBadge({ urgency }: { urgency: string }) {
+  const norm = urgency.toLowerCase()
+  if (norm === "haute" || norm === "urgent" || norm === "high" || norm === "critique" || norm === "critical") {
+    return (
+      <span className="inline-flex items-center rounded border border-status-warning-ink/30 bg-status-warning-soft px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-status-warning-ink">
+        Urgence haute
+      </span>
+    )
+  }
+  if (norm === "moyenne" || norm === "medium") {
+    return (
+      <span className="inline-flex items-center rounded border border-edito-border bg-edito-chip px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-edito-navy">
+        Urgence moyenne
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center rounded border border-edito-border bg-edito-chip px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-edito-muted">
+      Normal
     </span>
   )
 }
@@ -49,6 +78,7 @@ export function SectorAnalysisChapterDesktop({
   sourceResolution,
   valueChain,
   onOpenValueChain,
+  onOpenPlaybook,
 }: SectorAnalysisProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedConfidence, setSelectedConfidence] = useState<string>("all")
@@ -61,6 +91,14 @@ export function SectorAnalysisChapterDesktop({
   const metrics = buildSectorMarketKpis(knowledge)
   const { clientBlocks, economicModels } = parseEconomicModels(knowledge.playbook)
   const techFronts = parseTechFronts(knowledge.playbook)
+  const [currentTimestamp] = useState(() => Date.now())
+  const criticalDependencies = parseCriticalDependencies(knowledge.playbook)
+  const riskOpportunities = parseRiskOpportunities(knowledge.playbook)
+  const timeline = buildSectorTimeline({
+    regulatory: knowledge.regulatory,
+    events: knowledge.events,
+  })
+
   const [openEconomicModels, setOpenEconomicModels] = useState<Record<number, boolean>>({ 0: true })
   const valueChainSummary = buildSectorValueChainSummary(valueChain)
 
@@ -746,106 +784,496 @@ export function SectorAnalysisChapterDesktop({
         </section>
       ) : null}
 
-
-      {/* Points de douleur sectoriels (Préservé) */}
-      {knowledge.painPoints.length > 0 ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-3 border-b border-edito-border pb-3">
-            <div>
-              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
-                Points de douleur & Enjeux métiers
-              </h2>
-              <p className="mt-0.5 text-xs text-edito-muted">
-                {knowledge.painPoints.length} point{knowledge.painPoints.length > 1 ? "s" : ""} de friction identifié{knowledge.painPoints.length > 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {knowledge.painPoints.map((point) => (
-              <div key={point.id} className="flex flex-col justify-between rounded-lg border border-edito-border bg-edito-canvas/40 p-4">
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-xs font-bold text-edito-navy">{point.title}</h3>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {point.frequencyCount > 0 ? (
-                        <span className="rounded bg-edito-chip px-1.5 py-0.5 text-[9px] font-bold text-edito-navy">
-                          Freq. {point.frequencyCount}
-                        </span>
-                      ) : null}
-                      <ProvenanceBadge level={point.resolvedLevel} />
-                    </div>
-                  </div>
-                  {point.description ? (
-                    <p className="mt-2 text-xs leading-relaxed text-edito-body">{point.description}</p>
-                  ) : null}
-                  {point.verbatim ? (
-                    <blockquote className="mt-2.5 border-l-2 border-edito-brass pl-2.5 text-xs italic text-edito-muted">
-                      « {point.verbatim} »
-                    </blockquote>
-                  ) : null}
-                </div>
-                {point.kredoPractice ? (
-                  <div className="mt-3 border-t border-edito-border/50 pt-2 text-[10px] font-semibold text-edito-petrol">
-                    Practice associée : <span className="font-bold">{point.kredoPractice}</span>
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* Événements & Actualités du marché (Préservé) */}
-      {knowledge.events.length > 0 ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
+      {/* Dépendances critiques & Supply chain (Lot 8) */}
+      {criticalDependencies.length > 0 ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-4">
           <div className="border-b border-edito-border pb-3">
-            <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
-              Événements majeurs & Jalons du secteur
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
+                Dépendances critiques & Supply chain
+              </h2>
+              <span className="text-xs font-semibold text-edito-muted">
+                {criticalDependencies.length} dépendance{criticalDependencies.length > 1 ? "s" : ""}
+              </span>
+            </div>
             <p className="mt-0.5 text-xs text-edito-muted">
-              {knowledge.events.length} jalon{knowledge.events.length > 1 ? "s" : ""} identifié{knowledge.events.length > 1 ? "s" : ""}
+              Les dépendances opérationnelles, réglementaires et technologiques susceptibles d’ouvrir des risques — et des chantiers de transformation.
             </p>
           </div>
-          <div className="mt-4 divide-y divide-edito-border">
-            {knowledge.events.map((evt) => (
-              <div key={evt.id} className="flex flex-col gap-2 py-3.5 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-edito-petrol">
-                      {evt.eventType}
-                    </span>
-                    {evt.eventDate ? (
-                      <span className="text-[10px] font-semibold text-edito-muted">
-                        · {new Date(evt.eventDate).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}
-                      </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {criticalDependencies.map((dep, idx) => {
+              const isLastOdd = idx === criticalDependencies.length - 1 && criticalDependencies.length % 2 !== 0
+              const formattedPractice = formatPracticeName(dep.practiceKredo)
+              return (
+                <div
+                  key={idx}
+                  className={`flex flex-col justify-between rounded-lg border border-edito-border bg-edito-canvas/40 p-4 space-y-3 ${
+                    isLastOdd ? "md:col-span-2" : ""
+                  }`}
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-bold text-edito-navy text-sm leading-snug">
+                        {dep.nom}
+                      </h3>
+                      {dep.criticite ? (
+                        <span
+                          className={`shrink-0 inline-flex items-center rounded px-2 py-0.5 text-[9px] font-bold ${
+                            dep.criticite === "haute"
+                              ? "border border-status-warning-ink/30 bg-status-warning-soft text-status-warning-ink"
+                              : "border border-edito-border bg-edito-chip text-edito-navy"
+                          }`}
+                        >
+                          Criticité {dep.criticite}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {dep.situation ? (
+                      <div className="text-xs space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                          Situation actuelle
+                        </p>
+                        <p className="leading-relaxed text-edito-body">
+                          {dep.situation}
+                        </p>
+                      </div>
                     ) : null}
-                    <ProvenanceBadge level={evt.resolvedLevel} />
+
+                    {dep.risque ? (
+                      <div className="text-xs space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                          Risque
+                        </p>
+                        <p className="leading-relaxed text-edito-body">
+                          {dep.risque}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {dep.prestationOuverte ? (
+                      <div className="rounded-md border border-edito-border/60 bg-edito-surface p-3 text-xs space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-edito-navy">
+                          Prestation ESN ouverte
+                        </p>
+                        <p className="leading-relaxed text-edito-body font-medium">
+                          {dep.prestationOuverte}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                  <h3 className="mt-1 text-xs font-bold text-edito-navy">{evt.title}</h3>
-                  {evt.description ? (
-                    <p className="mt-1 text-xs leading-relaxed text-edito-body">{evt.description}</p>
-                  ) : null}
-                  {evt.commercialOpportunity ? (
-                    <p className="mt-2 text-xs font-medium text-edito-brass">
-                      Angle d’opportunité : {evt.commercialOpportunity}
-                    </p>
-                  ) : null}
+
+                  <div className="space-y-2.5 pt-2 border-t border-edito-border/50">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      {formattedPractice ? (
+                        <div className="flex items-center gap-1 text-[10px] font-semibold text-edito-navy">
+                          <span className="text-edito-muted font-normal">Practice KREDO :</span>
+                          <span className="rounded bg-edito-chip px-1.5 py-0.5 font-bold text-edito-navy">
+                            {formattedPractice}
+                          </span>
+                        </div>
+                      ) : <div />}
+
+                      {dep.srcIds.length > 0 ? (
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="text-[10px] font-semibold text-edito-muted">Sources :</span>
+                          <SourceChipList srcIds={dep.srcIds} resolve={resolveSource} />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {dep.doncCommercialement ? (
+                      <DoncCallout text={dep.doncCommercialement} />
+                    ) : null}
+                  </div>
                 </div>
-                {evt.sourceUrl ? (
-                  <a
-                    href={evt.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 text-xs font-semibold text-edito-petrol hover:underline"
-                  >
-                    Source ↗
-                  </a>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Réglementation & ruptures sectorielles (Lot 9) */}
+      {timeline.datedItems.length > 0 || timeline.permanentItems.length > 0 ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-6">
+          <div className="border-b border-edito-border pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy flex items-center gap-2">
+                  <span>Réglementation &amp; ruptures sectorielles</span>
+                  <span className="rounded bg-edito-chip px-2 py-0.5 font-mono text-[10px] text-edito-muted">
+                    {timeline.datedItems.length + timeline.permanentItems.length} jalon{timeline.datedItems.length + timeline.permanentItems.length > 1 ? "s" : ""}
+                  </span>
+                </h2>
+                <p className="mt-1 text-xs text-edito-muted">
+                  Les jalons réglementaires, industriels et technologiques qui structurent la trajectoire du segment.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 rounded-md border border-edito-border bg-edito-canvas px-2.5 py-1 text-[11px] font-semibold text-edito-navy">
+                  <span className="h-2 w-2 rounded-full bg-edito-navy" />
+                  Réglementation
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-md border border-edito-border bg-edito-canvas px-2.5 py-1 text-[11px] font-semibold text-edito-brass">
+                  <span className="h-2 w-2 rounded-full bg-edito-brass" />
+                  Rupture
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Séquence chronologique datée */}
+          {timeline.datedItems.length > 0 ? (
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
+                Trajectoire chronologique
+              </h3>
+              <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-edito-border">
+                {timeline.datedItems.map((item) => {
+                  const formattedPractice = formatPracticeName(item.practiceKredo)
+                  const itemDate = item.date ? new Date(item.date) : null
+                  const isPast = itemDate ? itemDate.getTime() < currentTimestamp : false
+                  const formattedDateStr = itemDate && !Number.isNaN(itemDate.getTime())
+                    ? itemDate.toLocaleDateString("fr-FR", { month: "short", year: "numeric" })
+                    : item.date
+
+                  return (
+                    <div key={item.id} className="relative flex items-start gap-4">
+                      {/* Node marker */}
+                      <div
+                        className={`absolute -left-6 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border bg-edito-surface text-[10px] font-bold shadow-sm ${
+                          item.kind === "regulatory"
+                            ? "border-edito-navy text-edito-navy"
+                            : "border-edito-brass text-edito-brass"
+                        }`}
+                      >
+                        {item.kind === "regulatory" ? "●" : "◆"}
+                      </div>
+
+                      <div className="flex-1 rounded-lg border border-edito-border bg-edito-canvas/40 p-4 space-y-3 transition-colors hover:bg-edito-canvas/70">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edito-border/60 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-edito-navy bg-edito-surface border border-edito-border px-2 py-0.5 rounded">
+                              {formattedDateStr}
+                            </span>
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                                item.kind === "regulatory"
+                                  ? "bg-edito-navy/10 text-edito-navy"
+                                  : "bg-edito-brass/10 text-edito-brass"
+                              }`}
+                            >
+                              {item.kind === "regulatory" ? "Réglementation" : "Rupture"}
+                            </span>
+                            {isPast ? (
+                              <span className="rounded bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold text-edito-muted">
+                                Passé
+                              </span>
+                            ) : (
+                              <span className="rounded bg-edito-amber-soft px-1.5 py-0.5 text-[9px] font-bold text-edito-ink">
+                                À venir
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {item.urgency ? (
+                              <UrgencyBadge urgency={item.urgency} />
+                            ) : null}
+                            <ProvenanceBadge level={item.resolvedLevel} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-edito-navy text-sm">{item.title}</h4>
+                          {item.authority ? (
+                            <p className="mt-0.5 text-[11px] font-semibold text-edito-muted">
+                              Autorité : {item.authority}
+                            </p>
+                          ) : null}
+                          {item.description ? (
+                            <p className="mt-2 text-xs leading-relaxed text-edito-body whitespace-pre-line">
+                              {item.description}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-edito-border/50">
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            {formattedPractice ? (
+                              <div className="flex items-center gap-1 text-[10px] font-semibold text-edito-navy">
+                                <span className="text-edito-muted font-normal">Practice KREDO :</span>
+                                <span className="rounded bg-edito-chip px-1.5 py-0.5 font-bold text-edito-navy">
+                                  {formattedPractice}
+                                </span>
+                              </div>
+                            ) : <div />}
+
+                            {item.sourceUrl ? (
+                              <a
+                                href={item.sourceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center text-xs font-bold text-edito-petrol hover:underline"
+                              >
+                                Source ↗
+                              </a>
+                            ) : null}
+                          </div>
+
+                          {item.commercialAngle ? (
+                            <DoncCallout text={item.commercialAngle} />
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Cadres permanents sans date */}
+          {timeline.permanentItems.length > 0 ? (
+            <div className="space-y-3 pt-4 border-t border-edito-border/60">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
+                Cadres permanents &amp; Dispositions sans échéance
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {timeline.permanentItems.map((item) => {
+                  const formattedPractice = formatPracticeName(item.practiceKredo)
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex flex-col justify-between rounded-lg border border-edito-border bg-edito-canvas/40 p-4 space-y-3"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-bold text-edito-navy text-xs leading-snug">{item.title}</h4>
+                          <ProvenanceBadge level={item.resolvedLevel} />
+                        </div>
+                        {item.authority ? (
+                          <p className="text-[10px] font-semibold text-edito-muted">
+                            Autorité : {item.authority}
+                          </p>
+                        ) : null}
+                        {item.description ? (
+                          <p className="text-xs leading-relaxed text-edito-body">
+                            {item.description}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t border-edito-border/50">
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          {formattedPractice ? (
+                            <span className="rounded bg-edito-chip px-1.5 py-0.5 text-[9px] font-bold text-edito-navy">
+                              {formattedPractice}
+                            </span>
+                          ) : <div />}
+                          {item.sourceUrl ? (
+                            <a
+                              href={item.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-bold text-edito-petrol hover:underline"
+                            >
+                              Source ↗
+                            </a>
+                          ) : null}
+                        </div>
+
+                        {item.commercialAngle ? (
+                          <DoncCallout text={item.commercialAngle} />
+                        ) : null}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {/* Risques × opportunités (Lot 10 Desktop) */}
+      {riskOpportunities.length > 0 ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-6">
+          <div className="border-b border-edito-border pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy flex items-center gap-2">
+                  <span>Risques × opportunités</span>
+                  <span className="rounded bg-edito-chip px-2 py-0.5 font-mono text-[10px] text-edito-muted">
+                    {riskOpportunities.length} paire{riskOpportunities.length > 1 ? "s" : ""}
+                  </span>
+                </h2>
+                <p className="mt-1 text-xs text-edito-muted">
+                  Les principales fragilités du segment et les chantiers de transformation qu’elles peuvent ouvrir.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {riskOpportunities.map((item, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg border border-edito-border bg-edito-canvas/40 p-4 space-y-3 transition-colors hover:bg-edito-canvas/70"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Colonne Risque */}
+                  <div className="rounded-md border border-edito-border/60 bg-edito-surface p-3.5 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-edito-navy/10 text-[10px] font-bold text-edito-navy">
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-edito-navy">
+                        Risque
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold leading-relaxed text-edito-navy">
+                      {item.risk}
+                    </p>
+                  </div>
+
+                  {/* Colonne Opportunité */}
+                  <div className="rounded-md border border-edito-brass/40 bg-edito-surface p-3.5 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-edito-brass">
+                        Opportunité
+                      </span>
+                    </div>
+                    {item.opportunity ? (
+                      <p className="text-xs leading-relaxed text-edito-body">
+                        {item.opportunity}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Sources au bas de la paire */}
+                {item.srcIds.length > 0 ? (
+                  <div className="pt-2 border-t border-edito-border/50 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-[10px] font-semibold text-edito-muted">Sources :</span>
+                      <SourceChipList srcIds={item.srcIds} resolve={resolveSource} />
+                    </div>
+                  </div>
                 ) : null}
               </div>
             ))}
           </div>
         </section>
       ) : null}
+
+      {/* Pain points sectoriels (Lot 11 Desktop) */}
+      {knowledge.painPoints.length > 0 ? (() => {
+        const maxFrequency = Math.max(1, ...knowledge.painPoints.map((p) => p.frequencyCount))
+        return (
+          <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-6">
+            <div className="border-b border-edito-border pb-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy flex items-center gap-2">
+                    <span>Pain points sectoriels</span>
+                    <span className="rounded bg-edito-chip px-2 py-0.5 font-mono text-[10px] text-edito-muted">
+                      {knowledge.painPoints.length} point{knowledge.painPoints.length > 1 ? "s" : ""}
+                    </span>
+                  </h2>
+                  <p className="mt-1 text-xs text-edito-muted">
+                    Les difficultés les plus fréquemment observées dans le segment et son environnement sectoriel.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Liste analytique dense par fréquence */}
+            <div className="space-y-3.5">
+              {knowledge.painPoints.map((point, idx) => {
+                const formattedPractice = formatPracticeName(point.kredoPractice)
+                const relativeWidthPct = Math.min(100, Math.max(12, Math.round((point.frequencyCount / maxFrequency) * 100)))
+
+                return (
+                  <div
+                    key={point.id}
+                    className="rounded-lg border border-edito-border bg-edito-canvas/40 p-4 space-y-2.5 transition-colors hover:bg-edito-canvas/70"
+                  >
+                    {/* Header item: Index + Counter + Title + Provenance */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <span className="font-mono text-xs font-bold text-edito-navy/70 bg-edito-chip px-2 py-0.5 rounded shrink-0">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
+                        <h3 className="font-bold text-edito-navy text-xs leading-snug">
+                          {point.title}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-mono text-xs font-bold text-edito-navy bg-edito-surface border border-edito-border px-2 py-0.5 rounded">
+                          {point.frequencyCount} {point.frequencyCount > 1 ? "occurrences" : "occurrence"}
+                        </span>
+                        <ProvenanceBadge level={point.resolvedLevel} />
+                      </div>
+                    </div>
+
+                    {/* Barre de fréquence relative */}
+                    <div className="w-full bg-edito-border/40 h-1 rounded-full overflow-hidden">
+                      <div
+                        className="bg-edito-navy h-1 rounded-full transition-all duration-300"
+                        style={{ width: `${relativeWidthPct}%` }}
+                      />
+                    </div>
+
+                    {/* Description conditionnelle */}
+                    {point.description ? (
+                      <p className="text-xs leading-relaxed text-edito-body">
+                        {point.description}
+                      </p>
+                    ) : null}
+
+                    {/* Verbatim conditionnel */}
+                    {point.verbatim ? (
+                      <blockquote className="border-l-2 border-edito-brass/80 pl-3 text-xs italic text-edito-muted">
+                        « {point.verbatim} »
+                      </blockquote>
+                    ) : null}
+
+                    {/* Practice Kredo formatée conditionnelle */}
+                    {formattedPractice ? (
+                      <div className="pt-1.5 border-t border-edito-border/40 flex items-center gap-1.5 text-[10px]">
+                        <span className="text-edito-muted font-normal">Practice KREDO :</span>
+                        <span className="rounded bg-edito-chip px-1.5 py-0.5 font-bold text-edito-navy">
+                          {formattedPractice}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Rappel croisé Playbook */}
+            <div className="pt-4 border-t border-edito-border/60 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs text-edito-muted">
+                Retrouver ces enjeux et la traduction commerciale dans le Playbook.
+              </span>
+              {onOpenPlaybook ? (
+                <button
+                  type="button"
+                  onClick={onOpenPlaybook}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-edito-navy bg-edito-navy px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-edito-navy/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/20"
+                >
+                  <span>Ouvrir le Playbook</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              ) : null}
+            </div>
+          </section>
+        )
+      })() : null}
 
       {/* Limites & Sources méthodologiques (Préservé) */}
       {caveats ? (

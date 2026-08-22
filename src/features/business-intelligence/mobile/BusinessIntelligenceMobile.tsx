@@ -95,6 +95,7 @@ export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competit
               sourceResolution={workspace.sourceResolution}
               valueChain={workspace.valueChain}
               onOpenValueChain={() => navigateChapter("value-chain")}
+              onOpenPlaybook={() => setIsPlaybooksOpen(true)}
             />
           ) : unavailable("Analyse sectorielle")
         ) : null}

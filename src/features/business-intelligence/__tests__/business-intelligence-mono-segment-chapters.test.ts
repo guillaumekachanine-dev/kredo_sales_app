@@ -182,8 +182,28 @@ const mockKnowledge: SectorKnowledgeReadModel = {
         src_ids: [5, 6, 13],
         donc_commercialement: "DONC, commercialement : IFRA 52 doit ouvrir un chantier"
       }
+    ],
+    dependances_critiques: [
+      {
+        nom: "Disponibilité et variabilité des matières naturelles",
+        criticite: "haute",
+        situation: "Les ingrédients naturels imposent qualification et traçabilité.",
+        risque: "Rupture ou variation matière provoquant reformulation.",
+        prestation_ouverte: "Construire la traçabilité matière–fournisseur–lot–formule.",
+        practice_kredo: "data-ai",
+        src_ids: [20, 21, 23],
+        donc_commercialement: "DONC, commercialement : partir du temps nécessaire pour identifier toutes les formules."
+      }
+    ],
+    risks: [
+      {
+        risque: "Changement réglementaire impossible à propager rapidement",
+        opportunite: "Data model réglementaire, moteur de règles, impact analysis",
+        src_ids: [5, 6, 13]
+      }
     ]
   },
+
   playbookLevel: "segment",
   practicesFit: null,
   practicesFitLevel: "segment",
@@ -324,7 +344,8 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).toContain("Mane")
       expect(markup).toContain("Givaudan France")
       expect(markup).toContain("Pression sur les allergènes et traçabilité IFRA 51")
-      expect(markup).toContain("Freq. 8")
+      expect(markup).toContain("8 occurrences")
+      expect(markup).toContain("Pain points sectoriels")
       expect(markup).toContain("IFRA Annual Report 2025")
       expect(markup).toContain("Snapshot du") // CorpusConfidenceBanner
       expect(markup).toContain("Blocs clients &amp; cycles d’achat")
@@ -334,8 +355,17 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).toContain("Fronts technologiques")
       expect(markup).toContain("Référentiel réglementaire et formula impact")
       expect(markup).toContain("Zone de transition")
+      expect(markup).toContain("Dépendances critiques &amp; Supply chain")
+      expect(markup).toContain("Disponibilité et variabilité des matières naturelles")
+      expect(markup).toContain("Criticité haute")
+      expect(markup).toContain("Prestation ESN ouverte")
+      expect(markup).toContain("Data &amp; AI")
       expect(markup).toContain("Donc, commercialement")
+      expect(markup).toContain("Risques × opportunités")
+      expect(markup).toContain("Changement réglementaire impossible à propager rapidement")
+      expect(markup).toContain("Data model réglementaire, moteur de règles, impact analysis")
     })
+
 
     it("rend la section Chaîne de valeur synthétique du Lot 6 sur Desktop lorsqu'un valueChain est fourni", () => {
       const markup = renderToStaticMarkup(
@@ -374,8 +404,9 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).toContain("Écosystème &amp; Acteurs clés (3)")
       expect(markup).toContain("Ancrage Régional (PACA)")
       expect(markup).toContain("Acteurs Nationaux &amp; Internationaux")
-      expect(markup).toContain("Points de douleur (1)")
-      expect(markup).toContain("Événements &amp; Jalons (1)")
+      expect(markup).toContain("Pain points sectoriels (1)")
+      expect(markup).toContain("Réglementation &amp; ruptures (2)")
+      expect(markup).toContain("Risques × opportunités (1)")
       expect(markup).toContain("Sources méthodologiques")
       expect(markup).toContain("Blocs clients (1)")
       expect(markup).toContain("Marques de parfumerie et cosmétique")
@@ -383,7 +414,74 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).toContain("Composition sur brief et co-développement")
       expect(markup).toContain("Fronts technologiques (1)")
       expect(markup).toContain("Référentiel réglementaire et formula impact")
+      expect(markup).toContain("Dépendances critiques &amp; Supply chain (1)")
+      expect(markup).toContain("Disponibilité et variabilité des matières naturelles")
+      expect(markup).toContain("Criticité haute")
+      expect(markup).toContain("Data &amp; AI")
       expect(markup).toContain("Donc, commercialement")
+    })
+
+    it("rend la section Pain points sectoriels du Lot 11 triée par fréquence avec CTA Playbook et provenances", () => {
+      const multiPainPointsKnowledge: SectorKnowledgeReadModel = {
+        ...mockKnowledge,
+        painPoints: [
+          {
+            id: "pp-1",
+            title: "Screening réglementaire manuel",
+            description: "Analyse manuelle complexe.",
+            frequencyCount: 6,
+            kredoPractice: "data_ai",
+            verbatim: "Chaque ingrédient vérifié manuellement.",
+            sourceCompanyIds: [],
+            resolvedLevel: "macro",
+          },
+          {
+            id: "pp-2",
+            title: "Chantiers data / analytics",
+            description: null,
+            frequencyCount: 3,
+            kredoPractice: null,
+            verbatim: null,
+            sourceCompanyIds: [],
+            resolvedLevel: "segment",
+          },
+        ],
+      }
+
+      const markupDesktop = renderToStaticMarkup(
+        createElement(SectorAnalysisChapterDesktop, {
+          knowledge: multiPainPointsKnowledge,
+          segmentName: "Parfumerie B2B",
+          macroName: "Chimie & Cosmétique",
+          onOpenPlaybook: () => {},
+        }),
+      )
+
+      expect(markupDesktop).toContain("Pain points sectoriels")
+      expect(markupDesktop).toContain("Screening réglementaire manuel")
+      expect(markupDesktop).toContain("6 occurrences")
+      expect(markupDesktop).toContain("Macro")
+      expect(markupDesktop).toContain("Data &amp; AI")
+      expect(markupDesktop).toContain("« Chaque ingrédient vérifié manuellement. »")
+      expect(markupDesktop).toContain("Chantiers data / analytics")
+      expect(markupDesktop).toContain("3 occurrences")
+      expect(markupDesktop).toContain("Segment")
+      expect(markupDesktop).toContain("Ouvrir le Playbook")
+
+      const markupMobile = renderToStaticMarkup(
+        createElement(SectorAnalysisChapterMobile, {
+          knowledge: multiPainPointsKnowledge,
+          segmentName: "Parfumerie B2B",
+          macroName: "Chimie & Cosmétique",
+          onOpenPlaybook: () => {},
+        }),
+      )
+
+      expect(markupMobile).toContain("Pain points sectoriels (2)")
+      expect(markupMobile).toContain("Screening réglementaire manuel")
+      expect(markupMobile).toContain("6 occurrences")
+      expect(markupMobile).toContain("Macro")
+      expect(markupMobile).toContain("Approfondir les enjeux commerciaux — Ouvrir le Playbook")
     })
 
     it("rend la section Chaîne de valeur synthétique du Lot 6 sur Mobile lorsqu'un valueChain est fourni", () => {
@@ -449,7 +547,7 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       )
 
       expect(markup).toContain("Segment Vide")
-      expect(markup).not.toContain("Points de douleur &amp; Enjeux métiers")
+      expect(markup).not.toContain("Pain points sectoriels")
       expect(markup).not.toContain("Événements majeurs &amp; Jalons du secteur")
       expect(markup).not.toContain("Écosystème &amp; Acteurs clés")
       expect(markup).not.toContain("Sources &amp; Réserves méthodologiques")

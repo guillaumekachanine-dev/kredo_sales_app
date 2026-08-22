@@ -123,6 +123,7 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
                   sourceResolution={workspace.sourceResolution}
                   valueChain={workspace.valueChain}
                   onOpenValueChain={() => navigateChapter("value-chain")}
+                  onOpenPlaybook={() => setIsPlaybooksOpen(true)}
                 />
               ) : unavailable("Analyse sectorielle")
             ) : null}

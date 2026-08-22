@@ -7,12 +7,16 @@ import {
   formatMarketGrowth,
   formatMarketSize,
   formatNumber,
+  formatPracticeName,
   formatTjmRange,
   parseCaveats,
+  parseCriticalDependencies,
   parseEconomicModels,
   parseKeyPlayers,
+  parseRiskOpportunities,
   parseTechFronts,
 } from "./sector-analysis-model"
+
 
 describe("sector-analysis-model", () => {
   describe("formatAttractiveness", () => {
@@ -387,4 +391,246 @@ describe("sector-analysis-model", () => {
     })
   })
 
+  describe("formatPracticeName", () => {
+    it("formate proprement les slugs de practices connus", () => {
+      expect(formatPracticeName("data-ai")).toBe("Data & AI")
+      expect(formatPracticeName("quality-engineering-testing")).toBe("Quality Engineering & Testing")
+      expect(formatPracticeName("cybersecurity")).toBe("Cybersecurity")
+      expect(formatPracticeName("digital-business-solutions")).toBe("Digital Business Solutions")
+      expect(formatPracticeName("project-agile-delivery")).toBe("Project & Agile Delivery")
+      expect(formatPracticeName("cloud-engineering")).toBe("Cloud Engineering")
+      expect(formatPracticeName("digital-experience")).toBe("Digital Experience")
+      expect(formatPracticeName("legacy-systems-mainframe")).toBe("Legacy Systems & Mainframe")
+    })
+
+    it("gère défensivement les slugs inconnus ou absents", () => {
+      expect(formatPracticeName("unknown-practice")).toBe("unknown-practice")
+      expect(formatPracticeName(null)).toBeNull()
+      expect(formatPracticeName(undefined)).toBeNull()
+    })
+  })
+
+  describe("parseCriticalDependencies", () => {
+    it("lit correctement les 6 dépendances du pilote en conservant l'ordre source et toutes les propriétés", () => {
+      const playbook = {
+        dependances_critiques: [
+          {
+            nom: "Disponibilité et variabilité des matières naturelles",
+            criticite: "haute",
+            situation: "Les ingrédients naturels imposent qualification, traçabilité, qualité et capacité de substitution.",
+            risque: "Rupture ou variation matière provoquant reformulation, requalification et impact client.",
+            prestation_ouverte: "Construire la traçabilité matière–fournisseur–lot–formule, les alertes d'impact et les workflows de second sourcing.",
+            practice_kredo: "data-ai",
+            src_ids: [20, 21, 23],
+            donc_commercialement: "DONC, commercialement : partir du temps nécessaire pour identifier toutes les formules et clients impactés par une matière indisponible."
+          },
+          {
+            nom: "Évolution des règles IFRA/REACH et exigences de conformité",
+            criticite: "haute",
+            situation: "Le portefeuille de formules doit absorber des évolutions de règles.",
+            risque: "Screening lent, erreurs de propagation.",
+            prestation_ouverte: "Data governance réglementaire, moteur de règles.",
+            practice_kredo: "data-ai",
+            src_ids: [5, 6, 13],
+            donc_commercialement: "DONC, commercialement : IFRA 52 est l'ouverture."
+          },
+          {
+            nom: "Montée en cadence des nouveaux sites et équipements",
+            criticite: "haute",
+            situation: "Des investissements récents à Grasse.",
+            risque: "Interfaces fragiles.",
+            prestation_ouverte: "Tests de performance et résilience.",
+            practice_kredo: "quality-engineering-testing",
+            src_ids: [18, 19, 25],
+            donc_commercialement: "DONC, commercialement : vendre la fiabilité."
+          },
+          {
+            nom: "Propriété intellectuelle et accès aux formules",
+            criticite: "haute",
+            situation: "La formule est un actif métier sensible.",
+            risque: "Exposition d'informations propriétaires.",
+            prestation_ouverte: "Architecture de sécurité, IAM/PAM.",
+            practice_kredo: "cybersecurity",
+            src_ids: [22, 23],
+            donc_commercialement: "DONC, commercialement : rattacher la cybersécurité."
+          },
+          {
+            nom: "Fragmentation laboratoire–qualité–ERP–client",
+            criticite: "moyenne",
+            situation: "Le cycle métier traverse plusieurs fonctions.",
+            risque: "Temps de cycle, erreurs de version.",
+            prestation_ouverte: "Architecture d'API, intégration applicative.",
+            practice_kredo: "digital-business-solutions",
+            src_ids: [10, 12, 22],
+            donc_commercialement: "DONC, commercialement : identifier un flux."
+          },
+          {
+            nom: "Dépendance aux standards et plateformes d'un groupe de contrôle",
+            criticite: "moyenne",
+            situation: "Dans une filiale, achats, data, cyber.",
+            risque: "Proposition commerciale hors périmètre local.",
+            prestation_ouverte: "Rollout, intégration, migration ciblée.",
+            practice_kredo: "project-agile-delivery",
+            src_ids: [10, 21, 22, 23],
+            donc_commercialement: "DONC, commercialement : la première qualification."
+          }
+        ]
+      }
+
+      const deps = parseCriticalDependencies(playbook)
+      expect(deps).toHaveLength(6)
+
+      // Ordre source conservé
+      expect(deps[0].nom).toBe("Disponibilité et variabilité des matières naturelles")
+      expect(deps[1].nom).toBe("Évolution des règles IFRA/REACH et exigences de conformité")
+      expect(deps[2].nom).toBe("Montée en cadence des nouveaux sites et équipements")
+      expect(deps[3].nom).toBe("Propriété intellectuelle et accès aux formules")
+      expect(deps[4].nom).toBe("Fragmentation laboratoire–qualité–ERP–client")
+      expect(deps[5].nom).toBe("Dépendance aux standards et plateformes d'un groupe de contrôle")
+
+      // Criticités
+      expect(deps[0].criticite).toBe("haute")
+      expect(deps[1].criticite).toBe("haute")
+      expect(deps[2].criticite).toBe("haute")
+      expect(deps[3].criticite).toBe("haute")
+      expect(deps[4].criticite).toBe("moyenne")
+      expect(deps[5].criticite).toBe("moyenne")
+
+      // Détails du 1er item
+      expect(deps[0]).toEqual({
+        nom: "Disponibilité et variabilité des matières naturelles",
+        criticite: "haute",
+        situation: "Les ingrédients naturels imposent qualification, traçabilité, qualité et capacité de substitution.",
+        risque: "Rupture ou variation matière provoquant reformulation, requalification et impact client.",
+        prestationOuverte: "Construire la traçabilité matière–fournisseur–lot–formule, les alertes d'impact et les workflows de second sourcing.",
+        practiceKredo: "data-ai",
+        doncCommercialement: "DONC, commercialement : partir du temps nécessaire pour identifier toutes les formules et clients impactés par une matière indisponible.",
+        srcIds: [20, 21, 23]
+      })
+    })
+
+    it("gère défensivement une criticité inconnue, des src_ids invalides et ignore les entrées invalides", () => {
+      const playbook = {
+        dependances_critiques: [
+          "entree_invalide",
+          null,
+          { nom: "  " },
+          {
+            nom: "Dépendance avec criticité inconnue",
+            criticite: "extreme",
+            situation: "  ",
+            risque: null,
+            practiceKredo: "data-ai",
+            prestationOuverte: "Conseil",
+            src_ids: [1, "12", -4, "invalide", null]
+          }
+        ]
+      }
+
+      const deps = parseCriticalDependencies(playbook)
+      expect(deps).toHaveLength(1)
+      expect(deps[0]).toEqual({
+        nom: "Dépendance avec criticité inconnue",
+        criticite: null,
+        situation: null,
+        risque: null,
+        practiceKredo: "data-ai",
+        prestationOuverte: "Conseil",
+        doncCommercialement: null,
+        srcIds: [1, 12]
+      })
+    })
+
+    it("renvoie un tableau vide si dependances_critiques est absent ou invalide", () => {
+      expect(parseCriticalDependencies(null)).toEqual([])
+      expect(parseCriticalDependencies({})).toEqual([])
+      expect(parseCriticalDependencies({ dependances_critiques: "invalid" })).toEqual([])
+    })
+  })
+
+  describe("parseRiskOpportunities", () => {
+    it("lit correctement les 7 paires risque/opportunité du pilote en conservant l'ordre source", () => {
+      const playbook = {
+        risks: [
+          {
+            risque: "Changement réglementaire impossible à propager rapidement",
+            opportunite: "Data model réglementaire, moteur de règles, impact analysis",
+            src_ids: [5, 6, 13]
+          },
+          {
+            risque: "Montée en cadence d'un site automatisé avec interfaces OT/IT",
+            opportunite: "Tests de performance/résilience, observabilité",
+            src_ids: [18, 19, 25]
+          },
+          {
+            risque: "POC IA de formulation non industrialisable",
+            opportunite: "Industrialisation IA/MLOps adossée à data governance",
+            src_ids: [22, 23]
+          },
+          {
+            risque: "Substitution d'une matière ou changement fournisseur",
+            opportunite: "Data platform, lineage et workflows fournisseurs",
+            src_ids: [20, 21, 23]
+          },
+          {
+            risque: "Proposition IT locale incompatible avec les plateformes",
+            opportunite: "Intégration, rollout, change et coordination programme",
+            src_ids: [10, 21, 22, 23]
+          },
+          {
+            risque: "Patrimoine formulation exposé lors de l'ouverture",
+            opportunite: "IAM/PAM, sécurité des architectures et DevSecOps",
+            src_ids: [22, 23]
+          },
+          {
+            risque: "Fragmentation des données entre laboratoire, qualité, achats",
+            opportunite: "Intégration API, applications métier B2B",
+            src_ids: [10, 12, 22]
+          }
+        ]
+      }
+
+      const pairs = parseRiskOpportunities(playbook)
+      expect(pairs).toHaveLength(7)
+      expect(pairs[0]).toEqual({
+        risk: "Changement réglementaire impossible à propager rapidement",
+        opportunity: "Data model réglementaire, moteur de règles, impact analysis",
+        srcIds: [5, 6, 13]
+      })
+      expect(pairs[6]).toEqual({
+        risk: "Fragmentation des données entre laboratoire, qualité, achats",
+        opportunity: "Intégration API, applications métier B2B",
+        srcIds: [10, 12, 22]
+      })
+    })
+
+    it("gère défensivement les aliases camelCase et filtre les entrées invalides", () => {
+      const playbook = {
+        risks: [
+          "invalide",
+          null,
+          { risque: "   " },
+          {
+            risk: "Risque CamelCase",
+            opportunity: "Opportunité CamelCase",
+            srcIds: [1, "invalid", 10]
+          }
+        ]
+      }
+
+      const pairs = parseRiskOpportunities(playbook)
+      expect(pairs).toHaveLength(1)
+      expect(pairs[0]).toEqual({
+        risk: "Risque CamelCase",
+        opportunity: "Opportunité CamelCase",
+        srcIds: [1, 10]
+      })
+    })
+
+    it("renvoie un tableau vide si risks est absent ou nul", () => {
+      expect(parseRiskOpportunities(null)).toEqual([])
+      expect(parseRiskOpportunities({})).toEqual([])
+      expect(parseRiskOpportunities({ risks: "invalid" })).toEqual([])
+    })
+  })
 })

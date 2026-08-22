@@ -35,6 +35,24 @@ export type SectorTechFront = {
   srcIds: number[]
 }
 
+export type SectorCriticalDependency = {
+  nom: string
+  criticite: "haute" | "moyenne" | "faible" | null
+  situation: string | null
+  risque: string | null
+  practiceKredo: string | null
+  prestationOuverte: string | null
+  doncCommercialement: string | null
+  srcIds: number[]
+}
+
+export type SectorRiskOpportunity = {
+  risk: string
+  opportunity: string
+  srcIds: number[]
+}
+
+
 function parseSrcIds(raw: unknown): number[] {
   if (!Array.isArray(raw)) return []
   return raw
@@ -171,6 +189,146 @@ export function parseTechFronts(playbook: Record<string, unknown> | null | undef
 
   return techFronts
 }
+
+export function formatPracticeName(slug: string | null | undefined): string | null {
+  if (!slug || typeof slug !== "string") return null
+  const key = slug.trim().toLowerCase()
+  switch (key) {
+    case "data-ai":
+    case "data_ai":
+      return "Data & AI"
+    case "quality-engineering-testing":
+    case "testing":
+      return "Quality Engineering & Testing"
+    case "cybersecurity":
+    case "cyber":
+      return "Cybersecurity"
+    case "digital-business-solutions":
+    case "apps":
+      return "Digital Business Solutions"
+    case "project-agile-delivery":
+    case "product":
+      return "Project & Agile Delivery"
+    case "cloud-engineering":
+    case "cloud_eng":
+      return "Cloud Engineering"
+    case "digital-experience":
+    case "design":
+      return "Digital Experience"
+    case "legacy-systems-mainframe":
+    case "legacy":
+      return "Legacy Systems & Mainframe"
+    default:
+      return slug.trim()
+  }
+}
+
+export function parseCriticalDependencies(playbook: Record<string, unknown> | null | undefined): SectorCriticalDependency[] {
+  const rawList = playbook?.dependances_critiques
+  if (!Array.isArray(rawList)) {
+    return []
+  }
+
+  const dependencies: SectorCriticalDependency[] = []
+
+  for (const item of rawList) {
+    if (!item || typeof item !== "object") continue
+    const rec = item as Record<string, unknown>
+    const nom = typeof rec.nom === "string" ? rec.nom.trim() : typeof rec.name === "string" ? rec.name.trim() : ""
+    if (!nom) continue
+
+    let criticite: "haute" | "moyenne" | "faible" | null = null
+    if (typeof rec.criticite === "string") {
+      const c = rec.criticite.trim().toLowerCase()
+      if (c === "haute" || c === "moyenne" || c === "faible") {
+        criticite = c
+      }
+    }
+
+    const situation = typeof rec.situation === "string" && rec.situation.trim().length > 0 ? rec.situation.trim() : null
+    const risque = typeof rec.risque === "string" && rec.risque.trim().length > 0 ? rec.risque.trim() : null
+
+    const rawPractice =
+      typeof rec.practice_kredo === "string" && rec.practice_kredo.trim().length > 0
+        ? rec.practice_kredo.trim()
+        : typeof rec.practiceKredo === "string" && rec.practiceKredo.trim().length > 0
+          ? rec.practiceKredo.trim()
+          : null
+    const practiceKredo = rawPractice
+
+    const rawPrestation =
+      typeof rec.prestation_ouverte === "string" && rec.prestation_ouverte.trim().length > 0
+        ? rec.prestation_ouverte.trim()
+        : typeof rec.prestationOuverte === "string" && rec.prestationOuverte.trim().length > 0
+          ? rec.prestationOuverte.trim()
+          : null
+    const prestationOuverte = rawPrestation
+
+    const rawDonc =
+      typeof rec.donc_commercialement === "string" && rec.donc_commercialement.trim().length > 0
+        ? rec.donc_commercialement.trim()
+        : typeof rec.doncCommercialement === "string" && rec.doncCommercialement.trim().length > 0
+          ? rec.doncCommercialement.trim()
+          : null
+    const doncCommercialement = rawDonc
+
+    const srcIds = parseSrcIds(rec.src_ids ?? rec.srcIds)
+
+    dependencies.push({
+      nom,
+      criticite,
+      situation,
+      risque,
+      practiceKredo,
+      prestationOuverte,
+      doncCommercialement,
+      srcIds,
+    })
+  }
+
+  return dependencies
+}
+
+export function parseRiskOpportunities(playbook: Record<string, unknown> | null | undefined): SectorRiskOpportunity[] {
+  const rawList = playbook?.risks
+  if (!Array.isArray(rawList)) {
+    return []
+  }
+
+  const items: SectorRiskOpportunity[] = []
+
+  for (const item of rawList) {
+    if (!item || typeof item !== "object") continue
+    const rec = item as Record<string, unknown>
+
+    const risk =
+      typeof rec.risque === "string" && rec.risque.trim().length > 0
+        ? rec.risque.trim()
+        : typeof rec.risk === "string" && rec.risk.trim().length > 0
+          ? rec.risk.trim()
+          : ""
+
+    if (!risk) continue
+
+    const opportunity =
+      typeof rec.opportunite === "string" && rec.opportunite.trim().length > 0
+        ? rec.opportunite.trim()
+        : typeof rec.opportunity === "string" && rec.opportunity.trim().length > 0
+          ? rec.opportunity.trim()
+          : ""
+
+    const srcIds = parseSrcIds(rec.src_ids ?? rec.srcIds)
+
+    items.push({
+      risk,
+      opportunity,
+      srcIds,
+    })
+  }
+
+  return items
+}
+
 
 export type ParsedCaveats = {
   corpus?: string

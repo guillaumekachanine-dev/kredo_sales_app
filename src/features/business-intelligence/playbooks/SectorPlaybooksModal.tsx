@@ -38,6 +38,7 @@ export type SectorPlaybooksModalProps = {
     [key: string]: unknown
   }>
   isMobile?: boolean
+  initialSectionKey?: SectorPlaybookSectionKey
 }
 
 function asArray(value: unknown): unknown[] {
@@ -72,6 +73,7 @@ export function SectorPlaybooksModal({
   competitiveActors = [],
   priorityAccounts = [],
   isMobile = false,
+  initialSectionKey,
 }: SectorPlaybooksModalProps) {
   const name = segmentName || knowledge.segmentName
   const macro = macroName || knowledge.macroName
@@ -183,7 +185,7 @@ export function SectorPlaybooksModal({
   }, [knowledge, personas, entryPoints, objections, roiArguments, deadlines, competitiveActors])
 
   const [activeSectionKey, setActiveSectionKey] = useState<SectorPlaybookSectionKey>(
-    () => sections[0]?.key ?? "enjeux",
+    () => initialSectionKey ?? sections[0]?.key ?? "enjeux",
   )
 
   const activeSection = sections.find((s) => s.key === activeSectionKey) ?? sections[0]
