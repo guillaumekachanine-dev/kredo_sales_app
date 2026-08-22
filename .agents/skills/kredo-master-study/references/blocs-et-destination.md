@@ -71,6 +71,14 @@ connaissance : elle compose et convertit ce que BI et le cockpit détiennent. To
 n'apparaîtrait que là serait une troisième vérité — c'est la règle qui empêche le « deuxième
 cockpit » interdit par l'ADR-0018.
 
+**Depuis ADR-0021 (L4/L5, livré 20/08/2026), « lecture, jamais recopie » a un mécanisme
+concret** : BI et le cockpit ne relisent pas `sector_intelligence` brute, ils passent par
+`SectorKnowledgeReadModel` (résolution segment→macro déjà appliquée) et
+`AccountSectorPerspective` (perspective secteur d'un compte). Avant leur livraison, BI chargeait
+les 53 fiches + 745 signaux sans filtre `level` — c'était la vraie cause du symptôme « BI ne voit
+pas la Master Study ». Tout nouveau consommateur transverse (§7) passe par ces read models, pas
+par une nouvelle requête directe sur les tables sectorielles.
+
 Le cockpit compte suit les 7 onglets d'ADR-0012 : Accueil · **Socle** (A1 A2) · **Entreprise**
 (A3 A4 A5 A6 A7) · **Secteur** (A12 + héritage S/C) · **Enjeux** (A9, S7) · **Stratégie**
 (A10, S10-S13) · **Roadmap** (A11).

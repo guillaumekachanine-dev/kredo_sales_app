@@ -54,6 +54,11 @@ Aucune ne se saute. La quatrième est celle qui évite de lancer un run qui ne p
 
 Puis annonce ce que tu vas faire et pourquoi, avant d'exécuter.
 
+Si Guillaume veut un parcours pas à pas lisible sans naviguer entre documents, il existe déjà :
+`docs/MASTER-STUDY/GUIDE-UTILISATEUR.md`. Il n'a aucune autorité propre — en cas d'écart avec un
+document numéroté, ce dernier gagne, et le guide se corrige — mais c'est la vue de référence à lui
+montrer plutôt qu'en refaire une.
+
 ## Les six refus
 
 Ce sont les règles qui font la valeur du dispositif. Chacune vient d'un échec mesuré, pas d'un
@@ -138,6 +143,8 @@ Quatre choses que la carte ne dit pas et qui commandent tout :
   livrables.
 - **E2 s'exécute avant l'étude et devient son contexte d'entrée.** C'est la différence entre une
   chaîne et deux outils qui s'ignorent.
+- **E4 amorce déjà la chaîne de valeur.** Son ingestion écrit un nœud par maillon (`rang=1`,
+  `capture_valeur` NULL) — E6 ne part jamais de zéro, il approfondit (ADR-0021 §9.1/MS-19).
 - **G0 est le gate qui économise le plus.** Il s'exécute après E1, avant E2, et il refuse de lancer
   une étude qui ne peut pas aboutir.
 - **Un gate n'est pas une formalité de fin : c'est le droit de continuer.**
@@ -171,10 +178,15 @@ Les franchir seul est la seule faute non rattrapable de ce processus.
   existant, densité du gisement déterministe — il ne s'intuite pas.
 - **G0 en `no_go` ou `go_avec_reserve`.** Tu rends le verdict et ce qui manque ; tu ne contournes
   pas.
-- **Toute écriture en base** — migration d'ingestion, `CompetitiveMapImportWizard`. Tu écris la
-  migration, tu la montres, **tu ne l'exécutes jamais sans accord explicite**. L'import E5 n'est
-  volontairement pas automatisable : la résolution d'entité produit des `ambiguous`, et leur
-  arbitrage est un jugement (ADR-0019).
+- **Toute écriture en base.** Deux outils existent déjà, un par couche, et tous deux tournent en
+  dry-run par défaut — **tu ne passes en écriture réelle qu'avec accord explicite** :
+  `CompetitiveMapImportWizard` pour E5 (bac d'arbitrage humain, résolution d'entité qui produit des
+  `ambiguous` — volontairement non automatisable, ADR-0019) ; `scripts/ingest-master-study.mts` +
+  RPC `public.ingest_master_study_e4` pour E4/E6 (transaction `ROLLBACK` puis `--live`, ADR-0021).
+  Après un `--live`, rejoue `supabase/tests/069_sector_knowledge_resolution.assertions.sql` — la
+  seule ingestion réelle à ce jour a révélé une RPC qui ne promeut jamais
+  `sector_intelligence.status` vers `active`, invisible tant que les 18 assertions ne sont pas
+  rejouées une à une.
 - **Un doute stratégique.** « Je ne vois pas comment ce secteur se vend » n'est pas un problème de
   méthode, c'est une vraie question. Pose-la plutôt que de deviner un angle.
 
@@ -207,15 +219,31 @@ l'application est dans **`references/blocs-et-destination.md`**.
 ## Ce qui est bloqué aujourd'hui
 
 Vérifie l'état réel avant de promettre un run complet : **`references/etat-du-chantier.md`**, et la
-`ROADMAP-CORRECTIONS.md` qui fait autorité dessus. Deux points durs au 14/08/2026 :
+`ROADMAP-CORRECTIONS.md` qui fait autorité dessus. Ce fichier-ci ne prétend pas être à jour plus
+longtemps qu'il ne l'a mesuré — la ligne qui suit vient d'être revérifiée en base.
 
-- **E3 est gelé par le corpus lui-même.** Le générateur de référentiels de sources tronque au pack
-  minimal, et le document E3 interdit d'en produire un nouveau tant qu'il n'est pas corrigé. Une
-  étude sans registre n'a pas de traçabilité, donc échoue à la dernière question du test
-  d'acceptation.
-- **G0 ne passe pas partout.** Les 5 axes dits « toujours renseignables » sont à 77 comptes sur 99 :
-  sur les 16 segments qui atteignent le seuil de 3 comptes, **6 seulement** franchissent la
-  condition d'axes. Mesure-le avant de proposer un segment, pas après.
+**La chaîne a déjà tourné jusqu'au bout une fois.** `seg-parfumerie-compositions-b2b` a franchi
+G0, produit E0→E5, et a été **ingéré en base le 20/08/2026** (`--live`, ADR-0021 L3, verdict
+`usable_with_caveats`) — BI et le cockpit le lisent désormais via les modèles de lecture livrés
+L4/L5 (`SectorKnowledgeReadModel`, `AccountSectorPerspective`). E3 n'est plus gelé depuis le
+14/08 : `check_packs` (G1) transforme la troncature du générateur en FAIL bloquant au lieu d'un
+silence.
+
+Ce que ça ne veut pas dire : que le chantier est fini, ou que G0 est devenu facile à passer.
+**Revérifié en base le 22/08/2026** (requête `references/etat-du-chantier.md` §5) : le nombre de
+segments qui franchissent la condition d'axes de G0 est **descendu de 6 à 4** depuis le 14/08 —
+de nouveaux comptes ont été rattachés à des segments sans être classifiés sur les 3 axes libres,
+et **`seg-parfumerie-compositions-b2b` lui-même en fait partie** : il est passé de 7 à 10 comptes
+rattachés, dont seulement 7 ont leurs axes complets. Le segment qui a servi de preuve que la
+chaîne fonctionne ne repasserait plus G0 tel quel aujourd'hui. **Ne cite jamais un segment
+franchissant G0 sans avoir rejoué la requête** — le paysage bouge d'une semaine à l'autre, dans
+les deux sens.
+
+Ce qui reste ouvert, sans ambiguïté :
+- **B4, la couche accessibilité, à 0 fait sur les comptes de la base.** L'axe qui dit « le droit
+  d'intervenir » n'existe encore nulle part.
+- **G2, la red team, n'a jamais tourné** sur aucun run — y compris celui qui a été ingéré. Le
+  verdict `usable_with_caveats` du 20/08 a été rendu sans elle.
 
 Dis-le **avant** d'engager la journée, pas au moment de rendre.
 
@@ -228,6 +256,9 @@ G1 mesure si tu as le droit d'ingérer. La question suivante mesure si ça sert 
 > interlocuteur reconnaît. Il tient trois minutes sans être interchangeable. Et si le DSI demande
 > **« vous tenez ça d'où ? »**, il ouvre la source.
 
-Cinq points. Les deux études produites en août 2026 tenaient le quatrième ; une seule tenait le
-cinquième ; **aucune ne tenait les trois premiers**. C'est le problème que ce dispositif existe
-pour régler — et c'est à cette aune que se juge ce que tu rends, pas au nombre de pages.
+Cinq points. Les deux études produites hors corpus en août 2026 tenaient le quatrième ; une seule
+tenait le cinquième ; **aucune ne tenait les trois premiers**. C'est le problème que ce dispositif
+existe pour régler. Le premier run produit *sous* le corpus complet (`seg-parfumerie-compositions-
+b2b`) a été ingéré `usable_with_caveats`, sans G2 exécutée — il ne prouve donc que les trois
+premiers points, pas les cinq. C'est à cette aune que se juge ce que tu rends, pas au nombre de
+pages.

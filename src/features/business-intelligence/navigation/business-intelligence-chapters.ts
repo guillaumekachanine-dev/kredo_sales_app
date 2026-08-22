@@ -16,7 +16,7 @@ export type BiChapterDefinition = {
 }
 
 export const BI_CHAPTERS: readonly BiChapterDefinition[] = [
-  { id: "home", label: "Accueil", mobileLabel: "Accueil", resource: null },
+  { id: "home", label: "Accueil", mobileLabel: "Terrain", resource: null },
   { id: "sector-analysis", label: "Analyse sectorielle", mobileLabel: "Analyse", resource: "study" },
   { id: "competitive-environment", label: "Environnement concurrentiel", mobileLabel: "Concurrence", resource: "competitiveMap" },
   { id: "regulatory-calendar", label: "Calendrier réglementaire", mobileLabel: "Réglementation", resource: "regulatory" },

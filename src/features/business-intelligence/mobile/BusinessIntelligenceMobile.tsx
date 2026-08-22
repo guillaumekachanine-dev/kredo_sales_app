@@ -10,7 +10,7 @@ import type { SectorMapCatalog } from "@/features/sector-mapping/data/sector-map
 import type { CompetitiveMapWorkspace } from "@/features/competitive-map/data/competitive-map-workspace-types"
 import { cn } from "@/lib/utils"
 import { BusinessIntelligenceMobileHeader } from "./BusinessIntelligenceMobileHeader"
-import { SegmentHomeDashboardMobile } from "../home/SegmentHomeDashboardMobile"
+import { TerrainHomeDashboardMobile } from "../terrain/TerrainHomeDashboardMobile"
 import { SegmentPickerDrawerMobile } from "../catalog/SegmentPickerDrawerMobile"
 import { SegmentChangeConfirmDialog } from "../catalog/SegmentChangeConfirmDialog"
 import { BusinessIntelligenceChapterState } from "../chapters/BusinessIntelligenceChapterState"
@@ -61,9 +61,9 @@ export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competit
   const unavailable = (title: string) => <BusinessIntelligenceChapterState title={`${title} indisponible`} description="Cette ressource n’existe pas encore pour le segment actif." />
 
   return (
-    <main className="relative min-h-dvh overflow-x-hidden bg-canvas pb-[max(1rem,env(safe-area-inset-bottom))] text-body" aria-busy={isSegmentPending || undefined}>
+    <main className="relative min-h-dvh overflow-x-hidden bg-edito-canvas pb-[max(1rem,env(safe-area-inset-bottom))] text-edito-body" aria-busy={isSegmentPending || undefined}>
       <BusinessIntelligenceMobileHeader segmentName={workspace.segment.name} onChangeSegment={() => setIsPickerOpen(true)} />
-      <nav aria-label="Chapitres Business Intelligence" className="sticky top-0 z-20 flex overflow-x-auto border-y border-border bg-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <nav aria-label="Chapitres Business Intelligence" className="sticky top-0 z-20 flex overflow-x-auto border-y border-edito-border bg-edito-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {BI_CHAPTERS.map((chapter) => {
           const selected = activeChapter === chapter.id
           return (
@@ -73,8 +73,8 @@ export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competit
               aria-current={selected ? "page" : undefined}
               onClick={() => navigateChapter(chapter.id)}
               className={cn(
-                "relative min-h-12 shrink-0 px-4 text-xs font-semibold text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
-                selected && "text-heading after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-brand-brass",
+                "relative min-h-12 shrink-0 px-4 text-xs font-semibold text-edito-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+                selected && "text-edito-heading after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-edito-brass",
               )}
             >
               {chapter.mobileLabel}
@@ -83,7 +83,7 @@ export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competit
         })}
       </nav>
       <div>
-        {activeChapter === "home" ? <SegmentHomeDashboardMobile workspace={workspace} onNavigate={navigateChapter} onOpenPlaybook={() => setIsPlaybooksOpen(true)} /> : null}
+        {activeChapter === "home" ? <TerrainHomeDashboardMobile workspace={workspace} /> : null}
         {activeChapter === "sector-analysis" ? (
           workspace.coverage.study.available ? (
             <SectorAnalysisChapterMobile

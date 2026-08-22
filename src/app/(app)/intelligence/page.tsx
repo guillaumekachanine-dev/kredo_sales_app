@@ -55,7 +55,7 @@ async function BusinessIntelligencePageContent({ searchParams }: BusinessIntelli
   if (device === "mobile") {
     const viewModel = buildBusinessIntelligenceMobileModel(snapshot)
     return (
-      <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+      <div data-theme="edito-bright-cockpit" className="min-h-screen bg-edito-canvas text-edito-body">
         <BusinessIntelligenceMobile
           viewModel={viewModel}
           snapshot={snapshot}

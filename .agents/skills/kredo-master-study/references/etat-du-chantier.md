@@ -7,14 +7,20 @@ L'autorité sur l'état d'exécution est
 **`docs/MASTER-STUDY/registre/ROADMAP-CORRECTIONS.md`** — autoportante, tenue à jour, et à lire en
 entier si tu reprends le chantier à froid.
 
-Relevé de ce fichier : **14/08/2026**, base `jvzgmhvwirsbdkjpmvla` lue en direct.
+Relevé de ce fichier : **22/08/2026**, base `jvzgmhvwirsbdkjpmvla` lue en direct. Le relevé
+précédent (14/08) s'est révélé faux sur un point non trivial en huit jours — voir §5 — donc
+**ne saute pas la revérification au prétexte que ce fichier a l'air récent.**
 
 ---
 
-## 1. Plus aucun défaut de contrat ne bloque un run
+## 1. Plus aucun défaut de contrat ne bloque un run — et un run a déjà été ingéré
 
-**Au 14/08/2026, la chaîne est exécutable de bout en bout.** Les six défauts de contrat A1-A6
-sont corrigés, et le gel d'E3 est levé.
+**Depuis le 14/08/2026, la chaîne est exécutable de bout en bout.** Les six défauts de contrat
+A1-A6 sont corrigés, et le gel d'E3 est levé. **Ce n'est plus seulement théorique** : le run
+`seg-parfumerie-compositions-b2b` a franchi G0, produit E0→E5, et a été **ingéré en base le
+20/08/2026** (`--live`, ADR-0021 L3, verdict `usable_with_caveats` rendu par Guillaume). BI et le
+cockpit le lisent désormais via les modèles de lecture `SectorKnowledgeReadModel` /
+`AccountSectorPerspective` (ADR-0021 L4/L5). Détail complet en §4.
 
 **Ce qui a débloqué E3** : le générateur — un modèle, pas du code — tronque toujours son export
 JSON à la frontière du pack minimal. Ce qui a changé, c'est que la troncature n'est plus
@@ -56,8 +62,8 @@ que ce soit.
 
 | # | Sujet | Effet s'il n'est pas traité |
 |---|---|---|
-| **B4** | Couche accessibilité (A6) — **0 fait sur 109 comptes** | La carte de priorisation a un axe mort, et « le droit d'intervenir » reste inconnu |
-| **axes** | Les 5 axes « toujours renseignables » sont à **77 / 99** | **10 des 16 segments éligibles échouent à G0** sans que rien ne le signale avant le lancement. Voir §5 |
+| **B4** | Couche accessibilité (A6) — **0 fait sur les comptes de la base** | La carte de priorisation a un axe mort, et « le droit d'intervenir » reste inconnu |
+| **axes** | Les 5 axes « toujours renseignables » sont à **77 / 105** (22/08, était 77/99) | **12 des 16 segments éligibles échouent à G0**, et ce nombre a empiré depuis le 14/08 (6→4 segments qui passent) : la base a gagné des comptes plus vite que la classification. Voir §5 |
 | **E3** | Le générateur tronque toujours (comportement de modèle) | Plus bloquant : G1 le refuse. Mais **compte une régénération** dans ton budget |
 | **G2** | Red team jamais exécutée | Commande prête dans `registre/2026-08-aero-spatial-defense/07-g2-a-executer.md`. Peu d'intérêt tant que le sourçage n'est pas repris |
 | **n8n** | 12 workflows patchés non réimportés sur le VPS, dont `intel-010-refresh` | Le bloc de classification n'est jamais produit. `n8n:status` **ne voit pas** cette dérive : il compare des compteurs de nœuds, or seul du code interne a changé |
@@ -66,54 +72,79 @@ que ce soit.
 
 ---
 
-## 4. Le run existant, et ce qu'il faut en faire
+## 4. Les runs existants, et ce qu'il faut en faire de chacun
 
-`registre/2026-08-aero-spatial-defense/` est le seul run produit. Il est **rejeté**, et il ne se
-rattrape pas :
+**Deux runs existent désormais**, et ils ne se lisent pas de la même façon.
 
-- Il a été produit **en mode conversion**, à partir de deux études faites hors de KREDO, sans
-  recherche web.
+### `registre/2026-08-aero-spatial-defense/` — rejeté, banc d'essai des contrats
+
+- Produit **en mode conversion**, à partir de deux études faites hors de KREDO, sans recherche
+  web.
 - **`03-sources.json` et `06-chaine.json` n'existent pas** — E3 et E6 n'ont jamais été exécutés.
-- Sur ses FAIL G1 restants, la grande majorité sont des **manques de matière** (sources vides,
-  journaux de requêtes absents, top 3, couche ESN), pas des défauts de contrat. Aucune correction
-  de code ne les lèvera : il faudrait avoir cherché.
+- Sur ses FAIL G1 restants, la grande majorité sont des **manques de matière**, pas des défauts de
+  contrat. Aucune correction de code ne les lèvera : il faudrait avoir cherché.
+- **Il garde une valeur** : rejoue G1 dessus après toute modification d'un schéma ou du script —
+  un gate qui se met à passer sur ce run est un gate qui s'est relâché.
 
-**Il garde une valeur : c'est le banc d'essai des contrats.** Rejoue G1 dessus après toute
-modification d'un schéma ou du script — un gate qui se met à passer sur ce run est un gate qui
-s'est relâché.
+### `registre/2026-08-parfumerie-compositions-b2b/` — ingéré, première preuve que la chaîne rend
 
-La première étude complète sera **un run neuf, sur un autre segment.**
+- Segment choisi sur mesure en base le 14/08 : 7 comptes rattachés (le mieux doté des 38 à
+  l'époque), 5 axes obligatoires à 100 %, macro déjà porteur de 18 items de connaissance.
+- E0→E5 produits avec recherche réelle (ChatGPT Deep Research pour E4). G1 rejoué le 20/08 :
+  **38 PASS / 5 FAIL**. Les 5 FAIL restants (journal E3 absent, `compteurs.requetes=0`, échéance
+  IFRA jugée « source non officielle » par l'allowlist `.gouv.*`, revalidation non datée du jour,
+  3 items réglementaires écrits au macro) ont été **arbitrés par Guillaume**, pas corrigés — G3
+  a tranché `usable_with_caveats` en connaissance de ces trous, pas en leur absence.
+- **Ingéré `--live` le 20/08/2026** : `run_id 522cfe06-…`, `document_id c8e7aa8b-…`. 6 maillons
+  de chaîne de valeur amorcés par l'import E4, 8 `competitive_map_entries` laissées orphelines
+  (arbitrage différé), verrous posés sur `market_size_eur_bn`/`market_growth_pct` (`not_published`).
+- **G2 (red team) n'a jamais tourné sur ce run.** Le verdict `usable_with_caveats` ne couvre donc
+  que G0/G1/G3 — pas les six questions de changement de contexte.
+- Une vérification indépendante post-ingestion a trouvé un vrai bug (RPC ne promotant jamais
+  `sector_intelligence.status` vers `active`), corrigé par un `UPDATE` ponctuel — voir
+  `chaine-e0-e7.md` §E7 pour le geste à reproduire après tout futur `--live`.
+
+**Conséquence pour toi** : la première étude *neuve* (recherche réelle, pas conversion) sur un
+segment encore vide sera un troisième run. Les deux existants ne se répètent pas — l'un prouve ce
+qui casse, l'autre prouve ce qui marche.
 
 ---
 
 ## 5. Choisir le prochain segment — qui franchit G0 aujourd'hui
 
-**Ne présume pas que G0 passera.** Les 5 axes dits « toujours renseignables » ne le sont qu'à
-**77 comptes sur 99** : 22 comptes n'ont ni `regime_achat`, ni `modele_eco`, ni `tier` complets.
-Sur les **16 segments** qui atteignent le seuil de 3 comptes, **6 seulement** franchissent la
-condition d'axes de G0.
+**Ne présume pas que G0 passera, et ne présume pas non plus qu'un segment qui passait continue de
+passer.** Relevé du 14/08 : 6 segments sur 16 franchissaient la condition d'axes. **Revérifié le
+22/08 : ils ne sont plus que 4.** Ce n'est pas une correction du relevé précédent, c'est un vrai
+mouvement en huit jours : de nouveaux comptes ont été rattachés à des segments existants sans être
+classifiés sur les 3 axes libres (`regime_achat`, `modele_eco`, `tier`), ce qui a fait **reculer**
+deux segments qui passaient :
 
-Relevé du 14/08/2026 — les six qui passent :
+- **`seg-parfumerie-compositions-b2b` lui-même** — le segment déjà étudié et ingéré — est passé de
+  7 à **10 comptes rattachés**, dont seulement **7** ont leurs axes complets. Le run du 14/08
+  reste valide sur les comptes qu'il a traités ; ce sont les 3 comptes ajoutés depuis qui manquent
+  de classification, pas l'étude qui s'est dégradée.
+- **`seg-aero-spatial-defense`** est passé de 3 à **6 comptes**, dont seulement 3 classifiés.
 
-| Segment | Comptes | Échéances futures | Fiche |
+Relevé du 22/08/2026 — les quatre segments qui franchissent la condition d'axes de G0 aujourd'hui,
+**aucun n'a encore de fiche** :
+
+| Segment | Comptes | Axes complets | Échéances futures |
 |---|:-:|:-:|:-:|
-| `seg-parfumerie-compositions-b2b` | **7** | 1 | ✗ |
-| `seg-btp-constructeurs-promoteurs` | 3 | 3 | ✗ |
-| `seg-btp-immobilier` | 3 | 3 | ✗ |
-| `seg-btp-materiaux` | 3 | 3 | ✗ |
-| `seg-parfumerie-marques-produits-finis` | 3 | 1 | ✗ |
-| `seg-aero-spatial-defense` | 3 | 2 | ✗ |
+| `seg-btp-materiaux` | 3 | 3/3 | 3 |
+| `seg-btp-constructeurs-promoteurs` | 3 | 3/3 | 3 |
+| `seg-btp-immobilier` | 3 | 3/3 | 3 |
+| `seg-parfumerie-marques-produits-finis` | 3 | 3/3 | 1 |
 
-Les dix autres échouent sur les axes et sont récupérables : il suffit de faire tourner INTEL-010
-puis `apply_account_classification()` sur les comptes incomplets. Les plus proches du seuil sont
-`seg-public-esr` (6/7), `seg-finance-assurance-mutuelles-courtage` (4/5),
-`seg-numerique-editeurs-verticaux` (4/5) et `seg-sante-soins-diagnostic` (3/4) — **un seul compte
-à classifier** dans chaque cas.
+Les trois segments BTP forment un triplet cohérent avec échéance datée sur chacun — et un
+livrable BTP hors-corpus existe déjà (`sector_intelligence/livrables_etudes/2026-08-btp-
+travaux-publics/`, couche ESN vide sur 14/14 comptes) qui pourrait servir de matière de départ
+pour un V0 sous le corpus complet, comme le run parfumerie l'a fait pour le Spatial. Ce sont des
+**candidats observés en base, pas une recommandation** — le choix du segment reste l'arrêt n°1
+(SKILL.md), sauf si Guillaume l'a déjà nommé.
 
-**Aucun des six n'a de fiche.** Le seul segment qui en porte une est
-`nutraceutique-sante-naturelle`, et il n'a que **2 comptes** : il est sous le seuil de G0. Autrement
-dit, le 1/38 de la métrique du chantier ne correspond à aucun segment étudiable — la connaissance
-existante et les comptes ne se recouvrent nulle part.
+Douze autres segments échouent sur les axes et sont récupérables : faire tourner INTEL-010 puis
+`apply_account_classification()` sur les comptes incomplets. Rejoue la requête ci-dessous pour
+voir lesquels sont les plus proches du seuil — la liste bouge trop vite pour la figer ici.
 
 ```sql
 -- À rejouer : quels segments franchissent la condition d'axes de G0 ?
@@ -145,33 +176,40 @@ Trois critères, dans cet ordre :
    (télécoms, 22 %), quasi nul en 30 (aéro-spatial : 22 offres SI dans toute la France). Table dans
    `src/features/hiring-intensity/README.md`.
 
-**Le candidat que ces trois critères désignent est `seg-parfumerie-compositions-b2b`** : le seul à
-dépasser largement le seuil, G0-propre, et déjà retenu par `09-ETAPE-E6…` §5 comme cible après le
-pilote BTP (« meilleur corpus, un client, chaîne courte compositions → emballage → marques »). Il
-ouvre en plus la voie à E6, qui exige des comptes sur trois maillons.
+**`seg-parfumerie-compositions-b2b` a déjà été traité** (§4) — ne le reproduis pas comme s'il
+était encore ouvert. Sur les critères actuels (§ci-dessus), les trois segments BTP sont les seuls
+qui passent la condition d'axes ET portent une échéance future ; vérifie le gisement A7 (critère
+3) avant de t'engager — il n'a pas été mesuré sur eux depuis le 14/08.
 
 **N'enchaîne pas sur le Spatial-Défense.** Sa matière est une conversion, et repartir de là revient
 à hériter de ses trous en croyant les corriger.
 
 ---
 
-## 6. Les métriques du chantier — au 14/08/2026, lues en base
+## 6. Les métriques du chantier — au 22/08/2026, lues en base (sauf note contraire)
 
-| Métrique | Valeur | Cible |
-|---|---|---|
-| Comptes réels (hors `mapped`) | 99 (+ 10 `mapped`) | — |
-| Couverture identité (SIREN, comptes réels) | **28 / 99** | 99/99 ou motif d'échec explicite |
-| **Segments porteurs de connaissance propre** | **1 / 38** | croissant |
-| Fiches avec ≥ 1 échéance future | 12 | 100 % des étudiées |
-| Faits d'accessibilité (A6) | **0** | 100 % des comptes prioritaires |
-| Faits d'intensité SI (A7) | 9 | comptes prioritaires |
-| Segments à ≥ 3 comptes franchissant la condition d'axes de G0 | **6 / 16** | 16/16 |
-| Entrées de cartographie concurrentielle | 15 | — |
+| Métrique | Valeur | 14/08 | Cible |
+|---|---|---|---|
+| Comptes réels (hors `mapped`) | **105** (+ 7 `mapped`) | 99 (+10) | — |
+| Couverture identité (SIREN, comptes réels) | **30 / 105** | 28 / 99 | 105/105 ou motif d'échec explicite |
+| **Segments porteurs de connaissance propre** | **2 / 38** | 1 / 38 | croissant |
+| Fiches avec ≥ 1 échéance future | 12 *(non revérifié le 22/08)* | 12 | 100 % des étudiées |
+| Faits d'accessibilité (A6) | **0** | 0 | 100 % des comptes prioritaires |
+| Faits d'intensité SI (A7) | 9 *(non revérifié le 22/08)* | 9 | comptes prioritaires |
+| Segments à ≥ 3 comptes franchissant la condition d'axes de G0 | **4 / 16** | 6 / 16 | 16/16 |
+| Runs produits sous le corpus complet, ingérés | **1** (`seg-parfumerie-…`, 20/08) | 0 | croissant |
+| Entrées de cartographie concurrentielle | **23** | 15 | — |
 
-**La troisième est la métrique du chantier.** Elle mesure la résorption de la fracture
-macro/segment : 15 macros portent la connaissance, 38 segments portent les comptes. Tant qu'elle ne
-monte pas, chaque étude produite est **invisible à la maille où les comptes la lisent** — c'est
-l'axiome A4, et c'est le seul chiffre qui dise si le dispositif sert à quelque chose.
+**La troisième colonne n'est pas de l'historique décoratif : elle montre qu'un chiffre à la baisse
+est possible** (`axes` : 6→4) autant qu'un chiffre à la hausse (`segments porteurs` : 1→2,
+`comptes réels` : 99→105). Rejoue toujours la requête plutôt que de citer l'une ou l'autre colonne.
+
+**« Segments porteurs de connaissance propre » reste la métrique du chantier.** Elle mesure la
+résorption de la fracture macro/segment : 15 macros portent la connaissance de base, 38 segments
+portent les comptes. Tant qu'elle ne monte pas, chaque étude produite est **invisible à la maille
+où les comptes la lisent** — c'est l'axiome A4, et c'est le seul chiffre qui dise si le dispositif
+sert à quelque chose. Elle vient de bouger pour la première fois (1→2) grâce à l'ingestion du
+20/08 — c'est la preuve que la chaîne, quand elle va au bout, fait effectivement monter ce chiffre.
 
 ```sql
 -- La métrique du chantier, à rejouer après chaque ingestion

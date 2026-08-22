@@ -235,6 +235,17 @@ export function getDocumentIcon(documentType: string, className = "size-4 shrink
           <rect x="15.25" y="16.5" width="2.5" height="3.5" rx="1" fill="currentColor" stroke="none" />
         </svg>
       )
+    case "mission_report":
+      return (
+        <svg {...commonProps}>
+          <line x1="2" y1="12" x2="5" y2="12" />
+          <line x1="19" y1="12" x2="22" y2="12" />
+          <line x1="12" y1="2" x2="12" y2="5" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+          <circle cx="12" cy="12" r="7" />
+          <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
+        </svg>
+      )
     case "knowledge_list":
     case "list":
       return (

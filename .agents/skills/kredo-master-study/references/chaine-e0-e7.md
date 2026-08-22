@@ -183,6 +183,15 @@ plafonnée. `AUCUN` → **arrêt**, on rend la liste des recherches à effectuer
 produit une étude de mémoire : des noms vrais, des chiffres approximatifs, des contrats plausibles
 mais inventés. **C'est le mode d'échec le plus dangereux, parce que le résultat a l'air excellent.**
 
+**Source indicative pour la taille/croissance de marché** : Banque de France (Observatoire des
+Entreprises, fascicules sectoriels par NAF) — ajoutée au prompt le 22/08/2026, scopée à cette
+recherche LLM, jamais au régime déterministe E2 (axiome A1).
+
+⚠️ **`budgets_18_36_mois` est retiré du contrat E4** (schéma + prompt, arbitrage Guillaume
+ADR-0021 : doute sur la capacité réelle d'une étude à établir des budgets à 18-36 mois). Le
+document `07-ETAPE-E4-ETUDE-SECTORIELLE.md` n'a pas suivi et montre encore le champ dans son
+exemple JSON — c'est le document qui est en retard, le schéma gagne (`schemas/README.md`).
+
 Trois vocabulaires de practice coexistent et **un seul slug leur est commun** (`cybersecurity`) :
 `kredo_practice` (tables `sector_*`) · **`offer_practices.slug` (base, la seule qui joint)** ·
 `PracticeSlug` (front, affichage). Le pont est dans `src/lib/config/practices.ts`
@@ -241,6 +250,10 @@ en n°2 de son top 3.
 périmètre déclaré, pas de trigger daté, ou moins de 2 sources indépendantes dont une T1/T2 → le
 compte va en **réserve à qualifier**, jamais dans le top 3.
 
+**Sources indicatives pour le CA/croissance d'un compte** (ajoutées au prompt le 22/08/2026) :
+Pappers (CA historique + croissance déjà calculés, PDF source lié) ; pour un compte coté, ajouter
+AMF/Info-Financière.
+
 > **Le contrat normatif de ce livrable est le code**, pas le schéma :
 > `src/features/competitive-map/domain/competitive-map-output.ts`. En cas de divergence, le module
 > gagne et le schéma est corrigé. Il tolère délibérément des écarts réels observés (catégories à
@@ -253,6 +266,13 @@ compte va en **réserve à qualifier**, jamais dans le top 3.
 **Étape conditionnelle.** Trois conditions cumulatives : une étude concurrentielle (E5) existe,
 KREDO a des comptes sur **au moins trois maillons**, au moins une couche transverse porte une
 échéance datée. Ailleurs, elle produit un poster.
+
+**Elle ne part jamais d'une chaîne vide.** L'ingestion E4 (`public.ingest_master_study_e4`) écrit
+déjà un nœud par maillon annoncé au §2.3 de l'étude (`rang=1`, `capture_valeur` NULL) — c'est
+l'*amorce*. E6 *approfondit* : positionne les acteurs, trace les dépendances, complète la
+captation de valeur par `UPDATE` (ADR-0021 §9.1/MS-19). Vérifie ce qui existe déjà dans
+`value_chain_nodes` avant de proposer un maillon — le recréer romprait l'index unique
+`(sector_id, maillon, rang)`.
 
 | | |
 |---|---|
@@ -282,12 +302,43 @@ Ordre d'application, non négociable :
 1. Migrations éventuelles (valeurs d'enum, nouveaux fact_type)
 2. E3 → intelligence_sources + liens          (idempotent, sur src_id)
 3. E2 → account_facts + sector_regulatory_items
-4. E4 → sector_intelligence + playbook + items (migration idempotente)
+4. E4 → sector_intelligence + playbook + items + amorce value_chain_* (RPC transactionnelle)
 5. E5 → CompetitiveMapImportWizard             (bac d'arbitrage HUMAIN, jamais automatique)
-6. E6 → value_chain_* + build.py
+6. E6 → value_chain_* (approfondissement) + build.py
 7. Document → intelligence_documents, type master_study, primary_entity_type='sector'
 8. Recette SQL, puis recette écran
 ```
+
+**L'outillage de l'étape 4 existe et a déjà servi une fois** (ADR-0021, run
+`seg-parfumerie-compositions-b2b`, 20/08/2026) : `scripts/ingest-master-study.mts` appelle la RPC
+`public.ingest_master_study_e4`, en transaction `ROLLBACK` par défaut, `--live` seulement sur
+accord explicite. Deux pièges réels trouvés en vérification indépendante, à ne pas reproduire si
+tu écris une RPC du même genre :
+- **Le schéma compte.** La première version était spécifiée en `private.*` — jamais exposée par
+  PostgREST, un `.rpc()` aurait échoué à coup sûr. Toute RPC d'ingestion appelée depuis un script
+  (donc potentiellement `.rpc()`) va en `public`, jamais en `private` (`private.*` est réservé aux
+  helpers appelés depuis SQL, jamais depuis le client).
+- **`workspace_id` ne se dérive pas de `current_workspace_id()`/`auth.uid()` sous clé
+  service-role** — ces deux fonctions résolvent `NULL` hors contexte de session, et 4 des 7 tables
+  cibles portent `workspace_id NOT NULL` sans défaut. Dérive-le explicitement de la ligne
+  `sector_intelligence` ciblée, et passe-le à chaque `INSERT`.
+
+**Après tout `--live`, rejoue `supabase/tests/069_sector_knowledge_resolution.assertions.sql`
+avant de considérer l'ingestion terminée.** Sur la seule ingestion réelle à ce jour, 17 des 18
+assertions passaient — la 18ᵉ a révélé que la RPC ne promeut jamais `sector_intelligence.status`
+vers `active`, ce qui aurait rendu le segment invisible pour Prospection · Fenêtres
+(`get-playbook-sectors.ts` filtre `status='active'`). Un G1 vert ne teste pas cet invariant ; ces
+assertions sont le seul filet qui le fait.
+
+**Ce que l'application lit depuis l'étape 7, concrètement** (ADR-0021 L4/L5, livré 20/08/2026) :
+BI et le cockpit ne relisent pas les tables sectorielles brutes, ils passent par
+`SectorKnowledgeReadModel` (connaissance sectorielle résolue segment→macro) et
+`AccountSectorPerspective` (perspective secteur d'un compte). La lecture rapide d'une étude
+(anciennement envisagée comme une 5ᵉ surface) est un **composant transverse**,
+`MasterStudyReader`, alimenté par le même read model que BI — pas une projection persistée à
+part. Si tu ajoutes un nouveau consommateur de la connaissance sectorielle, passe par ces read
+models plutôt que de relire `sector_intelligence` sans filtre — c'est ce qui, avant leur livraison,
+faisait dire à BI qu'elle « ne voyait pas » la Master Study alors que la donnée était bien en base.
 
 Règles d'écriture qui ont chacune coûté quelque chose :
 
