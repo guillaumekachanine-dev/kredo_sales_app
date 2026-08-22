@@ -22,7 +22,7 @@ export function AccountSignalMobileActions({
 
   return (
     <>
-      <div className="space-y-2 border-t border-border pt-5">
+      <div className="space-y-3 border-t border-border pt-5">
         {actions.feedback ? (
           <AlertBlock
             variant={actions.feedback.tone === "error" ? "danger" : actions.feedback.tone}
@@ -30,42 +30,34 @@ export function AccountSignalMobileActions({
             className="mb-3"
           />
         ) : null}
-        <Button
-          variant="secondary"
-          size="md"
-          fullWidth
-          onClick={() => void actions.verify()}
-          loading={actions.isVerifying}
-          loadingLabel="Vérification…"
-          leftIcon={<IntelligenceIcon name="search_news" preferVector />}
-          className="min-h-11 justify-center"
-        >
-          Vérifier
-        </Button>
-        <ContextualCommunicationButton
-          intent="signal_outreach"
-          origin="veille_signal"
-          companyId={companyId}
-          companyName={companyName}
-          signalId={signalId}
-          refs={{ signalRef: signalId }}
-          label="Générer un mail/pitch"
-          variant="primary"
-          size="md"
-          fullWidth
-          stopPropagation={false}
-          className="min-h-11 justify-center"
-        />
-        <Button
-          variant="secondary"
-          size="md"
-          fullWidth
-          onClick={() => actions.setPromotionOpen(true)}
-          leftIcon={<IntelligenceIcon name="prioritize" preferVector />}
-          className="min-h-11 justify-center"
-        >
-          Promouvoir
-        </Button>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <ContextualCommunicationButton
+            intent="signal_outreach"
+            origin="veille_signal"
+            companyId={companyId}
+            companyName={companyName}
+            signalId={signalId}
+            refs={{ signalRef: signalId }}
+            label="Générer un mail/pitch"
+            variant="primary"
+            size="md"
+            fullWidth
+            stopPropagation={false}
+            className="min-h-11 justify-center px-2 text-xs"
+          />
+          <Button
+            variant="secondary"
+            size="md"
+            fullWidth
+            onClick={() => actions.setPromotionOpen(true)}
+            leftIcon={<IntelligenceIcon name="prioritize" preferVector />}
+            className="min-h-11 justify-center text-xs"
+          >
+            Envoyer vers
+          </Button>
+        </div>
+
         <Button
           variant="ghost"
           size="md"
@@ -73,7 +65,7 @@ export function AccountSignalMobileActions({
           onClick={() => void actions.dismiss()}
           loading={actions.isDismissing}
           loadingLabel="Signal ignoré…"
-          className="min-h-11 justify-center text-muted hover:bg-danger/[0.05] hover:text-danger"
+          className="min-h-11 justify-center text-danger font-semibold hover:bg-danger/[0.08] hover:text-danger"
         >
           Ignorer le signal
         </Button>

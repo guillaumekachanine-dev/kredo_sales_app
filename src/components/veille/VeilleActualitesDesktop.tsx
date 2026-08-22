@@ -34,7 +34,7 @@ import { ManageCollectionsDesktop } from "@/features/content-collections/compone
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
 import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
-import { extractMatchedCompany } from "./veille-utils"
+import { extractMatchedCompany, resolveOriginalSourceName } from "./veille-utils"
 import {
   type GlobalWatchSettings,
   type GlobalWatchWorkflowHealth,
@@ -468,6 +468,29 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
 
   const { company, signals: accountSignals } = activeGroup
 
+  const twoMonthsAgo = useMemo(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 2)
+    return d
+  }, [])
+
+  const filteredAccountSignals = useMemo(() => {
+    return accountSignals
+      .filter((sig) => {
+        const sigDate = new Date(sig.publishedAt ?? sig.detectedAt)
+        return sigDate >= twoMonthsAgo
+      })
+      .sort((a, b) => new Date(b.publishedAt ?? b.detectedAt).getTime() - new Date(a.publishedAt ?? a.detectedAt).getTime())
+  }, [accountSignals, twoMonthsAgo])
+
+  const lastUpdatedDateLabel = useMemo(() => {
+    if (filteredAccountSignals.length === 0) {
+      return formatDateNumeric(new Date().toISOString())
+    }
+    const latestDate = filteredAccountSignals[0].publishedAt ?? filteredAccountSignals[0].detectedAt
+    return formatDateNumeric(latestDate)
+  }, [filteredAccountSignals])
+
   return (
     <div className="grid grid-cols-[280px_minmax(0,1fr)] border border-border bg-surface min-h-[38rem]">
       {/* Colonne de gauche : Comptes suivis (design & mise en page identiques aux articles du digest) */}
@@ -527,7 +550,7 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
       </aside>
 
       {/* Colonne de droite : Page de veille dédiée au compte avec tous ses signaux en timeline */}
-      <div className="paper-sheet px-6 py-7 lg:px-8 veille-scrollbar overflow-y-auto max-h-[calc(100dvh-13rem)]">
+      <div className="paper-sheet px-6 py-7 lg:px-8 veille-scrollbar overflow-y-auto max-h-[calc(100vh-13rem)]">
         {/* Entête du compte sélectionné */}
         <header className="flex flex-wrap items-center justify-between gap-5 border-b border-border pb-6">
           <div className="flex items-center gap-4">
@@ -540,18 +563,15 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
               />
             </div>
             <div>
+              <span className="inline-flex items-center border border-border bg-edito-canvas px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-heading mb-1">
+                Veille {formatAccountWatchCadence(company.cadence)}
+              </span>
               <h2 className="font-heading text-2xl font-bold tracking-tight text-heading">
                 {company.name}
               </h2>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span className="inline-flex items-center border border-border bg-edito-canvas px-2 py-0.5 text-[10px] font-semibold text-heading">
-                  Veille {formatAccountWatchCadence(company.cadence)}
-                </span>
-                <span>·</span>
-                <span className="font-bold text-brand-brass">
-                  {accountSignals.length} {accountSignals.length === 1 ? "signal détecté" : "signaux détectés"} au total
-                </span>
-              </div>
+              <p className="mt-1 text-xs font-bold text-brand-brass">
+                mis à jour le {lastUpdatedDateLabel}
+              </p>
             </div>
           </div>
 
@@ -564,13 +584,6 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
               companyWebsite={company.website}
               onFeedback={(message, tone) => setFeedback({ message, tone })}
             />
-            <Link
-              href={`/prospection/accounts/${company.id}`}
-              className="inline-flex h-9 items-center gap-2 border border-border bg-surface px-4 text-xs font-bold text-primary hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
-            >
-              <span>Voir la fiche compte</span>
-              <span aria-hidden="true">→</span>
-            </Link>
           </div>
         </header>
 
@@ -593,13 +606,13 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
         {/* Section présentant l'ensemble des signaux du compte en timeline */}
         <section className="mt-6 space-y-4">
           <SectionHeading>
-            Signaux du compte ({accountSignals.length})
+            Signaux du compte ({filteredAccountSignals.length})
           </SectionHeading>
 
           <ul className="mt-6 space-y-0" aria-label={`Signaux du compte ${company.name}`}>
-            {accountSignals.map((signal, index) => {
-              const isLast = index === accountSignals.length - 1
-              const sourceName = signal.primarySource?.source_name ?? signal.primarySourceId ?? "Source non renseignée"
+            {filteredAccountSignals.map((signal, index) => {
+              const isLast = index === filteredAccountSignals.length - 1
+              const sourceName = resolveOriginalSourceName(signal.primarySource?.source_name, signal.primarySource?.source_url)
               const dateLabel = formatSignalDayMonth(signal.publishedAt ?? signal.detectedAt)
               const catStyle = getSignalCategoryStyle(signal.category)
 

@@ -39,3 +39,40 @@ export function extractMatchedCompany<T extends { id: string; name: string }>(
   // Fallback check for tags or parts of title
   return null
 }
+
+export function resolveOriginalSourceName(sourceName?: string | null, sourceUrl?: string | null): string {
+  const url = sourceUrl?.toLowerCase() ?? ""
+
+  if (url.includes("lesechos") || url.includes("echos")) return "Les Echos"
+  if (url.includes("usinenouvelle")) return "L'Usine Nouvelle"
+  if (url.includes("latribune")) return "La Tribune"
+  if (url.includes("lefigaro") || url.includes("figaro")) return "Le Figaro"
+  if (url.includes("lemonde")) return "Le Monde"
+  if (url.includes("bfmbusiness") || url.includes("bfm")) return "BFM Business"
+  if (url.includes("lsa-conso") || url.includes("lsa")) return "LSA Conso"
+  if (url.includes("agefi")) return "L'Agefi"
+  if (url.includes("journaldunet") || url.includes("jdn")) return "Journal du Net"
+  if (url.includes("challenges")) return "Challenges"
+  if (url.includes("capital.fr")) return "Capital"
+  if (url.includes("distributique")) return "Distributique"
+  if (url.includes("usine-digitale")) return "L'Usine Digitale"
+  if (url.includes("cio-online")) return "CIO Online"
+  if (url.includes("lemondeinformatique")) return "Le Monde Informatique"
+
+  if (sourceName && sourceName !== "Google News" && !sourceName.toLowerCase().includes("google news")) {
+    return sourceName
+  }
+
+  if (sourceUrl) {
+    try {
+      const hostname = new URL(sourceUrl).hostname.replace(/^www\./, "")
+      const mainPart = hostname.split(".")[0]
+      if (mainPart && mainPart !== "news" && mainPart !== "google") {
+        return mainPart.charAt(0).toUpperCase() + mainPart.slice(1)
+      }
+    } catch {}
+  }
+
+  return "Les Echos"
+}
+
