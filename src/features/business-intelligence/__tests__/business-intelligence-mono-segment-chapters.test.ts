@@ -4,7 +4,131 @@ import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import type { SectorKnowledgeReadModel } from "@/features/master-study/data/get-sector-knowledge-read-model"
 import type { SectorCorpusMetadata } from "../data/get-sector-corpus-metadata"
-import type { SegmentNewsLibrary } from "../data/business-intelligence-workspace-types"
+import type { SegmentNewsLibrary, SegmentValueChainReadModel } from "../data/business-intelligence-workspace-types"
+import type { CompetitiveMapSnapshot } from "@/features/competitive-map/data/competitive-map-workspace-types"
+
+const mockCompetitiveMap: CompetitiveMapSnapshot = {
+  segmentId: "seg-1",
+  segmentLabel: "Parfumerie B2B",
+  snapshotDate: "2026-08-15",
+  actors: [
+    {
+      id: "act-1",
+      companyId: "comp-1",
+      name: "Robertet",
+      category: "leader",
+      categoryLabel: "Leader",
+      confidence: "haute",
+      businessFootprintScore: 4.5,
+      digitalMaturityScore: 3,
+      appetenceScore: 28,
+      accessibilityScore: 4,
+      appetenceProvisoire: true,
+      isPositioned: true,
+      isBenchmarkAccount: true,
+      revenueEstimateMeur: 720,
+      revenueExercice: 2025,
+      revenuePerimetre: "Consolidé",
+      headcountFrance: "1200",
+      positioning: "Leader des ingrédients naturels",
+      forces: "Sourcing mondial",
+      vulnerability: "Dépendance récoltes",
+      angleEntree: "Digitalisation LIMS & traçabilité RSE",
+      details: {
+        propositionValeur: "Bases naturelles haute pureté",
+        differenciateurs: ["Extractions CO2 supercritique"],
+        dependances: [],
+        chaineValeur: [],
+        chantiersTechnologiques: [],
+        triggers: ["Nouveau laboratoire R&D"],
+        lignesRouges: ["Ne pas proposer de régie simple"],
+        trous: [],
+        metierChaineValeur: null,
+        maillon: null,
+        contratsMajeurs: [],
+        grilles: [],
+        coucheEsn: ["Auditer la maturité IA"],
+        traductionCommerciale: ["TJM cible 950€"],
+        iaAnnonceVsDeploye: null,
+      },
+    },
+    {
+      id: "act-2",
+      companyId: "comp-2",
+      name: "Mane",
+      category: "challenger",
+      categoryLabel: "Challenger",
+      confidence: "moyenne",
+      businessFootprintScore: 3,
+      digitalMaturityScore: 4,
+      appetenceScore: 24,
+      accessibilityScore: null,
+      appetenceProvisoire: false,
+      isPositioned: false,
+      isBenchmarkAccount: false,
+      revenueEstimateMeur: null,
+      revenueExercice: null,
+      revenuePerimetre: null,
+      headcountFrance: null,
+      positioning: null,
+      forces: null,
+      vulnerability: null,
+      angleEntree: "IA générative pour formulation",
+      details: {
+        propositionValeur: null,
+        differenciateurs: [],
+        dependances: [],
+        chaineValeur: [],
+        chantiersTechnologiques: [],
+        triggers: [],
+        lignesRouges: [],
+        trous: [],
+        metierChaineValeur: null,
+        maillon: null,
+        contratsMajeurs: [],
+        grilles: [],
+        coucheEsn: [],
+        traductionCommerciale: [],
+        iaAnnonceVsDeploye: null,
+      },
+    },
+  ],
+}
+
+const mockValueChain: SegmentValueChainReadModel = {
+  sourceSectorId: "seg-1",
+  level: "segment",
+  updatedAt: "2026-08-15T12:00:00Z",
+  catalog: {
+    state: "ready",
+    sectors: [{ id: "seg-1", slug: "parfumerie-b2b", name: "Parfumerie B2B" }],
+    accounts: [],
+    generatedAt: "2026-08-15T12:00:00Z",
+    maps: [
+      {
+        sector: { id: "seg-1", slug: "parfumerie-b2b", name: "Parfumerie B2B", defaultActivityId: "node-1" },
+        stages: [
+          { id: "seg-1:stage:1", label: "Amont & ressources", order: 1 },
+          { id: "seg-1:stage:2", label: "Transformation", order: 2 },
+        ],
+        activities: [
+          { id: "node-1", stageId: "seg-1:stage:1", label: "Sourcing et qualification des matières", order: 1 },
+          { id: "node-2", stageId: "seg-1:stage:2", label: "Transformation et préparation des ingrédients", order: 1 },
+        ],
+        entities: [],
+        placements: [],
+        relationships: [],
+        ecosystemLayers: [],
+        metrics: [],
+        evidence: [
+          { id: "node:node-1", label: "Analyse", excerpt: "Sélection des matières de haute pureté" },
+          { id: "node:node-2", label: "Analyse", excerpt: "Extraction et préparation" },
+        ],
+      },
+    ],
+  },
+}
+
 import { SectorAnalysisChapterDesktop } from "../chapters/SectorAnalysisChapterDesktop"
 import { SectorAnalysisChapterMobile } from "../chapters/SectorAnalysisChapterMobile"
 import { RegulatoryCalendarChapterDesktop } from "../chapters/RegulatoryCalendarChapterDesktop"
@@ -30,7 +154,36 @@ const mockKnowledge: SectorKnowledgeReadModel = {
   marketSizeEurBnLevel: "estimated",
   marketGrowthPct: 5.2,
   marketGrowthPctLevel: "macro",
-  playbook: null,
+  playbook: {
+    economic_models: [
+      {
+        nom: "Marques de parfumerie et cosmétique",
+        type: "bloc_client",
+        qui_finance: "Budgets de lancement produit",
+        cycle_budgetaire: "Cadencé par les briefs annuels",
+        src_ids: [7, 8, 22]
+      },
+      {
+        nom: "Composition sur brief et co-développement",
+        type: "modele_economique",
+        description: "Création d'une formule répondant à un brief olfactif",
+        qui_signe: "Direction achats / category management",
+        quand_le_budget_est_engage: "Au lancement du brief",
+        implication_achat_prestation: "Prestations SI autour du time-to-brief",
+        donc_commercialement: "Partir du cycle brief et mesurer les ressaisies",
+        src_ids: [7, 22, 23]
+      }
+    ],
+    tech_fronts: [
+      {
+        nom: "Référentiel réglementaire et formula impact",
+        etat: "Transition active : le besoin n'est plus seulement de stocker des formules",
+        zone_de_transition: true,
+        src_ids: [5, 6, 13],
+        donc_commercialement: "DONC, commercialement : IFRA 52 doit ouvrir un chantier"
+      }
+    ]
+  },
   playbookLevel: "segment",
   practicesFit: null,
   practicesFitLevel: "segment",
@@ -174,6 +327,33 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).toContain("Freq. 8")
       expect(markup).toContain("IFRA Annual Report 2025")
       expect(markup).toContain("Snapshot du") // CorpusConfidenceBanner
+      expect(markup).toContain("Blocs clients &amp; cycles d’achat")
+      expect(markup).toContain("Marques de parfumerie et cosmétique")
+      expect(markup).toContain("Modèles économiques")
+      expect(markup).toContain("Composition sur brief et co-développement")
+      expect(markup).toContain("Fronts technologiques")
+      expect(markup).toContain("Référentiel réglementaire et formula impact")
+      expect(markup).toContain("Zone de transition")
+      expect(markup).toContain("Donc, commercialement")
+    })
+
+    it("rend la section Chaîne de valeur synthétique du Lot 6 sur Desktop lorsqu'un valueChain est fourni", () => {
+      const markup = renderToStaticMarkup(
+        createElement(SectorAnalysisChapterDesktop, {
+          knowledge: mockKnowledge,
+          segmentName: "Parfumerie B2B",
+          macroName: "Chimie & Cosmétique",
+          valueChain: mockValueChain,
+          onOpenValueChain: () => {},
+        }),
+      )
+
+      expect(markup).toContain("Chaîne de valeur — vue synthétique")
+      expect(markup).toContain("Sourcing et qualification des matières")
+      expect(markup).toContain("Transformation et préparation des ingrédients")
+      expect(markup).toContain("Amont &amp; ressources")
+      expect(markup).toContain("Sélection des matières de haute pureté")
+      expect(markup).toContain("Explorer la chaîne de valeur")
     })
 
     it("rend le composant Mobile dédié avec accordéons, touch targets et métriques", () => {
@@ -197,6 +377,30 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).toContain("Points de douleur (1)")
       expect(markup).toContain("Événements &amp; Jalons (1)")
       expect(markup).toContain("Sources méthodologiques")
+      expect(markup).toContain("Blocs clients (1)")
+      expect(markup).toContain("Marques de parfumerie et cosmétique")
+      expect(markup).toContain("Modèles économiques (1)")
+      expect(markup).toContain("Composition sur brief et co-développement")
+      expect(markup).toContain("Fronts technologiques (1)")
+      expect(markup).toContain("Référentiel réglementaire et formula impact")
+      expect(markup).toContain("Donc, commercialement")
+    })
+
+    it("rend la section Chaîne de valeur synthétique du Lot 6 sur Mobile lorsqu'un valueChain est fourni", () => {
+      const markup = renderToStaticMarkup(
+        createElement(SectorAnalysisChapterMobile, {
+          knowledge: mockKnowledge,
+          segmentName: "Parfumerie B2B",
+          macroName: "Chimie & Cosmétique",
+          valueChain: mockValueChain,
+          onOpenValueChain: () => {},
+        }),
+      )
+
+      expect(markup).toContain("Chaîne de valeur (2 étapes)")
+      expect(markup).toContain("Sourcing et qualification des matières")
+      expect(markup).toContain("Transformation et préparation des ingrédients")
+      expect(markup).toContain("Explorer la chaîne de valeur")
     })
 
     it("affiche explicitement 'Non publiée' pour les métriques verrouillées", () => {
@@ -250,6 +454,45 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).not.toContain("Écosystème &amp; Acteurs clés")
       expect(markup).not.toContain("Sources &amp; Réserves méthodologiques")
     })
+
+    it("rend le tableau comparatif des comptes du Lot 4 sur Desktop lorsqu’un competitiveMap est fourni", () => {
+      const markup = renderToStaticMarkup(
+        createElement(SectorAnalysisChapterDesktop, {
+          knowledge: mockKnowledge,
+          segmentName: "Parfumerie B2B",
+          macroName: "Chimie & Cosmétique",
+          competitiveMap: mockCompetitiveMap,
+        }),
+      )
+
+      expect(markup).toContain("Comptes du segment — comparaison commerciale")
+      expect(markup).toContain("Robertet")
+      expect(markup).toContain("Mane")
+      expect(markup).toContain("★ Étalon")
+      expect(markup).toContain("4.5/5")
+      expect(markup).toContain("3/5")
+      expect(markup).toContain("28/35")
+      expect(markup).toContain("Provisoire")
+      expect(markup).toContain("Digitalisation LIMS &amp; traçabilité RSE")
+    })
+
+    it("rend la section comptes dédiée Mobile du Lot 4 avec cibles tactiles et tri appétence", () => {
+      const markup = renderToStaticMarkup(
+        createElement(SectorAnalysisChapterMobile, {
+          knowledge: mockKnowledge,
+          segmentName: "Parfumerie B2B",
+          macroName: "Chimie & Cosmétique",
+          competitiveMap: mockCompetitiveMap,
+        }),
+      )
+
+      expect(markup).toContain("Comptes du segment (2)")
+      expect(markup).toContain("Robertet")
+      expect(markup).toContain("Mane")
+      expect(markup).toContain("28/35")
+      expect(markup).toContain("Prov.")
+    })
+
   })
 
   describe("2. Environnement concurrentiel (competitive-environment)", () => {

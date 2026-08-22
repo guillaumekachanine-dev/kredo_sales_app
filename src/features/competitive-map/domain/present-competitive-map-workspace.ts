@@ -34,6 +34,8 @@ export type CompetitiveMapWorkspaceEntryRow = {
   accessibilite_score: number | null
   appetence_provisoire: boolean
   confiance: string
+  empreinte_metier?: number | null
+  maturite_numerique?: number | null
   is_benchmark_account: boolean
   profile_json: CompetitiveMapJsonValue
   companies: { id: string; name: string } | { id: string; name: string }[] | null
@@ -175,6 +177,8 @@ export function presentCompetitiveMapSnapshot(input: {
       category: row.category,
       categoryLabel: COMPETITIVE_MAP_CATEGORY_LABELS[row.category],
       confidence: row.confiance,
+      businessFootprintScore: row.empreinte_metier ?? null,
+      digitalMaturityScore: row.maturite_numerique ?? null,
       appetenceScore: row.appetence_score,
       accessibilityScore: row.accessibilite_score,
       appetenceProvisoire: row.appetence_provisoire,

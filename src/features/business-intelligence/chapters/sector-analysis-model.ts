@@ -7,6 +7,171 @@ export type ParsedPlayer = {
   size: string
 }
 
+
+export type SectorClientBlock = {
+  nom: string
+  type: "bloc_client"
+  quiFinance: string
+  cycleBudgetaire: string
+  srcIds: number[]
+}
+
+export type SectorEconomicModel = {
+  nom: string
+  type: "modele_economique"
+  description: string
+  quiSigne: string
+  quandLeBudgetEstEngage: string
+  implicationAchatPrestation: string
+  doncCommercialement: string
+  srcIds: number[]
+}
+
+export type SectorTechFront = {
+  nom: string
+  etat: string | null
+  zoneDeTransition: boolean
+  doncCommercialement: string | null
+  srcIds: number[]
+}
+
+function parseSrcIds(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((val) => {
+      if (typeof val === "number" && Number.isInteger(val) && val > 0) return val
+      if (typeof val === "string") {
+        const parsed = parseInt(val, 10)
+        if (!isNaN(parsed) && parsed > 0) return parsed
+      }
+      return null
+    })
+    .filter((v): v is number => v !== null)
+}
+
+export function parseEconomicModels(playbook: Record<string, unknown> | null | undefined): {
+  clientBlocks: SectorClientBlock[]
+  economicModels: SectorEconomicModel[]
+} {
+  const rawList = playbook?.economic_models
+  if (!Array.isArray(rawList)) {
+    return { clientBlocks: [], economicModels: [] }
+  }
+
+  const clientBlocks: SectorClientBlock[] = []
+  const economicModels: SectorEconomicModel[] = []
+
+  for (const item of rawList) {
+    if (!item || typeof item !== "object") continue
+    const rec = item as Record<string, unknown>
+    const type = typeof rec.type === "string" ? rec.type.trim() : null
+
+    if (type === "bloc_client") {
+      const nom = typeof rec.nom === "string" ? rec.nom.trim() : typeof rec.name === "string" ? rec.name.trim() : ""
+      if (!nom) continue
+      const quiFinance =
+        typeof rec.qui_finance === "string"
+          ? rec.qui_finance.trim()
+          : typeof rec.quiFinance === "string"
+            ? rec.quiFinance.trim()
+            : ""
+      const cycleBudgetaire =
+        typeof rec.cycle_budgetaire === "string"
+          ? rec.cycle_budgetaire.trim()
+          : typeof rec.cycleBudgetaire === "string"
+            ? rec.cycleBudgetaire.trim()
+            : ""
+      const srcIds = parseSrcIds(rec.src_ids ?? rec.srcIds)
+
+      clientBlocks.push({
+        nom,
+        type: "bloc_client",
+        quiFinance,
+        cycleBudgetaire,
+        srcIds,
+      })
+    } else if (type === "modele_economique") {
+      const nom = typeof rec.nom === "string" ? rec.nom.trim() : typeof rec.name === "string" ? rec.name.trim() : ""
+      if (!nom) continue
+      const description = typeof rec.description === "string" ? rec.description.trim() : ""
+      const quiSigne =
+        typeof rec.qui_signe === "string"
+          ? rec.qui_signe.trim()
+          : typeof rec.quiSigne === "string"
+            ? rec.quiSigne.trim()
+            : ""
+      const quandLeBudgetEstEngage =
+        typeof rec.quand_le_budget_est_engage === "string"
+          ? rec.quand_le_budget_est_engage.trim()
+          : typeof rec.quandLeBudgetEstEngage === "string"
+            ? rec.quandLeBudgetEstEngage.trim()
+            : ""
+      const implicationAchatPrestation =
+        typeof rec.implication_achat_prestation === "string"
+          ? rec.implication_achat_prestation.trim()
+          : typeof rec.implicationAchatPrestation === "string"
+            ? rec.implicationAchatPrestation.trim()
+            : ""
+      const doncCommercialement =
+        typeof rec.donc_commercialement === "string"
+          ? rec.donc_commercialement.trim()
+          : typeof rec.doncCommercialement === "string"
+            ? rec.doncCommercialement.trim()
+            : ""
+      const srcIds = parseSrcIds(rec.src_ids ?? rec.srcIds)
+
+      economicModels.push({
+        nom,
+        type: "modele_economique",
+        description,
+        quiSigne,
+        quandLeBudgetEstEngage,
+        implicationAchatPrestation,
+        doncCommercialement,
+        srcIds,
+      })
+    }
+  }
+
+  return { clientBlocks, economicModels }
+}
+
+export function parseTechFronts(playbook: Record<string, unknown> | null | undefined): SectorTechFront[] {
+  const rawList = playbook?.tech_fronts
+  if (!Array.isArray(rawList)) {
+    return []
+  }
+
+  const techFronts: SectorTechFront[] = []
+
+  for (const item of rawList) {
+    if (!item || typeof item !== "object") continue
+    const rec = item as Record<string, unknown>
+    const nom = typeof rec.nom === "string" ? rec.nom.trim() : typeof rec.name === "string" ? rec.name.trim() : ""
+    if (!nom) continue
+
+    const etat = typeof rec.etat === "string" && rec.etat.trim().length > 0 ? rec.etat.trim() : null
+    const zoneDeTransition = Boolean(rec.zone_de_transition ?? rec.zoneDeTransition ?? false)
+    const doncCommercialement =
+      typeof rec.donc_commercialement === "string" && rec.donc_commercialement.trim().length > 0
+        ? rec.donc_commercialement.trim()
+        : typeof rec.doncCommercialement === "string" && rec.doncCommercialement.trim().length > 0
+          ? rec.doncCommercialement.trim()
+          : null
+    const srcIds = parseSrcIds(rec.src_ids ?? rec.srcIds)
+
+    techFronts.push({
+      nom,
+      etat,
+      zoneDeTransition,
+      doncCommercialement,
+      srcIds,
+    })
+  }
+
+  return techFronts
+}
+
 export type ParsedCaveats = {
   corpus?: string
   verbatims?: string

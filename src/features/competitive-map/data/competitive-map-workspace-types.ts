@@ -35,6 +35,8 @@ export type CompetitiveMapActor = {
   category: CompetitiveMapCategory
   categoryLabel: string
   confidence: string
+  businessFootprintScore: number | null
+  digitalMaturityScore: number | null
   appetenceScore: number | null
   accessibilityScore: number | null
   appetenceProvisoire: boolean

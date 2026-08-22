@@ -115,11 +115,14 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
             {activeChapter === "sector-analysis" ? (
               workspace.coverage.study.available ? (
                 <SectorAnalysisChapterDesktop
+                  competitiveMap={workspace.competitiveMap}
                   knowledge={workspace.knowledge}
                   segmentName={workspace.segment.name}
                   macroName={workspace.segment.macro?.name ?? null}
                   corpusMetadata={workspace.corpusMetadata}
                   sourceResolution={workspace.sourceResolution}
+                  valueChain={workspace.valueChain}
+                  onOpenValueChain={() => navigateChapter("value-chain")}
                 />
               ) : unavailable("Analyse sectorielle")
             ) : null}

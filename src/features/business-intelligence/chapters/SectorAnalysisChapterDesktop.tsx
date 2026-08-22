@@ -1,20 +1,33 @@
+import React, { useState } from "react"
+import type { CompetitiveMapSnapshot } from "@/features/competitive-map/data/competitive-map-workspace-types"
+import { SectorAccountScatterPlot } from "./SectorAccountScatterPlot"
+import { SectorAccountDrillDownDialog } from "./SectorAccountDrillDownDialog"
 import type { SectorKnowledgeReadModel, SectorResolvedLevel } from "@/features/master-study/data/get-sector-knowledge-read-model"
+import type { SegmentValueChainReadModel } from "../data/business-intelligence-workspace-types"
 import type { SectorCorpusMetadata } from "../data/get-sector-corpus-metadata"
 import type { ResolvedSource } from "../shared/SourceChip"
+import { SourceChipList } from "../shared/SourceChip"
+import { DoncCallout } from "../shared/DoncCallout"
 import { formatStudyDate, provenanceLabel } from "../home/home-model"
 import { CorpusConfidenceBanner } from "../shared/CorpusConfidenceBanner"
 import {
   buildSectorMarketKpis,
   parseCaveats,
+  parseEconomicModels,
   parseKeyPlayers,
+  parseTechFronts,
 } from "./sector-analysis-model"
+import { buildSectorValueChainSummary } from "./sector-value-chain-summary"
 
 export type SectorAnalysisProps = {
+  competitiveMap?: CompetitiveMapSnapshot | null
   knowledge: SectorKnowledgeReadModel
   segmentName: string
   macroName: string | null
   corpusMetadata?: SectorCorpusMetadata | null
   sourceResolution?: Record<number, ResolvedSource>
+  valueChain?: SegmentValueChainReadModel | null
+  onOpenValueChain?: () => void
 }
 
 function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "macro" | null | undefined }) {
@@ -28,15 +41,37 @@ function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "
 }
 
 export function SectorAnalysisChapterDesktop({
+  competitiveMap,
   knowledge,
   segmentName,
   macroName,
   corpusMetadata,
+  sourceResolution,
+  valueChain,
+  onOpenValueChain,
 }: SectorAnalysisProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [selectedConfidence, setSelectedConfidence] = useState<string>("all")
+  const [sortByAppetence, setSortByAppetence] = useState<boolean>(true)
+  const [selectedActorId, setSelectedActorId] = useState<string | null>(null)
+  const [isDrillDownOpen, setIsDrillDownOpen] = useState<boolean>(false)
   const pacaPlayers = parseKeyPlayers(knowledge.keyPlayersPaca)
   const nationalPlayers = parseKeyPlayers(knowledge.keyPlayersNational)
   const caveats = parseCaveats(knowledge.caveats)
   const metrics = buildSectorMarketKpis(knowledge)
+  const { clientBlocks, economicModels } = parseEconomicModels(knowledge.playbook)
+  const techFronts = parseTechFronts(knowledge.playbook)
+  const [openEconomicModels, setOpenEconomicModels] = useState<Record<number, boolean>>({ 0: true })
+  const valueChainSummary = buildSectorValueChainSummary(valueChain)
+
+  const resolveSource = (srcId: number) => sourceResolution?.[srcId] ?? null
+
+  const toggleEconomicModel = (index: number) => {
+    setOpenEconomicModels((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }))
+  }
 
   return (
     <div className="space-y-6" data-chapter="sector-analysis">
@@ -206,6 +241,511 @@ export function SectorAnalysisChapterDesktop({
           </div>
         </section>
       ) : null}
+
+
+      {/* Comptes du segment — comparaison commerciale (Lot 4) */}
+      {competitiveMap && competitiveMap.actors.length > 0 ? (() => {
+        const rawActors = competitiveMap.actors
+        const categories = Array.from(new Set(rawActors.map((a) => a.category)))
+
+        let filteredActors = rawActors.filter((actor) => {
+          if (selectedCategory !== "all" && actor.category !== selectedCategory) return false
+          if (selectedConfidence !== "all" && actor.confidence !== selectedConfidence) return false
+          return true
+        })
+
+        if (sortByAppetence) {
+          filteredActors = [...filteredActors].sort((a, b) => (b.appetenceScore ?? -1) - (a.appetenceScore ?? -1))
+        }
+
+        const selectedActor = rawActors.find((a) => a.id === selectedActorId) ?? null
+
+        const handleSelectActor = (actorId: string) => {
+          setSelectedActorId(actorId)
+          setIsDrillDownOpen(true)
+        }
+
+        return (
+          <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-6">
+            {/* Header & Filtrage */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-edito-border pb-4">
+              <div>
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy flex items-center gap-2">
+                  <span>Comptes du segment — comparaison commerciale</span>
+                  <span className="rounded bg-edito-chip px-2 py-0.5 font-mono text-[10px] text-edito-muted">
+                    {filteredActors.length} / {rawActors.length}
+                  </span>
+                </h2>
+                <p className="mt-0.5 text-xs text-edito-muted">
+                  Analyse comparative dense du segment pilote avec visualisation Empreinte × Maturité et drill-down compte
+                </p>
+              </div>
+
+              {/* Filtres & Tri */}
+              <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                <div>
+                  <label htmlFor="category-filter" className="sr-only">Catégorie</label>
+                  <select
+                    id="category-filter"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="rounded-lg border border-edito-border bg-edito-canvas px-2.5 py-1.5 text-xs font-semibold text-edito-navy focus:outline-none focus:ring-2 focus:ring-edito-navy/20"
+                  >
+                    <option value="all">Toutes catégories</option>
+                    {categories.map((cat) => {
+                      const actor = rawActors.find((a) => a.category === cat)
+                      return (
+                        <option key={cat} value={cat}>
+                          {actor?.categoryLabel ?? cat}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="confidence-filter" className="sr-only">Confiance</label>
+                  <select
+                    id="confidence-filter"
+                    value={selectedConfidence}
+                    onChange={(e) => setSelectedConfidence(e.target.value)}
+                    className="rounded-lg border border-edito-border bg-edito-canvas px-2.5 py-1.5 text-xs font-semibold text-edito-navy focus:outline-none focus:ring-2 focus:ring-edito-navy/20"
+                  >
+                    <option value="all">Toutes confiances</option>
+                    <option value="haute">Confiance haute</option>
+                    <option value="moyenne">Confiance moyenne</option>
+                    <option value="faible">Confiance faible</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSortByAppetence(!sortByAppetence)}
+                  className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                    sortByAppetence
+                      ? "border-edito-navy bg-edito-navy text-white"
+                      : "border-edito-border bg-edito-canvas text-edito-body hover:bg-edito-canvas/80"
+                  }`}
+                >
+                  <span>Appétence ↓</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Layout principal: Scatter + Tableau */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+              {/* Mini Scatter Plot */}
+              <div className="lg:col-span-4 shrink-0">
+                <SectorAccountScatterPlot
+                  actors={filteredActors}
+                  selectedActorId={selectedActorId}
+                  onSelectActor={handleSelectActor}
+                />
+              </div>
+
+              {/* Tableau comparatif */}
+              <div className="lg:col-span-8 overflow-x-auto rounded-xl border border-edito-border bg-edito-surface">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-edito-border bg-edito-canvas/70 text-[10px] uppercase tracking-wider text-edito-muted font-bold">
+                    <tr>
+                      <th className="px-3.5 py-3">Compte</th>
+                      <th className="px-3 py-3">Catégorie</th>
+                      <th className="px-2.5 py-3 text-center">Empreinte /5</th>
+                      <th className="px-2.5 py-3 text-center">Maturité /5</th>
+                      <th className="px-3 py-3 text-center">Appétence /35</th>
+                      <th className="px-2.5 py-3 text-center">Accessibilité /5</th>
+                      <th className="px-2.5 py-3">Confiance</th>
+                      <th className="px-3 py-3 min-w-[12rem]">Angle d’entrée</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-edito-border/60">
+                    {filteredActors.map((actor) => {
+                      const isSelected = selectedActorId === actor.id
+                      return (
+                        <tr
+                          key={actor.id}
+                          onClick={() => handleSelectActor(actor.id)}
+                          className={`cursor-pointer transition-colors hover:bg-edito-canvas/60 ${
+                            isSelected ? "bg-edito-chip/80 font-medium" : ""
+                          }`}
+                        >
+                          <td className="px-3.5 py-3 font-bold text-edito-navy">
+                            <div className="flex items-center gap-1.5">
+                              <span>{actor.name}</span>
+                              {actor.isBenchmarkAccount ? (
+                                <span
+                                  title="Compte étalon"
+                                  className="rounded border border-edito-brass/40 bg-edito-brass/10 px-1 py-0.2 text-[8px] font-bold text-edito-brass"
+                                >
+                                  ★ Étalon
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-edito-body text-[11px]">
+                            {actor.categoryLabel}
+                          </td>
+                          <td className="px-2.5 py-3 text-center font-mono font-semibold text-edito-navy">
+                            {actor.businessFootprintScore !== null ? `${actor.businessFootprintScore}/5` : "—"}
+                          </td>
+                          <td className="px-2.5 py-3 text-center font-mono font-semibold text-edito-navy">
+                            {actor.digitalMaturityScore !== null ? `${actor.digitalMaturityScore}/5` : "—"}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <div className="inline-flex flex-col items-center">
+                              <span className="font-mono font-bold text-edito-navy">
+                                {actor.appetenceScore !== null ? `${actor.appetenceScore}/35` : "—"}
+                              </span>
+                              {actor.appetenceProvisoire ? (
+                                <span className="rounded bg-status-warning-soft px-1 py-0.2 text-[8px] font-bold uppercase text-status-warning-ink">
+                                  Provisoire
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-2.5 py-3 text-center font-mono font-semibold text-edito-navy">
+                            {actor.accessibilityScore !== null ? `${actor.accessibilityScore}/5` : "—"}
+                          </td>
+                          <td className="px-2.5 py-3 text-[11px] text-edito-muted capitalize">
+                            {actor.confidence}
+                          </td>
+                          <td className="px-3 py-3 text-edito-body text-[11px]">
+                            <p className="line-clamp-2 leading-relaxed" title={actor.angleEntree ?? ""}>
+                              {actor.angleEntree ?? "—"}
+                            </p>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Drill-Down */}
+            <SectorAccountDrillDownDialog
+              actor={selectedActor}
+              open={isDrillDownOpen}
+              onOpenChange={setIsDrillDownOpen}
+            />
+          </section>
+        )
+      })() : null}
+
+      {/* Blocs clients & cycles d’achat (Lot 5) */}
+      {clientBlocks.length > 0 ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-4">
+          <div className="border-b border-edito-border pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
+                Blocs clients & cycles d’achat
+              </h2>
+              <span className="text-xs font-semibold text-edito-muted">
+                {clientBlocks.length} segment{clientBlocks.length > 1 ? "s" : ""} client{clientBlocks.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-edito-muted">
+              Typologie des acheteurs aval, origines des financements et rythmes budgétaires
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {clientBlocks.map((block, idx) => (
+              <div
+                key={idx}
+                className="flex flex-col justify-between rounded-lg border border-edito-border bg-edito-canvas/40 p-4 space-y-3"
+              >
+                <div>
+                  <h3 className="font-bold text-edito-navy text-sm">{block.nom}</h3>
+
+                  <div className="mt-3 space-y-2.5 text-xs">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                        Qui finance
+                      </p>
+                      <p className="mt-0.5 leading-relaxed text-edito-body">
+                        {block.quiFinance}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                        Cycle budgétaire
+                      </p>
+                      <p className="mt-0.5 leading-relaxed text-edito-body">
+                        {block.cycleBudgetaire}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {block.srcIds.length > 0 ? (
+                  <div className="pt-2 border-t border-edito-border/50 flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-edito-muted">Sources :</span>
+                    <SourceChipList srcIds={block.srcIds} resolve={resolveSource} />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Modèles économiques (Lot 5) */}
+      {economicModels.length > 0 ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-4">
+          <div className="border-b border-edito-border pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
+                Modèles économiques
+              </h2>
+              <span className="text-xs font-semibold text-edito-muted">
+                {economicModels.length} modèle{economicModels.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-edito-muted">
+              Modalités de vente, signataires et déclencheurs d’engagements budgétaires
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {economicModels.map((model, idx) => {
+              const isOpen = Boolean(openEconomicModels[idx])
+              return (
+                <div
+                  key={idx}
+                  className="rounded-lg border border-edito-border bg-edito-surface overflow-hidden transition-colors"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleEconomicModel(idx)}
+                    className="w-full flex items-center justify-between p-4 text-left bg-edito-canvas/30 hover:bg-edito-canvas/60 transition-colors"
+                  >
+                    <div className="min-w-0 pr-4">
+                      <h3 className="font-bold text-edito-navy text-sm">{model.nom}</h3>
+                      {model.quiSigne ? (
+                        <p className="mt-0.5 text-xs text-edito-muted truncate">
+                          Signataire : <span className="font-medium text-edito-body">{model.quiSigne}</span>
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 text-xs font-bold text-edito-navy">
+                      {isOpen ? "−" : "+"}
+                    </span>
+                  </button>
+
+                  {isOpen ? (
+                    <div className="p-4 border-t border-edito-border space-y-3.5 bg-edito-surface">
+                      {model.description ? (
+                        <p className="text-xs leading-relaxed text-edito-body">
+                          {model.description}
+                        </p>
+                      ) : null}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        {model.quiSigne ? (
+                          <div className="rounded-md border border-edito-border/60 bg-edito-canvas/40 p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                              Qui signe
+                            </p>
+                            <p className="mt-1 leading-relaxed text-edito-body font-medium">
+                              {model.quiSigne}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {model.quandLeBudgetEstEngage ? (
+                          <div className="rounded-md border border-edito-border/60 bg-edito-canvas/40 p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                              Quand le budget est engagé
+                            </p>
+                            <p className="mt-1 leading-relaxed text-edito-body font-medium">
+                              {model.quandLeBudgetEstEngage}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {model.implicationAchatPrestation ? (
+                        <div className="rounded-md border border-edito-border/60 bg-edito-canvas/40 p-3 text-xs">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                            Ce que cela implique pour l’achat de prestation
+                          </p>
+                          <p className="mt-1 leading-relaxed text-edito-body">
+                            {model.implicationAchatPrestation}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {model.srcIds.length > 0 ? (
+                        <div className="flex items-center gap-2 pt-1 text-xs">
+                          <span className="text-[10px] font-semibold text-edito-muted">Sources :</span>
+                          <SourceChipList srcIds={model.srcIds} resolve={resolveSource} />
+                        </div>
+                      ) : null}
+
+                      {model.doncCommercialement ? (
+                        <DoncCallout text={model.doncCommercialement} />
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Chaîne de valeur — vue synthétique (Lot 6) */}
+      {valueChainSummary ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-edito-border pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
+                  Chaîne de valeur — vue synthétique
+                </h2>
+                <span className="rounded bg-edito-chip px-2 py-0.5 font-mono text-[10px] text-edito-muted">
+                  {valueChainSummary.steps.length} étape{valueChainSummary.steps.length > 1 ? "s" : ""}
+                </span>
+                <span className="inline-flex items-center rounded border border-edito-border bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-edito-muted">
+                  {valueChainSummary.level === "segment" ? "Segment" : "Macro"}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-edito-muted">
+                Les principales étapes de création et de délivrance de valeur sur le segment étudié.
+              </p>
+            </div>
+
+            {onOpenValueChain ? (
+              <button
+                type="button"
+                onClick={onOpenValueChain}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-edito-border bg-edito-canvas px-3 py-1.5 text-xs font-semibold text-edito-navy transition-colors hover:bg-edito-navy hover:text-white"
+              >
+                <span>Explorer la chaîne de valeur</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            ) : null}
+          </div>
+
+          {/* Grille / Ruban des étapes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {valueChainSummary.steps.map((step) => (
+              <div
+                key={step.id}
+                className="flex flex-col justify-between rounded-lg border border-edito-border bg-edito-canvas/40 p-4 transition-colors hover:bg-edito-canvas/70"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 border-b border-edito-border/60 pb-2">
+                    <span className="font-mono text-xs font-bold text-edito-brass bg-edito-brass/10 px-2 py-0.5 rounded">
+                      {String(step.order).padStart(2, "0")}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-edito-muted truncate">
+                      {step.stageLabel}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-2.5 font-bold text-edito-navy text-xs leading-snug">
+                    {step.activityLabel}
+                  </h3>
+
+                  {step.description ? (
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-edito-body">
+                      {step.description}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pied de section avec CTA de fin */}
+          {onOpenValueChain ? (
+            <div className="flex justify-end pt-2 border-t border-edito-border/50">
+              <button
+                type="button"
+                onClick={onOpenValueChain}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-edito-navy hover:text-edito-brass transition-colors"
+              >
+                <span>Accéder à la cartographie complète de la chaîne de valeur</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {/* Fronts technologiques (Lot 7) */}
+      {techFronts.length > 0 ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm space-y-4">
+          <div className="border-b border-edito-border pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
+                Fronts technologiques
+              </h2>
+              <span className="text-xs font-semibold text-edito-muted">
+                {techFronts.length} front{techFronts.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-edito-muted">
+              Les transformations technologiques qui déplacent actuellement les besoins, les investissements et les points d’entrée commerciaux
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {techFronts.map((front, idx) => {
+              const isLastOdd = idx === techFronts.length - 1 && techFronts.length % 2 !== 0
+              return (
+                <div
+                  key={idx}
+                  className={`flex flex-col justify-between rounded-lg border border-edito-border bg-edito-canvas/40 p-4 space-y-3 ${
+                    isLastOdd ? "md:col-span-2" : ""
+                  }`}
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-bold text-edito-navy text-sm leading-snug">
+                        {front.nom}
+                      </h3>
+                      {front.zoneDeTransition ? (
+                        <span className="shrink-0 inline-flex items-center rounded border border-edito-brass/40 bg-edito-brass/10 px-2 py-0.5 text-[9px] font-bold text-edito-brass">
+                          ● Zone de transition
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {front.etat ? (
+                      <div className="text-xs">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                          État de la transition
+                        </p>
+                        <p className="mt-0.5 leading-relaxed text-edito-body">
+                          {front.etat}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2.5 pt-2 border-t border-edito-border/50">
+                    {front.srcIds.length > 0 ? (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[10px] font-semibold text-edito-muted">Sources :</span>
+                        <SourceChipList srcIds={front.srcIds} resolve={resolveSource} />
+                      </div>
+                    ) : null}
+
+                    {front.doncCommercialement ? (
+                      <DoncCallout text={front.doncCommercialement} />
+                    ) : null}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
+
 
       {/* Points de douleur sectoriels (Préservé) */}
       {knowledge.painPoints.length > 0 ? (

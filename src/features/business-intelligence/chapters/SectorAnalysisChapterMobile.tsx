@@ -1,6 +1,12 @@
+import React, { useState } from "react"
+import type { CompetitiveMapSnapshot } from "@/features/competitive-map/data/competitive-map-workspace-types"
+import { SectorAccountDrillDownDialog } from "./SectorAccountDrillDownDialog"
 import type { SectorKnowledgeReadModel, SectorResolvedLevel } from "@/features/master-study/data/get-sector-knowledge-read-model"
+import type { SegmentValueChainReadModel } from "../data/business-intelligence-workspace-types"
 import type { SectorCorpusMetadata } from "../data/get-sector-corpus-metadata"
 import type { ResolvedSource } from "../shared/SourceChip"
+import { SourceChipList } from "../shared/SourceChip"
+import { DoncCallout } from "../shared/DoncCallout"
 import { formatStudyDate, provenanceLabel } from "../home/home-model"
 import { CorpusConfidenceBanner } from "../shared/CorpusConfidenceBanner"
 import {
@@ -10,15 +16,21 @@ import {
   formatMarketSize,
   formatTjmRange,
   parseCaveats,
+  parseEconomicModels,
   parseKeyPlayers,
+  parseTechFronts,
 } from "./sector-analysis-model"
+import { buildSectorValueChainSummary } from "./sector-value-chain-summary"
 
 type SectorAnalysisMobileProps = {
+  competitiveMap?: CompetitiveMapSnapshot | null
   knowledge: SectorKnowledgeReadModel
   segmentName: string
   macroName: string | null
   corpusMetadata?: SectorCorpusMetadata | null
   sourceResolution?: Record<number, ResolvedSource>
+  valueChain?: SegmentValueChainReadModel | null
+  onOpenValueChain?: () => void
 }
 
 function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "macro" | null | undefined }) {
@@ -32,14 +44,33 @@ function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "
 }
 
 export function SectorAnalysisChapterMobile({
+  competitiveMap,
   knowledge,
   segmentName,
   macroName,
   corpusMetadata,
+  sourceResolution,
+  valueChain,
+  onOpenValueChain,
 }: SectorAnalysisMobileProps) {
+  const [selectedActorId, setSelectedActorId] = useState<string | null>(null)
+  const [isDrillDownOpen, setIsDrillDownOpen] = useState<boolean>(false)
   const pacaPlayers = parseKeyPlayers(knowledge.keyPlayersPaca)
   const nationalPlayers = parseKeyPlayers(knowledge.keyPlayersNational)
   const caveats = parseCaveats(knowledge.caveats)
+  const { clientBlocks, economicModels } = parseEconomicModels(knowledge.playbook)
+  const techFronts = parseTechFronts(knowledge.playbook)
+  const [openEconomicModelsMobile, setOpenEconomicModelsMobile] = useState<Record<number, boolean>>({ 0: true })
+  const valueChainSummary = buildSectorValueChainSummary(valueChain)
+
+  const resolveSource = (srcId: number) => sourceResolution?.[srcId] ?? null
+
+  const toggleEconomicModelMobile = (index: number) => {
+    setOpenEconomicModelsMobile((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }))
+  }
 
   const marketSize = formatMarketSize(knowledge.marketSizeEurBn, knowledge.marketSizeEurBnLevel)
   const marketGrowth = formatMarketGrowth(knowledge.marketGrowthPct, knowledge.marketGrowthPctLevel)
@@ -135,6 +166,299 @@ export function SectorAnalysisChapterMobile({
 
       {/* Accordéons / Sections progressives tactiles (touch target >= 44px) */}
       <div className="space-y-2">
+
+        {/* Comptes du segment — comparaison commerciale (Lot 4 Mobile) */}
+        {competitiveMap && competitiveMap.actors.length > 0 ? (() => {
+          const sortedActors = [...competitiveMap.actors].sort(
+            (a, b) => (b.appetenceScore ?? -1) - (a.appetenceScore ?? -1)
+          )
+          const selectedActor = competitiveMap.actors.find((a) => a.id === selectedActorId) ?? null
+
+          const handleSelectActor = (actorId: string) => {
+            setSelectedActorId(actorId)
+            setIsDrillDownOpen(true)
+          }
+
+          return (
+            <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                <span>Comptes du segment ({sortedActors.length})</span>
+                <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+              </summary>
+              <div className="border-t border-edito-border px-4 py-3 space-y-2.5">
+                <p className="text-[11px] text-edito-muted">
+                  Triés par appétence commerciale décroissante. Touchez un compte pour ouvrir sa fiche complète.
+                </p>
+                <div className="space-y-2 pt-1">
+                  {sortedActors.map((actor) => (
+                    <button
+                      key={actor.id}
+                      type="button"
+                      onClick={() => handleSelectActor(actor.id)}
+                      className="flex min-h-12 w-full flex-col justify-center rounded-lg border border-edito-border/80 bg-edito-canvas/40 p-3 text-left transition-colors hover:bg-edito-canvas/80 active:bg-edito-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/20"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-bold text-xs text-edito-navy flex items-center gap-1">
+                          {actor.name}
+                          {actor.isBenchmarkAccount ? (
+                            <span className="text-[10px] font-bold text-edito-brass">★</span>
+                          ) : null}
+                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0 font-mono text-xs font-bold text-edito-navy">
+                          <span>{actor.appetenceScore !== null ? `${actor.appetenceScore}/35` : "—"}</span>
+                          {actor.appetenceProvisoire ? (
+                            <span className="rounded bg-status-warning-soft px-1 py-0.2 text-[8px] font-bold uppercase text-status-warning-ink">
+                              Prov.
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-edito-muted">
+                        <span className="font-medium">{actor.categoryLabel}</span>
+                        <span>Confiance {actor.confidence}</span>
+                      </div>
+                      {actor.angleEntree ? (
+                        <p className="mt-1.5 line-clamp-1 border-l-2 border-edito-brass/60 pl-2 text-[11px] leading-tight text-edito-body">
+                          {actor.angleEntree}
+                        </p>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <SectorAccountDrillDownDialog
+                actor={selectedActor}
+                open={isDrillDownOpen}
+                onOpenChange={setIsDrillDownOpen}
+              />
+            </details>
+          )
+        })() : null}
+
+        {/* Blocs clients Mobile (Lot 5) */}
+        {clientBlocks.length > 0 ? (
+          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <span>Blocs clients ({clientBlocks.length})</span>
+              <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="border-t border-edito-border px-4 py-3 space-y-3">
+              {clientBlocks.map((block, idx) => (
+                <div key={idx} className="rounded-lg border border-edito-border/80 bg-edito-canvas/40 p-3 space-y-2 text-xs">
+                  <h3 className="font-bold text-edito-navy text-xs">{block.nom}</h3>
+
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-edito-muted">Qui finance</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-edito-body">{block.quiFinance}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-edito-muted">Cycle budgétaire</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-edito-body">{block.cycleBudgetaire}</p>
+                  </div>
+
+                  {block.srcIds.length > 0 ? (
+                    <div className="pt-1 border-t border-edito-border/50 flex items-center justify-between text-[10px]">
+                      <span className="font-semibold text-edito-muted">Sources :</span>
+                      <SourceChipList srcIds={block.srcIds} resolve={resolveSource} />
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : null}
+
+        {/* Modèles économiques Mobile (Lot 5) */}
+        {economicModels.length > 0 ? (
+          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <span>Modèles économiques ({economicModels.length})</span>
+              <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="border-t border-edito-border px-3 py-3 space-y-2.5">
+              {economicModels.map((model, idx) => {
+                const isOpen = Boolean(openEconomicModelsMobile[idx])
+                return (
+                  <div key={idx} className="rounded-lg border border-edito-border/80 bg-edito-surface overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleEconomicModelMobile(idx)}
+                      className="w-full flex min-h-[44px] items-center justify-between p-3 text-left bg-edito-canvas/30 hover:bg-edito-canvas/60 active:bg-edito-chip transition-colors"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <h4 className="font-bold text-edito-navy text-xs">{model.nom}</h4>
+                        {model.quiSigne ? (
+                          <p className="mt-0.5 text-[10px] text-edito-muted truncate">
+                            Signataire : {model.quiSigne}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="shrink-0 text-xs font-bold text-edito-navy">
+                        {isOpen ? "−" : "+"}
+                      </span>
+                    </button>
+
+                    {isOpen ? (
+                      <div className="p-3 border-t border-edito-border space-y-2.5 text-xs bg-edito-surface">
+                        {model.description ? (
+                          <p className="text-[11px] leading-relaxed text-edito-body">{model.description}</p>
+                        ) : null}
+
+                        {model.quiSigne ? (
+                          <div className="rounded border border-edito-border/60 bg-edito-canvas/30 p-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-edito-muted">Qui signe</p>
+                            <p className="mt-0.5 text-[11px] text-edito-body font-medium">{model.quiSigne}</p>
+                          </div>
+                        ) : null}
+
+                        {model.quandLeBudgetEstEngage ? (
+                          <div className="rounded border border-edito-border/60 bg-edito-canvas/30 p-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-edito-muted">Budget engagé</p>
+                            <p className="mt-0.5 text-[11px] text-edito-body font-medium">{model.quandLeBudgetEstEngage}</p>
+                          </div>
+                        ) : null}
+
+                        {model.implicationAchatPrestation ? (
+                          <div className="rounded border border-edito-border/60 bg-edito-canvas/30 p-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-edito-muted">Implication prestation</p>
+                            <p className="mt-0.5 text-[11px] text-edito-body leading-relaxed">{model.implicationAchatPrestation}</p>
+                          </div>
+                        ) : null}
+
+                        {model.srcIds.length > 0 ? (
+                          <div className="flex items-center gap-1.5 pt-1 text-[10px]">
+                            <span className="font-semibold text-edito-muted">Sources :</span>
+                            <SourceChipList srcIds={model.srcIds} resolve={resolveSource} />
+                          </div>
+                        ) : null}
+
+                        {model.doncCommercialement ? (
+                          <DoncCallout text={model.doncCommercialement} />
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </details>
+        ) : null}
+
+        {/* Chaîne de valeur — vue synthétique (Lot 6 Mobile) */}
+        {valueChainSummary ? (
+          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <span className="flex items-center gap-2">
+                <span>Chaîne de valeur ({valueChainSummary.steps.length} étapes)</span>
+                <span className="rounded bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold text-edito-muted uppercase">
+                  {valueChainSummary.level === "segment" ? "Segment" : "Macro"}
+                </span>
+              </span>
+              <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="border-t border-edito-border px-4 py-4 space-y-4">
+              <p className="text-[11px] text-edito-muted">
+                Vue synthétique des maillons de création de valeur sur le segment.
+              </p>
+
+              {/* Timeline verticale */}
+              <div className="relative pl-3 space-y-4 before:absolute before:left-6 before:top-3 before:bottom-3 before:w-0.5 before:bg-edito-border">
+                {valueChainSummary.steps.map((step) => (
+                  <div key={step.id} className="relative flex items-start gap-3">
+                    <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-edito-navy text-[10px] font-bold text-white font-mono shadow-sm">
+                      {step.order}
+                    </span>
+                    <div className="min-w-0 flex-1 rounded-lg border border-edito-border/80 bg-edito-canvas/40 p-3 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-edito-muted truncate">
+                          {step.stageLabel}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-xs text-edito-navy leading-snug">
+                        {step.activityLabel}
+                      </h3>
+                      {step.description ? (
+                        <p className="text-[11px] leading-relaxed text-edito-body pt-0.5">
+                          {step.description}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {onOpenValueChain ? (
+                <div className="pt-2 border-t border-edito-border/50">
+                  <button
+                    type="button"
+                    onClick={onOpenValueChain}
+                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-edito-navy bg-edito-navy px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-edito-navy/90 active:bg-edito-navy/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/20"
+                  >
+                    <span>Explorer la chaîne de valeur</span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </details>
+        ) : null}
+
+        {/* Fronts technologiques (Lot 7 Mobile) */}
+        {techFronts.length > 0 ? (
+          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <span className="flex items-center gap-2">
+                <span>Fronts technologiques ({techFronts.length})</span>
+              </span>
+              <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="border-t border-edito-border px-4 py-4 space-y-4">
+              {techFronts.map((front, idx) => (
+                <div key={idx} className="rounded-lg border border-edito-border/80 bg-edito-canvas/40 p-3.5 space-y-2.5 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-baseline gap-2 min-w-0">
+                      <span className="font-mono text-xs font-bold text-edito-brass shrink-0">
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="font-bold text-edito-navy text-xs leading-snug">
+                        {front.nom}
+                      </h3>
+                    </div>
+                    {front.zoneDeTransition ? (
+                      <span className="shrink-0 inline-flex items-center rounded border border-edito-brass/40 bg-edito-brass/10 px-1.5 py-0.5 text-[8px] font-bold text-edito-brass">
+                        ● Zone de transition
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {front.etat ? (
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-edito-muted">
+                        État de la transition
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-edito-body">
+                        {front.etat}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {front.srcIds.length > 0 ? (
+                    <div className="pt-1.5 border-t border-edito-border/50 flex items-center justify-between text-[10px]">
+                      <span className="font-semibold text-edito-muted">Sources :</span>
+                      <SourceChipList srcIds={front.srcIds} resolve={resolveSource} />
+                    </div>
+                  ) : null}
+
+                  {front.doncCommercialement ? (
+                    <DoncCallout text={front.doncCommercialement} />
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : null}
+
         {/* Écosystème & Acteurs clés */}
         {pacaPlayers.length > 0 || nationalPlayers.length > 0 ? (
           <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>

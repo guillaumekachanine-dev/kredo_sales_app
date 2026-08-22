@@ -9,6 +9,8 @@ function createMockActor(overrides: Partial<CompetitiveMapActor> = {}): Competit
     category: "leader",
     categoryLabel: "Leader",
     confidence: "haute",
+    businessFootprintScore: 4,
+    digitalMaturityScore: 3,
     appetenceScore: 35,
     accessibilityScore: 5,
     appetenceProvisoire: false,

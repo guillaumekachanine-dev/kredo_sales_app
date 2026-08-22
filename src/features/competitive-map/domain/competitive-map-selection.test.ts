@@ -11,6 +11,8 @@ function actor(id: string, benchmark = false): CompetitiveMapActor {
     category: "leader",
     categoryLabel: "Leaders",
     confidence: "haute",
+    businessFootprintScore: null,
+    digitalMaturityScore: null,
     appetenceScore: 24,
     accessibilityScore: 3,
     appetenceProvisoire: false,

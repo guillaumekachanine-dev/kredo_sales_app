@@ -43,7 +43,7 @@ export const getCompetitiveMapSnapshot = cache(async (segmentId: string): Promis
   const [entriesResult, parentResult] = await Promise.all([
     supabase
       .from("competitive_map_entries")
-      .select("id,company_id,category,positioning,forces,vulnerabilite,angle_entree,appetence_score,accessibilite_score,appetence_provisoire,confiance,is_benchmark_account,profile_json,companies:companies!competitive_map_entries_company_id_fkey(id,name)")
+      .select("id,company_id,category,positioning,forces,vulnerabilite,angle_entree,appetence_score,accessibilite_score,appetence_provisoire,confiance,is_benchmark_account,empreinte_metier,maturite_numerique,profile_json,companies:companies!competitive_map_entries_company_id_fkey(id,name)")
       .eq("segment_id", segmentId)
       .eq("study_snapshot_date", snapshotDate)
       .order("category", { ascending: true }),

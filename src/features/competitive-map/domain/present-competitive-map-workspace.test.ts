@@ -24,6 +24,8 @@ const baseEntry: CompetitiveMapWorkspaceEntryRow = {
   accessibilite_score: 4,
   appetence_provisoire: false,
   confiance: "haute",
+  empreinte_metier: 4,
+  maturite_numerique: 3,
   is_benchmark_account: true,
   profile_json: {
     proposition_valeur: "Architectures critiques",
@@ -79,6 +81,8 @@ describe("competitive map workspace presenter", () => {
       name: "Orbite SA",
       revenueEstimateMeur: 2360,
       headcountFrance: "4200",
+      businessFootprintScore: 4,
+      digitalMaturityScore: 3,
       isPositioned: true,
       details: {
         propositionValeur: "Architectures critiques",
