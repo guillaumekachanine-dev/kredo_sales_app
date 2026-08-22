@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E4 & E5 — Étude sectorielle & Cartographie Comptes B2B</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                        serif: ['Georgia', 'serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            600: '#0284c7',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            dark: '#0b1329',
+                        },
+                        accent: {
+                            gold: '#d97706',
+                            emerald: '#059669',
+                            rose: '#e11d48',
+                            indigo: '#4f46e5',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-header {
+            background: linear-gradient(135deg, #0b1329 0%, #1e293b 50%, #0f172a 100%);
+        }
+        .takeaway-card {
+            border-left: 4px solid #0284c7;
+            background: linear-gradient(90deg, rgba(2, 132, 199, 0.04) 0%, rgba(255, 255, 255, 0) 100%);
+        }
+        .donc-box {
+            border-left: 4px solid #059669;
+            background-color: #f0fdf4;
+        }
+        .ia-warning-box {
+            border-left: 4px solid #d97706;
+            background-color: #fffbeb;
+        }
+        .table-custom th {
+            background-color: #f8fafc;
+            text-transform: uppercase;
+            font-size: 0.725rem;
+            letter-spacing: 0.05em;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        /* Directives d'impression PDF */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #0f172a !important;
+            }
+            .no-print, aside, header {
+                display: none !important;
+            }
+            main {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            section, .takeaway-card, .donc-box, tr, .account-card {
+                break-inside: avoid;
+            }
+            .shadow-sm, .shadow-md, .shadow-lg {
+                box-shadow: none !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-100 selection:text-sky-900">
+
+    <!-- Header / Banner -->
+    <header class="gradient-header text-white border-b border-slate-800 sticky top-0 z-50 shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-400 mb-1">
+                        <span>Strategic Advisory Insights</span>
+                        <span>•</span>
+                        <span class="text-slate-300">Réf: E4 & E5 Master</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                        Compositions & Ingrédients B2B — Étude & Cartographie Comptes
+                    </h1>
+                </div>
+                
+                <!-- Metadata Badges & Export Button -->
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-full font-mono text-slate-300">
+                        <i class="fa-regular fa-folder text-sky-400 mr-1.5"></i>seg-parfumerie-compositions-b2b
+                    </span>
+                    <span class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-full text-slate-300">
+                        <i class="fa-regular fa-calendar text-sky-400 mr-1.5"></i>Snapshot 2026-08-14
+                    </span>
+                    <span class="bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 px-3 py-1.5 rounded-full font-medium">
+                        <i class="fa-solid fa-shield-halved mr-1.5"></i>Confiance : Haute (v1.0)
+                    </span>
+                    
+                    <!-- Export PDF Button -->
+                    <button onclick="window.print()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3.5 py-1.5 rounded-full transition shadow-sm flex items-center gap-1.5 cursor-pointer ml-1">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Exporter PDF</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container with Sidebar Navigation -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="lg:w-64 flex-shrink-0">
+            <div class="sticky top-24 space-y-4">
+                <nav class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm max-h-[calc(100vh-120px)] overflow-y-auto text-xs">
+                    <h2 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Partie I — Étude Sectorielle (E4)</h2>
+                    <ul class="space-y-1 font-medium mb-4">
+                        <li><a href="#cadre" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">0.</span> Cadre & Scope</a></li>
+                        <li><a href="#decider" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">1.</span> Décider (5 Thèses)</a></li>
+                        <li><a href="#comprendre" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">2.</span> Analyse du Marché</a></li>
+                        <li><a href="#trous" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.</span> Trous Déclarés</a></li>
+                        <li><a href="#sources" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">A.</span> Registre des Sources</a></li>
+                    </ul>
+
+                    <h2 class="text-[11px] font-bold text-sky-800 uppercase tracking-wider mb-2 px-2 border-t border-slate-100 pt-3">Partie II — Cartographie & Comptes (E5)</h2>
+                    <ul class="space-y-1 font-medium">
+                        <li><a href="#segmentation" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.1</span> Segmentation & Quotas</a></li>
+                        <li><a href="#carte-priorisation" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.2</span> Carte de Priorisation</a></li>
+                        <li><a href="#matrice-positionnement" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.3</span> Matrice Empreinte / IA</a></li>
+                        <li><a href="#tableau-comparatif" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.4</span> Tableau Comparatif</a></li>
+                        <li><a href="#fiches-comptes" class="flex items-center px-2 py-1.5 text-slate-700 font-bold hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.5</span> Fiches 8 Comptes</a></li>
+                        <li><a href="#reserve" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.6</span> Réserve (6 Comptes)</a></li>
+                        <li><a href="#ecartes" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.7</span> Acteurs Écartés</a></li>
+                        <li><a href="#top3-attaque" class="flex items-center px-2 py-1.5 text-emerald-700 font-bold hover:bg-emerald-50 rounded transition"><span class="w-5 font-mono text-emerald-600">3.8</span> Top 3 À Attaquer</a></li>
+                        <li><a href="#top3-ecarter" class="flex items-center px-2 py-1.5 text-rose-700 hover:bg-rose-50 rounded transition"><span class="w-5 font-mono text-rose-600">3.9</span> Top 3 À Écarter</a></li>
+                        <li><a href="#enjeux-comptes" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.10</span> Message & Enjeux</a></li>
+                        <li><a href="#compteurs" class="flex items-center px-2 py-1.5 text-slate-600 hover:text-sky-600 hover:bg-slate-50 rounded transition"><span class="w-5 font-mono text-slate-400">3.11</span> Compteurs Bundle</a></li>
+                    </ul>
+                </nav>
+
+                <!-- Key Metrics Card -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-4 shadow-sm text-xs space-y-2.5">
+                    <div class="font-bold text-sky-400 uppercase tracking-wider text-[10px]">Aperçu Synthétique</div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Compte Étalon :</span>
+                        <span class="font-semibold text-slate-200">Robertet</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Péremption Triggers :</span>
+                        <span class="font-mono text-amber-300">14/11/2026</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="text-slate-400">Couche ESN Cibles :</span>
+                        <span class="font-semibold text-emerald-400">100 % (3/3)</span>
+                    </div>
+                    
+                    <button onclick="window.print()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-2 text-xs no-print cursor-pointer">
+                        <i class="fa-solid fa-print"></i> Imprimer Rapport PDF
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 space-y-12 min-w-0">
+
+            <!-- HEADER SECTORIEL PARTIE I -->
+            <div class="bg-gradient-to-r from-sky-900 to-slate-900 text-white p-6 rounded-2xl shadow-sm">
+                <span class="bg-sky-500/20 text-sky-300 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-sky-400/30">PARTIE I — ÉTUDE SECTORIELLE (E4)</span>
+                <h2 class="text-2xl font-bold mt-2">Périmètre, Enjeux Métier & Directives Commerciales</h2>
+                <p class="text-xs text-slate-300 mt-1">Macro : parfumerie-aromes · Périmètre géographique : France (Bassin de Grasse prioritaire)</p>
+            </div>
+
+            <!-- SECTION 0: CADRE -->
+            <section id="cadre" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-700 font-bold text-sm">0</span>
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">0. Cadre & Périmètre d'Analyse</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-sky-800 flex items-center gap-2">
+                            <i class="fa-solid fa-bullseye text-sky-600"></i> Périmètre Inclus
+                        </h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Création, fabrication et vente B2B de compositions parfumantes et d'ingrédients aromatiques — huiles essentielles, extraits naturels, bases, concentrés et arômes formulés — à des donneurs d'ordre industriels en parfumerie-cosmétique, agroalimentaire et hygiène-entretien ; <strong>France entière, bassin de Grasse prioritaire</strong>.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-rose-700 flex items-center gap-2">
+                            <i class="fa-solid fa-ban text-rose-600"></i> Hors Champ
+                        </h3>
+                        <ul class="text-xs text-slate-600 space-y-2 list-disc list-inside">
+                            <li>Marques de produits finis.</li>
+                            <li>Distribution et retail de parfumerie.</li>
+                            <li>Production agricole de matières premières non transformées.</li>
+                            <li>Façonniers dont le métier principal est le remplissage/conditionnement sans activité formulatoire.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-xs text-amber-900">
+                    <span class="font-bold block mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Règle de comparabilité & Incertitudes Majeures
+                    </span>
+                    <p class="mb-2">
+                        Aucun chiffre groupe monde n'est utilisé pour caractériser une branche France. Le segment n'étant pas isolé proprement par les statistiques publiques consultées, sa taille exacte (TAM) n'est pas reconstituée ; les repères de filière restent explicitement hors TAM.
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-amber-800/90">
+                        <li>Les processus d'achat IT, panels et ESN déjà en place chez les maisons indépendantes de Grasse restent confidentiels.</li>
+                        <li>Les cas d'IA publiés par les leaders mondiaux constituent des benchmarks concurrentiels, pas une mesure du taux d'adoption local.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SECTION 1: DÉCIDER -->
+            <section id="decider" class="space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+                    <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-700 font-bold text-sm">1</span>
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">1. Décider : Orientations Stratégiques</h2>
+                            <p class="text-xs text-slate-500">Le marché en 5 thèses fondamentales</p>
+                        </div>
+                    </div>
+
+                    <!-- 5 Thèses -->
+                    <div class="space-y-6">
+                        
+                        <!-- Thèse 1 -->
+                        <div class="takeaway-card p-5 rounded-r-xl border-y border-r border-slate-200/80 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Thèse 1 • Valeur par la Complexité Opérationnelle</span>
+                                <span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sources : S7, S13, S17, S20, S21</span>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-800 mb-3">
+                                La valeur commerciale du segment vient moins d'un TAM agrégé que de sa complexité opérationnelle : matières naturelles, formulation sur mesure, contraintes réglementaires et multiplicité des usages imposent une maîtrise continue du lien matière–formule–usage–client.
+                            </p>
+                            <div class="donc-box p-3 rounded-lg text-xs font-medium text-emerald-900">
+                                <i class="fa-solid fa-arrow-right text-emerald-600 mr-1.5"></i>
+                                <strong>DONC, commercialement :</strong> Ouvrir sur la maîtrise matière–formule–client, la traçabilité et la capacité de changement plutôt que sur une transformation digitale générique.
+                            </div>
+                        </div>
+
+                        <!-- Thèse 2 -->
+                        <div class="takeaway-card p-5 rounded-r-xl border-y border-r border-slate-200/80 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Thèse 2 • Vague d'Investissement Industriel à Grasse</span>
+                                <span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sources : S8, S18, S19, S25</span>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-800 mb-3">
+                                Le bassin de Grasse traverse une vague visible d'investissements industriels et de montée en capacité (Payan Bertrand, SFA NEROLI/Symrise), déplaçant le besoin vers l'intégration OT/IT, la qualité des données de production et la résilience avant ramp-up.
+                            </p>
+                            <div class="donc-box p-3 rounded-lg text-xs font-medium text-emerald-900">
+                                <i class="fa-solid fa-arrow-right text-emerald-600 mr-1.5"></i>
+                                <strong>DONC, commercialement :</strong> Un site en construction ou en montée en cadence mérite une priorité supérieure à un site stabilisé ; l'ouverture se fait avec le directeur industriel, la qualité et le SI.
+                            </div>
+                        </div>
+
+                        <!-- Thèse 3 -->
+                        <div class="takeaway-card p-5 rounded-r-xl border-y border-r border-slate-200/80 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Thèse 3 • Échéance Réglementaire IFRA 52</span>
+                                <span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sources : S6</span>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-800 mb-3">
+                                IFRA 52 doit être traité comme un événement de données futur : la consultation est close et la notification est attendue vers la fin novembre 2026, mais aucune date exacte de notification ni de conformité propre à l'amendement 52 n'est publiée au snapshot.
+                            </p>
+                            <div class="donc-box p-3 rounded-lg text-xs font-medium text-emerald-900">
+                                <i class="fa-solid fa-arrow-right text-emerald-600 mr-1.5"></i>
+                                <strong>DONC, commercialement :</strong> La question utile est « serez-vous capables de mesurer l'impact sur vos matières, formules, usages et clients dès la notification ? », jamais « êtes-vous prêts pour le 30 novembre ? ».
+                            </div>
+                        </div>
+
+                        <!-- Thèse 4 -->
+                        <div class="takeaway-card p-5 rounded-r-xl border-y border-r border-slate-200/80 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Thèse 4 • IA Métier et Protection du Patrimoine</span>
+                                <span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sources : S12, S22, S23, S24</span>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-800 mb-3">
+                                Chez les leaders, la transformation data et IA touche déjà la création, la formulation et la gouvernance. Cela invalide le pitch POC IA générique et remet au premier plan la qualité des données, les droits d'accès, la propriété intellectuelle et l'industrialisation.
+                            </p>
+                            <div class="donc-box p-3 rounded-lg text-xs font-medium text-emerald-900">
+                                <i class="fa-solid fa-arrow-right text-emerald-600 mr-1.5"></i>
+                                <strong>DONC, commercialement :</strong> Vendre un cas d'usage métier borné avec gouvernance, sécurité et MLOps, pas une démonstration d'IA détachée du patrimoine formulation.
+                            </div>
+                        </div>
+
+                        <!-- Thèse 5 -->
+                        <div class="takeaway-card p-5 rounded-r-xl border-y border-r border-slate-200/80 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Thèse 5 • Hétérogénéité des Modèles d'Achat IT</span>
+                                <span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sources : S10, S16, S20, S21, S22</span>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-800 mb-3">
+                                Une « maison de composition » ne correspond pas à un modèle d'achat unique : les grands groupes publient des parcours fournisseurs et plateformes centrales structurés, alors que les maisons indépendantes exposent beaucoup moins leurs mécanismes d'achat IT.
+                            </p>
+                            <div class="donc-box p-3 rounded-lg text-xs font-medium text-emerald-900">
+                                <i class="fa-solid fa-arrow-right text-emerald-600 mr-1.5"></i>
+                                <strong>DONC, commercialement :</strong> Qualifier dès le premier échange la frontière entre autonomie locale, siège, panel, plateforme centrale et budget de site ; ne jamais supposer qu'un modèle d'achat de groupe vaut pour une maison indépendante.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Hero Callout: Message Sectoriel -->
+                <div class="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-md border border-sky-900/50 relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-10 text-white">
+                        <i class="fa-solid fa-quote-right text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <span class="inline-block bg-sky-500/20 text-sky-300 font-bold text-xs uppercase tracking-widest px-3 py-1 rounded-full mb-3 border border-sky-400/30">
+                            Message Sectoriel Clé
+                        </span>
+                        <blockquote class="text-lg sm:text-xl font-medium leading-relaxed italic text-slate-100">
+                            « Votre fenêtre n'est pas “faire de l'IA” : c'est être capable, dès la notification IFRA 52, de relier chaque restriction aux matières, formules, usages et certificats clients, pendant que vos nouveaux sites et vos capacités de création montent en charge. »
+                        </blockquote>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: COMPRENDRE -->
+            <section id="comprendre" class="space-y-10">
+                <div class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+                    <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-700 font-bold text-sm">2</span>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">2. Comprendre le Secteur</h2>
+                    </div>
+
+                    <!-- 2.1 Économie du secteur -->
+                    <div id="eco" class="mb-10">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-sky-600"></i> 2.1 Économie du secteur
+                        </h3>
+
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            Le marché pertinent est piloté par les cycles de briefs, la capacité à sécuriser les matières, la conformité réglementaire et la montée en production. Les agrégats publics disponibles couvrent des périmètres plus larges que le segment.
+                        </p>
+
+                        <!-- Blocs Clients Grid -->
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Principaux Blocs Clients</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                                <h5 class="font-bold text-slate-800 text-sm mb-1 text-sky-800"><i class="fa-solid fa-pump-soap mr-1.5"></i> Parfumerie & Cosmétique</h5>
+                                <p class="text-xs text-slate-600 mb-1"><strong>Financeurs :</strong> Budgets lancement, R&D et achats industriels des marques.</p>
+                                <p class="text-xs text-slate-600"><strong>Cycle :</strong> Briefs, lancements, reformulations et revues de portefeuille.</p>
+                            </div>
+
+                            <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                                <h5 class="font-bold text-slate-800 text-sm mb-1 text-sky-800"><i class="fa-solid fa-spray-can mr-1.5"></i> Hygiène & Entretien</h5>
+                                <p class="text-xs text-slate-600 mb-1"><strong>Financeurs :</strong> Budgets R&D, formulation et achats catégories.</p>
+                                <p class="text-xs text-slate-600"><strong>Cycle :</strong> Rénovations de gammes, substitution matières, optimisation coût/qualité.</p>
+                            </div>
+
+                            <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                                <h5 class="font-bold text-slate-800 text-sm mb-1 text-sky-800"><i class="fa-solid fa-utensils mr-1.5"></i> Industries Agroalimentaires</h5>
+                                <p class="text-xs text-slate-600 mb-1"><strong>Financeurs :</strong> Budgets innovation produit, ingrédients et réglementaire.</p>
+                                <p class="text-xs text-slate-600"><strong>Cycle :</strong> Reformulation, référencement et conformité des arômes.</p>
+                            </div>
+
+                            <div class="border border-slate-200 rounded-xl p-4 bg-white">
+                                <h5 class="font-bold text-slate-800 text-sm mb-1 text-sky-800"><i class="fa-solid fa-globe mr-1.5"></i> Groupes Multi-Pays & Achats Centralisés</h5>
+                                <p class="text-xs text-slate-600 mb-1"><strong>Financeurs :</strong> Budgets centraux/locaux selon la gouvernance groupe.</p>
+                                <p class="text-xs text-slate-600"><strong>Cycle :</strong> Référencements groupe, déploiements locaux, renouvellements.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: TROUS DÉCLARÉS & SOURCES (E4) -->
+            <section id="trous" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm">3</span>
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">3. Trous Déclarés (Partie I)</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-slate-600">
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200"><strong class="text-slate-800 block mb-1">Taille exacte France :</strong> Statistiques non superposables au périmètre E4.</div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200"><strong class="text-slate-800 block mb-1">Panels IT Grasse :</strong> Réseaux d'ESN peu rendus publics par les indépendants.</div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200"><strong class="text-slate-800 block mb-1">Budgets IT dédiés :</strong> Enveloppes non isolées dans les sources ouvertes.</div>
+                </div>
+            </section>
+
+            <section id="sources" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm">A</span>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Registre des Sources (Extrait Majeur)</h2>
+                    </div>
+                    <span class="text-xs text-slate-400 font-mono">Snapshot 2026-08-14</span>
+                </div>
+
+                <div class="overflow-x-auto max-h-60 overflow-y-auto border border-slate-200 rounded-xl">
+                    <table class="w-full text-left text-[11px] table-custom">
+                        <thead class="sticky top-0 bg-slate-100 z-10">
+                            <tr><th class="p-2">N°</th><th class="p-2">Fait Attesté</th><th class="p-2">Éditeur</th><th class="p-2">Tier</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-mono text-slate-600">
+                            <tr><td class="p-2 font-bold">S4</td><td class="p-2 font-sans">Textes juridiques opposables UE.</td><td class="p-2 font-sans">EUR-Lex</td><td class="p-2">Tier 1</td></tr>
+                            <tr><td class="p-2 font-bold">S6</td><td class="p-2 font-sans">Amendement 52 : Notification attendue fin nov 2026.</td><td class="p-2 font-sans">IFRA</td><td class="p-2">Tier 3</td></tr>
+                            <tr><td class="p-2 font-bold">S12</td><td class="p-2 font-sans">Recrutement Data / Databricks / SAP.</td><td class="p-2 font-sans">MANE</td><td class="p-2">Tier 2</td></tr>
+                            <tr><td class="p-2 font-bold">S18</td><td class="p-2 font-sans">Investissement 12 M€ Payan Bertrand Grasse.</td><td class="p-2 font-sans">Premium Beauty News</td><td class="p-2">Tier 3</td></tr>
+                            <tr><td class="p-2 font-bold">S22</td><td class="p-2 font-sans">Rapport intégré, digitalisation Givaudan.</td><td class="p-2 font-sans">Givaudan</td><td class="p-2">Tier 2</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- PARTIE II : CARTOGRAPHIE CONCURRENTIELLE & FICHES COMPTES (E5) -->
+            <!-- ========================================================================= -->
+
+            <div class="bg-gradient-to-r from-sky-950 via-slate-900 to-sky-900 text-white p-6 rounded-2xl shadow-md border-l-8 border-sky-500 mt-16">
+                <span class="bg-sky-500/30 text-sky-200 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-sky-400/30">PARTIE II — CARTOGRAPHIE CONCURRENTIELLE & FICHES COMPTES (E5)</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold mt-2">Segmentation, Matrice de Priorisation & Fiches Détaillées (8 Comptes)</h2>
+                <p class="text-xs text-slate-300 mt-1">Compte Étalon : Robertet · Péréquation : 14/11/2026 (Triggers 3 mois) & 14/08/2027 (Finances 12 mois)</p>
+            </div>
+
+            <!-- SECTION 3.1: SEGMENTATION & QUOTAS -->
+            <section id="segmentation" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-800 font-bold text-sm">3.1</span>
+                    <h3 class="text-xl font-bold text-slate-900">Segmentation — Méthode & Écarts aux Quotas</h3>
+                </div>
+
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Part relative = CA France du dernier exercice clos publié, rapporté au CA de la société France du premier acteur du segment (V. MANE FILS, 730,24 M€, 2024). Pour Robertet et SFA NEROLI, le critère de substitution a été appliqué par présence aux opérations majeures.
+                </p>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-xs table-custom">
+                        <thead>
+                            <tr>
+                                <th class="p-3">Catégorie</th>
+                                <th class="p-3">Quota</th>
+                                <th class="p-3">Retenus</th>
+                                <th class="p-3">Écart</th>
+                                <th class="p-3">Justification Écart</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+                            <tr><td class="p-3 font-semibold">Leader</td><td class="p-3">3</td><td class="p-3">2</td><td class="p-3 text-rose-600 font-bold">-1</td><td class="p-3 text-[11px] text-slate-500">Seuls Robertet et V. MANE FILS dominent la bande supérieure.</td></tr>
+                            <tr><td class="p-3 font-semibold">Challenger</td><td class="p-3">3</td><td class="p-3">1</td><td class="p-3 text-rose-600 font-bold">-2</td><td class="p-3 text-[11px] text-slate-500">Bande 146–438 M€ vide. Expressions Parfumées (0,147) retenu à la limite.</td></tr>
+                            <tr><td class="p-3 font-semibold">Mid-market</td><td class="p-3">3</td><td class="p-3">1</td><td class="p-3 text-rose-600 font-bold">-2</td><td class="p-3 text-[11px] text-slate-500">Argeville et PARFEX retirés car sous le plancher de preuve (triggers manquants).</td></tr>
+                            <tr><td class="p-3 font-semibold">Outsider émergent</td><td class="p-3">2</td><td class="p-3">1</td><td class="p-3 text-rose-600 font-bold">-1</td><td class="p-3 text-[11px] text-slate-500">Payan Bertrand sélectionné par dynamique d'investissement.</td></tr>
+                            <tr><td class="p-3 font-semibold">Outsider niche</td><td class="p-3">3</td><td class="p-3">3</td><td class="p-3 text-emerald-600 font-bold">+0</td><td class="p-3 text-[11px] text-slate-500">Aromatech, Jean Niel, Bontoux retenus.</td></tr>
+                            <tr class="bg-slate-50 font-bold"><td class="p-3">Total</td><td class="p-3">14</td><td class="p-3">8</td><td class="p-3 text-rose-600">-6</td><td class="p-3 text-[11px]">Écart motivé par le plancher de preuve (A7) & l'absence de challenger intermédiaire.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION 3.2: CARTE DE PRIORISATION -->
+            <section id="carte-priorisation" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-800 font-bold text-sm">3.2</span>
+                        <h3 class="text-xl font-bold text-slate-900">Carte de Priorisation Pipeline</h3>
+                    </div>
+                    <span class="text-xs bg-sky-100 text-sky-800 font-bold px-3 py-1 rounded-full">X = Appétence /35 | Y = Accessibilité (1-5)</span>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-xs table-custom">
+                        <thead>
+                            <tr>
+                                <th class="p-3">Compte</th>
+                                <th class="p-3">Appétence /35</th>
+                                <th class="p-3">Accessibilité (Y)</th>
+                                <th class="p-3">CA Extrait / Périmètre</th>
+                                <th class="p-3">Statut Pipeline</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr class="bg-sky-50/50 hover:bg-sky-50">
+                                <td class="p-3 font-bold text-sky-900">Robertet <span class="text-[10px] bg-sky-200 text-sky-800 px-1.5 py-0.5 rounded ml-1">Étalon</span></td>
+                                <td class="p-3 font-bold text-emerald-600">35 / 35</td>
+                                <td class="p-3 font-semibold text-emerald-700">5 / 5 (Porte Ouverte)</td>
+                                <td class="p-3">843,90 M€ (2025 Groupe Monde)</td>
+                                <td class="p-3"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">Client existant (Exclu Top 3)</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold text-slate-900">TechnicoFlor</td>
+                                <td class="p-3 font-bold text-emerald-600">27 / 35</td>
+                                <td class="p-3 font-semibold text-slate-700">3 / 5 (Court)</td>
+                                <td class="p-3">41,99 M€ (2025 SAS France)</td>
+                                <td class="p-3"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Cible N°1 (Trigger Frais)</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold text-slate-900">Payan Bertrand</td>
+                                <td class="p-3 font-bold text-emerald-600">27 / 35</td>
+                                <td class="p-3 font-semibold text-slate-700">3 / 5 (Court)</td>
+                                <td class="p-3">29,06 M€ (2024 SAS France)</td>
+                                <td class="p-3"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Cible N°2 (Capex 12M€)</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold text-slate-900">V. Mane Fils (MANE)</td>
+                                <td class="p-3 font-bold text-emerald-600">27 / 35</td>
+                                <td class="p-3 font-semibold text-slate-700">3 / 5 (Référencement)</td>
+                                <td class="p-3">730,24 M€ (2024 France SAS)</td>
+                                <td class="p-3"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Cible N°3 (Databricks)</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold text-slate-900">Aromatech</td>
+                                <td class="p-3 font-bold text-slate-700">21 / 35</td>
+                                <td class="p-3 font-semibold text-slate-700">3 / 5 (RSE requis)</td>
+                                <td class="p-3">27,04 M€ (2021 SAS France)</td>
+                                <td class="p-3"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">En réserve (Aromes)</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold text-slate-900">Jean Niel</td>
+                                <td class="p-3 font-bold text-slate-700">19 / 35</td>
+                                <td class="p-3 font-semibold text-slate-700">3 / 5 (Réseau)</td>
+                                <td class="p-3">34,00 M€ (Déclaré)</td>
+                                <td class="p-3"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded">À écarter (Pas de signal SI)</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold text-slate-900">Bontoux</td>
+                                <td class="p-3 font-bold text-slate-700">19 / 35</td>
+                                <td class="p-3 font-semibold text-slate-700">3 / 5 (Direct)</td>
+                                <td class="p-3">30,86 M€ (2023 SAS France)</td>
+                                <td class="p-3"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded">À écarter (Opacité SI)</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold text-slate-900">Expressions Parfumées</td>
+                                <td class="p-3 font-bold text-rose-600">17 / 35</td>
+                                <td class="p-3 font-semibold text-rose-700">1 / 5 (Groupe Dépendance)</td>
+                                <td class="p-3">107,69 M€ (2022 France)</td>
+                                <td class="p-3"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold">À écarter (Autonomie ?)</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION 3.3 & 3.4: MATRICE & TABLEAU COMPARATIF -->
+            <section id="tableau-comparatif" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-800 font-bold text-sm">3.4</span>
+                    <h3 class="text-xl font-bold text-slate-900">Tableau Comparatif Consolidé</h3>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-xs table-custom">
+                        <thead>
+                            <tr>
+                                <th class="p-3">Compte</th>
+                                <th class="p-3">Catégorie</th>
+                                <th class="p-3">Identifiant / NAF</th>
+                                <th class="p-3">Groupe d'Appartenance</th>
+                                <th class="p-3">CA Retenu</th>
+                                <th class="p-3">Appétence</th>
+                                <th class="p-3">Confiance</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">Robertet</td>
+                                <td class="p-3">Leader</td>
+                                <td class="p-3 font-mono">415750660 / 20.53Z</td>
+                                <td class="p-3">Groupe Robertet (Familial Maubert)</td>
+                                <td class="p-3 font-mono">843,90 M€ (2025)</td>
+                                <td class="p-3 font-bold text-emerald-600">35 / 35</td>
+                                <td class="p-3"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Haute</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">V. Mane Fils (MANE)</td>
+                                <td class="p-3">Leader</td>
+                                <td class="p-3 text-slate-400 font-mono">non fourni par socle</td>
+                                <td class="p-3">Groupe MANE (Tête de groupe France)</td>
+                                <td class="p-3 font-mono">730,24 M€ (2024)</td>
+                                <td class="p-3 font-bold text-emerald-600">27 / 35</td>
+                                <td class="p-3"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Moyenne</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">Expressions Parfumées</td>
+                                <td class="p-3">Challenger</td>
+                                <td class="p-3 font-mono">323871426 / 20.53Z</td>
+                                <td class="p-3">Givaudan SA (Suisse)</td>
+                                <td class="p-3 font-mono">107,69 M€ (2022)</td>
+                                <td class="p-3 font-bold text-rose-600">17 / 35</td>
+                                <td class="p-3"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Moyenne</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">TechnicoFlor</td>
+                                <td class="p-3">Mid-market</td>
+                                <td class="p-3 text-slate-400 font-mono">non fourni par socle</td>
+                                <td class="p-3">Groupe API (France)</td>
+                                <td class="p-3 font-mono">41,99 M€ (2025)</td>
+                                <td class="p-3 font-bold text-emerald-600">27 / 35</td>
+                                <td class="p-3"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Moyenne</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">Payan Bertrand</td>
+                                <td class="p-3">Outsider émergent</td>
+                                <td class="p-3 font-mono">415550029 / 20.53Z</td>
+                                <td class="p-3">Indépendant (Familial Proal)</td>
+                                <td class="p-3 font-mono">29,06 M€ (2024)</td>
+                                <td class="p-3 font-bold text-emerald-600">27 / 35</td>
+                                <td class="p-3"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Haute</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">Aromatech</td>
+                                <td class="p-3">Outsider niche</td>
+                                <td class="p-3 font-mono">339899486 / 20.53Z</td>
+                                <td class="p-3">Groupe Aromatech (Caparom)</td>
+                                <td class="p-3 font-mono">27,04 M€ (2021)</td>
+                                <td class="p-3 font-bold text-slate-700">21 / 35</td>
+                                <td class="p-3"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Moyenne</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">Jean Niel</td>
+                                <td class="p-3">Outsider niche</td>
+                                <td class="p-3 font-mono">415750306 / 20.53Z</td>
+                                <td class="p-3">Indépendant (Familial de Boutiny)</td>
+                                <td class="p-3 font-mono">34,00 M€ (Déclaré)</td>
+                                <td class="p-3 font-bold text-slate-700">19 / 35</td>
+                                <td class="p-3"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded">Faible</span></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-3 font-bold">Bontoux</td>
+                                <td class="p-3">Outsider niche</td>
+                                <td class="p-3 text-slate-400 font-mono">non fourni par socle</td>
+                                <td class="p-3">Groupe Bontoux (SOFIBO)</td>
+                                <td class="p-3 font-mono">30,86 M€ (2023)</td>
+                                <td class="p-3 font-bold text-slate-700">19 / 35</td>
+                                <td class="p-3"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded">Faible</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION 3.5: FICHES DÉTAILLÉES DES 8 COMPTES -->
+            <section id="fiches-comptes" class="space-y-8">
+                <div class="flex items-center gap-3 border-b border-slate-200 pb-4">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-900 text-white font-bold text-sm">3.5</span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Fiches Détaillées des 8 Comptes</h2>
+                        <p class="text-xs text-slate-500">Structure B1 à B5 exhaustive · IA Annoncé vs Déployé · Offres & Accroches</p>
+                    </div>
+                </div>
+
+                <!-- COMPTE 1 : ROBERTET -->
+                <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm space-y-4 account-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded">LEADER • COMPTE ÉTALON (CLIENT EXISTANT)</span>
+                            <h3 class="text-xl font-extrabold text-slate-900 mt-1">1. Robertet SA</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Appétence: 35/35</span>
+                            <span class="text-xs font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">Accessibilité: 5/5</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-3.5 rounded-xl">
+                        <div><strong>SIREN :</strong> 415750660 | <strong>NAF :</strong> 20.53Z</div>
+                        <div><strong>Groupe :</strong> Groupe Robertet (Familial Maubert)</div>
+                        <div><strong>CA Retenu :</strong> 843,90 M€ (2025 Consolide Monde)</div>
+                        <div><strong>Régime :</strong> IFRA 52 (Fin nov 2026), REACH, Seveso Seuil Haut</div>
+                    </div>
+
+                    <!-- B3 IA Warning Box -->
+                    <div class="ia-warning-box p-4 rounded-xl text-xs space-y-1 text-amber-950">
+                        <strong class="font-bold flex items-center gap-1.5 text-amber-800">
+                            <i class="fa-solid fa-robot"></i> IA : ANNONCÉ vs DÉPLOYÉ
+                        </strong>
+                        <p><strong>Annoncé :</strong> La direction accélère la digitalisation avec des projets de création assistée par IA (rapport 2025).</p>
+                        <p><strong>Déployé :</strong> <em>NaturIA</em>, outil d'IA générative olfactive sur mesure présenté publiquement le 22/06/2026 par le Directeur Innovation Parfumerie & DSI Global.</p>
+                        <p class="text-emerald-900 font-medium"><strong>Écart & Besoin :</strong> Écart faible en création. L'écart est en aval : aucune preuve sur la gouvernance des données, la sécurité des formules et le MLOps. C'est là que réside le besoin d'accompagnement.</p>
+                    </div>
+
+                    <!-- Accroches Téléphone -->
+                    <div class="bg-slate-900 text-white p-4 rounded-xl text-xs space-y-2">
+                        <span class="font-bold text-sky-400 uppercase text-[10px] tracking-wider">Accroches Téléphoniques Recommandées</span>
+                        <p class="italic">« Vous avez présenté NaturIA en public le 22 juin à Grasse. La question que je vous pose n'est pas ce qu'il sait faire, c'est qui a le droit de lire quelles formules quand il tourne, et comment vous le prouvez. »</p>
+                    </div>
+                </div>
+
+                <!-- COMPTE 2 : V. MANE FILS -->
+                <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm space-y-4 account-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded">LEADER • CIBLE N°3 TOP ATTAQUE</span>
+                            <h3 class="text-xl font-extrabold text-slate-900 mt-1">2. V. Mane Fils (MANE)</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Appétence: 27/35</span>
+                            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">Accessibilité: 3/5</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-3.5 rounded-xl">
+                        <div><strong>SIREN / NAF :</strong> Non fourni par socle</div>
+                        <div><strong>Groupe :</strong> Groupe MANE (Tête de groupe France, Le Bar-sur-Loup)</div>
+                        <div><strong>CA Retenu :</strong> 730,24 M€ (2024 SAS France, Net 126 M€)</div>
+                        <div><strong>Chantier Clef :</strong> Plateforme BI/Data sur Fabric & Databricks</div>
+                    </div>
+
+                    <div class="ia-warning-box p-4 rounded-xl text-xs space-y-1 text-amber-950">
+                        <strong class="font-bold flex items-center gap-1.5 text-amber-800">
+                            <i class="fa-solid fa-robot"></i> IA : ANNONCÉ vs DÉPLOYÉ
+                        </strong>
+                        <p><strong>Annoncé :</strong> Aucune communication publique ou discours d'annonce IA générique (zéro bruit médiatique).</p>
+                        <p><strong>Déployé :</strong> Recrutement actif d'un Responsable BI, Analytics & Data Platform citant SAP BW, Fabric, Databricks & DataOps.</p>
+                        <p class="text-emerald-900 font-medium"><strong>Écart :</strong> Inversé ! Le compte déploie sans annoncer. La maturité réelle est forte. Un pitch IA générique sera perçu comme naïf ; il faut parler DataOps et gouvernance du patrimoine de formules.</p>
+                    </div>
+
+                    <div class="bg-slate-900 text-white p-4 rounded-xl text-xs space-y-2">
+                        <span class="font-bold text-sky-400 uppercase text-[10px] tracking-wider">Accroches Téléphoniques Recommandées</span>
+                        <p class="italic">« Vous recrutez sur Fabric, Databricks et le DataOps. Sur les maisons de composition, le premier vrai test de charge d'une plateforme comme celle-là, c'est une notification IFRA : combien de formules, combien d'usages, combien de clients, en combien d'heures. »</p>
+                    </div>
+                </div>
+
+                <!-- COMPTE 3 : EXPRESSIONS PARFUMÉES -->
+                <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm space-y-4 account-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-800 px-2.5 py-0.5 rounded">CHALLENGER • À ÉCARTER (AUTONOMIE À QUALIFIER)</span>
+                            <h3 class="text-xl font-extrabold text-slate-900 mt-1">3. Expressions Parfumées</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">Appétence: 17/35</span>
+                            <span class="text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">Accessibilité: 1/5</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-3.5 rounded-xl">
+                        <div><strong>SIREN :</strong> 323871426 | <strong>NAF :</strong> 20.53Z</div>
+                        <div><strong>Groupe :</strong> Givaudan SA (Suisse)</div>
+                        <div><strong>CA Retenu :</strong> 107,69 M€ (2022 France)</div>
+                        <div><strong>Investissements :</strong> Campus 52 Grasse (55 MCHF, Juin 2026)</div>
+                    </div>
+
+                    <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl text-xs text-rose-900">
+                        <strong>Motif de réserve :</strong> Maturité numérique forte au niveau Suisse (Givaudan), mais autonomie locale d'achat IT non établie à Grasse. Risque d'orienter l'effort vers un interlocuteur sans budget propre.
+                    </div>
+                </div>
+
+                <!-- COMPTE 4 : TECHNICOFLOR -->
+                <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm space-y-4 account-card border-l-4 border-l-emerald-500">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded">MID-MARKET • CIBLE N°1 TOP ATTAQUE</span>
+                            <h3 class="text-xl font-extrabold text-slate-900 mt-1">4. TechnicoFlor SAS</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Appétence: 27/35</span>
+                            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">Accessibilité: 3/5</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-3.5 rounded-xl">
+                        <div><strong>Groupe :</strong> Groupe API (Allauch, 13)</div>
+                        <div><strong>CA Retenu :</strong> 41,99 M€ (2025 France SAS ; Branche 51 M€)</div>
+                        <div><strong>Trigger Frais (Juillet 2026) :</strong> Acquisition d'Azur Fragrances (40 p., 6,2 M€)</div>
+                        <div><strong>Outil Industriel :</strong> Usine Allauch ultra-robotisée (12 M€ capex)</div>
+                    </div>
+
+                    <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-xs text-emerald-900 space-y-1">
+                        <strong>Pourquoi la cible N°1 ?</strong> L'acquisition d'Azur Fragrances en juillet 2026 impose d'intégrer deux référentiels d'articles, de formules et de clients dans un outil industriel déjà très robotisé. C'est le besoin le plus frais et le plus immédiat de la région.
+                    </div>
+
+                    <div class="bg-slate-900 text-white p-4 rounded-xl text-xs space-y-2">
+                        <span class="font-bold text-sky-400 uppercase text-[10px] tracking-wider">Accroche Téléphonique Recommandée</span>
+                        <p class="italic">« Vous avez bouclé l'acquisition d'Azur Fragrances en deux mois. Sur ce type d'opération, ce qui prend du temps ce n'est jamais le closing, c'est le moment où il faut consolider deux référentiels de formules et deux bases clients. Où en êtes-vous sur ce point ? »</p>
+                    </div>
+                </div>
+
+                <!-- COMPTE 5 : PAYAN BERTRAND -->
+                <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm space-y-4 account-card border-l-4 border-l-emerald-500">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded">OUTSIDER ÉMERGENT • CIBLE N°2 TOP ATTAQUE</span>
+                            <h3 class="text-xl font-extrabold text-slate-900 mt-1">5. Payan Bertrand</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">Appétence: 27/35</span>
+                            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">Accessibilité: 3/5</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-3.5 rounded-xl">
+                        <div><strong>SIREN :</strong> 415550029 | <strong>NAF :</strong> 20.53Z</div>
+                        <div><strong>Groupe :</strong> Indépendant (Familial Proal, 3e génération)</div>
+                        <div><strong>CA Retenu :</strong> 29,06 M€ (2024 ; >30 M€ en 2025 déclaré)</div>
+                        <div><strong>Projet Majeur :</strong> Investissement 12 M€ usine robotisée Pacome (Livraison Fin 2026)</div>
+                    </div>
+
+                    <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-xs text-emerald-900 space-y-1">
+                        <strong>Angle Commercial :</strong> Sécuriser la montée en cadence du site robotisé Pacome et gérer la scission opérationnelle en 2 Business Units prévues pour 2027 (Ingrédients vs Compositions).
+                    </div>
+
+                    <div class="bg-slate-900 text-white p-4 rounded-xl text-xs space-y-2">
+                        <span class="font-bold text-sky-400 uppercase text-[10px] tracking-wider">Accroche Téléphonique Recommandée</span>
+                        <p class="italic">« Vous mettez Pacome en service en fin d'année et vous scindez en deux BU en 2027. La question qui n'est pas encore tranchée, c'est comment vos données de formules, de qualité et de production vont circuler entre deux entités qui n'existaient pas avant. »</p>
+                    </div>
+                </div>
+
+                <!-- COMPTES 6, 7, 8 (Aromatech, Jean Niel, Bontoux) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                        <span class="font-bold text-slate-800 text-sm block">6. Aromatech</span>
+                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold">Appétence 21/35</span>
+                        <p class="text-slate-600">CA : 27,04 M€ (2021). Spécialiste Arômes Alimentaires Bio. Médaille d'Or EcoVadis 2026 (Achats Responsables).</p>
+                        <p class="text-sky-800 font-medium"><strong>Angle :</strong> Valoriser les données des 3 robots de pesée et du panel sensoriel interne.</p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                        <span class="font-bold text-slate-800 text-sm block">7. Jean Niel</span>
+                        <span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded text-[10px] font-bold">Appétence 19/35</span>
+                        <p class="text-slate-600">CA : 34 M€ (déclaré). Maison historique 1779. Ouverture bureau Barcelone (Juillet 2026).</p>
+                        <p class="text-rose-700 font-medium"><strong>À Écarter :</strong> Absence de fonction ou signal SI public.</p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                        <span class="font-bold text-slate-800 text-sm block">8. Bontoux</span>
+                        <span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded text-[10px] font-bold">Appétence 19/35</span>
+                        <p class="text-slate-600">CA : 30,86 M€ (2023). Drôme provençale. Acquisition atelier fluides supercritiques (Nov 2025).</p>
+                        <p class="text-rose-700 font-medium"><strong>À Écarter :</strong> Opacité SI, absence d'interlocuteur identifié.</p>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- SECTION 3.6 & 3.7: RÉSERVE & ÉCARTÉS -->
+            <section id="reserve" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-800 font-bold text-sm">3.6</span>
+                    <h3 class="text-xl font-bold text-slate-900">Réserve à Qualifier (6 Comptes Sous Plancher)</h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                        <strong class="text-slate-900 block">SFA NEROLI (Symrise)</strong>
+                        <p class="text-slate-600">Pas de trigger < 12 mois. Campus 10 000m² à St-Cézaire (07/2025). 300 p.</p>
+                        <span class="text-emerald-700 font-medium">Déblocage : Vérification dépôt comptes 2025/2026.</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                        <strong class="text-slate-900 block">Argeville</strong>
+                        <p class="text-slate-600">CA 74,66 M€ (2024). Nouvelle usine 5 100m² au Plan de Grasse. Siège Valbonne.</p>
+                        <span class="text-emerald-700 font-medium">Déblocage : Vérifier date de mise en service usine.</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                        <strong class="text-slate-900 block">PARFEX (Croda / Iberchem)</strong>
+                        <p class="text-slate-600">CA 40,69 M€ (2024). Usine automatisée à 90% (3 robots pesée).</p>
+                        <span class="text-emerald-700 font-medium">Déblocage : Dépôt des comptes 2025.</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                        <strong class="text-slate-900 block">Cosmo International Fragrances</strong>
+                        <p class="text-slate-600">Usine 12 M€ neuve (Av. Maubert Grasse), technologie Osmobloom.</p>
+                        <span class="text-emerald-700 font-medium">Déblocage : Déclaration CA / effectif France.</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                        <strong class="text-slate-900 block">Biolandes</strong>
+                        <p class="text-slate-600">CA 78,98 M€ (2025), 149 p. Extraction naturelle Landes.</p>
+                        <span class="text-emerald-700 font-medium">Déblocage : Recherche presse régionale ciblée.</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                        <strong class="text-slate-900 block">SOZIO</strong>
+                        <p class="text-slate-600">Maison 1758. Production Noyant (France) + 3 sites internationaux.</p>
+                        <span class="text-emerald-700 font-medium">Déblocage : Instruction SI complète à mener.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3.8: TOP 3 À ATTAQUER -->
+            <section id="top3-attaque" class="bg-emerald-950 text-white rounded-2xl p-6 sm:p-8 shadow-md space-y-6 border border-emerald-800">
+                <div class="flex items-center gap-3 border-b border-emerald-800 pb-4">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-sm">3.8</span>
+                    <div>
+                        <h3 class="text-xl font-extrabold text-emerald-300">Les 3 Comptes à Attaquer Maintenant</h3>
+                        <p class="text-xs text-emerald-200">Sélectionnés après arbitrage (Robertet exclu car déjà client existant)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div class="bg-emerald-900/60 border border-emerald-700 p-4 rounded-xl space-y-2">
+                        <div class="font-bold text-white text-sm flex items-center justify-between">
+                            <span>1. TechnicoFlor</span>
+                            <span class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-mono text-[10px]">27/35</span>
+                        </div>
+                        <p class="text-emerald-200"><strong>Trigger :</strong> Acquisition Azur Fragrances (Juillet 2026).</p>
+                        <p class="text-slate-300"><strong>Angle :</strong> Consolidation des réferentiels d'articles, formules et clients dans l'outil d'Allauch.</p>
+                    </div>
+
+                    <div class="bg-emerald-900/60 border border-emerald-700 p-4 rounded-xl space-y-2">
+                        <div class="font-bold text-white text-sm flex items-center justify-between">
+                            <span>2. Payan Bertrand</span>
+                            <span class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-mono text-[10px]">27/35</span>
+                        </div>
+                        <p class="text-emerald-200"><strong>Trigger :</strong> Usine robotisée Pacome (12M€, livraison fin 2026).</p>
+                        <p class="text-slate-300"><strong>Angle :</strong> Fiabilité de la montée en cadence et séparation des données entre les 2 BU (2027).</p>
+                    </div>
+
+                    <div class="bg-emerald-900/60 border border-emerald-700 p-4 rounded-xl space-y-2">
+                        <div class="font-bold text-white text-sm flex items-center justify-between">
+                            <span>3. V. Mane Fils</span>
+                            <span class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-mono text-[10px]">27/35</span>
+                        </div>
+                        <p class="text-emerald-200"><strong>Trigger :</strong> Plateforme Data (Databricks / Fabric / SAP).</p>
+                        <p class="text-slate-300"><strong>Angle :</strong> Renfort d'expertise DataOps, gouvernance et préparation aux contraintes IFRA 52.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3.11: COMPTEURS BUNDLE -->
+            <section id="compteurs" class="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-800 font-bold text-sm">3.11</span>
+                    <h3 class="text-xl font-bold text-slate-900">Compteurs & Invariants du Bundle (Méthode A9/A10)</h3>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-xs table-custom">
+                        <thead>
+                            <tr>
+                                <th class="p-3">Compteur Metric</th>
+                                <th class="p-3">Valeur Déclarée</th>
+                                <th class="p-3">Longueur Effective</th>
+                                <th class="p-3">Conformité Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-mono text-slate-700">
+                            <tr><td class="p-3 font-sans">comptes</td><td class="p-3">8</td><td class="p-3">8</td><td class="p-3 text-emerald-600 font-bold">100 % OK</td></tr>
+                            <tr><td class="p-3 font-sans">comptes_prioritaires</td><td class="p-3">3</td><td class="p-3">3</td><td class="p-3 text-emerald-600 font-bold">100 % OK</td></tr>
+                            <tr><td class="p-3 font-sans">comptes_prioritaires_couche_esn_complete</td><td class="p-3">3</td><td class="p-3">3</td><td class="p-3 text-emerald-600 font-bold">100 % OK</td></tr>
+                            <tr><td class="p-3 font-sans">reserve_a_qualifier</td><td class="p-3">6</td><td class="p-3">6</td><td class="p-3 text-emerald-600 font-bold">100 % OK</td></tr>
+                            <tr><td class="p-3 font-sans">acteurs_ecartes</td><td class="p-3">6</td><td class="p-3">6</td><td class="p-3 text-emerald-600 font-bold">100 % OK</td></tr>
+                            <tr><td class="p-3 font-sans">comptes_a_ecarter</td><td class="p-3">3</td><td class="p-3">3</td><td class="p-3 text-emerald-600 font-bold">100 % OK</td></tr>
+                            <tr><td class="p-3 font-sans">trigger_events_total</td><td class="p-3">15</td><td class="p-3">15</td><td class="p-3 text-emerald-600 font-bold">100 % OK</td></tr>
+                            <tr class="bg-sky-50 font-sans font-bold"><td class="p-3">Taux Renseignement Couche ESN Cibles</td><td class="p-3" colspan="2">3 / 3 Comptes Prioritaires Complétés</td><td class="p-3 text-emerald-700 font-bold">100 % (vs 0 % Audit Précédent)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800 mt-16 no-print">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p>© 2026 — Rapport Stratégique Consolidé E4 & E5 • Compositions & Ingrédients B2B</p>
+            <p class="text-slate-500">Document généré selon les standards d'excellence des cabinets de conseil stratégique.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
