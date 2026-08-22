@@ -171,6 +171,14 @@ BLOC 2 — MÉTIER ET CHAÎNE DE VALEUR
 BLOC 3 — LES SIX GRILLES
   1. Financière — CA du périmètre pertinent, évolution 3 ans, rentabilité si publiée.
      « comptes non publiés » quand c'est le cas.
+     Source indicative, non exclusive, pour cette recherche : Pappers (pappers.fr) — CA
+     historique, taux de croissance et marges déjà calculés depuis les liasses déposées,
+     chaque chiffre lié au PDF source du dépôt. Reste soumis au même plafond légal que toute
+     autre source : sous les seuils de confidentialité PME/ETI (décret n° 2024-152), le CA n'y
+     est pas plus affiché qu'ailleurs — « comptes non publiés » reste la réponse correcte.
+     Pour un compte coté (Euronext ou assimilé), ajouter Info-Financière/BDIF de l'AMF
+     (info-financiere.fr) : communiqués trimestriels et rapports financiers, seule source à
+     distinguer croissance organique et croissance externe.
   2. Empreinte métier — quelle part de la chaîne l'acteur couvre réellement. Une phrase,
      puis une note de 1 à 5.
   3. Réputation — faits observables uniquement : distinctions, litiges publics, avis

@@ -103,6 +103,9 @@ même péremption, donc ni le même fichier. Voir `00-DOCTRINE.md` §A7.
 
 ## 4. Démarrage — produire la connaissance d'un secteur
 
+> Parcours détaillé, pas à pas, avec les 4 arrêts où Guillaume décide : voir
+> [`GUIDE-UTILISATEUR.md`](GUIDE-UTILISATEUR.md).
+
 1. Lire `00-DOCTRINE.md` une fois, intégralement. Les 12 axiomes conditionnent tout le reste.
 2. Ouvrir `03-ETAPE-E0-CADRAGE.md`, remplir le bloc de paramétrage, le sauver dans
    `registre/<AAAA-MM>-<slug-segment>/00-cadrage.json`.

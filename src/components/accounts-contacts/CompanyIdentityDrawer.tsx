@@ -23,6 +23,7 @@ import {
   persistCrmLauncherAccountIds,
   toggleCrmLauncherAccountId,
 } from "@/lib/crm/account-launcher-preferences"
+import { hasAccountStudySnapshotContent, type AccountStudySnapshot } from "@/features/competitive-map/domain/account-study-snapshot"
 
 // Chargement différé : le bundle du scan (résultats desktop/mobile, DataTable…)
 // n'est chargé que si l'utilisateur clique effectivement sur "Scan".
@@ -135,6 +136,17 @@ type IdentityData = {
     sentiment: string | null
     next_action: string | null
   } | null
+  /** ADR-0019 — fiche 05-comptes de l'étude sectorielle d'origine, lue en direct depuis `competitive_map_entries` (jamais copiée). */
+  studySnapshot: AccountStudySnapshot
+  studyEntry: {
+    categoryLabel: string | null
+    maturiteNumerique: number | null
+    /** `account_facts.revenue_estimate` — sourcé indépendamment de `companies.revenue` (legacy), seule source pour un compte `origin='competitive_map'`. */
+    revenueEstimateMeur: number | null
+    revenueExercice: number | null
+    revenuePerimetre: string | null
+    headcountFrance: string | null
+  }
 }
 
 interface CompanyAnalysisData {
@@ -772,34 +784,53 @@ export function CompanyIdentityDrawer({
                     Catégorie & chiffres clés
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Catégorie */}
+                    {/* Catégorie — positionnement concurrentiel (étude sectorielle) si disponible, sinon tranche d'effectif */}
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Catégorie</span>
                       <span className="text-xs font-bold text-heading">
-                        {formatCategory(data.company.size_band)}
+                        {data.studyEntry?.categoryLabel || formatCategory(data.company.size_band)}
                       </span>
                     </div>
-                    {/* Effectifs */}
+                    {/* Effectifs — company.employee_count (legacy) puis account_facts.headcount_france (sourcé étude) */}
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Effectifs</span>
                       <span className="text-xs font-bold text-heading">
-                        {data.company.employee_count !== null 
+                        {data.company.employee_count !== null
                           ? data.company.employee_count
-                          : (identite.effectif_estime || (metadata.employee_count_raw as string) || "Non renseigné")}
+                          : (data.studyEntry.headcountFrance || identite.effectif_estime || (metadata.employee_count_raw as string) || "Non renseigné")}
                       </span>
                     </div>
 
+                    {/* Chiffre d'Affaires — company.revenue (legacy) puis account_facts.revenue_estimate (sourcé étude, seule source pour un compte créé par une cartographie) */}
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Chiffre d&apos;Affaires</span>
-                      <span className="text-xs font-bold text-heading">
-                        {data.company.revenue || identite.ca_estime || (metadata.revenue_raw as string) || "Non renseigné"}
-                      </span>
+                      {data.company.revenue || identite.ca_estime || (metadata.revenue_raw as string) ? (
+                        <span className="text-xs font-bold text-heading">
+                          {data.company.revenue || identite.ca_estime || (metadata.revenue_raw as string)}
+                        </span>
+                      ) : data.studyEntry.revenueEstimateMeur !== null ? (
+                        <span
+                          className="text-xs font-bold text-heading"
+                          title={data.studyEntry.revenuePerimetre || undefined}
+                        >
+                          {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(data.studyEntry.revenueEstimateMeur)} M€
+                          {data.studyEntry.revenueExercice ? ` (${data.studyEntry.revenueExercice})` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-heading">Non renseigné</span>
+                      )}
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Dynamique</span>
-                      <span className="text-xs font-bold text-heading">
-                        {formatDynamique(data.company.health, signaux.tendance_croissance)}
-                      </span>
+                      {data.studySnapshot.trajectoire ? (
+                        <span className="text-xs font-normal text-heading leading-relaxed">
+                          {data.studySnapshot.trajectoire}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-heading">
+                          {formatDynamique(data.company.health, signaux.tendance_croissance)}
+                        </span>
+                      )}
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Siège social</span>
@@ -813,14 +844,21 @@ export function CompanyIdentityDrawer({
                         {formatRayonnement(positionnement.zone_geographique)}
                       </span>
                     </div>
-                    {hasMaturite && (
+                    {data.studyEntry?.maturiteNumerique !== null && data.studyEntry?.maturiteNumerique !== undefined ? (
+                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                        <span className="text-[9px] text-muted font-bold uppercase">Maturité digitale</span>
+                        <span className="text-xs font-bold text-heading">
+                          {data.studyEntry.maturiteNumerique}/5
+                        </span>
+                      </div>
+                    ) : hasMaturite ? (
                       <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 col-span-2">
                         <span className="text-[9px] text-muted font-bold uppercase">Maturité digitale</span>
                         <span className="text-xs font-normal text-heading">
                           {signaux.indices_maturite_digitale}
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -887,6 +925,86 @@ export function CompanyIdentityDrawer({
                       <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Zone Géographique</span>
                     </div>
                     <p className="text-xs text-body leading-relaxed font-medium pl-3.5">{positionnement.zone_geographique}</p>
+                  </div>
+                )}
+
+                {/* ADR-0019 — fiche 05-comptes de l'étude sectorielle (blocs B2/B3) */}
+                {data.studySnapshot.metier?.intro && (
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Métier</span>
+                    </div>
+                    <p className="text-xs text-body leading-relaxed pl-3.5">{data.studySnapshot.metier.intro}</p>
+                  </div>
+                )}
+
+                {(data.studySnapshot.metier?.valeurPropre || data.studySnapshot.avantages) && (
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Proposition de Valeur</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5 pl-3.5">
+                      {data.studySnapshot.metier?.valeurPropre && (
+                        <p className="text-xs text-body leading-relaxed">{data.studySnapshot.metier.valeurPropre}</p>
+                      )}
+                      {data.studySnapshot.avantages && (
+                        <p className="text-xs text-body leading-relaxed">{data.studySnapshot.avantages}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {data.studySnapshot.vulnerabilitePrincipale && (
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Vulnérabilité</span>
+                    </div>
+                    <p className="text-xs text-body leading-relaxed pl-3.5">{data.studySnapshot.vulnerabilitePrincipale}</p>
+                  </div>
+                )}
+
+                {data.studySnapshot.metier?.clients && (
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Client</span>
+                    </div>
+                    <p className="text-xs text-body leading-relaxed pl-3.5">{data.studySnapshot.metier.clients}</p>
+                  </div>
+                )}
+
+                {data.studySnapshot.contratsMajeurs.length > 0 && (
+                  <div className="flex flex-col gap-1.5 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Contrats Majeurs</span>
+                    </div>
+                    <ul className="flex flex-col gap-2 pl-3.5">
+                      {data.studySnapshot.contratsMajeurs.map((contrat, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-muted shrink-0 mt-1.5" />
+                          <div className="flex-1 text-xs text-body leading-relaxed">
+                            <span>{contrat.objet}</span>
+                            <span className="block text-[10px] text-muted mt-0.5">
+                              {[contrat.date, contrat.montant].filter(Boolean).join(" · ")}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
@@ -989,7 +1107,30 @@ export function CompanyIdentityDrawer({
                     </div>
                   )}
 
-                  {sortedContacts.length === 0 ? (
+                  {sortedContacts.length === 0 && hasAccountStudySnapshotContent(data.studySnapshot) ? (
+                    <div className="flex flex-col items-center gap-3 py-10 bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 text-center">
+                      <p className="text-xs text-muted italic px-4">
+                        Compte issu d&apos;une étude sectorielle — aucun contact n&apos;a encore été identifié.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsScanDialogOpen(true)}
+                        className="flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-md px-3 text-[10px] font-bold text-white transition-all hover:brightness-105 active:scale-[0.98]"
+                        style={{ backgroundColor: "#1E5E99" }}
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
+                          <Image
+                            src="/icons_set/scan_infos_drawer.png"
+                            alt=""
+                            width={13}
+                            height={13}
+                            className="h-[13px] w-[13px] object-contain"
+                          />
+                        </span>
+                        <span>Scan rapide</span>
+                      </button>
+                    </div>
+                  ) : sortedContacts.length === 0 ? (
                     <div className="text-center py-10 bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 text-xs text-muted italic">
                       Aucun contact lié à cette entreprise.
                     </div>
@@ -1101,6 +1242,53 @@ export function CompanyIdentityDrawer({
               const status = data.company.lifecycle_status
               const activeMissions = data.missions.filter((m) => m.status === "active")
               const openOpps = data.opportunities.filter((o) => !isTerminalOpportunityStage(o.stage))
+
+              // ADR-0019 — compte fraîchement converti (étude sectorielle) sans
+              // aucune activité CRM encore renseignée : la traduction commerciale
+              // de la fiche 05-comptes remplace l'état vide générique.
+              const hasAnyActivity =
+                data.missions.length > 0 ||
+                data.opportunities.length > 0 ||
+                !!data.lastInteraction ||
+                !!data.company.last_contact_at ||
+                !!data.company.next_action_label
+              const traduction = data.studySnapshot.traductionCommerciale
+
+              if (!hasAnyActivity && traduction) {
+                return (
+                  <div className="space-y-4">
+                    <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-[var(--radius-medium)] p-4 font-normal flex flex-col gap-2">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                        Traduction Commerciale
+                      </h4>
+                      {traduction.angle && <span>{traduction.angle}</span>}
+                    </div>
+
+                    {traduction.accroches.length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                          Accroches
+                        </h4>
+                        <ul className="flex flex-col gap-2">
+                          {traduction.accroches.map((accroche, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-muted shrink-0 mt-1.5" />
+                              <span className="flex-1 text-xs text-body leading-relaxed">{accroche}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {traduction.aNePasDire && (
+                      <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                        <span className="text-[9px] text-muted font-bold uppercase tracking-wider">À ne pas dire</span>
+                        <p className="text-xs text-body leading-relaxed">{traduction.aNePasDire}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
 
               // Check if we have a Décideur or Sponsor for addressing strategy
               const hasDecideur = data.contacts.some((contact) => normalizeContactRelationshipRole(contact.relationship_role) === "decideur")
@@ -1405,6 +1593,67 @@ export function CompanyIdentityDrawer({
 
             {activeTab === "actu" && (
               <div className="space-y-4">
+                {/* ADR-0019 — triggers (événements) de la fiche 05-comptes de l'étude sectorielle */}
+                {data.studySnapshot.triggerEvents.length > 0 && (
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-3 font-heading">
+                      Triggers (événements)
+                    </h4>
+                    <div className="bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4 pl-5">
+                      <div className="relative">
+                        {data.studySnapshot.triggerEvents.map((trigger, idx) => {
+                          const isLast = idx === data.studySnapshot.triggerEvents.length - 1
+                          return (
+                            <div key={idx} className="relative flex gap-3.5 pb-4 last:pb-0">
+                              {!isLast && (
+                                <div
+                                  className="absolute left-[7px] top-[20px] w-0.5"
+                                  style={{ height: "calc(100% - 12px)", background: "var(--color-border)" }}
+                                />
+                              )}
+                              <div
+                                className="relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+                                style={{ borderColor: "#FF9800", background: "var(--color-canvas)" }}
+                              />
+                              <div className="min-w-0 flex-1 pb-3 border-b border-border/20 last:border-b-0 last:pb-0">
+                                <p className="text-xs leading-relaxed text-heading">
+                                  {trigger.date && (
+                                    <span className="text-[10px] font-bold text-muted mr-1.5 uppercase tracking-wider inline-block">
+                                      {trigger.date} :
+                                    </span>
+                                  )}
+                                  {trigger.fait}
+                                </p>
+                                {trigger.source && (
+                                  <div className="mt-2 flex items-center gap-1.5 justify-start">
+                                    <a
+                                      href={trigger.source}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="group relative overflow-hidden bg-[#FF9800] hover:bg-[#E88900] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(255,152,0,0.24)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                                      title="Accéder à la source du trigger"
+                                    >
+                                      <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
+                                      <Image
+                                        src="/icons_set/cockpit_intelligence/recherche_actualités.png"
+                                        alt=""
+                                        width={12}
+                                        height={12}
+                                        className="relative z-10 size-3 object-contain"
+                                      />
+                                      <span className="relative z-10">Voir la source</span>
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Recent News list */}
                 {signaux.actualites_recentes && signaux.actualites_recentes.length > 0 ? (
                   <div>
@@ -1518,11 +1767,11 @@ export function CompanyIdentityDrawer({
                       </div>
                     </div>
                   </div>
-                ) : (
+                ) : data.studySnapshot.triggerEvents.length === 0 ? (
                   <div className="text-center py-6 bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 text-xs text-muted italic">
                     Aucune actualité ou signal faible disponible.
                   </div>
-                )}
+                ) : null}
 
                 {/* Recrutements Récents */}
                 {signaux.recrutements_recents && (

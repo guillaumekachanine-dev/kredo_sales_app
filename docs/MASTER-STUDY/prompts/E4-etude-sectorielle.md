@@ -122,6 +122,11 @@ COUCHE 2 — COMPRENDRE (8-10 pages, réservoir de crédibilité)
       Quand la taille ou la croissance n'est pas publiée ou non applicable, renseigner
       explicitement taille_statut / croissance_statut (published | not_published | not_applicable)
       avec la valeur null correspondante, dans le même esprit que les incertitudes.
+      Source indicative, non exclusive, pour cette recherche : Banque de France — Observatoire
+      des Entreprises (fascicules de résultats sectoriels par code NAF, banque-france.fr).
+      C'est la seule source gratuite à publier un CA agrégé et un taux de variation médian par
+      secteur (quartiles), utilisable tel quel pour taille_statut/croissance_statut ; elle porte
+      souvent sur un exercice clos depuis 12 à 18 mois, à dater précisément comme toute source.
   2.2 ► MODÈLES ÉCONOMIQUES — tableau
       Colonnes : modèle | description | qui signe | quand le budget est engagé |
                  ★ CE QUE CE MODÈLE IMPLIQUE POUR L'ACHAT DE PRESTATION

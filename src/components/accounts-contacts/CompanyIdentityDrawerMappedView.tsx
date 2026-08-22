@@ -202,7 +202,7 @@ export function CompanyIdentityDrawerMappedView({
               <span>Convertir « {company.name} » dans le CRM ?</span>
             </div>
             <p className="text-[10px] text-white/80 leading-snug">
-              Le compte passera du statut « Cartographié » au statut « Identifié » et sera intégré au CRM commercial.
+              Le compte passera du statut « Identifié » à un compte CRM standard, avec les données de l&apos;étude déjà reprises dans sa fiche.
             </p>
             <div className="flex items-center gap-2 mt-1">
               <button

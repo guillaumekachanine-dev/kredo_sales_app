@@ -7,6 +7,8 @@ import { normalizeCompanyRelationType, normalizeCompanyTier } from "@/lib/accoun
 import { resolveCompanyTaxonomy } from "@/lib/accounts-contacts/company-taxonomy"
 import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
 import { createClient } from "@/lib/supabase/server"
+import { getCompetitiveMapCitation } from "@/features/competitive-map/data/get-competitive-map-citation"
+import { extractAccountStudySnapshot } from "@/features/competitive-map/domain/account-study-snapshot"
 
 const REVALIDATE = "/prospection/accounts"
 
@@ -286,11 +288,20 @@ export async function getCompanyIdentity(companyId: string) {
           opportunities: [],
           missions: [],
           lastInteraction: null,
+          studySnapshot: extractAccountStudySnapshot(null),
+          studyEntry: {
+            categoryLabel: null,
+            maturiteNumerique: null,
+            revenueEstimateMeur: null,
+            revenueExercice: null,
+            revenuePerimetre: null,
+            headcountFrance: null,
+          },
         },
       }
     }
 
-    const [contactsResult, oppsResult, missionsResult, interactionResult] = await Promise.all([
+    const [contactsResult, oppsResult, missionsResult, interactionResult, studyCitation] = await Promise.all([
       supabase
         .from("contacts")
         .select(`
@@ -318,12 +329,30 @@ export async function getCompanyIdentity(companyId: string) {
         .order("occurred_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      getCompetitiveMapCitation(companyId),
     ])
 
     if (contactsResult.error) console.error("Error fetching company contacts:", contactsResult.error)
     if (oppsResult.error) console.error("Error fetching company opportunities:", oppsResult.error)
     if (missionsResult.error) console.error("Error fetching company missions:", missionsResult.error)
     if (interactionResult.error) console.error("Error fetching latest company interaction:", interactionResult.error)
+
+    // ADR-0019 — un compte issu d'une étude sectorielle (converti depuis
+    // `mapped`) garde sa fiche 05-comptes lisible tant qu'aucun autre process
+    // ne l'a écrasée (`competitive_map_entries` reste la source ; pas de copie).
+    const studySnapshot = extractAccountStudySnapshot(studyCitation.entry?.profileJson ?? null)
+    // ADR-0019 — `account_facts` (revenue_estimate/headcount_france) est sourcé par
+    // le socle E2/E5 indépendamment de `competitive_map_entries` : un compte créé
+    // par l'étude (`origin='competitive_map'`) n'a pas de `companies.revenue`/
+    // `employee_count` (legacy), le CA/effectif sourcé vit uniquement ici.
+    const studyEntry = {
+      categoryLabel: studyCitation.entry?.categoryLabel ?? null,
+      maturiteNumerique: studyCitation.entry?.maturiteNumerique ?? null,
+      revenueEstimateMeur: studyCitation.facts.revenueEstimateMeur,
+      revenueExercice: studyCitation.facts.revenueExercice,
+      revenuePerimetre: studyCitation.facts.revenuePerimetre,
+      headcountFrance: studyCitation.facts.headcountFrance,
+    }
 
     return {
       error: null,
@@ -333,6 +362,8 @@ export async function getCompanyIdentity(companyId: string) {
         opportunities: oppsResult.data || [],
         missions: missionsResult.data || [],
         lastInteraction: interactionResult.data || null,
+        studySnapshot,
+        studyEntry,
       },
     }
   } catch (err) {

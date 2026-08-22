@@ -89,6 +89,7 @@ des deux versions fait foi.
 
 | Version | Date | Ce qui change |
 |---|---|---|
+| **1.2** | 22/08/2026 | Ajout de [`GUIDE-UTILISATEUR.md`](../GUIDE-UTILISATEUR.md) — parcours pas à pas non normatif (rien n'y est décidé, tout y renvoie aux documents numérotés), pointé depuis `README.md` §4. Ajout des sources indicatives Pappers/AMF (E5 §BLOC 3.1) et Banque de France — Observatoire des Entreprises (E4 §2.1), scopées aux étapes de recherche LLM déjà existantes, jamais au régime déterministe E2 (axiome A1) |
 | **1.1** | 13/08/2026 | **Premier run exécuté et rejeté** (`2026-08-aero-spatial-defense`, G1 16/13). Ajout de [`registre/ROADMAP-CORRECTIONS.md`](registre/ROADMAP-CORRECTIONS.md) et réécriture du `README.md` §6 en état d'exécution. Bandeaux de défaut ouvert sur `08-ETAPE-E5` §8 et `schemas/competitive-map.schema.json` (roadmap A4). Migration `076_master_study_document_type` appliquée. Gate G1 outillé : `scripts/audit-master-study.py`. Amendement tranché par Guillaume : **un compte client compte dans le seuil G0 et figure dans la cartographie** — `comptes_exclus` d'E0 signifie « hors cibles de prospection », pas « hors périmètre d'étude » |
 | **1.0** | 13/08/2026 | Établissement. Consolide `ARCHITECTURE-CONNAISSANCE-INTELLIGENCE`, `cartographie-concurrentielle/00`→`09`, `sources_intelligence_standards/`, `taxonomie-sectorielle/`, `chaine-de-valeur/`, `_legacy/PROCESS-ETUDE-SECTORIELLE`. Établit le registre de légitimité, les 12 axiomes, les 7 étapes, les 4 gates, le squelette en 8 sections, les schémas de sortie et les 5 variantes |
 
