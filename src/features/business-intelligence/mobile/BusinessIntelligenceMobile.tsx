@@ -90,6 +90,8 @@ export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competit
               knowledge={workspace.knowledge}
               segmentName={workspace.segment.name}
               macroName={workspace.segment.macro?.name ?? null}
+              corpusMetadata={workspace.corpusMetadata}
+              sourceResolution={workspace.sourceResolution}
             />
           ) : unavailable("Analyse sectorielle")
         ) : null}

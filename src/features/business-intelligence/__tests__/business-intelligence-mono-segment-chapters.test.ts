@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import type { SectorKnowledgeReadModel } from "@/features/master-study/data/get-sector-knowledge-read-model"
+import type { SectorCorpusMetadata } from "../data/get-sector-corpus-metadata"
 import type { SegmentNewsLibrary } from "../data/business-intelligence-workspace-types"
 import { SectorAnalysisChapterDesktop } from "../chapters/SectorAnalysisChapterDesktop"
 import { SectorAnalysisChapterMobile } from "../chapters/SectorAnalysisChapterMobile"
@@ -23,8 +24,8 @@ const mockKnowledge: SectorKnowledgeReadModel = {
   macroStatus: "active",
   description: "Marché mondial des compositions parfumées en forte transformation réglementaire et RSE.",
   descriptionLevel: "segment",
-  attractivenessScore: 82,
-  attractivenessScoreLevel: "segment",
+  attractivenessScore: 4.8,
+  attractivenessScoreLevel: "macro",
   marketSizeEurBn: 1.4,
   marketSizeEurBnLevel: "estimated",
   marketGrowthPct: 5.2,
@@ -41,9 +42,9 @@ const mockKnowledge: SectorKnowledgeReadModel = {
     { name: "Givaudan France", note: "Filiale française", size: "Multinationale" },
   ],
   hasSegmentKnowledge: true,
-  digitalMaturity: "medium",
-  avgTjmMin: 650,
-  avgTjmMax: 950,
+  digitalMaturity: "low",
+  avgTjmMin: 750,
+  avgTjmMax: 1100,
   caveats: {
     corpus: "12 entretiens qualitatifs et données IFRA 2025.",
     sources: ["IFRA Annual Report 2025", "Proscent Database"],
@@ -99,6 +100,15 @@ const mockKnowledge: SectorKnowledgeReadModel = {
   ],
 }
 
+const mockCorpusMetadata: SectorCorpusMetadata = {
+  qualityVerdict: "usable_with_caveats",
+  activationState: "active",
+  snapshotDate: "2026-08-14",
+  gaps: [
+    { famille: "TAM", motif: "Aucune source n'isole le segment propre." },
+  ],
+}
+
 const mockNews: SegmentNewsLibrary = {
   updatedAt: "2026-08-20T10:00:00Z",
   items: [
@@ -141,6 +151,7 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
           knowledge: mockKnowledge,
           segmentName: "Parfumerie B2B",
           macroName: "Chimie & Cosmétique",
+          corpusMetadata: mockCorpusMetadata,
         }),
       )
 
@@ -149,28 +160,63 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
       expect(markup).toContain("Taille de marché")
       expect(markup).toContain("1,4 Md€")
       expect(markup).toContain("Estimé") // Provenance "estimated"
-      expect(markup).toContain("Pression sur les allergènes et traçabilité IFRA 51")
-      expect(markup).toContain("Freq. 8")
+      expect(markup).toContain("4,8 / 5") // Attractivité sur 5
+      expect(markup).not.toContain("4,8 / 100")
+      expect(markup).toContain("Faible") // digitalMaturity low -> Faible
+      expect(markup).toContain("750")
+      expect(markup).toContain("100 €")
+      expect(markup).toContain("Ancrage Régional — PACA / Grasse")
+      expect(markup).toContain("Acteurs Nationaux &amp; Internationaux")
       expect(markup).toContain("Robertet")
       expect(markup).toContain("Mane")
       expect(markup).toContain("Givaudan France")
+      expect(markup).toContain("Pression sur les allergènes et traçabilité IFRA 51")
+      expect(markup).toContain("Freq. 8")
       expect(markup).toContain("IFRA Annual Report 2025")
+      expect(markup).toContain("Snapshot du") // CorpusConfidenceBanner
     })
 
-    it("rend le composant Mobile dédié avec accordéons et touch targets", () => {
+    it("rend le composant Mobile dédié avec accordéons, touch targets et métriques", () => {
       const markup = renderToStaticMarkup(
         createElement(SectorAnalysisChapterMobile, {
           knowledge: mockKnowledge,
           segmentName: "Parfumerie B2B",
           macroName: "Chimie & Cosmétique",
+          corpusMetadata: mockCorpusMetadata,
         }),
       )
 
       expect(markup).toContain("Parfumerie B2B")
+      expect(markup).toContain("1,4 Md€")
+      expect(markup).toContain("4,8 / 5")
+      expect(markup).not.toContain("4,8/100")
+      expect(markup).toContain("Faible")
+      expect(markup).toContain("Écosystème &amp; Acteurs clés (3)")
+      expect(markup).toContain("Ancrage Régional (PACA)")
+      expect(markup).toContain("Acteurs Nationaux &amp; Internationaux")
       expect(markup).toContain("Points de douleur (1)")
       expect(markup).toContain("Événements &amp; Jalons (1)")
-      expect(markup).toContain("Acteurs clés (3)")
       expect(markup).toContain("Sources méthodologiques")
+    })
+
+    it("affiche explicitement 'Non publiée' pour les métriques verrouillées", () => {
+      const lockedKnowledge: SectorKnowledgeReadModel = {
+        ...mockKnowledge,
+        marketGrowthPct: null,
+        marketGrowthPctLevel: "locked",
+      }
+
+      const markup = renderToStaticMarkup(
+        createElement(SectorAnalysisChapterDesktop, {
+          knowledge: lockedKnowledge,
+          segmentName: "Segment Verrouillé",
+          macroName: "Macro",
+        }),
+      )
+
+      expect(markup).toContain("Croissance annuelle")
+      expect(markup).toContain("Non publiée")
+      expect(markup).not.toContain("0 %")
     })
 
     it("omet proprement les sections lorsque les données sont absentes", () => {

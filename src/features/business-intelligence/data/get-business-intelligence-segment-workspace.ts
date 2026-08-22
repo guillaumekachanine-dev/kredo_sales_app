@@ -6,6 +6,10 @@ import { getSectorKnowledgeReadModel } from "@/features/master-study/data/get-se
 import { getCompetitiveMapSnapshot } from "@/features/competitive-map/data/get-competitive-map-snapshot"
 import { getSegmentValueChainReadModel } from "@/features/sector-mapping/data/get-segment-value-chain-read-model"
 import { getSegmentPortfolioSnapshot } from "./get-segment-portfolio-snapshot"
+import { getSectorSourceResolution } from "./get-sector-source-resolution"
+import { getSectorCorpusMetadata } from "./get-sector-corpus-metadata"
+import type { ResolvedSource } from "../shared/SourceChip"
+
 import type {
   BusinessIntelligenceSegmentWorkspace,
   SegmentNewsLibrary,
@@ -69,11 +73,13 @@ export const getBusinessIntelligenceSegmentWorkspace = cache(async (
     }
 
     const row = segmentResult.data as unknown as SegmentRow
-    const [knowledge, portfolio, competitiveMap, valueChain] = await Promise.all([
+const [knowledge, portfolio, competitiveMap, valueChain, sourceMap, corpusMetadata] = await Promise.all([
       getSectorKnowledgeReadModel(segmentId),
       getSegmentPortfolioSnapshot(segmentId),
       getCompetitiveMapSnapshot(segmentId),
       getSegmentValueChainReadModel(segmentId),
+      getSectorSourceResolution(segmentId, { supabase }),
+      getSectorCorpusMetadata(segmentId, { supabase }),
     ])
 
     if (!knowledge) {
@@ -176,6 +182,13 @@ export const getBusinessIntelligenceSegmentWorkspace = cache(async (
         slug: knowledge.macroSlug,
       } : null,
     }
+    const sourceResolution: Record<number, ResolvedSource> = {}
+    if (sourceMap && typeof sourceMap.entries === "function") {
+      for (const [key, value] of sourceMap.entries()) {
+        sourceResolution[key] = value
+      }
+    }
+
     const hasResource = Object.values(coverage).some((item) => item.available)
     return {
       state: portfolio.accounts.length > 0 || hasResource ? "ready" : "empty",
@@ -186,6 +199,8 @@ export const getBusinessIntelligenceSegmentWorkspace = cache(async (
       valueChain,
       news,
       coverage,
+      sourceResolution,
+      corpusMetadata: corpusMetadata ?? null,
     }
   } catch (error) {
     console.error("[BusinessIntelligenceSegmentWorkspace] load failed", {

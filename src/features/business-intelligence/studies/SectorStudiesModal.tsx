@@ -276,7 +276,7 @@ export function SectorStudiesModal({
                   <ProvenanceBadge level={knowledge.attractivenessScoreLevel} />
                 </div>
                 <span className="block text-lg font-bold text-white">
-                  {knowledge.attractivenessScore !== null ? `${knowledge.attractivenessScore}/100` : "N/A"}
+                  {knowledge.attractivenessScore !== null ? `${knowledge.attractivenessScore} / 5` : "N/A"}
                 </span>
               </div>
 

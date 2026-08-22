@@ -1,14 +1,20 @@
 import type { SectorKnowledgeReadModel, SectorResolvedLevel } from "@/features/master-study/data/get-sector-knowledge-read-model"
+import type { SectorCorpusMetadata } from "../data/get-sector-corpus-metadata"
+import type { ResolvedSource } from "../shared/SourceChip"
 import { formatStudyDate, provenanceLabel } from "../home/home-model"
+import { CorpusConfidenceBanner } from "../shared/CorpusConfidenceBanner"
+import {
+  buildSectorMarketKpis,
+  parseCaveats,
+  parseKeyPlayers,
+} from "./sector-analysis-model"
 
-type SectorAnalysisProps = {
+export type SectorAnalysisProps = {
   knowledge: SectorKnowledgeReadModel
   segmentName: string
   macroName: string | null
-}
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)
+  corpusMetadata?: SectorCorpusMetadata | null
+  sourceResolution?: Record<number, ResolvedSource>
 }
 
 function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "macro" | null | undefined }) {
@@ -21,85 +27,31 @@ function ProvenanceBadge({ level }: { level: SectorResolvedLevel | "segment" | "
   )
 }
 
-type ParsedPlayer = { name: string; note: string; size: string }
-
-function parseKeyPlayers(raw: unknown): ParsedPlayer[] {
-  if (!Array.isArray(raw)) return []
-  return raw
-    .map((item) => {
-      if (typeof item === "string") return { name: item.trim(), note: "", size: "" }
-      if (item && typeof item === "object") {
-        const record = item as Record<string, unknown>
-        const name = typeof record.name === "string" ? record.name.trim() : typeof record.nom === "string" ? record.nom.trim() : ""
-        const note = typeof record.note === "string" ? record.note.trim() : typeof record.description === "string" ? record.description.trim() : ""
-        const size = typeof record.size === "string" ? record.size.trim() : typeof record.taille === "string" ? record.taille.trim() : ""
-        if (name.length > 0) return { name, note, size }
-      }
-      return null
-    })
-    .filter((p): p is ParsedPlayer => p !== null)
-}
-
-type ParsedCaveats = {
-  corpus?: string
-  verbatims?: string
-  frequences?: string
-  marche?: string
-  sources: string[]
-}
-
-function parseCaveats(raw: unknown): ParsedCaveats | null {
-  if (!raw || typeof raw !== "object") return null
-  const record = raw as Record<string, unknown>
-  const sources = Array.isArray(record.sources)
-    ? record.sources.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
-    : []
-  const corpus = typeof record.corpus === "string" && record.corpus.trim().length > 0 ? record.corpus.trim() : undefined
-  const verbatims = typeof record.verbatims === "string" && record.verbatims.trim().length > 0 ? record.verbatims.trim() : undefined
-  const frequences = typeof record.frequences === "string" && record.frequences.trim().length > 0 ? record.frequences.trim() : undefined
-  const marche = typeof record.marche === "string" && record.marche.trim().length > 0 ? record.marche.trim() : undefined
-
-  if (!corpus && !verbatims && !frequences && !marche && sources.length === 0) return null
-  return { corpus, verbatims, frequences, marche, sources }
-}
-
-export function SectorAnalysisChapterDesktop({ knowledge, segmentName, macroName }: SectorAnalysisProps) {
+export function SectorAnalysisChapterDesktop({
+  knowledge,
+  segmentName,
+  macroName,
+  corpusMetadata,
+}: SectorAnalysisProps) {
   const pacaPlayers = parseKeyPlayers(knowledge.keyPlayersPaca)
   const nationalPlayers = parseKeyPlayers(knowledge.keyPlayersNational)
   const caveats = parseCaveats(knowledge.caveats)
-
-  const metrics = [
-    knowledge.marketSizeEurBn !== null ? {
-      label: "Taille de marché",
-      value: `${formatNumber(knowledge.marketSizeEurBn)} Md€`,
-      level: knowledge.marketSizeEurBnLevel,
-    } : null,
-    knowledge.marketGrowthPct !== null ? {
-      label: "Croissance annuelle",
-      value: `${formatNumber(knowledge.marketGrowthPct)} %`,
-      level: knowledge.marketGrowthPctLevel,
-    } : null,
-    knowledge.attractivenessScore !== null ? {
-      label: "Score d’attractivité",
-      value: `${formatNumber(knowledge.attractivenessScore)} / 100`,
-      level: knowledge.attractivenessScoreLevel,
-    } : null,
-    knowledge.digitalMaturity ? {
-      label: "Maturité numérique",
-      value: knowledge.digitalMaturity,
-      level: null,
-    } : null,
-    knowledge.avgTjmMin !== null && knowledge.avgTjmMax !== null ? {
-      label: "TJM de référence",
-      value: `${formatNumber(knowledge.avgTjmMin)}–${formatNumber(knowledge.avgTjmMax)} €`,
-      level: null,
-    } : null,
-  ].filter((m): m is NonNullable<typeof m> => m !== null)
+  const metrics = buildSectorMarketKpis(knowledge)
 
   return (
     <div className="space-y-6" data-chapter="sector-analysis">
-      {/* En-tête du chapitre */}
-      <section className="rounded-xl border border-edito-border bg-edito-surface p-5">
+      {/* Bandeau de confiance du corpus (persistant si métadonnées disponibles) */}
+      {corpusMetadata ? (
+        <CorpusConfidenceBanner
+          qualityVerdict={corpusMetadata.qualityVerdict}
+          activationState={corpusMetadata.activationState}
+          snapshotDate={corpusMetadata.snapshotDate}
+          gaps={corpusMetadata.gaps}
+        />
+      ) : null}
+
+      {/* En-tête du chapitre & Indicateurs clés (Section 1.A) */}
+      <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
@@ -118,25 +70,36 @@ export function SectorAnalysisChapterDesktop({ knowledge, segmentName, macroName
           </div>
         </div>
 
-        {/* Métriques clés */}
+        {/* Indicateurs clés du marché */}
         {metrics.length > 0 ? (
-          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-edito-border pt-4 sm:grid-cols-3 md:grid-cols-5">
+          <div className="mt-6 grid grid-cols-2 gap-3.5 border-t border-edito-border pt-5 sm:grid-cols-3 md:grid-cols-5">
             {metrics.map((metric) => (
-              <div key={metric.label} className="rounded-lg border border-edito-border/70 bg-edito-canvas/50 p-3">
+              <div
+                key={metric.label}
+                className="flex flex-col justify-between rounded-lg border border-edito-border/80 bg-edito-canvas/60 p-3.5"
+              >
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-edito-muted">{metric.label}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-edito-muted">
+                    {metric.label}
+                  </span>
                   <ProvenanceBadge level={metric.level} />
                 </div>
-                <p className="mt-1.5 font-heading text-lg font-bold text-edito-navy">{metric.value}</p>
+                <p
+                  className={`mt-2 font-heading font-bold text-edito-navy ${
+                    metric.isLocked ? "text-sm font-semibold text-edito-muted italic" : "text-xl"
+                  }`}
+                >
+                  {metric.value}
+                </p>
               </div>
             ))}
           </div>
         ) : null}
       </section>
 
-      {/* Description / Synthèse */}
+      {/* Description / Dynamique de marché (Section 1.B) */}
       {knowledge.description ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6">
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-edito-border pb-3">
             <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
               Synthèse & Dynamique de marché
@@ -149,9 +112,104 @@ export function SectorAnalysisChapterDesktop({ knowledge, segmentName, macroName
         </section>
       ) : null}
 
-      {/* Points de douleur sectoriels */}
+      {/* Écosystème & Acteurs clés (Section 2 — Restitution éditoriale en 2 familles) */}
+      {pacaPlayers.length > 0 || nationalPlayers.length > 0 ? (
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
+          <div className="border-b border-edito-border pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
+                Écosystème & Acteurs clés
+              </h2>
+              <span className="text-xs font-semibold text-edito-muted">
+                {pacaPlayers.length + nationalPlayers.length} acteur{pacaPlayers.length + nationalPlayers.length > 1 ? "s" : ""} documenté{pacaPlayers.length + nationalPlayers.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-edito-muted">
+              Distinction entre ancrage régional (proximité commerciale) et benchmarks nationaux / internationaux
+            </p>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Famille 1 : Ancrage régional PACA / Grasse */}
+            {pacaPlayers.length > 0 ? (
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between gap-2 border-b border-edito-border/60 pb-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
+                    Ancrage Régional — PACA / Grasse
+                  </h3>
+                  <span className="rounded bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold text-edito-muted">
+                    {pacaPlayers.length} acteur{pacaPlayers.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-edito-muted">
+                  Maisons de composition et producteurs structurant le bassin local
+                </p>
+                <ul className="mt-3 space-y-2.5">
+                  {pacaPlayers.map((player, idx) => (
+                    <li
+                      key={`${player.name}-${idx}`}
+                      className="rounded-lg border border-edito-border bg-edito-canvas/40 p-3 text-xs transition-colors hover:bg-edito-canvas/70"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-bold text-edito-navy">{player.name}</span>
+                        {player.size ? (
+                          <span className="rounded border border-edito-border/60 bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold text-edito-muted">
+                            {player.size}
+                          </span>
+                        ) : null}
+                      </div>
+                      {player.note ? (
+                        <p className="mt-1.5 text-[11px] leading-relaxed text-edito-body">{player.note}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {/* Famille 2 : Acteurs nationaux & internationaux */}
+            {nationalPlayers.length > 0 ? (
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between gap-2 border-b border-edito-border/60 pb-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
+                    Acteurs Nationaux & Internationaux
+                  </h3>
+                  <span className="rounded bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold text-edito-muted">
+                    {nationalPlayers.length} acteur{nationalPlayers.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-edito-muted">
+                  Leaders mondiaux et filiales servant de benchmarks technologiques et concurrentiels
+                </p>
+                <ul className="mt-3 space-y-2.5">
+                  {nationalPlayers.map((player, idx) => (
+                    <li
+                      key={`${player.name}-${idx}`}
+                      className="rounded-lg border border-edito-border bg-edito-canvas/40 p-3 text-xs transition-colors hover:bg-edito-canvas/70"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-bold text-edito-navy">{player.name}</span>
+                        {player.size ? (
+                          <span className="rounded border border-edito-border/60 bg-edito-chip px-1.5 py-0.5 text-[9px] font-semibold text-edito-muted">
+                            {player.size}
+                          </span>
+                        ) : null}
+                      </div>
+                      {player.note ? (
+                        <p className="mt-1.5 text-[11px] leading-relaxed text-edito-body">{player.note}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Points de douleur sectoriels (Préservé) */}
       {knowledge.painPoints.length > 0 ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6">
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-edito-border pb-3">
             <div>
               <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
@@ -197,9 +255,9 @@ export function SectorAnalysisChapterDesktop({ knowledge, segmentName, macroName
         </section>
       ) : null}
 
-      {/* Événements & Actualités du marché */}
+      {/* Événements & Actualités du marché (Préservé) */}
       {knowledge.events.length > 0 ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6">
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
           <div className="border-b border-edito-border pb-3">
             <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
               Événements majeurs & Jalons du secteur
@@ -249,59 +307,9 @@ export function SectorAnalysisChapterDesktop({ knowledge, segmentName, macroName
         </section>
       ) : null}
 
-      {/* Acteurs clés */}
-      {pacaPlayers.length > 0 || nationalPlayers.length > 0 ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6">
-          <div className="border-b border-edito-border pb-3">
-            <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
-              Écosystème & Acteurs clés
-            </h2>
-            <p className="mt-0.5 text-xs text-edito-muted">Acteurs repères documentés dans l’étude de marché</p>
-          </div>
-          <div className="mt-4 grid gap-6 md:grid-cols-2">
-            {pacaPlayers.length > 0 ? (
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
-                  Ancrage Régional (PACA)
-                </h3>
-                <ul className="mt-2.5 space-y-2">
-                  {pacaPlayers.map((player, idx) => (
-                    <li key={`${player.name}-${idx}`} className="rounded-lg border border-edito-border bg-edito-canvas/30 p-2.5 text-xs">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-bold text-edito-navy">{player.name}</span>
-                        {player.size ? <span className="text-[10px] text-edito-muted">{player.size}</span> : null}
-                      </div>
-                      {player.note ? <p className="mt-1 text-[11px] text-edito-body">{player.note}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {nationalPlayers.length > 0 ? (
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
-                  Acteurs Nationaux & Internationaux
-                </h3>
-                <ul className="mt-2.5 space-y-2">
-                  {nationalPlayers.map((player, idx) => (
-                    <li key={`${player.name}-${idx}`} className="rounded-lg border border-edito-border bg-edito-canvas/30 p-2.5 text-xs">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-bold text-edito-navy">{player.name}</span>
-                        {player.size ? <span className="text-[10px] text-edito-muted">{player.size}</span> : null}
-                      </div>
-                      {player.note ? <p className="mt-1 text-[11px] text-edito-body">{player.note}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {/* Limites & Sources méthodologiques */}
+      {/* Limites & Sources méthodologiques (Préservé) */}
       {caveats ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6">
+        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
           <div className="border-b border-edito-border pb-3">
             <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
               Sources & Réserves méthodologiques

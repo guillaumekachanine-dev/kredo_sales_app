@@ -1,3 +1,5 @@
+import type { ResolvedSource } from "../shared/SourceChip"
+import type { SectorCorpusMetadata } from "./get-sector-corpus-metadata"
 import type { SectorKnowledgeReadModel, SectorResolvedLevel } from "@/features/master-study/data/get-sector-knowledge-read-model"
 import type { CompetitiveMapSnapshot } from "@/features/competitive-map/data/competitive-map-workspace-types"
 import type { SectorMapCatalog } from "@/features/sector-mapping/data/sector-map-catalog"
@@ -88,6 +90,9 @@ export type SegmentNewsLibrary = {
 }
 
 type WorkspaceLoadedData = {
+  sourceResolution: Record<number, ResolvedSource>
+  corpusMetadata: SectorCorpusMetadata | null
+
   segment: BusinessIntelligenceSegment
   knowledge: SectorKnowledgeReadModel
   portfolio: SegmentPortfolioSnapshot
