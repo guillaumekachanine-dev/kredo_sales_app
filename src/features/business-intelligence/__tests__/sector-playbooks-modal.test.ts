@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
 import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
+import {
+  parsePlaybookPersonas,
+  parsePlaybookObjections,
+  parsePlaybookEntryPoints,
+  parsePlaybookRoiArguments,
+} from "../models/sector-playbook-parser"
 
 function createMockActor(overrides: Partial<CompetitiveMapActor> = {}): CompetitiveMapActor {
   return {
@@ -45,6 +51,36 @@ function createMockActor(overrides: Partial<CompetitiveMapActor> = {}): Competit
   }
 }
 
+const pilotPlaybook = {
+  personas: [
+    { fonction: "DSI / responsable SI", repond_de: "Fiabilité du SI", ce_qui_le_reveille: "Interfaces fragiles" },
+    { fonction: "Direction industrielle", repond_de: "Capacité et qualité", ce_qui_le_reveille: "Montée en cadence" },
+    { fonction: "Affaires réglementaires", repond_de: "Conformité formules", ce_qui_le_reveille: "Notification IFRA 52" },
+    { fonction: "R&D / innovation", repond_de: "Vitesse formulation", ce_qui_le_reveille: "IA non industrialisable" },
+    { fonction: "Achats / supply chain", repond_de: "Disponibilité matière", ce_qui_le_reveille: "Rupture fournisseur" },
+  ],
+  objections: [
+    { objection: "« IFRA n'est pas un sujet SI »", reponse: "« Le sujet SI est le temps de propagation. »" },
+    { objection: "« PLM / ERP groupe déjà présent »", reponse: "« Il faut qualifier l'intégration locale. »" },
+    { objection: "« IA déjà testée »", reponse: "« Le seuil est l'industrialisation. »" },
+    { objection: "« Usine déjà automatisée »", reponse: "« Ce qui compte est la fiabilité bout en bout. »" },
+    { objection: "« Achats IT gérés par le groupe »", reponse: "« Séparer le standard du besoin local. »" },
+  ],
+  entry_points: [
+    { signal: "Notification IFRA 52", angle: "Mesurer l'impact", interlocuteur: "Réglementaire", src_ids: [6] },
+    { signal: "Nouveau site", angle: "Fiabilité OT/IT", interlocuteur: "Directeur industriel", src_ids: [18, 25] },
+    { signal: "IA appliquée", angle: "Industrialisation", interlocuteur: "R&D + Data", src_ids: [22, 23] },
+    { signal: "Tension matières", angle: "Traçabilité", interlocuteur: "Achats", src_ids: [20, 21] },
+    { signal: "Filiale intégrée", angle: "Rollout", interlocuteur: "Opérations locales", src_ids: [10, 21, 22] },
+  ],
+  roi_arguments: [
+    { argument: "IFRA 52 : réduire le temps de qualification", src_ids: [6] },
+    { argument: "Payan Bertrand 12 M€ d'investissement", src_ids: [18] },
+    { argument: "MANE BI & Analytics Platform", src_ids: [12] },
+    { argument: "Givaudan / dsm-firmenich Supplier Hub", src_ids: [10, 21] },
+  ],
+}
+
 describe("Playbook & Battle Cards mono-segment", () => {
   it("projette les informations concurrentielles opérationnelles dans une Battle Card", () => {
     const actor = createMockActor()
@@ -61,5 +97,37 @@ describe("Playbook & Battle Cards mono-segment", () => {
   it("gère l'absence de données avec un empty state explicite sans fallback ni LLM", () => {
     const emptyActors: CompetitiveMapActor[] = []
     expect(emptyActors).toHaveLength(0)
+  })
+
+  describe("Lot 12 — Vérification de parité des 4 domaines sur le pilote", () => {
+    it("restitue exactement 5 personas sans perte ni placeholder", () => {
+      const personas = parsePlaybookPersonas(pilotPlaybook)
+      expect(personas).toHaveLength(5)
+      expect(personas[0].role).toBe("DSI / responsable SI")
+      expect(personas[0].accountability).toBe("Fiabilité du SI")
+      expect(personas[0].trigger).toBe("Interfaces fragiles")
+    })
+
+    it("restitue exactement 5 objections et leurs réponses", () => {
+      const objections = parsePlaybookObjections(pilotPlaybook)
+      expect(objections).toHaveLength(5)
+      expect(objections[0].objection).toContain("IFRA")
+      expect(objections[0].response).toContain("propagation")
+    })
+
+    it("restitue exactement 5 points d'entrée avec signal, angle, interlocuteur et src_ids", () => {
+      const entryPoints = parsePlaybookEntryPoints(pilotPlaybook)
+      expect(entryPoints).toHaveLength(5)
+      expect(entryPoints[0].signal).toBe("Notification IFRA 52")
+      expect(entryPoints[0].srcIds).toEqual([6])
+      expect(entryPoints[1].srcIds).toEqual([18, 25])
+    })
+
+    it("restitue exactement 4 arguments ROI avec argument et src_ids", () => {
+      const roiArgs = parsePlaybookRoiArguments(pilotPlaybook)
+      expect(roiArgs).toHaveLength(4)
+      expect(roiArgs[0].srcIds).toEqual([6])
+      expect(roiArgs[3].srcIds).toEqual([10, 21])
+    })
   })
 })

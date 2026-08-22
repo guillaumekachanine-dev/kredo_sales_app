@@ -155,6 +155,7 @@ export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competit
           macroName={workspace.segment.macro?.name ?? null}
           competitiveActors={workspace.competitiveMap?.actors ?? []}
           priorityAccounts={workspace.portfolio.accounts}
+          sourceResolution={workspace.sourceResolution}
           isMobile
         />
       ) : null}

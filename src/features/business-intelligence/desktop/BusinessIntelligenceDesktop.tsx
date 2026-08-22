@@ -175,6 +175,7 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
           macroName={workspace.segment.macro?.name ?? null}
           competitiveActors={workspace.competitiveMap?.actors ?? []}
           priorityAccounts={workspace.portfolio.accounts}
+          sourceResolution={workspace.sourceResolution}
         />
       ) : null}
       {isStudiesOpen ? (

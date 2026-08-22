@@ -47,12 +47,15 @@ export type SourceChipProps = {
   srcId: number
   source?: ResolvedSource | null
   className?: string
+  variant?: "light" | "dark"
 }
 
-export function SourceChip({ srcId, source = null, className }: SourceChipProps) {
+export function SourceChip({ srcId, source = null, className, variant = "light" }: SourceChipProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLSpanElement | null>(null)
   useDismissablePopover(open, () => setOpen(false), rootRef)
+
+  const isDark = variant === "dark"
 
   return (
     <span ref={rootRef} className={cn("relative inline-block align-middle", className)}>
@@ -62,8 +65,10 @@ export function SourceChip({ srcId, source = null, className }: SourceChipProps)
         aria-expanded={open}
         aria-label={source ? `Source ${srcId} : ${source.publisher}` : `Source ${srcId} non résolue`}
         className={cn(
-          "inline-flex h-4 min-w-4 cursor-pointer items-center justify-center rounded bg-edito-chip px-1 font-mono text-[9px] font-bold text-edito-muted transition-colors",
-          "hover:bg-edito-border hover:text-edito-navy",
+          "inline-flex h-4 min-w-4 cursor-pointer items-center justify-center rounded px-1 font-mono text-[9px] font-bold transition-colors",
+          isDark
+            ? "bg-brand-brass/15 text-brand-brass hover:bg-brand-brass/25 hover:text-white"
+            : "bg-edito-chip text-edito-muted hover:bg-edito-border hover:text-edito-navy",
           !source && "opacity-60",
         )}
       >
@@ -72,17 +77,39 @@ export function SourceChip({ srcId, source = null, className }: SourceChipProps)
       {open ? (
         <span
           role="tooltip"
-          className="absolute left-0 top-full z-30 mt-1 w-64 rounded-lg border border-edito-border bg-edito-surface p-3 text-left shadow-md"
+          className={cn(
+            "absolute left-0 top-full z-30 mt-1 w-64 rounded-lg p-3 text-left shadow-md",
+            isDark
+              ? "border border-white/15 bg-slate-900 text-white shadow-xl"
+              : "border border-edito-border bg-edito-surface shadow-md",
+          )}
         >
           {source ? (
             <>
-              <span className="block text-[10px] font-bold uppercase tracking-wide text-edito-navy">
+              <span
+                className={cn(
+                  "block text-[10px] font-bold uppercase tracking-wide",
+                  isDark ? "text-brand-brass" : "text-edito-navy",
+                )}
+              >
                 {source.publisher}
               </span>
               {source.attests ? (
-                <span className="mt-1 block text-[11px] leading-relaxed text-edito-body">{source.attests}</span>
+                <span
+                  className={cn(
+                    "mt-1 block text-[11px] leading-relaxed",
+                    isDark ? "text-white/80" : "text-edito-body",
+                  )}
+                >
+                  {source.attests}
+                </span>
               ) : null}
-              <span className="mt-2 flex items-center justify-between gap-2 text-[10px] text-edito-muted">
+              <span
+                className={cn(
+                  "mt-2 flex items-center justify-between gap-2 text-[10px]",
+                  isDark ? "text-white/50" : "text-edito-muted",
+                )}
+              >
                 <span>
                   {source.tier !== null ? `Tier ${source.tier}` : null}
                   {source.consultedAt ? ` · consulté le ${formatConsultedAt(source.consultedAt)}` : null}
@@ -92,7 +119,10 @@ export function SourceChip({ srcId, source = null, className }: SourceChipProps)
                     href={source.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-semibold text-edito-petrol hover:underline"
+                    className={cn(
+                      "font-semibold hover:underline",
+                      isDark ? "text-brand-brass" : "text-edito-petrol",
+                    )}
                   >
                     Source ↗
                   </a>
@@ -100,7 +130,12 @@ export function SourceChip({ srcId, source = null, className }: SourceChipProps)
               </span>
             </>
           ) : (
-            <span className="block text-[11px] leading-relaxed text-edito-muted">
+            <span
+              className={cn(
+                "block text-[11px] leading-relaxed",
+                isDark ? "text-white/60" : "text-edito-muted",
+              )}
+            >
               Source S{srcId} non résolue dans le registre courant.
             </span>
           )}
@@ -114,14 +149,15 @@ export type SourceChipListProps = {
   srcIds: number[]
   resolve?: (srcId: number) => ResolvedSource | null
   className?: string
+  variant?: "light" | "dark"
 }
 
-export function SourceChipList({ srcIds, resolve, className }: SourceChipListProps) {
+export function SourceChipList({ srcIds, resolve, className, variant = "light" }: SourceChipListProps) {
   if (srcIds.length === 0) return null
   return (
     <span className={cn("inline-flex flex-wrap items-center gap-1", className)}>
       {srcIds.map((id) => (
-        <SourceChip key={id} srcId={id} source={resolve ? resolve(id) : null} />
+        <SourceChip key={id} srcId={id} source={resolve ? resolve(id) : null} variant={variant} />
       ))}
     </span>
   )

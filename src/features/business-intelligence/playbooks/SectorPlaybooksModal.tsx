@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 import type { SectorKnowledgeReadModel } from "@/features/master-study/data/get-sector-knowledge-read-model"
 import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
+import { SourceChipList, type ResolvedSource } from "../shared/SourceChip"
+import {
+  parsePlaybookPersonas,
+  parsePlaybookObjections,
+  parsePlaybookEntryPoints,
+  parsePlaybookRoiArguments,
+} from "../models/sector-playbook-parser"
 import { BattleCardsSection } from "./BattleCardsSection"
 
 export type SectorPlaybookSectionKey =
@@ -39,29 +46,11 @@ export type SectorPlaybooksModalProps = {
   }>
   isMobile?: boolean
   initialSectionKey?: SectorPlaybookSectionKey
-}
-
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : []
+  sourceResolution?: Record<number, ResolvedSource>
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
-}
-
-function textFromRecord(value: unknown, keys: string[]): string | null {
-  if (typeof value === "string") {
-    const trimmed = value.trim()
-    return trimmed.length > 0 ? trimmed : null
-  }
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>
-    for (const key of keys) {
-      const candidate = record[key]
-      if (typeof candidate === "string" && candidate.trim().length > 0) return candidate.trim()
-    }
-  }
-  return null
 }
 
 export function SectorPlaybooksModal({
@@ -74,62 +63,25 @@ export function SectorPlaybooksModal({
   priorityAccounts = [],
   isMobile = false,
   initialSectionKey,
+  sourceResolution,
 }: SectorPlaybooksModalProps) {
   const name = segmentName || knowledge.segmentName
   const macro = macroName || knowledge.macroName
 
+  // Resolve sources helper
+  const resolveSource = (srcId: number) => sourceResolution?.[srcId] ?? null
+
   // Personas
-  const personas = useMemo(() => {
-    const raw = asArray(asRecord(knowledge.playbook).personas)
-    return raw.map((p) => {
-      const rec = asRecord(p)
-      return {
-        role: textFromRecord(rec.role, []) ?? textFromRecord(rec.fonction, []) ?? "Rôle clé",
-        enjeu: textFromRecord(rec.enjeu, []) ?? textFromRecord(rec.repond_de, []) ?? "Enjeu principal non renseigné",
-        peur: textFromRecord(rec.peur, []) ?? textFromRecord(rec.ce_qui_le_reveille, []) ?? "Point de douleur non renseigné",
-      }
-    })
-  }, [knowledge.playbook])
+  const personas = useMemo(() => parsePlaybookPersonas(knowledge.playbook), [knowledge.playbook])
 
   // Arguments ROI
-  const roiArguments = useMemo(() => {
-    const raw = asArray(asRecord(knowledge.playbook).roi_arguments)
-    return raw
-      .map((item) => textFromRecord(item, ["argument", "titre", "valeur"]))
-      .filter((v): v is string => Boolean(v))
-  }, [knowledge.playbook])
+  const roiArguments = useMemo(() => parsePlaybookRoiArguments(knowledge.playbook), [knowledge.playbook])
 
   // Objections
-  const objections = useMemo(() => {
-    const raw = asArray(asRecord(knowledge.playbook).objections)
-    return raw.map((o) => {
-      const rec = asRecord(o)
-      return {
-        objection: typeof rec.objection === "string" ? rec.objection : "Objection non formalisée",
-        reponse: typeof rec.reponse === "string" ? rec.reponse : typeof rec.argument === "string" ? rec.argument : "Réponse à qualifier",
-      }
-    })
-  }, [knowledge.playbook])
+  const objections = useMemo(() => parsePlaybookObjections(knowledge.playbook), [knowledge.playbook])
 
   // Angles d'approche & points d'entrée
-  const entryPoints = useMemo(() => {
-    const raw = asArray(asRecord(knowledge.playbook).entry_points)
-    return raw
-      .map((item) => {
-        if (typeof item === "string") return textFromRecord(item, [])
-        const rec = asRecord(item)
-        const signal = textFromRecord(rec.signal, [])
-        const angle = textFromRecord(rec.angle, [])
-        const interlocuteur = textFromRecord(rec.interlocuteur, [])
-        if (!angle && !signal) return null
-        return {
-          angle: angle ?? signal ?? "",
-          signal: signal ?? null,
-          interlocuteur: interlocuteur ?? null,
-        }
-      })
-      .filter((v): v is { angle: string; signal: string | null; interlocuteur: string | null } => Boolean(v))
-  }, [knowledge.playbook])
+  const entryPoints = useMemo(() => parsePlaybookEntryPoints(knowledge.playbook), [knowledge.playbook])
 
   // Échéances réglementaires et fenêtres
   const deadlines = knowledge.regulatory
@@ -301,14 +253,18 @@ export function SectorPlaybooksModal({
                     {p.role}
                   </span>
                   <div className="text-xs space-y-2">
-                    <p className="text-white/80 leading-relaxed">
-                      <strong className="text-brand-brass">Enjeu principal : </strong>
-                      {p.enjeu}
-                    </p>
-                    <p className="text-white/80 leading-relaxed">
-                      <strong className="text-rose-400">Ce qui le préoccupe : </strong>
-                      {p.peur}
-                    </p>
+                    {p.accountability ? (
+                      <p className="text-white/80 leading-relaxed">
+                        <strong className="text-brand-brass">Responsabilité : </strong>
+                        {p.accountability}
+                      </p>
+                    ) : null}
+                    {p.trigger ? (
+                      <p className="text-white/80 leading-relaxed">
+                        <strong className="text-rose-400">Déclencheur : </strong>
+                        {p.trigger}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -324,19 +280,28 @@ export function SectorPlaybooksModal({
             </h4>
             <div className="space-y-2.5">
               {entryPoints.map((ep, idx) => (
-                <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-bold text-white">{ep.angle}</span>
+                <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2.5">
+                  {ep.signal ? (
+                    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5 text-xs text-white/70">
+                      <strong className="text-white/90">Signal déclencheur : </strong>
+                      {ep.signal}
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="text-xs text-white/85 leading-relaxed flex-1">
+                      <strong className="text-brand-brass">Angle d’approche : </strong>
+                      {ep.angle}
+                    </div>
                     {ep.interlocuteur ? (
                       <span className="rounded bg-brand-brass/10 px-2 py-0.5 text-[10px] font-medium text-brand-brass shrink-0">
                         Cible : {ep.interlocuteur}
                       </span>
                     ) : null}
                   </div>
-                  {ep.signal ? (
-                    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5 text-xs text-white/70">
-                      <strong className="text-white/90">Signal déclencheur : </strong>
-                      {ep.signal}
+                  {ep.srcIds.length > 0 ? (
+                    <div className="flex items-center gap-2 text-[10px] text-white/40 pt-0.5">
+                      <span>Sources :</span>
+                      <SourceChipList srcIds={ep.srcIds} resolve={resolveSource} variant="dark" />
                     </div>
                   ) : null}
                 </div>
@@ -355,9 +320,11 @@ export function SectorPlaybooksModal({
               {objections.map((o, idx) => (
                 <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/40 p-4 space-y-2">
                   <p className="text-xs font-bold text-rose-300">« {o.objection} »</p>
-                  <div className="border-l-2 border-brand-brass/50 pl-3 pt-0.5">
-                    <p className="text-xs leading-relaxed text-white/85">{o.reponse}</p>
-                  </div>
+                  {o.response ? (
+                    <div className="border-l-2 border-brand-brass/50 pl-3 pt-0.5">
+                      <p className="text-xs leading-relaxed text-white/85">{o.response}</p>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -374,9 +341,17 @@ export function SectorPlaybooksModal({
                 </h4>
                 <div className="space-y-2">
                   {roiArguments.map((arg, idx) => (
-                    <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/30 p-3.5 flex items-start gap-3">
-                      <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-brand-brass" />
-                      <p className="text-xs leading-relaxed text-white/85">{arg}</p>
+                    <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/30 p-3.5 space-y-2">
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-brand-brass" />
+                        <p className="text-xs leading-relaxed text-white/85 flex-1">{arg.argument}</p>
+                      </div>
+                      {arg.srcIds.length > 0 ? (
+                        <div className="pl-4 flex items-center gap-2 text-[10px] text-white/40">
+                          <span>Sources :</span>
+                          <SourceChipList srcIds={arg.srcIds} resolve={resolveSource} variant="dark" />
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
