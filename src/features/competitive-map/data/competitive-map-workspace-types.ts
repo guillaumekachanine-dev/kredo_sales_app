@@ -50,6 +50,8 @@ export type CompetitiveMapActor = {
   forces: string | null
   vulnerability: string | null
   angleEntree: string | null
+  lifecycleStatus?: string | null
+  relationType?: string | null
   details: CompetitiveMapActorDetails
 }
 

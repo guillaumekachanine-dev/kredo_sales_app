@@ -38,7 +38,10 @@ export type CompetitiveMapWorkspaceEntryRow = {
   maturite_numerique?: number | null
   is_benchmark_account: boolean
   profile_json: CompetitiveMapJsonValue
-  companies: { id: string; name: string } | { id: string; name: string }[] | null
+  companies:
+    | { id: string; name: string; lifecycle_status?: string | null; relation_type?: string | null }
+    | { id: string; name: string; lifecycle_status?: string | null; relation_type?: string | null }[]
+    | null
 }
 
 export type CompetitiveMapFactRow = {
@@ -134,7 +137,12 @@ function firstText(value: CompetitiveMapJsonValue | undefined): string | null {
   return formatProfileValue(value)[0] ?? null
 }
 
-function getCompany(row: CompetitiveMapWorkspaceEntryRow): { id: string; name: string } | null {
+function getCompany(row: CompetitiveMapWorkspaceEntryRow): {
+  id: string
+  name: string
+  lifecycle_status?: string | null
+  relation_type?: string | null
+} | null {
   if (Array.isArray(row.companies)) return row.companies[0] ?? null
   return row.companies
 }
@@ -192,6 +200,8 @@ export function presentCompetitiveMapSnapshot(input: {
       forces: row.forces,
       vulnerability: row.vulnerabilite,
       angleEntree: row.angle_entree,
+      lifecycleStatus: company.lifecycle_status ?? null,
+      relationType: company.relation_type ?? null,
       details: {
         propositionValeur: firstText(profile.proposition_valeur),
         differenciateurs: formatProfileValue(profile.differenciateurs),

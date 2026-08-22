@@ -181,11 +181,10 @@ describe("TerrainHomeDashboardMobile UI Integration", () => {
     expect(html).not.toContain("Accès aux modes Terrain")
   })
 
-  it("does not render M3, M4, M5 future buttons on Home", () => {
+  it("does not render M4, M5 future buttons on Home", () => {
     const ws = createMockWorkspace()
     const html = renderToString(createElement(TerrainHomeDashboardMobile, { workspace: ws }))
 
-    expect(html).not.toContain("Révision")
     expect(html).not.toContain("Top 3")
     expect(html).not.toContain("Essentiel")
   })

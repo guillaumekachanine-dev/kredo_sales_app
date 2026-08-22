@@ -6,7 +6,7 @@ describe("competitive map workspace loader", () => {
     const source = readFileSync("src/features/competitive-map/data/get-competitive-map-workspace.ts", "utf8")
 
     expect(source).toContain('import "server-only"')
-    expect(source).toContain("companies:companies!competitive_map_entries_company_id_fkey(id,name)")
+    expect(source).toContain("companies:companies!competitive_map_entries_company_id_fkey(id,name,lifecycle_status,relation_type)")
     expect(source).toContain('.eq("segment_id", catalogItem.segmentId)')
     expect(source).toContain('.eq("study_snapshot_date", catalogItem.latestSnapshotDate)')
     expect(source).toContain('.eq("is_current", true)')

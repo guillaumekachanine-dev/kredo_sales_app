@@ -70,7 +70,7 @@ export const getCompetitiveMapWorkspace = cache(async (
   const entriesResult = await supabase
     .from("competitive_map_entries")
     .select(
-      "id,company_id,category,positioning,forces,vulnerabilite,angle_entree,appetence_score,accessibilite_score,appetence_provisoire,confiance,is_benchmark_account,profile_json,companies:companies!competitive_map_entries_company_id_fkey(id,name)",
+      "id,company_id,category,positioning,forces,vulnerabilite,angle_entree,appetence_score,accessibilite_score,appetence_provisoire,confiance,is_benchmark_account,profile_json,companies:companies!competitive_map_entries_company_id_fkey(id,name,lifecycle_status,relation_type)",
     )
     .eq("segment_id", catalogItem.segmentId)
     .eq("study_snapshot_date", catalogItem.latestSnapshotDate)
