@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { IconChevron } from "@/components/cockpit/mobile/icons"
-import { getDocumentIcon } from "@/components/reports/document-display"
+import { getDocumentIcon, isMasterStudyDocument } from "@/components/reports/document-display"
 import { Button } from "@/components/ui/Button"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Input } from "@/components/ui/Input"
@@ -36,7 +36,7 @@ const KIND_TABS: Array<{ id: CollectionKind; label: string }> = [
 
 /** Icône SVG selon le content-type — miroir de la Bibliothèque de documents. */
 function CollectionItemIcon({ item }: { item: ResolvedCollectionItem }) {
-  const isMasterStudy = item.documentType === "master_study"
+  const isMasterStudy = isMasterStudyDocument(item.documentType)
   const docType =
     item.contentType === "veille_article"
       ? "veille_article"

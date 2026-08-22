@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { IconChevron, IconSearch } from "@/components/cockpit/mobile/icons"
-import { getDocumentIcon } from "@/components/reports/document-display"
+import { getDocumentIcon, isMasterStudyDocument } from "@/components/reports/document-display"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -39,7 +39,7 @@ type DrawerView = "create" | "detail" | "edit" | null
 
 /** Icône SVG selon le content-type — miroir de la Bibliothèque de documents. */
 function CollectionItemIcon({ item }: { item: ResolvedCollectionItem }) {
-  const isMasterStudy = item.documentType === "master_study"
+  const isMasterStudy = isMasterStudyDocument(item.documentType)
   const docType =
     item.contentType === "veille_article"
       ? "veille_article"

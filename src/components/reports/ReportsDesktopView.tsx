@@ -35,6 +35,8 @@ import {
   getDocumentIcon,
   getDocumentTypeLabel,
   getFinancialReferenceDocumentSummary,
+  isMasterStudyDocument,
+  MASTER_STUDY_CATEGORY_LABEL,
 } from "./document-display"
 import { REPORT_SUPPORTS, ReportSupportIcon } from "./report-supports-config"
 import { ClientSummaryDocumentContent } from "./ClientSummaryDocumentContent"
@@ -42,6 +44,7 @@ import { PitchDocumentContent } from "./PitchDocumentContent"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
 import { TechnicalReportContent } from "./TechnicalReportContent"
 import { ManagerSummaryReportView } from "./manager-summary/ManagerSummaryReportView"
+import { CompetitiveMapImportReportContent } from "./CompetitiveMapImportReportContent"
 import { DocumentCommunicationActions } from "./DocumentCommunicationActions"
 import { DocumentEditor } from "./DocumentEditor"
 import { DocumentGenerationParameters } from "./DocumentGenerationParameters"
@@ -241,6 +244,10 @@ function DocumentContent({ document }: { document: DocumentDetail }) {
 
   if (document.documentType === "manager_summary" && document.currentContentJson && typeof document.currentContentJson === "object" && "facts" in document.currentContentJson) {
     return <ManagerSummaryReportView content={document.currentContentJson as unknown as ManagerSummaryContent} />
+  }
+
+  if (document.documentType === "competitive_map_import") {
+    return <CompetitiveMapImportReportContent contentJson={document.currentContentJson} />
   }
 
   if (document.documentType === "commercial_pitch" || document.documentType === "prise_de_parole") {
@@ -452,7 +459,7 @@ export function ReportsDesktopView({
                   <p className="px-5 py-12 text-center text-xs text-muted">Aucun document.</p>
                 ) : reportsData.items.map((item) => {
                   const active = item.id === selectedDocumentId
-                  const isMasterStudy = item.documentType === "master_study"
+                  const isMasterStudy = isMasterStudyDocument(item.documentType)
                   return (
                     <button
                       key={item.id}
@@ -482,7 +489,11 @@ export function ReportsDesktopView({
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className="block truncate text-[11px] font-bold leading-4 text-heading">{item.title}</span>
-                          <span className="mt-0.5 block truncate text-[9px] leading-4 text-muted">{getDocumentTypeLabel(item.documentType)} · Créé le {formatShortDate(item.createdAt)}</span>
+                          <span className="mt-0.5 block truncate text-[9px] leading-4 text-muted">
+                            {isMasterStudy
+                              ? `${MASTER_STUDY_CATEGORY_LABEL} - créé le ${formatShortDate(item.createdAt)}`
+                              : `${getDocumentTypeLabel(item.documentType)} · Créé le ${formatShortDate(item.createdAt)}`}
+                          </span>
                         </div>
                       </div>
                     </button>
@@ -525,7 +536,11 @@ export function ReportsDesktopView({
                           <header className="border-b border-border pb-5">
                             <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary">KREDO Intelligence</p>
                             <h2 className="mt-2 font-heading text-xl font-bold leading-7 text-heading">{selectedDocument.title}</h2>
-                            <p className="mt-1 text-[10px] text-muted">{DOCUMENT_OBJECT_LABELS[selectedDocument.documentType]} · {formatLongDate(selectedDocument.createdAt)}</p>
+                            <p className="mt-1 text-[10px] text-muted">
+                              {isMasterStudyDocument(selectedDocument.documentType)
+                                ? `${MASTER_STUDY_CATEGORY_LABEL} · ${formatLongDate(selectedDocument.createdAt)}`
+                                : `${DOCUMENT_OBJECT_LABELS[selectedDocument.documentType]} · ${formatLongDate(selectedDocument.createdAt)}`}
+                            </p>
                           </header>
                           <DocumentContent document={selectedDocument} />
                           <footer className="flex items-center justify-between border-t border-border pt-4 text-[9px] text-muted"><span>Document généré par KREDO Intelligence</span><span>Usage interne</span></footer>

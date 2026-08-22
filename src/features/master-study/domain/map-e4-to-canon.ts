@@ -189,7 +189,7 @@ export function mapE4ToCanon(
   // 8. Document & Run
   const title =
     documentTitle ||
-    `Master Study — ${input.meta.segment_slug} — ${dateSnapshot}`
+    `04-secteur - ${input.meta.segment_slug}`
 
   const payload: MasterStudyE4RpcPayload = {
     segment_id: segmentId,

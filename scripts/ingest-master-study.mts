@@ -107,7 +107,7 @@ async function run() {
   console.log(`Segment trouvé : ${segmentRow.name} (id: ${segmentRow.id}, level: ${segmentRow.level})`)
 
   // 3. Transformation E4 -> Canon
-  const documentTitle = `Master Study — ${segmentRow.name} — ${e4Data.meta.date_snapshot}`
+  const documentTitle = `04-secteur - ${segmentRow.name}`
   const result = mapE4ToCanon(e4Data, {
     segmentId: segmentRow.id,
     documentTitle,

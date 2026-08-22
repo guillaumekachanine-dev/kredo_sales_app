@@ -16,6 +16,8 @@
 export type CompetitiveMapImportReportContent = {
   schemaVersion: 1
   sectorName: string
+  /** Nom d'affichage du segment (`sector_intelligence.name`) — alimente le titre du document, distinct du `sectorName` (macro). */
+  segmentName: string
   segmentSlug: string
   studySnapshotDate: string
   importedAt: string
@@ -83,6 +85,6 @@ export function buildCompetitiveMapImportReportText(content: CompetitiveMapImpor
   return lines.join("\n")
 }
 
-export function buildCompetitiveMapImportDocumentTitle(content: Pick<CompetitiveMapImportReportContent, "sectorName">): string {
-  return `Import cartographie — ${content.sectorName}`
+export function buildCompetitiveMapImportDocumentTitle(content: Pick<CompetitiveMapImportReportContent, "segmentName">): string {
+  return `05-comptes - ${content.segmentName}`
 }

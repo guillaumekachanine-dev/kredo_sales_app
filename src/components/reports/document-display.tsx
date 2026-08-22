@@ -116,6 +116,18 @@ export function getDocumentTypeLabel(documentType: DocumentType) {
   return DOCUMENT_TYPE_LABELS[documentType]
 }
 
+// Catégorie transverse "Master Study" — regroupe deux `document_type` distincts
+// (04-secteur / master_study et 05-comptes / competitive_map_import), même
+// identité visuelle partout où un document est listé, sans fusionner les types
+// en base (contenus structurellement différents).
+export const MASTER_STUDY_DOCUMENT_TYPES = new Set<DocumentType>(["master_study", "competitive_map_import"])
+
+export function isMasterStudyDocument(documentType: string | null | undefined): boolean {
+  return MASTER_STUDY_DOCUMENT_TYPES.has(documentType as DocumentType)
+}
+
+export const MASTER_STUDY_CATEGORY_LABEL = "Master Study"
+
 export function getFinancialReferenceDocumentSummary(content: unknown) {
   if (!content || typeof content !== "object" || Array.isArray(content)) return null
   const value = content as Record<string, unknown>
@@ -213,6 +225,7 @@ export function getDocumentIcon(documentType: string, className = "size-4 shrink
         </svg>
       )
     case "master_study":
+    case "competitive_map_import":
       return (
         <svg {...commonProps}>
           {/* Chapeau de Master (Mortarboard / Graduation Cap) */}

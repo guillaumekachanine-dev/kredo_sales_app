@@ -10,6 +10,7 @@ function baseContent(overrides: Partial<CompetitiveMapImportReportContent> = {})
   return {
     schemaVersion: 1,
     sectorName: "Tourisme & séjours",
+    segmentName: "Séjours & hébergements touristiques",
     segmentSlug: "tourisme-sejours",
     studySnapshotDate: "2026-08-16",
     importedAt: "2026-08-16T16:42:00.000Z",
@@ -63,9 +64,9 @@ describe("buildCompetitiveMapImportReportText", () => {
 })
 
 describe("buildCompetitiveMapImportDocumentTitle", () => {
-  it("préfixe le secteur", () => {
-    expect(buildCompetitiveMapImportDocumentTitle({ sectorName: "BTP & Construction" })).toBe(
-      "Import cartographie — BTP & Construction",
+  it("préfixe le nom du segment", () => {
+    expect(buildCompetitiveMapImportDocumentTitle({ segmentName: "BTP & Construction" })).toBe(
+      "05-comptes - BTP & Construction",
     )
   })
 })

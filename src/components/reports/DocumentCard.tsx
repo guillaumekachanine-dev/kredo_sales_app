@@ -2,7 +2,7 @@
 
 import type { DocumentListItem } from "@/app/(app)/reports/_data/reports-types"
 import { IconChevron } from "@/components/cockpit/mobile/icons"
-import { getDocumentIcon } from "./document-display"
+import { getDocumentIcon, isMasterStudyDocument, MASTER_STUDY_CATEGORY_LABEL } from "./document-display"
 import { cn } from "@/lib/utils"
 
 type DocumentCardProps = {
@@ -47,7 +47,7 @@ function formatDate(value: string) {
 }
 
 export function DocumentCard({ document, onClick, selected = false }: DocumentCardProps) {
-  const isMasterStudy = document.documentType === "master_study"
+  const isMasterStudy = isMasterStudyDocument(document.documentType)
   return (
     <button
       type="button"
@@ -91,9 +91,15 @@ export function DocumentCard({ document, onClick, selected = false }: DocumentCa
           ) : null}
         </span>
         <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-4 text-muted">
-          <span>{DOCUMENT_TYPE_LABELS[document.documentType]}</span>
-          <span aria-hidden="true">·</span>
-          <span>{formatDate(document.updatedAt)}</span>
+          {isMasterStudy ? (
+            <span>{MASTER_STUDY_CATEGORY_LABEL} - créé le {formatDate(document.updatedAt)}</span>
+          ) : (
+            <>
+              <span>{DOCUMENT_TYPE_LABELS[document.documentType]}</span>
+              <span aria-hidden="true">·</span>
+              <span>{formatDate(document.updatedAt)}</span>
+            </>
+          )}
           {document.primaryEntity?.label ? (
             <>
               <span aria-hidden="true">·</span>

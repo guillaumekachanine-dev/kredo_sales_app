@@ -752,6 +752,21 @@ export function CompetitiveMapImportWizard({
             </div>
           )}
 
+          {result.reportError ? (
+            <p className="rounded border border-red-300 bg-red-50 p-2.5 text-[11px] text-red-700">
+              ⚠️ L&apos;import CRM a réussi, mais le rapport d&apos;archivage n&apos;a pas pu être créé
+              ({result.reportError}). Il n&apos;apparaîtra pas dans la bibliothèque « Rapports &amp; Rédaction ».
+            </p>
+          ) : result.reportDocumentId ? (
+            <p className="rounded border border-emerald-200 bg-emerald-50 p-2.5 text-[11px] text-emerald-800">
+              ✓ Rapport d&apos;import archivé —{" "}
+              <Link href="/reports" className="font-semibold underline">
+                le consulter dans Rapports &amp; Rédaction
+              </Link>
+              .
+            </p>
+          ) : null}
+
           <div className="flex justify-end gap-3 pt-2">
             {onClose ? (
               <button
@@ -853,7 +868,7 @@ function CompetitiveMapImportHistoryDetail({
           Impossible de charger le détail de cet import.
         </p>
       ) : (
-        <CompetitiveMapImportReportContent contentJson={state.content} />
+        <CompetitiveMapImportReportContent contentJson={state.content} variant="summary" />
       )}
     </div>
   )

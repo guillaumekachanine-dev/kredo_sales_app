@@ -218,7 +218,7 @@ async function archiveCompetitiveMapImport(params: {
     const studySnapshotDate = decisions[0]?.studySnapshotDate ?? null
 
     const { data: segmentRow } = segmentSlug
-      ? await supabase.from("sector_intelligence").select("id").eq("slug", segmentSlug).maybeSingle()
+      ? await supabase.from("sector_intelligence").select("id, name").eq("slug", segmentSlug).maybeSingle()
       : { data: null }
 
     const analyzed = parsed.data.comptes.length
@@ -234,6 +234,7 @@ async function archiveCompetitiveMapImport(params: {
     const content: CompetitiveMapImportReportContent = {
       schemaVersion: 1,
       sectorName: parsed.data.secteur,
+      segmentName: segmentRow?.name ?? parsed.data.segmentLabel,
       segmentSlug: segmentSlug ?? "",
       studySnapshotDate: studySnapshotDate ?? "",
       importedAt: new Date().toISOString(),
