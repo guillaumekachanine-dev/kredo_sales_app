@@ -14,9 +14,28 @@ import {
   type CollectionContentType,
   type CollectionKind,
   type CollectionSummary,
+  type IntelligenceDocumentSummary,
   type ResolvedCollectionItem,
 } from "../domain/content-collections-contracts"
 import { getContentTypeRegistryEntry, type ResolvedContentMeta } from "../domain/content-type-registry"
+
+export async function fetchAllIntelligenceDocuments(): Promise<IntelligenceDocumentSummary[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("intelligence_documents")
+    .select("id, title, document_type, created_at, updated_at")
+    .order("updated_at", { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((row) => ({
+    id: row.id,
+    title: row.title,
+    documentType: row.document_type,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }))
+}
 
 export async function fetchCollectionsSummary(): Promise<CollectionSummary[]> {
   const supabase = createClient()

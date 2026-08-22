@@ -46,6 +46,14 @@ export type CollectionSummary = {
   updatedAt: string
 }
 
+export type IntelligenceDocumentSummary = {
+  id: string
+  title: string
+  documentType: string
+  createdAt: string
+  updatedAt: string
+}
+
 /**
  * Garde-fou métier (miroir du trigger `private.validate_content_collection_item`) :
  * seule une Liste peut être référencée par un membership "knowledge_list" — jamais

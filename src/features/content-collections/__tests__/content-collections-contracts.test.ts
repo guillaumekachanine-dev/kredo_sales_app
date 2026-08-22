@@ -118,4 +118,16 @@ describe("content-collections domain contracts", () => {
     expect(grouped[0]?.contentType).toBe("veille_article")
     expect(grouped[1]?.contentType).toBe("intelligence_document")
   })
+
+  it("handles intelligence document library items", () => {
+    const doc: import("../domain/content-collections-contracts").IntelligenceDocumentSummary = {
+      id: "doc-1",
+      title: "Rapport commercial Q3",
+      documentType: "activity_commercial",
+      createdAt: "2026-08-01T10:00:00Z",
+      updatedAt: "2026-08-02T12:00:00Z",
+    }
+    expect(doc.id).toBe("doc-1")
+    expect(doc.documentType).toBe("activity_commercial")
+  })
 })

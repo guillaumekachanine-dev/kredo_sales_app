@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
+import { DOCUMENT_OBJECT_LABELS, getDocumentTypeLabel } from "@/components/reports/document-display"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
 import { cn } from "@/lib/utils"
 import {
+  fetchAllIntelligenceDocuments,
   fetchCollectionsSummary,
   fetchResolvedCollectionItems,
 } from "../data/content-collections-client-queries"
@@ -22,7 +24,11 @@ import { KnowledgeLibraryPane, type KnowledgeLibraryMode, type KnowledgeView } f
 import { KnowledgeListPane } from "./KnowledgeListPane"
 import { KnowledgeDocumentViewer } from "./KnowledgeDocumentViewer"
 import { KnowledgeSynthesisView } from "./KnowledgeSynthesisView"
-import type { CollectionSummary, ResolvedCollectionItem } from "../domain/content-collections-contracts"
+import type {
+  CollectionSummary,
+  IntelligenceDocumentSummary,
+  ResolvedCollectionItem,
+} from "../domain/content-collections-contracts"
 
 export interface ManageCollectionsDesktopProps {
   open: boolean
@@ -38,9 +44,12 @@ export function ManageCollectionsDesktop({
   const [mode, setMode] = useState<KnowledgeLibraryMode>("lists")
   const [view, setView] = useState<KnowledgeView>({ type: "synthesis" })
   const [collections, setCollections] = useState<CollectionSummary[]>([])
+  const [documents, setDocuments] = useState<IntelligenceDocumentSummary[]>([])
   const [loadedCollectionsOpen, setLoadedCollectionsOpen] = useState(false)
+  const [loadedDocuments, setLoadedDocuments] = useState(false)
   const [loadedItemsCollectionId, setLoadedItemsCollectionId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [items, setItems] = useState<ResolvedCollectionItem[]>([])
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
   const [newName, setNewName] = useState("")
@@ -53,52 +62,116 @@ export function ManageCollectionsDesktop({
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const isLoadingCollections = open && !loadedCollectionsOpen
-  const isLoadingItems = Boolean(selectedId && view.type === "list" && loadedItemsCollectionId !== selectedId)
+  const activeCollectionId =
+    view.type === "list" || view.type === "corpus" ? view.id : selectedId
 
-  // Reset state and fetch list collections when modal opens
+  const isLoadingCollections = open && !loadedCollectionsOpen
+  const isLoadingItems = Boolean(
+    activeCollectionId &&
+      (view.type === "list" || view.type === "corpus") &&
+      loadedItemsCollectionId !== activeCollectionId
+  )
+
+  // Reset state and fetch collections + documents when modal opens
   useEffect(() => {
     if (!open) return
 
-    fetchCollectionsSummary().then((data) => {
-      // Filter lists only for the Library mode
-      const listCollections = data.filter((c) => c.kind === "list")
+    let active = true
+
+    Promise.all([
+      fetchCollectionsSummary(),
+      fetchAllIntelligenceDocuments(),
+    ]).then(([colsData, docsData]) => {
+      if (!active) return
       setError(null)
-      setMode("lists")
-      setView({ type: "synthesis" })
       setIsEditMode(false)
       setActiveViewerItem(null)
-      setCollections(listCollections)
-      const defaultId = initialSelectedCollectionId ?? listCollections[0]?.id ?? null
-      setSelectedId(defaultId)
+      setCollections(colsData)
+      setDocuments(docsData)
       setLoadedCollectionsOpen(true)
+      setLoadedDocuments(true)
+
+      if (mode === "lists") {
+        const listCollections = colsData.filter((c) => c.kind === "list")
+        const defaultId = initialSelectedCollectionId ?? listCollections[0]?.id ?? null
+        if (defaultId) setSelectedId(defaultId)
+      } else if (mode === "corpus") {
+        const corpusCollections = colsData.filter((c) => c.kind === "corpus")
+        const defaultId = corpusCollections[0]?.id ?? null
+        if (defaultId) setSelectedId(defaultId)
+      }
     })
+
+    return () => {
+      active = false
+      setLoadedCollectionsOpen(false)
+      setLoadedDocuments(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
+  // Lazy load intelligence documents when entering documents mode if not loaded
+  useEffect(() => {
+    if (!open || mode !== "documents" || loadedDocuments) return
+
+    fetchAllIntelligenceDocuments().then((data) => {
+      setDocuments(data)
+      setLoadedDocuments(true)
+      if (!selectedDocId && data[0]?.id) {
+        setSelectedDocId(data[0].id)
+      }
+    })
+  }, [open, mode, loadedDocuments, selectedDocId])
+
   // Fetch items when selected collection changes
   useEffect(() => {
-    if (!selectedId || view.type !== "list") {
+    if (!activeCollectionId || (view.type !== "list" && view.type !== "corpus")) {
       return
     }
 
-    fetchResolvedCollectionItems(selectedId).then((data) => {
+    fetchResolvedCollectionItems(activeCollectionId).then((data) => {
       setItems(data)
       setSelectedItemIds(new Set())
       setIsEditMode(false)
-      setLoadedItemsCollectionId(selectedId)
+      setLoadedItemsCollectionId(activeCollectionId)
     })
-  }, [selectedId, view.type])
+  }, [activeCollectionId, view.type])
 
-  const selectedCollection = collections.find((c) => c.id === selectedId) ?? null
+  const selectedCollection = collections.find((c) => c.id === activeCollectionId) ?? null
 
-  const refreshCollections = () =>
-    fetchCollectionsSummary().then((data) => {
-      setCollections(data.filter((c) => c.kind === "list"))
-    })
+  const selectedDoc =
+    documents.find((d) => d.id === (view.type === "document" ? view.id : selectedDocId)) ??
+    documents[0] ??
+    null
+
+  const selectedDocItem: ResolvedCollectionItem | null = selectedDoc
+    ? {
+        membershipId: selectedDoc.id,
+        contentType: "intelligence_document",
+        contentId: selectedDoc.id,
+        addedAt: selectedDoc.createdAt,
+        position: null,
+        title: selectedDoc.title,
+        typeLabel: "Document",
+        date: selectedDoc.updatedAt || selectedDoc.createdAt,
+        preview: null,
+        categoryLabel: selectedDoc.documentType
+          ? (DOCUMENT_OBJECT_LABELS[selectedDoc.documentType as keyof typeof DOCUMENT_OBJECT_LABELS] ??
+              getDocumentTypeLabel(selectedDoc.documentType as keyof typeof DOCUMENT_OBJECT_LABELS))
+          : null,
+        documentType: selectedDoc.documentType,
+        url: `/reports?doc=${selectedDoc.id}`,
+      }
+    : null
+
+  const refreshCollections = async () => {
+    const data = await fetchCollectionsSummary()
+    setCollections(data)
+    return data
+  }
 
   const refreshItems = () => {
-    if (selectedId) fetchResolvedCollectionItems(selectedId).then(setItems)
+    if (activeCollectionId) fetchResolvedCollectionItems(activeCollectionId).then(setItems)
   }
 
   const handleCreate = () => {
@@ -190,19 +263,23 @@ export function ManageCollectionsDesktop({
     })
   }
 
-  // Header Right Actions: Compact Mode Switcher [ Listes | Corpus ]
+  // Header Right Actions: Compact Mode Switcher [ Listes | Corpus | Documents ]
   const headerRightActions = (
     <div className="mr-2 inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] p-0.5" role="tablist" aria-label="Mode de vue">
       <button
         type="button"
         role="tab"
         aria-selected={mode === "lists"}
-        onClick={() => {
+        onClick={async () => {
           setMode("lists")
-          // Si l'utilisateur n'est pas sur Synthèse, basculer vers la 1ère liste disponible
+          const freshCollections = await refreshCollections()
           if (view.type !== "synthesis") {
-            const firstId = selectedId ?? collections[0]?.id
-            if (firstId) setView({ type: "list", id: firstId })
+            const listCols = freshCollections.filter((c) => c.kind === "list")
+            const firstId = selectedId ?? listCols[0]?.id ?? null
+            if (firstId) {
+              setSelectedId(firstId)
+              setView({ type: "list", id: firstId })
+            }
           }
         }}
         className={cn(
@@ -218,11 +295,18 @@ export function ManageCollectionsDesktop({
         type="button"
         role="tab"
         aria-selected={mode === "corpus"}
-        onClick={() => {
+        onClick={async () => {
           setMode("corpus")
-          // Si l'utilisateur n'est pas sur Synthèse, basculer vers la vue corpus
+          const freshCollections = await refreshCollections()
           if (view.type !== "synthesis") {
-            setView({ type: "corpus", id: "" })
+            const corpusCols = freshCollections.filter((c) => c.kind === "corpus")
+            const firstId = corpusCols[0]?.id ?? null
+            if (firstId) {
+              setSelectedId(firstId)
+              setView({ type: "corpus", id: firstId })
+            } else {
+              setView({ type: "corpus", id: "" })
+            }
           }
         }}
         className={cn(
@@ -233,6 +317,32 @@ export function ManageCollectionsDesktop({
         )}
       >
         Corpus
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "documents"}
+        onClick={async () => {
+          setMode("documents")
+          const docs = await fetchAllIntelligenceDocuments()
+          setDocuments(docs)
+          setLoadedDocuments(true)
+          if (view.type !== "synthesis") {
+            const firstDocId = selectedDocId ?? docs[0]?.id ?? null
+            if (firstDocId) {
+              setSelectedDocId(firstDocId)
+              setView({ type: "document", id: firstDocId })
+            }
+          }
+        }}
+        className={cn(
+          "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
+          mode === "documents"
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-white/65 hover:text-white"
+        )}
+      >
+        Documents
       </button>
     </div>
   )
@@ -260,13 +370,16 @@ export function ManageCollectionsDesktop({
               <KnowledgeLibraryPane
                 mode={mode}
                 collections={collections}
+                documents={documents}
                 activeView={view}
                 onSelectView={(v) => {
                   setView(v)
-                  if (v.type === "list") setSelectedId(v.id)
+                  if (v.type === "list" || v.type === "corpus") setSelectedId(v.id)
+                  if (v.type === "document") setSelectedDocId(v.id)
                   setActiveViewerItem(null)
                 }}
                 isLoading={isLoadingCollections}
+                isLoadingDocuments={!loadedDocuments}
                 creatingOpen={creatingOpen}
                 setCreatingOpen={setCreatingOpen}
                 newName={newName}
@@ -283,23 +396,22 @@ export function ManageCollectionsDesktop({
               <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950/20">
                 <KnowledgeSynthesisView />
               </main>
-            ) : view.type === "corpus" ? (
-              /* Mode Corpus : Squelette structurel minimal avec empty-state */
-              <main className="flex flex-1 items-center justify-center bg-slate-950/20 p-6 text-center text-xs text-white/50">
-                <div className="max-w-md space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-xl">
-                  <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-white/5 text-brand-brass">
-                    <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25" />
-                    </svg>
+            ) : view.type === "document" ? (
+              /* Mode Document : Visionneuse directe */
+              <main className="h-full flex-1 min-w-0 flex flex-col overflow-hidden">
+                {selectedDocItem ? (
+                  <KnowledgeDocumentViewer
+                    item={selectedDocItem}
+                    onCloseViewer={() => setView({ type: "synthesis" })}
+                  />
+                ) : (
+                  <div className="flex flex-1 items-center justify-center p-6 text-center text-xs text-white/50">
+                    Sélectionnez un document dans la colonne de gauche.
                   </div>
-                  <h4 className="font-bold text-white text-sm">Gestion des corpus</h4>
-                  <p className="text-white/60 leading-relaxed">
-                    La gestion des corpus sera disponible dans un prochain lot.
-                  </p>
-                </div>
+                )}
               </main>
             ) : (
-              /* Mode Liste : Layout dynamique 1 ou 2 panneaux (Liste + Viewer) */
+              /* Mode Liste ou Corpus : Layout dynamique 1 ou 2 panneaux (Liste/Corpus + Viewer) */
               <>
                 <div
                   className={cn(
@@ -394,3 +506,4 @@ export function ManageCollectionsDesktop({
     </>
   )
 }
+
