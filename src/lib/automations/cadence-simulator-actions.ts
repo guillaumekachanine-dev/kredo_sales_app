@@ -22,7 +22,7 @@ function numeric(value: number | string | null | undefined): number | null {
 
 export async function fetchCadenceSimulatorWorkflows(): Promise<CadenceSimulatorLoadResult> {
   const supabase = await createClient()
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
 
   const [healthRes, costStatsRes, veilleDigestsRes] = await Promise.all([
     supabase
@@ -51,16 +51,19 @@ export async function fetchCadenceSimulatorWorkflows(): Promise<CadenceSimulator
   }
 
   const costByRunType = new Map(
-    (costStatsRes.data ?? []).map((row) => [row.run_type, row]),
+    (costStatsRes.data ?? [])
+      .filter((row) => Boolean(row.run_type))
+      .map((row) => [row.run_type as string, row]),
   )
 
   const workflows: CadenceSimulatorWorkflow[] = (healthRes.data ?? [])
-    .filter((row) => !isLegacyWorkflow(row.run_type))
+    .filter((row) => Boolean(row.run_type) && !isLegacyWorkflow(row.run_type))
     .map((row) => {
-      const cost = costByRunType.get(row.run_type)
+      const runType = row.run_type as string
+      const cost = costByRunType.get(runType)
       return {
-        runType: row.run_type,
-        label: workflowLabelForRunType(row.run_type),
+        runType,
+        label: workflowLabelForRunType(runType),
         runs30d: row.runs_30d ?? 0,
         avgCost30d: numeric(cost?.avg_cost_30d),
         totalCost30d: numeric(cost?.total_cost_30d),
@@ -73,7 +76,9 @@ export async function fetchCadenceSimulatorWorkflows(): Promise<CadenceSimulator
   if (!hasWeeklyWatch) {
     const digests30d = (veilleDigestsRes.data ?? []).filter((digest) => {
       const dateValue = digest.created_at ?? digest.digest_date
-      return dateValue ? dateValue >= thirtyDaysAgo : false
+      if (!dateValue) return false
+      const timestamp = new Date(dateValue).getTime()
+      return Number.isFinite(timestamp) && timestamp >= thirtyDaysAgo
     })
 
     workflows.push({
