@@ -1,184 +1,322 @@
 # Cockpit Intelligence Mobile — Actions contextuelles par page
 
-**Statut :** Cadrage initial  
+**Statut :** Cadrage v0.2 — pré-chantiers requis  
 **Date :** 23/08/2026  
-**Périmètre :** panneau latéral / drawer mobile « Cockpit Intelligence »  
+**Périmètre principal :** panneau latéral / drawer mobile « Cockpit Intelligence » hors Cockpit Intelligence des comptes  
 **Repo :** `guillaumekachanine-dev/kredo_sales_app`  
 **Branche de référence :** `main`
 
 ---
 
-## 1. Objectif du chantier
+## 1. Objectif du chantier principal
 
-Refondre le panneau mobile **Cockpit Intelligence** pour restaurer sa fonction d’origine : proposer des **actions réellement contextualisées à la page consultée**.
+Refondre le panneau mobile **Cockpit Intelligence** pour restaurer sa fonction d’origine : proposer des actions réellement contextualisées à la **page fonctionnelle consultée**.
 
-Le niveau de contextualisation retenu est volontairement simple :
+Règle canonique :
 
 > **1 page fonctionnelle = 1 jeu stable de 3 à 4 actions prioritaires.**
 
-Les onglets internes d’une page ne modifient pas les actions du panneau. Ils appartiennent à la même famille d’activité et doivent partager les mêmes capacités principales.
-
-Une entité ouverte (compte, opportunité, mission, candidat, document, etc.) peut enrichir le **contexte d’exécution** et le **titre affiché**, mais ne doit pas créer une nouvelle taxonomie d’actions si elle appartient déjà à une page fonctionnelle couverte.
+Les onglets internes d’une page ne modifient pas les actions. Une entité ouverte peut enrichir le contexte d’exécution et le titre affiché, mais ne doit pas créer une taxonomie parallèle.
 
 ---
 
-## 2. Problème actuel
+## 2. Exclusion absolue — Cockpit Intelligence d’un compte
 
-Le projet possède déjà une architecture de contextualisation :
+Les pages `/prospection/accounts/[companyId]` possèdent déjà un Cockpit Intelligence mobile **spécifique, riche et contextualisé au compte**.
 
-- `src/lib/intelligence/intelligence-registry.ts` contient les actions et leur résolution par route ;
-- `src/hooks/use-intelligence-context.ts` transporte un contexte d’entité (`entityType`, `entityId`, `label`, `pathname`) ;
-- `src/components/intelligence/IntelligenceFAB.tsx` sait rendre plusieurs variantes du panneau mobile ;
-- plusieurs actions déterministes sont déjà actives et possèdent leur composant de résultat ;
-- le Cockpit compte possède déjà une variante mobile riche et réellement contextualisée.
+Cette expérience est **hors périmètre du chantier principal**.
 
-Le problème vient principalement de la dérive du rendu mobile : une partie des pages retombe sur une logique générique / codée en dur au lieu d’exploiter systématiquement la cartographie canonique.
+Le chantier principal ne doit donc pas :
 
-Le registre lui-même a également dérivé :
+- remplacer `AccountMobileContent` par le rendu registry générique ;
+- modifier sa structure Actions / Ressources ;
+- modifier son header, son thème ou ses interactions ;
+- faire hériter ses boutons de la cartographie globale par page ;
+- supprimer ou simplifier ses capacités spécialisées ;
+- utiliser cette page comme terrain de refactor du registry mobile générique.
 
-- il descend trop bas sur certaines sous-routes (`/missions/actives`, `/missions/projets`, `/consultants/pool-competences`, etc.) ;
-- plusieurs pages récentes ne disposent pas encore d’une cartographie satisfaisante (`/prospection-intelligence`, `/reports`, `/knowledge`, `/automations`) ;
-- certaines actions historiques sont encore présentes mais ne correspondent plus au meilleur niveau de synthèse produit.
+Le Cockpit compte reste une **exception produit assumée**.
 
----
+### Pré-chantiers obligatoires avant le chantier principal
 
-## 3. Décisions de cadrage
+Deux actions du Cockpit compte doivent être finalisées séparément :
 
-### D-1 — La page est l’unité de contextualisation
+1. **Simuler** — à traiter en premier.
+2. **Recruter** — à cadrer et implémenter ensuite dans un lot indépendant.
 
-Le Cockpit Intelligence ne doit **pas** suivre l’onglet actif.
-
-Exemples :
-
-- `Engagements` conserve le même jeu d’actions sur Synthèse, Missions et Projets ;
-- `Équipe` conserve le même jeu d’actions sur Synthèse, Pool de compétences et Activité & congés ;
-- `Business Intelligence` conserve le même jeu d’actions sur ses six chapitres ;
-- `Rapports & Rédaction` conserve le même jeu d’actions sur Documents, Connaissances et Générer.
-
-Aucun `contextKey`, store d’onglet ou synchronisation supplémentaire n’est nécessaire.
-
-### D-2 — L’entité précise le contexte, pas la famille fonctionnelle
-
-Quand une entité est ouverte, le panneau doit utiliser son libellé métier réel :
-
-- `Migration Cloud Azure — Eiffage` plutôt que `Opportunité` ;
-- `Marie Dupont` plutôt que `Collaborateur` ;
-- `Master Study — Travaux publics` plutôt que `Document`.
-
-L’entité sert à :
-
-- alimenter la carte de contexte ;
-- préremplir les actions ;
-- transmettre les bons IDs aux handlers existants ;
-- améliorer le deep-linking.
-
-Elle ne doit pas introduire une seconde source de vérité pour choisir les actions.
-
-### D-3 — Réutiliser le registre existant
-
-`intelligence-registry.ts` reste la source unique de vérité des actions du panneau.
-
-Le chantier ne doit pas créer :
-
-- un second registre mobile ;
-- un mapping par onglet ;
-- un nouveau store global ;
-- une nouvelle table Supabase ;
-- un nouveau workflow n8n uniquement pour piloter l’UI.
-
-### D-4 — 3 à 4 actions maximum par page
-
-Le Cockpit doit rester un outil d’action rapide.
-
-Une action est retenue si :
-
-1. elle répond à un besoin fréquent de la famille fonctionnelle ;
-2. elle est utile quel que soit l’onglet de la page ;
-3. elle peut être exécutée avec le contexte métier déjà disponible ;
-4. elle ne duplique pas une autre action plus générique ;
-5. elle possède déjà un handler, ou correspond à une capacité clairement planifiable sans refaire l’architecture.
-
-Il n’est pas nécessaire de remplir artificiellement quatre cases.
-
-### D-5 — Pas de faux comportement
-
-Si une action sélectionnée n’est pas encore implémentée :
-
-- conserver son statut `coming_soon` ;
-- ne pas simuler un résultat ;
-- ne pas créer un nouveau workflow pour rendre le bouton artificiellement actif.
-
-Le chantier de contextualisation et le chantier d’implémentation d’une nouvelle capacité métier restent distincts.
+Ces deux pré-chantiers doivent être terminés et validés avant de commencer la refonte globale.
 
 ---
 
-## 4. Contrat UI mobile cible
+## 3. Cartographie globale encore provisoire
 
-### 4.1 Header
+La cartographie des boutons du chantier principal n’est pas encore figée.
 
-Le header du panneau contient uniquement :
+Certains boutons seront modifiés avant le démarrage de la refonte. Les intitulés et capacités listés ci-dessous constituent donc une **baseline de travail**, pas un contrat définitif.
 
-**Cockpit Intelligence**
+Avant le Lot 1 du chantier principal, un jalon explicite de **freeze de la cartographie** devra valider :
+
+- les actions retenues par page ;
+- leur libellé final ;
+- leur statut `active` / `coming_soon` ;
+- leur handler réel ;
+- les éventuelles suppressions ou remplacements.
+
+---
+
+# 4. Pré-chantier A — Bouton « Simuler » du Cockpit compte
+
+## 4.1 Objectif
+
+Transformer le bouton **Simuler** du Cockpit Intelligence d’un compte en point d’entrée unique vers les trois familles de simulation utiles au pilotage d’un compte.
+
+Aujourd’hui, `Simuler` est un simple deep-link vers `/finance`. La cible est une **modale de sélection** proposant trois options.
+
+## 4.2 Options proposées
+
+### A — Modélisation financière Assistance Technique
+
+**Statut : existant.**
+
+Réutiliser le module canonique de modélisation financière, notamment le flow mobile existant :
+
+`src/features/financial-modeling/components/mobile/FinancialModelingMobileFlow.tsx`
+
+Le module accepte déjà un `FinancialModelingLaunchPreset` avec notamment :
+
+- `companyId` ;
+- `companyName` ;
+- `opportunityId` ;
+- `opportunityTitle` ;
+- `salesDailyRate`.
+
+Depuis le Cockpit d’un compte, le lancement doit au minimum présélectionner **le compte courant** via `companyId` + `companyName`.
+
+Aucun nouveau moteur financier ne doit être créé.
+
+### B — Coûts des automatisations / Simulateur de cadence
+
+**Statut : existant.**
+
+Réutiliser le module actuel :
+
+- `src/components/automations/VeilleSimulatorCard.tsx`
+- `src/components/automations/VeilleSimulatorModal.tsx`
+- `src/lib/automations/veille-cadence.ts`
+
+Le calcul existant s’appuie sur les coûts observés de `account_watch_refresh` et les cadences actives. Il ne doit pas être recopié dans `IntelligenceFAB.tsx`.
+
+Si un chargement ciblé est nécessaire depuis le Cockpit, extraire le **plus petit helper serveur réutilisable** permettant d’obtenir `VeilleSimulatorBaseline`, plutôt que de charger tout le dashboard Automatisations ou de dupliquer les formules.
+
+### C — Scénarios financiers de revenus
+
+**Statut : module à créer ultérieurement.**
+
+Finalité future : modéliser des scénarios de revenus à partir d’hypothèses de gain / perte d’opportunités.
+
+Dans ce pré-chantier :
+
+- ne créer aucun moteur ;
+- ne créer aucune table ;
+- ne créer aucun workflow n8n ;
+- afficher uniquement une option clairement marquée **« Bientôt disponible »** / désactivée.
+
+Le placeholder doit rendre la future capacité visible sans simuler un fonctionnement inexistant.
+
+## 4.3 UX cible
+
+Flux :
+
+```text
+Cockpit Intelligence compte
+→ Simuler
+→ modale « Choisir une simulation »
+   ├─ Modélisation financière AT
+   ├─ Coûts des automatisations
+   └─ Scénarios financiers de revenus — bientôt disponible
+```
+
+La modale de sélection doit :
+
+- utiliser les primitives KREDO existantes (`AppDialog` / surface mobile adaptée) ;
+- proposer 3 cartes / options lisibles ;
+- respecter les touch targets ≥ 44 px ;
+- rester cohérente avec le design du Cockpit compte ;
+- se fermer proprement avant d’ouvrir le module choisi ;
+- préserver la possibilité de revenir au Cockpit.
+
+## 4.4 Architecture
+
+Modification principale attendue :
+
+`src/components/intelligence/IntelligenceFAB.tsx`
 
 Règles :
 
-- texte en `brand-brass` / jaune KREDO ;
-- bouton de fermeture à droite ;
-- aucun nom de page dans le header ;
-- aucun eyebrow métier ;
-- aucun nom d’entité dans le header.
+- ne pas refactorer `AccountMobileContent` au-delà du câblage strictement nécessaire ;
+- remplacer le `href: "/finance"` du bouton `simulate` par un handler local ;
+- réutiliser `FinancialModelingMobileFlow` ;
+- réutiliser le simulateur de cadence existant ;
+- ne pas toucher au bouton `Recruter` dans ce lot ;
+- aucun changement Supabase attendu ;
+- aucun changement n8n attendu.
 
-### 4.2 Carte de contexte
+## 4.5 Definition of Done
 
-Immédiatement sous le header, afficher une carte dédiée contenant :
-
-- **titre principal** : libellé métier le plus précis disponible ;
-- **type / famille** : petit libellé secondaire.
-
-Exemples :
-
-| Contexte | Titre principal | Libellé secondaire |
-|---|---|---|
-| CRM | Comptes & Contacts | CRM |
-| Compte | Eiffage | Compte |
-| Opportunité | Migration Cloud Azure — Eiffage | Opportunité |
-| Engagements | Engagements | Pilotage delivery |
-| Collaborateur | Marie Dupont | Collaborateur |
-| Business Intelligence | BTP — Travaux publics | Business Intelligence |
-| Document | Master Study — Travaux publics | Document |
-| Automatisations | Automatisations | Supervision |
-
-Priorité du titre :
-
-```text
-entityContext.label
-→ contexte métier de page si disponible
-→ label canonique de route
-```
-
-### 4.3 Zone Actions
-
-Sous la carte de contexte :
-
-- grille mobile en 2 colonnes ;
-- touch targets ≥ 44 px ;
-- 3 à 4 actions maximum ;
-- aucun changement au passage d’un onglet à un autre ;
-- labels courts et orientés action ;
-- réutilisation des icônes et composants existants.
-
-La section générique `Plus d’actions` ne doit plus servir de fallback universel. Si une page nécessite réellement une seconde section, elle doit être explicitement définie pour cette page.
+- clic sur **Simuler** ouvre une modale à 3 options ;
+- option AT ouvre le flow de modélisation existant avec le compte courant présélectionné ;
+- option Coûts automatisations ouvre le simulateur de cadence existant avec ses vraies données ;
+- option Scénarios financiers est visible mais non exécutable et explicitement marquée comme future ;
+- le reste du Cockpit compte est inchangé ;
+- `Recruter` est inchangé ;
+- aucun nouveau moteur, workflow ou table ;
+- typecheck + tests ciblés verts.
 
 ---
 
-## 5. Cartographie produit cible
+# 5. Pré-chantier B — Bouton « Recruter » — cadrage réservé
 
-| Page fonctionnelle | Actions prioritaires |
+**Ne pas implémenter dans le lot Simuler.**
+
+Le bouton `Recruter` devra couvrir deux axes distincts.
+
+## Axe 1 — Synthèse des besoins et environnement technique du compte
+
+Construire une synthèse transverse de toutes les opportunités / besoins connus du compte afin de :
+
+1. synthétiser les besoins identifiés et traités ;
+2. extraire les attendus techniques observés ;
+3. déduire un environnement technique probable du client à partir des technologies, périmètres et besoins connus ;
+4. synthétiser l’adéquation des profils et offres KREDO à cet environnement.
+
+### Exigence fondamentale de confiance
+
+Cette vue comporte nécessairement des inférences.
+
+Chaque information affichée devra donc distinguer explicitement :
+
+- fait observé / source directe ;
+- inférence forte ;
+- hypothèse faible / à confirmer.
+
+Aucune hypothèse ne doit être présentée comme un fait client.
+
+## Axe 2 — Matching profils anticipé
+
+Donner accès à une variante du matching CV permettant :
+
+- soit de sélectionner un besoin ouvert existant du compte ;
+- soit de construire un besoin personnalisé temporaire ;
+- puis d’exécuter un matching anticipé sur les consultants / profils disponibles.
+
+La cible doit réutiliser le moteur de matching existant plutôt que créer un second moteur.
+
+Le cadrage technique détaillé et le prompt d’implémentation seront produits **après validation du lot Simuler**.
+
+---
+
+# 6. Règles du chantier principal
+
+## D-1 — La page est l’unité de contextualisation
+
+Le Cockpit générique ne suit pas l’onglet actif.
+
+Exemples :
+
+- Engagements : même jeu d’actions sur Synthèse, Missions, Projets ;
+- Équipe : même jeu sur Synthèse, Pool de compétences, Activité & congés ;
+- Business Intelligence : même jeu sur les 6 chapitres ;
+- Rapports & Rédaction : même jeu sur Documents, Connaissances, Générer.
+
+Aucun `contextKey`, store d’onglet ou synchronisation supplémentaire.
+
+## D-2 — L’entité enrichit le contexte
+
+Une entité peut fournir :
+
+- son `entityType` ;
+- son `entityId` ;
+- son `label` métier réel ;
+- les IDs utiles aux handlers.
+
+Elle ne choisit pas une nouvelle famille d’actions.
+
+## D-3 — Réutiliser le registre existant
+
+`src/lib/intelligence/intelligence-registry.ts` reste la source unique des actions du Cockpit générique.
+
+Interdits :
+
+- second registry mobile ;
+- mapping par onglet ;
+- nouveau store global ;
+- nouvelle table pour piloter l’UI ;
+- workflow n8n créé uniquement pour afficher / router un bouton.
+
+## D-4 — 3 à 4 actions maximum par page
+
+Une action est retenue si elle :
+
+1. répond à un besoin fréquent de la famille ;
+2. reste utile dans tous les onglets ;
+3. exploite des données réellement disponibles ;
+4. ne duplique pas une action plus générale ;
+5. dispose d’un handler existant ou d’une capacité clairement planifiée.
+
+## D-5 — Pas de faux comportement
+
+Une capacité non développée reste `coming_soon` ou affiche un placeholder explicite. Aucun faux résultat.
+
+---
+
+# 7. Contrat UI du Cockpit générique cible
+
+## Header
+
+Le header générique contient uniquement :
+
+**Cockpit Intelligence**
+
+- texte `brand-brass` / jaune KREDO ;
+- fermeture à droite ;
+- aucun nom de page dans le header.
+
+**Cette règle ne s’applique pas au Cockpit compte existant, hors périmètre.**
+
+## Carte de contexte
+
+Sous le header générique :
+
+- grand titre = contexte métier le plus précis ;
+- petit libellé = famille / type.
+
+Priorité :
+
+```text
+entityContext.label
+→ contexte métier de page disponible
+→ label canonique de route
+```
+
+## Actions
+
+- grille mobile 2 colonnes ;
+- 3 à 4 actions maximum ;
+- touch targets ≥ 44 px ;
+- aucun changement selon l’onglet ;
+- pas de `Plus d’actions` générique utilisé comme fallback universel.
+
+---
+
+# 8. Cartographie produit — baseline provisoire
+
+> À figer après les pré-chantiers Simuler / Recruter et les derniers arbitrages produit.
+
+| Page fonctionnelle | Actions baseline |
 |---|---|
 | **Cockpit** | Priorités d’action · Brief hebdomadaire · Insights pipeline |
 | **Agenda** | Préparer la journée · RDV à préparer · Priorités d’action |
 | **CRM — Comptes & Contacts** | Prioriser les comptes · Scanner les contacts · Rédiger une approche · Bilan d’activité CRM |
-| **Cockpit Intelligence d’un compte** | Actualiser la connaissance · Analyse approfondie · Rédiger une approche · Roadmap commerciale |
 | **Besoins & Staffing** | Prioriser le pipeline · Matcher les profils · Analyser les besoins · Simuler la rentabilité |
 | **Engagements** | Détecter les risques · Analyser les marges · Prévoir le CA |
 | **Business Intelligence** | Actualiser l’intelligence sectorielle · Identifier les fenêtres commerciales · Préparer un argumentaire · Analyse approfondie |
@@ -190,572 +328,229 @@ La section générique `Plus d’actions` ne doit plus servir de fallback univer
 | **Finance** | Analyser les marges · Prévoir le CA · Détecter les anomalies · Simuler un scénario |
 | **Knowledge Hub** | Interroger la connaissance · Synthétiser un corpus · Construire un corpus · Générer un livrable |
 | **Automatisations** | Diagnostiquer une exécution · Analyser la fiabilité · Analyser les coûts · Prioriser les corrections |
-| **Paramètres** | Aucune action Cockpit Intelligence |
+| **Paramètres** | Aucune action |
 
-### Cas des pages détail
+### Hors cartographie globale
 
-Les pages détail réutilisent la famille fonctionnelle de leur page mère et injectent l’entité sélectionnée.
-
-Exemples :
-
-```text
-/missions/opps
-→ Besoins & Staffing
-→ Prioriser / Matcher / Analyser / Simuler
-
-/missions/opps/[id]
-→ mêmes capacités
-→ contexte = opportunité courante
-```
-
-```text
-/consultants
-→ Équipe
-→ Activité / Compétences / Disponibilités / Matching
-
-fiche collaborateur ouverte
-→ mêmes capacités
-→ contexte = collaborateur courant
-```
-
-Exception assumée : la page **Cockpit Intelligence d’un compte** est une page fonctionnelle distincte et peut conserver son expérience spécialisée actuelle, tout en adoptant le header et la carte de contexte communs.
+`/prospection/accounts/[companyId]` → **Cockpit Intelligence compte spécialisé**, conservé tel quel et géré indépendamment.
 
 ---
 
-## 6. Architecture cible
-
-### 6.1 Résolution
+# 9. Architecture cible du chantier principal
 
 ```text
 pathname
    ↓
-Intelligence Registry — page family
+route → page family
+   ↓
+Intelligence Registry
    ↓
 3–4 actions
    +
 entityContext optionnel
    ↓
-Cockpit Intelligence Mobile
+Cockpit Intelligence générique Mobile
 ```
 
-### 6.2 Source de vérité
+Aucune évolution Supabase n’est prévue pour la contextualisation globale.
 
-Le registre doit distinguer :
-
-- le **mapping de page** : sélection des actions ;
-- le **contexte d’entité** : libellé + IDs pour exécution ;
-- le **handler d’action** : résultat inline, composer existant, modal existante ou deep-link.
-
-Ne pas mélanger ces responsabilités.
-
-### 6.3 Data / Supabase
-
-Aucune évolution de schéma n’est prévue.
-
-Les données nécessaires existent déjà dans les tables et vues actuelles : comptes, contacts, opportunités, missions, CRA, collaborateurs, candidats, matching, finance, signaux, documents, collections/corpus, runs IA et intelligence sectorielle.
-
-Le chantier ne nécessite donc :
-
-- aucune migration ;
-- aucune nouvelle table ;
-- aucun changement RLS ;
-- aucun nouveau RPC uniquement pour l’affichage du panneau.
-
-### 6.4 Desktop
-
-Le chantier est **Mobile-first et Mobile-only côté rendu**.
-
-Desktop sert de référence fonctionnelle pour retrouver les actions et handlers historiques.
-
-Ne pas refondre le panneau Desktop dans ce chantier, sauf extraction technique strictement nécessaire pour partager un handler ou une définition d’action.
-
-### 6.5 Mobile
-
-Le mobile est la surface cible :
-
-- rendu dédié ;
-- aucun composant Desktop lourd monté puis masqué ;
-- actions immédiates ;
-- contexte visible ;
-- hiérarchie compacte ;
-- navigation et fermeture compatibles avec la bottom bar existante.
+Desktop reste une référence fonctionnelle ; le chantier de rendu est Mobile-only.
 
 ---
 
-# 7. Roadmap d’implémentation
+# 10. Roadmap d’implémentation
 
-## LOT 0 — Baseline, inventaire et garde-fous
+## PHASE PRÉLIMINAIRE — avant chantier principal
+
+### P0-A — Simuler
+
+Implémenter et valider le cadrage de la section 4.
+
+**DoD :** bouton opérationnel sur les deux modules existants + placeholder scénario financier.
+
+### P0-B — Recruter
+
+Lot distinct, après validation de P0-A.
+
+**DoD :** à définir dans son document de cadrage dédié.
+
+### P0-C — Freeze cartographie globale
+
+Revalider tous les boutons de la section 8 après les arbitrages produit restants.
+
+**DoD :** mapping final approuvé avant refactor du registry.
+
+---
+
+## LOT 0 — Baseline et garde-fous
 
 ### Objectif
 
-Figer le comportement actuel avant refactor et sécuriser les invariants du chantier.
+Figer le comportement réel avant refactor.
 
 ### Travaux
 
-1. Inventorier les consommateurs de :
-   - `resolveIntelligenceActions` ;
-   - `resolveEntityActions` ;
-   - `useIntelligenceContext` ;
-   - `IntelligenceFAB` ;
-   - `IntelligenceActionCard` ;
-   - `IntelligenceActionResultContent`.
-2. Identifier les variantes mobiles actuellement rendues :
-   - compte ;
-   - entité générique ;
-   - page générique.
-3. Lister les handlers déjà opérationnels :
-   - résultats déterministes ;
-   - rédaction assistée ;
-   - analyses ;
-   - modales ;
-   - deep-links.
-4. Ajouter / compléter les tests de résolution de routes avant de modifier le registry.
-5. Vérifier les routes réellement exposées par `main-menu.config.ts`.
+- inventorier `resolveIntelligenceActions`, `resolveEntityActions`, `useIntelligenceContext`, `IntelligenceFAB`, `IntelligenceActionCard`, `IntelligenceActionResultContent` ;
+- lister les handlers déjà actifs ;
+- vérifier les routes de `main-menu.config.ts` ;
+- ajouter / compléter les tests de résolution ;
+- ajouter un test de non-régression garantissant que le mode `company` continue de rendre `AccountMobileContent`.
 
-### Livrable
+### DoD
 
-Une baseline testée permettant de savoir précisément ce qui change dans les lots suivants.
-
-### Definition of Done
-
-- routes principales couvertes par tests ;
-- aucune modification fonctionnelle visible ;
-- aucun changement Supabase / n8n ;
-- `typecheck` et tests ciblés verts.
+Aucun changement UX ; tests ciblés verts.
 
 ---
 
-## LOT 1 — Refactor du registre au niveau Page
+## LOT 1 — Registry au niveau Page
 
 ### Objectif
 
-Faire de la **page fonctionnelle** l’unique source de sélection des actions.
-
-### Fichier principal
-
-`src/lib/intelligence/intelligence-registry.ts`
+Faire de la page fonctionnelle l’unique niveau de sélection des actions du Cockpit générique.
 
 ### Travaux
 
-1. Consolider les sous-routes d’une même famille.
+- consolider les sous-routes Engagements sous une même famille ;
+- consolider les sous-routes Équipe ;
+- ajouter `/prospection-intelligence`, `/reports`, `/knowledge`, `/automations` ;
+- appliquer la cartographie figée en P0-C ;
+- réduire le fallback `COMMON_ACTION_IDS` ;
+- préserver les statuts `active` / `coming_soon` ;
+- **ne pas modifier la résolution du Cockpit compte**.
 
-Exemples :
+### DoD
 
-```text
-/missions
-/missions/actives
-/missions/projets
-→ famille ENGAGEMENTS
-```
-
-```text
-/consultants
-/consultants/pool-competences
-/consultants/activite-conges
-→ famille TEAM
-```
-
-2. Ajouter les pages manquantes :
-   - `/prospection-intelligence` ;
-   - `/reports` ;
-   - `/knowledge` ;
-   - `/automations`.
-3. Conserver les routes réellement distinctes :
-   - `/prospection/accounts` = CRM ;
-   - `/prospection/accounts/[companyId]` = Cockpit Intelligence compte.
-4. Aligner chaque famille sur la cartographie produit de la section 5.
-5. Ne créer aucune règle par onglet.
-6. Réduire le rôle des `COMMON_ACTION_IDS` : ils ne doivent plus créer un menu générique identique partout.
-7. Préserver les statuts `active` / `coming_soon` existants.
-
-### Architecture recommandée
-
-Préférer une structure simple :
-
-```ts
-PAGE_ACTIONS = {
-  cockpit: [...],
-  agenda: [...],
-  crm: [...],
-  accountCockpit: [...],
-  needsStaffing: [...],
-  engagements: [...],
-  businessIntelligence: [...],
-  prospectionIntelligence: [...],
-  reports: [...],
-  watch: [...],
-  team: [...],
-  recruitment: [...],
-  finance: [...],
-  knowledge: [...],
-  automations: [...],
-}
-```
-
-Puis conserver un mapping route → famille.
-
-Ne pas introduire de moteur de règles supplémentaire.
-
-### Tests
-
-- une route de chaque page renvoie le bon jeu d’actions ;
-- les sous-routes d’Engagements renvoient exactement les mêmes actions ;
-- les sous-routes d’Équipe renvoient exactement les mêmes actions ;
-- `/settings` ne renvoie aucune action ;
-- aucune collision de préfixe entre `/prospection` et `/prospection-intelligence`.
-
-### Definition of Done
-
-- registre ramené à une quinzaine de familles fonctionnelles ;
-- aucune logique d’onglet ;
-- tests de résolution verts ;
-- aucun changement UI encore requis pour valider le lot.
+Chaque page fonctionnelle renvoie son jeu stable ; les onglets ne changent rien ; compte spécialisé inchangé.
 
 ---
 
-## LOT 2 — Refactor du panneau mobile et suppression du fallback générique
+## LOT 2 — Rendu mobile générique contextualisé
 
 ### Objectif
 
-Faire consommer le registry page-level par **toutes les pages mobiles**.
-
-### Fichier principal
-
-`src/components/intelligence/IntelligenceFAB.tsx`
+Remplacer le menu mobile générique codé en dur par le rendu du registry.
 
 ### Travaux
 
-1. Supprimer le fallback mobile générique codé en dur comme source fonctionnelle.
-2. Faire rendre les actions issues de `resolveIntelligenceActions(pathname)`.
-3. Réutiliser les composants existants :
-   - `IntelligenceActionCard` ;
-   - composants de résultat déterministe ;
-   - icônes Cockpit existantes.
-4. Uniformiser le shell mobile :
-   - header ;
-   - carte de contexte ;
-   - section Actions ;
-   - éventuelle section secondaire explicitement définie.
-5. Conserver le thème Cobalt / Indigo existant du panneau.
-6. Ne pas refondre les handlers métiers dans ce lot.
+- refactor ciblé de `RegistryMobileContent` ;
+- header générique canonique ;
+- carte de contexte ;
+- grille d’actions issue du registry ;
+- suppression du fallback générique actuel ;
+- conservation stricte de `AccountMobileContent`.
 
-### Header cible
+### DoD
 
-```text
-Cockpit Intelligence                         ×
-```
-
-- `Cockpit Intelligence` en brass ;
-- aucun autre texte.
-
-### Carte de contexte cible
-
-```text
-┌─────────────────────────────────────┐
-│ Migration Cloud Azure — Eiffage     │
-│ OPPORTUNITÉ                         │
-└─────────────────────────────────────┘
-```
-
-### Definition of Done
-
-- aucune page mobile ne retombe sur un menu d’actions générique codé en dur ;
-- les actions correspondent à la page ;
-- changer d’onglet ne change pas les actions ;
-- header conforme ;
-- carte de contexte présente ;
-- comportement Desktop inchangé.
+Le Cockpit générique est contextualisé par page ; le Cockpit compte est visuellement et fonctionnellement inchangé.
 
 ---
 
-## LOT 3 — Contexte d’entité et libellés métier précis
+## LOT 3 — Contextes d’entités hors compte
 
 ### Objectif
 
-Afficher le bon objet métier et fournir son ID aux actions sans laisser l’entité piloter la taxonomie.
-
-### Sources existantes
-
-`src/hooks/use-intelligence-context.ts`
-
-`src/components/intelligence/RegisterIntelligenceContext.tsx`
+Fiabiliser les labels et IDs des pages détail sans multiplier les mappings.
 
 ### Travaux
 
-1. Conserver `entityContext` comme contexte léger :
+- opportunité ;
+- mission / projet ;
+- collaborateur ;
+- candidat ;
+- document ;
+- secteur / événement si nécessaire.
 
-```ts
-{
-  entityType,
-  entityId,
-  label,
-  pathname,
-}
-```
+Réutiliser `useIntelligenceContext` sans nouveau store.
 
-2. Généraliser l’enregistrement du contexte aux pages détail qui en ont besoin.
-3. Ne pas ajouter :
-   - activeTab ;
-   - chapter ;
-   - subView ;
-   - contextKey.
-4. S’assurer que le label correspond à la donnée métier réelle.
-5. Prioriser `entityContext.label` dans la carte de contexte.
-6. Transmettre `entityId` / `entityType` aux handlers qui savent les exploiter.
-7. Faire en sorte qu’un changement d’entité mette immédiatement à jour le contexte sans conserver l’ancienne entité.
+### DoD
 
-### Entités prioritaires
-
-- company ;
-- opportunity ;
-- mission ;
-- project ;
-- collaborator ;
-- candidate ;
-- contact ;
-- sector lorsque pertinent ;
-- calendar_event ;
-- document si une vue détail du panneau doit le supporter.
-
-### Choix d’implémentation
-
-Réutiliser le composant d’enregistrement existant si sa généralisation reste simple.
-
-Sinon, créer un registrar générique minimal dédié au store. Ne pas créer de nouveau Context React global.
-
-### Definition of Done
-
-- la carte affiche le nom réel de l’entité ;
-- aucune action n’est choisie via `entityType` seule ;
-- les actions héritent toujours de la page fonctionnelle ;
-- aucun état périmé après navigation.
+La carte de contexte affiche le vrai libellé métier et les handlers reçoivent les bons IDs.
 
 ---
 
-## LOT 4 — Raccordement des actions sélectionnées aux capacités existantes
+## LOT 4 — Raccordement des handlers
 
 ### Objectif
 
-Faire en sorte que chaque bouton retenu utilise le meilleur handler existant, sans dupliquer les fonctionnalités.
+Brancher les actions du registry sur les capacités déjà existantes.
 
-### Principe
+Ordre de préférence :
 
-Pour chaque action de la cartographie :
+1. résultat déterministe existant ;
+2. composer / modal existant ;
+3. deep-link existant ;
+4. `coming_soon` explicite si capacité absente.
+
+Aucun nouveau workflow n8n n’est créé uniquement pour compléter le panneau.
+
+### DoD
+
+Chaque action `active` produit un comportement réel ; aucune action factice.
+
+---
+
+## LOT 5 — QA Mobile et documentation
+
+### Parcours QA minimum
+
+- Cockpit ;
+- Agenda ;
+- CRM ;
+- Besoins & Staffing ;
+- Engagements ;
+- BI ;
+- Prospection Intelligence ;
+- Rapports ;
+- Veille ;
+- Équipe ;
+- Recrutement ;
+- Finance ;
+- Knowledge ;
+- Automatisations ;
+- Paramètres ;
+- **Cockpit compte : contrôle explicite de non-régression**.
+
+### DoD final
+
+- contextualisation au niveau page uniquement ;
+- aucun état d’onglet ;
+- compte spécialisé intact ;
+- titres métier précis hors compte ;
+- actions actives réellement fonctionnelles ;
+- aucun changement Supabase / n8n non justifié ;
+- typecheck, tests ciblés, tests globaux pertinents et build verts ;
+- handoff final documenté.
+
+---
+
+# 11. Hors périmètre
+
+- refonte du Cockpit Intelligence des comptes ;
+- implémentation du bouton Recruter dans le lot Simuler ;
+- moteur « scénarios financiers » dans le lot Simuler ;
+- redesign Desktop ;
+- registry par onglet ;
+- nouveau store global ;
+- nouvelle table de configuration des actions ;
+- nouveaux workflows n8n créés uniquement pour la navigation du panneau ;
+- activation artificielle d’actions non développées.
+
+---
+
+# 12. Ordre de travail canonique
 
 ```text
-1. handler existant inline ? → réutiliser
-2. composer / modal existante ? → ouvrir
-3. destination fonctionnelle existante ? → deep-link
-4. capacité non implémentée ? → coming_soon
+P0-A Simuler
+→ validation
+→ P0-B Recruter
+→ validation
+→ P0-C Freeze cartographie
+→ Lot 0 Baseline
+→ Lot 1 Registry Page
+→ Lot 2 Rendu mobile
+→ Lot 3 Contextes entités
+→ Lot 4 Handlers
+→ Lot 5 QA / Handoff
 ```
 
-### Réutilisations prioritaires
-
-- actions déterministes via `IntelligenceActionResultContent` ;
-- `openCommunicationComposer` pour rédaction / approche / communication ;
-- moteurs de simulation financière existants ;
-- analyse de veille / mission composer existant ;
-- modales compte existantes ;
-- Knowledge collections / corpus existants ;
-- drill-down des runs d’automatisation existant.
-
-### Contraintes
-
-- aucun faux résultat ;
-- aucun nouveau workflow n8n pour un simple calcul ou deep-link ;
-- aucune nouvelle table ;
-- aucune duplication de la rédaction assistée INTEL-020 ;
-- aucune duplication du moteur financier TypeScript.
-
-### Definition of Done
-
-- chaque action `active` possède un comportement réel ;
-- chaque action non disponible est explicitement `coming_soon` ;
-- aucun bouton actif sans handler ;
-- les handlers reçoivent le contexte de page / entité attendu.
-
----
-
-## LOT 5 — QA mobile, non-régression et documentation finale
-
-### Objectif
-
-Valider le comportement sur les familles de pages réelles et fermer le chantier proprement.
-
-### QA fonctionnelle
-
-Tester au minimum :
-
-1. Cockpit ;
-2. Agenda ;
-3. CRM liste ;
-4. Cockpit compte ;
-5. Besoins & Staffing ;
-6. opportunité détail ;
-7. Engagements Synthèse ;
-8. Engagements Missions ;
-9. Engagements Projets ;
-10. Business Intelligence sur plusieurs chapitres ;
-11. Rapports sur les 3 sections ;
-12. Veille ;
-13. Équipe sur les 3 onglets ;
-14. Recrutement ;
-15. Finance ;
-16. Knowledge Hub ;
-17. Automatisations ;
-18. Paramètres.
-
-### Invariants à vérifier
-
-- les actions ne changent pas avec l’onglet ;
-- le titre de contexte change avec l’entité ;
-- aucune action d’une page précédente ne fuit après navigation ;
-- fermeture / réouverture du drawer correcte ;
-- bottom navigation non cassée ;
-- touch targets ≥ 44 px ;
-- aucun composant Desktop lourd monté sur mobile ;
-- aucune régression du Cockpit compte.
-
-### Validations techniques
-
-Au minimum :
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-```
-
-Ajouter des tests ciblés sur :
-
-- `intelligence-registry` ;
-- résolution de page ;
-- contexte d’entité ;
-- rendu du panneau mobile si l’infrastructure de test existante le permet.
-
-### Documentation finale
-
-Mettre à jour ce dossier avec :
-
-- cartographie finale réellement livrée ;
-- fichiers modifiés ;
-- actions laissées `coming_soon` ;
-- résultats de tests ;
-- éventuelles dettes hors périmètre.
-
-### Definition of Done
-
-- QA mobile validée sur viewport iPhone 14 / 390 × 844 ;
-- tests verts ;
-- Desktop non régressé ;
-- documentation synchronisée avec le code ;
-- aucun changement Supabase / n8n non justifié.
-
----
-
-## 8. Hors périmètre explicite
-
-Ce chantier ne doit pas devenir une refonte générale de l’Intelligence KREDO.
-
-Hors périmètre :
-
-- refaire les pages Desktop ;
-- implémenter toutes les actions `coming_soon` ;
-- créer un Copilot transverse ;
-- créer une taxonomie par onglet ;
-- refondre INTEL-020 ;
-- refondre le moteur de modélisation financière ;
-- modifier les Master Studies ;
-- modifier la logique métier des pages ;
-- créer de nouveaux workflows n8n sans besoin métier autonome ;
-- introduire une nouvelle dépendance UI ou data-viz.
-
----
-
-## 9. Ordre recommandé d’exécution
-
-```text
-LOT 0 — Baseline / tests
-        ↓
-LOT 1 — Registry page-level
-        ↓
-LOT 2 — Shell mobile + suppression fallback générique
-        ↓
-LOT 3 — Contexte d’entité précis
-        ↓
-LOT 4 — Raccordement handlers
-        ↓
-LOT 5 — QA + documentation finale
-```
-
-Les Lots 1 et 2 constituent le **cœur de la correction**.
-
-Le Lot 3 améliore la précision contextuelle sans augmenter la taxonomie.
-
-Le Lot 4 doit rester strictement opportuniste : réutiliser ce qui existe et ne pas transformer ce chantier UI/UX en programme de développement de nouvelles features IA.
-
----
-
-## 10. Critères d’acceptation globaux
-
-Le chantier est terminé lorsque :
-
-1. le Cockpit Intelligence mobile est contextuel sur toutes les pages fonctionnelles ;
-2. chaque page possède au maximum 3 à 4 actions prioritaires ;
-3. les onglets ne modifient pas la liste d’actions ;
-4. les sous-pages d’une même famille partagent la même cartographie ;
-5. la carte de contexte affiche le titre métier le plus précis disponible ;
-6. le header contient uniquement `Cockpit Intelligence` en brass ;
-7. le fallback mobile générique codé en dur n’est plus la source fonctionnelle du panneau ;
-8. le registry reste la source unique de vérité ;
-9. l’entité enrichit le contexte sans devenir un second registre ;
-10. les handlers existants sont réutilisés avant toute nouvelle implémentation ;
-11. aucune migration Supabase n’est requise pour ce chantier ;
-12. aucun nouveau workflow n8n n’est requis pour ce chantier ;
-13. Desktop reste fonctionnel sans refonte ;
-14. les tests et la QA mobile sont verts.
-
----
-
-## 11. Fichiers principaux à auditer / modifier
-
-### Cœur du chantier
-
-- `src/components/intelligence/IntelligenceFAB.tsx`
-- `src/lib/intelligence/intelligence-registry.ts`
-- `src/hooks/use-intelligence-context.ts`
-- `src/components/intelligence/RegisterIntelligenceContext.tsx`
-- `src/components/intelligence/IntelligenceActionCard.tsx`
-- `src/components/intelligence/action-results/IntelligenceActionResultContent.tsx`
-
-### Références de navigation
-
-- `src/lib/navigation/main-menu.config.ts`
-
-### Références fonctionnelles à réutiliser
-
-- Cockpit Intelligence compte ;
-- communication / INTEL-020 ;
-- actions déterministes ;
-- financial modeling ;
-- watch analysis / intelligence missions ;
-- Knowledge collections ;
-- Automations drill-down.
-
----
-
-## 12. Conclusion
-
-La correction recherchée n’exige pas une nouvelle architecture.
-
-Le système existe déjà : registry, store de contexte, handlers, composants de résultat et variantes mobiles.
-
-Le chantier consiste essentiellement à :
-
-1. **ramener la cartographie au bon niveau : la page ;**
-2. **faire du registry la vraie source du rendu mobile ;**
-3. **supprimer le fallback générique qui dilue la contextualisation ;**
-4. **afficher un contexte métier précis sous un header minimal ;**
-5. **réutiliser les capacités déjà implémentées.**
-
-C’est volontairement une refonte légère, adaptée à l’existant et sans sur-ingénierie.
+Ne pas lancer le chantier principal avant validation des deux pré-chantiers et du freeze de cartographie.
