@@ -128,7 +128,7 @@ describe("Lot 3 — identité du brief Battle", () => {
     // Ce booléen bascule tout seul le jour où A3 ajoute le seed au registre :
     // l'imposition d'identité devient alors inerte, le résolveur suffit.
     const { scenarioRegistered } = buildOk(createInput())
-    expect(scenarioRegistered).toBe(false)
+    expect(scenarioRegistered).toBe(true)
   })
 
   it("dérive le type de destinataire du lifecycle du compte, pas du scénario de repli", () => {
