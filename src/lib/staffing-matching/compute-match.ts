@@ -37,12 +37,20 @@ export function computeMatching(ctx: MatchingContext): MatchingResult {
 
 // Projection d'affichage uniquement. Le moteur et le cache match_scores gardent
 // le pool complet pour l'explicabilité ; l'UI ne reçoit que les 5 meilleurs
-// profils à 60/100 ou plus.
+// profils à 60/100 ou plus, avec une couverture de compétences réellement
+// évaluable et au-dessus du gate minimum.
 export function selectMatchingResultForDisplay(result: MatchingResult): MatchingResult {
   return {
     ...result,
     rankedProfiles: result.rankedProfiles
-      .filter((profile) => profile.overallScore >= MATCH_DISPLAY_MIN_SCORE)
+      .filter((profile) => {
+        const skills = profile.components.find((component) => component.componentKey === "C1_skills")
+        return (
+          profile.overallScore >= MATCH_DISPLAY_MIN_SCORE &&
+          skills?.applicable === true &&
+          skills.normalizedScore >= SKILLS_GATE_FLOOR
+        )
+      })
       .slice(0, MATCH_DISPLAY_MAX_PROFILES),
   }
 }
@@ -73,12 +81,14 @@ export function scoreProfile(need: MatchingNeed, profile: MatchingProfile): Prof
 
   const applicableWeightRatio = totalWeight > 0 ? applicableWeight / totalWeight : 0
 
-  // Gate compétences : un C1 applicable sous le plancher plafonne le tier à "weak".
+  // Gate compétences : le critère le plus important doit être évaluable. Un C1
+  // absent signifie qu'on ne peut pas recommander un profil de manière fiable ;
+  // un C1 sous le plancher plafonne quant à lui le tier à "weak".
   const skills = components.find((c) => c.componentKey === "C1_skills")
   const skillsGateFailed = skills?.applicable === true && skills.normalizedScore < SKILLS_GATE_FLOOR
 
   let tier: ProfileMatchResult["tier"]
-  if (applicableWeightRatio < MIN_APPLICABLE_WEIGHT_RATIO) {
+  if (skills?.applicable !== true || applicableWeightRatio < MIN_APPLICABLE_WEIGHT_RATIO) {
     tier = "insufficient_data"
   } else {
     const naturalTier = tierFromScore(overallScore, confidence)
@@ -88,7 +98,7 @@ export function scoreProfile(need: MatchingNeed, profile: MatchingProfile): Prof
   // pros/cons agrégés, priorisés par le poids de la composante d'origine.
   const byWeightDesc = [...applicable].sort((a, b) => BASE_WEIGHTS[b.componentKey] - BASE_WEIGHTS[a.componentKey])
   const pros = byWeightDesc.flatMap((c) => c.positives).slice(0, 4)
-  const gateCon = skillsGateFailed ? ["Aucune compétence requise couverte — profil à écarter sauf reconversion."] : []
+  const gateCon = skillsGateFailed ? ["Couverture des compétences insuffisante — profil à écarter sauf reconversion."] : []
   const cons = [...gateCon, ...byWeightDesc.flatMap((c) => c.negatives)].slice(0, 4)
   const missingData = components.filter((c) => !c.applicable).map((c) => c.componentLabel)
 
