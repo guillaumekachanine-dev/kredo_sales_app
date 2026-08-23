@@ -169,7 +169,7 @@ export function BattlePitchResult({
               type="button"
               onClick={handleCopy}
               className={cn(
-                "inline-flex items-center justify-center gap-1.5 rounded border px-2 py-1 text-[10px] font-bold transition-all min-h-8",
+                "inline-flex min-h-11 items-center justify-center gap-1.5 rounded border px-3 py-1 text-[10px] font-bold transition-all",
                 copied
                   ? "border-success/30 bg-success/10 text-success"
                   : "border-edito-border bg-edito-chip text-edito-navy hover:bg-edito-border"

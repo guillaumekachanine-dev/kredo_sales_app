@@ -47,8 +47,8 @@ import {
   type BattleSituationOptions,
 } from "./battle-situation-options"
 import { buildBattleSituationBrief } from "./battle-situation-brief"
-import { BattleSituationKnowledgePicker } from "./BattleSituationKnowledgePicker"
 import { BattlePitchResult } from "./BattlePitchResult"
+import { BattleSituationSecondaryOptions } from "./BattleSituationSecondaryOptions"
 import {
   EVIDENCE_LEVEL_LABELS,
   EvidenceHint,
@@ -570,99 +570,43 @@ function BattleSituationConfigurator({
           )}
         </SituationBlock>
 
-        {/* 5 · Timing */}
-        <SituationBlock step={5} label="Timing" requirement="optional">
-          {options.timings.length === 0 ? (
-            <NoOptionState>Aucun trigger compte, aucune échéance réglementaire, aucun événement sectoriel.</NoOptionState>
-          ) : (
-            <OptionGrid isMobile={isMobile}>
-              {options.timings.map((timing) => (
-                <OptionCard
-                  key={timing.key}
-                  isMobile={isMobile}
-                  isSelected={draft.timing?.key === timing.key}
-                  onSelect={() => update({ timing: draft.timing?.key === timing.key ? null : timing })}
-                  title={timing.label}
-                  detail={timing.detail}
-                  badges={<SourceBadge source={timing.source} />}
-                />
-              ))}
-            </OptionGrid>
-          )}
-        </SituationBlock>
-
-        {/* 6 · Objection */}
-        <SituationBlock
-          step={6}
-          label="Objection anticipée"
-          requirement="optional"
-          hint="Objections du playbook sectoriel — à ne pas confondre avec les lignes rouges de la Battle Card."
-        >
-          {options.objections.length === 0 ? (
-            <NoOptionState>Aucune objection documentée dans le playbook du segment.</NoOptionState>
-          ) : (
-            <OptionGrid isMobile={isMobile}>
-              {options.objections.map((objection) => (
-                <OptionCard
-                  key={objection.key}
-                  isMobile={isMobile}
-                  isSelected={draft.objection?.key === objection.key}
-                  onSelect={() =>
-                    update({ objection: draft.objection?.key === objection.key ? null : objection })
-                  }
-                  title={objection.label}
-                  detail={objection.response}
-                  badges={<SourceBadge source="sector" />}
-                />
-              ))}
-            </OptionGrid>
-          )}
-        </SituationBlock>
-
-        {/* 7 · ROI */}
-        <SituationBlock
-          step={7}
-          label="Argument ROI"
-          requirement="optional"
-          hint="Texte du playbook, repris tel quel. Aucun chiffre n’est calculé ni extrapolé."
-        >
-          {options.roiArguments.length === 0 ? (
-            <NoOptionState>Aucun argument ROI dans le playbook du segment.</NoOptionState>
-          ) : (
-            <OptionGrid isMobile={isMobile}>
-              {options.roiArguments.map((roi) => (
-                <OptionCard
-                  key={roi.key}
-                  isMobile={isMobile}
-                  isSelected={draft.roiArgument?.key === roi.key}
-                  onSelect={() =>
-                    update({ roiArgument: draft.roiArgument?.key === roi.key ? null : roi })
-                  }
-                  title={roi.argument}
-                  badges={<SourceBadge source="sector" />}
-                />
-              ))}
-            </OptionGrid>
-          )}
-        </SituationBlock>
-
-        {/* 8 · Knowledge */}
-        <SituationBlock
-          step={8}
-          label="Contexte Knowledge"
-          requirement="optional"
-          hint="Listes personnelles injectées comme contexte du pitch."
-        >
-          <BattleSituationKnowledgePicker
-            selectedIds={draft.collectionIds}
-            onChange={(collectionIds) => update({ collectionIds })}
-            isMobile={isMobile}
+        {isMobile ? null : (
+          <BattleSituationSecondaryOptions
+            options={options}
+            draft={draft}
+            update={update}
+            isMobile={false}
           />
-        </SituationBlock>
+        )}
       </div>
 
+      {isMobile ? (
+        <details className="group rounded-xl border border-white/10 bg-slate-950/35">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 text-xs font-bold text-white/75 outline-none focus-visible:ring-2 focus-visible:ring-brand-brass [&::-webkit-details-marker]:hidden">
+            Options secondaires
+            <span className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-white/40">Timing · Objection · ROI · Knowledge</span>
+              <span aria-hidden="true" className="text-brand-brass transition-transform group-open:rotate-180 motion-reduce:transition-none">⌄</span>
+            </span>
+          </summary>
+          <div className="space-y-6 border-t border-white/10 p-3">
+            <BattleSituationSecondaryOptions
+              options={options}
+              draft={draft}
+              update={update}
+              isMobile
+            />
+          </div>
+        </details>
+      ) : null}
+
       {/* Résumé vivant + CTA */}
-      <div className="space-y-3 rounded-xl border border-white/10 bg-slate-950/50 p-4">
+      <div
+        className={cn(
+          "space-y-3 rounded-xl border border-white/10 bg-slate-950/50 p-4",
+          isMobile && "sticky bottom-0 z-10 -mx-1 space-y-2 bg-slate-950/95 p-3 shadow-[0_-8px_24px_color-mix(in_srgb,var(--color-cockpit-cobalt-deep)_28%,transparent)]",
+        )}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-[10px] font-bold uppercase tracking-wider text-white/45">
             Situation
@@ -689,9 +633,11 @@ function BattleSituationConfigurator({
           </div>
         </div>
 
-        <p className="text-sm font-semibold leading-relaxed text-white">
-          {summary.length > 0 ? summary : <span className="text-white/35">Aucun paramètre choisi pour l’instant.</span>}
-        </p>
+        {summary.length > 0 || !isMobile ? (
+          <p className={cn("text-sm font-semibold leading-relaxed text-white", isMobile && "line-clamp-2")}>
+            {summary.length > 0 ? summary : <span className="text-white/35">Aucun paramètre choisi pour l’instant.</span>}
+          </p>
+        ) : null}
 
         {!validation.isComplete && !isBlocked ? (
           <p className="text-[11px] text-white/45">
@@ -721,7 +667,7 @@ function BattleSituationConfigurator({
           </div>
         ) : null}
 
-        <div className={cn("flex gap-2", isMobile ? "flex-col" : "flex-row justify-end")}>
+        <div className={cn("flex flex-row gap-2", !isMobile && "justify-end")}>
           <button
             type="button"
             onClick={onBackToRevision}

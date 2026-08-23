@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
 import type { SectorKnowledgeReadModel } from "@/features/master-study/data/get-sector-knowledge-read-model"
 import { BattleAccountRail } from "./BattleAccountRail"
-import { BattleCardContent, BattleCardsEmptyState } from "./BattleCardsSection"
+import { BattleCardsEmptyState } from "./BattleCardsEmptyState"
 import { BattleModeSwitcher } from "./BattleModeSwitcher"
 import { BattleSituationView } from "./BattleSituationView"
 import {
@@ -17,6 +18,14 @@ import {
   resolveBattleActor,
   type BattleTab,
 } from "./battle-workspace-model"
+
+const BattleRevisionMobile = dynamic(() =>
+  import("./BattleRevisionMobile").then((module) => module.BattleRevisionMobile),
+)
+
+const BattleCardContent = dynamic(() =>
+  import("./BattleCardsSection").then((module) => module.BattleCardContent),
+)
 
 // Identité Battle (Lot 2) : même fond que le Playbook, dégradé cobalt posé
 // par-dessus en `background-image` (jamais en `backgroundColor`, pour ne
@@ -74,18 +83,18 @@ export function BattleWorkspace({
     )
   }
 
-  const mainZone = tab === "revision" ? (
-    <BattleCardContent actor={actor} />
-  ) : (
-    <BattleSituationView
-      actor={actor}
-      knowledge={knowledge}
-      isMobile={isMobile}
-      onBackToRevision={() => setTab("revision")}
-    />
-  )
-
   if (isMobile) {
+    const mobileZone = tab === "revision" ? (
+      <BattleRevisionMobile actor={actor} />
+    ) : (
+      <BattleSituationView
+        actor={actor}
+        knowledge={knowledge}
+        isMobile
+        onBackToRevision={() => setTab("revision")}
+      />
+    )
+
     return (
       <div className={cn("flex min-h-0 flex-1 flex-col text-white", PLAYBOOK_MAIN_SURFACE)} style={BATTLE_MAIN_TINT_STYLE}>
         <div className="shrink-0 space-y-3 border-b border-white/10 p-4">
@@ -121,7 +130,7 @@ export function BattleWorkspace({
           <BattleModeSwitcher value={tab} onChange={setTab} isMobile />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">{mainZone}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">{mobileZone}</div>
 
         <footer className="shrink-0 border-t border-white/10 bg-slate-950 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button variant="secondary" className="min-h-11 w-full" onClick={onBackToPlaybook}>
@@ -131,6 +140,17 @@ export function BattleWorkspace({
       </div>
     )
   }
+
+  const desktopZone = tab === "revision" ? (
+    <BattleCardContent actor={actor} />
+  ) : (
+    <BattleSituationView
+      actor={actor}
+      knowledge={knowledge}
+      isMobile={false}
+      onBackToRevision={() => setTab("revision")}
+    />
+  )
 
   return (
     <div className="flex min-h-0 flex-1 items-stretch">
@@ -159,7 +179,7 @@ export function BattleWorkspace({
           <BattleModeSwitcher value={tab} onChange={setTab} />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-6">{mainZone}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">{desktopZone}</div>
 
         <footer className="flex shrink-0 justify-end border-t border-white/10 bg-slate-950/40 p-4">
           <Button variant="secondary" onClick={onClose}>
