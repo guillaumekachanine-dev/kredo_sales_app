@@ -1,28 +1,64 @@
 "use client"
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POINT DE MONTAGE A2 — Dynamic Playbooks, Lot 3 « Configurateur Situation »
+// Dynamic Playbooks · Lot 3 — configurateur « Situation »
 //
-// Ce fichier est la frontière livrée par le Lot 1. Il est monté par
-// `BattleWorkspace` et par lui seul. A2 réécrit LE CORPS de ce composant au
-// Lot 3 SANS toucher à `SectorPlaybooksModal.tsx` ni à `BattleWorkspace.tsx` :
-// la signature `BattleSituationViewProps` ci-dessous est le contrat gelé.
+// Point de montage livré par le Lot 1 : `BattleWorkspace` rend ce composant, et
+// lui seul. La signature `BattleSituationViewProps` est le contrat gelé — ce lot
+// ne touche ni `SectorPlaybooksModal.tsx`, ni `BattleWorkspace.tsx`, ni aucun
+// autre composant du L1/L2.
 //
-// Ce que le contrat garantit à A2 (source : HANDOFF-LOT-0-AUDIT-CONTRAT.md) :
-//   • `actor.id`        → competitive_map_entries.id (= battleSituation.competitiveEntryId)
-//   • `actor.companyId` → companies.id, NOT NULL en base, jamais nul ici
-//   • `actor.details`   → projection de profile_json (angles, triggers, lignes rouges…)
-//   • `knowledge.segmentId` / `.segmentName` → battleSituation.segmentId
-//   • `knowledge.painPoints[]` / `.regulatory[]` / `.events[]` → options SECTEUR (avec id)
-//   • `knowledge.playbook` → personas / objections / entry_points / roi_arguments
+// Ce que fait ce lot :
+//   • charger le contexte du COMPTE ACTIF SEUL (contacts CRM, `account_issues`,
+//     offres) — jamais celui de tous les comptes du segment ;
+//   • proposer 4 dimensions obligatoires (interlocuteur, enjeu, angle, offre) et
+//     4 facultatives (timing, objection, ROI, contexte Knowledge) ;
+//   • construire un `CommunicationBrief` canonique (`battle-situation-brief.ts`).
 //
-// Ce que A2 doit charger lui-même, pour le COMPTE ACTIF UNIQUEMENT (jamais pour
-// tout le segment) : contacts CRM, account_issues, offres (`getSuggestedOffers`).
+// Ce que ce lot NE fait PAS : aucun appel réseau vers n8n, aucun LLM, aucune
+// écriture Supabase. Le CTA « Générer le pitch » valide et construit le brief,
+// puis s'arrête sur un état `prêt`. Le Lot 4 (A3) branchera
+// `POST /api/n8n/trigger` sur ce même brief.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+import { getSuggestedOffers } from "@/components/accounts-contacts/intelligence/get-suggested-offers"
 import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
 import type { SectorKnowledgeReadModel } from "@/features/master-study/data/get-sector-knowledge-read-model"
+import {
+  BATTLE_SITUATION_REQUIRED_LABELS,
+  buildAngleOptions,
+  buildIssueOptions,
+  buildObjectionOptions,
+  buildOfferOptions,
+  buildPersonaOptions,
+  buildRoiOptions,
+  buildSituationSummary,
+  buildTimingOptions,
+  createEmptyBattleSituationDraft,
+  findUnsatisfiableRequirements,
+  pruneDraftAgainstOptions,
+  validateBattleSituationDraft,
+  type BattleAccountIssue,
+  type BattleOfferInput,
+  type BattleSituationContact,
+  type BattleSituationDraft,
+  type BattleSituationOptions,
+} from "./battle-situation-options"
+import { buildBattleSituationBrief } from "./battle-situation-brief"
+import { BattleSituationKnowledgePicker } from "./BattleSituationKnowledgePicker"
+import {
+  EVIDENCE_LEVEL_LABELS,
+  EvidenceHint,
+  NoOptionState,
+  OptionCard,
+  OptionGrid,
+  RESOLVED_LEVEL_LABELS,
+  SituationBlock,
+  SourceBadge,
+} from "./BattleSituationPickers"
 
 export type BattleSituationViewProps = {
   /** Acteur sélectionné dans le rail. Porte `id`, `companyId` et `details`. */
@@ -34,28 +70,570 @@ export type BattleSituationViewProps = {
   onBackToRevision: () => void
 }
 
-export function BattleSituationView({ actor, isMobile, onBackToRevision }: BattleSituationViewProps) {
+// ─── Chargement du contexte compte ──────────────────────────────────────────
+
+type AccountContext = {
+  status: "loading" | "ready" | "error"
+  contacts: BattleSituationContact[]
+  issues: BattleAccountIssue[]
+  offers: BattleOfferInput[]
+  suggestedPracticeSlugs: string[]
+  error: string | null
+}
+
+const EMPTY_ACCOUNT_CONTEXT: AccountContext = {
+  status: "loading",
+  contacts: [],
+  issues: [],
+  offers: [],
+  suggestedPracticeSlugs: [],
+  error: null,
+}
+
+type PersonRow = { full_name: string | null; first_name: string | null; last_name: string | null }
+
+type ContactRow = {
+  id: string
+  job_title: string | null
+  relationship_role: string | null
+  is_priority: boolean | null
+  persons: PersonRow | PersonRow[] | null
+}
+
+function mapContacts(rows: ContactRow[]): BattleSituationContact[] {
+  return rows.map((row) => {
+    const person = Array.isArray(row.persons) ? row.persons[0] : row.persons
+    const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
+    return {
+      id: row.id,
+      fullName: person?.full_name || fallbackName || "Contact sans nom",
+      jobTitle: row.job_title,
+      relationshipRole: row.relationship_role,
+      isPriority: row.is_priority,
+    }
+  })
+}
+
+/**
+ * Contexte du compte actif. Requêtes client (RLS workspace) pour les contacts
+ * et les enjeux — il n'existe aucun helper exporté pour les contacts, et
+ * extraire celui de `CommunicationComposerHost` reviendrait à écrire dans une
+ * zone non possédée par ce lot. Les offres passent par la Server Action
+ * existante `getSuggestedOffers`.
+ *
+ * `loadCommunicationContextForCurrentUser` n'est volontairement PAS appelée
+ * (recommandation du Lot 0 §8.2) : elle produit des faits de résolution que la
+ * Battle Card possède déjà — un aller-retour serveur pour rien.
+ */
+function useAccountSituationContext(companyId: string): AccountContext {
+  // L'état porte le compte qu'il décrit : quand `companyId` change, le contexte
+  // du compte précédent est écarté PENDANT LE RENDU (valeur dérivée) au lieu
+  // d'être remis à zéro par un `setState` synchrone dans l'effet, qui
+  // provoquerait un rendu en cascade.
+  const [state, setState] = useState<AccountContext & { companyId: string }>({
+    ...EMPTY_ACCOUNT_CONTEXT,
+    companyId,
+  })
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      const supabase = createClient()
+      const [contactsResult, issuesResult, offersResult] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, job_title, relationship_role, is_priority, persons(full_name, first_name, last_name)")
+          .eq("company_id", companyId)
+          .order("is_priority", { ascending: false })
+          .limit(100),
+        supabase
+          .from("account_issues")
+          .select("id, title, problem_statement, evidence_level, provenance")
+          .eq("company_id", companyId)
+          .eq("status", "open")
+          .order("criticality", { ascending: false })
+          .limit(50),
+        getSuggestedOffers(companyId),
+      ])
+
+      if (cancelled) return
+
+      const error = contactsResult.error?.message ?? issuesResult.error?.message ?? offersResult.error
+
+      setState({
+        companyId,
+        status: error ? "error" : "ready",
+        contacts: mapContacts((contactsResult.data ?? []) as unknown as ContactRow[]),
+        issues: (issuesResult.data ?? []).map((row) => ({
+          id: row.id,
+          title: row.title,
+          problemStatement: row.problem_statement,
+          evidenceLevel: row.evidence_level,
+          provenance: row.provenance,
+        })),
+        offers: offersResult.offers,
+        suggestedPracticeSlugs: offersResult.suggestedPracticeSlugs,
+        error: error ?? null,
+      })
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [companyId])
+
+  return state.companyId === companyId ? state : EMPTY_ACCOUNT_CONTEXT
+}
+
+/** Émetteur du pitch — `profiles.full_name`, même lecture que le composeur. */
+function useSenderName(): string {
+  const [senderName, setSenderName] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const supabase = createClient()
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) return
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", auth.user.id)
+        .single()
+      if (!cancelled && profile?.full_name) setSenderName(profile.full_name)
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return senderName
+}
+
+// ─── Vue ────────────────────────────────────────────────────────────────────
+
+export function BattleSituationView({ actor, knowledge, isMobile, onBackToRevision }: BattleSituationViewProps) {
+  const context = useAccountSituationContext(actor.companyId)
+  const senderName = useSenderName()
+
+  // `key` sur le compte : changer de Battle Card repart d'une situation vierge,
+  // sans effet de synchronisation ni état résiduel d'un autre compte.
   return (
-    <div className="flex min-h-[240px] flex-col items-start justify-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-6">
-      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand-brass">
-        Situation commerciale
-      </span>
-      <p className="max-w-lg text-xs leading-relaxed text-white/60">
-        Le configurateur de situation pour <strong className="font-semibold text-white">{actor.name}</strong>{" "}
-        arrive au Lot&nbsp;3 : interlocuteur, enjeu, angle, timing, objection et offre, puis
-        génération du pitch. Cet emplacement est déjà branché sur le compte sélectionné.
+    <BattleSituationConfigurator
+      key={actor.id}
+      actor={actor}
+      knowledge={knowledge}
+      context={context}
+      senderName={senderName}
+      isMobile={isMobile}
+      onBackToRevision={onBackToRevision}
+    />
+  )
+}
+
+type ConfiguratorProps = {
+  actor: CompetitiveMapActor
+  knowledge: SectorKnowledgeReadModel
+  context: AccountContext
+  senderName: string
+  isMobile: boolean
+  onBackToRevision: () => void
+}
+
+function BattleSituationConfigurator({
+  actor,
+  knowledge,
+  context,
+  senderName,
+  isMobile,
+  onBackToRevision,
+}: ConfiguratorProps) {
+  const [rawDraft, setRawDraft] = useState<BattleSituationDraft>(createEmptyBattleSituationDraft)
+  const [isReady, setIsReady] = useState(false)
+
+  const options: BattleSituationOptions = useMemo(() => {
+    const personas = buildPersonaOptions(context.contacts, knowledge.playbook)
+    return {
+      personas: personas.options,
+      personaFallbackToPlaybook: personas.fallbackToPlaybook,
+      issues: buildIssueOptions(context.issues, knowledge.painPoints),
+      angles: buildAngleOptions(actor, knowledge.playbook),
+      timings: buildTimingOptions(actor, knowledge.regulatory, knowledge.events),
+      objections: buildObjectionOptions(knowledge.playbook),
+      roiArguments: buildRoiOptions(knowledge.playbook),
+      offers: buildOfferOptions(context.offers, context.suggestedPracticeSlugs),
+    }
+  }, [actor, context.contacts, context.issues, context.offers, context.suggestedPracticeSlugs, knowledge])
+
+  // Valeur dérivée pendant le rendu : une sélection devenue orpheline (données
+  // arrivées après coup, segment changé) disparaît immédiatement.
+  const draft = useMemo(() => pruneDraftAgainstOptions(rawDraft, options), [rawDraft, options])
+
+  const validation = useMemo(() => validateBattleSituationDraft(draft), [draft])
+  const unsatisfiable = useMemo(() => findUnsatisfiableRequirements(options), [options])
+  const summary = useMemo(() => buildSituationSummary(draft), [draft])
+
+  const update = useCallback((patch: Partial<BattleSituationDraft>) => {
+    setIsReady(false)
+    setRawDraft((current) => ({ ...current, ...patch }))
+  }, [])
+
+  const briefResult = useMemo(() => {
+    if (!validation.isComplete) return null
+    return buildBattleSituationBrief({
+      actor: {
+        id: actor.id,
+        companyId: actor.companyId,
+        name: actor.name,
+        lifecycleStatus: actor.lifecycleStatus ?? null,
+      },
+      segmentId: knowledge.segmentId,
+      senderName,
+      draft,
+    })
+  }, [actor, draft, knowledge.segmentId, senderName, validation.isComplete])
+
+  const isBlocked = unsatisfiable.length > 0
+  const canGenerate = validation.isComplete && !isBlocked && context.status === "ready"
+
+  if (context.status === "loading") {
+    return (
+      <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-6 text-xs text-white/45">
+        Chargement du contexte de {actor.name}…
       </p>
-      <button
-        type="button"
-        onClick={onBackToRevision}
-        className={cn(
-          "rounded-lg border border-white/10 bg-slate-900/40 px-3 font-semibold text-white/75 outline-none transition-colors",
-          "hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-brand-brass motion-reduce:transition-none",
-          isMobile ? "min-h-11 w-full text-xs" : "min-h-9 text-[11px]",
-        )}
-      >
-        Revenir à la révision
-      </button>
+    )
+  }
+
+  if (context.status === "error") {
+    return (
+      <div className="rounded-xl border border-rose-500/25 bg-rose-950/20 p-6">
+        <p className="text-xs font-semibold text-rose-200">Contexte du compte indisponible</p>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-rose-200/70">{context.error}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 text-white">
+      <header className="border-b border-white/10 pb-4">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+          Situation commerciale
+        </span>
+        <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-white/50">
+          Quatre décisions suffisent — interlocuteur, enjeu, angle, offre. Timing, objection, ROI et
+          contexte Knowledge affinent le discours sans jamais être exigés.
+        </p>
+      </header>
+
+      {isBlocked ? (
+        <NoOptionState tone="blocking">
+          Génération impossible pour ce compte :{" "}
+          {unsatisfiable.map((field) => BATTLE_SITUATION_REQUIRED_LABELS[field].toLowerCase()).join(", ")}{" "}
+          — aucune matière disponible, ni côté compte, ni côté secteur. Rien n’est inventé ici.
+        </NoOptionState>
+      ) : null}
+
+      <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-2")}>
+        {/* 1 · Interlocuteur */}
+        <SituationBlock
+          step={1}
+          label="Interlocuteur"
+          requirement="required"
+          hint={
+            options.personaFallbackToPlaybook && options.personas.length > 0
+              ? "Aucun contact CRM sur ce compte : personas du playbook sectoriel."
+              : null
+          }
+        >
+          {options.personas.length === 0 ? (
+            <NoOptionState tone="blocking">
+              Ni contact CRM, ni persona dans le playbook du segment.
+            </NoOptionState>
+          ) : (
+            <OptionGrid isMobile={isMobile}>
+              {options.personas.map((persona) => (
+                <OptionCard
+                  key={persona.key}
+                  isMobile={isMobile}
+                  isSelected={draft.persona?.key === persona.key}
+                  onSelect={() => update({ persona })}
+                  title={persona.label}
+                  detail={persona.sublabel}
+                  badges={persona.kind === "playbook" ? <SourceBadge source="sector" /> : null}
+                />
+              ))}
+            </OptionGrid>
+          )}
+        </SituationBlock>
+
+        {/* 2 · Enjeu */}
+        <SituationBlock step={2} label="Enjeu" requirement="required">
+          {options.issues.length === 0 ? (
+            <NoOptionState tone="blocking">
+              Aucun enjeu ouvert sur le compte et aucun point de douleur sectoriel sur ce segment.
+            </NoOptionState>
+          ) : (
+            <OptionGrid isMobile={isMobile}>
+              {options.issues.map((issue) => (
+                <OptionCard
+                  key={issue.key}
+                  isMobile={isMobile}
+                  isSelected={draft.issue?.key === issue.key}
+                  onSelect={() => update({ issue })}
+                  title={issue.label}
+                  detail={issue.detail}
+                  badges={
+                    <>
+                      <SourceBadge source={issue.source} />
+                      {issue.evidenceLevel ? (
+                        <EvidenceHint>
+                          {EVIDENCE_LEVEL_LABELS[issue.evidenceLevel] ?? issue.evidenceLevel}
+                        </EvidenceHint>
+                      ) : null}
+                      {issue.resolvedLevel ? (
+                        <EvidenceHint>{RESOLVED_LEVEL_LABELS[issue.resolvedLevel]}</EvidenceHint>
+                      ) : null}
+                    </>
+                  }
+                />
+              ))}
+            </OptionGrid>
+          )}
+        </SituationBlock>
+
+        {/* 3 · Angle */}
+        <SituationBlock step={3} label="Angle d’approche" requirement="required">
+          {options.angles.length === 0 ? (
+            <NoOptionState tone="blocking">
+              Aucun angle d’entrée sur la Battle Card ni dans le playbook du segment.
+            </NoOptionState>
+          ) : (
+            <OptionGrid isMobile={isMobile}>
+              {options.angles.map((angle) => (
+                <OptionCard
+                  key={angle.key}
+                  isMobile={isMobile}
+                  isSelected={draft.angle?.key === angle.key}
+                  onSelect={() => update({ angle })}
+                  title={angle.label}
+                  detail={angle.detail}
+                  badges={<SourceBadge source={angle.source} />}
+                />
+              ))}
+            </OptionGrid>
+          )}
+        </SituationBlock>
+
+        {/* 4 · Offre */}
+        <SituationBlock
+          step={4}
+          label="Offre"
+          requirement="required"
+          hint={
+            options.offers.some((offer) => offer.isSuggested)
+              ? "Les offres des practices suggérées pour ce compte sont en tête."
+              : null
+          }
+        >
+          {options.offers.length === 0 ? (
+            <NoOptionState tone="blocking">Catalogue d’offres indisponible.</NoOptionState>
+          ) : (
+            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+              {options.offers.map((offer) => (
+                <OptionCard
+                  key={offer.key}
+                  isMobile={isMobile}
+                  isSelected={draft.offer?.key === offer.key}
+                  onSelect={() => update({ offer })}
+                  title={offer.name}
+                  detail={offer.practiceName || null}
+                  badges={
+                    offer.isSuggested ? (
+                      <span className="shrink-0 rounded border border-brand-brass/30 bg-brand-brass/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-brand-brass">
+                        Suggérée
+                      </span>
+                    ) : null
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </SituationBlock>
+
+        {/* 5 · Timing */}
+        <SituationBlock step={5} label="Timing" requirement="optional">
+          {options.timings.length === 0 ? (
+            <NoOptionState>Aucun trigger compte, aucune échéance réglementaire, aucun événement sectoriel.</NoOptionState>
+          ) : (
+            <OptionGrid isMobile={isMobile}>
+              {options.timings.map((timing) => (
+                <OptionCard
+                  key={timing.key}
+                  isMobile={isMobile}
+                  isSelected={draft.timing?.key === timing.key}
+                  onSelect={() => update({ timing: draft.timing?.key === timing.key ? null : timing })}
+                  title={timing.label}
+                  detail={timing.detail}
+                  badges={<SourceBadge source={timing.source} />}
+                />
+              ))}
+            </OptionGrid>
+          )}
+        </SituationBlock>
+
+        {/* 6 · Objection */}
+        <SituationBlock
+          step={6}
+          label="Objection anticipée"
+          requirement="optional"
+          hint="Objections du playbook sectoriel — à ne pas confondre avec les lignes rouges de la Battle Card."
+        >
+          {options.objections.length === 0 ? (
+            <NoOptionState>Aucune objection documentée dans le playbook du segment.</NoOptionState>
+          ) : (
+            <OptionGrid isMobile={isMobile}>
+              {options.objections.map((objection) => (
+                <OptionCard
+                  key={objection.key}
+                  isMobile={isMobile}
+                  isSelected={draft.objection?.key === objection.key}
+                  onSelect={() =>
+                    update({ objection: draft.objection?.key === objection.key ? null : objection })
+                  }
+                  title={objection.label}
+                  detail={objection.response}
+                  badges={<SourceBadge source="sector" />}
+                />
+              ))}
+            </OptionGrid>
+          )}
+        </SituationBlock>
+
+        {/* 7 · ROI */}
+        <SituationBlock
+          step={7}
+          label="Argument ROI"
+          requirement="optional"
+          hint="Texte du playbook, repris tel quel. Aucun chiffre n’est calculé ni extrapolé."
+        >
+          {options.roiArguments.length === 0 ? (
+            <NoOptionState>Aucun argument ROI dans le playbook du segment.</NoOptionState>
+          ) : (
+            <OptionGrid isMobile={isMobile}>
+              {options.roiArguments.map((roi) => (
+                <OptionCard
+                  key={roi.key}
+                  isMobile={isMobile}
+                  isSelected={draft.roiArgument?.key === roi.key}
+                  onSelect={() =>
+                    update({ roiArgument: draft.roiArgument?.key === roi.key ? null : roi })
+                  }
+                  title={roi.argument}
+                  badges={<SourceBadge source="sector" />}
+                />
+              ))}
+            </OptionGrid>
+          )}
+        </SituationBlock>
+
+        {/* 8 · Knowledge */}
+        <SituationBlock
+          step={8}
+          label="Contexte Knowledge"
+          requirement="optional"
+          hint="Listes personnelles injectées comme contexte du pitch."
+        >
+          <BattleSituationKnowledgePicker
+            selectedIds={draft.collectionIds}
+            onChange={(collectionIds) => update({ collectionIds })}
+            isMobile={isMobile}
+          />
+        </SituationBlock>
+      </div>
+
+      {/* Résumé vivant + CTA */}
+      <div className="space-y-3 rounded-xl border border-white/10 bg-slate-950/50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white/45">
+            Situation
+          </span>
+          <div className="flex items-center gap-2">
+            <label htmlFor="battle-situation-length" className="text-[10px] uppercase tracking-wider text-white/35">
+              Longueur
+            </label>
+            <select
+              id="battle-situation-length"
+              value={draft.length}
+              onChange={(event) =>
+                update({ length: event.target.value === "standard" ? "standard" : "concise" })
+              }
+              className={cn(
+                "rounded-lg border border-white/10 bg-slate-950/60 px-2 text-[11px] text-white",
+                "focus:outline-none focus:ring-2 focus:ring-brand-brass",
+                isMobile ? "min-h-11" : "min-h-8",
+              )}
+            >
+              <option value="concise">Concis</option>
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+        </div>
+
+        <p className="text-sm font-semibold leading-relaxed text-white">
+          {summary.length > 0 ? summary : <span className="text-white/35">Aucun paramètre choisi pour l’instant.</span>}
+        </p>
+
+        {!validation.isComplete && !isBlocked ? (
+          <p className="text-[11px] text-white/45">
+            Manque :{" "}
+            {validation.missing.map((field) => BATTLE_SITUATION_REQUIRED_LABELS[field]).join(" · ")}
+          </p>
+        ) : null}
+
+        {isReady && briefResult?.ok ? (
+          <div className="rounded-lg border border-brand-brass/30 bg-brand-brass/[0.06] p-3">
+            <p className="text-[11px] font-semibold text-brand-brass">Situation prête</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-white/60">
+              Le brief de génération est construit ({briefResult.brief.what.outputKind} ·{" "}
+              {briefResult.brief.what.channel} · {briefResult.brief.what.length}). Le déclenchement du
+              pitch arrive au Lot 4 : aucun appel n’est émis à ce stade.
+            </p>
+          </div>
+        ) : null}
+
+        <div className={cn("flex gap-2", isMobile ? "flex-col" : "flex-row justify-end")}>
+          <button
+            type="button"
+            onClick={onBackToRevision}
+            className={cn(
+              "rounded-lg border border-white/10 bg-slate-900/40 px-3 text-[11px] font-semibold text-white/70",
+              "outline-none transition-colors hover:bg-white/[0.06] hover:text-white",
+              "focus-visible:ring-2 focus-visible:ring-brand-brass motion-reduce:transition-none",
+              isMobile ? "min-h-11 w-full" : "min-h-9",
+            )}
+          >
+            Revenir à la révision
+          </button>
+          <button
+            type="button"
+            disabled={!canGenerate}
+            onClick={() => setIsReady(true)}
+            className={cn(
+              "rounded-lg px-4 text-xs font-bold outline-none transition-colors",
+              "focus-visible:ring-2 focus-visible:ring-brand-brass motion-reduce:transition-none",
+              isMobile ? "min-h-11 w-full" : "min-h-9",
+              canGenerate
+                ? "bg-brand-brass text-slate-950 hover:bg-brand-brass/90"
+                : "cursor-not-allowed bg-white/5 text-white/30",
+            )}
+          >
+            Générer le pitch
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
