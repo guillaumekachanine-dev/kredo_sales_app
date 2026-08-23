@@ -1,6 +1,9 @@
 "use client"
 
+import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
+import { assessBattleCardRichness } from "./battle-workspace-model"
 
 // ─── Dynamic Playbooks · Lot 1 ──────────────────────────────────────────────
 // Ce module ne porte plus que du présentationnel. Le wrapper `BattleCardsSection`
@@ -8,9 +11,13 @@ import type { CompetitiveMapActor } from "@/features/competitive-map/data/compet
 // sélection du compte vit désormais dans `SectorPlaybooksModal`, AU-DESSUS du
 // retournement, pour survivre à un aller-retour Playbook ↔ Battle. Le rail est
 // dans `BattleAccountRail`, le sélecteur mobile dans `BattleWorkspace`.
-//
-// Le CORPS de la fiche ci-dessous est inchangé : sa refonte visuelle est le
-// périmètre du Lot 2 (A1), pas du Lot 1.
+
+// ─── Dynamic Playbooks · Lot 2 ──────────────────────────────────────────────
+// Refonte de `BattleCardContent` en lecture opérationnelle : petites cartes,
+// bullets courts, 6 axes dans l'ordre du cadrage, distinction forte entre
+// donnée disponible et donnée absente (`assessBattleCardRichness`, socle pur
+// testable dans `battle-workspace-model.ts`). Toujours zéro fetch : uniquement
+// `CompetitiveMapActor`, déjà en mémoire.
 
 export function BattleCardsEmptyState() {
   return (
@@ -24,8 +31,75 @@ export function BattleCardsEmptyState() {
   )
 }
 
+type BulletTone = "brass" | "neutral" | "alert" | "muted" | "positive" | "warning"
+
+const BULLET_TONE_CLASSES: Record<BulletTone, string> = {
+  brass: "border-brand-brass/20 bg-brand-brass/[0.05] text-white/90",
+  neutral: "border-white/10 bg-slate-900/40 text-white/85",
+  alert: "border-rose-500/25 bg-rose-950/20 text-rose-200/90",
+  muted: "border-white/5 bg-white/[0.02] text-white/65",
+  positive: "border-emerald-500/20 bg-emerald-950/10 text-white/85",
+  warning: "border-amber-500/20 bg-amber-950/10 text-white/85",
+}
+
+/** Petite carte de lecture : un fait, un bullet, jamais un mur de texte. */
+function RevisionBullet({ tone = "neutral", children }: { tone?: BulletTone; children: ReactNode }) {
+  return (
+    <div className={cn("rounded-lg border p-2.5 text-xs leading-relaxed", BULLET_TONE_CLASSES[tone])}>
+      {children}
+    </div>
+  )
+}
+
+const SECTION_LABEL_TONE_CLASSES: Record<"brass" | "alert" | "neutral", string> = {
+  brass: "text-brand-brass",
+  alert: "text-rose-400",
+  neutral: "text-white/45",
+}
+
+/** En-tête d'axe : icône sobre + label court, jamais un paragraphe. */
+function RevisionSection({
+  icon,
+  label,
+  tone = "brass",
+  children,
+}: {
+  icon: string
+  label: string
+  tone?: "brass" | "alert" | "neutral"
+  children: ReactNode
+}) {
+  return (
+    <section className="space-y-2">
+      <h4 className={cn("flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider", SECTION_LABEL_TONE_CLASSES[tone])}>
+        <span aria-hidden="true">{icon}</span>
+        {label}
+      </h4>
+      <div className="space-y-1.5">{children}</div>
+    </section>
+  )
+}
+
+/**
+ * `profile_json = '{}'` — mesuré en base sur 5 entrées / 23 (Lot 0 §10.4,
+ * segment « Hébergement & résidences de tourisme »). Aucun contenu générique,
+ * aucun repli sur un autre compte : un message net, rien d'autre.
+ */
+function BattleCardNotEnrichedState() {
+  return (
+    <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-6 text-center">
+      <p className="text-xs font-semibold text-white/70">Battle Card pas encore enrichie</p>
+      <p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-white/45">
+        Aucun élément de préparation n’est encore disponible pour ce compte. Les informations
+        apparaîtront automatiquement dès la prochaine ingestion de cartographie concurrentielle.
+      </p>
+    </div>
+  )
+}
+
 export function BattleCardContent({ actor }: { actor: CompetitiveMapActor }) {
   const { details } = actor
+  const { richness, filledAxisCount, totalAxisCount } = assessBattleCardRichness(actor)
 
   return (
     <div className="space-y-5 text-white">
@@ -44,6 +118,14 @@ export function BattleCardContent({ actor }: { actor: CompetitiveMapActor }) {
             <span className="text-[10px] text-white/40">
               Confiance {actor.confidence}
             </span>
+            {richness === "rich" && filledAxisCount < totalAxisCount ? (
+              <span
+                className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white/50"
+                title="Nombre d'axes de préparation documentés sur les 6 attendus"
+              >
+                {filledAxisCount}/{totalAxisCount} axes
+              </span>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-3 font-mono text-xs">
@@ -90,129 +172,111 @@ export function BattleCardContent({ actor }: { actor: CompetitiveMapActor }) {
         </div>
       </div>
 
-      {/* 1. Trigger — Pourquoi j'appelle maintenant */}
-      {details.triggers.length > 0 ? (
-        <section className="space-y-2">
-          <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
-            Le Trigger — Pourquoi j&apos;appelle maintenant
-          </h4>
-          <div className="space-y-1.5">
-            {details.triggers.map((trigger, idx) => (
-              <div key={idx} className="rounded-lg border border-brand-brass/20 bg-brand-brass/[0.04] p-3 text-xs leading-relaxed text-white/90">
-                {trigger}
-              </div>
-            ))}
-          </div>
-        </section>
+      {richness === "empty" ? <BattleCardNotEnrichedState /> : null}
+
+      {richness === "sparse" ? (
+        <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.02] p-3 text-[11px] leading-relaxed text-white/50">
+          Aucun élément de préparation formalisé pour ce compte — seules des inconnues à qualifier
+          ont été identifiées ci-dessous.
+        </div>
       ) : null}
 
-      {/* 2. L'Angle & Les Accroches */}
-      {(actor.angleEntree || details.traductionCommerciale.length > 0) ? (
-        <section className="space-y-2">
-          <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
-            L&apos;Angle & Les Accroches commerciales
-          </h4>
-          {actor.angleEntree ? (
-            <div className="rounded-lg border border-white/10 bg-slate-900/40 p-3 text-xs leading-relaxed text-white">
-              <strong className="text-brand-brass">Angle d&apos;entrée : </strong>
-              {actor.angleEntree}
-            </div>
-          ) : null}
-          {details.traductionCommerciale.length > 0 ? (
-            <div className="space-y-1.5">
-              {details.traductionCommerciale.map((item, idx) => (
-                <div key={idx} className="rounded-lg border border-white/5 bg-white/[0.02] p-3 text-xs leading-relaxed text-white/80">
-                  {item}
-                </div>
+      {richness === "rich" ? (
+        <>
+          {/* ⚡ Pourquoi maintenant */}
+          {details.triggers.length > 0 ? (
+            <RevisionSection icon="⚡" label="Pourquoi maintenant">
+              {details.triggers.map((trigger, idx) => (
+                <RevisionBullet key={idx} tone="brass">{trigger}</RevisionBullet>
               ))}
-            </div>
+            </RevisionSection>
           ) : null}
-        </section>
+
+          {/* 🎯 Angle d'entrée */}
+          {(actor.angleEntree || details.traductionCommerciale.length > 0) ? (
+            <RevisionSection icon="🎯" label="Angle d’entrée">
+              {actor.angleEntree ? (
+                <RevisionBullet tone="neutral">
+                  <strong className="text-brand-brass">Angle : </strong>
+                  {actor.angleEntree}
+                </RevisionBullet>
+              ) : null}
+              {details.traductionCommerciale.map((item, idx) => (
+                <RevisionBullet key={idx} tone="muted">{item}</RevisionBullet>
+              ))}
+            </RevisionSection>
+          ) : null}
+
+          {/* 👤 À qui parler */}
+          {details.coucheEsn.length > 0 ? (
+            <RevisionSection icon="👤" label="À qui parler">
+              {details.coucheEsn.map((item, idx) => (
+                <RevisionBullet key={idx} tone="neutral">{item}</RevisionBullet>
+              ))}
+            </RevisionSection>
+          ) : null}
+
+          {/* 🛡 Points de vigilance */}
+          {details.lignesRouges.length > 0 ? (
+            <RevisionSection icon="🛡" label="Points de vigilance" tone="alert">
+              {details.lignesRouges.map((item, idx) => (
+                <RevisionBullet key={idx} tone="alert">{item}</RevisionBullet>
+              ))}
+            </RevisionSection>
+          ) : null}
+
+          {/* 🧩 Chantiers */}
+          {(details.chantiersTechnologiques.length > 0 || details.iaAnnonceVsDeploye) ? (
+            <RevisionSection icon="🧩" label="Chantiers" tone="neutral">
+              {details.iaAnnonceVsDeploye ? (
+                <RevisionBullet tone="muted">
+                  <strong className="text-white/70">IA annoncé vs déployé : </strong>
+                  {details.iaAnnonceVsDeploye}
+                </RevisionBullet>
+              ) : null}
+              {details.chantiersTechnologiques.map((item, idx) => (
+                <RevisionBullet key={idx} tone="muted">{item}</RevisionBullet>
+              ))}
+            </RevisionSection>
+          ) : null}
+
+          {/* ⚖ Forces / vulnérabilités */}
+          {(actor.forces || actor.vulnerability) ? (
+            <section className="space-y-2">
+              <h4 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+                <span aria-hidden="true">⚖</span>
+                Forces / vulnérabilités
+              </h4>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {actor.forces ? (
+                  <RevisionBullet tone="positive">
+                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-emerald-400">
+                      Forces
+                    </span>
+                    {actor.forces}
+                  </RevisionBullet>
+                ) : null}
+                {actor.vulnerability ? (
+                  <RevisionBullet tone="warning">
+                    <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-amber-400">
+                      Vulnérabilité
+                    </span>
+                    {actor.vulnerability}
+                  </RevisionBullet>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+        </>
       ) : null}
 
-      {/* 3. À qui parler & Couche ESN */}
-      {details.coucheEsn.length > 0 ? (
-        <section className="space-y-2">
-          <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
-            À qui parler & Organisation SI (Couche ESN)
-          </h4>
-          <div className="space-y-1.5">
-            {details.coucheEsn.map((item, idx) => (
-              <div key={idx} className="rounded-lg border border-white/5 bg-slate-900/30 p-3 text-xs leading-relaxed text-white/75">
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* 4. ⛔ Ce qu'il ne faut PAS dire */}
-      {details.lignesRouges.length > 0 ? (
-        <section className="space-y-2">
-          <h4 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400">
-            <span>⛔</span> Ce qu&apos;il ne faut PAS dire
-          </h4>
-          <div className="space-y-1.5">
-            {details.lignesRouges.map((item, idx) => (
-              <div key={idx} className="rounded-lg border border-rose-500/25 bg-rose-950/20 p-3 text-xs leading-relaxed text-rose-200/90">
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* 5. Chantiers & Forces / Vulnérabilités */}
-      {(actor.forces || actor.vulnerability || details.chantiersTechnologiques.length > 0 || details.iaAnnonceVsDeploye) ? (
-        <section className="space-y-2">
-          <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
-            Chantiers & Éléments de diagnostic
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            {actor.forces ? (
-              <div className="rounded-lg border border-white/5 bg-slate-900/30 p-3 space-y-1">
-                <span className="block text-[10px] font-bold uppercase text-emerald-400">Forces clés</span>
-                <p className="text-white/75 leading-relaxed">{actor.forces}</p>
-              </div>
-            ) : null}
-            {actor.vulnerability ? (
-              <div className="rounded-lg border border-white/5 bg-slate-900/30 p-3 space-y-1">
-                <span className="block text-[10px] font-bold uppercase text-amber-400">Vulnérabilité</span>
-                <p className="text-white/75 leading-relaxed">{actor.vulnerability}</p>
-              </div>
-            ) : null}
-            {details.iaAnnonceVsDeploye ? (
-              <div className="md:col-span-2 rounded-lg border border-white/5 bg-slate-900/30 p-3 space-y-1">
-                <span className="block text-[10px] font-bold uppercase text-brand-brass">IA (Annoncé vs Déployé)</span>
-                <p className="text-white/75 leading-relaxed">{details.iaAnnonceVsDeploye}</p>
-              </div>
-            ) : null}
-            {details.chantiersTechnologiques.length > 0 ? (
-              <div className="md:col-span-2 rounded-lg border border-white/5 bg-slate-900/30 p-3 space-y-1.5">
-                <span className="block text-[10px] font-bold uppercase text-white/50">Chantiers technologiques identifiés</span>
-                <ul className="space-y-1 pl-3 list-disc text-white/70">
-                  {details.chantiersTechnologiques.map((c, idx) => (
-                    <li key={idx}>{c}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
-      {/* 6. Points à qualifier (trous) */}
+      {/* ❓ À qualifier — présent quelle que soit la richesse, y compris sparse */}
       {details.trous.length > 0 ? (
-        <section className="space-y-2">
-          <h4 className="text-[10px] font-bold uppercase tracking-wider text-white/45">
-            À qualifier pendant l&apos;appel (inconnues identifiées)
-          </h4>
-          <ul className="space-y-1 rounded-lg border border-white/5 bg-slate-950/20 p-3 text-xs text-white/60 list-disc pl-5">
-            {details.trous.map((trou, idx) => (
-              <li key={idx}>{trou}</li>
-            ))}
-          </ul>
-        </section>
+        <RevisionSection icon="❓" label="À qualifier" tone="neutral">
+          {details.trous.map((trou, idx) => (
+            <RevisionBullet key={idx} tone="muted">{trou}</RevisionBullet>
+          ))}
+        </RevisionSection>
       ) : null}
     </div>
   )

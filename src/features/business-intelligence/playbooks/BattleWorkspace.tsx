@@ -10,11 +10,19 @@ import { BattleCardContent, BattleCardsEmptyState } from "./BattleCardsSection"
 import { BattleModeSwitcher } from "./BattleModeSwitcher"
 import { BattleSituationView } from "./BattleSituationView"
 import {
+  BATTLE_MAIN_TINT_IMAGE,
+  BATTLE_SIDE_TINT_IMAGE,
   PLAYBOOK_MAIN_SURFACE,
   PLAYBOOK_SIDE_SURFACE,
   resolveBattleActor,
   type BattleTab,
 } from "./battle-workspace-model"
+
+// Identité Battle (Lot 2) : même fond que le Playbook, dégradé cobalt posé
+// par-dessus en `background-image` (jamais en `backgroundColor`, pour ne
+// jamais recouvrir la base et rester un accent, pas un changement de couleur).
+const BATTLE_SIDE_TINT_STYLE = { backgroundImage: BATTLE_SIDE_TINT_IMAGE }
+const BATTLE_MAIN_TINT_STYLE = { backgroundImage: BATTLE_MAIN_TINT_IMAGE }
 
 type BattleWorkspaceProps = {
   actors: CompetitiveMapActor[]
@@ -58,7 +66,7 @@ export function BattleWorkspace({
 
   if (!actor) {
     return (
-      <div className={cn("flex min-h-0 flex-1 flex-col", PLAYBOOK_MAIN_SURFACE)}>
+      <div className={cn("flex min-h-0 flex-1 flex-col", PLAYBOOK_MAIN_SURFACE)} style={BATTLE_MAIN_TINT_STYLE}>
         <div className="min-h-0 flex-1 overflow-y-auto p-6">
           <BattleCardsEmptyState />
         </div>
@@ -79,7 +87,7 @@ export function BattleWorkspace({
 
   if (isMobile) {
     return (
-      <div className={cn("flex min-h-0 flex-1 flex-col text-white", PLAYBOOK_MAIN_SURFACE)}>
+      <div className={cn("flex min-h-0 flex-1 flex-col text-white", PLAYBOOK_MAIN_SURFACE)} style={BATTLE_MAIN_TINT_STYLE}>
         <div className="shrink-0 space-y-3 border-b border-white/10 p-4">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
@@ -128,6 +136,7 @@ export function BattleWorkspace({
     <div className="flex min-h-0 flex-1 items-stretch">
       <aside
         className={cn("min-h-0 w-[30%] shrink-0 overflow-hidden border-r border-white/5", PLAYBOOK_SIDE_SURFACE)}
+        style={BATTLE_SIDE_TINT_STYLE}
       >
         <BattleAccountRail
           actors={actors}
@@ -136,7 +145,10 @@ export function BattleWorkspace({
         />
       </aside>
 
-      <main className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden text-white", PLAYBOOK_MAIN_SURFACE)}>
+      <main
+        className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden text-white", PLAYBOOK_MAIN_SURFACE)}
+        style={BATTLE_MAIN_TINT_STYLE}
+      >
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-6 py-5">
           <div className="min-w-0">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-brand-brass">

@@ -7,9 +7,14 @@ import {
   parsePlaybookRoiArguments,
 } from "../models/sector-playbook-parser"
 import {
+  BATTLE_CARD_RICHNESS_AXES,
   BATTLE_FLIP_HALF_MS,
   BATTLE_FLIP_REDUCED_HALF_MS,
+  BATTLE_MAIN_TINT_IMAGE,
+  BATTLE_SIDE_TINT_IMAGE,
   PLAYBOOK_SECTION_KEYS,
+  assessBattleCardRichness,
+  classifyBattleCardRichness,
   flipDirectionFor,
   flipOpacity,
   flipRotation,
@@ -224,6 +229,168 @@ describe("Lot 1 — Battle Cards devient un mode, plus une section", () => {
       expect(flipOpacity("idle")).toBe(1)
       expect(flipOpacity("leaving")).toBe(0)
       expect(flipOpacity("entering")).toBe(0)
+    })
+  })
+})
+
+describe("Lot 2 — identité visuelle Battle et richesse des Battle Cards", () => {
+  describe("Teinte Battle — uniquement des tokens KREDO", () => {
+    const HEX_OR_RGB = /#[0-9a-fA-F]{3,8}\b|rgba?\(/i
+
+    it("ne contient aucune couleur HEX/RGB en dur", () => {
+      expect(BATTLE_SIDE_TINT_IMAGE).not.toMatch(HEX_OR_RGB)
+      expect(BATTLE_MAIN_TINT_IMAGE).not.toMatch(HEX_OR_RGB)
+    })
+
+    it("construit le dégradé exclusivement depuis les tokens cobalt du cockpit", () => {
+      for (const image of [BATTLE_SIDE_TINT_IMAGE, BATTLE_MAIN_TINT_IMAGE]) {
+        expect(image).toContain("color-mix(in srgb")
+        expect(image).toMatch(/var\(--color-cockpit-cobalt(-deep)?\)/)
+      }
+    })
+
+    it("distingue le rail (side) de la zone principale (main)", () => {
+      expect(BATTLE_SIDE_TINT_IMAGE).not.toBe(BATTLE_MAIN_TINT_IMAGE)
+    })
+  })
+
+  describe("classifyBattleCardRichness", () => {
+    it("classe vide quand aucun axe et aucune inconnue identifiée", () => {
+      expect(classifyBattleCardRichness(0, false)).toBe("empty")
+    })
+
+    it("classe éparse quand aucun axe mais des inconnues identifiées", () => {
+      expect(classifyBattleCardRichness(0, true)).toBe("sparse")
+    })
+
+    it("classe riche dès qu'au moins un axe est renseigné, quelles que soient les inconnues", () => {
+      expect(classifyBattleCardRichness(1, false)).toBe("rich")
+      expect(classifyBattleCardRichness(BATTLE_CARD_RICHNESS_AXES, true)).toBe("rich")
+    })
+  })
+
+  describe("assessBattleCardRichness — sur de vraies formes d'acteur", () => {
+    it("compte 6/6 axes sur un profil complet (fixture pilote)", () => {
+      const assessment = assessBattleCardRichness(createMockActor())
+      expect(assessment.richness).toBe("rich")
+      expect(assessment.totalAxisCount).toBe(BATTLE_CARD_RICHNESS_AXES)
+      expect(assessment.filledAxisCount).toBe(6)
+      expect(assessment.hasKnownGaps).toBe(true)
+    })
+
+    it("classe vide un acteur dont profile_json est réellement vide (cas mesuré Lot 0 §10.4)", () => {
+      const blankActor = createMockActor({
+        angleEntree: null,
+        forces: null,
+        vulnerability: null,
+        details: {
+          propositionValeur: null,
+          differenciateurs: [],
+          dependances: [],
+          chaineValeur: [],
+          chantiersTechnologiques: [],
+          triggers: [],
+          lignesRouges: [],
+          trous: [],
+          metierChaineValeur: null,
+          maillon: null,
+          contratsMajeurs: [],
+          grilles: [],
+          coucheEsn: [],
+          traductionCommerciale: [],
+          iaAnnonceVsDeploye: null,
+        },
+      })
+      const assessment = assessBattleCardRichness(blankActor)
+      expect(assessment.richness).toBe("empty")
+      expect(assessment.filledAxisCount).toBe(0)
+      expect(assessment.hasKnownGaps).toBe(false)
+    })
+
+    it("classe éparse un acteur sans axe rempli mais avec des trous identifiés", () => {
+      const gapsOnlyActor = createMockActor({
+        angleEntree: null,
+        forces: null,
+        vulnerability: null,
+        details: {
+          propositionValeur: null,
+          differenciateurs: [],
+          dependances: [],
+          chaineValeur: [],
+          chantiersTechnologiques: [],
+          triggers: [],
+          lignesRouges: [],
+          trous: ["Modèle d'achat IT non formalisé publiquement"],
+          metierChaineValeur: null,
+          maillon: null,
+          contratsMajeurs: [],
+          grilles: [],
+          coucheEsn: [],
+          traductionCommerciale: [],
+          iaAnnonceVsDeploye: null,
+        },
+      })
+      const assessment = assessBattleCardRichness(gapsOnlyActor)
+      expect(assessment.richness).toBe("sparse")
+      expect(assessment.filledAxisCount).toBe(0)
+      expect(assessment.hasKnownGaps).toBe(true)
+    })
+
+    it("compte un seul axe rempli comme riche, sans arrondir à zéro", () => {
+      const partialActor = createMockActor({
+        angleEntree: null,
+        forces: null,
+        vulnerability: null,
+        details: {
+          propositionValeur: null,
+          differenciateurs: [],
+          dependances: [],
+          chaineValeur: [],
+          chantiersTechnologiques: [],
+          triggers: ["Publication CA semestriel 444 M€"],
+          lignesRouges: [],
+          trous: [],
+          metierChaineValeur: null,
+          maillon: null,
+          contratsMajeurs: [],
+          grilles: [],
+          coucheEsn: [],
+          traductionCommerciale: [],
+          iaAnnonceVsDeploye: null,
+        },
+      })
+      const assessment = assessBattleCardRichness(partialActor)
+      expect(assessment.richness).toBe("rich")
+      expect(assessment.filledAxisCount).toBe(1)
+    })
+
+    it("n'accorde jamais à trous la valeur d'un axe rempli", () => {
+      // Un acteur dont SEUL `trous` est renseigné ne doit jamais atteindre
+      // `filledAxisCount > 0` : lister des inconnues n'est pas une donnée
+      // exploitable, sans quoi une fiche vide serait présentée comme riche.
+      const onlyGaps = createMockActor({
+        angleEntree: null,
+        forces: null,
+        vulnerability: null,
+        details: {
+          propositionValeur: null,
+          differenciateurs: [],
+          dependances: [],
+          chaineValeur: [],
+          chantiersTechnologiques: [],
+          triggers: [],
+          lignesRouges: [],
+          trous: ["Inconnue A", "Inconnue B"],
+          metierChaineValeur: null,
+          maillon: null,
+          contratsMajeurs: [],
+          grilles: [],
+          coucheEsn: [],
+          traductionCommerciale: [],
+          iaAnnonceVsDeploye: null,
+        },
+      })
+      expect(assessBattleCardRichness(onlyGaps).filledAxisCount).toBe(0)
     })
   })
 })
