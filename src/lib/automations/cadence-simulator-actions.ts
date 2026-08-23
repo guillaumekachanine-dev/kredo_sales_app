@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { isLegacyWorkflow, workflowLabelForRunType } from "./workflow-labels"
 import type {
