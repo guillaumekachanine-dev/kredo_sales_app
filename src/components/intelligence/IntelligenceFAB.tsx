@@ -69,6 +69,10 @@ const VeilleSimulatorModal = dynamic(
   () => import("@/components/automations/VeilleSimulatorModal").then((module) => module.VeilleSimulatorModal),
   { ssr: false },
 )
+const AccountRecruitmentDialog = dynamic(
+  () => import("./AccountRecruitmentDialog").then((module) => module.AccountRecruitmentDialog),
+  { ssr: false },
+)
 import { fetchVeilleSimulatorBaseline } from "@/lib/automations/run-journal-actions"
 import type { VeilleSimulatorBaseline } from "@/lib/automations/veille-cadence"
 
@@ -222,7 +226,7 @@ const ACCOUNT_EDITORIAL_ACTIONS = [
   { id: "analyze", label: "Analyser", iconSrc: cockpitActionIcons.recommendations },
   { id: "watch", label: "S’informer", iconSrc: cockpitActionIcons.alert },
   { id: "simulate", label: "Simuler", iconSrc: cockpitActionIcons.financeReport },
-  { id: "recruit", label: "Recruter", iconSrc: cockpitActionIcons.recruitmentReport, href: "/recruitment" },
+  { id: "recruit", label: "Recruter", iconSrc: cockpitActionIcons.recruitmentReport },
 ] as const
 
 function EditorialPanelAction({ action, onClick }: {
@@ -239,7 +243,6 @@ function EditorialPanelAction({ action, onClick }: {
   )
   const className = "group flex min-h-[64px] items-center gap-2.5 rounded-[var(--radius-medium)] border border-white/15 bg-white/[0.08] px-3 text-left transition-[background-color,border-color,transform] hover:border-white/30 hover:bg-white/[0.14] active:scale-[0.98] active:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60"
 
-  if ("href" in action) return <Link href={action.href} onClick={onClick} className={className}>{content}</Link>
   return <button type="button" onClick={onClick} className={className}>{content}</button>
 }
 
@@ -400,12 +403,13 @@ function AccountSimulationDialog({
   )
 }
 
-function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onDocumentsClick, onSimulateClick, onClose }: {
+function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onDocumentsClick, onSimulateClick, onRecruitClick, onClose }: {
   onWriteEmailClick: () => void
   onPlanClick: () => void
   onInformClick: () => void
   onDocumentsClick: () => void
   onSimulateClick: () => void
+  onRecruitClick: () => void
   onClose: () => void
 }) {
   const { panelData } = useIntelligenceContext()
@@ -445,6 +449,7 @@ function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, o
                 if (action.id === "analyze") setActiveAction("analysis")
                 if (action.id === "watch") onInformClick()
                 if (action.id === "simulate") onSimulateClick()
+                if (action.id === "recruit") onRecruitClick()
               }}
             />
           ))}
@@ -701,6 +706,7 @@ export function IntelligenceFAB() {
   const [simulationPickerOpen, setSimulationPickerOpen] = useState(false)
   const [financialModelingOpen, setFinancialModelingOpen] = useState(false)
   const [automationSimulatorOpen, setAutomationSimulatorOpen] = useState(false)
+  const [recruitmentOpen, setRecruitmentOpen] = useState(false)
   const [automationBaseline, setAutomationBaseline] = useState<VeilleSimulatorBaseline | null>(null)
 
   useEffect(() => {
@@ -714,6 +720,7 @@ export function IntelligenceFAB() {
       setSimulationPickerOpen(false)
       setFinancialModelingOpen(false)
       setAutomationSimulatorOpen(false)
+      setRecruitmentOpen(false)
       setInformationView("menu")
       setCockpitReturnKey((current) => current + 1)
       setIsOpen(true)
@@ -817,6 +824,11 @@ export function IntelligenceFAB() {
   function openSimulationPickerFromCockpit() {
     setIsOpen(false)
     window.setTimeout(() => setSimulationPickerOpen(true), 280)
+  }
+
+  function openRecruitmentFromCockpit() {
+    setIsOpen(false)
+    window.setTimeout(() => setRecruitmentOpen(true), 280)
   }
 
   function selectEventType(eventType: string) {
@@ -929,6 +941,7 @@ export function IntelligenceFAB() {
             onInformClick={openInformationFromCockpit}
             onDocumentsClick={openDocumentsFromCockpit}
             onSimulateClick={openSimulationPickerFromCockpit}
+            onRecruitClick={openRecruitmentFromCockpit}
             onClose={() => setIsOpen(false)}
           />
         ) : isGenericEntityMode ? (
@@ -1077,6 +1090,16 @@ export function IntelligenceFAB() {
               watchedAccountsCount: 0,
               cadenceBreakdown: [],
               currentMonthlyCostEstimate: null,
+            }}
+          />
+          <AccountRecruitmentDialog
+            open={recruitmentOpen}
+            onOpenChange={setRecruitmentOpen}
+            companyId={panelData.company.id}
+            companyName={panelData.company.name}
+            onReturnToCockpit={() => {
+              setRecruitmentOpen(false)
+              returnToAccountCockpit()
             }}
           />
         </>
