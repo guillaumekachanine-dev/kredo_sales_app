@@ -47,6 +47,7 @@ import {
   type BattleSituationOptions,
 } from "./battle-situation-options"
 import { buildBattleSituationBrief } from "./battle-situation-brief"
+import { isBattleRunForCurrentCompany, type BattleTrackedRun } from "./battle-run-guard"
 import { BattlePitchResult } from "./BattlePitchResult"
 import { BattleSituationSecondaryOptions } from "./BattleSituationSecondaryOptions"
 import {
@@ -223,7 +224,7 @@ export function BattleSituationView({ actor, knowledge, isMobile, onBackToRevisi
   // sans effet de synchronisation ni état résiduel d'un autre compte.
   return (
     <BattleSituationConfigurator
-      key={actor.id}
+      key={actor.companyId}
       actor={actor}
       knowledge={knowledge}
       context={context}
@@ -262,8 +263,16 @@ function BattleSituationConfigurator({
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle")
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [generatedPitch, setGeneratedPitch] = useState<GeneratedPitch | null>(null)
-  const [runId, setRunId] = useState<string | null>(null)
+  const [run, setRun] = useState<BattleTrackedRun | null>(null)
   const triggerInFlightRef = useRef(false)
+
+  // Un run peut finir après un changement de compte. Son pipeline serveur reste
+  // intact, mais son état ne doit plus être visible dans le nouveau contexte.
+  const isRunForCurrentCompany = run === null || isBattleRunForCurrentCompany(run, actor.companyId)
+  const trackedRunId = isRunForCurrentCompany ? run?.runId ?? null : null
+  const visibleGenerationStatus = isRunForCurrentCompany ? generationStatus : "idle"
+  const visibleGenerationError = isRunForCurrentCompany ? generationError : null
+  const visibleGeneratedPitch = isRunForCurrentCompany ? generatedPitch : null
 
   const options: BattleSituationOptions = useMemo(() => {
     const personas = buildPersonaOptions(context.contacts, knowledge.playbook)
@@ -292,7 +301,7 @@ function BattleSituationConfigurator({
       setGenerationStatus("idle")
       setGenerationError(null)
       setGeneratedPitch(null)
-      setRunId(null)
+      setRun(null)
     }
     setRawDraft((current) => ({ ...current, ...patch }))
   }, [])
@@ -313,10 +322,14 @@ function BattleSituationConfigurator({
   }, [actor, draft, knowledge.segmentId, senderName, validation.isComplete])
 
   useRunTracker({
-    runId,
+    runId: trackedRunId,
     resultType: "commercial_pitch",
-    onRunning: () => setGenerationStatus("running"),
+    onRunning: () => {
+      if (!isBattleRunForCurrentCompany(run, actor.companyId)) return
+      setGenerationStatus("running")
+    },
     onSucceeded: (result) => {
+      if (!isBattleRunForCurrentCompany(run, actor.companyId)) return
       triggerInFlightRef.current = false
       if (!result) {
         setGenerationStatus("failed")
@@ -328,11 +341,13 @@ function BattleSituationConfigurator({
       setGenerationStatus("succeeded")
     },
     onFailed: (message) => {
+      if (!isBattleRunForCurrentCompany(run, actor.companyId)) return
       triggerInFlightRef.current = false
       setGenerationStatus("failed")
       setGenerationError(message)
     },
     onTimeout: () => {
+      if (!isBattleRunForCurrentCompany(run, actor.companyId)) return
       triggerInFlightRef.current = false
       setGenerationStatus("failed")
       setGenerationError(
@@ -342,14 +357,14 @@ function BattleSituationConfigurator({
   })
 
   const isBlocked = unsatisfiable.length > 0
-  const isGenerationInFlight = generationStatus === "submitting" || generationStatus === "running"
+  const isGenerationInFlight = visibleGenerationStatus === "submitting" || visibleGenerationStatus === "running"
   const canGenerate =
     validation.isComplete &&
     !isBlocked &&
     context.status === "ready" &&
     briefResult?.ok === true &&
     !isGenerationInFlight &&
-    generationStatus !== "succeeded"
+    visibleGenerationStatus !== "succeeded"
 
   const handleGenerate = useCallback(async () => {
     if (triggerInFlightRef.current || !canGenerate || !briefResult?.ok) return
@@ -358,9 +373,10 @@ function BattleSituationConfigurator({
     setGenerationStatus("submitting")
     setGenerationError(null)
     setGeneratedPitch(null)
-    setRunId(null)
+    setRun(null)
 
     try {
+      const runCompanyId = actor.companyId
       const response = await fetch("/api/n8n/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -378,7 +394,7 @@ function BattleSituationConfigurator({
         throw new Error(payload.error ?? "Le déclenchement du pitch a échoué.")
       }
 
-      setRunId(payload.runId)
+      setRun({ runId: payload.runId, companyId: runCompanyId })
       setGenerationStatus("running")
     } catch (error) {
       triggerInFlightRef.current = false
@@ -387,17 +403,17 @@ function BattleSituationConfigurator({
     }
   }, [actor.companyId, briefResult, canGenerate])
 
-  if (generationStatus === "succeeded" && generatedPitch) {
+  if (visibleGenerationStatus === "succeeded" && visibleGeneratedPitch) {
     return (
       <BattlePitchResult
         actor={actor}
-        resultId={generatedPitch.resultId}
-        contentJson={generatedPitch.contentJson}
+        resultId={visibleGeneratedPitch.resultId}
+        contentJson={visibleGeneratedPitch.contentJson}
         draft={draft}
         onReset={() => {
           setGenerationStatus("idle")
           setGeneratedPitch(null)
-          setRunId(null)
+          setRun(null)
           triggerInFlightRef.current = false
         }}
         onBackToRevision={onBackToRevision}
@@ -654,16 +670,16 @@ function BattleSituationConfigurator({
           </div>
         ) : null}
 
-        {generationStatus === "succeeded" && generatedPitch ? (
+        {visibleGenerationStatus === "succeeded" && visibleGeneratedPitch ? (
           <div className="rounded-lg border border-emerald-500/25 bg-emerald-950/20 p-3" aria-live="polite">
             <p className="text-[11px] font-semibold text-emerald-200">Pitch généré</p>
           </div>
         ) : null}
 
-        {generationStatus === "failed" && generationError ? (
+        {visibleGenerationStatus === "failed" && visibleGenerationError ? (
           <div className="rounded-lg border border-rose-500/25 bg-rose-950/20 p-3" role="alert">
             <p className="text-[11px] font-semibold text-rose-200">Échec de la génération</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-rose-200/70">{generationError}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-rose-200/70">{visibleGenerationError}</p>
           </div>
         ) : null}
 
@@ -695,9 +711,9 @@ function BattleSituationConfigurator({
           >
             {isGenerationInFlight
               ? "Génération en cours…"
-              : generationStatus === "failed"
+              : visibleGenerationStatus === "failed"
                 ? "Relancer la génération"
-                : generationStatus === "succeeded"
+                : visibleGenerationStatus === "succeeded"
                   ? "Pitch généré"
                   : "Générer le pitch"}
           </button>
