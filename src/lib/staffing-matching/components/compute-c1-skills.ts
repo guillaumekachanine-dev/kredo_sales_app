@@ -1,12 +1,11 @@
-import { IMPORTANCE_MULTIPLIER } from "../match-config"
+import { IMPORTANCE_MULTIPLIER, UNKNOWN_SKILL_LEVEL_COVERAGE } from "../match-config"
 import type { MatchingNeed, MatchingProfile, RawMatchComponent } from "../types"
 
 // C1 — Couverture des compétences requises (le pilier du matching). Chaque
 // compétence du besoin est pondérée par son importance (indispensable=3 /
-// souhaitée=2 / bonus=1). Pour chacune : couverture = 1 si le profil atteint le
-// niveau minimum, sinon proportionnelle. Une compétence indispensable manquante
-// pèse 0 dans le numérateur mais reste au dénominateur — donc pénalise vraiment.
-// Non applicable seulement si le besoin ne structure aucune compétence.
+// souhaitée=2 / bonus=1). La présence réelle d'une compétence compte même si
+// son niveau n'est pas encore qualifié : on ne transforme plus une donnée
+// partielle en faux 0 %. Une compétence absente, elle, reste bien à 0.
 export function computeSkillsCoverage(need: MatchingNeed, profile: MatchingProfile): RawMatchComponent {
   const base: Omit<RawMatchComponent, "applicable" | "normalizedScore" | "confidence" | "explanation" | "positives" | "negatives"> = {
     componentKey: "C1_skills",
@@ -30,8 +29,11 @@ export function computeSkillsCoverage(need: MatchingNeed, profile: MatchingProfi
 
   let weightedSum = 0
   let totalWeight = 0
-  let matchedConfidenceSum = 0
-  let matchedCount = 0
+  let confidenceSum = 0
+  let confidenceCount = 0
+  let presentCount = 0
+  let unknownLevelCount = 0
+  let fullyCoveredIndispensable = 0
   const positives: string[] = []
   const negatives: string[] = []
 
@@ -46,45 +48,67 @@ export function computeSkillsCoverage(need: MatchingNeed, profile: MatchingProfi
       } else {
         negatives.push(`Compétence ${required.importance === "souhaitee" ? "souhaitée" : "bonus"} absente : ${required.skillName}.`)
       }
-      continue // couverture 0 pour cette compétence
+      continue
     }
 
-    const heldLevel = held.level ?? 0
-    const minLevel = required.minLevel ?? 3 // niveau cible par défaut si non précisé
-    const coverage = minLevel > 0 ? Math.min(1, heldLevel / minLevel) : heldLevel > 0 ? 1 : 0
+    presentCount += 1
+
+    const hasRequiredLevel = required.minLevel !== null && required.minLevel > 0
+    const hasHeldLevel = held.level !== null && held.level > 0
+
+    let coverage: number
+    if (!hasRequiredLevel) {
+      // Le besoin n'impose aucun niveau : la présence de la compétence suffit.
+      coverage = 1
+    } else if (hasHeldLevel) {
+      coverage = Math.min(1, held.level! / required.minLevel!)
+    } else {
+      // Compétence réellement présente mais niveau non qualifié : couverture
+      // partielle prudente, au lieu d'un faux 0 équivalent à "absente".
+      coverage = UNKNOWN_SKILL_LEVEL_COVERAGE
+      unknownLevelCount += 1
+    }
+
     weightedSum += effWeight * coverage
 
     if (held.confidence !== null) {
-      matchedConfidenceSum += held.confidence
-      matchedCount += 1
+      confidenceSum += held.confidence
+      confidenceCount += 1
     }
 
     if (coverage >= 1) {
-      positives.push(`${required.skillName} maîtrisée (niveau ${heldLevel}/5${required.minLevel ? `, requis ${required.minLevel}` : ""}).`)
+      positives.push(
+        hasRequiredLevel && hasHeldLevel
+          ? `${required.skillName} maîtrisée (niveau ${held.level}/5, requis ${required.minLevel}).`
+          : `${required.skillName} présente sur le profil.`,
+      )
+      if (required.importance === "indispensable") fullyCoveredIndispensable += 1
+    } else if (!hasHeldLevel && hasRequiredLevel) {
+      positives.push(`${required.skillName} présente sur le profil.`)
+      negatives.push(`${required.skillName} : niveau à qualifier (minimum requis ${required.minLevel}/5).`)
     } else if (required.importance === "indispensable") {
-      negatives.push(`${required.skillName} sous le niveau requis (${heldLevel}/${minLevel}).`)
+      negatives.push(`${required.skillName} sous le niveau requis (${held.level}/${required.minLevel}).`)
     }
   }
 
   const normalizedScore = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) : 0
 
-  // Confiance : moyenne des confidences des compétences réellement appariées,
-  // atténuée quand le profil couvre peu de compétences requises (peu de matière).
-  const avgMatchedConfidence = matchedCount > 0 ? (matchedConfidenceSum / matchedCount) * 100 : 0
-  const coverageRatio = need.skills.length > 0 ? matchedCount / need.skills.length : 0
+  // Confiance : la présence d'une compétence est comptée indépendamment de la
+  // présence d'un score de confiance. Sinon un skill réellement lié au profil
+  // mais sans confidence était auparavant considéré comme "non présent".
+  const avgMatchedConfidence = confidenceCount > 0 ? (confidenceSum / confidenceCount) * 100 : 0
+  const coverageRatio = need.skills.length > 0 ? presentCount / need.skills.length : 0
   const confidence = Math.round(Math.max(40, Math.min(90, avgMatchedConfidence * 0.6 + coverageRatio * 40 + 30)))
 
-  const matchedIndispensable = need.skills.filter(
-    (s) => s.importance === "indispensable" && profileSkillById.has(s.skillId),
-  ).length
   const totalIndispensable = need.skills.filter((s) => s.importance === "indispensable").length
+  const unknownLevelSuffix = unknownLevelCount > 0 ? ` ${unknownLevelCount} niveau${unknownLevelCount > 1 ? "x" : ""} à qualifier.` : ""
 
   return {
     ...base,
     applicable: true,
     normalizedScore,
     confidence,
-    explanation: `${matchedCount}/${need.skills.length} compétences requises présentes, ${matchedIndispensable}/${totalIndispensable} indispensables couvertes.`,
+    explanation: `${presentCount}/${need.skills.length} compétences requises présentes, ${fullyCoveredIndispensable}/${totalIndispensable} indispensables au niveau requis.${unknownLevelSuffix}`,
     positives: positives.slice(0, 4),
     negatives: negatives.slice(0, 4),
   }
