@@ -2,6 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
+import { AppDialog } from "@/components/ui/AppDialog"
+import { Button } from "@/components/ui/Button"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { SourceManagementLauncher } from "@/features/source-management/components/SourceManagementLauncher"
 import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
@@ -90,6 +92,38 @@ export function VeilleActualitesMobile({
   const [isAddAnalysisToListOpen, setIsAddAnalysisToListOpen] = useState(false)
   const [isManageListsOpen, setIsManageListsOpen] = useState(false)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
+  const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
+
+  const handleConfirmGenerateDigest = async () => {
+    if (isGenerating) return
+    setIsGenerating(true)
+    setGenerateError(null)
+    try {
+      const response = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "veille-hebdomadaire-kredo",
+          entityType: "workspace",
+          input: { schemaVersion: 1, triggerMode: "manual" },
+        }),
+      })
+      const payload = (await response.json()) as { runId?: string; error?: string }
+      if (!response.ok || !payload.runId) {
+        setGenerateError(payload.error ?? "Impossible de lancer la génération.")
+        setIsGenerating(false)
+        return
+      }
+      setIsGenerateConfirmOpen(false)
+      showFeedback("Génération du digest lancée.")
+    } catch {
+      setGenerateError("Erreur réseau lors du déclenchement.")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   const activeAnalysis = useMemo(() => {
     if (analyses.length === 0) return null
@@ -280,6 +314,10 @@ export function VeilleActualitesMobile({
               onChangePeriod={handleChangePeriod}
               rows={periodRows}
               onOpenArticle={setOpenArticleId}
+              onGenerateDigest={() => {
+                setGenerateError(null)
+                setIsGenerateConfirmOpen(true)
+              }}
             />
           )
         ) : null}
@@ -380,6 +418,42 @@ export function VeilleActualitesMobile({
           showFeedback("Analyse lancée.")
         }}
       />
+
+      <AppDialog
+        open={isGenerateConfirmOpen}
+        onOpenChange={setIsGenerateConfirmOpen}
+        title="Générer un digest"
+        description="Cette action va lancer la génération d’un nouveau digest de veille à partir des sources actives configurées."
+        dataTheme="edito-bright-veille"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setIsGenerateConfirmOpen(false)}
+              disabled={isGenerating}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="brass"
+              onClick={handleConfirmGenerateDigest}
+              loading={isGenerating}
+              disabled={isGenerating}
+            >
+              Générer le digest
+            </Button>
+          </>
+        }
+      >
+        <p className="text-xs text-body leading-relaxed">
+          Le processus de collecte et d’analyse des sources actives sera déclenché immédiatement.
+        </p>
+        {generateError ? (
+          <p role="alert" className="mt-3 text-xs text-danger font-semibold">
+            {generateError}
+          </p>
+        ) : null}
+      </AppDialog>
     </div>
   )
 }

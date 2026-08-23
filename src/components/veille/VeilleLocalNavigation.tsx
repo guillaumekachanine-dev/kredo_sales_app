@@ -55,13 +55,17 @@ function VeilleSidebarIcon({ name }: { name: VeilleSection }) {
   )
 }
 
+interface VeilleLocalNavigationProps {
+  active: VeilleSection
+  onChange: (section: VeilleSection) => void
+  onOpenSourceManagement?: () => void
+}
+
 export function VeilleLocalNavigation({
   active,
   onChange,
-}: {
-  active: VeilleSection
-  onChange: (section: VeilleSection) => void
-}) {
+  onOpenSourceManagement,
+}: VeilleLocalNavigationProps) {
   return (
     <nav
       aria-label="Navigation locale Veille & actualités"
@@ -100,7 +104,41 @@ export function VeilleLocalNavigation({
               </button>
             )
           })}
-          <div className="my-2 border-t border-edito-border/50" />
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-edito-border pt-4">
+        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
+          Modules
+        </p>
+        <div className="mt-2 space-y-1">
+          <button
+            type="button"
+            onClick={onOpenSourceManagement}
+            className={cn(
+              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
+            )}
+          >
+            <span className="text-edito-navy opacity-75">
+              <svg
+                className="size-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+              </svg>
+            </span>
+            <span className="truncate">Gestion des sources</span>
+          </button>
+
           <button
             type="button"
             onClick={() => useCrmAccountLauncherStore.getState().open()}

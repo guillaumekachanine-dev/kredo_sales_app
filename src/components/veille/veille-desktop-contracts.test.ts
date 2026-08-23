@@ -93,20 +93,22 @@ describe("veille Desktop UI source contract", () => {
   const navigation = readFileSync(resolve(root, "src/components/veille/VeilleLocalNavigation.tsx"), "utf8")
   const distributor = readFileSync(resolve(root, "src/components/veille/VeilleActualitesPage.tsx"), "utf8")
 
-  it("uses the four requested local sections", () => {
+  it("uses the four requested local sections and modules section", () => {
     for (const label of ["Actualités", "Veille ciblée", "Analyses", "Archives"]) expect(navigation).toContain(label)
+    expect(navigation).toContain("Modules")
+    expect(navigation).toContain("Gestion des sources")
     expect(navigation).toContain('aria-current={isActive ? "page" : undefined}')
   })
 
   it("has the exact header actions and no page subtitle", () => {
-    expect(header).toContain("Actualiser")
+    expect(header).toContain("Générer un digest")
     expect(header).toContain("Configurer la veille")
     expect(desktop).not.toContain("Signaux stratégiques, analyses brèves et actions commerciales")
     expect(desktop).not.toContain("Ajouter au digest")
   })
 
   it("contains both accessible dialogs and the editorial synchronization path", () => {
-    expect(header).toContain('title="Actualiser la veille"')
+    expect(header).toContain('title="Générer un digest"')
     expect(header).toContain("<GlobalWatchSettingsDialog")
     expect(desktop).toContain("setSelectedArticle(article)")
     expect(desktop).toContain("headingRef.current?.focus()")

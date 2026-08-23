@@ -9,7 +9,6 @@ import {
   IconChevronRight,
   IconClose,
   IconDocument,
-  IconFilter,
   IconSearch,
 } from "./icons"
 import {
@@ -27,6 +26,7 @@ type VeilleNewsTabProps = {
   /** Articles du SEUL digest actif — la page reflète la semaine, pas l'historique. */
   rows: NewsRowVM[]
   onOpenArticle: (articleId: string) => void
+  onGenerateDigest?: () => void
 }
 
 export function VeilleNewsTab({
@@ -35,6 +35,7 @@ export function VeilleNewsTab({
   onChangePeriod,
   rows,
   onOpenArticle,
+  onGenerateDigest,
 }: VeilleNewsTabProps) {
   const [search, setSearch] = useState("")
   const [categoryKeys, setCategoryKeys] = useState<string[]>([])
@@ -74,70 +75,60 @@ export function VeilleNewsTab({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface">
-      <div className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-2">
-        <button
-          type="button"
-          onClick={() => onChangePeriod(activePeriodIndex + 1)}
-          disabled={!hasOlder}
-          aria-label="Digest de la semaine précédente"
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-small)] text-heading outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading disabled:pointer-events-none disabled:opacity-30"
-        >
-          <IconChevronLeft className="size-5" />
-        </button>
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <div className="flex min-w-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => onChangePeriod(activePeriodIndex + 1)}
+            disabled={!hasOlder}
+            aria-label="Digest de la semaine précédente"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-small)] text-heading outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading disabled:pointer-events-none disabled:opacity-30"
+          >
+            <IconChevronLeft className="size-5" />
+          </button>
 
-        <button
-          ref={periodTriggerRef}
-          type="button"
-          onClick={() => setPeriodsOpen(true)}
-          disabled={periods.length === 0}
-          aria-haspopup="dialog"
-          className="flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center rounded-[var(--radius-small)] px-1 outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading disabled:pointer-events-none"
-        >
-          <span className="max-w-full truncate text-[13px] font-bold leading-5 text-heading">
-            {activePeriod ? activePeriod.weekLabel : "Aucun briefing"}
-          </span>
-          {activePeriod ? (
-            <span className="max-w-full truncate text-xs leading-4 text-muted">
-              {activePeriod.rangeLabel}
+          <button
+            ref={periodTriggerRef}
+            type="button"
+            onClick={() => setPeriodsOpen(true)}
+            disabled={periods.length === 0}
+            aria-haspopup="dialog"
+            className="flex min-h-11 min-w-0 flex-col items-start justify-center rounded-[var(--radius-small)] px-1.5 text-left outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading disabled:pointer-events-none"
+          >
+            <span className="max-w-full truncate text-[13px] font-bold leading-5 text-heading">
+              {activePeriod ? activePeriod.weekLabel : "Aucun briefing"}
             </span>
-          ) : null}
-        </button>
+            {activePeriod ? (
+              <span className="max-w-full truncate text-xs leading-4 text-muted">
+                {activePeriod.rangeLabel}
+              </span>
+            ) : null}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => onChangePeriod(activePeriodIndex - 1)}
-          disabled={!hasNewer}
-          aria-label="Digest de la semaine suivante"
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-small)] text-heading outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading disabled:pointer-events-none disabled:opacity-30"
-        >
-          <IconChevronRight className="size-5" />
-        </button>
+          <button
+            type="button"
+            onClick={() => onChangePeriod(activePeriodIndex - 1)}
+            disabled={!hasNewer}
+            aria-label="Digest de la semaine suivante"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-small)] text-heading outline-none transition-colors hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading disabled:pointer-events-none disabled:opacity-30"
+          >
+            <IconChevronRight className="size-5" />
+          </button>
+        </div>
 
-        <button
-          ref={filtersTriggerRef}
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          aria-haspopup="dialog"
-          aria-label={
-            activeFilterCount > 0 ? `Filtres (${activeFilterCount} actifs)` : "Filtres"
+        <Button
+          variant="brass"
+          size="sm"
+          onClick={onGenerateDigest}
+          className="h-11 min-h-[44px] shrink-0 px-3 text-xs font-bold"
+          leftIcon={
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
           }
-          className={cn(
-            "relative inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-small)] border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
-            activeFilterCount > 0
-              ? "border-primary bg-primary/[0.08] text-primary"
-              : "border-border text-heading hover:bg-surface-hover/60",
-          )}
         >
-          <IconFilter className="size-5" />
-          {activeFilterCount > 0 ? (
-            <span
-              aria-hidden="true"
-              className="absolute -right-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-fg"
-            >
-              {activeFilterCount}
-            </span>
-          ) : null}
-        </button>
+          Générer
+        </Button>
       </div>
 
       <div className="veille-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">

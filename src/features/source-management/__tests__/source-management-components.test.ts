@@ -129,10 +129,10 @@ describe("Corpus import — wired to the Lot 4 wizard, gated on canManage", () =
 })
 
 describe("Desktop/Mobile shells stay two distinct components (ADR-0006 adaptive)", () => {
-  it("VeilleHeaderActions mounts only the desktop launcher variant", () => {
-    const source = read("src/components/veille/VeilleHeaderActions.tsx")
-    expect(source).toContain('<SourceManagementLauncher variant="desktop"')
-    expect(source).not.toContain('variant="mobile"')
+  it("VeilleActualitesDesktop mounts the desktop dialog, not the mobile drawer", () => {
+    const source = read("src/components/veille/VeilleActualitesDesktop.tsx")
+    expect(source).toContain("<SourceManagementDialogDesktop")
+    expect(source).not.toContain("<SourceManagementDrawerMobile")
   })
 
   it("VeilleActualitesMobile mounts only the mobile launcher variant, inside MobilePageHeader.actions", () => {

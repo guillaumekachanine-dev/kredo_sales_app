@@ -32,6 +32,7 @@ import { VeilleConvergencesRail } from "./VeilleConvergencesRail"
 import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
 import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
+import { SourceManagementDialogDesktop } from "@/features/source-management/components/SourceManagementDialogDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
 import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
 import { extractMatchedCompany, resolveOriginalSourceName } from "./veille-utils"
@@ -458,15 +459,7 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
     return groupedAccounts.find((group) => group.company.id === selectedAccountId) ?? groupedAccounts[0]
   }, [groupedAccounts, selectedAccountId])
 
-  if (groupedAccounts.length === 0 || !activeGroup) {
-    return (
-      <EmptyState title="Aucun compte suivi">
-        <p>Les comptes suivis et leurs signaux apparaîtront ici après activation de la veille compte.</p>
-      </EmptyState>
-    )
-  }
-
-  const { company, signals: accountSignals } = activeGroup
+  const accountSignals = activeGroup?.signals ?? []
 
   const twoMonthsAgo = useMemo(() => {
     const d = new Date()
@@ -490,6 +483,16 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
     const latestDate = filteredAccountSignals[0].publishedAt ?? filteredAccountSignals[0].detectedAt
     return formatDateNumeric(latestDate)
   }, [filteredAccountSignals])
+
+  if (groupedAccounts.length === 0 || !activeGroup) {
+    return (
+      <EmptyState title="Aucun compte suivi">
+        <p>Les comptes suivis et leurs signaux apparaîtront ici après activation de la veille compte.</p>
+      </EmptyState>
+    )
+  }
+
+  const { company } = activeGroup
 
   return (
     <div className="grid grid-cols-[280px_minmax(0,1fr)] border border-border bg-surface min-h-[38rem]">
@@ -1412,6 +1415,7 @@ export function VeilleActualitesDesktop({
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false)
   const [advancedSearch, setAdvancedSearch] = useState<AdvancedSearchState>(DEFAULT_ADVANCED_SEARCH)
   const [resolvedCollectionArticleIds, setResolvedCollectionArticleIds] = useState<string[] | null>(null)
+  const [sourceManagementOpen, setSourceManagementOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [qualifyOpen, setQualifyOpen] = useState(false)
   const [opportunityOpen, setOpportunityOpen] = useState(false)
@@ -1565,7 +1569,11 @@ export function VeilleActualitesDesktop({
 
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
-      <VeilleLocalNavigation active={section} onChange={setSection} />
+      <VeilleLocalNavigation
+        active={section}
+        onChange={setSection}
+        onOpenSourceManagement={() => setSourceManagementOpen(true)}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="z-20 flex min-h-[76px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6 py-4">
@@ -1658,6 +1666,11 @@ export function VeilleActualitesDesktop({
           onManageLists={() => setManageListsOpen(true)}
         />
       ) : null}
+      <SourceManagementDialogDesktop
+        open={sourceManagementOpen}
+        onOpenChange={setSourceManagementOpen}
+        snapshot={sourceManagementSnapshot}
+      />
     </div>
   )
 }
