@@ -7,7 +7,6 @@ import {
   parseCadre,
   parseMarketThesis,
   parseMessageSectoriel,
-  parseTrajectoires,
   provenanceLabel,
 } from "./home-model"
 import { CorpusConfidenceBanner } from "../shared/CorpusConfidenceBanner"
@@ -30,7 +29,6 @@ export function SegmentHomeDashboardMobile({
   const messageSectoriel = parseMessageSectoriel(rawPlaybook)
   const theses = parseMarketThesis(rawPlaybook)
   const cadre = parseCadre(rawPlaybook)
-  const trajectoires = parseTrajectoires(rawPlaybook)
 
   const resolveSource = (srcId: number) => workspace.sourceResolution?.[srcId] ?? null
 
@@ -55,13 +53,17 @@ export function SegmentHomeDashboardMobile({
         </p>
         <h2 className="mt-1 font-heading text-xl font-bold text-heading">{workspace.segment.name}</h2>
         <p className="mt-1 text-xs text-body">
-          {workspace.segment.status} · {workspace.portfolio.accounts.length} compte
+          {formatStudyDate(workspace.knowledge.studySnapshotDate)} — {workspace.portfolio.accounts.length} compte
+          {workspace.portfolio.accounts.length > 1 ? "s" : ""} qualifié
           {workspace.portfolio.accounts.length > 1 ? "s" : ""}
         </p>
-        <p className="mt-2 text-[10px] text-muted">
-          {formatStudyDate(workspace.knowledge.studySnapshotDate)}
-        </p>
       </section>
+
+      <AnalyticalCoverageMapMobile
+        coverage={workspace.coverage}
+        onNavigate={onNavigate}
+        onOpenPlaybook={onOpenPlaybook}
+      />
 
       {/* Workspace sans contenu */}
       {workspace.state === "empty" ? (
@@ -176,40 +178,6 @@ export function SegmentHomeDashboardMobile({
         </section>
       ) : null}
 
-      {/* Trajectoires Mobile */}
-      {trajectoires.length > 0 ? (
-        <section className="mx-4 rounded-lg border border-border bg-surface/30 p-4 space-y-3">
-          <h2 className="text-[10px] font-bold uppercase tracking-wider text-muted border-b border-border pb-2">
-            Trajectoires & Budgets 18–36 Mois ({trajectoires.length})
-          </h2>
-          <div className="divide-y divide-border">
-            {trajectoires.map((traj, idx) => (
-              <div key={idx} className="py-2.5 first:pt-0 last:pb-0 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {traj.familleBudget ? (
-                    <span className="rounded bg-surface-raised px-1.5 py-0.5 text-[9px] font-bold text-heading">
-                      {traj.familleBudget}
-                    </span>
-                  ) : null}
-                  {traj.offreKredo ? (
-                    <span className="rounded border border-border px-1.5 py-0.5 text-[9px] font-semibold text-muted">
-                      Offre : {traj.offreKredo}
-                    </span>
-                  ) : null}
-                  <SourceChipList srcIds={traj.srcIds} resolve={resolveSource} />
-                </div>
-                <p className="text-xs text-body leading-relaxed">{traj.trajectoire}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <AnalyticalCoverageMapMobile
-        coverage={workspace.coverage}
-        onNavigate={onNavigate}
-        onOpenPlaybook={onOpenPlaybook}
-      />
     </div>
   )
 }

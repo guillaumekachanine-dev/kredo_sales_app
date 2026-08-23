@@ -7,7 +7,6 @@ import {
   parseCadre,
   parseMarketThesis,
   parseMessageSectoriel,
-  parseTrajectoires,
   provenanceLabel,
 } from "./home-model"
 import { CorpusConfidenceBanner } from "../shared/CorpusConfidenceBanner"
@@ -30,7 +29,6 @@ export function SegmentHomeDashboardDesktop({
   const messageSectoriel = parseMessageSectoriel(rawPlaybook)
   const theses = parseMarketThesis(rawPlaybook)
   const cadre = parseCadre(rawPlaybook)
-  const trajectoires = parseTrajectoires(rawPlaybook)
 
   const resolveSource = (srcId: number) => workspace.sourceResolution?.[srcId] ?? null
 
@@ -51,33 +49,28 @@ export function SegmentHomeDashboardDesktop({
         className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm"
         aria-labelledby="segment-home-desktop-title"
       >
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
-              {workspace.segment.macro?.name ?? "Macro-secteur non renseigné"}
-            </p>
-            <h2 id="segment-home-desktop-title" className="mt-1 font-heading text-2xl font-bold text-edito-navy">
-              {workspace.segment.name}
-            </h2>
-            <p className="mt-1 text-xs text-edito-body">
-              Statut : <span className="font-semibold text-edito-navy">{workspace.segment.status}</span> ·{" "}
-              <span className="font-semibold text-edito-navy">{workspace.portfolio.accounts.length}</span> compte
-              {workspace.portfolio.accounts.length > 1 ? "s" : ""} qualifié
-              {workspace.portfolio.accounts.length > 1 ? "s" : ""}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs font-semibold text-edito-muted">
-              {formatStudyDate(workspace.knowledge.studySnapshotDate)}
-            </p>
-            {workspace.knowledge.sourceRunId ? (
-              <p className="mt-1 font-mono text-[10px] text-edito-muted">
-                Run ID : {workspace.knowledge.sourceRunId.slice(0, 8)}
-              </p>
-            ) : null}
-          </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+            {workspace.segment.macro?.name ?? "Macro-secteur non renseigné"}
+          </p>
+          <h2 id="segment-home-desktop-title" className="mt-1 font-heading text-2xl font-bold text-edito-navy">
+            {workspace.segment.name}
+          </h2>
+          <p className="mt-1 text-xs text-edito-body">
+            {formatStudyDate(workspace.knowledge.studySnapshotDate)} —{" "}
+            <span className="font-semibold text-edito-navy">{workspace.portfolio.accounts.length}</span> compte
+            {workspace.portfolio.accounts.length > 1 ? "s" : ""} qualifié
+            {workspace.portfolio.accounts.length > 1 ? "s" : ""}
+          </p>
         </div>
       </section>
+
+      {/* Cartographie de Couverture Analytique */}
+      <AnalyticalCoverageMapDesktop
+        coverage={workspace.coverage}
+        onNavigate={onNavigate}
+        onOpenPlaybook={onOpenPlaybook}
+      />
 
       {/* Workspace sans contenu */}
       {workspace.state === "empty" ? (
@@ -229,50 +222,6 @@ export function SegmentHomeDashboardDesktop({
         </section>
       ) : null}
 
-      {/* Trajectoires & Budgets à 18–36 Mois */}
-      {trajectoires.length > 0 ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-6 shadow-sm">
-          <div className="border-b border-edito-border pb-3">
-            <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-edito-navy">
-              Trajectoires & Budgets à 18–36 Mois
-            </h2>
-            <p className="mt-0.5 text-xs text-edito-muted">
-              Poches budgétaires sectorielles et opportunités d&rsquo;offres Kredo associées
-            </p>
-          </div>
-          <div className="mt-4 divide-y divide-edito-border">
-            {trajectoires.map((traj, idx) => (
-              <div key={idx} className="py-3.5 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {traj.familleBudget ? (
-                      <span className="rounded bg-edito-chip px-2 py-0.5 text-[10px] font-bold text-edito-petrol uppercase tracking-wider">
-                        {traj.familleBudget}
-                      </span>
-                    ) : null}
-                    {traj.offreKredo ? (
-                      <span className="rounded border border-edito-petrol/30 bg-edito-petrol/10 px-2 py-0.5 text-[10px] font-bold text-edito-petrol-deep uppercase tracking-wider">
-                        Offre Kredo : {traj.offreKredo}
-                      </span>
-                    ) : null}
-                    <SourceChipList srcIds={traj.srcIds} resolve={resolveSource} />
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-edito-navy font-medium">
-                    {traj.trajectoire}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* Cartographie de Couverture Analytique */}
-      <AnalyticalCoverageMapDesktop
-        coverage={workspace.coverage}
-        onNavigate={onNavigate}
-        onOpenPlaybook={onOpenPlaybook}
-      />
     </div>
   )
 }
