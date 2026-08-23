@@ -113,10 +113,11 @@ mission **paramétrée** plutôt qu'un texte figé, parce qu'elle dépend d'un b
 
 ### `Prepare Callback`
 
-Une entrée dans `SCENARIO_TITLE_OVERRIDES` : `battle_situation_pitch: 'Pitch de situation'`.
-Sans elle, le document s'intitulerait « Pitch oral — Battle Situation Pitch » (humanisation
-mécanique du slug). Aucune autre modification : `resultType`, `phase`, `contentJson`,
-`sourceRefs`, `qaFlags` sont ceux du pipeline existant.
+**Inchangé après finalisation.** L'override `battle_situation_pitch: 'Pitch de situation'`
+initialement ajouté a été supprimé à la suite de la review indépendante. Le titre du résultat
+suit l'humanisation mécanique du slug ; le titre du document reste dérivé du libellé canonique
+du registre côté KREDO. `resultType`, `phase`, `contentJson`, `sourceRefs` et `qaFlags` restent
+ceux du pipeline existant.
 
 ---
 
@@ -239,7 +240,7 @@ une clé présente mais vide non plus.
 | `BS.4` provenance | COMPTE et SECTEUR correctement étiquetés, consigne de formulation hypothétique présente (4) |
 | `BS.5` `battleSituation` absent | Mission générique, pas de bloc vide, pas de crash, pas d'`undefined` (4) |
 | `BS.6` `offerRef` absent | Rejet par `Validate Brief` avec message explicite (1) |
-| `BS.7` pipeline | Chaîne Parse → Quality → Prepare Callback : `succeeded`, `resultType = commercial_pitch`, `phase = 5`, titre « Pitch oral — Pitch de situation » (4) |
+| `BS.7` pipeline | Chaîne Parse → Quality → Prepare Callback : `succeeded`, `resultType = commercial_pitch`, `phase = 5`, titre callback issu de l'humanisation canonique (4) |
 | `BS.8` régression | `signal_outreach`, `cold_call_pitch`, `sector_persona_pitch` : mission d'origine conservée, aucun bloc Battle injecté (6) |
 
 Le test de couverture existant `L11.A` (« chaque scénario du registre résout vers une mission
@@ -300,16 +301,9 @@ Deux nettoyages facultatifs, dans des fichiers A2 :
 
 ## 11. Écarts au cadrage
 
-Un seul, assumé et signalé :
-
-**`Prepare Callback` a reçu une ligne** (le libellé de titre), alors que la commande §8 dit
-« ne rien modifier dans le callback ». Cette phrase vise le pipeline de dérivation
-`result_type` / `document_type`, qui n'a effectivement pas bougé. `SCENARIO_TITLE_OVERRIDES`
-est une table de libellés déjà prévue pour ce cas, et sans entrée le document arriverait dans
-la bibliothèque sous le titre « Pitch oral — Battle Situation Pitch ». Si cela est jugé hors
-périmètre, la suppression de cette ligne est sans conséquence fonctionnelle.
-
-Pour le reste, la commande a été suivie à la lettre, seed compris.
+**Aucun après finalisation.** La review indépendante a conclu `GO IMPORT VPS` et demandé la
+suppression de l'override de titre ajouté dans `Prepare Callback`. Cet override a été retiré sans
+modifier le pipeline `result_type` / `document_type`, ni aucun autre comportement du workflow.
 
 ---
 
@@ -340,3 +334,8 @@ Aucune action Supabase, aucun credential, aucun changement d'activation.
 ## 14. Commit
 
 `feat(dynamic-playbooks): lot 4 battle pitch generation` — les 7 fichiers du §2 + ce handoff.
+
+Finalisation issue de la review indépendante :
+`fix(dynamic-playbooks): finalize lot 4 battle pitch` — override de titre supprimé, tests et
+documentation associés ajustés. Verdict : **GO IMPORT VPS**. L'import VPS reste requis et n'a
+pas été effectué.

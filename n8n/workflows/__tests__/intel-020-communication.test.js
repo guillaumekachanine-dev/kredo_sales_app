@@ -973,7 +973,7 @@ async function main() {
     check("BS.7 pipeline — status succeeded", r.callbackBody.status === "succeeded", JSON.stringify(r.qa.qaFlags));
     check("BS.7 pipeline — resultType commercial_pitch (dérivé, non recréé)", r.callbackBody.resultType === "commercial_pitch");
     check("BS.7 pipeline — phase 5 inchangée", r.callbackBody.phase === 5);
-    check("BS.7 pipeline — titre documentaire lisible", r.callbackBody.title === "Pitch oral — Pitch de situation", r.callbackBody.title);
+    check("BS.7 pipeline — titre callback issu de l'humanisation canonique", r.callbackBody.title === "Pitch oral — Battle Situation Pitch", r.callbackBody.title);
   }
 
   // ── BS.8 Régression — les scénarios existants sont inchangés ──────────────

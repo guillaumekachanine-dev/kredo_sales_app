@@ -268,7 +268,7 @@ Une clé optionnelle non choisie est **absente**, jamais à `undefined`.
 |---|---|
 | `Validate Brief` | `battle_situation_pitch` ajouté à `SCENARIOS_REQUIRING_OFFER` → un brief sans `offerRef` est rejeté avant tout appel LLM. |
 | `Assemble Prompt` | Nouvelle fonction `buildBattleSituationMission(situation, ctx)` + aiguillage du `missionText`. Le manifeste inliné passe de 92 à 93 entrées (régénéré, jamais édité à la main). |
-| `Prepare Callback` | Un libellé de titre (`SCENARIO_TITLE_OVERRIDES`) : « Pitch de situation » au lieu de l'humanisation mécanique du slug. |
+| `Prepare Callback` | Inchangé : le titre du résultat suit l'humanisation mécanique du slug ; le titre du document est dérivé du libellé canonique du registre côté KREDO. |
 
 Aucun nœud ajouté ou supprimé (16 nœuds), aucune connexion modifiée, aucune migration.
 
