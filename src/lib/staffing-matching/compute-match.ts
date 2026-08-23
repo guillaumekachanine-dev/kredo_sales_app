@@ -4,7 +4,15 @@ import { computeRateFit } from "./components/compute-c3-rate"
 import { computeAvailabilityFit } from "./components/compute-c4-availability"
 import { computeLocationFit } from "./components/compute-c5-location"
 import { computePracticeFit } from "./components/compute-c6-practice"
-import { BASE_WEIGHTS, MATCH_VERSION, MIN_APPLICABLE_WEIGHT_RATIO, SKILLS_GATE_FLOOR, tierFromScore } from "./match-config"
+import {
+  BASE_WEIGHTS,
+  MATCH_DISPLAY_MAX_PROFILES,
+  MATCH_DISPLAY_MIN_SCORE,
+  MATCH_VERSION,
+  MIN_APPLICABLE_WEIGHT_RATIO,
+  SKILLS_GATE_FLOOR,
+  tierFromScore,
+} from "./match-config"
 import type { MatchingContext, MatchingNeed, MatchingProfile, MatchingResult, ProfileMatchResult, RawMatchComponent } from "./types"
 
 // Moteur déterministe pur (aucun LLM, aucun embedding). Pour chaque profil du
@@ -24,6 +32,18 @@ export function computeMatching(ctx: MatchingContext): MatchingResult {
     dataCutoffAt: ctx.dataCutoffAt,
     poolSize: ctx.profiles.length,
     rankedProfiles,
+  }
+}
+
+// Projection d'affichage uniquement. Le moteur et le cache match_scores gardent
+// le pool complet pour l'explicabilité ; l'UI ne reçoit que les 5 meilleurs
+// profils à 60/100 ou plus.
+export function selectMatchingResultForDisplay(result: MatchingResult): MatchingResult {
+  return {
+    ...result,
+    rankedProfiles: result.rankedProfiles
+      .filter((profile) => profile.overallScore >= MATCH_DISPLAY_MIN_SCORE)
+      .slice(0, MATCH_DISPLAY_MAX_PROFILES),
   }
 }
 
