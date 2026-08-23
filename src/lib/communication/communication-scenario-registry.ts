@@ -282,6 +282,27 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     requiresOffer: false,
     requiredScopes: ["account"],
   },
+  // Dynamic Playbooks Lot 4 — pitch construit depuis une Battle Card. La
+  // situation (interlocuteur, enjeu, angle, timing, objection, ROI) est portée
+  // par `brief.context.battleSituation` ; l'offre reste canonique (`offerRef`)
+  // et obligatoire via OFFER_REQUIRED_SCENARIOS. `eligibleRecipientTypes`
+  // couvre les 4 types commerciaux : une Battle Card peut viser un client actif
+  // ou un ancien client, pas seulement un prospect.
+  {
+    value: "battle_situation_pitch",
+    label: "Pitch de situation (Battle Card)",
+    description:
+      "Pitch oral construit à partir d'une situation commerciale : interlocuteur, enjeu, angle, timing, objection et offre.",
+    activityCategory: "commerce_prospection",
+    useCase: "pitch",
+    defaultOutputKind: "spoken_pitch",
+    defaultChannel: "spoken_pitch_30s",
+    defaultObjective: "get_meeting",
+    allowedObjectives: ["get_meeting", "present_offer", "accelerate_decision"],
+    eligibleRecipientTypes: ["prospect", "partner", "active_client", "former_client"],
+    requiresOffer: true,
+    requiredScopes: ["account"],
+  },
 
   // ─── Commerce · Périmètre actif ────────────────────────────────────────
   {
@@ -1084,7 +1105,7 @@ const CATEGORY_CONSTRAINTS: Record<CanonicalCommunicationActivityCategory, Categ
   internal_staff: { eligibleRecipientTypes: ["internal"], allowedLengths: ALL_LENGTHS, requiredFacts: ["internal_request_context"], optionalFacts: ["linked_entity", "resource_need"], requiredReferences: [], optionalReferences: ["companyRef", "opportunityRef", "missionRef", "collaboratorRef", "offerRef"], requiredContextSources: [], optionalContextSources: ["account_profile", "opportunity_context", "mission_context", "source_document"], suggestedTones: ["business_roi", "assertive", "prudent"], excludedTones: ["disappointed_confused"], eligibleInternalRoles: ["manager_n1", "recruitment", "practice_lead", "presales", "finance_admin", "delivery_management", "executive_management", "peer_business_manager", "other"], eligibleInternalRelationships: ["hierarchical_up", "peer", "cross_functional", "executive_committee", "team"], eligibleInternalDomains: ["commercial", "staffing", "recruitment", "delivery", "practice", "presales", "finance", "operations", "strategy"] },
 }
 
-const OFFER_REQUIRED_SCENARIOS = new Set<CommunicationScenario>(["offer_introduction", "cross_sell", "cold_call_pitch", "meeting_prep_cross_sell", "proposal_defense_pitch", "renewal_pitch"])
+const OFFER_REQUIRED_SCENARIOS = new Set<CommunicationScenario>(["offer_introduction", "cross_sell", "cold_call_pitch", "meeting_prep_cross_sell", "proposal_defense_pitch", "renewal_pitch", "battle_situation_pitch"])
 const MULTI_OUTPUT_KINDS: Partial<Record<CommunicationScenario, CommunicationOutputKind[]>> = {
   collaborator_recognition: ["written_message", "spoken_pitch"], assignment_change_notice: ["written_message", "spoken_pitch"], difficult_announcement_talk_track: ["spoken_pitch", "structured_briefing"], intercontract_exit_pitch: ["spoken_pitch", "structured_briefing"], quarterly_business_review: ["spoken_pitch", "structured_briefing"], resource_arbitrage_pitch: ["spoken_pitch", "structured_briefing"], internal_committee_pitch: ["spoken_pitch", "structured_briefing"], investment_arbitrage_argument: ["spoken_pitch", "structured_briefing"], project_status_pitch: ["spoken_pitch", "structured_briefing"], direction_summary_pitch: ["spoken_pitch", "structured_briefing"],
 }

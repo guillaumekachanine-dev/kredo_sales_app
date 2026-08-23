@@ -12,7 +12,7 @@ import {
 } from "./communication-scenario-registry"
 
 const TARGET_SCENARIO_IDS = [
-  "signal_outreach", "follow_up_no_reply", "offer_introduction", "appointment_confirmation", "first_contact_after_nomination", "linkedin_to_email_bridge", "event_invitation", "sector_rebound", "discovery_meeting_request", "cold_call_pitch", "signal_based_pitch", "why_us_now_pitch", "first_objection_bad_timing", "meeting_prep_discovery", "sector_persona_pitch",
+  "signal_outreach", "follow_up_no_reply", "offer_introduction", "appointment_confirmation", "first_contact_after_nomination", "linkedin_to_email_bridge", "event_invitation", "sector_rebound", "discovery_meeting_request", "cold_call_pitch", "signal_based_pitch", "why_us_now_pitch", "first_objection_bad_timing", "meeting_prep_discovery", "sector_persona_pitch", "battle_situation_pitch",
   "post_meeting", "profile_submission_to_client", "cross_sell", "reactivation", "proposal_follow_up", "invoice_follow_up", "mission_renewal", "consultant_replacement_notice", "client_tension_apology", "delivery_delay_notice", "price_objection_pitch", "meeting_prep_cross_sell", "proposal_defense_pitch", "renewal_pitch", "client_crisis_talk_track", "delay_talk_track", "tense_copil_briefing",
   "project_alert_escalation", "steering_committee_minutes", "risk_communication", "milestone_validation_request", "escalation_briefing", "risk_meeting_briefing",
   "candidate_interview_invitation", "candidate_follow_up", "candidate_offer", "candidate_rejection", "candidate_availability_check", "candidate_post_interview_feedback", "candidate_cv_completion_request", "dormant_talent_pool_reactivation", "candidate_closing_pitch", "mobility_salary_pitch", "candidate_to_client_pitch", "opportunity_to_candidate_pitch", "atypical_candidate_defense", "recruiter_briefing_pre_interview",
@@ -23,7 +23,7 @@ const TARGET_SCENARIO_IDS = [
 describe("communication scenario registry", () => {
   it("matches the complete documented catalogue exactly once", () => {
     const ids = SCENARIO_REGISTRY.map((scenario) => scenario.id)
-    expect(ids).toHaveLength(92)
+    expect(ids).toHaveLength(93)
     expect(new Set(ids).size).toBe(ids.length)
     expect([...ids].sort()).toEqual([...TARGET_SCENARIO_IDS].sort())
   })

@@ -49,6 +49,18 @@
     "requiresOffer": false
   },
   {
+    "id": "battle_situation_pitch",
+    "category": "commerce_prospection",
+    "label": "Pitch de situation (Battle Card)",
+    "description": "Pitch oral construit à partir d'une situation commerciale : interlocuteur, enjeu, angle, timing, objection et offre.",
+    "allowedOutputKinds": [
+      "spoken_pitch"
+    ],
+    "defaultOutputKind": "spoken_pitch",
+    "defaultObjective": "get_meeting",
+    "requiresOffer": true
+  },
+  {
     "id": "candidate_availability_check",
     "category": "recrutement",
     "label": "Demande de disponibilité / préavis",

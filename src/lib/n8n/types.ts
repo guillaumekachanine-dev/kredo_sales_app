@@ -1,5 +1,6 @@
 import type { AccountClassificationProposal } from "@/features/account-lifecycle/domain/account-classification"
 import type { CorpusBudget } from "@/features/intelligence-missions/domain/mission-contracts"
+import type { BattleSituation } from "@/features/business-intelligence/playbooks/battle-situation-contract"
 
 // ─── Catalogue des IDs de workflows n8n ──────────────────────────────────────
 // Correspond aux IDs stables de la cartographie KREDO_Cartographie_Workflows_n8n.html
@@ -681,6 +682,11 @@ export type CommunicationScenario =
   | "cross_functional_alignment_briefing"
   | "staffing_review_briefing"
   | "presales_kickoff_briefing"
+  // Dynamic Playbooks Lot 4 — pitch oral construit depuis une Battle Card
+  // (situation commerciale explicitement choisie : interlocuteur, enjeu,
+  // angle, timing, objection, ROI, offre). Le bloc structuré correspondant
+  // vit dans context.battleSituation.
+  | "battle_situation_pitch"
 
 export type CommunicationLength = "ultra_short" | "concise" | "standard" | "detailed"
 
@@ -930,6 +936,17 @@ export interface CommunicationBrief {
       itemCount: number
       refs?: Array<{ contentType: "veille_article" | "intelligence_document"; contentId: string }>
     }
+    // Dynamic Playbooks Lot 4 — situation commerciale explicitement choisie par
+    // l'utilisateur dans une Battle Card, pour le scénario
+    // `battle_situation_pitch`. Le type est importé (jamais dupliqué) depuis
+    // `battle-situation-contract.ts`, module de types purs sans export runtime :
+    // aucune dépendance de `src/lib/**` vers `src/features/**` n'est créée.
+    //
+    // Ce bloc ne duplique aucun champ déjà canonique du brief (companyId,
+    // contactId, offerRef, preferredCollectionIds, tone/length/language).
+    // Facultatif : le scénario reste sélectionnable dans le Composer générique,
+    // où il est absent — le workflow n8n dégrade alors sur la mission générique.
+    battleSituation?: BattleSituation
   }
 }
 

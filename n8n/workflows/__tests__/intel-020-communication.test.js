@@ -841,6 +841,164 @@ async function main() {
     check("Cas 2 (#83338) — Assemble Prompt produit le schema written_message et le ton pedagogical", ap2[0].json.outputSchema && ap2[0].json.outputSchema.properties.body && /Pédagogue/.test(ap2[0].json.userPrompt));
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // Dynamic Playbooks Lot 4 — scénario battle_situation_pitch
+  // ══════════════════════════════════════════════════════════════════════
+
+  const BATTLE_CTX = {
+    company: { name: "Robertet", sector: "Compositions & ingrédients B2B", description: "Prospect prioritaire" },
+    offer: { id: "offer-audit-data", name: "Audit data", practice: "Data & AI", short_description: "Audit de la chaîne data", typical_deliverables: ["Cartographie"], use_cases: ["Gouvernance"] },
+  };
+
+  function battleBrief(situation, patch) {
+    const p = patch || {};
+    return {
+      what: { channel: "spoken_pitch_30s", scenario: "battle_situation_pitch", outputKind: "spoken_pitch", length: "concise", activityCategory: "commerce_prospection", scope: "account" },
+      who: {
+        sender: { role: "business_manager", name: "Guillaume" },
+        recipient: Object.assign({ type: "prospect", persona: "other", relation: "cold" }, p.recipient),
+        objective: "get_meeting",
+      },
+      how: { tone: "direct", formality: "vous", language: "fr" },
+      context: Object.assign({ offerRef: "offer-audit-data" }, situation ? { battleSituation: situation } : {}, p.context),
+    };
+  }
+
+  const FULL_SITUATION = {
+    competitiveEntryId: "cme-1",
+    segmentId: "seg-1",
+    issue: { id: "issue-1", label: "Modernisation du SI de production", source: "account" },
+    angle: { label: "Industrialisation gouvernée", source: "sector" },
+    timing: { id: "reg-1", label: "Publication du CA semestriel", source: "sector" },
+    objection: { label: "Nous avons déjà un intégrateur", response: "Nous intervenons en complément, sur la gouvernance." },
+    roiArgument: "Réduction du temps passé à fiabiliser les données avant analyse",
+    personaLabel: "DSI",
+  };
+
+  async function runBattleAssemble(brief) {
+    const vb = await runValidateBrief({ body: { input: brief } });
+    const registry = { "Validate Brief": vb, "Hydrate Context": BATTLE_CTX, "Resolve Sender": { full_name: "Guillaume K." } };
+    const { result } = await runCodeNode("Assemble Prompt", { registry, env: {}, rpcMock: baseRpcMock() });
+    return { vb, out: result[0].json };
+  }
+
+  // ── BS.1 Nominal — situation complète + offerRef ───────────────────────────
+  {
+    const { vb, out } = await runBattleAssemble(battleBrief(FULL_SITUATION, { recipient: { contactId: "contact-1", displayName: "Marie Legrand", persona: "dsi" } }));
+    const up = out.userPrompt;
+    check("BS.1 nominal — Validate Brief accepte et exige l'offre", vb.requiresOffer === true && vb.offerRef === "offer-audit-data");
+    check("BS.1 nominal — bloc SITUATION COMMERCIALE CHOISIE présent", /SITUATION COMMERCIALE CHOISIE/.test(up));
+    check("BS.1 nominal — préséance de la situation énoncée", /PRIME sur le contexte générique/.test(up));
+    check("BS.1 nominal — interlocuteur CRM restitué", /Interlocuteur : Marie Legrand/.test(up), up.match(/Interlocuteur[^\n]*/));
+    check("BS.1 nominal — enjeu restitué", /Enjeu retenu : Modernisation du SI de production/.test(up));
+    check("BS.1 nominal — angle restitué", /Angle d'entrée retenu : Industrialisation gouvernée/.test(up));
+    check("BS.1 nominal — timing restitué", /Élément de timing : Publication du CA semestriel/.test(up));
+    check("BS.1 nominal — objection ET réponse préparée restituées", /Objection anticipée : Nous avons déjà un intégrateur/.test(up) && /Réponse préparée : Nous intervenons en complément/.test(up));
+    check("BS.1 nominal — argument ROI repris qualitativement, sans extrapolation", /Argument de valeur \(ROI\) : Réduction du temps passé/.test(up) && /N'en dérive aucun chiffre/.test(up));
+    check("BS.1 nominal — offre sélectionnée nommée et ancrée", /Offre KREDO retenue : Audit data/.test(up) && /OFFRE CATALOGUE \(ancrage obligatoire\)/.test(up));
+    check("BS.1 nominal — finalité pitch oral (contrat spoken_pitch)", out.outputSchema && out.outputSchema.properties && out.outputSchema.properties.hook);
+    check("BS.1 nominal — interdictions d'invention rappelées", /N'invente aucun fait, aucun chiffre/.test(up) && /N'engage aucun tarif/.test(up));
+    check("BS.1 nominal — aucun 'undefined' dans le prompt", !/undefined/.test(up));
+  }
+
+  // ── BS.2 Optionnels absents — timing, objection et ROI ─────────────────────
+  {
+    const minimal = {
+      competitiveEntryId: "cme-1", segmentId: "seg-1",
+      issue: { id: "issue-1", label: "Traçabilité des matières premières", source: "account" },
+      angle: { label: "Fiabiliser la donnée fournisseur", source: "account" },
+    };
+    const { out } = await runBattleAssemble(battleBrief(minimal, { recipient: { contactId: "contact-1", displayName: "Marie Legrand" } }));
+    const up = out.userPrompt;
+    check("BS.2 optionnels absents — enjeu et angle toujours présents", /Enjeu retenu : Traçabilité/.test(up) && /Angle d'entrée retenu : Fiabiliser/.test(up));
+    check("BS.2 optionnels absents — aucune ligne de timing", !/Élément de timing/.test(up));
+    check("BS.2 optionnels absents — aucune ligne d'objection", !/Objection anticipée/.test(up));
+    check("BS.2 optionnels absents — aucune ligne de ROI", !/Argument de valeur/.test(up));
+    check("BS.2 optionnels absents — aucun 'undefined' injecté", !/undefined/.test(up));
+    check("BS.2 optionnels absents — pas d'urgence fabriquée", /ne fabrique aucune urgence/.test(up));
+  }
+
+  // ── BS.3 Fallback persona — personaLabel sans contactId ────────────────────
+  {
+    const { vb, out } = await runBattleAssemble(battleBrief(FULL_SITUATION));
+    const up = out.userPrompt;
+    check("BS.3 fallback persona — aucun contactId résolu", vb.contactId === null);
+    check("BS.3 fallback persona — la fonction est l'interlocuteur", /Interlocuteur : DSI \(aucun contact identifié/.test(up), up.match(/Interlocuteur[^\n]*/));
+    check("BS.3 fallback persona — interdiction explicite de fabriquer un nom", /Ne fabrique aucun nom de personne/.test(up));
+    check("BS.3 fallback persona — le persona n'est pas présenté comme un fait compte", /Interlocuteur : DSI[\s\S]{0,200}SECTEUR/.test(up));
+    check("BS.3 fallback persona — aucun 'undefined'", !/undefined/.test(up));
+  }
+
+  // ── BS.4 Provenance — un élément sectoriel reste une hypothèse ─────────────
+  {
+    const { out } = await runBattleAssemble(battleBrief(FULL_SITUATION, { recipient: { contactId: "contact-1", displayName: "Marie Legrand" } }));
+    const up = out.userPrompt;
+    check("BS.4 provenance — l'enjeu COMPTE est marqué comme rattaché au compte", /Enjeu retenu[\s\S]{0,120}COMPTE — information rattachée à ce compte/.test(up));
+    check("BS.4 provenance — l'angle SECTEUR est marqué comme connaissance sectorielle", /Angle d'entrée retenu[\s\S]{0,140}SECTEUR — connaissance sectorielle applicable au segment/.test(up));
+    check("BS.4 provenance — interdiction de transformer le sectoriel en fait compte", /jamais un fait établi sur ce compte/.test(up));
+    check("BS.4 provenance — consigne de formulation hypothétique pour [SECTEUR]", /Une information marquée \[SECTEUR\] est une hypothèse/.test(up));
+  }
+
+  // ── BS.5 battleSituation absent — dégradation générique, aucun crash ───────
+  {
+    const { out } = await runBattleAssemble(battleBrief(null, { recipient: { contactId: "contact-1", displayName: "Marie Legrand" } }));
+    const up = out.userPrompt;
+    check("BS.5 sans battleSituation — mission générique non vide", /MISSION\s*:\s*Pitch oral construit à partir d'une situation commerciale/.test(up), up.slice(0, 200));
+    check("BS.5 sans battleSituation — aucun bloc SITUATION vide", !/SITUATION COMMERCIALE CHOISIE/.test(up));
+    check("BS.5 sans battleSituation — aucun 'undefined' dans le prompt", !/undefined/.test(up));
+    check("BS.5 sans battleSituation — le contrat spoken_pitch reste standard", Boolean(out.outputSchema && out.outputSchema.properties && out.outputSchema.properties.hook));
+  }
+
+  // ── BS.6 offerRef absent — rejet attendu ──────────────────────────────────
+  {
+    let threw = false;
+    let message = "";
+    try {
+      const brief = battleBrief(FULL_SITUATION);
+      brief.context = { battleSituation: FULL_SITUATION };
+      await runValidateBrief({ body: { input: brief } });
+    } catch (e) {
+      threw = true;
+      message = e.message;
+    }
+    check("BS.6 sans offerRef — brief rejeté par Validate Brief", threw && /offerRef est requis/.test(message), message);
+  }
+
+  // ── BS.7 Pipeline résultat — commercial_pitch sans code nouveau ────────────
+  {
+    const brief = battleBrief(FULL_SITUATION, { recipient: { contactId: "contact-1", displayName: "Marie Legrand" } });
+    const up = makeUpstream({ brief, scenario: "battle_situation_pitch", outputKind: "spoken_pitch", activityCategory: "commerce_prospection", resolvedContext: BATTLE_CTX });
+    const out = { kind: "spoken_pitch", hook: "Chez Robertet, la modernisation du SI de production est engagée.", problem_recognition: "Fiabiliser la donnée avant analyse reste coûteux en temps.", offer_link: "Notre Audit data cartographie la chaîne et sa gouvernance.", ask: "Vingt minutes la semaine prochaine ?", alt_close: "Si un intégrateur est déjà en place, nous intervenons en complément sur la gouvernance.", word_count: 60, tone_notes: ["direct"], source_refs: ["Audit data", "Robertet"], warnings: [] };
+    const r = await runQaChain(up, out);
+    check("BS.7 pipeline — status succeeded", r.callbackBody.status === "succeeded", JSON.stringify(r.qa.qaFlags));
+    check("BS.7 pipeline — resultType commercial_pitch (dérivé, non recréé)", r.callbackBody.resultType === "commercial_pitch");
+    check("BS.7 pipeline — phase 5 inchangée", r.callbackBody.phase === 5);
+    check("BS.7 pipeline — titre documentaire lisible", r.callbackBody.title === "Pitch oral — Pitch de situation", r.callbackBody.title);
+  }
+
+  // ── BS.8 Régression — les scénarios existants sont inchangés ──────────────
+  {
+    const cases = [
+      { id: "signal_outreach", outputKind: "written_message", channel: "email", marker: /MISSION\s*:\s*Prise de contact initiale/ },
+      { id: "cold_call_pitch", outputKind: "spoken_pitch", channel: "spoken_pitch_30s", marker: /MISSION\s*:\s*Script de pitch oral pour un appel de prospection/ },
+      { id: "sector_persona_pitch", outputKind: "structured_briefing", channel: "meeting_briefing", marker: /MISSION\s*:\s*Brief de RDV orienté/ },
+    ];
+    for (const c of cases) {
+      const brief = {
+        what: { channel: c.channel, scenario: c.id, outputKind: c.outputKind, length: "standard", activityCategory: "commerce_prospection", scope: "account" },
+        who: { sender: { role: "business_manager", name: "Guillaume" }, recipient: { type: "prospect", persona: "other", relation: "cold", displayName: "Marie Legrand" }, objective: "get_meeting" },
+        how: { tone: "direct", formality: "vous", language: "fr" },
+        context: c.id === "cold_call_pitch" ? { offerRef: "offer-audit-data" } : {},
+      };
+      const vb = await runValidateBrief({ body: { input: brief } });
+      const registry = { "Validate Brief": vb, "Hydrate Context": BATTLE_CTX, "Resolve Sender": { full_name: "Guillaume K." } };
+      const { result } = await runCodeNode("Assemble Prompt", { registry, env: {}, rpcMock: baseRpcMock() });
+      const up = result[0].json.userPrompt;
+      check(`BS.8 régression ${c.id} — mission d'origine conservée`, c.marker.test(up), up.slice(0, 200));
+      check(`BS.8 régression ${c.id} — aucun bloc Battle injecté`, !/SITUATION COMMERCIALE CHOISIE/.test(up));
+    }
+  }
+
   console.log(`\n${passed} passed, ${failures} failed`);
   if (failures > 0) process.exit(1);
 }

@@ -230,3 +230,97 @@ The function "helpers.httpRequestWithAuthentication" is not supported in the Cod
 - **Absence de migration Supabase** : Aucune table, colonne ou RPC n'a été ajoutée ou modifiée.
 - **Absence de changement de contrat UI** : La structure des objets JSON produits et consommés par KREDO reste strictement inchangée.
 
+
+## 15. Battle situation pitch (Dynamic Playbooks — Lot 4)
+
+### Scénario
+
+`battle_situation_pitch` — 93e scénario du registre, catégorie `commerce_prospection`,
+`outputKind = spoken_pitch`, canal `spoken_pitch_30s`, `requiresOffer = true`,
+`requiredScopes = ["account"]`. Il est produit par le configurateur Situation de la
+Battle Card (`/intelligence` → Playbooks → Battle Cards → Situation), et reste
+sélectionnable dans le Composer générique.
+
+### Contrat attendu
+
+Le brief est un `CommunicationBrief` canonique. La situation commerciale choisie par
+l'utilisateur voyage dans un bloc **additif**, `brief.context.battleSituation` :
+
+```jsonc
+{
+  "competitiveEntryId": "…",       // competitive_map_entries.id
+  "segmentId": "…",                // sector_intelligence.id (segment)
+  "issue":  { "id": "…", "label": "…", "source": "account" | "sector" },  // requis
+  "angle":  { "label": "…", "source": "account" | "sector" },             // requis
+  "timing": { "label": "…", "source": "account" | "sector" },             // optionnel
+  "objection": { "label": "…", "response": "…" },                          // optionnel
+  "roiArgument": "…",                                                      // optionnel
+  "personaLabel": "DSI"            // UNIQUEMENT si aucun contact CRM
+}
+```
+
+`offerRef` reste **canonique** (`brief.context.offerRef`), jamais dupliqué dans le bloc.
+Une clé optionnelle non choisie est **absente**, jamais à `undefined`.
+
+### Modifications internes du workflow
+
+| Nœud | Modification |
+|---|---|
+| `Validate Brief` | `battle_situation_pitch` ajouté à `SCENARIOS_REQUIRING_OFFER` → un brief sans `offerRef` est rejeté avant tout appel LLM. |
+| `Assemble Prompt` | Nouvelle fonction `buildBattleSituationMission(situation, ctx)` + aiguillage du `missionText`. Le manifeste inliné passe de 92 à 93 entrées (régénéré, jamais édité à la main). |
+| `Prepare Callback` | Un libellé de titre (`SCENARIO_TITLE_OVERRIDES`) : « Pitch de situation » au lieu de l'humanisation mécanique du slug. |
+
+Aucun nœud ajouté ou supprimé (16 nœuds), aucune connexion modifiée, aucune migration.
+
+### Rendu dans le prompt
+
+La situation est rendue **en tête du `userPrompt`**, dans le bloc mission — donc avant le
+CONTEXTE hydraté — sous un intitulé « SITUATION COMMERCIALE CHOISIE » qui énonce
+explicitement qu'elle **prime** sur le contexte générique. Chaque élément porte sa
+provenance :
+
+- `source: "account"` → `[COMPTE — information rattachée à ce compte]`
+- `source: "sector"` → `[SECTEUR — connaissance sectorielle applicable au segment, jamais un fait établi sur ce compte]`
+
+Une consigne dédiée impose de formuler tout élément `[SECTEUR]` comme une hypothèse.
+`roiArgument` est repris **qualitativement**, avec interdiction explicite d'en dériver
+un chiffre, un pourcentage ou un délai.
+
+### Dégradation défensive
+
+Si `brief.context.battleSituation` est absent (scénario choisi depuis le Composer
+générique), `Assemble Prompt` retombe sur la mission template dérivée du manifeste :
+aucun crash, aucun `undefined` injecté, aucun bloc SITUATION vide. Le reste du workflow
+est strictement inchangé.
+
+### Pipeline résultat
+
+Aucun code nouveau : `outputKind = spoken_pitch` + `activityCategory = commerce_prospection`
+→ `Prepare Callback` émet `resultType = commercial_pitch`, `phase = 5`, que
+`communication-result-documents.ts` projette en `document_type = commercial_pitch`.
+
+### Tests
+
+`node n8n/workflows/__tests__/intel-020-communication.test.js` → **161 assertions, 0 échec**
+(118 avant ce lot, **+43**). Bloc `BS.1` → `BS.8` : nominal, optionnels absents, fallback
+persona, provenance sectorielle, `battleSituation` absent, `offerRef` absent (rejet),
+chaîne complète jusqu'à `commercial_pitch`, et non-régression de `signal_outreach` /
+`cold_call_pitch` / `sector_persona_pitch`.
+
+`node scripts/generate-communication-manifest.mjs --check` → 93 scénarios synchronisés.
+
+### Procédure d'import / validation VPS
+
+**Import requis : OUI.** Le JSON committé est inerte tant qu'il n'est pas réimporté.
+
+1. Réimporter `n8n/workflows/intel-020-communication.json` sur le VPS (import manuel,
+   Guillaume — cf. AGENTS.md).
+2. Vérifier dans l'éditeur que `Assemble Prompt` contient bien
+   `SITUATION COMMERCIALE CHOISIE` et que le bloc `MANIFEST:START/END` porte 93 entrées.
+3. Déclencher un pitch depuis une Battle Card (compte avec offre suggérée) et vérifier
+   sur le canvas : `Validate Brief` OK, `Assemble Prompt` → `userPrompt` contenant la
+   situation, callback `resultType = commercial_pitch`.
+4. Contrôle négatif : déclencher le même scénario depuis le Composer générique **sans**
+   situation → doit produire un pitch générique sans erreur.
+5. `npm run n8n:status` pour mesurer la dérive résiduelle repo ↔ VPS (⚠️ il compare des
+   compteurs de nœuds : il ne verra pas ce lot, qui ne change que du code interne).
