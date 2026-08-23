@@ -1,7 +1,7 @@
 "use client"
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dynamic Playbooks · Lot 3 — configurateur « Situation »
+// Dynamic Playbooks · Lot 3 / L4.1 — configurateur « Situation »
 //
 // Point de montage livré par le Lot 1 : `BattleWorkspace` rend ce composant, et
 // lui seul. La signature `BattleSituationViewProps` est le contrat gelé — ce lot
@@ -15,14 +15,13 @@
 //     4 facultatives (timing, objection, ROI, contexte Knowledge) ;
 //   • construire un `CommunicationBrief` canonique (`battle-situation-brief.ts`).
 //
-// Ce que ce lot NE fait PAS : aucun appel réseau vers n8n, aucun LLM, aucune
-// écriture Supabase. Le CTA « Générer le pitch » valide et construit le brief,
-// puis s'arrête sur un état `prêt`. Le Lot 4 (A3) branchera
-// `POST /api/n8n/trigger` sur ce même brief.
+// Le CTA « Générer le pitch » transmet ce brief au workflow INTEL-020 et suit
+// son run. La restitution complète du résultat reste hors périmètre (Lot 5).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { createClient } from "@/lib/supabase/client"
 import { getSuggestedOffers } from "@/components/accounts-contacts/intelligence/get-suggested-offers"
 import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
@@ -243,6 +242,13 @@ type ConfiguratorProps = {
   onBackToRevision: () => void
 }
 
+type GenerationStatus = "idle" | "submitting" | "running" | "succeeded" | "failed"
+
+type GeneratedPitch = {
+  resultId: string
+  contentJson: unknown
+}
+
 function BattleSituationConfigurator({
   actor,
   knowledge,
@@ -252,7 +258,11 @@ function BattleSituationConfigurator({
   onBackToRevision,
 }: ConfiguratorProps) {
   const [rawDraft, setRawDraft] = useState<BattleSituationDraft>(createEmptyBattleSituationDraft)
-  const [isReady, setIsReady] = useState(false)
+  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle")
+  const [generationError, setGenerationError] = useState<string | null>(null)
+  const [generatedPitch, setGeneratedPitch] = useState<GeneratedPitch | null>(null)
+  const [runId, setRunId] = useState<string | null>(null)
+  const triggerInFlightRef = useRef(false)
 
   const options: BattleSituationOptions = useMemo(() => {
     const personas = buildPersonaOptions(context.contacts, knowledge.playbook)
@@ -277,7 +287,12 @@ function BattleSituationConfigurator({
   const summary = useMemo(() => buildSituationSummary(draft), [draft])
 
   const update = useCallback((patch: Partial<BattleSituationDraft>) => {
-    setIsReady(false)
+    if (!triggerInFlightRef.current) {
+      setGenerationStatus("idle")
+      setGenerationError(null)
+      setGeneratedPitch(null)
+      setRunId(null)
+    }
     setRawDraft((current) => ({ ...current, ...patch }))
   }, [])
 
@@ -296,8 +311,80 @@ function BattleSituationConfigurator({
     })
   }, [actor, draft, knowledge.segmentId, senderName, validation.isComplete])
 
+  useRunTracker({
+    runId,
+    resultType: "commercial_pitch",
+    onRunning: () => setGenerationStatus("running"),
+    onSucceeded: (result) => {
+      triggerInFlightRef.current = false
+      if (!result) {
+        setGenerationStatus("failed")
+        setGenerationError("Le pitch a été généré, mais son résultat est indisponible.")
+        return
+      }
+      setGeneratedPitch({ resultId: result.id, contentJson: result.contentJson })
+      setGenerationError(null)
+      setGenerationStatus("succeeded")
+    },
+    onFailed: (message) => {
+      triggerInFlightRef.current = false
+      setGenerationStatus("failed")
+      setGenerationError(message)
+    },
+    onTimeout: () => {
+      triggerInFlightRef.current = false
+      setGenerationStatus("failed")
+      setGenerationError(
+        "Le traitement dépasse le délai habituel. Il continue côté serveur : réessaie dans quelques minutes.",
+      )
+    },
+  })
+
   const isBlocked = unsatisfiable.length > 0
-  const canGenerate = validation.isComplete && !isBlocked && context.status === "ready"
+  const isGenerationInFlight = generationStatus === "submitting" || generationStatus === "running"
+  const canGenerate =
+    validation.isComplete &&
+    !isBlocked &&
+    context.status === "ready" &&
+    briefResult?.ok === true &&
+    !isGenerationInFlight &&
+    generationStatus !== "succeeded"
+
+  const handleGenerate = useCallback(async () => {
+    if (triggerInFlightRef.current || !canGenerate || !briefResult?.ok) return
+
+    triggerInFlightRef.current = true
+    setGenerationStatus("submitting")
+    setGenerationError(null)
+    setGeneratedPitch(null)
+    setRunId(null)
+
+    try {
+      const response = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-020-communication",
+          entityType: "company",
+          entityId: actor.companyId,
+          companyId: actor.companyId,
+          input: briefResult.brief,
+        }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as { runId?: string; error?: string }
+
+      if (!response.ok || !payload.runId) {
+        throw new Error(payload.error ?? "Le déclenchement du pitch a échoué.")
+      }
+
+      setRunId(payload.runId)
+      setGenerationStatus("running")
+    } catch (error) {
+      triggerInFlightRef.current = false
+      setGenerationStatus("failed")
+      setGenerationError(error instanceof Error ? error.message : "Le déclenchement du pitch a échoué.")
+    }
+  }, [actor.companyId, briefResult, canGenerate])
 
   if (context.status === "loading") {
     return (
@@ -593,14 +680,24 @@ function BattleSituationConfigurator({
           </p>
         ) : null}
 
-        {isReady && briefResult?.ok ? (
+        {isGenerationInFlight ? (
           <div className="rounded-lg border border-brand-brass/30 bg-brand-brass/[0.06] p-3">
-            <p className="text-[11px] font-semibold text-brand-brass">Situation prête</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-white/60">
-              Le brief de génération est construit ({briefResult.brief.what.outputKind} ·{" "}
-              {briefResult.brief.what.channel} · {briefResult.brief.what.length}). Le déclenchement du
-              pitch arrive au Lot 4 : aucun appel n’est émis à ce stade.
+            <p className="text-[11px] font-semibold text-brand-brass" aria-live="polite">
+              Génération en cours…
             </p>
+          </div>
+        ) : null}
+
+        {generationStatus === "succeeded" && generatedPitch ? (
+          <div className="rounded-lg border border-emerald-500/25 bg-emerald-950/20 p-3" aria-live="polite">
+            <p className="text-[11px] font-semibold text-emerald-200">Pitch généré</p>
+          </div>
+        ) : null}
+
+        {generationStatus === "failed" && generationError ? (
+          <div className="rounded-lg border border-rose-500/25 bg-rose-950/20 p-3" role="alert">
+            <p className="text-[11px] font-semibold text-rose-200">Échec de la génération</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-rose-200/70">{generationError}</p>
           </div>
         ) : null}
 
@@ -620,7 +717,7 @@ function BattleSituationConfigurator({
           <button
             type="button"
             disabled={!canGenerate}
-            onClick={() => setIsReady(true)}
+            onClick={() => void handleGenerate()}
             className={cn(
               "rounded-lg px-4 text-xs font-bold outline-none transition-colors",
               "focus-visible:ring-2 focus-visible:ring-brand-brass motion-reduce:transition-none",
@@ -630,7 +727,13 @@ function BattleSituationConfigurator({
                 : "cursor-not-allowed bg-white/5 text-white/30",
             )}
           >
-            Générer le pitch
+            {isGenerationInFlight
+              ? "Génération en cours…"
+              : generationStatus === "failed"
+                ? "Relancer la génération"
+                : generationStatus === "succeeded"
+                  ? "Pitch généré"
+                  : "Générer le pitch"}
           </button>
         </div>
       </div>
