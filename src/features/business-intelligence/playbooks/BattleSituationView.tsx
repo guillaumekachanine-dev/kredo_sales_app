@@ -48,6 +48,7 @@ import {
 } from "./battle-situation-options"
 import { buildBattleSituationBrief } from "./battle-situation-brief"
 import { BattleSituationKnowledgePicker } from "./BattleSituationKnowledgePicker"
+import { BattlePitchResult } from "./BattlePitchResult"
 import {
   EVIDENCE_LEVEL_LABELS,
   EvidenceHint,
@@ -385,6 +386,25 @@ function BattleSituationConfigurator({
       setGenerationError(error instanceof Error ? error.message : "Le déclenchement du pitch a échoué.")
     }
   }, [actor.companyId, briefResult, canGenerate])
+
+  if (generationStatus === "succeeded" && generatedPitch) {
+    return (
+      <BattlePitchResult
+        actor={actor}
+        resultId={generatedPitch.resultId}
+        contentJson={generatedPitch.contentJson}
+        draft={draft}
+        onReset={() => {
+          setGenerationStatus("idle")
+          setGeneratedPitch(null)
+          setRunId(null)
+          triggerInFlightRef.current = false
+        }}
+        onBackToRevision={onBackToRevision}
+        isMobile={isMobile}
+      />
+    )
+  }
 
   if (context.status === "loading") {
     return (
