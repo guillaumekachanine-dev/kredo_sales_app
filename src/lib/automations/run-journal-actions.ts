@@ -6,8 +6,10 @@ import { createClient } from "@/lib/supabase/server"
 import {
   getLatestRunJournalRows,
   getRunJournalRowsByIds,
+  getVeilleSimulatorBaseline,
   type RunJournalRow,
 } from "./automations-data"
+import type { VeilleSimulatorBaseline } from "./veille-cadence"
 import { JOURNAL_LIMIT } from "./run-journal-merge"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,3 +128,10 @@ export async function getRunRetryPayload(runId: string): Promise<RunRetryPayload
     },
   }
 }
+
+export async function fetchVeilleSimulatorBaseline(): Promise<VeilleSimulatorBaseline | null> {
+  const { user } = await requireUser()
+  if (!user) return null
+  return getVeilleSimulatorBaseline()
+}
+

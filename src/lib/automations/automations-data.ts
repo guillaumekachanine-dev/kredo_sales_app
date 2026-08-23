@@ -617,23 +617,7 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
       : null
 
   // ── Simulateur de cadence de veille ────────────────────────────────────────
-  const veilleStats = costStatsByRunType.get("account_watch_refresh")
-  const avgCostPerRun = veilleStats?.avg_cost_all_time ?? null
-  const cadenceCounts = new Map<string, number>()
-  for (const row of watchSettingsRes.data ?? []) {
-    const cadence = row.cadence ?? "weekly"
-    cadenceCounts.set(cadence, (cadenceCounts.get(cadence) ?? 0) + 1)
-  }
-  const cadenceBreakdown = [...cadenceCounts.entries()].map(([cadence, count]) => ({ cadence, count }))
-  const watchedAccountsCount = watchSettingsRes.data?.length ?? 0
-
-  const currentMonthlyCostEstimate =
-    avgCostPerRun !== null
-      ? cadenceBreakdown.reduce((sum, c) => {
-          const runsPerMonth = VEILLE_RUNS_PER_MONTH[c.cadence as VeilleCadence] ?? VEILLE_RUNS_PER_MONTH.weekly
-          return sum + c.count * runsPerMonth * avgCostPerRun
-        }, 0)
-      : null
+  const veilleSimulator = await getVeilleSimulatorBaseline()
 
   return {
     kpis: {
@@ -655,14 +639,49 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
       },
       timeline,
       byOwner,
-      veilleSimulator: {
-        avgCostPerRun,
-        watchedAccountsCount,
-        cadenceBreakdown,
-        currentMonthlyCostEstimate,
-      },
+      veilleSimulator,
     },
     dataErrors,
     fetchedAt: now.toISOString(),
+  }
+}
+
+export async function getVeilleSimulatorBaseline(): Promise<VeilleSimulatorBaseline> {
+  const supabase = await createClient()
+
+  const [costStatsRes, watchSettingsRes] = await Promise.all([
+    supabase
+      .from("v_workflow_cost_stats")
+      .select("avg_cost_all_time")
+      .eq("run_type", "account_watch_refresh")
+      .maybeSingle(),
+    supabase
+      .from("account_watch_settings")
+      .select("cadence")
+      .eq("is_enabled", true),
+  ])
+
+  const avgCostPerRun = costStatsRes.data?.avg_cost_all_time ?? null
+  const cadenceCounts = new Map<string, number>()
+  for (const row of watchSettingsRes.data ?? []) {
+    const cadence = row.cadence ?? "weekly"
+    cadenceCounts.set(cadence, (cadenceCounts.get(cadence) ?? 0) + 1)
+  }
+  const cadenceBreakdown = [...cadenceCounts.entries()].map(([cadence, count]) => ({ cadence, count }))
+  const watchedAccountsCount = watchSettingsRes.data?.length ?? 0
+
+  const currentMonthlyCostEstimate =
+    avgCostPerRun !== null
+      ? cadenceBreakdown.reduce((sum, c) => {
+          const runsPerMonth = VEILLE_RUNS_PER_MONTH[c.cadence as VeilleCadence] ?? VEILLE_RUNS_PER_MONTH.weekly
+          return sum + c.count * runsPerMonth * avgCostPerRun
+        }, 0)
+      : null
+
+  return {
+    avgCostPerRun,
+    watchedAccountsCount,
+    cadenceBreakdown,
+    currentMonthlyCostEstimate,
   }
 }

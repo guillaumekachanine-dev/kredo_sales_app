@@ -61,6 +61,16 @@ const CompanyDocumentsModal = dynamic(
   () => import("@/components/accounts-contacts/intelligence/CompanyDocumentsModal").then((module) => module.CompanyDocumentsModal),
   { ssr: false },
 )
+const FinancialModelingMobileFlow = dynamic(
+  () => import("@/features/financial-modeling/components/mobile/FinancialModelingMobileFlow").then((module) => module.FinancialModelingMobileFlow),
+  { ssr: false },
+)
+const VeilleSimulatorModal = dynamic(
+  () => import("@/components/automations/VeilleSimulatorModal").then((module) => module.VeilleSimulatorModal),
+  { ssr: false },
+)
+import { fetchVeilleSimulatorBaseline } from "@/lib/automations/run-journal-actions"
+import type { VeilleSimulatorBaseline } from "@/lib/automations/veille-cadence"
 
 type AccountPanelAction = "analysis" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
@@ -211,7 +221,7 @@ const ACCOUNT_EDITORIAL_ACTIONS = [
   { id: "plan", label: "Planifier", iconSrc: cockpitActionIcons.tasks },
   { id: "analyze", label: "Analyser", iconSrc: cockpitActionIcons.recommendations },
   { id: "watch", label: "S’informer", iconSrc: cockpitActionIcons.alert },
-  { id: "simulate", label: "Simuler", iconSrc: cockpitActionIcons.financeReport, href: "/finance" },
+  { id: "simulate", label: "Simuler", iconSrc: cockpitActionIcons.financeReport },
   { id: "recruit", label: "Recruter", iconSrc: cockpitActionIcons.recruitmentReport, href: "/recruitment" },
 ] as const
 
@@ -319,11 +329,83 @@ function AccountInformationDialog({
   )
 }
 
-function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onDocumentsClick, onClose }: {
+function AccountSimulationDialog({
+  open,
+  onOpenChange,
+  companyName,
+  onSelectFinancialModeling,
+  onSelectAutomationSimulator,
+  onReturnToCockpit,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  companyName: string
+  onSelectFinancialModeling: () => void
+  onSelectAutomationSimulator: () => void
+  onReturnToCockpit: () => void
+}) {
+  return (
+    <AppDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Simuler · ${companyName}`}
+      className="w-[min(calc(100vw-1rem),36rem)]"
+    >
+      <CockpitReturnButton onClick={onReturnToCockpit} className="mb-2" />
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={onSelectFinancialModeling}
+          className="group flex min-h-[64px] w-full items-center justify-between rounded-[var(--radius-medium)] border border-primary/25 bg-primary/5 p-4 text-left transition-all hover:bg-primary/10 hover:border-primary/40 active:scale-[0.98]"
+        >
+          <div className="min-w-0 flex-1 pr-2">
+            <span className="block text-sm font-bold text-heading">Modélisation financière AT</span>
+            <span className="mt-1 block text-xs leading-relaxed text-muted">Simuler la rentabilité d’une assistance technique.</span>
+          </div>
+          <svg className="size-4 shrink-0 text-primary transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          onClick={onSelectAutomationSimulator}
+          className="group flex min-h-[64px] w-full items-center justify-between rounded-[var(--radius-medium)] border border-brand-brass/35 bg-brand-brass/5 p-4 text-left transition-all hover:bg-brand-brass/10 hover:border-brand-brass/50 active:scale-[0.98]"
+        >
+          <div className="min-w-0 flex-1 pr-2">
+            <span className="block text-sm font-bold text-heading">Coûts des automatisations</span>
+            <span className="mt-1 block text-xs leading-relaxed text-muted">Simuler l’impact du volume et de la cadence des automatisations.</span>
+          </div>
+          <svg className="size-4 shrink-0 text-brand-brass transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+          </svg>
+        </button>
+
+        <div
+          aria-disabled="true"
+          className="flex min-h-[64px] w-full items-center justify-between rounded-[var(--radius-medium)] border border-border bg-canvas/60 p-4 text-left opacity-60 cursor-not-allowed"
+        >
+          <div className="min-w-0 flex-1 pr-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-bold text-heading">Scénarios financiers de revenus</span>
+              <span className="rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted">
+                Bientôt disponible
+              </span>
+            </div>
+            <span className="mt-1 block text-xs leading-relaxed text-muted">Simuler l’impact du gain ou de la perte d’opportunités sur les revenus.</span>
+          </div>
+        </div>
+      </div>
+    </AppDialog>
+  )
+}
+
+function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onDocumentsClick, onSimulateClick, onClose }: {
   onWriteEmailClick: () => void
   onPlanClick: () => void
   onInformClick: () => void
   onDocumentsClick: () => void
+  onSimulateClick: () => void
   onClose: () => void
 }) {
   const { panelData } = useIntelligenceContext()
@@ -362,6 +444,7 @@ function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, o
                 if (action.id === "plan") onPlanClick()
                 if (action.id === "analyze") setActiveAction("analysis")
                 if (action.id === "watch") onInformClick()
+                if (action.id === "simulate") onSimulateClick()
               }}
             />
           ))}
@@ -615,6 +698,10 @@ export function IntelligenceFAB() {
   const [watchSettingsOpen, setWatchSettingsOpen] = useState(false)
   const [signalsOpen, setSignalsOpen] = useState(false)
   const [documentsModalOpen, setDocumentsModalOpen] = useState(false)
+  const [simulationPickerOpen, setSimulationPickerOpen] = useState(false)
+  const [financialModelingOpen, setFinancialModelingOpen] = useState(false)
+  const [automationSimulatorOpen, setAutomationSimulatorOpen] = useState(false)
+  const [automationBaseline, setAutomationBaseline] = useState<VeilleSimulatorBaseline | null>(null)
 
   useEffect(() => {
     function handleReturnToCockpit() {
@@ -624,6 +711,9 @@ export function IntelligenceFAB() {
       setWatchSettingsOpen(false)
       setSignalsOpen(false)
       setDocumentsModalOpen(false)
+      setSimulationPickerOpen(false)
+      setFinancialModelingOpen(false)
+      setAutomationSimulatorOpen(false)
       setInformationView("menu")
       setCockpitReturnKey((current) => current + 1)
       setIsOpen(true)
@@ -722,6 +812,11 @@ export function IntelligenceFAB() {
   function openDocumentsFromCockpit() {
     setIsOpen(false)
     window.setTimeout(() => setDocumentsModalOpen(true), 280)
+  }
+
+  function openSimulationPickerFromCockpit() {
+    setIsOpen(false)
+    window.setTimeout(() => setSimulationPickerOpen(true), 280)
   }
 
   function selectEventType(eventType: string) {
@@ -833,6 +928,7 @@ export function IntelligenceFAB() {
             onPlanClick={openPlannerFromCockpit}
             onInformClick={openInformationFromCockpit}
             onDocumentsClick={openDocumentsFromCockpit}
+            onSimulateClick={openSimulationPickerFromCockpit}
             onClose={() => setIsOpen(false)}
           />
         ) : isGenericEntityMode ? (
@@ -941,6 +1037,46 @@ export function IntelligenceFAB() {
             onReturnToCockpit={() => {
               setDocumentsModalOpen(false)
               returnToAccountCockpit()
+            }}
+          />
+          <AccountSimulationDialog
+            open={simulationPickerOpen}
+            onOpenChange={setSimulationPickerOpen}
+            companyName={panelData.company.name}
+            onSelectFinancialModeling={() => {
+              setSimulationPickerOpen(false)
+              window.setTimeout(() => setFinancialModelingOpen(true), 200)
+            }}
+            onSelectAutomationSimulator={() => {
+              setSimulationPickerOpen(false)
+              if (!automationBaseline) {
+                void fetchVeilleSimulatorBaseline().then((res) => {
+                  if (res) setAutomationBaseline(res)
+                })
+              }
+              window.setTimeout(() => setAutomationSimulatorOpen(true), 200)
+            }}
+            onReturnToCockpit={() => {
+              setSimulationPickerOpen(false)
+              returnToAccountCockpit()
+            }}
+          />
+          <FinancialModelingMobileFlow
+            open={financialModelingOpen}
+            onOpenChange={setFinancialModelingOpen}
+            initialPreset={{
+              companyId: panelData.company.id,
+              companyName: panelData.company.name,
+            }}
+          />
+          <VeilleSimulatorModal
+            open={automationSimulatorOpen}
+            onClose={() => setAutomationSimulatorOpen(false)}
+            baseline={automationBaseline ?? {
+              avgCostPerRun: null,
+              watchedAccountsCount: 0,
+              cadenceBreakdown: [],
+              currentMonthlyCostEstimate: null,
             }}
           />
         </>
