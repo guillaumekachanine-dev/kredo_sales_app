@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
@@ -13,16 +13,23 @@ import {
   parsePlaybookEntryPoints,
   parsePlaybookRoiArguments,
 } from "../models/sector-playbook-parser"
-import { BattleCardsSection } from "./BattleCardsSection"
+import { BattleWorkspace } from "./BattleWorkspace"
+import {
+  BATTLE_FLIP_HALF_MS,
+  BATTLE_FLIP_REDUCED_HALF_MS,
+  PLAYBOOK_MAIN_SURFACE,
+  PLAYBOOK_SIDE_SURFACE,
+  flipDirectionFor,
+  flipOpacity,
+  flipRotation,
+  isBattleModeAvailable,
+  type FlipDirection,
+  type FlipPhase,
+  type PlaybookMode,
+  type SectorPlaybookSectionKey,
+} from "./battle-workspace-model"
 
-export type SectorPlaybookSectionKey =
-  | "enjeux"
-  | "personas"
-  | "angles"
-  | "objections"
-  | "roi"
-  | "pourquoi_maintenant"
-  | "battle_cards"
+export type { SectorPlaybookSectionKey }
 
 type PlaybookSectionDef = {
   key: SectorPlaybookSectionKey
@@ -30,6 +37,14 @@ type PlaybookSectionDef = {
   hasData: boolean
   countBadge?: number | null
 }
+
+type FlipState = {
+  phase: FlipPhase
+  direction: FlipDirection
+  animated: boolean
+}
+
+const IDLE_FLIP: FlipState = { phase: "idle", direction: "forward", animated: true }
 
 export type SectorPlaybooksModalProps = {
   open: boolean
@@ -86,7 +101,8 @@ export function SectorPlaybooksModal({
   // Échéances réglementaires et fenêtres
   const deadlines = knowledge.regulatory
 
-  // Sections conditionnelles
+  // Sections conditionnelles — « Battle Cards » n'en fait plus partie depuis le
+  // Lot 1 : c'est un mode à part entière, atteint par l'action d'entrée dédiée.
   const sections: PlaybookSectionDef[] = useMemo(() => {
     const list: PlaybookSectionDef[] = [
       {
@@ -125,16 +141,10 @@ export function SectorPlaybooksModal({
         hasData: deadlines.length > 0 || knowledge.events.length > 0,
         countBadge: (deadlines.length + knowledge.events.length) || null,
       },
-      {
-        key: "battle_cards",
-        label: "Battle Cards",
-        hasData: competitiveActors.length > 0,
-        countBadge: competitiveActors.length || null,
-      },
     ]
 
     return list.filter((s) => s.hasData)
-  }, [knowledge, personas, entryPoints, objections, roiArguments, deadlines, competitiveActors])
+  }, [knowledge, personas, entryPoints, objections, roiArguments, deadlines])
 
   const [activeSectionKey, setActiveSectionKey] = useState<SectorPlaybookSectionKey>(
     () => initialSectionKey ?? sections[0]?.key ?? "enjeux",
@@ -142,8 +152,65 @@ export function SectorPlaybooksModal({
 
   const activeSection = sections.find((s) => s.key === activeSectionKey) ?? sections[0]
 
+  // ── Mode Playbook ↔ Battle (Lot 1) ────────────────────────────────────────
+  // État local minimal. Aucun store, aucun provider, aucun état de segment
+  // parallèle : le segment reste celui du workspace, reçu en props.
+  const [mode, setMode] = useState<PlaybookMode>("playbook")
+  const [flip, setFlip] = useState<FlipState>(IDLE_FLIP)
+  // Le compte sélectionné vit ICI, au-dessus du retournement : il survit donc
+  // à un aller-retour Playbook ↔ Battle (critère de sortie du Lot 1).
+  const [selectedActorId, setSelectedActorId] = useState<string | null>(null)
+
+  const flipTimer = useRef<number | null>(null)
+  const flipFrames = useRef<number[]>([])
+  const flipLayerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => () => {
+    if (flipTimer.current !== null) window.clearTimeout(flipTimer.current)
+    for (const frame of flipFrames.current) window.cancelAnimationFrame(frame)
+  }, [])
+
+  const battleAvailable = isBattleModeAvailable(competitiveActors)
+
+  /**
+   * Retournement : sortie → échange du contenu au point médian → entrée.
+   * Une seule face est montée à la fois (`key={mode}` remonte l'arbre), donc
+   * jamais deux arbres lourds simultanés. `prefers-reduced-motion` est lu au
+   * moment du clic — pas d'état dérivé, pas de risque d'hydratation.
+   */
+  function switchMode(target: PlaybookMode) {
+    if (target === mode || flip.phase !== "idle") return
+
+    const direction = flipDirectionFor(target)
+    const animated = !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const halfMs = animated ? BATTLE_FLIP_HALF_MS : BATTLE_FLIP_REDUCED_HALF_MS
+
+    setFlip({ phase: "leaving", direction, animated })
+    flipTimer.current = window.setTimeout(() => {
+      setMode(target)
+      setFlip({ phase: "entering", direction, animated })
+      const outer = window.requestAnimationFrame(() => {
+        const inner = window.requestAnimationFrame(() => {
+          setFlip({ phase: "idle", direction, animated })
+          // Le bouton qui a déclenché le retournement vit dans la face démontée
+          // au point médian : sans cela, le focus clavier retomberait sur
+          // <body> et sortirait du piège à focus du shell. On le repose sur la
+          // nouvelle face (tabIndex -1), d'où Tab reprend au premier élément.
+          flipLayerRef.current?.focus({ preventScroll: true })
+        })
+        flipFrames.current.push(inner)
+      })
+      flipFrames.current.push(outer)
+    }, halfMs)
+  }
+
+  const isFlipping = flip.phase !== "idle"
+  const flipHalfMs = flip.animated ? BATTLE_FLIP_HALF_MS : BATTLE_FLIP_REDUCED_HALF_MS
+  const flipEasing = flip.phase === "leaving" ? "ease-in" : "ease-out"
+  const flipRotationDeg = flip.animated ? flipRotation(flip.phase, flip.direction) : 0
+
   const leftPane = (
-    <div className="flex h-full flex-col bg-[#0d0f28] text-white">
+    <div className={cn("flex h-full flex-col text-white", PLAYBOOK_SIDE_SURFACE)}>
       <div className="border-b border-white/10 p-4 shrink-0">
         <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-brand-brass">
           Playbook commercial
@@ -185,6 +252,15 @@ export function SectorPlaybooksModal({
           )
         })}
       </div>
+
+      {battleAvailable ? (
+        <div className="shrink-0 border-t border-white/10 p-3">
+          <BattleEntryButton
+            actorCount={competitiveActors.length}
+            onEnter={() => switchMode("battle")}
+          />
+        </div>
+      ) : null}
     </div>
   )
 
@@ -447,14 +523,11 @@ export function SectorPlaybooksModal({
             ) : null}
           </div>
         )
-
-      case "battle_cards":
-        return <BattleCardsSection actors={competitiveActors} isMobile={isMobile} />
     }
   }
 
   const rightPane = (
-    <div className="flex h-full min-h-0 flex-col bg-[#0a0b1e] text-white">
+    <div className={cn("flex h-full min-h-0 flex-col text-white", PLAYBOOK_MAIN_SURFACE)}>
       {/* Header */}
       <div className="border-b border-white/10 px-6 py-5 shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -492,13 +565,22 @@ export function SectorPlaybooksModal({
   )
 
   const mobileContent = (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#0a0b1e] text-white">
+    <div className={cn("flex min-h-0 flex-1 flex-col text-white", PLAYBOOK_MAIN_SURFACE)}>
       {/* Header Mobile */}
-      <div className="shrink-0 border-b border-white/10 p-4">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
-          Playbook commercial
-        </span>
-        <h3 className="mt-0.5 font-heading text-lg font-bold text-white">{name}</h3>
+      <div className="shrink-0 space-y-3 border-b border-white/10 p-4">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">
+            Playbook commercial
+          </span>
+          <h3 className="mt-0.5 font-heading text-lg font-bold text-white">{name}</h3>
+        </div>
+        {battleAvailable ? (
+          <BattleEntryButton
+            actorCount={competitiveActors.length}
+            onEnter={() => switchMode("battle")}
+            isMobile
+          />
+        ) : null}
       </div>
 
       {/* Rail de navigation tactile horizontal */}
@@ -541,17 +623,136 @@ export function SectorPlaybooksModal({
     </div>
   )
 
+  // Face Playbook — reproduit à l'identique le gabarit split du shell partagé
+  // (`IntelligenceSplitModalShell`, branche sans `content`), qui n'est PAS
+  // modifié : c'est le retournement qui a besoin d'une surface unique couvrant
+  // les deux volets, sinon chaque volet pivoterait sur son propre axe.
+  const playbookFace = isMobile ? mobileContent : (
+    <div className="flex min-h-0 flex-1 items-stretch">
+      <aside className="min-h-0 w-[30%] shrink-0 overflow-y-auto border-r border-white/5">
+        {leftPane}
+      </aside>
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-950/20">
+        {rightPane}
+      </main>
+    </div>
+  )
+
+  const battleFace = (
+    <BattleWorkspace
+      actors={competitiveActors}
+      selectedActorId={selectedActorId}
+      onSelectActor={setSelectedActorId}
+      knowledge={knowledge}
+      segmentName={name}
+      isMobile={isMobile}
+      onBackToPlaybook={() => switchMode("playbook")}
+      onClose={onClose}
+    />
+  )
+
   return (
     <IntelligenceSplitModalShell
       open={open}
       onClose={onClose}
-      title={`Playbook commercial — ${name}`}
-      subtitle="Traduction opérationnelle et commerciale de la connaissance sectorielle."
-      leftPane={leftPane}
-      rightPane={rightPane}
-      content={isMobile ? mobileContent : undefined}
-      leftPaneWidth="30%"
+      title={mode === "battle" ? `Battle Cards — ${name}` : `Playbook commercial — ${name}`}
+      subtitle={
+        mode === "battle"
+          ? "Réviser un compte du segment et préparer la prise de parole."
+          : "Traduction opérationnelle et commerciale de la connaissance sectorielle."
+      }
+      headerActions={
+        mode === "battle" ? (
+          <BackToPlaybookButton onBack={() => switchMode("playbook")} />
+        ) : undefined
+      }
+      leftPane={null}
+      rightPane={null}
+      content={(
+        <div className="flex min-h-0 flex-1 flex-col" style={{ perspective: "1800px" }}>
+          <div
+            key={mode}
+            ref={flipLayerRef}
+            tabIndex={-1}
+            className="flex min-h-0 flex-1 flex-col outline-none"
+            style={{
+              transform: `rotateY(${flipRotationDeg}deg)`,
+              opacity: flipOpacity(flip.phase),
+              transition: flip.phase === "entering"
+                ? "none"
+                : `transform ${flipHalfMs}ms ${flipEasing}, opacity ${flipHalfMs}ms ${flipEasing}`,
+              willChange: isFlipping ? "transform, opacity" : undefined,
+              pointerEvents: isFlipping ? "none" : undefined,
+            }}
+          >
+            {mode === "playbook" ? playbookFace : battleFace}
+          </div>
+        </div>
+      )}
       isMobile={isMobile}
     />
+  )
+}
+
+function BattleEntryButton({
+  actorCount,
+  onEnter,
+  isMobile = false,
+}: {
+  actorCount: number
+  onEnter: () => void
+  isMobile?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onEnter}
+      className={cn(
+        "group flex w-full items-center justify-between gap-3 rounded-xl border border-brand-brass/30 bg-brand-brass/[0.06] p-3 text-left",
+        "outline-none transition-colors hover:border-brand-brass/50 hover:bg-brand-brass/10",
+        "focus-visible:ring-2 focus-visible:ring-brand-brass motion-reduce:transition-none",
+        isMobile && "min-h-11",
+      )}
+    >
+      <span className="min-w-0">
+        <span className="block text-xs font-bold text-brand-brass">Battle Cards</span>
+        <span className="mt-0.5 block text-[10px] leading-snug text-white/50">
+          {actorCount} compte{actorCount > 1 ? "s" : ""} cartographié{actorCount > 1 ? "s" : ""} · réviser et préparer
+        </span>
+      </span>
+      <svg
+        className="size-4 shrink-0 text-brand-brass transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  )
+}
+
+function BackToPlaybookButton({ onBack }: { onBack: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-white/70 outline-none transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-brand-brass motion-reduce:transition-none"
+    >
+      <svg
+        className="size-4 shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+      <span className="hidden sm:inline">Revenir au Playbook</span>
+      <span className="sr-only sm:hidden">Revenir au Playbook</span>
+    </button>
   )
 }

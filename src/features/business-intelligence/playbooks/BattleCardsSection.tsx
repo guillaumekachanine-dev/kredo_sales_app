@@ -1,110 +1,30 @@
 "use client"
 
-import { useState } from "react"
-import { cn } from "@/lib/utils"
 import type { CompetitiveMapActor } from "@/features/competitive-map/data/competitive-map-workspace-types"
 
-type BattleCardsSectionProps = {
-  actors: CompetitiveMapActor[]
-  isMobile?: boolean
-}
+// ─── Dynamic Playbooks · Lot 1 ──────────────────────────────────────────────
+// Ce module ne porte plus que du présentationnel. Le wrapper `BattleCardsSection`
+// (rail Desktop + sélecteur Mobile + `useState` de sélection) a été retiré : la
+// sélection du compte vit désormais dans `SectorPlaybooksModal`, AU-DESSUS du
+// retournement, pour survivre à un aller-retour Playbook ↔ Battle. Le rail est
+// dans `BattleAccountRail`, le sélecteur mobile dans `BattleWorkspace`.
+//
+// Le CORPS de la fiche ci-dessous est inchangé : sa refonte visuelle est le
+// périmètre du Lot 2 (A1), pas du Lot 1.
 
-export function BattleCardsSection({ actors, isMobile = false }: BattleCardsSectionProps) {
-  const [selectedActorId, setSelectedActorId] = useState<string>(() => actors[0]?.id ?? "")
-
-  if (actors.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center">
-        <p className="font-semibold text-brand-brass">Aucune Battle Card disponible</p>
-        <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-white/55">
-          Aucun acteur ou profil d’étude concurrentielle n’est encore associé à ce segment.
-          Les Battle Cards sont projetées automatiquement dès qu’une cartographie concurrentielle est ingérée.
-        </p>
-      </div>
-    )
-  }
-
-  const selectedActor = actors.find((a) => a.id === selectedActorId) ?? actors[0]
-
-  if (isMobile) {
-    return (
-      <div className="space-y-4">
-        {/* Sélecteur d'acteur mobile */}
-        <div>
-          <label htmlFor="mobile-battlecard-actor" className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-white/45">
-            Acteur ({actors.length})
-          </label>
-          <select
-            id="mobile-battlecard-actor"
-            value={selectedActor.id}
-            onChange={(e) => setSelectedActorId(e.target.value)}
-            className="min-h-11 w-full rounded-lg border border-white/10 bg-slate-950/50 px-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-brand-brass"
-          >
-            {actors.map((actor) => (
-              <option key={actor.id} value={actor.id}>
-                {actor.name} ({actor.categoryLabel}) — Appétence {actor.appetenceScore !== null ? `${actor.appetenceScore}/35` : "N/A"}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Fiche Mobile */}
-        <BattleCardContent actor={selectedActor} />
-      </div>
-    )
-  }
-
+export function BattleCardsEmptyState() {
   return (
-    <div className="flex h-full min-h-[480px] gap-5">
-      {/* Liste des acteurs (Sous-colonne gauche) */}
-      <div className="w-64 shrink-0 space-y-2 overflow-y-auto pr-1">
-        <p className="px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">
-          Acteurs cartographiés ({actors.length})
-        </p>
-        <div className="space-y-1">
-          {actors.map((actor) => {
-            const isSelected = actor.id === selectedActor.id
-            return (
-              <button
-                key={actor.id}
-                type="button"
-                onClick={() => setSelectedActorId(actor.id)}
-                aria-current={isSelected ? "true" : undefined}
-                className={cn(
-                  "w-full rounded-xl border p-3 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-brass",
-                  isSelected
-                    ? "border-brand-brass/40 bg-brand-brass/10 text-white"
-                    : "border-white/5 bg-slate-900/30 text-white/70 hover:bg-white/[0.04] hover:text-white",
-                )}
-              >
-                <div className="flex items-start justify-between gap-1">
-                  <span className="font-semibold text-xs leading-tight block truncate">
-                    {actor.name}
-                    {actor.isBenchmarkAccount ? " ★" : ""}
-                  </span>
-                  <span className="shrink-0 font-mono text-[10px] font-bold text-brand-brass">
-                    {actor.appetenceScore !== null ? `${actor.appetenceScore}/35` : "—"}
-                  </span>
-                </div>
-                <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-white/40">
-                  <span className="truncate">{actor.categoryLabel}</span>
-                  <span>{actor.accessibilityScore !== null ? `Accès ${actor.accessibilityScore}/5` : "—"}</span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Détail de la Battle Card (Sous-colonne droite) */}
-      <div className="min-w-0 flex-1 overflow-y-auto rounded-xl border border-white/10 bg-slate-950/30 p-5">
-        <BattleCardContent actor={selectedActor} />
-      </div>
+    <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center">
+      <p className="font-semibold text-brand-brass">Aucune Battle Card disponible</p>
+      <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-white/55">
+        Aucun acteur ou profil d’étude concurrentielle n’est encore associé à ce segment.
+        Les Battle Cards sont projetées automatiquement dès qu’une cartographie concurrentielle est ingérée.
+      </p>
     </div>
   )
 }
 
-function BattleCardContent({ actor }: { actor: CompetitiveMapActor }) {
+export function BattleCardContent({ actor }: { actor: CompetitiveMapActor }) {
   const { details } = actor
 
   return (

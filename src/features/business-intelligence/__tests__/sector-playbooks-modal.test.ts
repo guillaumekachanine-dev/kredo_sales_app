@@ -6,6 +6,16 @@ import {
   parsePlaybookEntryPoints,
   parsePlaybookRoiArguments,
 } from "../models/sector-playbook-parser"
+import {
+  BATTLE_FLIP_HALF_MS,
+  BATTLE_FLIP_REDUCED_HALF_MS,
+  PLAYBOOK_SECTION_KEYS,
+  flipDirectionFor,
+  flipOpacity,
+  flipRotation,
+  isBattleModeAvailable,
+  resolveBattleActor,
+} from "../playbooks/battle-workspace-model"
 
 function createMockActor(overrides: Partial<CompetitiveMapActor> = {}): CompetitiveMapActor {
   return {
@@ -128,6 +138,92 @@ describe("Playbook & Battle Cards mono-segment", () => {
       expect(roiArgs).toHaveLength(4)
       expect(roiArgs[0].srcIds).toEqual([6])
       expect(roiArgs[3].srcIds).toEqual([10, 21])
+    })
+  })
+})
+
+describe("Lot 1 — Battle Cards devient un mode, plus une section", () => {
+  it("retire battle_cards de la navigation des sections du Playbook", () => {
+    expect(PLAYBOOK_SECTION_KEYS).toHaveLength(6)
+    expect(PLAYBOOK_SECTION_KEYS).not.toContain("battle_cards")
+    expect(PLAYBOOK_SECTION_KEYS).toEqual([
+      "enjeux",
+      "personas",
+      "angles",
+      "objections",
+      "roi",
+      "pourquoi_maintenant",
+    ])
+  })
+
+  it("n'ouvre le mode Battle que si le segment porte au moins un acteur", () => {
+    expect(isBattleModeAvailable([])).toBe(false)
+    expect(isBattleModeAvailable([createMockActor()])).toBe(true)
+  })
+
+  describe("Sélection du compte — portée au-dessus du retournement", () => {
+    const robertet = createMockActor({ id: "cme-1", companyId: "comp-1", name: "Robertet" })
+    const exail = createMockActor({ id: "cme-2", companyId: "comp-2", name: "Exail Robotics" })
+
+    it("retourne null quand aucun acteur n'est cartographié", () => {
+      expect(resolveBattleActor([], null)).toBeNull()
+      expect(resolveBattleActor([], "cme-1")).toBeNull()
+    })
+
+    it("sélectionne le premier acteur en l'absence de choix explicite", () => {
+      expect(resolveBattleActor([robertet, exail], null)?.id).toBe("cme-1")
+    })
+
+    it("conserve le compte choisi — critère de non-régression du retournement", () => {
+      const selected = resolveBattleActor([robertet, exail], "cme-2")
+      expect(selected?.id).toBe("cme-2")
+      expect(selected?.companyId).toBe("comp-2")
+      expect(selected?.name).toBe("Exail Robotics")
+    })
+
+    it("expose companyId et les détails projetés de profile_json", () => {
+      const selected = resolveBattleActor([robertet], "cme-1")
+      expect(selected?.companyId).toBe("comp-1")
+      expect(selected?.details.triggers).toHaveLength(2)
+      expect(selected?.angleEntree).toContain("NaturIA")
+    })
+
+    it("se replie sur le premier acteur si l'identifiant n'appartient plus au segment", () => {
+      expect(resolveBattleActor([robertet, exail], "cme-hors-segment")?.id).toBe("cme-1")
+    })
+  })
+
+  describe("Machine à états du retournement", () => {
+    it("tient dans la cible 280–340 ms de la note de cadrage", () => {
+      expect(BATTLE_FLIP_HALF_MS * 2).toBeGreaterThanOrEqual(280)
+      expect(BATTLE_FLIP_HALF_MS * 2).toBeLessThanOrEqual(340)
+    })
+
+    it("raccourcit le repli reduced-motion", () => {
+      expect(BATTLE_FLIP_REDUCED_HALF_MS).toBeLessThan(BATTLE_FLIP_HALF_MS)
+    })
+
+    it("dérive la direction depuis le mode visé", () => {
+      expect(flipDirectionFor("battle")).toBe("forward")
+      expect(flipDirectionFor("playbook")).toBe("backward")
+    })
+
+    it("fait sortir la face courante puis entrer la suivante par le côté opposé", () => {
+      expect(flipRotation("leaving", "forward")).toBe(90)
+      expect(flipRotation("entering", "forward")).toBe(-90)
+      expect(flipRotation("leaving", "backward")).toBe(-90)
+      expect(flipRotation("entering", "backward")).toBe(90)
+    })
+
+    it("remet la face à plat au repos, quelle que soit la direction", () => {
+      expect(flipRotation("idle", "forward")).toBe(0)
+      expect(flipRotation("idle", "backward")).toBe(0)
+    })
+
+    it("ne rend le contenu visible qu'à plat", () => {
+      expect(flipOpacity("idle")).toBe(1)
+      expect(flipOpacity("leaving")).toBe(0)
+      expect(flipOpacity("entering")).toBe(0)
     })
   })
 })
