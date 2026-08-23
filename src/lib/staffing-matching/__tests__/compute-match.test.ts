@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { computeMatching, scoreProfile } from "../compute-match"
-import { MATCH_VERSION } from "../match-config"
+import { computeMatching, scoreProfile, selectMatchingResultForDisplay } from "../compute-match"
+import { BASE_WEIGHTS, MATCH_DISPLAY_MAX_PROFILES, MATCH_DISPLAY_MIN_SCORE, MATCH_VERSION } from "../match-config"
 import type { MatchingContext, MatchingNeed, MatchingProfile, NeedSkill, ProfileSkill } from "../types"
 
 const SKILL_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -83,6 +83,40 @@ describe("computeMatching", () => {
     expect(result.rankedProfiles[0].overallScore).toBeGreaterThan(result.rankedProfiles[1].overallScore)
     expect(result.rankedProfiles[0].tier).toBe("strong")
   })
+
+  it("respecte l'ordre de pondération métier et une somme de 100", () => {
+    expect(Object.values(BASE_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBe(100)
+    expect(BASE_WEIGHTS.C1_skills).toBeGreaterThan(BASE_WEIGHTS.C2_seniority)
+    expect(BASE_WEIGHTS.C2_seniority).toBeGreaterThan(BASE_WEIGHTS.C4_availability)
+    expect(BASE_WEIGHTS.C4_availability).toBeGreaterThan(BASE_WEIGHTS.C3_rate)
+    expect(BASE_WEIGHTS.C3_rate).toBeGreaterThan(BASE_WEIGHTS.C5_location)
+    expect(BASE_WEIGHTS.C5_location).toBeGreaterThan(BASE_WEIGHTS.C6_practice)
+  })
+
+  it("ne retourne à l'affichage que 5 profils maximum au-dessus du seuil", () => {
+    const perfectProfiles = Array.from({ length: 7 }, (_, index) => candidate({
+      sourceId: `perfect-${index}`,
+      personId: `person-${index}`,
+      fullName: `Perfect ${index}`,
+    }))
+    const weak = candidate({
+      sourceId: "weak-display",
+      personId: "weak-person",
+      fullName: "Weak Display",
+      seniority: "Junior",
+      skills: [],
+      expectedDailyRate: 1200,
+      availableFrom: "2027-01-01",
+      mobility: "Lyon",
+      practiceLabel: "Cybersecurity",
+    })
+
+    const displayed = selectMatchingResultForDisplay(computeMatching(ctx([...perfectProfiles, weak])))
+
+    expect(displayed.rankedProfiles).toHaveLength(MATCH_DISPLAY_MAX_PROFILES)
+    expect(displayed.rankedProfiles.every((profile) => profile.overallScore >= MATCH_DISPLAY_MIN_SCORE)).toBe(true)
+    expect(displayed.rankedProfiles.some((profile) => profile.sourceId === "weak-display")).toBe(false)
+  })
 })
 
 describe("scoreProfile — composantes", () => {
@@ -99,6 +133,30 @@ describe("scoreProfile — composantes", () => {
     expect(c1.applicable).toBe(true)
     expect(c1.negatives.some((n) => n.includes("Python"))).toBe(true)
     expect(res.cons.some((c) => c.includes("Python"))).toBe(true)
+  })
+
+  it("valorise une compétence présente même si son niveau n'est pas encore qualifié", () => {
+    const unqualified = candidate({
+      skills: [profileSkill(SKILL_A, null, 0.8), profileSkill(SKILL_B, null, 0.8)],
+    })
+    const res = scoreProfile(need(), unqualified)
+    const c1 = res.components.find((c) => c.componentKey === "C1_skills")!
+
+    expect(c1.normalizedScore).toBeGreaterThan(0)
+    expect(c1.normalizedScore).toBeLessThan(100)
+    expect(c1.explanation).toContain("2/2 compétences requises présentes")
+    expect(c1.negatives.some((n) => n.includes("niveau à qualifier"))).toBe(true)
+  })
+
+  it("considère la présence comme suffisante si le besoin n'impose aucun niveau", () => {
+    const noLevelNeed = need({
+      skills: [needSkill(SKILL_A, "Python", "indispensable", null)],
+    })
+    const res = scoreProfile(noLevelNeed, candidate({ skills: [profileSkill(SKILL_A, null, 0.8)] }))
+    const c1 = res.components.find((c) => c.componentKey === "C1_skills")!
+
+    expect(c1.normalizedScore).toBe(100)
+    expect(c1.positives.some((p) => p.includes("Python présente"))).toBe(true)
   })
 
   it("marque C3 (tarif) non applicable pour un collaborateur et le remonte dans missingData", () => {
@@ -152,7 +210,7 @@ describe("scoreProfile — composantes", () => {
 
   it("bascule en insufficient_data quand trop peu de poids est évaluable", () => {
     // Besoin sans compétences ni séniorité ni TJM ni date ni practice : seule la
-    // localisation/mobilité peut éventuellement être notée (poids 5/100 < 40 %).
+    // localisation/mobilité peut éventuellement être notée (poids 8/100 < 40 %).
     const barren = need({
       skills: [],
       seniority: null,
