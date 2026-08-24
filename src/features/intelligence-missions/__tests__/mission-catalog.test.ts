@@ -6,7 +6,7 @@ describe("MISSION_CATALOG", () => {
   it("est type comme un catalogue de MissionSpec", () => {
     const typedCatalog: readonly MissionSpec[] = MISSION_CATALOG
 
-    expect(typedCatalog).toHaveLength(6)
+    expect(typedCatalog).toHaveLength(7)
   })
 
   it("ne declare jamais un corpus vide : base ou requiredAtLaunch est renseigne", () => {
@@ -33,14 +33,15 @@ describe("MISSION_CATALOG", () => {
     expect(new Set(slugs).size).toBe(slugs.length)
   })
 
-  it("contient les 6 presets du catalogue dans l'ordre de la feuille de route", () => {
-    expect(MISSION_CATALOG).toHaveLength(6)
+  it("contient les 7 presets du catalogue dans l'ordre de la feuille de route", () => {
+    expect(MISSION_CATALOG).toHaveLength(7)
     expect(MISSION_CATALOG[0]?.slug).toBe("veille-analyse-mensuelle")
     expect(MISSION_CATALOG[1]?.slug).toBe("rentabilite-portefeuille")
     expect(MISSION_CATALOG[2]?.slug).toBe("activation-portefeuille")
     expect(MISSION_CATALOG[3]?.slug).toBe("capacite-staffing")
     expect(MISSION_CATALOG[4]?.slug).toBe("revue-compte-client")
     expect(MISSION_CATALOG[5]?.slug).toBe("post-mortem-commercial")
+    expect(MISSION_CATALOG[6]?.slug).toBe("funnel-recrutement")
   })
 
   it("porte un preset complet sans configuration de type de sortie", () => {
@@ -319,5 +320,44 @@ describe("MISSION_CATALOG", () => {
     expect(preset.promptTemplate).toContain("sans jamais employer de pourcentage global")
     expect(preset.promptTemplate).toContain("chaque constat dans findings doit obligatoirement désigner une affaire précise et nommée")
     expect(preset.promptTemplate).toContain("au moins un motif récurrent de perte doit être identifié et distingué explicitement d'un motif de gain")
+  })
+
+  it("porte un preset complet avec seuil d'abstention et règle anti-recalcul pour funnel-recrutement", () => {
+    const preset = MISSION_CATALOG[6]
+
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    expect(preset.version).toBe(1)
+    expect(preset.slug).toBe("funnel-recrutement")
+    expect(preset.label.trim()).not.toBe("")
+    expect(preset.description.trim()).not.toBe("")
+    expect(preset.intent.preset.trim()).not.toBe("")
+    expect(preset.promptTemplate.trim()).not.toBe("")
+    expect(preset.constraints.rules.length).toBeGreaterThan(0)
+    expect(preset.corpus.budget.maxTotalChars).toBe(120_000)
+    expect(preset.corpus.budget.maxCharsPerItem).toBe(2_000)
+    expect(preset.corpus.budget.maxItems).toBe(200)
+    expect(preset.corpus.requiredAtLaunch).toEqual(["hiring_period"])
+    expect(preset.corpus.base).toEqual([])
+    expect(preset.corpus.userAddition.allowed).toBe(false)
+    expect(preset.corpus.userAddition.kinds).toEqual([])
+    expect(preset.model.provider).toBe("anthropic")
+    expect(preset.model.model.trim()).not.toBe("")
+    expect(preset.model.maxOutputTokens).toBe(16_000)
+
+    const hasAbstentionRule = preset.constraints.rules.some((rule) =>
+      rule.includes("Si moins de 5 process de recrutement recoupent la fenêtre analysée"),
+    )
+    expect(hasAbstentionRule).toBe(true)
+
+    const hasAntiRecalculRule = preset.constraints.rules.some((rule) =>
+      rule.includes("Ne recalcule aucun délai"),
+    )
+    expect(hasAntiRecalculRule).toBe(true)
+
+    expect(preset.promptTemplate).toContain("désignant explicitement l'étape où le funnel perd le plus de candidats")
+    expect(preset.promptTemplate).toContain("au moins un délai anormal entre jalons doit être cité avec sa source précise")
+    expect(preset.promptTemplate).toContain("si le corpus comporte moins de 5 processus de recrutement sur la fenêtre analysée")
   })
 })

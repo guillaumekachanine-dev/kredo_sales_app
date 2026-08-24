@@ -139,6 +139,15 @@ export function monthToPipelinePeriod(month: string): Extract<CorpusSelector, { 
   }
 }
 
+export function monthToHiringPeriod(month: string): Extract<CorpusSelector, { kind: "hiring_period" }> {
+  const { periodStart, periodEnd } = computeMonthBoundaries(month)
+  return {
+    kind: "hiring_period",
+    periodStart,
+    periodEnd,
+  }
+}
+
 export function defaultMissionMonth(reference = new Date()): string {
   const previousMonth = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() - 1, 1))
   return previousMonth.toISOString().slice(0, 7)
@@ -288,6 +297,22 @@ export const POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG: MissionComposerConfig
   },
 }
 
+export const FUNNEL_RECRUTEMENT_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
+  missionSlug: "funnel-recrutement",
+  label: "Funnel & Délais Recrutement",
+  description:
+    "Analyser où le funnel de recrutement perd des candidats et repérer les délais anormaux entre étapes.",
+  inputKind: "month",
+  buildSelectors: (input) => {
+    if (input.kind !== "month") {
+      throw new Error(
+        `Entrée invalide pour la mission "funnel-recrutement" : attendu "month", reçu "${input.kind}".`,
+      )
+    }
+    return [monthToHiringPeriod(input.month)]
+  },
+}
+
 /**
  * Une action du cockpit peut déclencher le composeur de mission plutôt que la rédaction
  * ou un rapport déterministe. Cette table est la SEULE source de vérité de ce mapping —
@@ -301,5 +326,6 @@ export const MISSION_COMPOSER_ACTION_CONFIGS: Record<string, MissionComposerConf
   forecast_availability: CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG,
   review_account: REVUE_COMPTE_MISSION_COMPOSER_CONFIG,
   post_mortem_pipeline: POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG,
+  analyze_hiring_delays: FUNNEL_RECRUTEMENT_MISSION_COMPOSER_CONFIG,
 }
 

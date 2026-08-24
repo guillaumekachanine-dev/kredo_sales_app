@@ -27,6 +27,7 @@ export type CorpusKind =
   | "staffing_horizon"
   | "account_delivery"
   | "pipeline_period"
+  | "hiring_period"
 
 export type CorpusSelector =
   | { kind: "veille_period"; periodStart: string; periodEnd: string }
@@ -37,6 +38,7 @@ export type CorpusSelector =
   | { kind: "staffing_horizon"; periodStart: string; periodEnd: string }
   | { kind: "account_delivery"; companyId: string }
   | { kind: "pipeline_period"; periodStart: string; periodEnd: string }
+  | { kind: "hiring_period"; periodStart: string; periodEnd: string }
 
 /** Élément normalisé — jamais une copie durable : hydraté à l'exécution. */
 export type CorpusItem = {

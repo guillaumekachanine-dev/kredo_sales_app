@@ -21,6 +21,7 @@ import "server-only"
  *   88 `staffing_horizon`      — capacité de staffing prospective (consultants, absences, besoins)
  *   85 `prospection_window`    — signaux et opportunités de prospection du portefeuille
  *   80 `pipeline_period`       — pipe commercial clos (opportunités, interactions, candidats, compétences)
+ *   75 `hiring_period`         — processus et délais de recrutement (process, jalons datés, candidats, présentations)
  *   70 `intelligence_document` — matière déjà curée par un humain
  *   50 `veille_period`         — flux brut, le plus volumineux et le plus redondant
  */
@@ -29,6 +30,7 @@ import type { CorpusKind, CorpusProvider } from "../../domain/mission-contracts"
 import { accountContextProvider } from "./account-context-provider"
 import { accountDeliveryProvider } from "./account-delivery-provider"
 import { deliveryPeriodProvider } from "./delivery-period-provider"
+import { hiringPeriodProvider } from "./hiring-period-provider"
 import { intelligenceDocumentProvider } from "./intelligence-document-provider"
 import { pipelinePeriodProvider } from "./pipeline-period-provider"
 import { prospectionWindowProvider } from "./prospection-window-provider"
@@ -44,4 +46,5 @@ export const CORPUS_PROVIDERS: Record<CorpusKind, CorpusProvider> = {
   staffing_horizon: staffingHorizonProvider,
   account_delivery: accountDeliveryProvider,
   pipeline_period: pipelinePeriodProvider,
+  hiring_period: hiringPeriodProvider,
 }

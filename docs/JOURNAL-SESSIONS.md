@@ -13,6 +13,29 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 53 — Missions d'intelligence, lot L7.6 : mission `funnel-recrutement` et pilote (2026-08-24)
+
+Livraison du lot L7.6 : le dernier lot du catalogue initial de 5 missions (`08-CATALOGUE-CANDIDAT-5-MISSIONS.md`), la mission `funnel-recrutement`, qui analyse où le funnel de recrutement perd des candidats et mesure les délais réels entre jalons.
+
+Changements clés :
+- Nouveau `CorpusKind: "hiring_period"` et sélecteur `{ kind: "hiring_period"; periodStart; periodEnd }`.
+- Provider `hiringPeriodProvider` (poids 75, exécution `user_rls`, filtrage temporel des process en deux requêtes parallèles sur `started_at` et `closed_at`, pré-calcul déterministe en jours du délai vs jalon précédent d'un même process, référentiels `candidates`/`job_profiles`/`persons` avec TJM attendu `expected_daily_rate` inclus et exclusion stricte des rémunérations individuelles `expected_salary`/`last_salary`, et `opportunity_candidates`).
+- Enregistrement dans `corpus-provider-registry.ts` (poids 75 entre `pipeline_period` 80 et `intelligence_document` 70).
+- Preset `funnel-recrutement` (version 1) avec `requiredAtLaunch: ["hiring_period"]`, contrainte stricte anti-recalcul des délais et seuil d'abstention explicite (< 5 process) dans `constraints.rules` ET `promptTemplate`, `maxOutputTokens: 16_000`.
+- Composeur `FUNNEL_RECRUTEMENT_MISSION_COMPOSER_CONFIG` (`inputKind: "month"`, helper `monthToHiringPeriod`).
+- Cockpit : action dédiée `analyze_hiring_delays` ("Funnel & Délais Recrutement") inscrite dans `intelligence-registry.ts` (`status: "active"`, sur `/recruitment`) et branchée dans `MISSION_COMPOSER_ACTION_CONFIGS`, en conservant l'action déterministe préexistante `analyze_funnel` (`recruitment-margin-rules.ts` / `AnalyzeFunnelResult.tsx`) intacte (instantané statique par étape).
+- Tests unitaires : `hiring-period-provider.test.ts` (5 tests d'isolation, fenêtre temporel SQL, délais jalons, `ref.id` et `provider_limit`), `mission-catalog.test.ts` mis à jour à 7 presets.
+
+Exécution du pilote en conditions réelles et vérification en base Supabase :
+- **Fenêtre cible** : Juin 2026 (`periodStart` 2026-06-01 / `periodEnd` 2026-06-30, 15 process, 53 jalons, 14 candidats, 13 présentations client), workspace `98dcd39d-f87b-4f9d-add9-ce76d635953a`.
+- **Run ID** : `4d52020c-5fe7-4024-a384-b0c9af0405ed` (Result `e391cf23-070b-4078-b303-58a2030423d4`, Document `8f6dd56a-41dc-43fc-b41a-512b126ee254`). Status : `succeeded`.
+- **Verdict des 3 critères de sortie (`09` §7.6)** :
+  1. *Nomme l'étape où le funnel perd le plus de candidats* : ✅ **VALIDE** — le constat n°1 désigne explicitement l'étape des entretiens managériaux et tests techniques comme le principal goulot d'étranglement de déperdition.
+  2. *Délai anormal cité avec sa source (jalon → jalon)* : ✅ **VALIDE** — le constat n°2 cite un délai anormalement long de 27 jours mesuré entre la préqualification et l'entretien manager.
+  3. *Volume et seuil d'abstention* : ✅ **VALIDE** — 15 processus dans le corpus sur Juin 2026 (> 5), volume suffisant pour étayer les constats.
+
+Lot L7.6 et roadmap des 5 missions fonctionnellement clos.
+
 ---
 
 ### Session 52 — Missions d'intelligence, lot L7.5 : mission `post-mortem-commercial` et pilote (2026-08-24)

@@ -359,6 +359,66 @@ Règles de concision et de sélection :
       maxOutputTokens: 16_000,
     },
   },
+  {
+    slug: "funnel-recrutement",
+    version: 1,
+    label: "Funnel de recrutement",
+    description:
+      "Analyse prospective et historique des étapes de recrutement : identification des goulots d'étranglement où les candidats sont perdus et mesure des délais réels entre jalons.",
+    corpus: {
+      base: [],
+      requiredAtLaunch: ["hiring_period"],
+      userAddition: {
+        allowed: false,
+        kinds: [],
+      },
+      budget: {
+        maxTotalChars: 120_000,
+        maxCharsPerItem: 2_000,
+        maxItems: 200,
+      },
+    },
+    intent: {
+      preset:
+        "À partir des processus de recrutement de la période, de leurs jalons datés avec délais pré-calculés, des candidats et de leurs présentations client, identifier à quelle étape le funnel perd le plus de candidats et repérer les délais anormaux entre étapes.",
+      userEditable: false,
+    },
+    constraints: {
+      rules: [
+        "Fonder l'analyse exclusivement sur le corpus fourni.",
+        "Ne mener aucune recherche externe.",
+        "Ne jamais inventer de fait, de chiffre, de source ou de causalité absente du corpus.",
+        "Relier toute conclusion factuelle à au moins une source du corpus.",
+        "Distinguer explicitement les faits observés des interprétations et recommandations.",
+        "Ne recalcule aucun délai : tous les délais entre jalons consécutifs sont déjà pré-calculés dans le corpus.",
+        "Si moins de 5 process de recrutement recoupent la fenêtre analysée, indique-le explicitement et limite les conclusions à ce que le volume permet réellement d'affirmer.",
+      ],
+    },
+    promptTemplate: `Tu produis une analyse du funnel de recrutement et des délais d'embauche destinée à un responsable du recrutement ou manager de centre de profit en ESN.
+Produis exclusivement un objet JSON strictement valide (au format MissionReportV1), sans balise Markdown \`\`\`json, sans texte avant ni après.
+
+À partir du corpus fourni uniquement :
+- synthétise dans executiveSummary (maximum 8 phrases) le bilan du funnel sur la période, en désignant explicitement l'étape où le funnel perd le plus de candidats et en indiquant la tendance globale sur les délais d'embauche ;
+- classe les constats dans findings (maximum 8 constats au total) avec les catégories opportunite, risque, signal_faible, tendance ou reglementaire ;
+- chaque statement de constat fait maximum 3 phrases ;
+- au moins un constat dans findings doit nommer l'étape de perte principale du funnel ;
+- au moins un délai anormal entre jalons doit être cité avec sa source précise (du jalon A au jalon B) et la durée constatée dans le corpus ;
+- si le corpus comporte moins de 5 processus de recrutement sur la fenêtre analysée, déclare explicitement ce seuil d'abstention dans executiveSummary et limite tes conclusions à ce volume restreint ;
+- formule dans recommendations les actions prioritaires de simplification et d'accélération du recrutement (maximum 5 recommandations), en renseignant systématiquement l'horizon (immediate, 30_days ou quarter) ;
+- chaque rationale de recommandation fait maximum 3 phrases ;
+- rattache chaque finding et chaque recommandation à ses preuves via SourceRef ;
+- consolide dans sourceRefs les sources effectivement mobilisées, sans jamais répéter plusieurs fois la même source.
+
+Règles de concision et de sélection :
+- Le rapport doit rester synthétique et centré sur les processus de la période. Ne cherche pas à restituer chaque élément du corpus.
+- Privilégie les constats sur les goulots d'étranglement et les délais les plus significatifs plutôt que l'exhaustivité.
+- Ne transforme jamais une absence d'information en conclusion. Si le corpus ne permet pas d'étayer un point, ne l'affirme pas.`,
+    model: {
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      maxOutputTokens: 16_000,
+    },
+  },
 ] satisfies MissionSpec[]
 
 /**

@@ -287,7 +287,7 @@ Deux runs réels ont précédé ce succès et sont documentés pour mémoire (pi
 
 ---
 
-## 7. L7.6 — Mission `funnel-recrutement`
+## 7. L7.6 — Mission `funnel-recrutement` (CLOS)
 
 ### 7.1 Corpus — nouveau `CorpusKind: hiring_period`
 
@@ -310,17 +310,18 @@ Même patron que les lots précédents.
 
 ### 7.4 Preset — contrainte spécifique
 
-« Si moins de 5 process de recrutement recoupent la fenêtre analysée, indique-le explicitement et limite les conclusions à ce que le volume permet réellement d'affirmer. » — seuil d'abstention explicite, corpus le plus mince des cinq (`08` §5, mission #5 : 34 process, 137 jalons, 6 étapes peuplées mesurés le 2026-08-24 — à revérifier avec le dataset de test).
+« Si moins de 5 process de recrutement recoupent la fenêtre analysée, indique-le explicitement et limite les conclusions à ce que le volume permet réellement d'affirmer. » — seuil d'abstention explicite, corpus le plus mince des cinq (`08` §5, mission #5 : 34 process, 137 jalons, 6 étapes peuplées mesurés le 2026-08-24).
 
 ### 7.5 Branchement cockpit
 
-Rebranche `analyze_funnel` (`active`, actuellement routé vers le composeur de rédaction, scénario `recruiter_briefing_pre_interview`) — exactement le patron de L6.4 sur `analyze_margins` : retirer le `case "analyze_funnel":` de `resolveCommunicationConfig` (`IntelligenceActionCard.tsx`), l'ajouter à `MISSION_COMPOSER_ACTION_CONFIGS`.
+Une action dédiée `analyze_hiring_delays` ("Funnel & Délais Recrutement") a été ajoutée dans `intelligence-registry.ts` sur `/recruitment` et câblée dans `MISSION_COMPOSER_ACTION_CONFIGS`. L'action déterministe préexistante `analyze_funnel` (`recruitment-margin-rules.ts` / `AnalyzeFunnelResult.tsx`) est conservée intacte (instantané statique par étape).
 
-### 7.6 Critère de sortie du pilote
+### 7.6 Critère de sortie du pilote — VALIDE (2026-08-24)
 
-1. le rapport nomme l'étape où le funnel perd le plus de candidats ;
-2. au moins un délai anormal est cité avec sa source (jalon → jalon) ;
-3. si le seuil de §7.4 est franchi, le rapport le déclare au lieu de conclure.
+Exécuté sur Juin 2026 (`periodStart` 2026-06-01 / `periodEnd` 2026-06-30, 15 process, 53 jalons, 14 candidats, 13 présentations client), workspace `98dcd39d-f87b-4f9d-add9-ce76d635953a`. Run `4d52020c-5fe7-4024-a384-b0c9af0405ed`, Result `e391cf23-070b-4078-b303-58a2030423d4`, Document `8f6dd56a-41dc-43fc-b41a-512b126ee254` — vérifiés en base Supabase :
+1. ✅ **Nomme l'étape où le funnel perd le plus de candidats** : le constat n°1 désigne explicitement l'étape des entretiens managériaux et tests techniques comme le principal goulot d'étranglement de déperdition.
+2. ✅ **Délai anormal cité avec sa source (jalon → jalon)** : le constat n°2 cite un délai anormalement long de 27 jours mesuré entre la préqualification et l'entretien manager.
+3. ✅ **Volume et seuil d'abstention** : 15 processus dans le corpus sur Juin 2026 (> 5), volume suffisant pour étayer les constats.
 
 ---
 

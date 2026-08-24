@@ -1,0 +1,32 @@
+{
+  "title": "Cockpit Intelligence mobile — déclinaison du menu principal validé",
+  "created_at": "2026-08-24",
+  "production_mode": "deterministic-html-css-playwright",
+  "image_generation_used": false,
+  "reference_assets": [
+    {
+      "role": "priority_visual_reference",
+      "path": "/var/folders/nd/p8yph1j15bz4m89x1jpf6n3w0000gn/T/codex-clipboard-2ab2261d-80d1-4fa0-8689-fde3c7cafe08.png",
+      "description": "Menu principal mobile KREDO validé"
+    },
+    {
+      "role": "structure_and_iconography_reference",
+      "path": "/var/folders/nd/p8yph1j15bz4m89x1jpf6n3w0000gn/T/codex-clipboard-d8e9180f-9e96-42d2-a23e-dd2531e3b604.png",
+      "description": "Cockpit Intelligence sombre existant"
+    }
+  ],
+  "outputs": [
+    "cockpit-intelligence-menu-derived-comparison.png",
+    "cockpit-intelligence-menu-derived-variant-a.png",
+    "cockpit-intelligence-menu-derived-variant-b.png"
+  ],
+  "invariants": {
+    "actions": 4,
+    "modules": 2,
+    "shortcuts": 4,
+    "action_columns_max": 2,
+    "module_columns_max": 2,
+    "shortcut_rows": 1,
+    "functional_logic_changed": false
+  }
+}

@@ -261,6 +261,14 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     category: "contextual",
     status: "active",
   },
+  analyze_hiring_delays: {
+    id: "analyze_hiring_delays",
+    label: "Funnel & Délais Recrutement",
+    description: "Analyser où le funnel de recrutement perd des candidats et repérer les délais anormaux entre étapes.",
+    icon: "report",
+    category: "contextual",
+    status: "active",
+  },
   weekly_brief: {
     id: "weekly_brief",
     label: "Brief hebdomadaire",
@@ -443,7 +451,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   {
     pattern: "/recruitment",
     label: "Recrutement",
-    actionIds: ["analyze_funnel", "match_profiles", "initiate_offer", "analyze_skill_gaps"],
+    actionIds: ["analyze_funnel", "analyze_hiring_delays", "match_profiles", "initiate_offer", "analyze_skill_gaps"],
   },
 
   // ── Finance ───────────────────────────────────────────────────────────
