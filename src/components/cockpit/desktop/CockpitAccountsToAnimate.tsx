@@ -35,9 +35,9 @@ export function CockpitAccountsToAnimate({
                   <h3 className="truncate text-sm font-semibold text-heading">{account.companyName}</h3>
                   <p className="mt-1 truncate text-xs text-muted">{account.reasonLabel}</p>
                 </div>
-                {account.exposureLabel ?? account.scoreLabel ? (
+                {account.exposureLabel ? (
                   <span className="kredo-cockpit-desktop__account-indicator">
-                    {account.exposureLabel ?? account.scoreLabel}
+                    {account.exposureLabel}
                   </span>
                 ) : null}
               </div>

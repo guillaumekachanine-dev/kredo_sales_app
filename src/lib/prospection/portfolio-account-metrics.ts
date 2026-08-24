@@ -3,7 +3,7 @@ import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contac
 import { isTerminalOpportunityStage } from "@/lib/opportunities/stages"
 
 export type ProspectionPeriod = "30d" | "90d" | "180d"
-export type DataOrigin = "REAL_NATIVE" | "REAL_LEGACY" | "PROXY" | "FUTURE_DEMO"
+export type DataOrigin = "OBSERVED" | "PROXY" | "FUTURE_DEMO"
 
 export type DataTrustMeta = {
   id: string
@@ -32,7 +32,6 @@ export type ProspectionPortfolioAccount = {
   segmentId: string | null
   lifecycle: string
   priority: string
-  legacyFolioScore: number | null
   knowledgeState: string
   health: string | null
   contactCount: number
@@ -58,11 +57,6 @@ export type ProspectionPortfolioAccount = {
   plannedCommercialEngagement30d: number
   plannedCommercialEngagement90d: number
   plannedCommercialEngagement180d: number
-  potentialScore: number
-  potentialOrigin: {
-    primaryOrigin: DataOrigin
-    origins: DataOrigin[]
-  }
   reachScore: number
   reachGapScore: number
   momentumScore30d: number
@@ -74,9 +68,6 @@ export type ProspectionPortfolioAccount = {
   inactivityRiskScore30d: number
   inactivityRiskScore90d: number
   inactivityRiskScore180d: number
-  actionPriorityScore30d: number
-  actionPriorityScore90d: number
-  actionPriorityScore180d: number
   nextDecision: string
   legacyCoverage: {
     hasClientAnalysis: boolean
@@ -103,7 +94,6 @@ export type PortfolioCompanyRow = {
   segment_id: string | null
   lifecycle_status: string
   priority: string
-  legacy_folio_score: number | string | null
   knowledge_state: string
   health: string | null
   updated_at: string
@@ -151,14 +141,12 @@ export type PortfolioIntelligenceSummaryRow = {
 
 export type PortfolioAccountMetrics = {
   totalAccounts: number
-  scoredAccounts: number
   accountsWithCommitteeRole: number
   accountsLinkedToSectorIntelligence: number
   nativeIntelligenceAccounts: number
   legacyIntelligenceAccounts: number
-  nativePotentialAccounts: number
-  legacyPotentialAccounts: number
-  proxyPotentialAccounts: number
+  accountsWithRecentActivity: number
+  accountsWithOpenOpportunity: number
 }
 
 export type PortfolioFilterOptions = {
@@ -168,10 +156,9 @@ export type PortfolioFilterOptions = {
 }
 
 export type PortfolioTrustBundle = {
-  accountPotential: DataTrustMeta
   accountReach: DataTrustMeta
   accountMomentum30d: DataTrustMeta
-  commandCenterPriority: DataTrustMeta
+  accountInactivityRisk: DataTrustMeta
 }
 
 export type PortfolioPeriodMetrics = {
@@ -182,7 +169,6 @@ export type PortfolioPeriodMetrics = {
   momentumScore: number
   monthlyEquivalentPoints: number
   inactivityRiskScore: number
-  actionPriorityScore: number
 }
 
 const PERIODS: readonly ProspectionPeriod[] = ["30d", "90d", "180d"]
@@ -265,19 +251,6 @@ function freshnessLabel(value: string | null) {
   return value ? formatDateTime(value) : EMPTY_DATE_LABEL
 }
 
-function lifecycleBonus(lifecycle: string) {
-  if (lifecycle === "prospect") return 10
-  if (lifecycle === "ancien_client") return 6
-  if (lifecycle === "client" || lifecycle === "client_actif") return 4
-  return 0
-}
-
-function priorityBonus(priority: string) {
-  if (priority === "haute") return 20
-  if (priority === "normale") return 10
-  return 0
-}
-
 function classifyRelativeTimestamp(value: string, periodDays: number, now: number) {
   const timestamp = getTimestamp(value)
   if (timestamp === null) return "out"
@@ -312,77 +285,43 @@ function isCompletedStatus(value: string | null | undefined) {
   return normalizeStatus(value) === "completed"
 }
 
-function evaluatePotentialOrigin(params: {
-  legacyFolioScore: number | null
-  knowledgeState: string
-  hasNative: boolean
-  hasLegacy: boolean
-}): ProspectionPortfolioAccount["potentialOrigin"] {
-  const { legacyFolioScore, knowledgeState, hasNative, hasLegacy } = params
-  if (legacyFolioScore === null) {
-    return {
-      primaryOrigin: "PROXY",
-      origins: ["PROXY"],
-    }
-  }
-
-  const normalizedKnowledgeState = knowledgeState.trim().toLowerCase()
-  const indicatesLegacy = normalizedKnowledgeState.includes("legacy") || normalizedKnowledgeState.includes("folio")
-  const indicatesNative = normalizedKnowledgeState.includes("native") || normalizedKnowledgeState.includes("workspace")
-
-  if (hasLegacy || (!hasNative && indicatesLegacy)) {
-    return {
-      primaryOrigin: "REAL_LEGACY",
-      origins: hasNative || indicatesNative
-        ? ["REAL_LEGACY", "REAL_NATIVE", "PROXY"]
-        : ["REAL_LEGACY", "PROXY"],
-    }
-  }
-
-  if (hasNative || indicatesNative) {
-    return {
-      primaryOrigin: "REAL_NATIVE",
-      origins: ["REAL_NATIVE", "PROXY"],
-    }
-  }
-
-  return {
-    primaryOrigin: "REAL_LEGACY",
-    origins: ["REAL_LEGACY", "PROXY"],
-  }
-}
-
 function actionDecision(params: {
-  potentialScore: number
   reachScore: number
-  momentumScore: number
+  activityCount: number
   openOpportunityCount: number
   plannedCommercialEngagement: number
 }) {
   const {
-    potentialScore,
     reachScore,
-    momentumScore,
+    activityCount,
     openOpportunityCount,
     plannedCommercialEngagement,
   } = params
 
-  if (potentialScore >= 75 && reachScore < 35 && plannedCommercialEngagement === 0) {
+  if (openOpportunityCount > 0 && plannedCommercialEngagement === 0) {
+    return "Planifier la prochaine action sur l'opportunité ouverte."
+  }
+  if (reachScore < 35 && plannedCommercialEngagement === 0) {
     return "Identifier un décideur et sécuriser un premier échange qualifié."
   }
-  if (potentialScore >= 75 && reachScore < 50 && momentumScore >= 25) {
-    return "Consolider la couverture du comité avant de multiplier les touches."
-  }
-  if (openOpportunityCount > 0 && momentumScore >= 35) {
-    return "Transformer les échanges actifs en qualification formelle."
-  }
-  if (momentumScore < 20 && plannedCommercialEngagement > 0) {
+  if (activityCount === 0 && plannedCommercialEngagement > 0) {
     return "Préparer le prochain engagement planifié pour recréer une conversation utile."
   }
-  if (momentumScore < 20) {
+  if (activityCount === 0) {
     return "Relancer le compte avant refroidissement du signal commercial."
   }
   return "Consolider la relation active et préparer le prochain angle d'approche."
+}
+
+function inactivityRiskFromLatestActivity(
+  latestActivityAt: string | null,
+  periodDays: number,
+  now: number,
+) {
+  const timestamp = getTimestamp(latestActivityAt)
+  if (timestamp === null) return 100
+  const ageDays = Math.max(0, (now - timestamp) / DAY_MS)
+  return clamp(Math.round((ageDays / periodDays) * 100))
 }
 
 export function getPortfolioPeriodMetrics(
@@ -398,7 +337,6 @@ export function getPortfolioPeriodMetrics(
       momentumScore: account.momentumScore180d,
       monthlyEquivalentPoints: account.monthlyEquivalentPoints180d,
       inactivityRiskScore: account.inactivityRiskScore180d,
-      actionPriorityScore: account.actionPriorityScore180d,
     }
   }
 
@@ -411,7 +349,6 @@ export function getPortfolioPeriodMetrics(
       momentumScore: account.momentumScore90d,
       monthlyEquivalentPoints: account.monthlyEquivalentPoints90d,
       inactivityRiskScore: account.inactivityRiskScore90d,
-      actionPriorityScore: account.actionPriorityScore90d,
     }
   }
 
@@ -423,7 +360,6 @@ export function getPortfolioPeriodMetrics(
     momentumScore: account.momentumScore30d,
     monthlyEquivalentPoints: account.monthlyEquivalentPoints30d,
     inactivityRiskScore: account.inactivityRiskScore30d,
-    actionPriorityScore: account.actionPriorityScore30d,
   }
 }
 
@@ -593,12 +529,6 @@ export function buildProspectionPortfolioAccounts(params: {
       }
     }
 
-    const potentialScore = clamp(
-      Math.round((((company.legacy_folio_score ? Number(company.legacy_folio_score) : 0) / 5) * 70))
-        + priorityBonus(company.priority)
-        + lifecycleBonus(company.lifecycle_status),
-    )
-
     const rolePresenceScore = committeeRoles.reduce((sum, role) => sum + (COMMITTEE_ROLE_WEIGHTS[role] ?? 0), 0)
     const contactDensityScore = Math.min(15, accountContacts.length * 2)
     const engagementRecencyScore = Math.min(
@@ -617,55 +547,13 @@ export function buildProspectionPortfolioAccounts(params: {
     const momentumScore90d = momentumFromMonthlyEquivalent(monthlyPoints90d)
     const momentumScore180d = momentumFromMonthlyEquivalent(monthlyPoints180d)
 
-    const inactivityRiskScore30d = clamp(
-      Math.round(
-        potentialScore * 0.45
-          + reachGapScore * 0.2
-          + (100 - momentumScore30d) * 0.35,
-      ),
-    )
-    const inactivityRiskScore90d = clamp(
-      Math.round(
-        potentialScore * 0.45
-          + reachGapScore * 0.2
-          + (100 - momentumScore90d) * 0.35,
-      ),
-    )
-    const inactivityRiskScore180d = clamp(
-      Math.round(
-        potentialScore * 0.45
-          + reachGapScore * 0.2
-          + (100 - momentumScore180d) * 0.35,
-      ),
-    )
+    const latestCommercialActivityAt = latestDateFromTimestamps(commercialActivityTimestamps)
+    const inactivityRiskScore30d = inactivityRiskFromLatestActivity(latestCommercialActivityAt, 30, now)
+    const inactivityRiskScore90d = inactivityRiskFromLatestActivity(latestCommercialActivityAt, 90, now)
+    const inactivityRiskScore180d = inactivityRiskFromLatestActivity(latestCommercialActivityAt, 180, now)
 
     const openOpportunities = accountOpportunities.filter((opportunity) => !isTerminalOpportunityStage(opportunity.stage))
     const weightedPipeline = openOpportunities.reduce((sum, opportunity) => sum + (asNumber(opportunity.weighted_gain) ?? 0), 0)
-
-    const actionPriorityScore30d = clamp(
-      Math.round(
-        potentialScore * 0.4
-          + momentumScore30d * 0.25
-          + reachGapScore * 0.2
-          + inactivityRiskScore30d * 0.15,
-      ),
-    )
-    const actionPriorityScore90d = clamp(
-      Math.round(
-        potentialScore * 0.4
-          + momentumScore90d * 0.25
-          + reachGapScore * 0.2
-          + inactivityRiskScore90d * 0.15,
-      ),
-    )
-    const actionPriorityScore180d = clamp(
-      Math.round(
-        potentialScore * 0.4
-          + momentumScore180d * 0.25
-          + reachGapScore * 0.2
-          + inactivityRiskScore180d * 0.15,
-      ),
-    )
 
     const legacyCoverage = {
       hasClientAnalysis: Boolean(intelligence?.has_legacy_analysis),
@@ -682,13 +570,6 @@ export function buildProspectionPortfolioAccounts(params: {
       countRuns: intelligence?.count_runs ?? 0,
       countResults: intelligence?.count_results ?? 0,
     }
-    const potentialOrigin = evaluatePotentialOrigin({
-      legacyFolioScore: asNumber(company.legacy_folio_score),
-      knowledgeState: company.knowledge_state,
-      hasNative: nativeCoverage.hasClientAnalysis || nativeCoverage.hasSectorAnalysis || nativeCoverage.hasProcessDiagnostic || nativeCoverage.hasRoadmap || nativeCoverage.countResults > 0,
-      hasLegacy: legacyCoverage.hasClientAnalysis || legacyCoverage.hasSectorAnalysis || legacyCoverage.hasPitches,
-    })
-
     return {
       id: company.id,
       name: company.name,
@@ -697,7 +578,6 @@ export function buildProspectionPortfolioAccounts(params: {
       segmentId: company.segment_id ?? null,
       lifecycle: company.lifecycle_status,
       priority: company.priority,
-      legacyFolioScore: asNumber(company.legacy_folio_score),
       knowledgeState: company.knowledge_state,
       health: company.health,
       contactCount: accountContacts.length,
@@ -707,7 +587,7 @@ export function buildProspectionPortfolioAccounts(params: {
       opportunityCount: accountOpportunities.length,
       openOpportunityCount: openOpportunities.length,
       weightedPipeline,
-      latestCommercialActivityAt: latestDateFromTimestamps(commercialActivityTimestamps),
+      latestCommercialActivityAt,
       latestPlannedEngagementAt: latestDateFromTimestamps(plannedEngagementTimestamps),
       latestIntelligenceAt: intelligence?.latest_run_at ?? null,
       latestDataUpdateAt: company.updated_at,
@@ -723,8 +603,6 @@ export function buildProspectionPortfolioAccounts(params: {
       plannedCommercialEngagement30d,
       plannedCommercialEngagement90d,
       plannedCommercialEngagement180d,
-      potentialScore,
-      potentialOrigin,
       reachScore,
       reachGapScore,
       momentumScore30d,
@@ -736,22 +614,17 @@ export function buildProspectionPortfolioAccounts(params: {
       inactivityRiskScore30d,
       inactivityRiskScore90d,
       inactivityRiskScore180d,
-      actionPriorityScore30d,
-      actionPriorityScore90d,
-      actionPriorityScore180d,
       nextDecision: actionDecision({
-        potentialScore,
         reachScore,
-        momentumScore: momentumScore30d,
+        activityCount: rawCalendar30d + rawInteractions30d,
         openOpportunityCount: openOpportunities.length,
         plannedCommercialEngagement: plannedCommercialEngagement30d,
       }),
       legacyCoverage,
       nativeCoverage,
     }
-  }).sort((left, right) => right.potentialScore - left.potentialScore || left.name.localeCompare(right.name))
+  }).sort((left, right) => left.name.localeCompare(right.name, "fr") || left.id.localeCompare(right.id))
 
-  const scoredAccounts = accounts.filter((account) => account.legacyFolioScore !== null).length
   const accountsWithCommitteeRole = accounts.filter((account) => account.committeeRoleCount > 0).length
   const accountsLinkedToSectorIntelligence = accounts.filter((account) => account.sectorId !== null).length
   const nativeIntelligenceAccounts = accounts.filter((account) =>
@@ -765,18 +638,13 @@ export function buildProspectionPortfolioAccounts(params: {
     || account.legacyCoverage.hasSectorAnalysis
     || account.legacyCoverage.hasPitches,
   ).length
-  const nativePotentialAccounts = accounts.filter((account) => account.potentialOrigin.primaryOrigin === "REAL_NATIVE").length
-  const legacyPotentialAccounts = accounts.filter((account) => account.potentialOrigin.primaryOrigin === "REAL_LEGACY").length
-  const proxyPotentialAccounts = accounts.filter((account) => account.potentialOrigin.primaryOrigin === "PROXY").length
+  const accountsWithRecentActivity = accounts.filter((account) => account.activity30d > 0).length
+  const accountsWithOpenOpportunity = accounts.filter((account) => account.openOpportunityCount > 0).length
 
   const latestCommercialActivity = latestDate(accounts.map((account) => account.latestCommercialActivityAt))
   const latestCommercialOrPlanned = latestDate(
     accounts.flatMap((account) => [account.latestCommercialActivityAt, account.latestPlannedEngagementAt]),
   )
-  const latestPotentialEvidence = latestDate(
-    accounts.flatMap((account) => [account.latestIntelligenceAt, account.latestDataUpdateAt]),
-  )
-
   return {
     accounts,
     filterOptions: {
@@ -786,40 +654,19 @@ export function buildProspectionPortfolioAccounts(params: {
     },
     metrics: {
       totalAccounts: accounts.length,
-      scoredAccounts,
       accountsWithCommitteeRole,
       accountsLinkedToSectorIntelligence,
       nativeIntelligenceAccounts,
       legacyIntelligenceAccounts,
-      nativePotentialAccounts,
-      legacyPotentialAccounts,
-      proxyPotentialAccounts,
+      accountsWithRecentActivity,
+      accountsWithOpenOpportunity,
     },
     trust: {
-      accountPotential: {
-        id: "account-potential",
-        label: "Potentiel compte",
-        primaryOrigin: "REAL_LEGACY",
-        origins: ["REAL_LEGACY", "REAL_NATIVE", "PROXY"],
-        formula: "legacy_folio_score réel, classé conservativement natif ou legacy selon knowledge_state et couverture d'intelligence, puis bonus priorité + bonus lifecycle.",
-        freshness: {
-          latestAt: latestPotentialEvidence,
-          label: freshnessLabel(latestPotentialEvidence),
-        },
-        completeness: {
-          value: percentage(scoredAccounts, accounts.length),
-          label: `${scoredAccounts}/${accounts.length} comptes scorés · ${legacyPotentialAccounts} legacy / ${nativePotentialAccounts} natifs / ${proxyPotentialAccounts} proxy`,
-        },
-        limitations: [
-          "La provenance exacte du champ legacy_folio_score n'est pas historisée ligne à ligne.",
-          "La classification natif vs legacy reste prudente et bascule en legacy dès qu'un patrimoine historique est détecté.",
-        ],
-      },
       accountReach: {
         id: "account-reach",
         label: "Reach commercial",
         primaryOrigin: "PROXY",
-        origins: ["REAL_NATIVE", "PROXY"],
+        origins: ["OBSERVED", "PROXY"],
         formula: "Présence des rôles de comité + densité contacts + récence d'activité commerciale réalisée.",
         freshness: {
           latestAt: latestCommercialOrPlanned,
@@ -838,7 +685,7 @@ export function buildProspectionPortfolioAccounts(params: {
         id: "account-momentum-30d",
         label: "Momentum 30 jours",
         primaryOrigin: "PROXY",
-        origins: ["REAL_NATIVE", "PROXY"],
+        origins: ["OBSERVED", "PROXY"],
         formula: "calendar_events commerce en status completed + interactions commerciales autorisées. Normalisation : rawPoints × 30 / jours de période, puis saturation à 24 points mensuels = 100.",
         freshness: {
           latestAt: latestCommercialActivity,
@@ -853,26 +700,23 @@ export function buildProspectionPortfolioAccounts(params: {
           "Les interactions de workflow, notes libres et types inconnus sont exclus.",
         ],
       },
-      commandCenterPriority: {
-        id: "command-priority",
-        label: "Priorité d'action",
+      accountInactivityRisk: {
+        id: "account-inactivity-risk",
+        label: "Risque d'inactivité",
         primaryOrigin: "PROXY",
-        origins: ["REAL_NATIVE", "REAL_LEGACY", "PROXY"],
-        formula: "Potentiel 40% + momentum normalisé de la période 25% + gap de reach 20% + risque d'inactivité de la même période 15%.",
+        origins: ["OBSERVED", "PROXY"],
+        formula: "Âge de la dernière interaction ou activité commerciale, rapporté à une période explicite. Aucun autre indicateur n'entre dans le calcul.",
         freshness: {
-          latestAt: latestDate(accounts.flatMap((account) => [account.latestCommercialActivityAt, account.latestIntelligenceAt])),
-          label: freshnessLabel(latestDate(accounts.flatMap((account) => [account.latestCommercialActivityAt, account.latestIntelligenceAt]))),
+          latestAt: latestCommercialActivity,
+          label: freshnessLabel(latestCommercialActivity),
         },
         completeness: {
-          value: percentage(
-            accounts.filter((account) => account.legacyFolioScore !== null && (account.legacyCoverage.hasClientAnalysis || account.nativeCoverage.countResults > 0)).length,
-            accounts.length,
-          ),
-          label: `${accounts.filter((account) => account.legacyFolioScore !== null && (account.legacyCoverage.hasClientAnalysis || account.nativeCoverage.countResults > 0)).length}/${accounts.length} comptes avec score et contexte`,
+          value: percentage(accounts.filter((account) => account.latestCommercialActivityAt !== null).length, accounts.length),
+          label: `${accounts.filter((account) => account.latestCommercialActivityAt !== null).length}/${accounts.length} comptes avec une activité commerciale datée`,
         },
         limitations: [
-          "La recommandation reste partiellement alimentée par du contexte legacy.",
-          "Les signaux compte-natifs futurs restent absents hors mode démonstration.",
+          "L'absence d'activité enregistrée produit un risque maximal.",
+          "Cet indicateur ne mesure que l'inactivité, pas la valeur du compte.",
         ],
       },
     },

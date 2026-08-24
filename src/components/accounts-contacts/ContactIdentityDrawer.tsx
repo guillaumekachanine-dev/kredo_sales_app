@@ -76,7 +76,6 @@ type ContactIdentityData = {
       employee_count: number | null
       size_band: string | null
       health: string | null
-      legacy_folio_score: number | string | null
       metadata?: Record<string, unknown>
     } | null
   }
@@ -142,12 +141,6 @@ type ContactIdentityData = {
 }
 
 type TabKey = "apercu" | "activite" | "taches" | "interet"
-
-function formatScore(score: number | string | null) {
-  if (score === null || score === undefined) return "—"
-  return `${score}/5`
-}
-
 
 function formatOpportunityMeta(opportunity: ContactIdentityData["opportunities"][number]) {
   return [
@@ -235,10 +228,6 @@ function CompanyMiniModal({
             <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
               <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Priorité</span>
               <span className="font-bold text-heading capitalize truncate" title={company.priority || "—"}>{company.priority || "—"}</span>
-            </div>
-            <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
-              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Score IA</span>
-              <span className="font-bold text-primary">{formatScore(company.legacy_folio_score)}</span>
             </div>
           </div>
 

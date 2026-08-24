@@ -15,9 +15,9 @@ import { formatEuroCompact } from "@/lib/formatters"
 //
 //  Données RÉELLES (agrégats Supabase, RLS workspace) pour les blocs BI :
 //   - répartition cycle de vie  → `companies.lifecycle_status`
-//   - secteurs chauds           → `companies.sector` (+ score moyen)
+//   - secteurs représentés      → `companies.sector`
 //   - pipeline pondéré          → `opportunities.weighted_gain` (colonne générée)
-//   - comptes à activer         → `companies` (cible/prospect triés par legacy_folio_score)
+//   - prospects à examiner      → `companies` (ordre stable par nom/id)
 //
 //  Agrégation côté app : volumétrie faible (≈96 comptes, ≈9 opps) → fetch minimal
 //  + reduce JS, plus simple qu'une vue. À l'échelle (milliers de lignes), basculer
@@ -39,7 +39,6 @@ export type LifecycleBucket = {
 export type SectorHeat = {
   sector: string
   count: number
-  avgScore: number | null
 }
 
 export type PipelineStage = {
@@ -53,7 +52,6 @@ export type AccountToActivate = {
   id: string
   name: string
   sector: string
-  score: number | null
   lifecycleLabel: string
 }
 
@@ -121,7 +119,6 @@ type CompanyRow = {
   name: string
   sector: string | null
   lifecycle_status: string
-  legacy_folio_score: number | string | null
 }
 
 type OpportunityRow = {
@@ -139,10 +136,6 @@ function toNumber(value: number | string | null): number | null {
 }
 
 
-function round1(value: number): number {
-  return Math.round(value * 10) / 10
-}
-
 // ─── Radar de signaux — MOCK (// SEAM: flux veille n8n → table `signals`) ──────
 
 const MOCK_RADAR: SignalRadarItem[] = [
@@ -158,7 +151,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
   const supabase = (await createClient()) as unknown as LooseClient
 
   const [companiesResult, opportunitiesResult] = await Promise.all([
-    supabase.from("companies").select<CompanyRow>("id,name,sector,lifecycle_status,legacy_folio_score"),
+    supabase.from("companies").select<CompanyRow>("id,name,sector,lifecycle_status"),
     supabase.from("opportunities").select<OpportunityRow>("stage,weighted_gain"),
   ])
 
@@ -179,21 +172,14 @@ export async function getSyntheseData(): Promise<SyntheseData> {
     }))
     .sort((a, b) => b.count - a.count)
 
-  // ── Secteurs chauds (top par nb de comptes, score moyen) ────────────────────
-  const sectorAgg = new Map<string, { count: number; scoreSum: number; scoreN: number }>()
+  // ── Secteurs représentés (top par nombre de comptes) ───────────────────────
+  const sectorAgg = new Map<string, number>()
   for (const c of companies) {
     const sector = c.sector?.trim() || "Secteur non renseigné"
-    const entry = sectorAgg.get(sector) ?? { count: 0, scoreSum: 0, scoreN: 0 }
-    entry.count += 1
-    const score = toNumber(c.legacy_folio_score)
-    if (score !== null) {
-      entry.scoreSum += score
-      entry.scoreN += 1
-    }
-    sectorAgg.set(sector, entry)
+    sectorAgg.set(sector, (sectorAgg.get(sector) ?? 0) + 1)
   }
   const sectorHeat: SectorHeat[] = [...sectorAgg.entries()]
-    .map(([sector, v]) => ({ sector, count: v.count, avgScore: v.scoreN ? round1(v.scoreSum / v.scoreN) : null }))
+    .map(([sector, count]) => ({ sector, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
 
@@ -216,30 +202,25 @@ export async function getSyntheseData(): Promise<SyntheseData> {
     .map(([key, v]) => ({ key, label: getOpportunityStageLabel(key), count: v.count, weighted: v.weighted }))
     .sort((a, b) => b.weighted - a.weighted)
 
-  // ── Comptes à activer (prospects à plus fort score) ─────────────────────────
+  // ── Prospects à examiner (ordre stable, sans note synthétique) ──────────────
   const accountsToActivate: AccountToActivate[] = companies
     .filter((c) => c.lifecycle_status === "prospect")
     .map((c) => ({
       id: c.id,
       name: c.name,
       sector: c.sector?.trim() || "—",
-      score: toNumber(c.legacy_folio_score),
       lifecycleLabel: LIFECYCLE_LABEL[c.lifecycle_status] ?? c.lifecycle_status,
     }))
-    .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+    .sort((a, b) => a.name.localeCompare(b.name, "fr") || a.id.localeCompare(b.id))
     .slice(0, 6)
 
   // ── KPI décisionnels ────────────────────────────────────────────────────────
   const activeClients = (lifeCounts.get("client") ?? 0) + (lifeCounts.get("client_actif") ?? 0)
   const targets = lifeCounts.get("prospect") ?? 0
-  const scored = companies.map((c) => toNumber(c.legacy_folio_score)).filter((s): s is number => s !== null)
-  const avgScore = scored.length ? round1(scored.reduce((a, b) => a + b, 0) / scored.length) : null
-
   const kpis: SyntheseKpi[] = [
     { id: "k-portfolio", label: "Comptes au portefeuille", value: String(companies.length), status: "neutral" },
     { id: "k-targets", label: "Cibles & prospects à activer", value: String(targets), status: targets > 0 ? "warning" : "neutral" },
     { id: "k-pipeline", label: "Pipeline pondéré ouvert", value: formatEuroCompact(totalWeighted), status: "success", hint: `${openCount} opp. ouvertes` },
-    { id: "k-score", label: "Score moyen portefeuille", value: avgScore !== null ? `${avgScore}/5` : "—", status: "neutral", hint: `${scored.length} comptes scorés` },
     { id: "k-clients", label: "Clients actifs", value: String(activeClients), status: "success" },
   ]
 

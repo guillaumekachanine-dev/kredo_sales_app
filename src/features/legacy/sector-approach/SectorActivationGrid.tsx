@@ -73,10 +73,6 @@ export function SectorActivationGrid({
                   <Metric label="Fenêtres ouvertes" value={String(sector.openWindowCount)} />
                   <Metric label="Comptes liés" value={String(sector.linkedAccountCount)} />
                   <Metric
-                    label="Potentiel moyen"
-                    value={sector.averagePotentialScore === null ? "—" : `${sector.averagePotentialScore} / 100`}
-                  />
-                  <Metric
                     label="Reach moyen"
                     value={sector.averageReachScore === null ? "—" : `${sector.averageReachScore} / 100`}
                   />

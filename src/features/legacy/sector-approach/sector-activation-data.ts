@@ -288,7 +288,7 @@ function pickPracticeKey(preferred: PracticeKey | "multi" | null, fallback: Prac
   return fallback
 }
 
-function getAccountsAverage(accounts: ProspectionPortfolioAccount[], field: "potentialScore" | "reachScore") {
+function getAccountsAverage(accounts: ProspectionPortfolioAccount[], field: "reachScore") {
   if (accounts.length === 0) return null
   const total = accounts.reduce((sum, account) => sum + account[field], 0)
   return Math.round(total / accounts.length)
@@ -500,8 +500,7 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
       const practiceScores = parsePracticesFit(sector.practices_fit)
       const linkedAccounts = accountsBySectorId.get(sector.id) ?? []
       const topPracticeKey = getTopPracticeKey(practiceScores)
-      const coveredAccountCount = linkedAccounts.filter((account) => account.legacyFolioScore !== null).length
-      const averagePotentialScore = getAccountsAverage(linkedAccounts, "potentialScore")
+      const coveredAccountCount = linkedAccounts.filter((account) => account.committeeRoleCount > 0 || account.contactCount > 0).length
       const averageReachScore = getAccountsAverage(linkedAccounts, "reachScore")
 
       return {
@@ -517,7 +516,6 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
         linkedAccountIds: linkedAccounts.map((account) => account.id),
         linkedAccountCount: linkedAccounts.length,
         coveredAccountCount,
-        averagePotentialScore,
         averageReachScore,
         coverageGap: averageReachScore === null ? null : 100 - averageReachScore,
         dataCoverageRatio: linkedAccounts.length > 0 ? coveredAccountCount / linkedAccounts.length : 0,
@@ -557,7 +555,7 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
         sourceId: row.id,
         sourceLabel: getSourceLabel("event", row),
         sourceUrl: row.source_url,
-        dataOrigin: "REAL_NATIVE",
+        dataOrigin: "OBSERVED",
         sectorId: sector.id,
         sectorSlug: sector.slug,
         sectorName: sector.name,
@@ -574,7 +572,6 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
         isOpenNow: temporalStatus === "close" || temporalStatus === "active",
         exposedAccountIds: exposedAccounts.map((account) => account.id),
         exposedAccountCount: exposedAccounts.length,
-        averagePotentialScore: sector.averagePotentialScore,
         averageReachScore: sector.averageReachScore,
         coverageGap: sector.coverageGap,
         suggestedAction: createSuggestedAction({
@@ -623,7 +620,7 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
         sourceId: row.id,
         sourceLabel: getSourceLabel("news", row),
         sourceUrl: row.url,
-        dataOrigin: "REAL_NATIVE",
+        dataOrigin: "OBSERVED",
         sectorId: sector.id,
         sectorSlug: sector.slug,
         sectorName: sector.name,
@@ -640,7 +637,6 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
         isOpenNow: temporalStatus === "close" || temporalStatus === "active",
         exposedAccountIds: exposedAccounts.map((account) => account.id),
         exposedAccountCount: exposedAccounts.length,
-        averagePotentialScore: sector.averagePotentialScore,
         averageReachScore: sector.averageReachScore,
         coverageGap: sector.coverageGap,
         suggestedAction: createSuggestedAction({
@@ -685,7 +681,7 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
         sourceId: row.id,
         sourceLabel: getSourceLabel("regulation", row),
         sourceUrl: null,
-        dataOrigin: "REAL_NATIVE",
+        dataOrigin: "OBSERVED",
         sectorId: sector.id,
         sectorSlug: sector.slug,
         sectorName: sector.name,
@@ -702,7 +698,6 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
         isOpenNow: temporalStatus === "close" || temporalStatus === "active",
         exposedAccountIds: exposedAccounts.map((account) => account.id),
         exposedAccountCount: exposedAccounts.length,
-        averagePotentialScore: sector.averagePotentialScore,
         averageReachScore: sector.averageReachScore,
         coverageGap: sector.coverageGap,
         suggestedAction: createSuggestedAction({

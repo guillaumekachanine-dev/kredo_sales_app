@@ -27,7 +27,6 @@ export type AccountRow = {
   status: string
   analysisStep: string | null
   hasDedicatedWatch: boolean
-  score: number | null
   website: string | null
   contactCount: number
   emailCount: number
@@ -72,7 +71,6 @@ export type SectorStudyRow = {
   sector: string
   companies: number
   contacts: number
-  avgScore: number | null
   topCompanies: string[]
 }
 
@@ -147,7 +145,6 @@ type AccountViewRow = {
   hq_location: string | null
   priority: string
   lifecycle_status: string
-  legacy_folio_score: number | string | null
   website: string | null
   description: string | null
   logo_path: string | null
@@ -221,15 +218,6 @@ function firstRelation<T>(value: T | T[] | null): T | null {
   return value
 }
 
-function toNumber(value: number | string | null): number | null {
-  if (typeof value === "number") return value
-  if (typeof value === "string") {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
 function cleanText(value: string | null | undefined, fallback = "Non renseigné") {
   return value && value.trim().length > 0 ? value.trim() : fallback
 }
@@ -275,7 +263,6 @@ function buildAccount(row: AccountViewRow, contactCount: number, taskCount: numb
     status: resolvedStatus,
     analysisStep: getLatestAnalysisStep(row, sectorAttachment),
     hasDedicatedWatch: row.has_dedicated_watch === true,
-    score: toNumber(row.legacy_folio_score),
     website: row.website,
     contactCount: Math.max(contactCount, importedContacts),
     emailCount: importedEmails,
@@ -330,14 +317,12 @@ function buildSectorRows(accounts: AccountRow[]) {
 
   return [...buckets.entries()]
     .map(([sector, rows]) => {
-      const scores = rows.map((row) => row.score).filter((score): score is number => score !== null)
       return {
         sector,
         companies: rows.length,
         contacts: rows.reduce((sum, row) => sum + row.contactCount, 0),
-        avgScore: scores.length > 0 ? Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 10) / 10 : null,
         topCompanies: rows
-          .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0))
+          .toSorted((a, b) => b.contactCount - a.contactCount || a.name.localeCompare(b.name, "fr") || a.id.localeCompare(b.id))
           .slice(0, 3)
           .map((row) => row.name),
       }
@@ -361,8 +346,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   ] = await Promise.all([
     supabase
       .from<AccountViewRow>("v_crm_account_list")
-      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,logo_path,nb_contacts,nb_with_email,has_study,sector_attachment_name,has_dedicated_watch,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector,has_account_issues,has_commercial_strategy,sector_id,segment_id,sector_name,segment_name,tier,regime_achat,relation_type,depth_level,origin")
-      .order("legacy_folio_score", { ascending: false, nullsFirst: false })
+      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,website,description,logo_path,nb_contacts,nb_with_email,has_study,sector_attachment_name,has_dedicated_watch,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector,has_account_issues,has_commercial_strategy,sector_id,segment_id,sector_name,segment_name,tier,regime_achat,relation_type,depth_level,origin")
       .order("name", { ascending: true })
       .limit(1000),
     supabase
@@ -419,7 +403,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
 
   const allAccounts = rawAccounts
     .map((row) => buildAccount(row, contactCounts.get(row.id) ?? 0, taskCounts.get(row.id) ?? 0))
-    .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.contactCount - a.contactCount || a.name.localeCompare(b.name))
+    .toSorted((a, b) => b.contactCount - a.contactCount || a.name.localeCompare(b.name, "fr") || a.id.localeCompare(b.id))
 
   // ADR-0019 D-3 : un compte `mapped` est une citation, pas un compte réel —
   // il n'entre jamais dans les stats du header, les combobox commerciales ni
@@ -532,4 +516,3 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     taxonomySegments,
   }
 }
-

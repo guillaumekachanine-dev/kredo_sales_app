@@ -58,9 +58,7 @@ export type BusinessIntelligenceSegment = {
   } | null
 }
 
-export type SegmentPortfolioSnapshot = PortfolioIntelligenceSnapshot & {
-  scores: BusinessIntelligenceSnapshot["scores"]
-}
+export type SegmentPortfolioSnapshot = PortfolioIntelligenceSnapshot
 
 export type SegmentValueChainReadModel = {
   sourceSectorId: string

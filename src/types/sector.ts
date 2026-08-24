@@ -102,7 +102,6 @@ export interface SectorCompany {
   website: string | null
   revenue: string | null
   lifecycle_status: string
-  legacy_folio_score: number | null
 }
 
 export interface SectorWithRelations extends SectorIntelligence {

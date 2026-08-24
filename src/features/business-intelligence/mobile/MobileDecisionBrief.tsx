@@ -22,7 +22,6 @@ export function MobileDecisionBrief({
           <h2 id="mobile-decision-title" className="truncate text-xl font-bold text-white">{account.name}</h2>
           <p className="mt-1 text-xs text-white/60">{account.sectorName ?? "Secteur non renseigné"}</p>
         </div>
-        <span className="shrink-0 rounded-lg border border-brand-brass/30 bg-brand-brass/10 px-2 py-1 text-xs font-bold text-brand-brass">{account.priority}</span>
       </div>
       <div className="mt-4 space-y-3 border-t border-white/10 pt-3 text-sm">
         <BriefRow label="Signal principal" value={account.topSignal?.title ?? "Signal indisponible"} />
@@ -32,7 +31,7 @@ export function MobileDecisionBrief({
       <div className="mt-4 grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 pt-3">
         <Metric label="Comptes" value={period.metrics.priorityAccountsCount} />
         <Metric label="Fenêtres" value={period.metrics.openWindowsCount} />
-        <Metric label="Confiance" value={period.metrics.averageConfidence === null ? "Indisponible" : `${period.metrics.averageConfidence}%`} />
+        <Metric label="Reach" value={account.reach} />
       </div>
     </section>
   )

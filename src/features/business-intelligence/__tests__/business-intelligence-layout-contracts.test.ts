@@ -59,8 +59,8 @@ describe("Business Intelligence atelier analytique", () => {
     const matrix = read("src/features/business-intelligence/desktop/PotentialReachMatrix.tsx")
 
     expect(matrix).toContain("<svg")
-    expect(matrix).toContain("À activer")
-    expect(matrix).toContain("À développer")
+    expect(matrix).toContain("Relation à élargir")
+    expect(matrix).toContain("Dynamique établie")
     expect(matrix).toContain("Valeurs détaillées de la matrice")
     expect(matrix).toContain("motion-reduce:transition-none")
   })

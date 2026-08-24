@@ -63,7 +63,13 @@ export function SelectedCommercialWindowPanel({
 
   const exposedAccounts = accounts
     .filter((account) => window.exposedAccountIds.includes(account.id))
-    .toSorted((left, right) => right.actionPriorityScore90d - left.actionPriorityScore90d)
+    .toSorted((left, right) => {
+      const leftOpportunityWithoutPlan = left.openOpportunityCount > 0 && left.plannedCommercialEngagement90d === 0
+      const rightOpportunityWithoutPlan = right.openOpportunityCount > 0 && right.plannedCommercialEngagement90d === 0
+      if (leftOpportunityWithoutPlan !== rightOpportunityWithoutPlan) return rightOpportunityWithoutPlan ? 1 : -1
+      if (left.inactivityRiskScore90d !== right.inactivityRiskScore90d) return right.inactivityRiskScore90d - left.inactivityRiskScore90d
+      return left.name.localeCompare(right.name, "fr") || left.id.localeCompare(right.id)
+    })
     .slice(0, 5)
 
   return (
@@ -135,12 +141,12 @@ export function SelectedCommercialWindowPanel({
                     <div>
                       <p className="font-medium text-heading">{account.name}</p>
                       <p className="text-xs text-muted">
-                        {account.lifecycle.replaceAll("_", " ")} · priorité {account.priority}
+                        {account.lifecycle.replaceAll("_", " ")} · {account.openOpportunityCount} opportunité(s) ouverte(s)
                       </p>
                     </div>
                     <div className="text-right text-xs text-muted">
-                      <p>Potentiel {account.potentialScore}</p>
                       <p>Reach {account.reachScore}</p>
+                      <p>Momentum {account.momentumScore90d}</p>
                     </div>
                   </div>
                 </li>
@@ -155,10 +161,6 @@ export function SelectedCommercialWindowPanel({
           <PanelRow
             label="Comptes exposés"
             value={`${window.exposedAccountCount} compte${window.exposedAccountCount > 1 ? "s" : ""}`}
-          />
-          <PanelRow
-            label="Potentiel moyen"
-            value={window.averagePotentialScore === null ? "—" : `${window.averagePotentialScore} / 100`}
           />
           <PanelRow
             label="Reach moyen"

@@ -34,15 +34,13 @@ export function buildBusinessIntelligenceWorkspaceAdapter(
       detectedAt: item.publishedAt ?? workspace.portfolio.generatedAt,
       recommendedAction: item.recommendedAction,
     })),
-    scores: workspace.portfolio.scores,
     sectors: activation.sectors,
     windows: activation.windows,
     filterOptions: activation.filterOptions,
     trust: {
-      accountPotential: workspace.portfolio.trust.accountPotential,
       accountReach: workspace.portfolio.trust.accountReach,
       accountMomentum: workspace.portfolio.trust.accountMomentum30d,
-      priorityCalculated: workspace.portfolio.trust.commandCenterPriority,
+      accountInactivityRisk: workspace.portfolio.trust.accountInactivityRisk,
     },
     dataQuality: workspace.portfolio.dataQuality,
   }

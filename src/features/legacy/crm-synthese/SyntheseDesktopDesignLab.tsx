@@ -215,7 +215,7 @@ function EditorialBusinessVariant({
 
             <SectionIntro
               eyebrow="Couverture"
-              title="Potentiel et reach sous la meme ligne de lecture"
+              title="Momentum et reach sous la même ligne de lecture"
               description="La matrice reste intacte, mais gagne un cadre plus calme et une mise en scene plus editoriale."
               className="bg-surface-raised"
             >
@@ -340,7 +340,7 @@ function IntelligenceMapVariant({
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="brand">{selectedAccount ? "Actif" : "Vide"}</Badge>
                   {selectedAccount ? <Badge variant="brass">Reach {selectedAccount.reachScore}/100</Badge> : null}
-                  {selectedAccount ? <Badge variant="info">Potentiel {selectedAccount.potentialScore}/100</Badge> : null}
+                  {selectedAccount ? <Badge variant="info">Momentum {getPortfolioPeriodMetrics(selectedAccount, period).momentumScore}/100</Badge> : null}
                 </div>
               </MapNode>
             </div>
@@ -519,7 +519,7 @@ function ExecutiveControlRoomVariant({
             >
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <CommandMetric label="Priorite action" value={selectedMetrics ? `${selectedMetrics.actionPriorityScore}/100` : "--"} />
+                  <CommandMetric label="Inactivité" value={selectedMetrics ? `${selectedMetrics.inactivityRiskScore}/100` : "--"} />
                   <CommandMetric label="Momentum" value={selectedMetrics ? `${selectedMetrics.momentumScore}/100` : "--"} />
                   <CommandMetric label="Reach" value={selectedAccount ? `${selectedAccount.reachScore}/100` : "--"} />
                   <CommandMetric label="Pipeline" value={selectedAccount ? String(selectedAccount.openOpportunityCount) : "--"} />

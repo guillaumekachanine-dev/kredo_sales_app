@@ -253,10 +253,9 @@ export type AccountSummaryFacts = {
     sector: string | null
     sectorId: string | null
     segment: string | null
-    aiScore: number | null
     priority: string
   }
-  potential: {
+  opportunities: {
     openPipeWeighted: number
     openOpportunitiesCount: number
     wonOpportunitiesCount: number
@@ -288,10 +287,6 @@ export type AccountSummaryFacts = {
       urgency: string
       isCommercialWindow: boolean
     } | null
-  }
-  scores: {
-    conviction: number
-    investment: number
   }
   dataCutoffAt: string
   caveats: string[]

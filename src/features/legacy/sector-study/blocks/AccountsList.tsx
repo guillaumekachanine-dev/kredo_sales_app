@@ -25,7 +25,7 @@ const LIFECYCLE_LABELS: Record<string, string> = {
 
 /**
  * AccountsList - Renders the list of companies associated with the sector.
- * Ordered with clients first, showing AI Score and right-aligned revenue.
+ * Ordered with clients first, then by stable company name.
  */
 export function AccountsList({ companies, hasError }: AccountsListProps) {
   if (hasError) {
@@ -40,16 +40,14 @@ export function AccountsList({ companies, hasError }: AccountsListProps) {
     return <p className="text-xs text-muted">Aucun compte rattaché à ce secteur.</p>
   }
 
-  // Sort: clients first, then sub-sorted by AI score DESC
+  // Sort: clients first, then stable company name.
   const sorted = [...companies].sort((a, b) => {
     const isActifA = a.lifecycle_status === 'client' || a.lifecycle_status === 'client_actif'
     const isActifB = b.lifecycle_status === 'client' || b.lifecycle_status === 'client_actif'
     if (isActifA && !isActifB) return -1
     if (!isActifA && isActifB) return 1
 
-    const scoreA = a.legacy_folio_score ?? -1
-    const scoreB = b.legacy_folio_score ?? -1
-    return scoreB - scoreA
+    return a.name.localeCompare(b.name, "fr") || a.id.localeCompare(b.id)
   })
 
   return (
@@ -61,16 +59,7 @@ export function AccountsList({ companies, hasError }: AccountsListProps) {
         return (
           <div key={company.id} className="p-3 flex items-center justify-between gap-4 hover:bg-surface-hover/30 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-bold text-heading leading-tight">
-                  {company.name}
-                </span>
-                {company.legacy_folio_score !== null && (
-                  <span className="text-[10px] text-muted font-medium">
-                    Score IA : <span className="font-semibold text-primary">{company.legacy_folio_score.toFixed(1)}/5.0</span>
-                  </span>
-                )}
-              </div>
+              <span className="text-xs font-bold text-heading leading-tight">{company.name}</span>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">

@@ -80,7 +80,7 @@ export function DashboardLabShell({ data }: { data: DashboardLabData }) {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="brand">Base réelle · {data.metrics.totalAccounts} comptes</Badge>
-                <Badge variant="info">{data.metrics.realNativeWindowCount} fenêtres sectorielles réelles</Badge>
+                <Badge variant="info">{data.metrics.observedWindowCount} fenêtres sectorielles observées</Badge>
                 <Badge variant={demoEnabled ? "danger" : "neutral"}>
                   {demoEnabled ? "Données de démonstration actives" : "Mode réel uniquement"}
                 </Badge>
@@ -350,7 +350,7 @@ function buildDashboardLabViewModel({
     summary: {
       totalAccounts: data.metrics.totalAccounts,
       filteredAccounts: accounts.length,
-      scoredAccounts: accounts.filter((account) => account.legacyFolioScore !== null).length,
+      accountsWithRecentActivity: accounts.filter((account) => account.activity30d > 0).length,
       linkedSectorAccounts: accounts.filter((account) => account.sectorId !== null).length,
       activeWindows: windows.filter((window) => isDemoWindow(window) || window.isCountedAsActive).length,
     },

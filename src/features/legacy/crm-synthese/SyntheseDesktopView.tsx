@@ -270,8 +270,8 @@ function parseOption(value: string | null, options: string[]) {
 
 function parseFocus(value: string | null): ProspectionSummaryFocusPreset {
   if (
-    value === "undercovered-high-potential"
-    || value === "priority-inactive"
+    value === "open-opportunity-undercovered"
+    || value === "inactive-relationship"
     || value === "activity-no-conversion"
     || value === "planned-engagements"
   ) {

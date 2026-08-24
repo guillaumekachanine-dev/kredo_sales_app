@@ -497,8 +497,7 @@ export function buildSectorActivationModel(
     const practiceScores = parsePracticesFit(model.practicesFit)
     const linkedAccounts = accountsBySegmentId.get(model.segmentId) ?? []
     const topPracticeKey = getTopPracticeKey(practiceScores)
-    const coveredAccountCount = linkedAccounts.filter((account) => account.legacyFolioScore !== null && account.legacyFolioScore !== undefined).length
-    const averagePotentialScore = getAccountsAverage(linkedAccounts as Array<{ [key: string]: unknown }>, "potentialScore")
+    const coveredAccountCount = linkedAccounts.filter((account) => (account.committeeRoleCount ?? 0) > 0 || (account.contactCount ?? 0) > 0).length
     const averageReachScore = getAccountsAverage(linkedAccounts as Array<{ [key: string]: unknown }>, "reachScore")
 
     const linkedAccountIds = linkedAccounts
@@ -520,7 +519,6 @@ export function buildSectorActivationModel(
       linkedAccountIds,
       linkedAccountCount: linkedAccounts.length,
       coveredAccountCount,
-      averagePotentialScore,
       averageReachScore,
       coverageGap: averageReachScore === null ? null : 100 - averageReachScore,
       dataCoverageRatio: linkedAccounts.length > 0 ? coveredAccountCount / linkedAccounts.length : 0,
@@ -585,7 +583,7 @@ export function buildSectorActivationModel(
         sourceId: event.id,
         sourceLabel: getSourceLabel("event", { event_type: event.eventType }),
         sourceUrl: event.sourceUrl,
-        dataOrigin: "REAL_NATIVE",
+        dataOrigin: "OBSERVED",
         sectorId: sector.id,
         sectorSlug: sector.slug,
         sectorName: sector.name,
@@ -602,7 +600,6 @@ export function buildSectorActivationModel(
         isOpenNow: temporalStatus === "close" || temporalStatus === "active",
         exposedAccountIds,
         exposedAccountCount: exposedAccounts.length,
-        averagePotentialScore: sector.averagePotentialScore,
         averageReachScore: sector.averageReachScore,
         coverageGap: sector.coverageGap,
         suggestedAction: createSuggestedAction({
@@ -648,7 +645,7 @@ export function buildSectorActivationModel(
         sourceId: newsItem.id,
         sourceLabel: getSourceLabel("news", { source: newsItem.source }),
         sourceUrl: newsItem.url,
-        dataOrigin: "REAL_NATIVE",
+        dataOrigin: "OBSERVED",
         sectorId: sector.id,
         sectorSlug: sector.slug,
         sectorName: sector.name,
@@ -665,7 +662,6 @@ export function buildSectorActivationModel(
         isOpenNow: temporalStatus === "close" || temporalStatus === "active",
         exposedAccountIds,
         exposedAccountCount: exposedAccounts.length,
-        averagePotentialScore: sector.averagePotentialScore,
         averageReachScore: sector.averageReachScore,
         coverageGap: sector.coverageGap,
         suggestedAction: createSuggestedAction({
@@ -708,7 +704,7 @@ export function buildSectorActivationModel(
         sourceId: reg.id,
         sourceLabel: getSourceLabel("regulation", { authority: reg.authority }),
         sourceUrl: reg.sourceUrl ?? null,
-        dataOrigin: "REAL_NATIVE",
+        dataOrigin: "OBSERVED",
         sectorId: sector.id,
         sectorSlug: sector.slug,
         sectorName: sector.name,
@@ -725,7 +721,6 @@ export function buildSectorActivationModel(
         isOpenNow: temporalStatus === "close" || temporalStatus === "active",
         exposedAccountIds,
         exposedAccountCount: exposedAccounts.length,
-        averagePotentialScore: sector.averagePotentialScore,
         averageReachScore: sector.averageReachScore,
         coverageGap: sector.coverageGap,
         suggestedAction: createSuggestedAction({

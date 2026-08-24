@@ -1,50 +1,44 @@
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
+import {
+  getPortfolioPeriodMetrics,
+  type ProspectionPeriod,
+} from "@/lib/prospection/portfolio-account-metrics"
 
-import { getPortfolioPeriodMetrics, type ProspectionPeriod } from "@/lib/prospection/portfolio-account-metrics"
+type AccountSignal = BusinessIntelligenceSnapshot["signals"][number]
+
+export interface AccountPrioritizationOptions {
+  period: 30 | 90 | 180
+}
 
 export interface AccountPriorityItem {
   accountId: string
   name: string
   sectorId: string | null
-  priority: number
-  potential: number
   reach: number
   momentum: number
-  nativeScore: {
-    value: number
-    band: string
-    confidence: number
-    version: string
-    calculatedAt: string
-    summary: string | null
-  } | null
-  confidence: {
-    primaryOrigin: string
-  }
-  topSignal: any | null
+  activityCount: number
+  plannedCount: number
+  openOpportunityCount: number
+  inactivityRisk: number
+  latestCommercialActivityAt: string | null
+  topSignal: AccountSignal | null
   nextAction: string | null
-  provenance: string
 }
 
-export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSnapshot, options?: any): AccountPriorityItem[] {
-  const { accounts, scores, signals } = snapshot
-  const periodParam = options?.period ?? 30
-  const period = `${periodParam}d` as ProspectionPeriod
+function toProspectionPeriod(period: AccountPrioritizationOptions["period"]): ProspectionPeriod {
+  return `${period}d` as ProspectionPeriod
+}
+
+export function buildAccountPrioritizationModel(
+  snapshot: BusinessIntelligenceSnapshot,
+  options: AccountPrioritizationOptions = { period: 30 },
+): AccountPriorityItem[] {
+  const { accounts, signals } = snapshot
 
   return accounts.map((account) => {
-    const nativeScore = scores[account.id]
-    const periodMetrics = getPortfolioPeriodMetrics(account, period)
-    
-    // Determine provenance
-    let provenance = "PROXY"
-    if (nativeScore) {
-      provenance = "REAL_NATIVE"
-    } else if (account.legacyFolioScore !== null) {
-      provenance = "REAL_LEGACY"
-    }
-
+    const periodMetrics = getPortfolioPeriodMetrics(account, toProspectionPeriod(options.period))
     const accountSignals = signals.filter(sig => sig.companyId === account.id)
-      .toSorted((a, b) => b.urgencyScore - a.urgencyScore)
+      .toSorted((a, b) => b.urgencyScore - a.urgencyScore || b.detectedAt.localeCompare(a.detectedAt))
 
     const topSignal = accountSignals[0] ?? null
 
@@ -52,26 +46,27 @@ export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSn
       accountId: account.id,
       name: account.name,
       sectorId: account.sectorId,
-      priority: periodMetrics.actionPriorityScore,
-      potential: account.potentialScore,
       reach: account.reachScore,
       momentum: periodMetrics.momentumScore,
-      nativeScore: nativeScore ? {
-        value: nativeScore.scoreValue,
-        band: nativeScore.scoreBand,
-        confidence: nativeScore.confidenceScore,
-        version: nativeScore.scoreVersion,
-        calculatedAt: nativeScore.calculatedAt,
-        summary: nativeScore.summary,
-      } : null,
-      confidence: {
-        // Just proxying the account metrics trust
-        primaryOrigin: provenance,
-      },
+      activityCount: periodMetrics.activityCount,
+      plannedCount: periodMetrics.plannedCount,
+      openOpportunityCount: account.openOpportunityCount,
+      inactivityRisk: periodMetrics.inactivityRiskScore,
+      latestCommercialActivityAt: account.latestCommercialActivityAt,
       topSignal,
       nextAction: topSignal?.recommendedAction ?? account.nextDecision ?? null,
-      provenance,
     }
-  }).toSorted((a, b) => b.priority - a.priority)
-}
+  }).toSorted((left, right) => {
+    const signalUrgency = (right.topSignal?.urgencyScore ?? -1) - (left.topSignal?.urgencyScore ?? -1)
+    if (signalUrgency !== 0) return signalUrgency
 
+    const leftOpportunityWithoutPlan = left.openOpportunityCount > 0 && left.plannedCount === 0
+    const rightOpportunityWithoutPlan = right.openOpportunityCount > 0 && right.plannedCount === 0
+    if (leftOpportunityWithoutPlan !== rightOpportunityWithoutPlan) return rightOpportunityWithoutPlan ? 1 : -1
+
+    if (left.inactivityRisk !== right.inactivityRisk) return right.inactivityRisk - left.inactivityRisk
+    const latestActivity = (left.latestCommercialActivityAt ?? "").localeCompare(right.latestCommercialActivityAt ?? "")
+    if (latestActivity !== 0) return latestActivity
+    return left.name.localeCompare(right.name, "fr") || left.accountId.localeCompare(right.accountId)
+  })
+}

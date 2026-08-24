@@ -7,7 +7,6 @@ function sources(overrides: Partial<CockpitDesktopSources> = {}): CockpitDesktop
   return {
     now,
     companies: [],
-    scores: [],
     signals: [],
     issues: [],
     opportunities: [],
@@ -23,7 +22,7 @@ function sources(overrides: Partial<CockpitDesktopSources> = {}): CockpitDesktop
 }
 
 describe("buildCockpitDesktopSnapshot", () => {
-  it("classe les comptes selon les raisons définies, puis le score en départage", () => {
+  it("classe les comptes selon les raisons définies, puis par nom/id en départage", () => {
     const snapshot = buildCockpitDesktopSnapshot(sources({
       companies: [
         { id: "dormant", name: "Dormant", sector: "Tech", nextActionAt: null, nextActionLabel: null },
@@ -31,10 +30,6 @@ describe("buildCockpitDesktopSnapshot", () => {
         { id: "overdue-low", name: "Overdue low", sector: "Tech", nextActionAt: "2026-07-10", nextActionLabel: "Relancer" },
         { id: "overdue-high", name: "Overdue high", sector: "Tech", nextActionAt: "2026-07-11", nextActionLabel: "Préparer le point" },
         { id: "issue", name: "Issue", sector: "Tech", nextActionAt: null, nextActionLabel: null },
-      ],
-      scores: [
-        { companyId: "overdue-low", scoreValue: 40, confidenceScore: 80 },
-        { companyId: "overdue-high", scoreValue: 80, confidenceScore: 80 },
       ],
       signals: [{ id: "s-1", companyId: "signal", title: "Signal détecté", recommendedAction: "Contacter le compte", status: "new", expiresAt: "2026-08-01", urgencyScore: 0.8, detectedAt: now }],
       issues: [{ id: "i-1", companyId: "issue", title: "Enjeu urgent", urgency: 5, status: "open" }],

@@ -342,7 +342,7 @@ function EditorialMobileCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-              Priorite {item.actionPriorityScore}/100
+              Inactivité {item.inactivityRisk}/100
             </p>
             <h3 className="truncate font-heading text-2xl font-bold tracking-[-0.03em] text-heading">
               {item.accountName}
@@ -355,7 +355,7 @@ function EditorialMobileCard({
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <MetricPill label="Potentiel" value={`${item.potentialScore}`} />
+          <MetricPill label="Momentum" value={`${item.momentumScore}`} />
           <MetricPill label="Reach" value={`${item.reachScore}`} />
           <MetricPill label="Momentum" value={`${item.momentumScore}`} />
         </div>
@@ -421,7 +421,7 @@ function IntelligenceMapMobileCard({
             <p className="text-sm text-body">{item.sector}</p>
           </div>
           <span className="inline-flex rounded-full border border-primary/20 bg-primary/[0.08] px-3 py-1 text-xs font-semibold text-primary">
-            {item.actionPriorityScore}/100
+            {item.inactivityRisk}/100
           </span>
         </div>
 
@@ -499,13 +499,13 @@ function ControlRoomMobileCard({
             <p className="text-xs text-primary-fg/74">{item.sector}</p>
           </div>
           <span className="text-right font-heading text-3xl font-bold tracking-[-0.04em] text-primary-fg">
-            {item.actionPriorityScore}
+            {item.inactivityRisk}
           </span>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-px bg-border">
-        <ControlCardMetric label="Potentiel" value={`${item.potentialScore}/100`} />
+        <ControlCardMetric label="Momentum" value={`${item.momentumScore}/100`} />
         <ControlCardMetric label="Reach" value={`${item.reachScore}/100`} />
         <ControlCardMetric label="Momentum" value={`${item.momentumScore}/100`} />
         <ControlCardMetric label="Opp." value={`${item.openOpportunityCount}`} />

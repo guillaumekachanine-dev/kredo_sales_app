@@ -22,7 +22,6 @@ export type CockpitDesktopSources = {
     nextActionAt: string | null
     nextActionLabel: string | null
   }>
-  scores: Array<{ companyId: string; scoreValue: number | null; confidenceScore: number | null }>
   signals: Array<{
     id: string
     companyId: string
@@ -119,7 +118,6 @@ function isAdvancedWithoutRecentAction(
 }
 
 function buildAccountsToAnimate(input: CockpitDesktopSources, now: Date): CockpitAccountActivation[] {
-  const scores = new Map(input.scores.map((score) => [score.companyId, score]))
   const latestInteractions = latestInteractionByCompany(input.interactions)
   const companies = new Map(input.companies.map((company) => [company.id, company]))
   const signalsByCompany = new Map<string, CockpitDesktopSources["signals"]>()
@@ -141,50 +139,45 @@ function buildAccountsToAnimate(input: CockpitDesktopSources, now: Date): Cockpi
     }
   }
 
-  const ranked: Array<CockpitAccountActivation & { rank: number; score: number | null }> = []
+  const ranked: Array<CockpitAccountActivation & { rank: number }> = []
   for (const company of companies.values()) {
     const nextActionDays = daysUntil(company.nextActionAt, now)
-    const score = scores.get(company.id)
-    const scoreLabel = score && score.scoreValue !== null && (score.confidenceScore ?? 0) >= 40
-      ? `${Math.round(score.scoreValue)}/100`
-      : undefined
     const base = {
       companyId: company.id,
       companyName: company.name,
       sector: company.sector?.trim() || "Secteur non renseigné",
-      scoreLabel,
       primaryAction: { label: "Ouvrir le compte", href: companyHref(company.id) },
     }
 
     if (nextActionDays !== null && nextActionDays < 0) {
-      ranked.push({ ...base, reasonType: "overdue_action", reasonLabel: company.nextActionLabel || "Action commerciale dépassée", exposureLabel: `Échue depuis ${Math.abs(nextActionDays)} j`, rank: 0, score: score?.scoreValue ?? null })
+      ranked.push({ ...base, reasonType: "overdue_action", reasonLabel: company.nextActionLabel || "Action commerciale dépassée", exposureLabel: `Échue depuis ${Math.abs(nextActionDays)} j`, rank: 0 })
       continue
     }
     const advanced = advancedOpportunitiesByCompany.get(company.id)?.toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
     if (advanced) {
-      ranked.push({ ...base, reasonType: "advanced_opportunity", reasonLabel: `Opportunité avancée sans action récente : ${advanced.title}`, exposureLabel: advanced.weightedGain === null ? undefined : formatEuroCompact(advanced.weightedGain), primaryAction: { label: advanced.nextActionLabel || "Relancer l’opportunité", href: `/missions/opps/${advanced.id}/modifier` }, rank: 1, score: score?.scoreValue ?? null })
+      ranked.push({ ...base, reasonType: "advanced_opportunity", reasonLabel: `Opportunité avancée sans action récente : ${advanced.title}`, exposureLabel: advanced.weightedGain === null ? undefined : formatEuroCompact(advanced.weightedGain), primaryAction: { label: advanced.nextActionLabel || "Relancer l’opportunité", href: `/missions/opps/${advanced.id}/modifier` }, rank: 1 })
       continue
     }
     const signal = signalsByCompany.get(company.id)?.toSorted((a, b) => (b.urgencyScore ?? 0) - (a.urgencyScore ?? 0) || b.detectedAt.localeCompare(a.detectedAt))[0]
     if (signal) {
-      ranked.push({ ...base, reasonType: "actionable_signal", reasonLabel: signal.recommendedAction || signal.title, rank: 2, score: score?.scoreValue ?? null })
+      ranked.push({ ...base, reasonType: "actionable_signal", reasonLabel: signal.recommendedAction || signal.title, rank: 2 })
       continue
     }
     const issue = issuesByCompany.get(company.id)?.toSorted((a, b) => b.urgency - a.urgency || a.title.localeCompare(b.title, "fr"))[0]
     if (issue) {
-      ranked.push({ ...base, reasonType: "urgent_issue", reasonLabel: issue.title, exposureLabel: `Urgence ${issue.urgency}/5`, primaryAction: { label: "Traiter l’enjeu", href: issueHref(company.id) }, rank: 3, score: score?.scoreValue ?? null })
+      ranked.push({ ...base, reasonType: "urgent_issue", reasonLabel: issue.title, exposureLabel: `Urgence ${issue.urgency}/5`, primaryAction: { label: "Traiter l’enjeu", href: issueHref(company.id) }, rank: 3 })
       continue
     }
     const lastInteraction = latestInteractions.get(company.id)
     const inactivityDays = lastInteraction ? daysUntil(lastInteraction, now) : null
     if (!lastInteraction || (inactivityDays !== null && inactivityDays <= -30)) {
       const days = lastInteraction ? Math.abs(inactivityDays ?? 0) : null
-      ranked.push({ ...base, reasonType: "dormant_relationship", reasonLabel: days === null ? "Aucune interaction enregistrée" : `Relation inactive depuis ${days} j`, rank: 4, score: score?.scoreValue ?? null })
+      ranked.push({ ...base, reasonType: "dormant_relationship", reasonLabel: days === null ? "Aucune interaction enregistrée" : `Relation inactive depuis ${days} j`, rank: 4 })
     }
   }
 
   return ranked
-    .toSorted((a, b) => a.rank - b.rank || (b.score ?? -1) - (a.score ?? -1) || a.companyName.localeCompare(b.companyName, "fr") || a.companyId.localeCompare(b.companyId))
+    .toSorted((a, b) => a.rank - b.rank || a.companyName.localeCompare(b.companyName, "fr") || a.companyId.localeCompare(b.companyId))
     .slice(0, 4)
     .map((account) => ({
       companyId: account.companyId,
@@ -193,7 +186,6 @@ function buildAccountsToAnimate(input: CockpitDesktopSources, now: Date): Cockpi
       reasonType: account.reasonType,
       reasonLabel: account.reasonLabel,
       exposureLabel: account.exposureLabel,
-      scoreLabel: account.scoreLabel,
       primaryAction: account.primaryAction,
     }))
 }

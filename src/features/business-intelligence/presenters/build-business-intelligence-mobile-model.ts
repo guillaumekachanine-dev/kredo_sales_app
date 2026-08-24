@@ -27,7 +27,6 @@ export interface BusinessIntelligenceMobilePeriodModel {
   metrics: {
     priorityAccountsCount: number
     openWindowsCount: number
-    averageConfidence: number | null
   }
   brief: {
     recommendedAccountName: string | null
@@ -130,18 +129,14 @@ function buildPeriodModel(
     {},
   )
   const recommended = accounts[0] ?? null
-  const nativeScores = accounts.filter((account) => account.nativeScore !== null)
 
   return {
     accounts,
     accountsBySectorId,
     recommendedAccountId: recommended?.accountId ?? null,
     metrics: {
-      priorityAccountsCount: accounts.filter((account) => account.priority >= 50).length,
+      priorityAccountsCount: accounts.filter((account) => account.topSignal !== null).length,
       openWindowsCount: snapshot.windows.filter((window) => window.isOpenNow).length,
-      averageConfidence: nativeScores.length > 0
-        ? Math.round(nativeScores.reduce((total, account) => total + (account.nativeScore?.confidence ?? 0), 0) / nativeScores.length)
-        : null,
     },
     brief: {
       recommendedAccountName: recommended?.name ?? null,

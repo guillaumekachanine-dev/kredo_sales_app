@@ -102,17 +102,17 @@ function getCoverageSummary(window: DashboardLabWindowView, viewModel: Dashboard
   if (exposedAccounts.length === 0) {
     return {
       avgReach: null,
-      avgPotential: null,
+      avgMomentum: null,
       linkedAccounts: 0,
     }
   }
 
   const avgReach = Math.round(exposedAccounts.reduce((sum, account) => sum + account.reachScore, 0) / exposedAccounts.length)
-  const avgPotential = Math.round(exposedAccounts.reduce((sum, account) => sum + account.potentialScore, 0) / exposedAccounts.length)
+  const avgMomentum = Math.round(exposedAccounts.reduce((sum, account) => sum + account.momentumScore30d, 0) / exposedAccounts.length)
 
   return {
     avgReach,
-    avgPotential,
+    avgMomentum,
     linkedAccounts: exposedAccounts.length,
   }
 }
@@ -257,7 +257,7 @@ export function SectorSignalLab({
                 <div className="mt-4 grid grid-cols-3 gap-3">
                   <MetricStrip label="Comptes liés" value={String(sector.linkedAccounts)} />
                   <MetricStrip label="Reach moyen" value={sector.avgReachScore !== null ? `${sector.avgReachScore}/100` : "—"} />
-                  <MetricStrip label="Potentiel" value={sector.avgPotentialScore !== null ? `${sector.avgPotentialScore}/100` : "—"} />
+                  <MetricStrip label="Momentum" value={sector.avgMomentumScore !== null ? `${sector.avgMomentumScore}/100` : "—"} />
                 </div>
               </div>
             ))}
@@ -313,7 +313,7 @@ export function SectorSignalLab({
 
               <div className="grid grid-cols-3 gap-4">
                 <MetricStrip label="Reach moyen" value={selectedCoverage?.avgReach !== null ? `${selectedCoverage?.avgReach}/100` : "—"} />
-                <MetricStrip label="Potentiel moyen" value={selectedCoverage?.avgPotential !== null ? `${selectedCoverage?.avgPotential}/100` : "—"} />
+                <MetricStrip label="Momentum moyen" value={selectedCoverage?.avgMomentum !== null ? `${selectedCoverage?.avgMomentum}/100` : "—"} />
                 <MetricStrip label="Couverture liée" value={selectedCoverage ? `${selectedCoverage.linkedAccounts} comptes` : "—"} />
               </div>
 

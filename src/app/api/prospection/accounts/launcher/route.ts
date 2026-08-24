@@ -10,7 +10,6 @@ type CrmLauncherAccount = {
   name: string
   sector: string | null
   status: string | null
-  score: number | null
   website: string | null
   logoPath: string | null
   contactCount: number
@@ -24,7 +23,6 @@ type AccountViewRow = {
   name: string
   sector: string | null
   relation_type: string
-  legacy_folio_score: number | string | null
   website: string | null
   logo_path: string | null
   nb_contacts: number | null
@@ -38,15 +36,6 @@ function sanitizeOrFilterTerm(value: string): string {
   return value.replace(/[,()*\\":]/g, " ").trim().slice(0, 100)
 }
 
-function toNumber(value: number | string | null): number | null {
-  if (typeof value === "number") return value
-  if (typeof value === "string") {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
 function isOpenOpportunityStage(stage: string | null | undefined): boolean {
   if (!stage) return false
   return !["gagne", "perdu", "abandonne", "non_traitee"].includes(stage)
@@ -58,7 +47,6 @@ function mapAccountRow(row: AccountViewRow): CrmLauncherAccount {
     name: row.name,
     sector: row.sector,
     status: row.relation_type,
-    score: toNumber(row.legacy_folio_score),
     website: row.website,
     logoPath: row.logo_path,
     contactCount: Number(row.nb_contacts ?? 0),
@@ -109,7 +97,7 @@ export async function GET(request: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: dbAccounts, error: dbError } = await (supabase as any)
           .from("v_crm_account_list")
-          .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
+          .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
           .in("id", pinnedIds)
 
         if (dbError) throw dbError
@@ -135,7 +123,7 @@ export async function GET(request: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: dbAccounts, error: dbError } = await (supabase as any)
         .from("v_crm_account_list")
-        .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
+        .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
         .or(`name.ilike.%${safeTerm}%,sector.ilike.%${safeTerm}%`)
         .limit(limit)
 
@@ -189,7 +177,7 @@ export async function GET(request: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: dbAccounts, error: dbError } = await (supabase as any)
           .from("v_crm_account_list")
-          .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
+          .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
           .in("id", targetIds)
 
         if (dbError) throw dbError
@@ -241,7 +229,7 @@ export async function GET(request: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: dbAccounts, error: dbError } = await (supabase as any)
           .from("v_crm_account_list")
-          .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
+          .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
           .in("id", targetIds)
 
         if (dbError) throw dbError

@@ -9,7 +9,6 @@ export type MobileAccountLookupEntry = {
   segment: string
   priority: string
   status: string
-  score: number | null
   website: string | null
   logoPath: string | null
   contactCount: number
@@ -42,7 +41,6 @@ type CompanyLookupRow = {
   segment: string | null
   priority: string
   lifecycle_status: string
-  legacy_folio_score: number | string | null
   website: string | null
   metadata: unknown
 }
@@ -75,23 +73,13 @@ function cleanText(value: string | null | undefined, fallback = "Non renseigné"
   return value && value.trim().length > 0 ? value.trim() : fallback
 }
 
-function toNumber(value: number | string | null): number | null {
-  if (typeof value === "number") return value
-  if (typeof value === "string") {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
 export async function getMobileAccountLookupData(): Promise<MobileAccountLookupEntry[]> {
   const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
   const [companiesResult, contactsResult] = await Promise.all([
     supabase
       .from<CompanyLookupRow>("companies")
-      .select("id,name,sector,segment,priority,lifecycle_status,legacy_folio_score,website,metadata")
-      .order("legacy_folio_score", { ascending: false, nullsFirst: false })
+      .select("id,name,sector,segment,priority,lifecycle_status,website,metadata")
       .order("name", { ascending: true })
       .limit(300),
     supabase
@@ -135,7 +123,6 @@ export async function getMobileAccountLookupData(): Promise<MobileAccountLookupE
         segment: cleanText(company.segment, "Segment non renseigné"),
         priority: company.priority,
         status: company.lifecycle_status,
-        score: toNumber(company.legacy_folio_score),
         website: company.website,
         logoPath,
         contactCount: contactCounts.get(company.id) ?? 0,
@@ -147,8 +134,7 @@ export async function getMobileAccountLookupData(): Promise<MobileAccountLookupE
     })
     .toSorted(
       (left, right) =>
-        (right.score ?? 0) - (left.score ?? 0)
-        || right.campaignContactCount - left.campaignContactCount
+        right.campaignContactCount - left.campaignContactCount
         || right.newsCount - left.newsCount
         || right.contactCount - left.contactCount
         || left.name.localeCompare(right.name),

@@ -60,7 +60,6 @@ export type CockpitAccountItem = {
   id: string
   name: string
   sector: string
-  scoreLabel: string
   lifecycleLabel: string
 }
 
@@ -254,7 +253,6 @@ export async function getCockpitDashboardData(): Promise<CockpitDashboardData> {
       id: item.id,
       name: item.name,
       sector: item.sector,
-      scoreLabel: item.score !== null ? `${item.score}/5` : "—",
       lifecycleLabel: item.lifecycleLabel,
     })),
     financeWatch,

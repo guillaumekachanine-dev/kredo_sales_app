@@ -11,7 +11,7 @@ export function StrategicBrief({ brief }: StrategicBriefProps) {
       <h2 className="font-heading text-sm font-bold text-heading">Brief stratégique</h2>
       <p className="mb-5 mt-2 max-w-4xl text-sm leading-relaxed text-body">
         Il y a actuellement <strong className="text-heading">{brief.openWindows} fenêtres ouvertes</strong> sur le marché.
-        Nous identifions <strong className="text-heading">{brief.insufficientlyCoveredPriorityAccounts} comptes prioritaires</strong> qui manquent de couverture.
+        Nous identifions <strong className="text-heading">{brief.insufficientlyCoveredAccounts} comptes</strong> qui manquent de couverture.
         {brief.bestSignalSector && (
           <span> Le secteur présentant le meilleur signal est actuellement <strong className="text-heading">{brief.bestSignalSector}</strong>.</span>
         )}

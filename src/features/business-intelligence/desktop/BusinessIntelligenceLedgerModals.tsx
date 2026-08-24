@@ -21,8 +21,8 @@ export function PriorityAccountsModal({
     <AppDialog
       open={open}
       onOpenChange={(next) => !next && onClose()}
-      title="Classement de couverture"
-      description="Tous les comptes prioritaires de la sélection active."
+      title="Comptes à examiner"
+      description="Comptes ordonnés par signal urgent, opportunité sans action, inactivité, puis nom."
       dataTheme="intelligence-reports"
       className="!w-[min(calc(100vw-2rem),72rem)]"
       bodyClassName="!pr-0"
@@ -33,14 +33,14 @@ export function PriorityAccountsModal({
         <table className="w-full min-w-[760px] text-left text-xs">
           <thead className="bg-surface-hover/50 text-[10px] uppercase tracking-[0.1em] text-muted">
             <tr>
-              <th className="px-3 py-3">Rang</th><th className="px-3 py-3">Compte</th><th className="px-3 py-3">Score action</th><th className="px-3 py-3">Score natif</th><th className="px-3 py-3">Potentiel / Reach</th><th className="px-3 py-3">Prochaine action</th>
+              <th className="px-3 py-3">Ordre</th><th className="px-3 py-3">Compte</th><th className="px-3 py-3">Signal</th><th className="px-3 py-3">Opportunités</th><th className="px-3 py-3">Reach / Momentum</th><th className="px-3 py-3">Prochaine action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/70">
             {accounts.map((account, index) => {
               const selected = account.accountId === selectedAccountId
               return <tr key={account.accountId} tabIndex={0} onClick={() => onSelectAccount(account.accountId)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectAccount(account.accountId) } }} className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${selected ? "border-l-2 border-primary bg-primary/10" : "hover:bg-surface-hover/45"}`}>
-                <td className="px-3 py-3 font-mono text-muted">{index + 1}</td><td className="px-3 py-3 font-semibold text-body">{account.name}</td><td className="px-3 py-3 text-body">{account.priority}</td><td className="px-3 py-3 text-body">{account.nativeScore ? `${account.nativeScore.value} · ${account.nativeScore.confidence}%` : "Proxy"}</td><td className="px-3 py-3 text-body">P: {account.potential} · R: {account.reach}</td><td className="max-w-[260px] px-3 py-3 text-body">{account.nextAction ?? "Action non déterminée"}</td>
+                <td className="px-3 py-3 font-mono text-muted">{index + 1}</td><td className="px-3 py-3 font-semibold text-body">{account.name}</td><td className="px-3 py-3 text-body">{account.topSignal?.title ?? "Aucun signal actif"}</td><td className="px-3 py-3 text-body">{account.openOpportunityCount}</td><td className="px-3 py-3 text-body">R: {account.reach} · M: {account.momentum}</td><td className="max-w-[260px] px-3 py-3 text-body">{account.nextAction ?? "Action non déterminée"}</td>
               </tr>
             })}
           </tbody>

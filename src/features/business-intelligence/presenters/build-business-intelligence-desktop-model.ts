@@ -8,11 +8,10 @@ export interface BusinessIntelligencePeriodModel {
     priorityAccountsCount: number
     openWindowsCount: number
     activeSectorsCount: number
-    averageConfidence: number | null
   }
   strategicBrief: {
     openWindows: number
-    insufficientlyCoveredPriorityAccounts: number
+    insufficientlyCoveredAccounts: number
     bestSignalSector: string | null
     topArbitrationAccount: string | null
     hottestWindow: string | null
@@ -22,9 +21,10 @@ export interface BusinessIntelligencePeriodModel {
   matrixPoints: {
     accountId: string
     name: string
-    potential: number
     reach: number
-    priority: number
+    momentum: number
+    openOpportunityCount: number
+    signalUrgency: number | null
   }[]
   attackPanelData: Record<string, AccountAttackItem | null>
 }
@@ -44,7 +44,7 @@ function buildPeriodModel(
   const priorityBoard = buildAccountPrioritizationModel(snapshot, { period: periodParam })
   
   // KPI Calculations
-  const priorityAccountsCount = priorityBoard.filter(a => a.priority >= 50).length
+  const priorityAccountsCount = priorityBoard.filter((account) => account.topSignal !== null).length
   
   const openWindows = snapshot.windows.filter(w => w.isOpenNow)
   const openWindowsCount = openWindows.length
@@ -52,19 +52,14 @@ function buildPeriodModel(
   const activeSectors = snapshot.sectors.filter(s => s.status === "active")
   const activeSectorsCount = activeSectors.length
 
-  const accountsWithNativeScore = priorityBoard.filter(a => a.nativeScore !== null)
-  const averageConfidence = accountsWithNativeScore.length > 0
-    ? Math.round(accountsWithNativeScore.reduce((sum, a) => sum + (a.nativeScore?.confidence ?? 0), 0) / accountsWithNativeScore.length)
-    : null
-
   // Strategic Brief
-  const insufficientlyCoveredPriorityAccounts = priorityBoard.filter(a => a.priority >= 60 && a.reach < 50).length
+  const insufficientlyCoveredAccounts = priorityBoard.filter((account) => account.reach < 50).length
   
   const bestSignalSector = openWindows.length > 0 
     ? openWindows.toSorted((a, b) => b.urgencyScore - a.urgencyScore)[0]?.sectorName ?? null
     : null
 
-  const topArbitrationAccount = priorityBoard.find(a => a.priority >= 70 && a.reach < 40)?.name ?? null
+  const topArbitrationAccount = priorityBoard.find((account) => account.topSignal && account.reach < 40)?.name ?? null
   const hottestWindow = openWindows.length > 0 
     ? openWindows.toSorted((a, b) => b.urgencyScore - a.urgencyScore)[0]?.title ?? null
     : null
@@ -83,9 +78,10 @@ function buildPeriodModel(
   const matrixPoints = priorityBoard.map(a => ({
     accountId: a.accountId,
     name: a.name,
-    potential: a.potential,
     reach: a.reach,
-    priority: a.priority,
+    momentum: a.momentum,
+    openOpportunityCount: a.openOpportunityCount,
+    signalUrgency: a.topSignal?.urgencyScore ?? null,
   }))
 
   return {
@@ -93,11 +89,10 @@ function buildPeriodModel(
       priorityAccountsCount,
       openWindowsCount,
       activeSectorsCount,
-      averageConfidence,
     },
     strategicBrief: {
       openWindows: openWindowsCount,
-      insufficientlyCoveredPriorityAccounts,
+      insufficientlyCoveredAccounts,
       bestSignalSector,
       topArbitrationAccount,
       hottestWindow,

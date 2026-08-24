@@ -17,9 +17,9 @@ function makeAccount(
     name: "Test Corp",
     sector: "tech",
     sectorId: null,
+    segmentId: null,
     lifecycle: "prospect",
     priority: "normale",
-    legacyFolioScore: null,
     knowledgeState: "none",
     health: null,
     contactCount: 3,
@@ -45,8 +45,6 @@ function makeAccount(
     plannedCommercialEngagement30d: 0,
     plannedCommercialEngagement90d: 0,
     plannedCommercialEngagement180d: 0,
-    potentialScore: 50,
-    potentialOrigin: { primaryOrigin: "proxy" as const, origins: [] },
     reachScore: 50,
     reachGapScore: 50,
     momentumScore30d: 0,
@@ -58,14 +56,21 @@ function makeAccount(
     inactivityRiskScore30d: 0,
     inactivityRiskScore90d: 0,
     inactivityRiskScore180d: 0,
-    actionPriorityScore30d: 30,
-    actionPriorityScore90d: 30,
-    actionPriorityScore180d: 30,
     nextDecision: "",
     legacyCoverage: {
       hasClientAnalysis: false,
       hasSectorAnalysis: false,
       hasPitches: false,
+    },
+    nativeCoverage: {
+      hasClientAnalysis: false,
+      hasSectorAnalysis: false,
+      hasProcessDiagnostic: false,
+      hasRoadmap: false,
+      latestRunAt: null,
+      latestRunStatus: null,
+      countRuns: 0,
+      countResults: 0,
     },
     ...overrides,
   } as ProspectionPortfolioAccount
@@ -120,16 +125,14 @@ describe("resolveMobilePrimaryAction", () => {
       activity90d: 3,
       interactions90d: 2,
       committeeRoleCount: 2,
-      potentialScore: 70,
       openOpportunityCount: 0,
     })
     const result = resolveMobilePrimaryAction(account, defaultReco, "90d")
     expect(result.key).toBe("create-opportunity")
   })
 
-  it("does NOT create opportunity for high potential without qualification", () => {
+  it("does NOT create opportunity without qualification facts", () => {
     const account = makeAccount({
-      potentialScore: 90,
       activity90d: 0,
       interactions90d: 0,
       committeeRoleCount: 0,
@@ -166,7 +169,6 @@ describe("resolveMobilePrimaryAction", () => {
       momentumScore90d: 10,
       plannedCommercialEngagement90d: 0,
       committeeRoleCount: 0,
-      potentialScore: 40,
     })
     const result = resolveMobilePrimaryAction(account, defaultReco, "90d")
     expect(result.key).toBe("create-qualification-task")
@@ -178,7 +180,6 @@ describe("hasQualificationSignal", () => {
   it("returns true with sufficient signals", () => {
     const account = makeAccount({
       committeeRoleCount: 1,
-      potentialScore: 70,
     })
     const metrics: PortfolioPeriodMetrics = {
       activityCount: 3,
@@ -188,7 +189,6 @@ describe("hasQualificationSignal", () => {
       momentumScore: 30,
       monthlyEquivalentPoints: 0,
       inactivityRiskScore: 0,
-      actionPriorityScore: 50,
     }
     expect(hasQualificationSignal(account, metrics)).toBe(true)
   })
@@ -196,7 +196,6 @@ describe("hasQualificationSignal", () => {
   it("returns false with activity but no committee", () => {
     const account = makeAccount({
       committeeRoleCount: 0,
-      potentialScore: 80,
     })
     const metrics: PortfolioPeriodMetrics = {
       activityCount: 5,
@@ -206,7 +205,6 @@ describe("hasQualificationSignal", () => {
       momentumScore: 30,
       monthlyEquivalentPoints: 0,
       inactivityRiskScore: 0,
-      actionPriorityScore: 50,
     }
     expect(hasQualificationSignal(account, metrics)).toBe(false)
   })
@@ -214,7 +212,6 @@ describe("hasQualificationSignal", () => {
   it("returns false with only 1 activity", () => {
     const account = makeAccount({
       committeeRoleCount: 2,
-      potentialScore: 80,
     })
     const metrics: PortfolioPeriodMetrics = {
       activityCount: 1,
@@ -224,7 +221,6 @@ describe("hasQualificationSignal", () => {
       momentumScore: 20,
       monthlyEquivalentPoints: 0,
       inactivityRiskScore: 0,
-      actionPriorityScore: 40,
     }
     expect(hasQualificationSignal(account, metrics)).toBe(false)
   })

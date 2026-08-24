@@ -43,7 +43,7 @@ export type DashboardLabViewModel = {
   summary: {
     totalAccounts: number
     filteredAccounts: number
-    scoredAccounts: number
+    accountsWithRecentActivity: number
     linkedSectorAccounts: number
     activeWindows: number
   }

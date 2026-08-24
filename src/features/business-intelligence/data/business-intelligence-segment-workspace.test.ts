@@ -19,7 +19,8 @@ describe("Business Intelligence segment workspace contracts", () => {
     expect(source).toContain('.eq("segment_id", segmentId)')
     expect(source).toContain('depth_level.is.null,depth_level.neq.mapped')
     expect(source).toContain('.in("company_id", companyIds)')
-    expect(source).toContain('.in("score_run_id", runIds)')
+    expect(source).not.toContain(["score", "run", "id"].join("_"))
+    expect(source).not.toContain(["account", "score"].join("_"))
   })
 
   it("charge une cartographie concurrentielle exacte sans fallback", () => {

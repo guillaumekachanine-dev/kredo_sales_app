@@ -22,16 +22,15 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
             <tr>
               <th className="border-b border-border/30 px-4 py-3 font-semibold">Rang</th>
               <th className="border-b border-border/30 px-4 py-3 font-semibold">Compte</th>
-              <th className="border-b border-border/30 px-4 py-3 font-semibold">Score Action</th>
-              <th className="border-b border-border/30 px-4 py-3 font-semibold">Score Natif</th>
-              <th className="hidden border-b border-border/30 px-4 py-3 font-semibold lg:table-cell">Potentiel / Reach</th>
+              <th className="border-b border-border/30 px-4 py-3 font-semibold">Signal</th>
+              <th className="border-b border-border/30 px-4 py-3 font-semibold">Reach</th>
               <th className="hidden border-b border-border/30 px-4 py-3 font-semibold xl:table-cell">Prochaine action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/20">
             {accounts.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-muted">
+                <td colSpan={5} className="py-8 text-center text-muted">
                   Aucun compte prioritaire trouvé.
                 </td>
               </tr>
@@ -39,11 +38,6 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
             {visibleAccounts.map((account, index) => {
               const isSelected = selectedAccountId === account.accountId
               
-              let provenanceLabel = ""
-              if (account.provenance === "REAL_NATIVE") provenanceLabel = "Natif"
-              else if (account.provenance === "REAL_LEGACY") provenanceLabel = "Historique"
-              else provenanceLabel = "Proxy"
-
               return (
                 <tr 
                   key={account.accountId} 
@@ -65,27 +59,11 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
                   </td>
                   <td className="py-3 px-4">
                     <span className="inline-flex items-center justify-center rounded bg-surface-hover px-2 py-1 text-xs font-bold text-body">
-                      {account.priority}
+                      {account.topSignal?.title ?? "Aucun signal actif"}
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    {account.nativeScore ? (
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-body">{account.nativeScore.value}</span>
-                        <span className="text-[10px] text-muted">{provenanceLabel} • {account.nativeScore.confidence}% conf.</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted">{provenanceLabel}</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 hidden lg:table-cell">
-                    <div className="flex items-center space-x-2 text-xs">
-                      <span className="text-body" title="Potentiel">P: {account.potential}</span>
-                      <span className="text-muted">|</span>
-                      <span className="text-body" title="Reach">
-                        R: {account.reach}
-                      </span>
-                    </div>
+                    <span className="text-xs text-body">{account.reach}</span>
                   </td>
                   <td className="hidden max-w-[250px] px-4 py-3 text-xs text-body xl:table-cell" title={account.nextAction ?? "Action non déterminée"}>
                     {account.nextAction ?? <span className="italic text-muted">Action non déterminée</span>}

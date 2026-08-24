@@ -20,7 +20,7 @@ export type ProspectionSummaryData =
       trust: PortfolioTrustBundle
       metrics: {
         totalAccounts: number
-        scoredAccounts: number
+        accountsWithRecentActivity: number
       }
     }
 
@@ -36,7 +36,7 @@ export const getProspectionSummaryData = cache(async (): Promise<ProspectionSumm
       trust: portfolio.trust,
       metrics: {
         totalAccounts: portfolio.metrics.totalAccounts,
-        scoredAccounts: portfolio.metrics.scoredAccounts,
+        accountsWithRecentActivity: portfolio.metrics.accountsWithRecentActivity,
       },
     }
   } catch (error) {

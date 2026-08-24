@@ -223,7 +223,7 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 
 `companies.meta_logo_path` / `meta_contact_stats` / `meta_has_study` / `meta_has_analysis_data` / `meta_has_sector_analysis` / `meta_has_pitches` — colonnes **GÉNÉRÉES STORED** (migration 060) projetant les scalaires dérivés de `metadata`. **Toujours les lire plutôt que `metadata`** : le blob pèse 14 Ko en moyenne, il est TOASTé, et chaque déréférencement le décompresse intégralement (39,4 ms → 3,47 ms sur la liste comptes). `resolveCompanyEmbed()` privilégie `meta_logo_path`. `jsonb_build_object()` étant `STABLE`, aucune colonne générée ne peut la contenir.
 
-`companies.size_band` — colonne **GÉNÉRÉE** à partir de `employee_count` (tranches 1-20/21-100/101-500/501-1000/1001-5000/+5k). `companies.legacy_folio_score` (ex-`ai_score`, renommé migration 027/ADR-0011 Lot 0) : score legacy FOLIO déprécié, non recalculé — voir [[ai-cost-monitoring-initiative]] et section ADR-0011 dans le journal de sessions.
+`companies.size_band` — colonne **GÉNÉRÉE** à partir de `employee_count` (tranches 1-20/21-100/101-500/501-1000/1001-5000/+5k). `companies.legacy_folio_score` (ex-`ai_score`, renommé migration 027/ADR-0011 Lot 0) reste physiquement présent jusqu'au LOT 2, mais le LOT 1 interdit désormais tout consumer runtime — voir `docs/FEATURES/account_global_scores_removal/01-LOT-1-RUNTIME-NEUTRALIZATION.md`.
 
 #### Domaine Référentiels — Offres & Profils
 | Table | Rows | Description |
@@ -361,14 +361,14 @@ p_result_id, p_accepted_axes, p_reason)`, qui relit le contenu depuis `ai_intell
 le client n'envoie jamais de valeur à écrire. Le macro n'est jamais proposé : il est déduit de
 `segment.parent_id`. Ajouter un axe = modifier cette fonction, pas la whitelist de propositions.
 
-#### Domaine Scoring de Priorité Commerciale (ADR-0011)
+#### Domaine Scoring de Priorité Commerciale (ADR-0011, stockage legacy neutralisé au runtime)
 | Table | Rows | Description |
 |---|---|---|
 | `account_score_runs` | 6 | Un run = un calcul complet et historisé (append-only, jamais d'UPDATE). `score_band` : `A`/`B`/`C`/`D`/`U` (`U`="Unqualified", confidence trop faible) |
 | `account_score_components` | 31 | Détail explicable par facteur C1-C6, `evidence_refs` JSONB pointant les lignes sources — `UNIQUE(score_run_id, component_key)` |
 | `account_score_feedback` | 0 | Retour qualitatif utilisateur sur un run (trop haut/trop bas/juste) — pas branché en V1 (Lot 6+) |
 
-**Vue `account_score_current`** : dernier run par compte (`DISTINCT ON (company_id) ... ORDER BY calculated_at DESC`) — seule vue à consommer côté app pour le score courant.
+**Vue `account_score_current`** : dernier run historique par compte (`DISTINCT ON (company_id) ... ORDER BY calculated_at DESC`). Elle reste physiquement présente pour le LOT 2, mais ne doit plus être consommée par l'application, les RPC ou n8n.
 
 #### Domaine Cockpit Décisionnel — Enjeux & Roadmap (ADR-0012)
 | Table | Rows | Description |
@@ -469,7 +469,7 @@ Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par 
 | `v_collaborator_activity_summary` (migration 025) | 1 ligne par collaborateur × mois — activité (business/billable/pto/sick/non_billable), finance (revenue, employer_cost, real_margin, real_margin_pct), marge théorique |
 | `v_collaborator_ytd_activity` (migration 025) | Taux d'activité YTD pondéré (pas moyenne des %), gap vs TACI cible, finance YTD |
 | `v_profitability_alerts` (migration 025) | Flags booléens : `alert_low_activity` (<70%), `alert_low_margin` (<15%), `alert_negative_margin`, `alert_high_sick_days` (≥5j), `alert_cra_not_validated` |
-| `account_score_current` | Dernier run de score par compte (`DISTINCT ON`), source de vérité du score courant |
+| `account_score_current` | Stockage historique du dernier run par compte (`DISTINCT ON`), physiquement conservé pour le LOT 2 et neutralisé au runtime depuis le LOT 1 |
 | `v_ai_run_costs` | Coût/durée/tokens agrégés par run — coût `NULL` explicite si un seul résultat a un trou de données (pas de sous-estimation silencieuse) |
 | `v_ai_result_costs` | Coût par résultat/phase — distingue `tokens_missing` de `pricing_missing` |
 | `v_ai_cost_timeline` | Coût agrégé par jour × workflow × owner |

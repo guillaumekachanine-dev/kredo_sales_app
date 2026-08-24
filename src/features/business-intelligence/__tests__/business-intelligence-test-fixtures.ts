@@ -1,0 +1,111 @@
+import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
+import type { DataTrustMeta, ProspectionPortfolioAccount } from "@/lib/prospection/portfolio-account-metrics"
+
+export function makePortfolioAccount(
+  id: string,
+  overrides: Partial<ProspectionPortfolioAccount> = {},
+): ProspectionPortfolioAccount {
+  return {
+    id,
+    name: `Compte ${id}`,
+    sector: "Secteur test",
+    sectorId: null,
+    segmentId: null,
+    lifecycle: "prospect",
+    priority: "normale",
+    knowledgeState: "none",
+    health: null,
+    contactCount: 1,
+    committeeRoleCount: 1,
+    committeeRoles: ["decideur"],
+    decisionPowerCount: 1,
+    opportunityCount: 0,
+    openOpportunityCount: 0,
+    weightedPipeline: 0,
+    latestCommercialActivityAt: null,
+    latestPlannedEngagementAt: null,
+    latestIntelligenceAt: null,
+    latestDataUpdateAt: null,
+    activity30d: 0,
+    activity90d: 0,
+    activity180d: 0,
+    interactions30d: 0,
+    interactions90d: 0,
+    interactions180d: 0,
+    calendar30d: 0,
+    calendar90d: 0,
+    calendar180d: 0,
+    plannedCommercialEngagement30d: 0,
+    plannedCommercialEngagement90d: 0,
+    plannedCommercialEngagement180d: 0,
+    reachScore: 50,
+    reachGapScore: 50,
+    momentumScore30d: 0,
+    momentumScore90d: 0,
+    momentumScore180d: 0,
+    monthlyEquivalentPoints30d: 0,
+    monthlyEquivalentPoints90d: 0,
+    monthlyEquivalentPoints180d: 0,
+    inactivityRiskScore30d: 100,
+    inactivityRiskScore90d: 100,
+    inactivityRiskScore180d: 100,
+    nextDecision: "Qualifier le prochain mouvement",
+    legacyCoverage: { hasClientAnalysis: false, hasSectorAnalysis: false, hasPitches: false },
+    nativeCoverage: {
+      hasClientAnalysis: false,
+      hasSectorAnalysis: false,
+      hasProcessDiagnostic: false,
+      hasRoadmap: false,
+      latestRunAt: null,
+      latestRunStatus: null,
+      countRuns: 0,
+      countResults: 0,
+    },
+    ...overrides,
+  }
+}
+
+const trustMeta: DataTrustMeta = {
+  id: "test",
+  label: "Test",
+  primaryOrigin: "PROXY",
+  origins: ["OBSERVED", "PROXY"],
+  formula: "Indicateur spécialisé de test",
+  freshness: { latestAt: null, label: "Indisponible" },
+  completeness: { value: 0, label: "0%" },
+  limitations: [],
+}
+
+export function makeBusinessIntelligenceSnapshot(
+  overrides: Partial<BusinessIntelligenceSnapshot> = {},
+): BusinessIntelligenceSnapshot {
+  return {
+    state: "ready",
+    generatedAt: "2026-07-17T00:00:00.000Z",
+    lastUpdatedAt: null,
+    accounts: [],
+    signals: [],
+    sectors: [],
+    windows: [],
+    filterOptions: {
+      sectors: [],
+      practices: [],
+      sourceTypes: [],
+      priorityBands: [],
+      temporalStatuses: [],
+      statusFilters: [],
+    },
+    trust: {
+      accountReach: trustMeta,
+      accountMomentum: trustMeta,
+      accountInactivityRisk: trustMeta,
+    },
+    dataQuality: {
+      syntheticInteractionsCount: 0,
+      realInteractionsCount: 0,
+      hasDemoData: false,
+      limitations: [],
+    },
+    ...overrides,
+  }
+}

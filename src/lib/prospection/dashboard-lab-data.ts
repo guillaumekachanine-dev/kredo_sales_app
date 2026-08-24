@@ -41,7 +41,7 @@ export type DashboardLabSectorWindow = {
   exposedCompanyIds: string[]
   exposedCompanyNames: string[]
   avgReachScore: number | null
-  avgPotentialScore: number | null
+  avgMomentumScore: number | null
   suggestedAction: string
   meta: DataTrustMeta
 }
@@ -58,7 +58,7 @@ export type DashboardLabSectorSummary = {
   linkedAccounts: number
   windowsCount: number
   avgReachScore: number | null
-  avgPotentialScore: number | null
+  avgMomentumScore: number | null
 }
 
 export type DashboardLabData = {
@@ -69,10 +69,10 @@ export type DashboardLabData = {
   sectorWindows: DashboardLabSectorWindow[]
   metrics: {
     totalAccounts: number
-    scoredAccounts: number
+    accountsWithRecentActivity: number
     accountsWithCommitteeRole: number
     accountsLinkedToSectorIntelligence: number
-    realNativeWindowCount: number
+    observedWindowCount: number
     nativeIntelligenceAccounts: number
     legacyIntelligenceAccounts: number
   }
@@ -82,10 +82,9 @@ export type DashboardLabData = {
     priorities: string[]
   }
   trust: {
-    accountPotential: DataTrustMeta
     accountReach: DataTrustMeta
     accountMomentum30d: DataTrustMeta
-    commandCenterPriority: DataTrustMeta
+    accountInactivityRisk: DataTrustMeta
     sectorWindowLedger: DataTrustMeta
   }
 }
@@ -283,7 +282,7 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
     sectorNewsResult,
     sectorRegulatoryResult,
   ] = await Promise.all([
-    supabase.from("companies").select<CompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at").order("name"),
+    supabase.from("companies").select<CompanyRow>("id,name,sector,sector_id,segment_id,lifecycle_status,priority,knowledge_state,health,updated_at").order("name"),
     supabase.from("contacts").select<ContactRow>("company_id,relationship_role,decision_power"),
     supabase.from("interactions").select<InteractionRow>("company_id,type,occurred_at"),
     supabase.from("calendar_events").select<CalendarEventRow>("company_id,event_type,starts_at,status"),
@@ -330,7 +329,7 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
     const practiceScores = toPracticeMap(sector.practices_fit)
     const linkedAccounts = accountsBySectorId.get(sector.id) ?? []
     const linkedReachScores = linkedAccounts.map((account) => account.reachScore)
-    const linkedPotentialScores = linkedAccounts.map((account) => account.potentialScore)
+    const linkedMomentumValues = linkedAccounts.map((account) => account.momentumScore30d)
     const windowsCount =
       sectorEvents.filter((event) => event.sector_id === sector.id && event.status === "pending").length
       + sectorNews.filter((item) => item.sector_id === sector.id && item.is_trigger_event).length
@@ -350,8 +349,8 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
       avgReachScore: linkedReachScores.length > 0
         ? Math.round(linkedReachScores.reduce((sum, value) => sum + value, 0) / linkedReachScores.length)
         : null,
-      avgPotentialScore: linkedPotentialScores.length > 0
-        ? Math.round(linkedPotentialScores.reduce((sum, value) => sum + value, 0) / linkedPotentialScores.length)
+      avgMomentumScore: linkedMomentumValues.length > 0
+        ? Math.round(linkedMomentumValues.reduce((sum, value) => sum + value, 0) / linkedMomentumValues.length)
         : null,
     }
   })
@@ -385,13 +384,13 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
       exposedCompanyIds: exposedAccounts.map((account) => account.id),
       exposedCompanyNames: exposedAccounts.map((account) => account.name),
       avgReachScore: sector.avgReachScore,
-      avgPotentialScore: sector.avgPotentialScore,
+      avgMomentumScore: sector.avgMomentumScore,
       suggestedAction: "Activer un angle commercial court et cibler un compte prioritaire par secteur.",
       meta: {
         id: `window-event-${event.id}`,
         label: "Fenêtre sectorielle",
-        primaryOrigin: "REAL_NATIVE",
-        origins: ["REAL_NATIVE", "PROXY"],
+        primaryOrigin: "OBSERVED",
+        origins: ["OBSERVED", "PROXY"],
         formula: "sector_events en statut pending + practice suggérée déduite du meilleur fit sectoriel.",
         freshness: {
           latestAt: event.event_date,
@@ -435,13 +434,13 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
       exposedCompanyIds: exposedAccounts.map((account) => account.id),
       exposedCompanyNames: exposedAccounts.map((account) => account.name),
       avgReachScore: sector.avgReachScore,
-      avgPotentialScore: sector.avgPotentialScore,
+      avgMomentumScore: sector.avgMomentumScore,
       suggestedAction: "Valider si le signal ouvre une fenêtre d'introduction ou de relance rapide.",
       meta: {
         id: `window-news-${item.id}`,
         label: "Signal sectoriel",
-        primaryOrigin: "REAL_NATIVE",
-        origins: ["REAL_NATIVE", "PROXY"],
+        primaryOrigin: "OBSERVED",
+        origins: ["OBSERVED", "PROXY"],
         formula: "News sectorielle marquée trigger event + score de pertinence converti en urgence.",
         freshness: {
           latestAt: item.published_at,
@@ -491,13 +490,13 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
       exposedCompanyIds: exposedAccounts.map((account) => account.id),
       exposedCompanyNames: exposedAccounts.map((account) => account.name),
       avgReachScore: sector.avgReachScore,
-      avgPotentialScore: sector.avgPotentialScore,
+      avgMomentumScore: sector.avgMomentumScore,
       suggestedAction: "Préempter le sujet avant arbitrage, avec un playbook court orienté conformité et delivery.",
       meta: {
         id: `window-reg-${item.id}`,
         label: "Fenêtre réglementaire",
-        primaryOrigin: "REAL_NATIVE",
-        origins: ["REAL_NATIVE"],
+        primaryOrigin: "OBSERVED",
+        origins: ["OBSERVED"],
         formula: "Item réglementaire réel avec urgence mappée critical/high/medium/low et état temporel de la deadline.",
         freshness: {
           latestAt: item.deadline_date,
@@ -529,24 +528,23 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
     sectorWindows,
     metrics: {
       totalAccounts: metrics.totalAccounts,
-      scoredAccounts: metrics.scoredAccounts,
+      accountsWithRecentActivity: metrics.accountsWithRecentActivity,
       accountsWithCommitteeRole: metrics.accountsWithCommitteeRole,
       accountsLinkedToSectorIntelligence: metrics.accountsLinkedToSectorIntelligence,
-      realNativeWindowCount: sectorWindows.filter((window) => window.isCountedAsActive).length,
+      observedWindowCount: sectorWindows.filter((window) => window.isCountedAsActive).length,
       nativeIntelligenceAccounts: metrics.nativeIntelligenceAccounts,
       legacyIntelligenceAccounts: metrics.legacyIntelligenceAccounts,
     },
     filterOptions,
     trust: {
-      accountPotential: trust.accountPotential,
       accountReach: trust.accountReach,
       accountMomentum30d: trust.accountMomentum30d,
-      commandCenterPriority: trust.commandCenterPriority,
+      accountInactivityRisk: trust.accountInactivityRisk,
       sectorWindowLedger: {
         id: "sector-window-ledger",
         label: "Fenêtres sectorielles",
-        primaryOrigin: "REAL_NATIVE",
-        origins: ["REAL_NATIVE", "PROXY"],
+        primaryOrigin: "OBSERVED",
+        origins: ["OBSERVED", "PROXY"],
         formula: "sector_events pending, sector_news trigger et regulatory_items commerciaux réels, chacun enrichi d'un état temporel et d'un playbook suggéré.",
         freshness: {
           latestAt: latestDate(sectorWindows.map((window) => window.eventAt)),

@@ -189,4 +189,3 @@ SELECT
 -- -----------------------------------------------------------------------------
 -- EXPLAIN (ANALYZE, BUFFERS, VERBOSE) SELECT * FROM v_crm_account_list;
 -- EXPLAIN (ANALYZE, BUFFERS, VERBOSE) SELECT * FROM v_ai_intelligence_summary;
--- EXPLAIN (ANALYZE, BUFFERS, VERBOSE) SELECT * FROM account_score_current;

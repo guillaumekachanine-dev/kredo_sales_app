@@ -1,341 +1,127 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 
-interface PotentialReachMatrixProps {
+interface MomentumReachMatrixProps {
   points: {
     accountId: string
     name: string
-    potential: number
+    momentum: number
     reach: number
-    priority: number
+    openOpportunityCount: number
+    signalUrgency: number | null
   }[]
   selectedAccountId: string | null
   onSelectAccount: (id: string) => void
 }
 
-export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccount }: PotentialReachMatrixProps) {
+export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccount }: MomentumReachMatrixProps) {
   const [hoveredPointId, setHoveredPointId] = useState<string | null>(null)
-  const [focusedPointId, setFocusedPointId] = useState<string | null>(null)
+  const activePointId = hoveredPointId ?? selectedAccountId
+  const activePoint = useMemo(
+    () => points.find((point) => point.accountId === activePointId) ?? null,
+    [activePointId, points],
+  )
 
-  const activeTooltipId = hoveredPointId || focusedPointId || selectedAccountId
-
-  const activePoint = useMemo(() => {
-    return points.find(p => p.accountId === activeTooltipId) ?? null
-  }, [points, activeTooltipId])
-
-  const directlyLabelledIds = useMemo(() => new Set(
-    points.toSorted((left, right) => right.priority - left.priority).slice(0, 2).map((point) => point.accountId),
-  ), [points])
-
-  const W = 500
-  const H = 340
-  const mL = 60
-  const mR = 20
-  const mT = 30
-  const mB = 50
-
-  const plotW = W - mL - mR
-  const plotH = H - mT - mB
-
-  const x = (reach: number) => mL + (reach / 100) * plotW
-  const y = (potential: number) => mT + plotH - (potential / 100) * plotH
-
-  // Tooltip details
-  const TW = 160
-  const TH = 90
-
-  const tooltipCoords = !activePoint ? null : (() => {
-    const px = x(activePoint.reach)
-    const py = y(activePoint.potential)
-    const tx = px + 12 + TW > W - mR ? px - 12 - TW : px + 12
-    const ty = py - TH / 2 < mT ? mT : py - TH / 2 + TH > H - mB ? H - mB - TH : py - TH / 2
-    return { x: tx, y: ty, px, py }
-  })()
+  const width = 500
+  const height = 340
+  const margin = { left: 58, right: 22, top: 28, bottom: 48 }
+  const plotWidth = width - margin.left - margin.right
+  const plotHeight = height - margin.top - margin.bottom
+  const x = (reach: number) => margin.left + (reach / 100) * plotWidth
+  const y = (momentum: number) => margin.top + plotHeight - (momentum / 100) * plotHeight
 
   return (
     <section className="flex min-h-[430px] min-w-0 flex-col rounded-xl border border-border/30 bg-surface/30 p-5">
-      <h2 className="font-heading text-sm font-bold text-heading">Matrice Potentiel × Reach</h2>
-      <p className="mb-4 mt-1 text-xs text-muted">Croisement de la couverture relationnelle et du potentiel de développement.</p>
-      
-      <div className="flex-1 relative w-full flex items-center justify-center min-h-0">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="min-h-[340px] w-full"
-          role="img"
-          aria-label="Graphique à bulles croisant potentiel et reach des comptes"
-        >
-          <rect x={mL} y={mT} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.22" />
-          <rect x={x(50)} y={mT} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.1" />
-          <rect x={mL} y={y(50)} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.14" />
-          <rect x={x(50)} y={y(50)} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.06" />
-          <text x={mL + 12} y={mT + 18} fill="var(--color-body)" fontSize={11} fontWeight={700}>À développer</text>
-          <text x={x(50) + 12} y={mT + 18} fill="var(--color-body)" fontSize={11} fontWeight={700}>À activer</text>
-          <text x={mL + 12} y={mT + plotH - 12} fill="var(--color-body)" fontSize={11} fontWeight={700}>À surveiller</text>
-          <text x={x(50) + 12} y={mT + plotH - 12} fill="var(--color-body)" fontSize={11} fontWeight={700}>À préserver</text>
-          {/* Grid lines (25%, 50%, 75%) */}
-          {[25, 50, 75].map(tick => (
+      <h2 className="font-heading text-sm font-bold text-heading">Momentum × Reach</h2>
+      <p className="mb-4 mt-1 text-xs text-muted">Deux dimensions explicites : activité commerciale récente et couverture relationnelle.</p>
+
+      <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        <svg viewBox={`0 0 ${width} ${height}`} className="min-h-[340px] w-full" role="img" aria-label="Graphique croisant momentum et reach des comptes">
+          <rect x={margin.left} y={margin.top} width={plotWidth / 2} height={plotHeight / 2} fill="var(--color-surface-hover)" opacity="0.18" />
+          <rect x={x(50)} y={margin.top} width={plotWidth / 2} height={plotHeight / 2} fill="var(--color-surface-hover)" opacity="0.08" />
+          <rect x={margin.left} y={y(50)} width={plotWidth / 2} height={plotHeight / 2} fill="var(--color-surface-hover)" opacity="0.12" />
+          <rect x={x(50)} y={y(50)} width={plotWidth / 2} height={plotHeight / 2} fill="var(--color-surface-hover)" opacity="0.04" />
+          <text x={margin.left + 10} y={margin.top + 17} fill="var(--color-body)" fontSize={10} fontWeight={700}>Relation à élargir</text>
+          <text x={x(50) + 10} y={margin.top + 17} fill="var(--color-body)" fontSize={10} fontWeight={700}>Dynamique établie</text>
+          <text x={margin.left + 10} y={margin.top + plotHeight - 10} fill="var(--color-body)" fontSize={10} fontWeight={700}>Relation inactive</text>
+          <text x={x(50) + 10} y={margin.top + plotHeight - 10} fill="var(--color-body)" fontSize={10} fontWeight={700}>Couverture sans activité</text>
+          {[25, 50, 75].map((tick) => (
             <g key={tick} opacity={0.25}>
-              {/* Vertical grid */}
-              <line
-                x1={x(tick)} y1={mT}
-                x2={x(tick)} y2={mT + plotH}
-                stroke="var(--color-border)"
-                strokeDasharray="3 3"
-              />
-              {/* Horizontal grid */}
-              <line
-                x1={mL} y1={y(tick)}
-                x2={W - mR} y2={y(tick)}
-                stroke="var(--color-border)"
-                strokeDasharray="3 3"
-              />
+              <line x1={x(tick)} y1={margin.top} x2={x(tick)} y2={margin.top + plotHeight} stroke="var(--color-border)" strokeDasharray="3 3" />
+              <line x1={margin.left} y1={y(tick)} x2={width - margin.right} y2={y(tick)} stroke="var(--color-border)" strokeDasharray="3 3" />
+              <text x={x(tick)} y={height - 22} textAnchor="middle" fill="var(--color-muted)" fontSize={10}>{tick}</text>
+              <text x={margin.left - 12} y={y(tick) + 3} textAnchor="end" fill="var(--color-muted)" fontSize={10}>{tick}</text>
             </g>
           ))}
+          <line x1={margin.left} y1={margin.top + plotHeight} x2={width - margin.right} y2={margin.top + plotHeight} stroke="var(--color-border)" />
+          <line x1={margin.left} y1={margin.top} x2={margin.left} y2={margin.top + plotHeight} stroke="var(--color-border)" />
+          <text x={margin.left + plotWidth / 2} y={height - 6} textAnchor="middle" fill="var(--color-body)" fontSize={11}>Reach</text>
+          <text transform={`translate(14 ${margin.top + plotHeight / 2}) rotate(-90)`} textAnchor="middle" fill="var(--color-body)" fontSize={11}>Momentum</text>
 
-          {/* Axes */}
-          <line
-            x1={mL} y1={mT + plotH}
-            x2={W - mR} y2={mT + plotH}
-            stroke="var(--color-border)"
-            strokeWidth={1.5}
-          />
-          <line
-            x1={mL} y1={mT}
-            x2={mL} y2={mT + plotH}
-            stroke="var(--color-border)"
-            strokeWidth={1.5}
-          />
-
-          {/* Quadrant boundary lines (50% solid) */}
-          <line
-            x1={mL} y1={y(50)}
-            x2={W - mR} y2={y(50)}
-            stroke="var(--color-border)"
-            strokeOpacity={0.6}
-            strokeDasharray="4 4"
-          />
-          <line
-            x1={x(50)} y1={mT}
-            x2={x(50)} y2={mT + plotH}
-            stroke="var(--color-border)"
-            strokeOpacity={0.6}
-            strokeDasharray="4 4"
-          />
-
-          {/* Axis ticks and labels */}
-          {[0, 50, 100].map(val => (
-            <g key={val}>
-              {/* X ticks */}
-              <text
-                x={x(val)}
-                y={mT + plotH + 16}
-                textAnchor="middle"
-                fontSize={9}
-                fontWeight={600}
-                fill="var(--color-muted)"
-              >
-                {val}%
-              </text>
-              {/* Y ticks */}
-              <text
-                x={mL - 8}
-                y={y(val) + 3}
-                textAnchor="end"
-                fontSize={9}
-                fontWeight={600}
-                fill="var(--color-muted)"
-              >
-                {val}%
-              </text>
-            </g>
-          ))}
-
-          {/* Axis titles */}
-          <text
-            x={mL + plotW / 2}
-            y={H - 12}
-            textAnchor="middle"
-            fontSize={10}
-            fontWeight={700}
-            fill="var(--color-muted)"
-          >
-            Reach (Couverture relationnelle)
-          </text>
-          <text
-            x={15}
-            y={mT + plotH / 2}
-            textAnchor="middle"
-            fontSize={10}
-            fontWeight={700}
-            fill="var(--color-muted)"
-            transform={`rotate(-90 15 ${mT + plotH / 2})`}
-          >
-            Potentiel commercial
-          </text>
-
-          {/* Highlight lines for active point */}
-          {tooltipCoords && (
-            <g opacity={0.5}>
-              <line
-                x1={mL} y1={tooltipCoords.py}
-                x2={tooltipCoords.px} y2={tooltipCoords.py}
-                stroke="var(--color-dataviz-1)"
-                strokeDasharray="2 3"
-                strokeWidth={1}
-              />
-              <line
-                x1={tooltipCoords.px} y1={tooltipCoords.py}
-                x2={tooltipCoords.px} y2={mT + plotH}
-                stroke="var(--color-dataviz-1)"
-                strokeDasharray="2 3"
-                strokeWidth={1}
-              />
-            </g>
-          )}
-
-          {/* Bubble Points */}
-          {points.map(point => {
-            const isSelected = selectedAccountId === point.accountId
-            const isHovered = hoveredPointId === point.accountId
-            const isFocused = focusedPointId === point.accountId
-            
-            // Map priority to radius
-            const radius = isSelected || isHovered || isFocused
-              ? 9
-              : Math.max(4, 4 + (point.priority / 100) * 6)
-
-            const cx = x(point.reach)
-            const cy = y(point.potential)
-
+          {points.map((point) => {
+            const selected = point.accountId === selectedAccountId
+            const radius = Math.min(11, 5 + point.openOpportunityCount * 1.5)
             return (
-              <g
+              <circle
                 key={point.accountId}
-                className="cursor-pointer outline-none group"
+                cx={x(point.reach)}
+                cy={y(point.momentum)}
+                r={selected ? radius + 2 : radius}
+                fill={selected ? "var(--color-primary)" : "var(--color-body)"}
+                 opacity={selected ? 1 : 0.7}
+                 className="transition-all duration-200 motion-reduce:transition-none"
+                tabIndex={0}
+                role="button"
+                aria-label={`${point.name}, reach ${point.reach}, momentum ${point.momentum}, ${point.openOpportunityCount} opportunités ouvertes`}
                 onClick={() => onSelectAccount(point.accountId)}
                 onMouseEnter={() => setHoveredPointId(point.accountId)}
                 onMouseLeave={() => setHoveredPointId(null)}
-                onFocus={() => setFocusedPointId(point.accountId)}
-                onBlur={() => setFocusedPointId(null)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
+                onFocus={() => setHoveredPointId(point.accountId)}
+                onBlur={() => setHoveredPointId(null)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
                     onSelectAccount(point.accountId)
                   }
                 }}
-              >
-                {/* Outer halo on select/hover */}
-                {(isSelected || isHovered || isFocused) && (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={radius + 3}
-                  fill="var(--color-primary)"
-                    opacity={0.2}
-                     className="transition-all duration-200 motion-reduce:transition-none"
-                  />
-                )}
-                {/* Core point */}
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={radius}
-                  fill={isSelected || isHovered || isFocused ? "var(--color-primary)" : "var(--color-body)"}
-                  opacity={isSelected || isHovered || isFocused ? 1 : 0.75}
-                  stroke={isSelected ? "var(--color-surface)" : "var(--color-border)"}
-                  strokeWidth={1.5}
-                   className="transition-all duration-200 motion-reduce:transition-none"
-                />
-                {(isSelected || directlyLabelledIds.has(point.accountId)) && (
-                  <text x={cx + radius + 5} y={cy + 4} fill={isSelected ? "var(--color-primary)" : "var(--color-body)"} fontSize={9} fontWeight={700}>
-                    {point.name.length > 18 ? `${point.name.slice(0, 16)}…` : point.name}
-                  </text>
-                )}
-              </g>
+              />
             )
           })}
-
-          {/* Custom styled SVG Tooltip */}
-          {activePoint && tooltipCoords && (
-             <g style={{ pointerEvents: "none" }} className="animate-in fade-in duration-150 motion-reduce:animate-none motion-reduce:duration-0">
-              <rect
-                x={tooltipCoords.x}
-                y={tooltipCoords.y}
-                width={TW}
-                height={TH}
-                rx={6}
-                fill="var(--color-surface)"
-                stroke="var(--color-border)"
-                strokeWidth={1.2}
-                style={{ filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.15))" }}
-              />
-              {/* Account name */}
-              <text
-                x={tooltipCoords.x + 10}
-                y={tooltipCoords.y + 18}
-                 fill="var(--color-body)"
-                fontSize={9.5}
-                fontWeight={700}
-              >
-                {activePoint.name.length > 25 ? `${activePoint.name.slice(0, 23)}...` : activePoint.name}
-              </text>
-              <line
-                x1={tooltipCoords.x + 6}
-                y1={tooltipCoords.y + 24}
-                x2={tooltipCoords.x + TW - 6}
-                y2={tooltipCoords.y + 24}
-                stroke="var(--color-border)"
-                strokeOpacity={0.5}
-              />
-              {/* Metrics */}
-              <text x={tooltipCoords.x + 10} y={tooltipCoords.y + 40} fill="var(--color-muted)" fontSize={8.5} fontWeight={500}>
-                Potentiel :
-              </text>
-               <text x={tooltipCoords.x + TW - 10} y={tooltipCoords.y + 40} textAnchor="end" fill="var(--color-body)" fontSize={8.5} fontWeight={700}>
-                {activePoint.potential}%
-              </text>
-
-              <text x={tooltipCoords.x + 10} y={tooltipCoords.y + 54} fill="var(--color-muted)" fontSize={8.5} fontWeight={500}>
-                Reach :
-              </text>
-               <text x={tooltipCoords.x + TW - 10} y={tooltipCoords.y + 54} textAnchor="end" fill="var(--color-body)" fontSize={8.5} fontWeight={700}>
-                {activePoint.reach}%
-              </text>
-
-              <text x={tooltipCoords.x + 10} y={tooltipCoords.y + 68} fill="var(--color-muted)" fontSize={8.5} fontWeight={500}>
-                Priorité :
-              </text>
-              <text x={tooltipCoords.x + TW - 10} y={tooltipCoords.y + 68} textAnchor="end" fill="var(--color-dataviz-1)" fontSize={8.5} fontWeight={700}>
-                {activePoint.priority}/100
-              </text>
-            </g>
-          )}
         </svg>
-      </div>
 
-      {/* Screen Reader accessible summary table */}
+        {activePoint ? (
+          <div className="pointer-events-none absolute right-3 top-3 max-w-52 rounded-lg border border-border/40 bg-surface px-3 py-2 text-xs shadow-lg">
+            <p className="font-semibold text-heading">{activePoint.name}</p>
+            <p className="mt-1 text-body">Reach {activePoint.reach} · Momentum {activePoint.momentum}</p>
+            <p className="mt-1 text-muted">{activePoint.openOpportunityCount} opportunité(s) ouverte(s){activePoint.signalUrgency === null ? "" : ` · urgence ${activePoint.signalUrgency}`}</p>
+          </div>
+        ) : null}
+       </div>
+
       <table className="sr-only">
-        <caption>Valeurs détaillées de la matrice Potentiel × Reach</caption>
+        <caption>Valeurs détaillées de la matrice Momentum × Reach</caption>
         <thead>
           <tr>
             <th>Nom du compte</th>
-            <th>Potentiel commercial</th>
-            <th>Reach (Couverture relationnelle)</th>
-            <th>Priorité d&apos;action</th>
+            <th>Momentum commercial</th>
+            <th>Reach relationnel</th>
+            <th>Opportunités ouvertes</th>
+            <th>Urgence du signal</th>
           </tr>
         </thead>
         <tbody>
-          {points.map(p => (
-            <tr key={p.accountId}>
-              <td>{p.name}</td>
-              <td>{p.potential}%</td>
-              <td>{p.reach}%</td>
-              <td>{p.priority}/100</td>
+          {points.map((point) => (
+            <tr key={point.accountId}>
+              <td>{point.name}</td>
+              <td>{point.momentum}</td>
+              <td>{point.reach}</td>
+              <td>{point.openOpportunityCount}</td>
+              <td>{point.signalUrgency ?? "Non renseignée"}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </section>
-  )
-}
+     </section>
+   )
+ }

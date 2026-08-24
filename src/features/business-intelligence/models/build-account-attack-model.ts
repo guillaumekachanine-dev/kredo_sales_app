@@ -1,12 +1,14 @@
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
-
 import { getPortfolioPeriodMetrics, type ProspectionPeriod } from "@/lib/prospection/portfolio-account-metrics"
+
+type AccountSignal = BusinessIntelligenceSnapshot["signals"][number]
+
 
 export interface AccountAttackItem {
   accountId: string
   positiveDrivers: string[]
   vigilancePoints: string[]
-  topSignal: any | null
+  topSignal: AccountSignal | null
   sectorContext: {
     name: string
     status: string
@@ -16,55 +18,37 @@ export interface AccountAttackItem {
   recommendedPractice: string | null
   approachAngle: string | null
   nextAction: string | null
-  provenance: string
-  confidence: number | null
 }
 
 export function buildAccountAttackModel(
   snapshot: BusinessIntelligenceSnapshot,
   accountId: string,
-  options?: any
+  options: { period: 30 | 90 | 180 } = { period: 30 },
 ): AccountAttackItem | null {
-  const { accounts, scores, signals, sectors, windows } = snapshot
+  const { accounts, signals, sectors, windows } = snapshot
 
   const account = accounts.find(a => a.id === accountId)
   if (!account) return null
+  const periodMetrics = getPortfolioPeriodMetrics(account, `${options.period}d` as ProspectionPeriod)
 
-  const periodParam = options?.period ?? 30
-  const period = `${periodParam}d` as ProspectionPeriod
-  const periodMetrics = getPortfolioPeriodMetrics(account, period)
-
-  const nativeScore = scores[account.id]
   const accountSignals = signals.filter(sig => sig.companyId === account.id)
     .toSorted((a, b) => b.urgencyScore - a.urgencyScore)
 
   const topSignal = accountSignals[0] ?? null
   
-  // Extract positive drivers & vigilance from native score components if available
+  // Drivers remain explicit facts; they are not aggregated into an account score.
   const positiveDrivers: string[] = []
   const vigilancePoints: string[] = []
 
-  if (nativeScore && nativeScore.components) {
-    for (const comp of nativeScore.components) {
-      if (comp.normalizedScore >= 70) {
-        positiveDrivers.push(comp.label)
-      } else if (comp.normalizedScore <= 40) {
-        vigilancePoints.push(comp.label)
-      }
-    }
-  } else {
-    // Fallback deterministic rules
-    if (account.reachScore >= 70) positiveDrivers.push("Maturité relationnelle élevée")
-    if (periodMetrics.momentumScore >= 70) positiveDrivers.push("Dynamique d'engagement forte")
-    if (account.reachScore < 30) vigilancePoints.push("Couverture relationnelle faible")
-  }
+  if (account.reachScore >= 70) positiveDrivers.push("Maturité relationnelle élevée")
+  if (account.openOpportunityCount > 0) positiveDrivers.push("Opportunité commerciale ouverte")
+  if (account.reachScore < 30) vigilancePoints.push("Couverture relationnelle faible")
+  if (account.openOpportunityCount === 0) vigilancePoints.push("Aucune opportunité ouverte")
+  if (periodMetrics.inactivityRiskScore >= 70) vigilancePoints.push("Relation commerciale inactive sur la période")
+  if (account.openOpportunityCount > 0 && periodMetrics.plannedCount === 0) vigilancePoints.push("Opportunité ouverte sans prochaine action planifiée")
 
   const sector = sectors.find(s => s.id === account.sectorId)
   const sectorWindows = windows.filter(w => w.sectorId === account.sectorId && w.isOpenNow)
-
-  let provenance = "PROXY"
-  if (nativeScore) provenance = "REAL_NATIVE"
-  else if (account.legacyFolioScore !== null) provenance = "REAL_LEGACY"
 
   return {
     accountId: account.id,
@@ -79,10 +63,6 @@ export function buildAccountAttackModel(
     } : null,
     recommendedPractice: sector?.topPracticeLabel ?? null,
     approachAngle: sectorWindows.length > 0 ? sectorWindows[0].playbookSummary : null,
-    nextAction: sectorWindows.length > 0 ? sectorWindows[0].suggestedAction : null,
-    provenance,
-    confidence: provenance === "REAL_NATIVE" ? 90 : provenance === "REAL_LEGACY" ? 50 : null,
+    nextAction: topSignal?.recommendedAction ?? (sectorWindows.length > 0 ? sectorWindows[0].suggestedAction : account.nextDecision),
   }
 }
-
-

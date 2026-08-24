@@ -3,7 +3,7 @@ import type { AccountRow, ContactRow } from "./accounts-contacts-data"
 
 export type AccountsContactsTab = "accounts" | "contacts"
 
-export type SortAccountsValue = "score" | "alphabetique" | "activite"
+export type SortAccountsValue = "alphabetique" | "activite"
 
 export type AccountsContactsFilters = {
   tab: AccountsContactsTab
@@ -18,7 +18,6 @@ export type AccountsContactsFilters = {
   excludeRole: string[]
   includeRevenue: string[]
   includeSize: string[]
-  minScore: number | null
   hasEmail: boolean
   missingEmail: boolean
   hasStudy: boolean
@@ -40,7 +39,6 @@ const KEYS = {
   excludeRole: "excRole",
   includeRevenue: "incRevenue",
   includeSize: "incSize",
-  minScore: "minScore",
   hasEmail: "hasEmail",
   missingEmail: "missingEmail",
   hasStudy: "hasStudy",
@@ -58,16 +56,9 @@ function readBool(params: URLSearchParams, key: string): boolean {
   return params.get(key) === "1"
 }
 
-function readNumber(params: URLSearchParams, key: string): number | null {
-  const raw = params.get(key)
-  if (!raw) return null
-  const parsed = Number(raw)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
 function parseSortAccounts(value: string | null): SortAccountsValue {
   if (value === "alphabetique" || value === "activite") return value
-  return "score"
+  return "alphabetique"
 }
 
 export function parseFilters(params: URLSearchParams): AccountsContactsFilters {
@@ -84,7 +75,6 @@ export function parseFilters(params: URLSearchParams): AccountsContactsFilters {
     excludeRole: readList(params, KEYS.excludeRole),
     includeRevenue: readList(params, KEYS.includeRevenue),
     includeSize: readList(params, KEYS.includeSize),
-    minScore: readNumber(params, KEYS.minScore),
     hasEmail: readBool(params, KEYS.hasEmail),
     missingEmail: readBool(params, KEYS.missingEmail),
     hasStudy: readBool(params, KEYS.hasStudy),
@@ -128,7 +118,6 @@ export function filterAccounts(
     if (!passesIncludeExclude(account.status, filters.includeStatus, filters.excludeStatus)) return false
     if (!passesIncludeExclude(account.priority, filters.includePriority, filters.excludePriority)) return false
     if (!passesIncludeExclude(account.sector, filters.includeSector, filters.excludeSector)) return false
-    if (filters.minScore !== null && (account.score === null || account.score < filters.minScore)) return false
     if (filters.hasEmail && account.emailCount === 0) return false
     if (filters.missingEmail && account.emailCount > 0) return false
     if (filters.hasStudy && !studyIds.has(account.id)) return false

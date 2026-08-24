@@ -193,7 +193,6 @@ export function VeilleSignalsView({
             detectedAt: detailSignal.detectedAt,
             expiresAt: null,
             publishedAt: null,
-            globalScore: detailSignal.globalScore,
             interestScore: detailSignal.globalScore,
             urgencyScore: detailSignal.urgencyScore,
             confidenceScore: detailSignal.confidenceScore,

@@ -75,14 +75,6 @@ export type ActionPriorityInteraction = {
   occurredAt: string
 }
 
-export type ActionPriorityAccountScore = {
-  companyId: string | null
-  companyName: string | null
-  scoreBand: string | null
-  scoreValue: number | null
-  lifecycleContext: string | null
-}
-
 export type ActionPriorityCalendarEvent = {
   id: string
   title: string
@@ -97,7 +89,6 @@ export type BuildActionPrioritiesInput = {
   missions: ActionPriorityMission[]
   alerts: ActionPriorityAlert[]
   interactions: ActionPriorityInteraction[]
-  accountScores: ActionPriorityAccountScore[]
   calendarEvents: ActionPriorityCalendarEvent[]
 }
 
@@ -282,30 +273,7 @@ export function buildActionPriorities(input: BuildActionPrioritiesInput): Action
     }
   }
 
-  let accountsWithoutRecentAction = 0
-  for (const score of input.accountScores) {
-    if (!score.companyId || !["A", "B"].includes(score.scoreBand ?? "")) continue
-    const latestTouch = latestCompanyInteraction.get(score.companyId)
-    const inactiveDays = daysSince(latestTouch, now)
-    if (inactiveDays !== null && inactiveDays <= 30) continue
-    accountsWithoutRecentAction += 1
-    pushScored(items, {
-      scoreId: `action-priority:account:${score.companyId}`,
-      sourceId: score.companyId,
-      sourceType: "derived",
-      type: "alert",
-      domain: "commerce",
-      temporalState: "upcoming",
-      priority: score.scoreBand === "A" ? "urgent" : "high",
-      alertKind: "week_tension",
-      entityType: "company",
-      entityId: score.companyId,
-      entityLabel: score.companyName ?? "Compte",
-      action: inactiveDays === null ? "Planifier une action commerciale — aucun contact récent" : `Reprendre contact — inactif depuis ${inactiveDays} jours`,
-      impactReason: `Compte bande ${score.scoreBand}${score.scoreValue !== null ? ` · score ${Math.round(score.scoreValue ?? 0)}` : ""}`,
-      link: `/prospection/accounts/${score.companyId}`,
-    })
-  }
+  const accountsWithoutRecentAction = 0
 
   for (const event of input.calendarEvents) {
     if (event.hasPreparatoryTask) continue

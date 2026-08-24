@@ -476,14 +476,14 @@ export function AccountSignalsCard({
     startTransition(async () => {
       const priority = signal.urgencyScore >= 0.8
         ? "urgent"
-        : signal.globalScore >= 0.7
+        : signal.urgencyScore >= 0.5
           ? "high"
           : "normal"
 
       const description = [
         signal.summary,
         signal.primarySource ? `Source : ${signal.primarySource.source_name}` : null,
-        `Score global : ${signal.globalScore}`
+        `Urgence : ${Math.round(signal.urgencyScore * 100)}%`
       ].filter(Boolean).join("\n")
 
       const result = await createTask({

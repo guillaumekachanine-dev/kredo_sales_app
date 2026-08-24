@@ -3,7 +3,6 @@
 import { AccountAttackItem } from "../models/build-account-attack-model"
 import { AccountPriorityItem } from "../models/build-account-prioritization-model"
 import { Button } from "@/components/ui/Button"
-import { Badge } from "@/components/ui/Badge"
 import { useRouter } from "next/navigation"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 
@@ -22,38 +21,33 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
     )
   }
 
-  let provenanceLabel = "Proxy"
-  if (baseAccount.provenance === "REAL_NATIVE") provenanceLabel = "Natif"
-  else if (baseAccount.provenance === "REAL_LEGACY") provenanceLabel = "Historique"
-
   return (
       <section className="rounded-xl border border-border/30 bg-surface/30">
       <div className="border-b border-border/30 bg-surface-hover/20 p-4">
         <div className="flex justify-between items-start mb-2">
           <h2 className="truncate font-heading text-sm font-bold text-heading" title={baseAccount.name}>{baseAccount.name}</h2>
-          <Badge variant="neutral" className="ml-2 whitespace-nowrap">{baseAccount.priority} / 100</Badge>
+          <span className="ml-2 whitespace-nowrap text-xs text-muted">{baseAccount.openOpportunityCount} opportunité(s) ouverte(s)</span>
         </div>
         <div className="flex items-center space-x-2 text-xs text-muted">
           <span className="truncate max-w-[150px]">{attackData?.sectorContext?.name ?? "Secteur non déterminé"}</span>
           <span>•</span>
-          <span>Provenance : {provenanceLabel}</span>
+          <span>Reach : {baseAccount.reach}</span>
         </div>
       </div>
 
       <div className="space-y-6 p-5">
-        {/* Scores & Confiance */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="rounded border border-border/30 bg-surface/20 p-3">
-            <span className="mb-1 block text-[10px] uppercase text-muted">Score Stratégique</span>
-            <span className="block text-lg font-semibold text-body">
-              {baseAccount.nativeScore ? baseAccount.nativeScore.value : "N/A"}
-            </span>
+            <span className="mb-1 block text-[10px] uppercase text-muted">Reach</span>
+            <span className="block text-lg font-semibold text-body">{baseAccount.reach}</span>
           </div>
           <div className="rounded border border-border/30 bg-surface/20 p-3">
-            <span className="mb-1 block text-[10px] uppercase text-muted">Confiance</span>
-            <span className="block text-lg font-semibold text-body">
-              {attackData?.confidence !== null && attackData?.confidence !== undefined ? `${attackData.confidence}%` : "Non disponible"}
-            </span>
+            <span className="mb-1 block text-[10px] uppercase text-muted">Momentum</span>
+            <span className="block text-lg font-semibold text-body">{baseAccount.momentum}</span>
+          </div>
+          <div className="rounded border border-border/30 bg-surface/20 p-3">
+            <span className="mb-1 block text-[10px] uppercase text-muted">Inactivité</span>
+            <span className="block text-lg font-semibold text-body">{baseAccount.inactivityRisk}</span>
           </div>
         </div>
 

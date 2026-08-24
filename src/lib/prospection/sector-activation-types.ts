@@ -47,7 +47,6 @@ export interface SectorActivationWindow {
   isOpenNow: boolean
   exposedAccountIds: string[]
   exposedAccountCount: number
-  averagePotentialScore: number | null
   averageReachScore: number | null
   coverageGap: number | null
   suggestedAction: string
@@ -68,7 +67,6 @@ export interface SectorActivationSector {
   linkedAccountIds: string[]
   linkedAccountCount: number
   coveredAccountCount: number
-  averagePotentialScore: number | null
   averageReachScore: number | null
   coverageGap: number | null
   dataCoverageRatio: number
@@ -78,17 +76,17 @@ export interface SectorActivationSector {
   expiredWindowCount: number
   activationState: SectorActivationState
   updatedAt: string | null
-  painPoints?: any[]
+  painPoints?: unknown[]
   description?: string | null
 
   marketSizeEurBn?: number | null
   marketGrowthPct?: number | null
-  keyPlayersPaca?: any[]
-  keyPlayersNational?: any[]
+  keyPlayersPaca?: unknown[]
+  keyPlayersNational?: unknown[]
   avgTjmMin?: number | null
   avgTjmMax?: number | null
-  caveats?: any
-  playbook?: any
+  caveats?: unknown
+  playbook?: unknown
 }
 
 

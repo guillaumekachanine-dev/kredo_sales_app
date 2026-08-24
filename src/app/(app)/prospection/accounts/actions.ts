@@ -269,7 +269,7 @@ export async function getCompanyIdentity(companyId: string) {
 
     const companyResult = await supabase
       .from("companies")
-      .select("id, name, legal_name, siren, naf_code, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, legacy_folio_score, tags, metadata, created_at, updated_at, depth_level, origin")
+      .select("id, name, legal_name, siren, naf_code, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, tags, metadata, created_at, updated_at, depth_level, origin")
       .eq("id", companyId)
       .maybeSingle()
 
@@ -386,7 +386,7 @@ export async function getContactIdentity(contactId: string) {
           id, person_id, company_id, job_title, relationship_role, relationship_level,
           decision_power, department, status, is_priority, manager_contact_id, campaign_id,
           persons (id, full_name, first_name, last_name, primary_email, phone, linkedin_url, location, notes, metadata),
-          companies (id, name, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, legacy_folio_score, metadata)
+          companies (id, name, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, metadata)
         `)
         .eq("id", contactId)
         .maybeSingle(),
@@ -546,5 +546,4 @@ export async function updateContactDecisionPower(
   revalidatePath(REVALIDATE)
   return { error: null }
 }
-
 

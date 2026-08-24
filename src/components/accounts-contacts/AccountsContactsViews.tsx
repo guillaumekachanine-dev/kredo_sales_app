@@ -142,12 +142,6 @@ const PRIORITY_OPTIONS = [
   { value: "basse", label: "Basse" },
 ]
 
-const SCORE_OPTIONS: FilterOption[] = [
-  { value: "4", label: "≥ 4" },
-  { value: "3", label: "≥ 3" },
-  { value: "2", label: "≥ 2" },
-]
-
 const ROLE_OPTIONS = CONTACT_RELATIONSHIP_ROLE_OPTIONS
 
 const RELATIONSHIP_LEVEL_OPTIONS = [
@@ -2140,7 +2134,6 @@ export function ProspectionAccountsView({
       ...LIFECYCLE_OPTIONS,
       ...REVENUE_OPTIONS,
       ...SIZE_OPTIONS,
-      ...SCORE_OPTIONS,
     ]
     const longestLabelLength = accountFilterOptions.reduce(
       (longest, option) => Math.max(longest, option.label.length),
@@ -2196,8 +2189,7 @@ export function ProspectionAccountsView({
         const actB = b.taskCount + b.contactCount
         return actB - actA || a.name.localeCompare(b.name)
       }
-      // "score" — highest first, nulls last
-      return (b.score ?? -1) - (a.score ?? -1) || a.name.localeCompare(b.name)
+      return a.name.localeCompare(b.name, "fr") || a.id.localeCompare(b.id)
     })
   }, [filteredAccounts, filters.sortAccounts, device])
 
@@ -2388,17 +2380,6 @@ export function ProspectionAccountsView({
         panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
         fullWidthPanel
       />
-      {!isMobileAccounts && (
-        <FilterDropdown
-          label="Score"
-          mode="single"
-          options={SCORE_OPTIONS}
-          selected={filters.minScore === null ? [] : [String(filters.minScore)]}
-          onToggle={(value) => setParam("minScore", filters.minScore === Number(value) ? null : value)}
-          onClear={() => setParam("minScore", null)}
-          panelWidthCh={11}
-        />
-      )}
     </>
   ) : (
     <>

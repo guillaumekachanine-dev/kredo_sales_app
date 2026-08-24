@@ -181,7 +181,7 @@ export function CommercialWindowsSection({
                           {window.exposedAccountCount} compte{window.exposedAccountCount > 1 ? "s" : ""}
                         </p>
                         <p className="leading-5 text-muted">
-                          Potentiel moyen {window.averagePotentialScore ?? "—"} / 100
+                          Reach moyen {window.averageReachScore ?? "—"} / 100
                         </p>
                         <p className="leading-5 text-muted">
                           Reach moyen {window.averageReachScore ?? "—"} / 100

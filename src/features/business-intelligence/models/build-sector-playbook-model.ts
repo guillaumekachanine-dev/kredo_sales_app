@@ -70,10 +70,10 @@ export interface BusinessIntelligenceSectorProfile {
   priorityAccounts: {
     id: string
     name: string
-    priority: number
-    potential: number
     reach: number
-    nativeScore: number | null
+    momentum: number
+    openOpportunityCount: number
+    inactivityRisk: number
     signal: string | null
     action: string | null
   }[]
@@ -88,7 +88,7 @@ export function buildSectorPlaybookModel(
   snapshot: BusinessIntelligenceSnapshot,
   sectorId: string,
 ): BusinessIntelligenceSectorProfile | null {
-  const { sectors, accounts, windows, scores, signals } = snapshot
+  const { sectors, accounts, windows, signals } = snapshot
 
   const sector = sectors.find((s) => s.id === sectorId)
   if (!sector) return null
@@ -231,23 +231,35 @@ export function buildSectorPlaybookModel(
   // Priority accounts linked to this sector
   const sectorAccounts = accounts
     .filter((a) => (a.segmentId ?? a.sectorId) === sectorId)
-    .toSorted((a, b) => b.actionPriorityScore30d - a.actionPriorityScore30d)
+    .map((account) => ({
+      account,
+      topSignal: signals
+        .filter((signal) => signal.companyId === account.id)
+        .toSorted((left, right) => right.urgencyScore - left.urgencyScore || right.detectedAt.localeCompare(left.detectedAt))[0] ?? null,
+    }))
+    .toSorted((left, right) => {
+      const signalUrgency = (right.topSignal?.urgencyScore ?? -1) - (left.topSignal?.urgencyScore ?? -1)
+      if (signalUrgency !== 0) return signalUrgency
+      const leftOpportunityWithoutPlan = left.account.openOpportunityCount > 0 && left.account.plannedCommercialEngagement30d === 0
+      const rightOpportunityWithoutPlan = right.account.openOpportunityCount > 0 && right.account.plannedCommercialEngagement30d === 0
+      if (leftOpportunityWithoutPlan !== rightOpportunityWithoutPlan) return rightOpportunityWithoutPlan ? 1 : -1
+      if (left.account.inactivityRiskScore30d !== right.account.inactivityRiskScore30d) {
+        return right.account.inactivityRiskScore30d - left.account.inactivityRiskScore30d
+      }
+      return left.account.name.localeCompare(right.account.name, "fr") || left.account.id.localeCompare(right.account.id)
+    })
 
-  const priorityAccounts = sectorAccounts.slice(0, 5).map((a) => {
-    const nativeScore = scores[a.id]
-    const aSignals = signals.filter((sig) => sig.companyId === a.id)
-      .toSorted((x, y) => y.urgencyScore - x.urgencyScore)
-    const topSig = aSignals[0] ?? null
-    const action = topSig?.recommendedAction ?? a.nextDecision ?? null
+  const priorityAccounts = sectorAccounts.slice(0, 5).map(({ account, topSignal }) => {
+    const action = topSignal?.recommendedAction ?? account.nextDecision ?? null
 
     return {
-      id: a.id,
-      name: a.name,
-      priority: a.actionPriorityScore30d,
-      potential: a.potentialScore,
-      reach: a.reachScore,
-      nativeScore: nativeScore ? nativeScore.scoreValue : null,
-      signal: topSig ? topSig.title : null,
+      id: account.id,
+      name: account.name,
+      reach: account.reachScore,
+      momentum: account.momentumScore30d,
+      openOpportunityCount: account.openOpportunityCount,
+      inactivityRisk: account.inactivityRiskScore30d,
+      signal: topSignal?.title ?? null,
       action,
     }
   })

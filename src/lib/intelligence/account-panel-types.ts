@@ -102,7 +102,6 @@ export type AccountIntelligencePanelData = {
     segment: string | null
     priority: string
     lifecycleStatus: string
-    legacyFolioScore: number | null
     website: string | null
     logoPath: string | null
   }

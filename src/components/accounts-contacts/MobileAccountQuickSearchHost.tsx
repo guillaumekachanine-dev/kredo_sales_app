@@ -23,10 +23,6 @@ const PRESET_OPTIONS: Array<{ id: MobileAccountQuickSearchPreset; label: string 
   { id: "news", label: "Actualité" },
 ]
 
-function scoreLabel(score: number | null) {
-  return score === null ? "—" : `${score}/5`
-}
-
 function filterEntriesByPreset(
   preset: MobileAccountQuickSearchPreset,
   pinnedIds: string[],
@@ -279,7 +275,7 @@ export function MobileAccountQuickSearchHost() {
                           {entry.name}
                         </span>
                         <span className="mt-0.5 block truncate text-[11px] text-white/55">
-                          {entry.sector} · {entry.segment} · Score {scoreLabel(entry.score)}
+                          {entry.sector} · {entry.segment} · {entry.contactCount} contact(s)
                           {entry.hasCampaign ? " · Campagne" : ""}
                           {entry.hasNews ? " · Actualité" : ""}
                         </span>

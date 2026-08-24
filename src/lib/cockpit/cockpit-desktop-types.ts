@@ -25,7 +25,6 @@ export type CockpitAccountActivation = {
     | "dormant_relationship"
   reasonLabel: string
   exposureLabel?: string
-  scoreLabel?: string
   primaryAction: CockpitAction
 }
 

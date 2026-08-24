@@ -65,10 +65,9 @@ export type MobilePriorityItem = {
   lifecycleLabel: string
   priority: string
   priorityLabel: string
-  potentialScore: number
   reachScore: number
   momentumScore: number
-  actionPriorityScore: number
+  inactivityRisk: number
   openOpportunityCount: number
   contactCount: number
   hasActionableContact: boolean
@@ -124,7 +123,7 @@ function assignLenses(
   const periodMetrics = getPortfolioPeriodMetrics(account, period)
   const lenses: MobileLensKey[] = []
 
-  if (account.potentialScore >= 60 && periodMetrics.activityCount === 0 && account.openOpportunityCount === 0) {
+  if (periodMetrics.activityCount === 0 && account.openOpportunityCount === 0) {
     lenses.push("cibler")
   }
 
@@ -152,10 +151,6 @@ function computeDataConfidence(
   const reasons: string[] = []
   const periodMetrics = getPortfolioPeriodMetrics(account, period)
 
-  if (account.legacyFolioScore === null) {
-    reasons.push("Score de potentiel calculé par proxy")
-  }
-
   if (account.contactCount === 0) {
     reasons.push("Aucun contact identifié")
   }
@@ -171,9 +166,9 @@ function computeDataConfidence(
   const isPartial = reasons.length > 0
 
   let level: DataConfidence["level"]
-  if (account.legacyFolioScore !== null && account.contactCount > 0 && periodMetrics.activityCount > 0) {
+  if (account.contactCount > 0 && account.committeeRoleCount > 0 && periodMetrics.activityCount > 0) {
     level = "high"
-  } else if (account.legacyFolioScore !== null || account.contactCount > 0) {
+  } else if (account.contactCount > 0 || periodMetrics.activityCount > 0) {
     level = "medium"
   } else {
     level = "low"
@@ -245,7 +240,6 @@ export function hasQualificationSignal(
   return (
     periodMetrics.activityCount >= 2
     && account.committeeRoleCount > 0
-    && account.potentialScore >= 65
     && periodMetrics.interactionsCount >= 1
   )
 }
@@ -390,7 +384,6 @@ function buildSecondaryActions(
     && account.openOpportunityCount === 0
     && periodMetrics.activityCount > 0
     && account.committeeRoleCount > 0
-    && account.potentialScore >= 65
   ) {
     actions.push({
       key: "create-opportunity",
@@ -427,8 +420,8 @@ export function getCoverageIndicator(reachScore: number): {
 
 type LightProjection = {
   account: ProspectionPortfolioAccount
-  actionPriorityScore: number
-  potentialScore: number
+  inactivityRisk: number
+  plannedCount: number
   sector: string
   lifecycle: string
   priority: string
@@ -444,13 +437,13 @@ export function buildMobilePriorityViewModel(params: {
   const { accounts, filters, lens, trust } = params
   const period = filters.period
 
-  // Passe 1 — projection légère (96 comptes) : scoring + lenses seulement
+  // Passe 1 — projection légère : faits de période et lentilles seulement.
   const lightItems: LightProjection[] = accounts.map((account) => {
     const periodMetrics = getPortfolioPeriodMetrics(account, period)
     return {
       account,
-      actionPriorityScore: periodMetrics.actionPriorityScore,
-      potentialScore: account.potentialScore,
+      inactivityRisk: periodMetrics.inactivityRiskScore,
+      plannedCount: periodMetrics.plannedCount,
       sector: account.sector,
       lifecycle: account.lifecycle,
       priority: account.priority,
@@ -481,15 +474,13 @@ export function buildMobilePriorityViewModel(params: {
     ? filteredByBase
     : filteredByBase.filter((item) => item.lenses.includes(lens))
 
-  // 4. Classement
+  // 4. Ordre explicite : opportunité sans action, inactivité, puis nom/id.
   const sorted = [...filteredByLens].sort((a, b) => {
-    if (b.actionPriorityScore !== a.actionPriorityScore) {
-      return b.actionPriorityScore - a.actionPriorityScore
-    }
-    if (b.potentialScore !== a.potentialScore) {
-      return b.potentialScore - a.potentialScore
-    }
-    return a.account.name.localeCompare(b.account.name)
+    const leftOpportunityWithoutPlan = a.account.openOpportunityCount > 0 && a.plannedCount === 0
+    const rightOpportunityWithoutPlan = b.account.openOpportunityCount > 0 && b.plannedCount === 0
+    if (leftOpportunityWithoutPlan !== rightOpportunityWithoutPlan) return rightOpportunityWithoutPlan ? 1 : -1
+    if (b.inactivityRisk !== a.inactivityRisk) return b.inactivityRisk - a.inactivityRisk
+    return a.account.name.localeCompare(b.account.name, "fr") || a.account.id.localeCompare(b.account.id)
   })
 
   // 5. Troncature top N
@@ -510,10 +501,9 @@ export function buildMobilePriorityViewModel(params: {
       lifecycleLabel: getLifecycleLabel(account.lifecycle),
       priority: account.priority,
       priorityLabel: getPriorityLabel(account.priority),
-      potentialScore: account.potentialScore,
       reachScore: account.reachScore,
       momentumScore: periodMetrics.momentumScore,
-      actionPriorityScore: periodMetrics.actionPriorityScore,
+      inactivityRisk: periodMetrics.inactivityRiskScore,
       openOpportunityCount: account.openOpportunityCount,
       contactCount: account.contactCount,
       hasActionableContact: account.contactCount > 0,

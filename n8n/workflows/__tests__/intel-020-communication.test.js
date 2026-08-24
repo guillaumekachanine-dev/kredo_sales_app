@@ -108,7 +108,7 @@ function baseRpcMock(overrides = {}) {
   return (rpcName, body) => {
     if (overrides[rpcName]) return overrides[rpcName](body);
     if (rpcName === "get_communication_context") {
-      return { company: { id: body.p_company_id, name: "Acme", sector: "Tech", description: "Client actif" }, contact: body.p_contact_id ? { id: body.p_contact_id } : null, activeOpportunities: [], activeMissions: [], recentInteractions: [], sectorNews: [], sectorIntelligence: null, previousCommunications: [] };
+      return { company: { id: body.p_company_id, name: "Acme", sector: "Tech", description: "Client actif", ai_score: 4 }, contact: body.p_contact_id ? { id: body.p_contact_id } : null, activeOpportunities: [], activeMissions: [], recentInteractions: [], sectorNews: [], sectorIntelligence: null, previousCommunications: [] };
     }
     if (rpcName === "get_pitch_context") {
       return { company: { id: body.p_company_id, name: "Acme" }, offer: { id: body.p_offer_id, name: "Cybersecurity Audit" }, pricingGrid: [{ practice: "Cybersecurity", tjm: 700 }], suggestedPractices: [{ slug: "cyber" }], deliveredPractices: [], anchorOpportunity: null, anchorMission: null, previousPitches: [], legacyPitches: [], scores: { conviction: 4, investment: 3 } };
@@ -191,6 +191,8 @@ async function main() {
     check("2. offre obligatoire — 2 appels RPC (communication + pitch context, fusion)", calls.length === 2, JSON.stringify(calls.map((c) => c.options.url)));
     check("2. offre obligatoire — ctx fusionné contient company (général) ET offer (pitch)", Boolean(result[0].json.company) && Boolean(result[0].json.offer), JSON.stringify(result[0].json));
     check("2. offre obligatoire — ctx.pricingGrid présent (spécifique à get_pitch_context)", Array.isArray(result[0].json.pricingGrid) && result[0].json.pricingGrid.length > 0);
+    check("2. offre obligatoire — aucune note globale dans le contexte racine", !("scores" in result[0].json) && !("ai_score" in result[0].json.company));
+    check("2. offre obligatoire — aucune note globale dans le contrat normalisé", !("scores" in result[0].json.normalizedContract.context) && !("ai_score" in result[0].json.normalizedContract.context.company));
   }
 
   // ── 3. Recrutement candidat ────────────────────────────────────────────

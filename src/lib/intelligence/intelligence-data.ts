@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server"
 import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import { getOffersCatalog } from "@/lib/reference-data/get-offers-catalog"
 import { getOfferPracticesCatalog } from "@/lib/reference-data/get-offer-practices-catalog"
-import { getAccountScoreSummary, type AccountScoreSummaryView } from "@/lib/account-scoring/get-account-score-summary"
 import {
   ACCOUNT_KNOWLEDGE_RESULT_TYPE,
   SECTOR_SNAPSHOT_RESULT_TYPE,
@@ -210,11 +209,9 @@ export type ClientIntelligenceSignal = {
   // — distincte de detectedAt (date à laquelle Kredo a détecté le signal).
   // Null pour les signaux sans source datée (ajout manuel, source sans date).
   publishedAt: string | null
-  globalScore: number
   // Intérêt commercial pour Kredo : recoupe pertinence_esn (alignement mission
   // ESN) et fit_practice (correspondance practices Kredo) — délibérément
-  // distinct de globalScore, qui mélange aussi fraîcheur et fiabilité de
-  // source (qualité de la donnée, pas intérêt commercial).
+  // distinct de l'urgence et de la confiance de la source.
   interestScore: number
   urgencyScore: number
   confidenceScore: number
@@ -321,7 +318,6 @@ export type ClientIntelligenceData = {
     segment: string
     priority: string
     lifecycleStatus: string
-    legacyFolioScore: number | null
     website: string | null
     hqLocation: string
     logoPath: string | null
@@ -390,10 +386,6 @@ export type ClientIntelligenceData = {
   contacts: ClientIntelligenceContact[]
   pitches: LegacyPitch[]
   pitchDocuments: PitchDocumentSummary[]
-  // ADR-0011 Lot 4 — Score de Priorité Commerciale. null si aucun run n'a
-  // encore été calculé pour ce compte (état initial, avant le premier clic
-  // sur "Actualiser").
-  scoreSummary: AccountScoreSummaryView | null
   // ADR-0012 Lot 2 — blocs relationnels "Connaissance compte" (relational, sans LLM)
   opportunities: ClientIntelligenceOpportunity[]
   missions: ClientIntelligenceMission[]
@@ -602,7 +594,6 @@ type CompanyRow = {
   size_band: string | null
   priority: string
   lifecycle_status: string
-  legacy_folio_score: number | string | null
   website: string | null
   hq_location: string | null
   description: string | null
@@ -729,7 +720,7 @@ type AccountSignalRow = {
   detected_at: string
   last_evidence_at: string
   expires_at: string | null
-  global_score: number
+  relevance_score: number | null
   urgency_score: number
   confidence_score: number
   primary_source_id: string | null
@@ -867,7 +858,6 @@ export async function getClientIntelligence(
     resultsResult,
     contactsResult,
     pitchDocumentsResult,
-    scoreSummary,
     opportunitiesResult,
     missionsResult,
     projectsResult,
@@ -887,7 +877,7 @@ export async function getClientIntelligence(
     supabase
       .from("companies")
       .select<CompanyRow>(
-        "id,name,legal_name,sector,sector_id,segment_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata,siren,naf_code,depth_level,origin",
+        "id,name,legal_name,sector,sector_id,segment_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,website,hq_location,description,metadata,siren,naf_code,depth_level,origin",
       )
       .eq("id", companyId)
       .maybeSingle(),
@@ -934,7 +924,6 @@ export async function getClientIntelligence(
       .eq("primary_entity_id", companyId)
       .order("created_at", { ascending: false })
       .limit(5),
-    getAccountScoreSummary(companyId),
     supabase
       .from("opportunities")
       .select<OpportunityRow>(
@@ -990,7 +979,7 @@ export async function getClientIntelligence(
         detected_at,
         last_evidence_at,
         expires_at,
-        global_score,
+        relevance_score,
         urgency_score,
         confidence_score,
         primary_source_id,
@@ -1390,12 +1379,12 @@ export async function getClientIntelligence(
       const pertinenceEsn = row.score_details?.pertinence_esn
       const fitPractice = row.score_details?.fit_practice
       // Renormalisation des poids LLM d'origine (0.35 pertinence / 0.15 fit,
-      // cf. intel-033 "Compute Scores & Apply Rules") sur les deux seuls axes
-      // qui définissent l'intérêt commercial. Repli sur globalScore pour les
-      // signaux sans score_details (ajout manuel, cf. create-manual-signal.ts).
+      // cf. intel-033) sur les deux seuls axes qui définissent l'intérêt
+      // commercial. Repli sur la pertinence explicite pour les signaux sans
+      // détail (ajout manuel).
       const interestScore = typeof pertinenceEsn === "number" || typeof fitPractice === "number"
         ? 0.7 * (pertinenceEsn ?? 0) + 0.3 * (fitPractice ?? 0)
-        : row.global_score ?? 0
+        : row.relevance_score ?? 0
       return {
         id: row.id,
         category: row.signal_category,
@@ -1406,7 +1395,6 @@ export async function getClientIntelligence(
         lastEvidenceAt: row.last_evidence_at,
         expiresAt: row.expires_at,
         publishedAt: primarySource?.published_at ?? null,
-        globalScore: row.global_score ?? 0,
         interestScore,
         urgencyScore: row.urgency_score ?? 0,
         confidenceScore: row.confidence_score ?? 0,
@@ -1509,7 +1497,6 @@ export async function getClientIntelligence(
         segment: clean(company.segment, "Segment non renseigné"),
         priority: company.priority,
         lifecycleStatus: company.lifecycle_status,
-        legacyFolioScore: toNumber(company.legacy_folio_score),
         website: company.website,
         hqLocation: clean(company.hq_location),
         logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
@@ -1551,7 +1538,6 @@ export async function getClientIntelligence(
       signals: client?.data.signaux.actualitesRecentes ?? [],
       contacts,
       pitches: parsePitches(metadata.pitches),
-      scoreSummary,
       opportunities,
       missions,
       projects,

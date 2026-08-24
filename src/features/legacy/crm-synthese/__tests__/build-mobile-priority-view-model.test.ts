@@ -16,9 +16,9 @@ function makeAccount(
     name: `Account ${id}`,
     sector: "tech",
     sectorId: null,
+    segmentId: null,
     lifecycle: "prospect",
     priority: "normale",
-    legacyFolioScore: null,
     knowledgeState: "none",
     health: null,
     contactCount: 3,
@@ -44,8 +44,6 @@ function makeAccount(
     plannedCommercialEngagement30d: 0,
     plannedCommercialEngagement90d: 0,
     plannedCommercialEngagement180d: 0,
-    potentialScore: 50,
-    potentialOrigin: { primaryOrigin: "proxy" as const, origins: [] },
     reachScore: 50,
     reachGapScore: 50,
     momentumScore30d: 0,
@@ -57,14 +55,21 @@ function makeAccount(
     inactivityRiskScore30d: 0,
     inactivityRiskScore90d: 0,
     inactivityRiskScore180d: 0,
-    actionPriorityScore30d: 30,
-    actionPriorityScore90d: 30,
-    actionPriorityScore180d: 30,
     nextDecision: "",
     legacyCoverage: {
       hasClientAnalysis: false,
       hasSectorAnalysis: false,
       hasPitches: false,
+    },
+    nativeCoverage: {
+      hasClientAnalysis: false,
+      hasSectorAnalysis: false,
+      hasProcessDiagnostic: false,
+      hasRoadmap: false,
+      latestRunAt: null,
+      latestRunStatus: null,
+      countRuns: 0,
+      countResults: 0,
     },
     ...overrides,
   } as ProspectionPortfolioAccount
@@ -90,17 +95,15 @@ const fakeTrustMeta = {
 }
 
 const defaultTrust: PortfolioTrustBundle = {
-  accountPotential: fakeTrustMeta,
   accountReach: fakeTrustMeta,
   accountMomentum30d: fakeTrustMeta,
-  commandCenterPriority: fakeTrustMeta,
+  accountInactivityRisk: fakeTrustMeta,
 }
 
 function generateAccounts(count: number): ProspectionPortfolioAccount[] {
   return Array.from({ length: count }, (_, i) =>
     makeAccount(`acc-${i}`, {
-      actionPriorityScore90d: count - i,
-      potentialScore: count - i,
+      inactivityRiskScore90d: count - i,
     }),
   )
 }
@@ -130,11 +133,11 @@ describe("buildMobilePriorityViewModel", () => {
     expect(allLens?.count).toBe(20)
   })
 
-  it("sorts by actionPriorityScore descending", () => {
+  it("sorts by inactivity risk descending when opportunity facts are equal", () => {
     const accounts = [
-      makeAccount("low", { actionPriorityScore90d: 10 }),
-      makeAccount("high", { actionPriorityScore90d: 90 }),
-      makeAccount("mid", { actionPriorityScore90d: 50 }),
+      makeAccount("low", { inactivityRiskScore90d: 10 }),
+      makeAccount("high", { inactivityRiskScore90d: 90 }),
+      makeAccount("mid", { inactivityRiskScore90d: 50 }),
     ]
     const result = buildMobilePriorityViewModel({
       accounts,

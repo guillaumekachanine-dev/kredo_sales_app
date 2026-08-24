@@ -8,7 +8,7 @@ import type {
 import type { WeeklyManagerPriorityItem, WeeklyManagerPriorityTier } from "@/app/(app)/reports/_data/reports-types"
 
 // Scoring déterministe versionné — jamais recalculé par le LLM (même
-// doctrine que compute_conviction_score_v1/compute_investment_score_v1,
+// doctrine que les anciens agrégats synthétiques de compte,
 // CLAUDE.md § Nouveau composant financier). "v1" figé dans chaque
 // WeeklyManagerPriorityItem.scoringVersion pour permettre une v2 sans casser
 // les briefs déjà générés.

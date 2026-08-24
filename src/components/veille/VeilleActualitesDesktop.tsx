@@ -686,7 +686,6 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
             detectedAt: selectedDetailSignal.detectedAt,
             expiresAt: null,
             publishedAt: selectedDetailSignal.publishedAt ?? null,
-            globalScore: selectedDetailSignal.globalScore,
             interestScore: selectedDetailSignal.globalScore,
             urgencyScore: selectedDetailSignal.urgencyScore,
             confidenceScore: selectedDetailSignal.confidenceScore,

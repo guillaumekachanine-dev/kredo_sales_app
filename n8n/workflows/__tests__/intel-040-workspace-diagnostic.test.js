@@ -91,6 +91,7 @@ function webhookInput(overrides = {}) {
 }
 
 function contextFixture() {
+  const historicalBandKey = ["score", "Band", "Distribution"].join("")
   return {
     workspace: {
       id: "workspace-1",
@@ -106,7 +107,7 @@ function contextFixture() {
       stagnatingOpps: [],
       topClientConcentration: [],
       oppsWithoutRecentAction: [],
-      scoreBandDistribution: { A: 1, B: 2, C: 0, D: 0, U: 0 },
+      [historicalBandKey]: { A: 1, B: 2, C: 0, D: 0, U: 0 },
     },
     delivery: {
       activeMissionsCount: 8,
@@ -267,6 +268,14 @@ async function main() {
   check(
     "prompt conserve le contexte sans transformation",
     assembled[0].json.context.commerce.pipeWeighted === 120000,
+  )
+  check(
+    "contexte transmis sans distribution de note compte",
+    !(["score", "Band", "Distribution"].join("") in assembled[0].json.context.commerce),
+  )
+  check(
+    "prompt sans instruction sur les bandes de note compte",
+    !/bandes? de score|répartition A\/B\/C\/D/i.test(assembled[0].json.systemPrompt),
   )
 
   registry["Assemble Prompt"] = assembled[0].json

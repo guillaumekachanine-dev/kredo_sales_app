@@ -9,7 +9,6 @@ import { pickOne } from "./shared"
 import {
   buildActionPriorities,
   type ActionPrioritiesRulesResult,
-  type ActionPriorityAccountScore,
   type ActionPriorityAlert,
   type ActionPriorityCalendarEvent,
   type ActionPriorityInteraction,
@@ -63,14 +62,6 @@ type InteractionRow = {
   occurred_at: string
 }
 
-type AccountScoreRow = {
-  company_id: string | null
-  score_band: string | null
-  score_value: number | null
-  lifecycle_context: string | null
-  companies: Relation<{ name: string | null }>
-}
-
 type CalendarEventRow = {
   id: string
   title: string
@@ -107,7 +98,6 @@ export async function getActionPriorities(): Promise<ActionPrioritiesResult> {
     missions,
     alerts,
     interactions,
-    accountScores,
     calendarEvents,
     taskLinks,
   ] = await Promise.all([
@@ -147,15 +137,6 @@ export async function getActionPriorities(): Promise<ActionPrioritiesResult> {
         .order("occurred_at", { ascending: false })
         .limit(1000)
         .returns<InteractionRow[]>(),
-    ),
-    safeRead<AccountScoreRow>(
-      "Scores comptes",
-      supabase
-        .from("account_score_current")
-        .select("company_id,score_band,score_value,lifecycle_context,companies(name)")
-        .in("score_band", ["A", "B"])
-        .limit(150)
-        .returns<AccountScoreRow[]>(),
     ),
     safeRead<CalendarEventRow>(
       "Événements agenda",
@@ -215,13 +196,6 @@ export async function getActionPriorities(): Promise<ActionPrioritiesResult> {
       opportunityId: row.opportunity_id,
       occurredAt: row.occurred_at,
     })),
-    accountScores: accountScores.data.map<ActionPriorityAccountScore>((row) => ({
-      companyId: row.company_id,
-      companyName: pickOne(row.companies)?.name ?? null,
-      scoreBand: row.score_band,
-      scoreValue: row.score_value,
-      lifecycleContext: row.lifecycle_context,
-    })),
     calendarEvents: calendarEvents.data.map<ActionPriorityCalendarEvent>((row) => ({
       id: row.id,
       title: row.title,
@@ -234,7 +208,7 @@ export async function getActionPriorities(): Promise<ActionPrioritiesResult> {
   return {
     generatedAt,
     ...mapped,
-    sourceIssues: [opportunities, missions, alerts, interactions, accountScores, calendarEvents, taskLinks]
+    sourceIssues: [opportunities, missions, alerts, interactions, calendarEvents, taskLinks]
       .map((result) => result.error)
       .filter((issue): issue is string => Boolean(issue)),
   }

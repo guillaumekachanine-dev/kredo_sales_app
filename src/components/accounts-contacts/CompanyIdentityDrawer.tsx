@@ -59,7 +59,6 @@ type IdentityData = {
     description: string | null
     priority: string
     health: string | null
-    legacy_folio_score: number | string | null
     tags: string[] | null
     metadata: Record<string, unknown> | null
     last_contact_at: string | null

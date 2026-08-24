@@ -1,6 +1,5 @@
 import {
   getPortfolioPeriodMetrics,
-  type DataTrustMeta,
   type PortfolioTrustBundle,
   type ProspectionPeriod,
   type ProspectionPortfolioAccount,
@@ -8,8 +7,8 @@ import {
 
 export type ProspectionSummaryFocusPreset =
   | "all"
-  | "undercovered-high-potential"
-  | "priority-inactive"
+  | "open-opportunity-undercovered"
+  | "inactive-relationship"
   | "activity-no-conversion"
   | "planned-engagements"
 
@@ -47,7 +46,7 @@ export type ProspectionSummaryViewModel = {
   kpis: ProspectionSummaryKpi[]
   weeklyFocus: Array<{
     account: ProspectionPortfolioAccount
-    priorityScore: number
+    inactivityRisk: number
     momentumScore: number
     plannedCount: number
     recommendation: CommercialRecommendation
@@ -56,8 +55,8 @@ export type ProspectionSummaryViewModel = {
 }
 
 const FOCUS_LABELS: Record<Exclude<ProspectionSummaryFocusPreset, "all">, string> = {
-  "undercovered-high-potential": "Fort potentiel sous-couvert",
-  "priority-inactive": "Prioritaires sans activité récente",
+  "open-opportunity-undercovered": "Opportunités sous-couvertes",
+  "inactive-relationship": "Relations inactives",
   "activity-no-conversion": "Activité sans conversion",
   "planned-engagements": "Engagements planifiés",
 }
@@ -81,15 +80,9 @@ const PRIORITY_LABELS: Record<string, string> = {
 }
 
 function matchesBaseFilters(account: ProspectionPortfolioAccount, filters: ProspectionSummaryFilters) {
-  if (filters.sector !== "all" && account.sector !== filters.sector) {
-    return false
-  }
-  if (filters.lifecycle !== "all" && account.lifecycle !== filters.lifecycle) {
-    return false
-  }
-  if (filters.priority !== "all" && account.priority !== filters.priority) {
-    return false
-  }
+  if (filters.sector !== "all" && account.sector !== filters.sector) return false
+  if (filters.lifecycle !== "all" && account.lifecycle !== filters.lifecycle) return false
+  if (filters.priority !== "all" && account.priority !== filters.priority) return false
   return true
 }
 
@@ -101,18 +94,17 @@ export function getPriorityLabel(priority: string) {
   return PRIORITY_LABELS[priority] ?? priority
 }
 
-function isUndercoveredHighPotential(account: ProspectionPortfolioAccount) {
-  return account.potentialScore >= 75 && account.reachScore < 50
+function isOpenOpportunityUndercovered(account: ProspectionPortfolioAccount) {
+  return account.openOpportunityCount > 0 && account.reachScore < 50
 }
 
-function isPriorityInactive(account: ProspectionPortfolioAccount, period: ProspectionPeriod) {
+function isInactiveRelationship(account: ProspectionPortfolioAccount, period: ProspectionPeriod) {
   const periodMetrics = getPortfolioPeriodMetrics(account, period)
-  return periodMetrics.actionPriorityScore >= 70 && periodMetrics.activityCount === 0
+  return periodMetrics.activityCount === 0 && periodMetrics.plannedCount === 0
 }
 
 function isActivityWithoutConversion(account: ProspectionPortfolioAccount, period: ProspectionPeriod) {
-  const periodMetrics = getPortfolioPeriodMetrics(account, period)
-  return periodMetrics.activityCount > 0 && account.openOpportunityCount === 0
+  return getPortfolioPeriodMetrics(account, period).activityCount > 0 && account.openOpportunityCount === 0
 }
 
 function hasPlannedEngagement(account: ProspectionPortfolioAccount, period: ProspectionPeriod) {
@@ -120,30 +112,18 @@ function hasPlannedEngagement(account: ProspectionPortfolioAccount, period: Pros
 }
 
 function matchesFocusPreset(account: ProspectionPortfolioAccount, filters: ProspectionSummaryFilters) {
-  if (filters.focus === "undercovered-high-potential") {
-    return isUndercoveredHighPotential(account)
-  }
-  if (filters.focus === "priority-inactive") {
-    return isPriorityInactive(account, filters.period)
-  }
-  if (filters.focus === "activity-no-conversion") {
-    return isActivityWithoutConversion(account, filters.period)
-  }
-  if (filters.focus === "planned-engagements") {
-    return hasPlannedEngagement(account, filters.period)
-  }
+  if (filters.focus === "open-opportunity-undercovered") return isOpenOpportunityUndercovered(account)
+  if (filters.focus === "inactive-relationship") return isInactiveRelationship(account, filters.period)
+  if (filters.focus === "activity-no-conversion") return isActivityWithoutConversion(account, filters.period)
+  if (filters.focus === "planned-engagements") return hasPlannedEngagement(account, filters.period)
   return true
 }
 
 export function getConversionLabel(account: ProspectionPortfolioAccount) {
-  if (account.openOpportunityCount === 0) {
-    return "Aucune opportunité ouverte"
-  }
-
+  if (account.openOpportunityCount === 0) return "Aucune opportunité ouverte"
   if (account.weightedPipeline > 0) {
     return `${account.openOpportunityCount} opp. ouvertes · ${Math.round(account.weightedPipeline / 1000)} k€ pondérés`
   }
-
   return `${account.openOpportunityCount} opp. ouvertes`
 }
 
@@ -153,122 +133,99 @@ export function getCommercialRecommendation(
 ): CommercialRecommendation {
   const periodMetrics = getPortfolioPeriodMetrics(account, period)
 
+  if (account.openOpportunityCount > 0 && periodMetrics.plannedCount === 0) {
+    return {
+      key: "opportunity-next-step",
+      dominantReason: "Opportunité ouverte sans prochaine action planifiée",
+      actionLabel: "Planifier la prochaine étape",
+      whyNow: "Une opportunité est ouverte, mais aucun engagement futur n'est enregistré.",
+      costOfInaction: "L'opportunité peut ralentir faute de prochaine étape explicite.",
+    }
+  }
   if (account.committeeRoleCount === 0) {
     return {
       key: "sponsor",
       dominantReason: "Aucun rôle comité critique n'est identifié",
       actionLabel: "Identifier un sponsor ou décideur",
-      whyNow: "Le potentiel du compte reste théorique tant que personne n'est clairement engagé côté client.",
-      costOfInaction: "Le reach restera artificiellement faible et tout signal favorable retombera sans relais.",
+      whyNow: "Le compte ne dispose pas encore de relais client clairement identifié.",
+      costOfInaction: "Tout signal favorable retombera sans interlocuteur capable de le porter.",
     }
   }
-
-  if (account.potentialScore >= 75 && periodMetrics.activityCount === 0 && account.openOpportunityCount === 0) {
-    return {
-      key: "first-sequence",
-      dominantReason: "Potentiel élevé sans activité commerciale récente",
-      actionLabel: "Déclencher une première séquence ciblée",
-      whyNow: "Le compte coche les marqueurs de potentiel, mais aucun mouvement commercial n'est visible sur la période.",
-      costOfInaction: "Un compte à forte valeur restera hors radar commercial alors qu'il est déjà priorisable.",
-    }
-  }
-
   if (account.openOpportunityCount > 0 && account.reachScore < 45) {
     return {
       key: "committee",
       dominantReason: "Opportunité ouverte avec couverture encore fragile",
       actionLabel: "Consolider le buying committee",
-      whyNow: "Il y a déjà une matière commerciale, mais trop peu de relais pour sécuriser la conversion.",
-      costOfInaction: "L'opportunité peut ralentir ou dépendre d'un interlocuteur unique sans capacité d'arbitrage.",
+      whyNow: "Une matière commerciale existe déjà, mais repose sur trop peu de relais.",
+      costOfInaction: "L'opportunité peut dépendre d'un interlocuteur unique sans capacité d'arbitrage.",
     }
   }
-
   if (periodMetrics.activityCount > 0 && account.openOpportunityCount === 0) {
     return {
       key: "qualification",
       dominantReason: "Activité présente sans opportunité formalisée",
       actionLabel: "Formaliser la qualification",
-      whyNow: "Les échanges existent déjà, ce qui permet de transformer un intérêt diffus en qualification exploitable.",
-      costOfInaction: "L'activité commerciale s'accumule sans générer d'étape aval ni signal de conversion.",
+      whyNow: "Les échanges existent déjà et peuvent être transformés en qualification exploitable.",
+      costOfInaction: "L'activité s'accumule sans générer d'étape aval.",
     }
   }
-
   if (periodMetrics.plannedCount > 0) {
     return {
       key: "prepare-next",
       dominantReason: "Engagement commercial déjà planifié",
       actionLabel: "Préparer le prochain échange",
-      whyNow: "La fenêtre de contact est ouverte; le gain se joue dans la préparation du prochain rendez-vous.",
-      costOfInaction: "Le prochain échange risque de rester transactionnel et de ne pas faire progresser la couverture.",
+      whyNow: "La fenêtre de contact est ouverte ; le gain se joue dans la préparation.",
+      costOfInaction: "Le prochain échange risque de ne pas faire progresser la relation.",
     }
   }
-
-  if ((account.lifecycle === "client" || account.lifecycle === "client_actif") && periodMetrics.momentumScore < 25) {
+  if (periodMetrics.activityCount === 0) {
     return {
-      key: "reactivate-client",
-      dominantReason: "Client actif à dynamique commerciale faible",
-      actionLabel: "Réactiver une conversation de développement",
-      whyNow: "La relation existe déjà, mais l'intensité commerciale ne soutient plus de trajectoire d'expansion claire.",
-      costOfInaction: "Le compte peut glisser vers une relation de maintenance sans nouvelle matière de développement.",
+      key: "reactivate",
+      dominantReason: "Aucune activité commerciale sur la période",
+      actionLabel: "Relancer la relation",
+      whyNow: "Aucune interaction récente ni action future n'est enregistrée.",
+      costOfInaction: "La relation continuera de se refroidir.",
     }
   }
-
-  if (account.potentialScore >= 75 && account.reachScore < 55) {
-    return {
-      key: "coverage-gap",
-      dominantReason: "Le reach ne suit pas encore le niveau de potentiel",
-      actionLabel: "Renforcer la couverture commerciale",
-      whyNow: "La valeur du compte dépasse la profondeur actuelle de la relation.",
-      costOfInaction: "Le portefeuille conservera un déficit de couverture sur ses comptes les plus prometteurs.",
-    }
-  }
-
   return {
     key: "maintain",
     dominantReason: "Le compte est actif mais demande un prochain angle clair",
     actionLabel: "Décider du prochain angle de progression",
-    whyNow: "Le compte bouge encore, mais sans arbitrage précis le momentum peut s'éroder.",
-    costOfInaction: "La priorité commerciale sera rapidement captée par des comptes plus lisibles.",
+    whyNow: "Le compte bouge encore, mais le prochain mouvement n'est pas explicite.",
+    costOfInaction: "Le momentum commercial peut s'éroder sans décision claire.",
   }
 }
 
 function buildSummarySentence(accounts: ProspectionPortfolioAccount[]) {
-  const undercoveredCount = accounts.filter(isUndercoveredHighPotential).length
-  if (undercoveredCount === 0) {
-    return "Aucun compte à fort potentiel ne ressort actuellement comme sous-couvert."
-  }
-  if (undercoveredCount === 1) {
-    return "1 compte à fort potentiel reste sous-couvert."
-  }
-  return `${undercoveredCount} comptes à fort potentiel restent sous-couverts.`
+  const count = accounts.filter(isOpenOpportunityUndercovered).length
+  if (count === 0) return "Aucune opportunité ouverte ne ressort actuellement comme sous-couverte."
+  if (count === 1) return "1 compte avec opportunité ouverte reste sous-couvert."
+  return `${count} comptes avec opportunité ouverte restent sous-couverts.`
 }
 
 function buildKpis(baseAccounts: ProspectionPortfolioAccount[], filters: ProspectionSummaryFilters) {
-  const undercovered = baseAccounts.filter(isUndercoveredHighPotential).length
-  const inactive = baseAccounts.filter((account) => isPriorityInactive(account, filters.period)).length
+  const undercovered = baseAccounts.filter(isOpenOpportunityUndercovered).length
+  const inactive = baseAccounts.filter((account) => isInactiveRelationship(account, filters.period)).length
   const noConversion = baseAccounts.filter((account) => isActivityWithoutConversion(account, filters.period)).length
-  const plannedCount = baseAccounts.reduce(
-    (sum, account) => sum + getPortfolioPeriodMetrics(account, filters.period).plannedCount,
-    0,
-  )
+  const plannedCount = baseAccounts.reduce((sum, account) => sum + getPortfolioPeriodMetrics(account, filters.period).plannedCount, 0)
   const plannedAccounts = baseAccounts.filter((account) => hasPlannedEngagement(account, filters.period)).length
 
   return [
     {
-      id: "undercovered-high-potential",
-      label: "Fort potentiel sous-couvert",
+      id: "open-opportunity-undercovered",
+      label: "Opportunités sous-couvertes",
       value: String(undercovered),
-      context: "Comptes à potentiel élevé avec reach encore fragile",
-      definition: "Comptes dont le potentiel atteint 75 ou plus, avec un reach commercial inférieur à 50.",
-      active: filters.focus === "undercovered-high-potential",
+      context: "Opportunités ouvertes avec reach fragile",
+      definition: "Comptes avec au moins une opportunité ouverte et un reach inférieur à 50.",
+      active: filters.focus === "open-opportunity-undercovered",
     },
     {
-      id: "priority-inactive",
-      label: "Prioritaires sans activité récente",
+      id: "inactive-relationship",
+      label: "Relations inactives",
       value: String(inactive),
-      context: "Score de priorité élevé, sans activité sur la période",
-      definition: "Comptes dont la priorité d'action est de 70 ou plus, sans activité commerciale réalisée sur la période choisie.",
-      active: filters.focus === "priority-inactive",
+      context: "Aucune activité ni engagement planifié sur la période",
+      definition: "Comptes sans activité commerciale réalisée et sans engagement futur sur la période choisie.",
+      active: filters.focus === "inactive-relationship",
     },
     {
       id: "activity-no-conversion",
@@ -290,48 +247,36 @@ function buildKpis(baseAccounts: ProspectionPortfolioAccount[], filters: Prospec
 }
 
 function buildWeeklyFocus(accounts: ProspectionPortfolioAccount[], period: ProspectionPeriod) {
-  const ranked = [...accounts]
-    .map((account) => {
-      const periodMetrics = getPortfolioPeriodMetrics(account, period)
-      return {
-        account,
-        priorityScore: periodMetrics.actionPriorityScore,
-        momentumScore: periodMetrics.momentumScore,
-        plannedCount: periodMetrics.plannedCount,
-        recommendation: getCommercialRecommendation(account, period),
-      }
-    })
-    .sort((left, right) => {
-      if (right.priorityScore !== left.priorityScore) {
-        return right.priorityScore - left.priorityScore
-      }
-      if (right.account.potentialScore !== left.account.potentialScore) {
-        return right.account.potentialScore - left.account.potentialScore
-      }
-      return left.account.name.localeCompare(right.account.name)
-    })
-
-  const unique: typeof ranked = []
-  const seen = new Set<string>()
-
-  for (const item of ranked) {
-    if (seen.has(item.recommendation.key)) continue
-    unique.push(item)
-    seen.add(item.recommendation.key)
-    if (unique.length === 5) {
-      return unique
+  const ordered = accounts.map((account) => {
+    const metrics = getPortfolioPeriodMetrics(account, period)
+    return {
+      account,
+      inactivityRisk: metrics.inactivityRiskScore,
+      momentumScore: metrics.momentumScore,
+      plannedCount: metrics.plannedCount,
+      recommendation: getCommercialRecommendation(account, period),
     }
-  }
+  }).sort((left, right) => {
+    const leftOpportunityWithoutPlan = left.account.openOpportunityCount > 0 && left.plannedCount === 0
+    const rightOpportunityWithoutPlan = right.account.openOpportunityCount > 0 && right.plannedCount === 0
+    if (leftOpportunityWithoutPlan !== rightOpportunityWithoutPlan) return rightOpportunityWithoutPlan ? 1 : -1
+    if (left.inactivityRisk !== right.inactivityRisk) return right.inactivityRisk - left.inactivityRisk
+    return left.account.name.localeCompare(right.account.name, "fr") || left.account.id.localeCompare(right.account.id)
+  })
 
-  for (const item of ranked) {
-    if (unique.some((current) => current.account.id === item.account.id)) continue
-    unique.push(item)
-    if (unique.length === 5) {
-      break
-    }
+  const focus: typeof ordered = []
+  const seenRecommendations = new Set<string>()
+  for (const item of ordered) {
+    if (seenRecommendations.has(item.recommendation.key)) continue
+    focus.push(item)
+    seenRecommendations.add(item.recommendation.key)
+    if (focus.length === 5) return focus
   }
-
-  return unique.slice(0, 5)
+  for (const item of ordered) {
+    if (!focus.some((current) => current.account.id === item.account.id)) focus.push(item)
+    if (focus.length === 5) break
+  }
+  return focus.slice(0, 5)
 }
 
 export function buildProspectionSummaryViewModel(params: {
@@ -343,12 +288,10 @@ export function buildProspectionSummaryViewModel(params: {
   const { accounts, filters, selectedAccountId, trust } = params
   const baseAccounts = accounts.filter((account) => matchesBaseFilters(account, filters))
   const visibleAccounts = baseAccounts.filter((account) => matchesFocusPreset(account, filters))
-  const selectedAccount = visibleAccounts.find((account) => account.id === selectedAccountId) ?? visibleAccounts[0] ?? null
-
   return {
     baseAccounts,
     visibleAccounts,
-    selectedAccount,
+    selectedAccount: visibleAccounts.find((account) => account.id === selectedAccountId) ?? visibleAccounts[0] ?? null,
     summarySentence: buildSummarySentence(baseAccounts),
     focusLabel: filters.focus === "all" ? null : FOCUS_LABELS[filters.focus],
     kpis: buildKpis(baseAccounts, filters),
@@ -357,10 +300,6 @@ export function buildProspectionSummaryViewModel(params: {
   }
 }
 
-export function getAccountTrustBadges(meta: DataTrustMeta, account: ProspectionPortfolioAccount) {
-  const uniqueOrigins = new Set<DataTrustMeta["origins"][number]>([
-    meta.primaryOrigin,
-    ...account.potentialOrigin.origins,
-  ])
-  return Array.from(uniqueOrigins)
+export function getAccountTrustBadges() {
+  return ["OBSERVED", "PROXY"] as const
 }

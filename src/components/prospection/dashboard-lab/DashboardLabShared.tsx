@@ -12,15 +12,13 @@ import type {
 } from "./dashboard-lab-types"
 
 const ORIGIN_LABELS: Record<DataOrigin, string> = {
-  REAL_NATIVE: "Native",
-  REAL_LEGACY: "Legacy",
+  OBSERVED: "Observé",
   PROXY: "Proxy",
   FUTURE_DEMO: "Démo",
 }
 
 const ORIGIN_VARIANTS: Record<DataOrigin, "brand" | "warning" | "info" | "danger"> = {
-  REAL_NATIVE: "brand",
-  REAL_LEGACY: "warning",
+  OBSERVED: "brand",
   PROXY: "info",
   FUTURE_DEMO: "danger",
 }

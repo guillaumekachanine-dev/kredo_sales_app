@@ -1,62 +1,55 @@
 import { describe, it, expect } from "vitest"
 import { buildSectorPlaybookModel } from "../models/build-sector-playbook-model"
 import { buildBusinessIntelligenceDesktopModel } from "../presenters/build-business-intelligence-desktop-model"
-import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
+import {
+  makeBusinessIntelligenceSnapshot,
+  makePortfolioAccount,
+} from "./business-intelligence-test-fixtures"
 
-const mockSnapshot: any = {
+const mockSnapshot = makeBusinessIntelligenceSnapshot({
 
   state: "ready",
   generatedAt: "2026-07-17T00:00:00Z",
   lastUpdatedAt: "2026-07-17T00:00:00Z",
   accounts: [
-    {
-      id: "acc-1",
+    makePortfolioAccount("acc-1", {
       name: "Acme Corp",
       sectorId: "sec-active-full",
-      actionPriorityScore30d: 85,
-      actionPriorityScore90d: 65,
-      actionPriorityScore180d: 45,
-      potentialScore: 90,
       reachScore: 40,
       momentumScore30d: 70,
       momentumScore90d: 60,
       momentumScore180d: 50,
-      legacyFolioScore: null,
+      inactivityRiskScore30d: 85,
+      inactivityRiskScore90d: 65,
+      inactivityRiskScore180d: 45,
+      plannedCommercialEngagement30d: 0,
+      plannedCommercialEngagement90d: 0,
+      plannedCommercialEngagement180d: 0,
+      openOpportunityCount: 1,
       nextDecision: "Contacter le CEO"
-    },
-    {
-      id: "acc-2",
+    }),
+    makePortfolioAccount("acc-2", {
       name: "Beta Inc",
       sectorId: "sec-watch",
-      actionPriorityScore30d: 55,
-      actionPriorityScore90d: 55,
-      actionPriorityScore180d: 55,
-      potentialScore: 50,
       reachScore: 50,
       momentumScore30d: 50,
       momentumScore90d: 50,
       momentumScore180d: 50,
-      legacyFolioScore: null,
-      nextDecision: null
-    }
+      inactivityRiskScore30d: 55,
+      inactivityRiskScore90d: 55,
+      inactivityRiskScore180d: 55,
+      plannedCommercialEngagement30d: 0,
+      plannedCommercialEngagement90d: 0,
+      plannedCommercialEngagement180d: 0,
+      openOpportunityCount: 0,
+    })
   ],
-  scores: {
-    "acc-1": {
-      runId: "run-1",
-      scoreValue: 88,
-      scoreBand: "A",
-      confidenceScore: 90,
-      calculatedAt: "2026-07-17T00:00:00Z",
-      scoreVersion: "v1",
-      summary: "High potential",
-      components: []
-    }
-  },
   signals: [],
   windows: [
     {
       id: "win-1",
       title: "New Regulation active",
+      subtitle: "Échéance réglementaire",
       sectorId: "sec-active-full",
       sectorName: "Finance",
       sourceType: "regulation",
@@ -66,15 +59,21 @@ const mockSnapshot: any = {
       exposedAccountCount: 1,
       playbookSummary: "Compliance Audit",
       suggestedAction: "Propose audit",
-      exposedAccounts: ["acc-1"],
       exposedAccountIds: ["acc-1"],
       sectorSlug: "finance",
       sourceId: "src-1",
       sourceLabel: "Authority",
       sourceUrl: "https://example.com/source",
-      dataOrigin: "REAL_NATIVE",
+      dataOrigin: "OBSERVED",
       practiceKey: "cyber",
-      deadlineAt: "2026-12-31"
+      detectedAt: "2026-07-17T00:00:00Z",
+      deadlineAt: "2026-12-31",
+      temporalStatus: "future",
+      freshnessBand: "future",
+      priorityBand: "high",
+      averageReachScore: 40,
+      coverageGap: 60,
+      sectorAttractivenessScore: 80,
     }
   ],
   sectors: [
@@ -91,7 +90,6 @@ const mockSnapshot: any = {
       linkedAccountIds: ["acc-1"],
       linkedAccountCount: 1,
       coveredAccountCount: 0,
-      averagePotentialScore: 90,
       averageReachScore: 40,
       coverageGap: 60,
       dataCoverageRatio: 0,
@@ -149,7 +147,6 @@ const mockSnapshot: any = {
       linkedAccountIds: [],
       linkedAccountCount: 0,
       coveredAccountCount: 0,
-      averagePotentialScore: null,
       averageReachScore: null,
       coverageGap: null,
       dataCoverageRatio: 0,
@@ -179,11 +176,10 @@ const mockSnapshot: any = {
       digitalMaturity: null,
       topPracticeKey: "cloud_eng",
       topPracticeLabel: "Cloud Eng",
-      practiceScores: {},
+      practiceScores: { data_ai: 0, cyber: 0, cloud_eng: 0, product: 0 },
       linkedAccountIds: ["acc-2"],
       linkedAccountCount: 1,
       coveredAccountCount: 0,
-      averagePotentialScore: 50,
       averageReachScore: 50,
       coverageGap: 50,
       dataCoverageRatio: 0,
@@ -205,29 +201,13 @@ const mockSnapshot: any = {
       painPoints: []
     }
   ],
-  filterOptions: {
-    sectors: [],
-    lifecycles: [],
-    priorities: [],
-    practices: [],
-    sourceTypes: [],
-    priorityBands: [],
-    temporalStatuses: [],
-    statusFilters: []
-  },
-  trust: {
-    accountPotential: {},
-    accountReach: {},
-    accountMomentum: {},
-    priorityCalculated: {}
-  },
   dataQuality: {
     syntheticInteractionsCount: 0,
     realInteractionsCount: 0,
     hasDemoData: false,
     limitations: []
   }
-}
+})
 
 describe("Business Intelligence Playbooks Tests", () => {
   it("construit un playbook entièrement typé pour un secteur actif complet", () => {
@@ -289,19 +269,17 @@ describe("Business Intelligence Playbooks Tests", () => {
     const p90 = desktopModel.periods[90]
     const p180 = desktopModel.periods[180]
 
-    // p30: acc-1 has 85, acc-2 has 55. Sorted: acc-1 first.
-    expect(p30.priorityBoard[0].priority).toBe(85)
+    // p30: le compte avec opportunité ouverte sans action passe en premier.
+    expect(p30.priorityBoard[0].inactivityRisk).toBe(85)
     expect(p30.priorityBoard[0].name).toBe("Acme Corp")
     expect(p30.priorityBoard[0].momentum).toBe(70)
 
-    // p90: acc-1 has 65, acc-2 has 55. Sorted: acc-1 first.
-    expect(p90.priorityBoard[0].priority).toBe(65)
+    expect(p90.priorityBoard[0].inactivityRisk).toBe(65)
     expect(p90.priorityBoard[0].name).toBe("Acme Corp")
     expect(p90.priorityBoard[0].momentum).toBe(60)
 
-    // p180: acc-1 has 45, acc-2 has 55. Sorted: acc-2 (Beta Inc) first!
-    expect(p180.priorityBoard[0].priority).toBe(55)
-    expect(p180.priorityBoard[0].name).toBe("Beta Inc")
+    expect(p180.priorityBoard[0].inactivityRisk).toBe(45)
+    expect(p180.priorityBoard[0].name).toBe("Acme Corp")
     expect(p180.priorityBoard[0].momentum).toBe(50)
   })
 
@@ -332,7 +310,7 @@ describe("Business Intelligence Playbooks Tests", () => {
     // chaînes brutes ni en clés role/enjeu/peur. Un cast aveugle vers string[] faisait
     // planter le rendu (React #31, objet passé comme enfant) — jamais détecté avant la
     // première ingestion réelle, seul secteur seedé pré-chantier exerçait ce chemin.
-    const e4Snapshot = {
+    const e4Snapshot = makeBusinessIntelligenceSnapshot({
       ...mockSnapshot,
       sectors: [
         ...mockSnapshot.sectors,
@@ -349,7 +327,6 @@ describe("Business Intelligence Playbooks Tests", () => {
           linkedAccountIds: [],
           linkedAccountCount: 0,
           coveredAccountCount: 0,
-          averagePotentialScore: null,
           averageReachScore: null,
           coverageGap: null,
           dataCoverageRatio: 0,
@@ -384,7 +361,7 @@ describe("Business Intelligence Playbooks Tests", () => {
           painPoints: [],
         },
       ],
-    }
+    })
 
     const profile = buildSectorPlaybookModel(e4Snapshot, "sec-e4-shape")
     expect(profile).not.toBeNull()
@@ -405,5 +382,3 @@ describe("Business Intelligence Playbooks Tests", () => {
     expect(profile!.playbook.entryPoints.every((value) => typeof value === "string")).toBe(true)
   })
 })
-
-

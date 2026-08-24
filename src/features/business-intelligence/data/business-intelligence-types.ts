@@ -1,23 +1,21 @@
-import type { ProspectionPortfolioAccount, PortfolioTrustBundle } from "@/lib/prospection/portfolio-account-metrics"
+import type {
+  DataTrustMeta,
+  PortfolioAccountMetrics,
+  PortfolioCalendarEventRow,
+  PortfolioCompanyRow,
+  PortfolioContactRow,
+  PortfolioIntelligenceSummaryRow,
+  PortfolioOpportunityRow,
+  ProspectionPortfolioAccount,
+  PortfolioTrustBundle,
+} from "@/lib/prospection/portfolio-account-metrics"
 import type { SectorActivationSector, SectorActivationWindow, SectorActivationFilterOptions } from "@/lib/prospection/sector-activation-types"
 
-export type DataOrigin = "REAL_NATIVE" | "REAL_LEGACY" | "PROXY" | "FUTURE_DEMO"
-
-export interface DataTrustMeta {
-  id: string
-  label: string
-  primaryOrigin: DataOrigin
-  origins: DataOrigin[]
-  formula: string
-  freshness: {
-    latestAt: string | null
-    label: string
-  }
-  completeness: {
-    value: number
-    label: string
-  }
-  limitations: string[]
+export interface PortfolioInteractionSourceRow {
+  company_id: string | null
+  type: string
+  occurred_at: string
+  details: Record<string, unknown> | null
 }
 
 export interface PortfolioIntelligenceSnapshot {
@@ -28,19 +26,16 @@ export interface PortfolioIntelligenceSnapshot {
     priorities: string[]
   }
   trust: PortfolioTrustBundle
-  metrics: {
-    totalAccounts: number
-    scoredAccounts: number
-  }
+  metrics: PortfolioAccountMetrics
   generatedAt: string
   // To allow downstream loaders to do what they need without refetching
   sourceRows: {
-    companies: any[]
-    contacts: any[]
-    interactions: any[]
-    calendarEvents: any[]
-    opportunities: any[]
-    intelligenceRows: any[]
+    companies: PortfolioCompanyRow[]
+    contacts: PortfolioContactRow[]
+    interactions: PortfolioInteractionSourceRow[]
+    calendarEvents: PortfolioCalendarEventRow[]
+    opportunities: PortfolioOpportunityRow[]
+    intelligenceRows: PortfolioIntelligenceSummaryRow[]
   }
   dataQuality: {
     syntheticInteractionsCount: number
@@ -66,31 +61,13 @@ export interface BusinessIntelligenceSnapshot {
     detectedAt: string
     recommendedAction: string | null
   }[]
-  scores: Record<string, {
-    runId: string
-    scoreValue: number
-    scoreBand: "A" | "B" | "C" | "D" | "U" | string
-    confidenceScore: number
-    calculatedAt: string
-    scoreVersion: string
-    summary: string | null
-    components: {
-      key: string
-      label: string
-      normalizedScore: number
-      weight: number
-      weightedContribution: number
-      freshnessStatus: string
-    }[]
-  }>
   sectors: SectorActivationSector[]
   windows: SectorActivationWindow[]
   filterOptions: SectorActivationFilterOptions
   trust: {
-    accountPotential: DataTrustMeta | any
-    accountReach: DataTrustMeta | any
-    accountMomentum: DataTrustMeta | any
-    priorityCalculated: DataTrustMeta | any
+    accountReach: DataTrustMeta
+    accountMomentum: DataTrustMeta
+    accountInactivityRisk: DataTrustMeta
   }
   dataQuality: {
     syntheticInteractionsCount: number

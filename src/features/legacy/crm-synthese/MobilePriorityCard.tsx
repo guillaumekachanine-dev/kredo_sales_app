@@ -40,7 +40,7 @@ export const MobilePriorityCard = memo(function MobilePriorityCard({
             </p>
             <p className="text-[11px] text-muted mt-0.5">{item.sector}</p>
           </div>
-          <PriorityDot score={item.actionPriorityScore} />
+          <InactivityDot risk={item.inactivityRisk} />
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -70,9 +70,9 @@ export const MobilePriorityCard = memo(function MobilePriorityCard({
           {item.recommendation.actionLabel}
         </p>
 
-        {/* Compact score + pipeline */}
+        {/* Activité et pipeline */}
         <div className="mt-3 flex items-center gap-3">
-          <ScoreChip label="Priorité" value={item.actionPriorityScore} />
+          <IndicatorChip label="Inactivité" value={item.inactivityRisk} />
           <span className="text-[11px] text-muted">·</span>
           <span className="text-[11px] text-body">
             {item.openOpportunityCount === 0
@@ -123,12 +123,11 @@ export const MobilePriorityCard = memo(function MobilePriorityCard({
             </div>
           ) : null}
 
-          {/* Detailed scores */}
+          {/* Indicateurs spécialisés */}
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <DetailScore label="Potentiel" value={item.potentialScore} color="brand-brass" />
-            <DetailScore label="Reach" value={item.reachScore} color={item.reachScore < 35 ? "danger" : "primary"} />
-            <DetailScore label="Momentum" value={item.momentumScore} color={item.momentumScore < 25 ? "muted" : "info"} />
-            <DetailScore label="Priorité action" value={item.actionPriorityScore} color="primary" />
+            <DetailIndicator label="Reach" value={item.reachScore} color={item.reachScore < 35 ? "danger" : "primary"} />
+            <DetailIndicator label="Momentum" value={item.momentumScore} color={item.momentumScore < 25 ? "muted" : "info"} />
+            <DetailIndicator label="Inactivité" value={item.inactivityRisk} color={item.inactivityRisk >= 70 ? "danger" : "primary"} />
           </div>
 
           {/* Factual evidence */}
@@ -207,21 +206,21 @@ export const MobilePriorityCard = memo(function MobilePriorityCard({
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function PriorityDot({ score }: { score: number }) {
+function InactivityDot({ risk }: { risk: number }) {
   let color = "bg-muted"
-  if (score >= 80) color = "bg-brand-brass"
-  else if (score >= 60) color = "bg-primary"
+  if (risk >= 80) color = "bg-danger"
+  else if (risk >= 60) color = "bg-brand-brass"
 
   return (
     <span
       className={cn("mt-1 size-2 shrink-0 rounded-full", color)}
-      title={`Priorité : ${score}/100`}
+      title={`Risque d'inactivité : ${risk}/100`}
       aria-hidden="true"
     />
   )
 }
 
-function ScoreChip({ label, value }: { label: string; value: number }) {
+function IndicatorChip({ label, value }: { label: string; value: number }) {
   return (
     <span className="text-[11px] text-body">
       <span className="font-semibold text-heading">{value}</span>
@@ -238,7 +237,7 @@ const SCORE_BAR_COLORS: Record<string, string> = {
   info: "bg-info",
 }
 
-function DetailScore({ label, value, color }: { label: string; value: number; color: string }) {
+function DetailIndicator({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="rounded-[var(--radius-small)] border border-border bg-surface px-2.5 py-2">
       <p className="text-[10px] text-muted font-medium">{label}</p>

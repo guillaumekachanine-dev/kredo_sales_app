@@ -10,11 +10,10 @@ export function IntelligenceKpiStrip({ kpis }: IntelligenceKpiStripProps) {
     { label: "Comptes prioritaires", value: kpis.priorityAccountsCount },
     { label: "Fenêtres ouvertes", value: kpis.openWindowsCount },
     { label: "Secteurs actifs", value: kpis.activeSectorsCount },
-    { label: "Confiance moyenne", value: kpis.averageConfidence !== null ? `${kpis.averageConfidence}%` : "N/A" },
   ]
 
   return (
-    <section aria-label="Indicateurs clés" className="grid divide-y divide-border/30 rounded-xl border border-border/30 bg-surface/30 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+    <section aria-label="Indicateurs clés" className="grid divide-y divide-border/30 rounded-xl border border-border/30 bg-surface/30 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       {items.map((item) => (
         <div key={item.label} className="px-4 py-4 lg:px-5">
           <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{item.label}</span>

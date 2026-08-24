@@ -75,7 +75,7 @@ export function AccountSignalsDialog({
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-bold uppercase tracking-[0.08em] text-primary">{signal.category || "Signal"}</span>
                     <span className="mt-1 block text-sm font-bold leading-5 text-heading">{signal.title}</span>
-                    <span className="mt-1 block text-xs text-muted">{formatSignalDate(signal.detectedAt)} · score {signal.globalScore.toFixed(2)}</span>
+                    <span className="mt-1 block text-xs text-muted">{formatSignalDate(signal.detectedAt)} · urgence {Math.round(signal.urgencyScore * 100)}%</span>
                   </span>
                   <span className="text-xl text-muted" aria-hidden="true">›</span>
                 </button>

@@ -7,7 +7,6 @@ const baseInput: BuildActionPrioritiesInput = {
   missions: [],
   alerts: [],
   interactions: [],
-  accountScores: [],
   calendarEvents: [],
 }
 
@@ -81,12 +80,17 @@ describe("buildActionPriorities", () => {
   it("limits output to ten ranked items", () => {
     const result = buildActionPriorities({
       ...baseInput,
-      accountScores: Array.from({ length: 12 }, (_, index) => ({
+      opportunities: Array.from({ length: 12 }, (_, index) => ({
+        id: `opp-${index}`,
+        title: `Opportunité ${index}`,
+        stage: "qualification",
         companyId: `c-${index}`,
         companyName: `Client ${index}`,
-        scoreBand: "A",
-        scoreValue: 90,
-        lifecycleContext: "client_actif",
+        weightedGain: 50_000,
+        estimatedGain: null,
+        nextActionAt: "2026-07-10T09:00:00.000Z",
+        targetCloseDate: null,
+        updatedAt: "2026-07-01T09:00:00.000Z",
       })),
     })
 

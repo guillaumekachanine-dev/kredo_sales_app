@@ -23,16 +23,16 @@ function QuestionIcon() {
 }
 
 type TrustTooltip = {
-  potentiel: string | null
   reach: string | null
   momentum: string | null
+  inactivity: string | null
 }
 
 function buildTooltips(trust: PortfolioTrustBundle | null): TrustTooltip {
   return {
-    potentiel: trust?.accountPotential.formula ?? null,
     reach: trust?.accountReach.formula ?? null,
     momentum: trust?.accountMomentum30d.formula ?? null,
+    inactivity: trust?.accountInactivityRisk.formula ?? null,
   }
 }
 
@@ -122,10 +122,10 @@ export function WeeklyCommercialFocus({
                 aria-pressed={isSelected}
               >
                 <div className="flex items-start gap-4 px-4 py-3">
-                  {/* Number + priority score */}
+                  {/* Position + risque d'inactivité explicite */}
                   <div className="shrink-0 w-10 space-y-0.5 pt-0.5">
                     <p className="font-heading text-2xl font-bold text-heading leading-none">{index + 1}</p>
-                    <p className="text-xs font-semibold text-brand-brass">{item.priorityScore}/100</p>
+                    <p className="text-xs font-semibold text-brand-brass">{item.inactivityRisk}/100</p>
                   </div>
 
                   {/* Middle: name + badges + action */}
@@ -162,11 +162,6 @@ export function WeeklyCommercialFocus({
                   {/* Right: 4 indicators in 2×2 grid, top-right of the row */}
                   <div className="shrink-0 grid grid-cols-2 gap-x-4 gap-y-2">
                     <MetricWithTooltip
-                      label="Potentiel"
-                      value={`${item.account.potentialScore}/100`}
-                      tooltip={tooltips.potentiel}
-                    />
-                    <MetricWithTooltip
                       label="Reach"
                       value={`${item.account.reachScore}/100`}
                       tooltip={tooltips.reach}
@@ -175,6 +170,11 @@ export function WeeklyCommercialFocus({
                       label="Momentum"
                       value={`${item.momentumScore}/100`}
                       tooltip={tooltips.momentum}
+                    />
+                    <MetricWithTooltip
+                      label="Inactivité"
+                      value={`${item.inactivityRisk}/100`}
+                      tooltip={tooltips.inactivity}
                     />
                     <MetricWithTooltip
                       label="Engagement"

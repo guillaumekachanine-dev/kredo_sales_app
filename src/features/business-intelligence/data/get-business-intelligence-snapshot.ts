@@ -23,27 +23,6 @@ type AccountSignalRow = {
   recommended_action: string | null
 }
 
-type AccountScoreCurrentRow = {
-  run_id: string
-  company_id: string
-  score_version: string
-  score_value: number | string
-  score_band: string
-  confidence_score: number | string
-  calculated_at: string
-  summary: string | null
-}
-
-type AccountScoreComponentRow = {
-  score_run_id: string
-  component_key: string
-  component_label: string
-  normalized_score: number | string
-  weight: number | string
-  weighted_contribution: number | string
-  freshness_status: string
-}
-
 export function mapAccountSignalRows(signalRows: AccountSignalRow[]) {
   return signalRows.map((signal) => ({
     id: signal.id,
@@ -65,7 +44,6 @@ export function createBusinessIntelligenceSnapshotError(): BusinessIntelligenceS
     lastUpdatedAt: null,
     accounts: [],
     signals: [],
-    scores: {},
     sectors: [],
     windows: [],
     filterOptions: {
@@ -77,16 +55,6 @@ export function createBusinessIntelligenceSnapshotError(): BusinessIntelligenceS
       statusFilters: [],
     },
     trust: {
-      accountPotential: {
-        id: "account-potential",
-        label: "Potentiel",
-        primaryOrigin: "PROXY",
-        origins: ["PROXY"],
-        formula: "",
-        freshness: { latestAt: null, label: "Indisponible" },
-        completeness: { value: 0, label: "0%" },
-        limitations: [],
-      },
       accountReach: {
         id: "account-reach",
         label: "Couverture",
@@ -107,9 +75,9 @@ export function createBusinessIntelligenceSnapshotError(): BusinessIntelligenceS
         completeness: { value: 0, label: "0%" },
         limitations: [],
       },
-      priorityCalculated: {
-        id: "priority-calculated",
-        label: "Priorité calculée",
+      accountInactivityRisk: {
+        id: "account-inactivity-risk",
+        label: "Inactivité",
         primaryOrigin: "PROXY",
         origins: ["PROXY"],
         formula: "",
@@ -149,59 +117,18 @@ export const getBusinessIntelligenceSnapshot = cache(async (): Promise<BusinessI
     )
 
     // Un seul appel getSectorKnowledgeReadModels pour tous les segments demandés,
-    // en parallèle des requêtes de signaux et scores.
+    // en parallèle de la requête de signaux.
     // Démontage complet des 5 requêtes brutes (sector_intelligence, sector_pain_points,
     // sector_events, sector_news, sector_regulatory_items).
     const [
       sectorKnowledgeModels,
       signalsResult,
-      scoreRunsResult,
-      scoreComponentsResult,
     ] = await Promise.all([
       getSectorKnowledgeReadModels(segmentIds),
       supabase.from("account_signals").select<AccountSignalRow>("id,company_id,title,summary,signal_type,relevance_score,urgency_score,detected_at,recommended_action"),
-      supabase.from("account_score_current").select<AccountScoreCurrentRow>("run_id,company_id,score_version,score_value,score_band,confidence_score,calculated_at,summary"),
-      supabase.from("account_score_components").select<AccountScoreComponentRow>("score_run_id,component_key,component_label,normalized_score,weight,weighted_contribution,freshness_status"),
     ])
 
     const signalRows = unwrapQueryResult("account_signals", signalsResult)
-    const scoreRunRows = unwrapQueryResult("account_score_current", scoreRunsResult)
-    const scoreComponentRows = unwrapQueryResult("account_score_components", scoreComponentsResult)
-
-    const componentsByRunId = new Map<string, Array<{
-      key: string
-      label: string
-      normalizedScore: number
-      weight: number
-      weightedContribution: number
-      freshnessStatus: string
-    }>>()
-    for (const comp of scoreComponentRows) {
-      const list = componentsByRunId.get(comp.score_run_id) ?? []
-      list.push({
-        key: comp.component_key,
-        label: comp.component_label,
-        normalizedScore: Number(comp.normalized_score),
-        weight: Number(comp.weight),
-        weightedContribution: Number(comp.weighted_contribution),
-        freshnessStatus: comp.freshness_status,
-      })
-      componentsByRunId.set(comp.score_run_id, list)
-    }
-
-    const scores: BusinessIntelligenceSnapshot["scores"] = {}
-    for (const run of scoreRunRows) {
-      scores[run.company_id] = {
-        runId: run.run_id,
-        scoreValue: Number(run.score_value),
-        scoreBand: run.score_band,
-        confidenceScore: Number(run.confidence_score),
-        calculatedAt: run.calculated_at,
-        scoreVersion: run.score_version,
-        summary: run.summary,
-        components: componentsByRunId.get(run.run_id) ?? [],
-      }
-    }
 
     const signals = mapAccountSignalRows(signalRows)
 
@@ -220,15 +147,13 @@ export const getBusinessIntelligenceSnapshot = cache(async (): Promise<BusinessI
       lastUpdatedAt: new Date().toISOString(),
       accounts: portfolioSnapshot.accounts,
       signals,
-      scores,
       sectors: activationModel.sectors,
       windows: activationModel.windows,
       filterOptions: activationModel.filterOptions,
       trust: {
-        accountPotential: portfolioSnapshot.trust.accountPotential,
         accountReach: portfolioSnapshot.trust.accountReach,
         accountMomentum: portfolioSnapshot.trust.accountMomentum30d,
-        priorityCalculated: portfolioSnapshot.trust.commandCenterPriority,
+        accountInactivityRisk: portfolioSnapshot.trust.accountInactivityRisk,
       },
       dataQuality: portfolioSnapshot.dataQuality,
     }

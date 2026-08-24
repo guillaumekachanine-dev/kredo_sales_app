@@ -4,29 +4,6 @@ import { cn } from "@/lib/utils"
 import { formatDate, formatEuro } from "@/lib/formatters"
 import type { AccountSummaryContent } from "@/app/(app)/reports/_data/reports-types"
 
-// Jauge à 5 points — même pattern que les dots de niveau de compétence
-// (ConsultantDrawer.tsx) : 0 librairie, pur HTML/Tailwind.
-function ScoreDots({ score, label }: { score: number; label: string }) {
-  const rounded = Math.round(score)
-  return (
-    <div className="flex items-center gap-2">
-      <span className="flex shrink-0 items-center gap-0.5" title={`${score.toFixed(1)} / 5`}>
-        {[1, 2, 3, 4, 5].map((dot) => (
-          <span
-            key={dot}
-            className={cn(
-              "inline-block h-2 w-2 rounded-full",
-              dot <= rounded ? "bg-primary" : "bg-border"
-            )}
-          />
-        ))}
-      </span>
-      <span className="text-xs font-bold font-mono text-heading">{score.toFixed(1)} / 5</span>
-      <span className="text-[10px] text-muted">{label}</span>
-    </div>
-  )
-}
-
 function BlockHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-2.5">
@@ -102,23 +79,19 @@ export function AccountSummaryReportView({
         <BlockHeading>Identité</BlockHeading>
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Statut" value={facts.identity.lifecycleStatus.replace(/_/g, " ")} />
-          <Metric
-            label="Score IA"
-            value={facts.identity.aiScore !== null ? `${facts.identity.aiScore}/10` : "—"}
-          />
           <Metric label="Secteur" value={facts.identity.sector ?? "Non renseigné"} />
           <Metric label="Segment" value={facts.identity.segment ?? "—"} />
         </div>
       </section>
 
-      {/* Bloc 2 — Potentiel commercial */}
+      {/* Bloc 2 — Opportunités */}
       <section>
-        <BlockHeading>Potentiel commercial</BlockHeading>
+        <BlockHeading>Opportunités</BlockHeading>
         <div className="grid grid-cols-2 gap-3">
-          <Metric label="Pipe pondéré ouvert" value={formatEuro(facts.potential.openPipeWeighted)} />
-          <Metric label="Opportunités ouvertes" value={String(facts.potential.openOpportunitiesCount)} />
-          <Metric label="Opportunités gagnées" value={String(facts.potential.wonOpportunitiesCount)} />
-          <Metric label="Total historique" value={String(facts.potential.totalOpportunitiesCount)} />
+          <Metric label="Pipe pondéré ouvert" value={formatEuro(facts.opportunities.openPipeWeighted)} />
+          <Metric label="Opportunités ouvertes" value={String(facts.opportunities.openOpportunitiesCount)} />
+          <Metric label="Opportunités gagnées" value={String(facts.opportunities.wonOpportunitiesCount)} />
+          <Metric label="Total historique" value={String(facts.opportunities.totalOpportunitiesCount)} />
         </div>
       </section>
 
@@ -208,14 +181,10 @@ export function AccountSummaryReportView({
         </div>
       </section>
 
-      {/* Bloc 7 — Analyse & conviction */}
+      {/* Bloc 7 — Analyse factuelle */}
       <section>
-        <BlockHeading>Analyse &amp; conviction</BlockHeading>
+        <BlockHeading>Analyse factuelle</BlockHeading>
         <p className="text-xs text-body leading-relaxed mb-3">{narrative.analysis}</p>
-        <div className="space-y-2 mb-3">
-          <ScoreDots score={facts.scores.conviction} label="Conviction" />
-          <ScoreDots score={facts.scores.investment} label="Investissement" />
-        </div>
         <div className="rounded border border-primary/20 bg-primary/5 px-3 py-2">
           <span className="block text-[9px] font-bold uppercase tracking-wider text-primary">
             Prochaine meilleure action

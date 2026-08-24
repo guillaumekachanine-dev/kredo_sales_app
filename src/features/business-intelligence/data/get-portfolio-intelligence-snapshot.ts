@@ -11,7 +11,7 @@ import {
   type PortfolioInteractionRow,
   type PortfolioOpportunityRow,
 } from "@/lib/prospection/portfolio-account-metrics"
-import type { PortfolioIntelligenceSnapshot } from "./business-intelligence-types"
+import type { PortfolioIntelligenceSnapshot, PortfolioInteractionSourceRow } from "./business-intelligence-types"
 
 type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 type LooseSelectable<T> = LooseQuery<T> & {
@@ -45,9 +45,9 @@ export const getPortfolioIntelligenceSnapshot = cache(async (): Promise<Portfoli
     // Lot 0 — `segment_id` est la maille de lecture de la connaissance
     // sectorielle ; `sector_id` (le macro) reste chargé comme niveau
     // d'agrégation du regroupement BI.
-    supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,segment_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at").order("name"),
+    supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,segment_id,lifecycle_status,priority,knowledge_state,health,updated_at").order("name"),
     supabase.from("contacts").select<PortfolioContactRow>("company_id,relationship_role,decision_power"),
-    supabase.from("interactions").select<any>("company_id,type,occurred_at,details"),
+    supabase.from("interactions").select<PortfolioInteractionSourceRow>("company_id,type,occurred_at,details"),
     supabase.from("calendar_events").select<PortfolioCalendarEventRow>("company_id,event_type,starts_at,status"),
     supabase.from("opportunities").select<PortfolioOpportunityRow>("company_id,stage,weighted_gain"),
     supabase.from("v_ai_intelligence_summary").select<PortfolioIntelligenceSummaryRow>("company_id,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector,has_legacy_pitches,latest_run_at,latest_run_status,count_runs,count_results"),
@@ -97,10 +97,7 @@ export const getPortfolioIntelligenceSnapshot = cache(async (): Promise<Portfoli
     accounts: portfolio.accounts,
     filterOptions: portfolio.filterOptions,
     trust: portfolio.trust,
-    metrics: {
-      totalAccounts: portfolio.metrics.totalAccounts,
-      scoredAccounts: portfolio.metrics.scoredAccounts,
-    },
+    metrics: portfolio.metrics,
     generatedAt: new Date(now).toISOString(),
     dataQuality: {
       syntheticInteractionsCount,

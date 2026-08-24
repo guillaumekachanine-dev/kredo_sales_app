@@ -135,11 +135,12 @@ export const accountContextProvider: CorpusProvider<{
       ctx.supabase
         .from("v_active_account_signals")
         .select(
-          "id, title, summary, recommended_action, score_justification, signal_category, signal_type, detected_at, global_score",
+          "id, title, summary, recommended_action, signal_category, signal_type, detected_at, urgency_score, confidence_score",
         )
         .eq("workspace_id", ctx.workspaceId)
         .eq("company_id", company.id)
-        .order("global_score", { ascending: false })
+        .order("urgency_score", { ascending: false })
+        .order("detected_at", { ascending: false })
         .order("detected_at", { ascending: false })
         .limit(ACCOUNT_SIGNAL_QUERY_LIMIT),
       ctx.supabase
@@ -175,9 +176,9 @@ export const accountContextProvider: CorpusProvider<{
       const content = compose([
         line("Catégorie", signal.signal_category),
         line("Type", signal.signal_type),
-        line("Score global", signal.global_score),
+        line("Urgence", signal.urgency_score),
+        line("Confiance", signal.confidence_score),
         line("Résumé", signal.summary),
-        line("Justification du score", signal.score_justification),
         line("Action recommandée", signal.recommended_action),
       ])
       if (!content) continue

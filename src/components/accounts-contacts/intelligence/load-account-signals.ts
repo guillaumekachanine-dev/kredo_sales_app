@@ -22,7 +22,6 @@ export async function loadAccountSignals(
       detected_at,
       last_evidence_at,
       expires_at,
-      global_score,
       relevance_score,
       urgency_score,
       confidence_score,
@@ -33,7 +32,7 @@ export async function loadAccountSignals(
       intelligence_sources(id,source_name,source_url,published_at)
     `)
     .eq("company_id", companyId)
-    .order("global_score", { ascending: false })
+    .order("urgency_score", { ascending: false })
     .order("detected_at", { ascending: false })
     .limit(100)
 
@@ -58,7 +57,6 @@ export async function loadAccountSignals(
         lastEvidenceAt: row.last_evidence_at,
         expiresAt: row.expires_at,
         publishedAt: source?.published_at ?? null,
-        globalScore: row.global_score ?? 0,
         interestScore: row.relevance_score ?? 0,
         urgencyScore: row.urgency_score ?? 0,
         confidenceScore: row.confidence_score ?? 0,

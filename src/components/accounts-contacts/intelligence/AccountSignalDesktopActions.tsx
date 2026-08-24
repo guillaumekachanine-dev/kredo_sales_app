@@ -19,7 +19,6 @@ export function AccountSignalDesktopActions({
   summary,
   analysis,
   recommendedAction,
-  globalScore,
   urgencyScore,
   confidenceScore,
   onDismiss,
@@ -35,7 +34,6 @@ export function AccountSignalDesktopActions({
   summary: string | null
   analysis: string | null
   recommendedAction: string | null
-  globalScore: number
   urgencyScore: number
   confidenceScore: number
   onDismiss: (signalId: string) => void
@@ -130,8 +128,7 @@ export function AccountSignalDesktopActions({
 
         <footer className="mt-3 flex items-center justify-between gap-4 border-t border-border pt-3">
           <dl className="flex items-center divide-x divide-border text-[9px] text-muted">
-            <div className="flex items-center gap-1.5 pr-3"><dt>Score</dt><dd className="font-bold text-heading">{Math.round(globalScore * 100)}%</dd></div>
-            <div className="flex items-center gap-1.5 px-3"><dt>Urgence</dt><dd className="font-bold text-heading">{Math.round(urgencyScore * 100)}%</dd></div>
+            <div className="flex items-center gap-1.5 pr-3"><dt>Urgence</dt><dd className="font-bold text-heading">{Math.round(urgencyScore * 100)}%</dd></div>
             <div className="flex items-center gap-1.5 pl-3"><dt>Confiance</dt><dd className="font-bold text-heading">{Math.round(confidenceScore * 100)}%</dd></div>
           </dl>
           <Button

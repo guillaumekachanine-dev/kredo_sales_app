@@ -19,7 +19,6 @@ export async function getCockpitDesktopSnapshot(): Promise<CockpitDesktopSnapsho
 
   const [
     companies,
-    scores,
     signals,
     issues,
     opportunities,
@@ -34,10 +33,6 @@ export async function getCockpitDesktopSnapshot(): Promise<CockpitDesktopSnapsho
     read<CockpitDesktopSources["companies"][number]>(
       "companies",
       supabase.from("companies").select("id,name,sector,next_action_at,next_action_label").returns<Array<{ id: string; name: string; sector: string | null; next_action_at: string | null; next_action_label: string | null }>>().then(({ data, error }) => ({ data: data?.map((row) => ({ id: row.id, name: row.name, sector: row.sector, nextActionAt: row.next_action_at, nextActionLabel: row.next_action_label })) ?? null, error })),
-    ),
-    read<CockpitDesktopSources["scores"][number]>(
-      "account scores",
-      supabase.from("account_score_current").select("company_id,score_value,confidence_score").returns<Array<{ company_id: string; score_value: number | null; confidence_score: number | null }>>().then(({ data, error }) => ({ data: data?.map((row) => ({ companyId: row.company_id, scoreValue: row.score_value, confidenceScore: row.confidence_score })) ?? null, error })),
     ),
     read<CockpitDesktopSources["signals"][number]>(
       "account signals",
@@ -81,7 +76,6 @@ export async function getCockpitDesktopSnapshot(): Promise<CockpitDesktopSnapsho
   return buildCockpitDesktopSnapshot({
     now,
     companies,
-    scores,
     signals,
     issues,
     opportunities,

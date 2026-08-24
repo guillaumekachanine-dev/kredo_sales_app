@@ -329,7 +329,7 @@ export const items: KnowledgeItem[] = [
     domain: "accounts",
     type: "account_synthesis",
     title: "Synthèse compte — CEGEMA",
-    summary: "Mutuelle santé spécialisée, client actif avec 2 missions en cours. Score IA 78/100. Pipeline pondéré : 45 k€. Prochain RDV : revue trimestrielle planifiée.",
+    summary: "Mutuelle santé spécialisée, client actif avec 2 missions en cours. Pipeline pondéré : 45 k€. Prochain RDV : revue trimestrielle planifiée.",
     score: null,
     updatedAt: "2026-07-25",
     source: "Intelligence KREDO",

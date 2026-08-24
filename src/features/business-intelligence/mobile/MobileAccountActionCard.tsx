@@ -12,8 +12,8 @@ export function MobileAccountActionCard({ account }: { account: BusinessIntellig
 
   return (
     <section className="border-t border-white/10 bg-[#09162d] px-4 py-5" aria-labelledby="mobile-action-title">
-      <div className="flex items-baseline justify-between gap-2"><h2 id="mobile-action-title" className="text-sm font-bold text-white">Action sur {account.name}</h2><span className="text-[10px] text-white/45">{account.provenance === "REAL_NATIVE" ? "Score natif" : account.provenance === "REAL_LEGACY" ? "Score historique" : "Proxy"}</span></div>
-      <p className="mt-2 text-xs leading-relaxed text-white/65">{account.nativeScore?.summary ?? attack?.topSignal?.summary ?? "Aucun résumé complémentaire disponible."}</p>
+      <div className="flex items-baseline justify-between gap-2"><h2 id="mobile-action-title" className="text-sm font-bold text-white">Action sur {account.name}</h2></div>
+      <p className="mt-2 text-xs leading-relaxed text-white/65">{attack?.topSignal?.summary ?? "Aucun résumé complémentaire disponible."}</p>
       <div className="mt-4 space-y-3 text-xs">
         <ActionDetail title="Drivers positifs" values={attack?.positiveDrivers ?? []} empty="Non déterminés" />
         <ActionDetail title="Vigilance" values={attack?.vigilancePoints ?? []} empty="Aucun point signalé" />
