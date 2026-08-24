@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils"
 import { cockpitIconForAction } from "./cockpit-action-icons"
 import { isDeterministicIntelligenceAction } from "./action-results/IntelligenceActionResultContent"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
+import { CockpitActionCard } from "./cockpit-mobile/CockpitIntelligenceCards"
 
 interface IntelligenceActionCardProps {
   action: IntelligenceAction
-  tone?: "dark" | "light"
+  tone?: "dark" | "light" | "cockpit-mobile"
   onActionClick?: (actionId: string) => void
 }
 
@@ -175,7 +176,8 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
   const isDeterministicAction = isDeterministicIntelligenceAction(action.id)
   const isMissionComposerAction = action.id in MISSION_COMPOSER_ACTION_CONFIGS
   const isInteractive = isMissionComposerAction || isDeterministicAction || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
-  const isComingSoon = action.status === "coming_soon" && !isInteractive
+  const isComingSoon = action.status === "coming_soon"
+  const canInteract = isInteractive && !isComingSoon
   const iconSrc = cockpitIconForAction(action.id, action.icon)
   const displayLabel = isMissionComposerAction
     ? action.label.startsWith("Mission")
@@ -219,12 +221,23 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
     }
   }
 
+  if (tone === "cockpit-mobile") {
+    return (
+      <CockpitActionCard
+        label={displayLabel}
+        iconSrc={iconSrc}
+        state={isComingSoon ? "coming_soon" : "default"}
+        onClick={canInteract ? handleClick : undefined}
+      />
+    )
+  }
+
   if (isDark) {
     return (
       <button
         type="button"
         disabled={isComingSoon}
-        onClick={isInteractive ? handleClick : undefined}
+        onClick={canInteract ? handleClick : undefined}
         className={cn(
           "kredo-action-card-dark group relative flex min-h-[88px] flex-col justify-between overflow-hidden rounded-xl p-3 text-left cursor-pointer",
           isComingSoon && "cursor-default opacity-60",
@@ -253,7 +266,7 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
     <button
       type="button"
       disabled={isComingSoon}
-      onClick={isInteractive ? handleClick : undefined}
+      onClick={canInteract ? handleClick : undefined}
       className={cn(
         "group relative flex min-h-[76px] flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.14] px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all w-full select-none",
         isComingSoon

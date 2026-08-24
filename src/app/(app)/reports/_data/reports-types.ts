@@ -706,7 +706,7 @@ export type TechnicalAlertItem = {
 export type WorkflowCostItem = {
   runType: string
   label: string
-  costTotal: number
+  costTotal: number | null
   runsCount: number
 }
 
@@ -718,11 +718,11 @@ export type TechnicalReportFacts = {
   totalRuns: number
   successCount: number
   failureCount: number
-  successRatePct: number
-  healthStatus: "optimal" | "warning" | "critical"
+  successRatePct: number | null
+  healthStatus: "optimal" | "warning" | "critical" | "unavailable"
   topAutomations: TopAutomationItem[]
   topAlerts: TechnicalAlertItem[]
-  totalCost: number
+  totalCost: number | null
   hasPricingGap: boolean
   costBreakdown: WorkflowCostItem[]
 }

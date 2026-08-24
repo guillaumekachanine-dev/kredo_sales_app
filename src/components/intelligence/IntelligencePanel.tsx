@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import { useMemo, useState, useEffect } from "react"
 import {
-  resolveIntelligenceActions,
+  resolvePageCockpitConfig,
   resolveEntityActions,
   ENTITY_TYPE_LABELS,
   type IntelligenceEntityType,
@@ -217,11 +217,11 @@ function GenericEntityPanelContent() {
         </div>
       </div>
 
-      {resolved.contextualActions.length > 0 && (
+      {resolved.actions.length > 0 && (
         <section>
           <SectionHeading title="Actions" />
           <div className="grid grid-cols-2 gap-2">
-            {resolved.contextualActions.map((action) => (
+            {resolved.actions.map((action) => (
               <IntelligenceActionCard
                 key={action.id}
                 action={action}
@@ -234,30 +234,6 @@ function GenericEntityPanelContent() {
           </div>
         </section>
       )}
-
-      {resolved.commonActions.length > 0 && (
-        <details open className="group">
-          <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
-            <span className="h-px w-3 bg-brand-brass/60" aria-hidden />
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">
-              Plus d&apos;actions
-            </h3>
-            <span className="ml-auto text-[10px] text-primary-fg/40 transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="grid grid-cols-2 gap-2">
-            {resolved.commonActions.map((action) => (
-              <IntelligenceActionCard
-                key={action.id}
-                action={action}
-                tone="dark"
-                onActionClick={(actionId) => {
-                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
-                }}
-              />
-            ))}
-          </div>
-        </details>
-      )}
     </>
   )
 }
@@ -265,10 +241,10 @@ function GenericEntityPanelContent() {
 function RegistryPanelContent() {
   const pathname = usePathname()
   const [activeActionId, setActiveActionId] = useState<string | null>(null)
-  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+  const resolved = useMemo(() => resolvePageCockpitConfig(pathname), [pathname])
   const isAvailableMissionAction = activeActionId !== null
     && activeActionId in MISSION_COMPOSER_ACTION_CONFIGS
-    && resolved.contextualActions.some((action) => action.id === activeActionId)
+    && resolved.actions.some((action) => action.id === activeActionId)
 
   if (activeActionId && (isAvailableMissionAction || isDeterministicIntelligenceAction(activeActionId))) {
     return (
@@ -296,11 +272,11 @@ function RegistryPanelContent() {
 
   return (
     <>
-      {resolved.contextualActions.length > 0 ? (
+      {resolved.actions.length > 0 ? (
         <section>
           <SectionHeading title={resolved.label} />
           <div className="grid grid-cols-2 gap-2">
-            {resolved.contextualActions.map((action) => (
+            {resolved.actions.map((action) => (
               <IntelligenceActionCard
                 key={action.id}
                 action={action}
@@ -321,30 +297,6 @@ function RegistryPanelContent() {
             Aucune donnée à contextualiser sur cette page pour l&apos;instant.
           </p>
         </section>
-      )}
-
-      {resolved.commonActions.length > 0 && (
-        <details open className="group">
-          <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
-            <span className="h-px w-3 bg-brand-brass/60" aria-hidden />
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">
-              Plus d&apos;actions
-            </h3>
-            <span className="ml-auto text-[10px] text-primary-fg/40 transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="grid grid-cols-2 gap-2">
-            {resolved.commonActions.map((action) => (
-              <IntelligenceActionCard
-                key={action.id}
-                action={action}
-                tone="dark"
-                onActionClick={(actionId) => {
-                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
-                }}
-              />
-            ))}
-          </div>
-        </details>
       )}
 
       <section>

@@ -113,37 +113,54 @@ export async function POST(request: Request) {
       .lte("created_at", endISO)
       .order("created_at", { ascending: false })
 
+    if (runsRes.error) {
+      throw new Error(`Impossible de charger les exécutions: ${runsRes.error.message}`)
+    }
+
     const runs = runsRes.data ?? []
 
     // Récupérer les coûts pour ces runs
     const runIds = runs.map((r) => r.id)
-    const costsMap = new Map<string, { durationMs: number | null; costEstimate: number | null }>()
+    const costsMap = new Map<string, {
+      durationMs: number | null
+      costEstimate: number | null
+      hasCostGap: boolean
+    }>()
 
     if (runIds.length > 0) {
       const costsRes = await serviceClient
         .from("v_ai_run_costs")
-        .select("run_id, duration_ms, cost_estimate")
+        .select("run_id, duration_ms, cost_estimate, has_pricing_gap, has_tokens_gap")
         .in("run_id", runIds)
 
-      if (costsRes.data) {
-        for (const row of costsRes.data) {
-          if (row.run_id) {
-            costsMap.set(row.run_id, {
-              durationMs: row.duration_ms,
-              costEstimate: row.cost_estimate,
-            })
-          }
+      if (costsRes.error) {
+        throw new Error(`Impossible de charger les coûts d'exécution: ${costsRes.error.message}`)
+      }
+
+      for (const row of costsRes.data ?? []) {
+        if (row.run_id) {
+          costsMap.set(row.run_id, {
+            durationMs: row.duration_ms,
+            costEstimate: row.cost_estimate,
+            hasCostGap: Boolean(row.has_pricing_gap || row.has_tokens_gap || row.cost_estimate === null),
+          })
         }
       }
     }
 
-    let totalRuns = runs.length
+    const totalRuns = runs.length
     let successCount = 0
     let failureCount = 0
     let totalCost = 0
-    const hasPricingGap = false
+    let hasPricingGap = false
 
-    const countsByWorkflow = new Map<string, { count: number; totalDuration: number; durationCount: number; cost: number }>()
+    const countsByWorkflow = new Map<string, {
+      count: number
+      totalDuration: number
+      durationCount: number
+      cost: number
+      hasCostGap: boolean
+    }>()
     const alerts: TechnicalAlertItem[] = []
 
     for (const r of runs) {
@@ -154,13 +171,22 @@ export async function POST(request: Request) {
       }
 
       const costData = costsMap.get(r.id)
-      const cost = costData?.costEstimate ?? 0
-      totalCost += cost
+      const hasCostGap = !costData || costData.hasCostGap || costData.costEstimate === null
+      const cost = costData?.costEstimate
+      if (cost !== null && cost !== undefined) totalCost += cost
+      if (hasCostGap) hasPricingGap = true
 
       const wfKey = r.run_type ?? "inconnu"
-      const existing = countsByWorkflow.get(wfKey) ?? { count: 0, totalDuration: 0, durationCount: 0, cost: 0 }
+      const existing = countsByWorkflow.get(wfKey) ?? {
+        count: 0,
+        totalDuration: 0,
+        durationCount: 0,
+        cost: 0,
+        hasCostGap: false,
+      }
       existing.count++
-      existing.cost += cost
+      if (cost !== null && cost !== undefined) existing.cost += cost
+      if (hasCostGap) existing.hasCostGap = true
       if (costData?.durationMs) {
         existing.totalDuration += costData.durationMs
         existing.durationCount++
@@ -179,37 +205,17 @@ export async function POST(request: Request) {
       }
     }
 
-    // Baseline fallback si la base ne contient pas encore de runs enregistrés sur la période
-    if (totalRuns === 0) {
-      totalRuns = 48
-      successCount = 46
-      failureCount = 2
-      totalCost = 1.45
-      countsByWorkflow.set("intel-010-refresh", { count: 24, totalDuration: 84000, durationCount: 24, cost: 0.72 })
-      countsByWorkflow.set("intel-030-account-knowledge", { count: 16, totalDuration: 125000, durationCount: 16, cost: 0.58 })
-      countsByWorkflow.set("report-activity-commercial", { count: 8, totalDuration: 42000, durationCount: 8, cost: 0.15 })
-
-      alerts.push({
-        id: "demo-alert-1",
-        runType: "intel-010-refresh",
-        label: workflowLabelForRunType("intel-010-refresh"),
-        errorMessage: "Timeout HTTP lors du crawl des actualités du compte (504 Gateway Time-out)",
-        failedAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
-        runId: null,
-      })
-      alerts.push({
-        id: "demo-alert-2",
-        runType: "account_watch_refresh",
-        label: workflowLabelForRunType("account_watch_refresh"),
-        errorMessage: "Quota API d'enrichissement dépassé temporairement (HTTP 429)",
-        failedAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
-        runId: null,
-      })
-    }
-
-    const successRatePct = totalRuns > 0 ? Math.round((successCount / totalRuns) * 1000) / 10 : 100
-    const healthStatus: "optimal" | "warning" | "critical" =
-      successRatePct >= 95 ? "optimal" : successRatePct >= 85 ? "warning" : "critical"
+    const successRatePct = totalRuns > 0
+      ? Math.round((successCount / totalRuns) * 1000) / 10
+      : null
+    const healthStatus: "optimal" | "warning" | "critical" | "unavailable" =
+      successRatePct === null
+        ? "unavailable"
+        : successRatePct >= 95
+          ? "optimal"
+          : successRatePct >= 85
+            ? "warning"
+            : "critical"
 
     // Top 3 automatisations sollicitées
     const sortedWfs = Array.from(countsByWorkflow.entries()).sort((a, b) => b[1].count - a[1].count)
@@ -219,7 +225,7 @@ export async function POST(request: Request) {
       executionCount: stats.count,
       sharePct: Math.round((stats.count / totalRuns) * 1000) / 10,
       avgDurationMs: stats.durationCount > 0 ? Math.round(stats.totalDuration / stats.durationCount) : null,
-      totalCost: Math.round(stats.cost * 1000) / 1000,
+      totalCost: stats.hasCostGap ? null : Math.round(stats.cost * 1000) / 1000,
     }))
 
     // Top 3 alertes les plus récentes
@@ -229,7 +235,7 @@ export async function POST(request: Request) {
     const costBreakdown: WorkflowCostItem[] = sortedWfs.map(([runType, stats]) => ({
       runType,
       label: workflowLabelForRunType(runType),
-      costTotal: Math.round(stats.cost * 1000) / 1000,
+      costTotal: stats.hasCostGap ? null : Math.round(stats.cost * 1000) / 1000,
       runsCount: stats.count,
     }))
 
@@ -245,7 +251,7 @@ export async function POST(request: Request) {
       healthStatus,
       topAutomations,
       topAlerts,
-      totalCost: Math.round(totalCost * 100) / 100,
+      totalCost: totalRuns === 0 || hasPricingGap ? null : Math.round(totalCost * 100) / 100,
       hasPricingGap,
       costBreakdown,
     }

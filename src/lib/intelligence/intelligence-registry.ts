@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Intelligence Registry — source unique des actions du Cockpit Intelligence
+//  Intelligence Registry — source unique du contenu du Cockpit Intelligence
 //
-//  Mappe chaque pattern de route vers des actions IA contextuelles.
+//  Mappe chaque page fonctionnelle vers ses Actions et ses Modules.
 //  Le mode Compte (entityContext.entityType défini) court-circuite ce registre
 //  et utilise AccountPanelContent — ce registre ne pilote que le mode Page.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,16 +10,33 @@ import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-mission
 
 export type IntelligenceActionStatus = "active" | "coming_soon"
 
-export type IntelligenceActionCategory = "contextual" | "common"
-
 export type IntelligenceAction = {
   id: string
   label: string
   description: string
   icon: IntelligenceIconKey
-  category: IntelligenceActionCategory
   status: IntelligenceActionStatus
   requiresEntity?: boolean
+}
+
+export type CockpitModuleStatus = "active" | "disabled" | "coming_soon"
+
+export type CockpitModuleIconKey = "financial_modeling" | "activity_leave"
+
+export type CockpitModule = {
+  id: string
+  label: string
+  description: string
+  icon: CockpitModuleIconKey
+  href: string
+  status: CockpitModuleStatus
+}
+
+export type PageCockpitConfig = {
+  pattern: string
+  label: string
+  actionIds: string[]
+  moduleIds: string[]
 }
 
 // Types d'entité que le panneau sait résoudre en mode Entité. Seul "company"
@@ -35,6 +52,16 @@ export type IntelligenceEntityType =
   | "candidate"
   | "sector"
   | "calendar_event"
+
+export type CockpitDisplayMode = "company" | "entity" | "page"
+
+export function resolveCockpitDisplayMode(
+  entityType: IntelligenceEntityType | null | undefined,
+): CockpitDisplayMode {
+  if (entityType === "company") return "company"
+  if (entityType) return "entity"
+  return "page"
+}
 
 export type IntelligenceIconKey =
   | "search_news"
@@ -64,7 +91,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Rechercher des actualités",
     description: "Collecter les dernières actualités et signaux marché sur les comptes ciblés.",
     icon: "search_news",
-    category: "contextual",
     status: "coming_soon",
   },
   scan_contacts: {
@@ -72,7 +98,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Scanner les contacts",
     description: "Identifier les décideurs clés et enrichir les fiches contacts.",
     icon: "scan_contact",
-    category: "contextual",
     status: "active",
   },
   deep_analysis: {
@@ -80,7 +105,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Analyse approfondie",
     description: "Lancer une analyse complète du compte : identité, positionnement, signaux.",
     icon: "deep_analysis",
-    category: "contextual",
     status: "coming_soon",
     requiresEntity: true,
   },
@@ -89,7 +113,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Construire un pitch",
     description: "Générer un message contextualisé à partir des données du compte.",
     icon: "generate_pitch",
-    category: "contextual",
     status: "coming_soon",
     requiresEntity: true,
   },
@@ -98,7 +121,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Roadmap commerciale",
     description: "Élaborer une feuille de route commerciale personnalisée.",
     icon: "build_roadmap",
-    category: "contextual",
     status: "coming_soon",
   },
   create_campaign: {
@@ -106,7 +128,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Créer une campagne",
     description: "Configurer une campagne de prospection multi-canal.",
     icon: "create_campaign",
-    category: "contextual",
     status: "coming_soon",
   },
   prioritize_accounts: {
@@ -114,15 +135,13 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Prioriser les comptes",
     description: "Identifier les comptes prioritaires à relancer d'après les signaux d'achat et la fraîcheur relationnelle.",
     icon: "prioritize",
-    category: "contextual",
-    status: "active",
+    status: "coming_soon",
   },
   activity_report: {
     id: "activity_report",
     label: "Bilan d'activité",
     description: "Synthétiser les interactions et le volume de relances du portefeuille.",
     icon: "weekly_brief",
-    category: "contextual",
     status: "coming_soon",
   },
   prioritize_followups: {
@@ -130,7 +149,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Prioriser les relances",
     description: "Classer les comptes sans contact récent par urgence de reprise.",
     icon: "prioritize",
-    category: "contextual",
     status: "coming_soon",
   },
   match_profiles: {
@@ -138,7 +156,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Matching profils",
     description: "Rechercher l'adéquation entre consultants, candidats et offres.",
     icon: "match_profiles",
-    category: "contextual",
     status: "coming_soon",
   },
   prioritize_pipeline: {
@@ -146,7 +163,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Prioriser le pipeline",
     description: "Classer les opportunités par probabilité de closing et valeur.",
     icon: "prioritize",
-    category: "contextual",
     status: "active",
   },
   post_mortem_pipeline: {
@@ -154,15 +170,13 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Post-mortem commercial",
     description: "Analyser les affaires gagnées et perdues du trimestre pour identifier les motifs récurrents de succès et d'échec.",
     icon: "report",
-    category: "contextual",
-    status: "active",
+    status: "coming_soon",
   },
   detect_risks: {
     id: "detect_risks",
     label: "Détection de risques",
     description: "Identifier les risques sur les opportunités et engagements actifs.",
     icon: "detect_risks",
-    category: "contextual",
     status: "active",
   },
   initiate_quote: {
@@ -170,7 +184,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Initier un devis",
     description: "Initier la trame d'une proposition commerciale pour un staffing.",
     icon: "generate_pitch",
-    category: "contextual",
     status: "coming_soon",
   },
   initiate_offer: {
@@ -178,7 +191,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Initier une offre",
     description: "Initier la trame d'une proposition d'embauche.",
     icon: "generate_pitch",
-    category: "contextual",
     status: "coming_soon",
   },
   analyze_needs: {
@@ -186,7 +198,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Analyser les besoins",
     description: "Cartographier les compétences recherchées et les écarts.",
     icon: "analyze_skills",
-    category: "contextual",
     status: "active",
   },
   project_portfolio_review: {
@@ -194,7 +205,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Revue de portefeuille",
     description: "Synthétiser avancement, budget et risques des projets actifs.",
     icon: "report",
-    category: "contextual",
     status: "coming_soon",
   },
   analyze_skill_gaps: {
@@ -202,7 +212,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Écarts de compétences",
     description: "Analyser les gaps entre compétences disponibles et demande marché.",
     icon: "analyze_skills",
-    category: "contextual",
     status: "coming_soon",
   },
   suggest_training: {
@@ -210,7 +219,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Plan de formation",
     description: "Recommander des formations en fonction des tendances marché.",
     icon: "recommendations",
-    category: "contextual",
     status: "coming_soon",
   },
   analyze_activity: {
@@ -218,7 +226,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Analyse & recommandations",
     description: "Analyser les indicateurs d'activité et formuler des recommandations.",
     icon: "recommendations",
-    category: "contextual",
     status: "active",
   },
   forecast_availability: {
@@ -226,7 +233,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Prévoir les disponibilités",
     description: "Anticiper qui se libère dans les 3 mois à venir et rapprocher ces disponibilités des besoins ouverts.",
     icon: "forecast",
-    category: "contextual",
     status: "active",
   },
   analyze_margins: {
@@ -234,7 +240,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Analyse des marges",
     description: "Décrypter les marges par mission, client et consultant.",
     icon: "analyze_margins",
-    category: "contextual",
     status: "active",
   },
   forecast_revenue: {
@@ -242,7 +247,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Prévision de CA",
     description: "Projeter le chiffre d'affaires sur les prochains trimestres.",
     icon: "forecast",
-    category: "contextual",
     status: "active",
   },
   detect_anomalies: {
@@ -250,7 +254,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Détecter les anomalies",
     description: "Identifier les écarts financiers et les incohérences de facturation.",
     icon: "detect_risks",
-    category: "contextual",
     status: "coming_soon",
   },
   analyze_funnel: {
@@ -258,7 +261,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Analyser le funnel",
     description: "Identifier les étapes de recrutement qui bloquent le plus de candidats.",
     icon: "report",
-    category: "contextual",
     status: "active",
   },
   analyze_hiring_delays: {
@@ -266,15 +268,13 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Funnel & Délais Recrutement",
     description: "Analyser où le funnel de recrutement perd des candidats et repérer les délais anormaux entre étapes.",
     icon: "report",
-    category: "contextual",
-    status: "active",
+    status: "coming_soon",
   },
   weekly_brief: {
     id: "weekly_brief",
     label: "Brief hebdomadaire",
     description: "Priorités de la semaine, alertes à traiter et actions recommandées — calculées, pas devinées.",
     icon: "weekly_brief",
-    category: "contextual",
     status: "active",
   },
   action_priorities: {
@@ -282,7 +282,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Priorités d'action",
     description: "Recommander les actions les plus impactantes à mener cette semaine.",
     icon: "prioritize",
-    category: "contextual",
     status: "active",
   },
   pipeline_insights: {
@@ -290,7 +289,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Insights pipeline",
     description: "Vue synthétique de l'état du pipe et des risques de dérapage.",
     icon: "sparkle",
-    category: "contextual",
     status: "active",
   },
   prepare_day: {
@@ -298,7 +296,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Préparer la journée",
     description: "Structurer les priorités et rendez-vous du jour.",
     icon: "prioritize",
-    category: "contextual",
     status: "active",
   },
   flag_unprepared_meetings: {
@@ -306,7 +303,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "RDV à préparer",
     description: "Repérer les rendez-vous à venir sans brief associé.",
     icon: "detect_risks",
-    category: "contextual",
     status: "coming_soon",
   },
   [MONTHLY_WATCH_MISSION_ACTION_ID]: {
@@ -314,18 +310,17 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Analyse mensuelle de la veille",
     description: "Identifier les tendances, signaux faibles, évolutions réglementaires, opportunités, risques et actions prioritaires d’une période de veille.",
     icon: "deep_analysis",
-    category: "contextual",
     status: "active",
   },
 
-  // ── Plus d'actions — transverses, disponibles sur toutes les pages ──────
+  // Actions transverses disponibles uniquement lorsqu'une page les référence
+  // explicitement dans sa configuration.
 
   common_write_email: {
     id: "common_write_email",
     label: "Rédiger un email",
     description: "Composer un email professionnel assisté par l'IA.",
     icon: "write_email",
-    category: "common",
     status: "coming_soon",
   },
   common_sector_analysis: {
@@ -333,7 +328,6 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Analyse sectorielle",
     description: "Obtenir une analyse de marché par secteur d'activité.",
     icon: "sector_analysis",
-    category: "common",
     status: "coming_soon",
   },
   common_report: {
@@ -341,72 +335,97 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Générer un rapport",
     description: "Produire un rapport consolidé à partir des données existantes.",
     icon: "report",
-    category: "common",
-    status: "coming_soon",
+    status: "active",
   },
   common_priorities: {
     id: "common_priorities",
     label: "Priorités",
     description: "Identifier et hiérarchiser les actions à mener.",
     icon: "prioritize",
-    category: "common",
     status: "coming_soon",
   },
 }
 
-// ─── Route → Actions mapping ─────────────────────────────────────────────────
+// ─── Modules définis ─────────────────────────────────────────────────────────
+
+const MODULES: Record<string, CockpitModule> = {
+  financial_modeling: {
+    id: "financial_modeling",
+    label: "Modélisation financière",
+    description: "Analyses & scénarios",
+    icon: "financial_modeling",
+    href: "/finance",
+    status: "coming_soon",
+  },
+  activity_leave: {
+    id: "activity_leave",
+    label: "Activité & congés",
+    description: "Planning & absences",
+    icon: "activity_leave",
+    href: "/consultants/activite-conges",
+    status: "active",
+  },
+}
+
+// ─── Page → Actions + Modules mapping ────────────────────────────────────────
 //
 //  Source de vérité de la nav : src/lib/navigation/main-menu.config.ts.
-//  13 routes à données réelles + 3 placeholders (aucune action inventée pour
-//  une page sans contenu — /settings n'affiche même pas le socle commun).
+//  Aucune action ou module n'est injecté implicitement. Une page sans contenu
+//  configuré conserve seulement les raccourcis fixes du shell mobile.
 //  `/staffing` volontairement absent : route orpheline, retirée de la nav
 //  principale au profit de `/missions/opps` (Besoins & Staffing).
 
-type RouteMapping = {
-  pattern: string
-  label: string
-  actionIds: string[]
-  suppressCommon?: boolean
-}
-
-const ROUTE_MAPPINGS: RouteMapping[] = [
+export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   // ── Général ───────────────────────────────────────────────────────────
   {
     pattern: "/cockpit",
     label: "Cockpit",
     actionIds: ["weekly_brief", "action_priorities", "pipeline_insights"],
+    moduleIds: [],
   },
   {
     pattern: "/agenda",
     label: "Agenda",
     actionIds: ["weekly_brief", "prepare_day", "action_priorities", "flag_unprepared_meetings"],
+    moduleIds: [],
   },
 
   // ── CRM & Prospection ─────────────────────────────────────────────────
   {
-    pattern: "/prospection/accounts/",
+    pattern: "/prospection/accounts/:companyId",
     label: "Fiche compte",
     actionIds: ["deep_analysis", "generate_pitch", "build_roadmap", "scan_contacts"],
+    moduleIds: [],
   },
   {
     pattern: "/prospection/accounts",
     label: "Comptes & contacts",
     actionIds: ["scan_contacts", "deep_analysis", "generate_pitch"],
+    moduleIds: [],
   },
   {
     pattern: "/intelligence",
     label: "Business Intelligence",
     actionIds: ["common_sector_analysis", "search_news", "build_roadmap"],
+    moduleIds: [],
   },
   {
     pattern: "/veille",
     label: "Veille & Actualités",
     actionIds: [MONTHLY_WATCH_MISSION_ACTION_ID],
+    moduleIds: [],
   },
   {
-    pattern: "/prospection",
-    label: "CRM & Prospection",
+    pattern: "/prospection-intelligence",
+    label: "Prospection Intelligence",
     actionIds: ["prioritize_accounts", "search_news", "create_campaign", "build_roadmap"],
+    moduleIds: [],
+  },
+  {
+    pattern: "/reports",
+    label: "Rapports & Rédaction",
+    actionIds: ["common_report"],
+    moduleIds: [],
   },
 
   // ── Besoins, Staffing et Engagements ─────────────────────────────────
@@ -414,44 +433,27 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
     pattern: "/missions/opps",
     label: "Besoins & Staffing",
     actionIds: ["match_profiles", "prioritize_pipeline", "post_mortem_pipeline", "initiate_quote", "analyze_needs"],
-  },
-  {
-    pattern: "/missions/actives",
-    label: "Missions",
-    actionIds: ["detect_risks", "analyze_margins", "forecast_revenue"],
-  },
-  {
-    pattern: "/missions/projets",
-    label: "Projets",
-    actionIds: ["project_portfolio_review", "detect_risks", "analyze_margins"],
+    moduleIds: [],
   },
   {
     pattern: "/missions",
     label: "Engagements",
     actionIds: ["detect_risks", "analyze_margins", "forecast_revenue"],
+    moduleIds: [],
   },
 
   // ── Équipe et Recrutement ─────────────────────────────────────────────
   {
-    pattern: "/consultants/pool-competences",
-    label: "Pool de compétences",
-    actionIds: ["analyze_skill_gaps", "suggest_training", "match_profiles"],
-  },
-  {
-    pattern: "/consultants/activite-conges",
-    label: "Activité & congés",
-    actionIds: ["analyze_activity", "detect_anomalies", "forecast_availability"],
-  },
-
-  {
     pattern: "/consultants",
     label: "Équipe",
     actionIds: ["analyze_skill_gaps", "suggest_training", "analyze_activity"],
+    moduleIds: ["activity_leave"],
   },
   {
     pattern: "/recruitment",
     label: "Recrutement",
     actionIds: ["analyze_funnel", "analyze_hiring_delays", "match_profiles", "initiate_offer", "analyze_skill_gaps"],
+    moduleIds: [],
   },
 
   // ── Finance ───────────────────────────────────────────────────────────
@@ -459,6 +461,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
     pattern: "/finance",
     label: "Finance",
     actionIds: ["analyze_margins", "forecast_revenue", "detect_anomalies"],
+    moduleIds: ["financial_modeling"],
   },
 
   // ── Outils / Paramètres — placeholders, pas d'action inventée ────────
@@ -466,25 +469,20 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
     pattern: "/knowledge",
     label: "Knowledge Hub",
     actionIds: [],
+    moduleIds: [],
   },
   {
     pattern: "/automations",
     label: "Automatisations",
     actionIds: [],
+    moduleIds: [],
   },
   {
     pattern: "/settings",
     label: "Paramètres",
     actionIds: [],
-    suppressCommon: true, // pas d'action commerciale générique sur les réglages
+    moduleIds: [],
   },
-]
-
-const COMMON_ACTION_IDS = [
-  "common_write_email",
-  "common_sector_analysis",
-  "common_report",
-  "common_priorities",
 ]
 
 // ─── Résolution par entité (mode Entité, hors "company") ────────────────────
@@ -518,55 +516,75 @@ const ENTITY_ACTION_IDS: Record<Exclude<IntelligenceEntityType, "company">, stri
 
 export function resolveEntityActions(
   entityType: Exclude<IntelligenceEntityType, "company">,
-): ResolvedIntelligenceContext {
+): ResolvedEntityIntelligenceContext {
   const actionIds = ENTITY_ACTION_IDS[entityType] ?? []
-  const contextualActions = actionIds
+  const actions = actionIds
     .map((id) => ACTIONS[id])
     .filter((a): a is IntelligenceAction => !!a)
 
-  const contextualIds = new Set(contextualActions.map((a) => a.id))
-  const commonActions = COMMON_ACTION_IDS
-    .map((id) => ACTIONS[id])
-    .filter((a): a is IntelligenceAction => !!a && !contextualIds.has(a.id))
-
-  return { label: "", contextualActions, commonActions }
+  return { actions }
 }
 
 // ─── Résolution publique ─────────────────────────────────────────────────────
 
-export type ResolvedIntelligenceContext = {
-  label: string
-  contextualActions: IntelligenceAction[]
-  commonActions: IntelligenceAction[]
+export type ResolvedEntityIntelligenceContext = {
+  actions: IntelligenceAction[]
 }
 
-export function resolveIntelligenceActions(pathname: string): ResolvedIntelligenceContext {
-  let bestMapping: RouteMapping | null = null
-  let bestLen = -1
+export type ResolvedPageCockpitConfig = {
+  config: PageCockpitConfig | null
+  label: string
+  actions: IntelligenceAction[]
+  modules: CockpitModule[]
+}
 
-  for (const mapping of ROUTE_MAPPINGS) {
-    if (pathname === mapping.pattern || pathname.startsWith(mapping.pattern)) {
-      if (mapping.pattern.length > bestLen) {
-        bestLen = mapping.pattern.length
-        bestMapping = mapping
+function splitPath(pathname: string): string[] {
+  return pathname.split(/[?#]/, 1)[0].split("/").filter(Boolean)
+}
+
+export function doesCockpitPatternMatch(pathname: string, pattern: string): boolean {
+  const pathnameSegments = splitPath(pathname)
+  const patternSegments = splitPath(pattern)
+
+  if (pathnameSegments.length < patternSegments.length) return false
+
+  return patternSegments.every((segment, index) => (
+    segment.startsWith(":") || segment === pathnameSegments[index]
+  ))
+}
+
+function patternSpecificity(pattern: string): number {
+  const segments = splitPath(pattern)
+  const literalSegments = segments.filter((segment) => !segment.startsWith(":")).length
+
+  return segments.length * 100 + literalSegments
+}
+
+export function resolvePageCockpitConfig(pathname: string): ResolvedPageCockpitConfig {
+  let bestConfig: PageCockpitConfig | null = null
+  let bestSpecificity = -1
+
+  for (const config of PAGE_COCKPIT_CONFIGS) {
+    if (doesCockpitPatternMatch(pathname, config.pattern)) {
+      const specificity = patternSpecificity(config.pattern)
+      if (specificity > bestSpecificity) {
+        bestSpecificity = specificity
+        bestConfig = config
       }
     }
   }
 
-  const contextualActions = (bestMapping?.actionIds ?? [])
+  const actions = (bestConfig?.actionIds ?? [])
     .map((id) => ACTIONS[id])
-    .filter((a): a is IntelligenceAction => !!a)
-
-  const contextualIds = new Set(contextualActions.map((a) => a.id))
-  const commonActions = bestMapping?.suppressCommon
-    ? []
-    : COMMON_ACTION_IDS
-        .map((id) => ACTIONS[id])
-        .filter((a): a is IntelligenceAction => !!a && !contextualIds.has(a.id))
+    .filter((action): action is IntelligenceAction => !!action)
+  const modules = (bestConfig?.moduleIds ?? [])
+    .map((id) => MODULES[id])
+    .filter((module): module is CockpitModule => !!module)
 
   return {
-    label: bestMapping?.label ?? "Navigation",
-    contextualActions,
-    commonActions,
+    config: bestConfig,
+    label: bestConfig?.label ?? "Navigation",
+    actions,
+    modules,
   }
 }

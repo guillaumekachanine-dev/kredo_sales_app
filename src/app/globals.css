@@ -44,6 +44,9 @@
   --color-cockpit-cobalt: var(--color-brand-primary);
   --color-cockpit-cobalt-deep: var(--color-brand-primary-deep);
   --color-cockpit-cobalt-soft: #EAF0FB;
+  --color-cockpit-intelligence: #173D89;
+  --color-cockpit-intelligence-border: #4567A1;
+  --color-cockpit-action-border: #AFC1DC;
 
   /* ── Navigation · navy sidebar ─────────────────────────── */
   --color-sidebar-bg: #162650;
@@ -1053,6 +1056,33 @@ dialog.kredo-drawer-bottom {
 
   dialog[open].kredo-drawer-right.kredo-drawer-closing {
     animation: kredo-drawer-out-bottom 0.22s cubic-bezier(0.4, 0, 1, 1) both !important;
+  }
+
+  /* Cockpit Intelligence générique — panneau mobile inset de la maquette
+     finale. La classe dédiée évite d'altérer les drawers métier existants. */
+  dialog.kredo-drawer-bottom.kredo-cockpit-intelligence-drawer {
+    top: 1.125rem !important;
+    inset-block-start: 1.125rem !important;
+    bottom: 1.125rem !important;
+    inset-block-end: 1.125rem !important;
+    left: 1.125rem !important;
+    inset-inline-start: 1.125rem !important;
+    right: 1.125rem !important;
+    inset-inline-end: 1.125rem !important;
+    width: calc(100% - 2.25rem) !important;
+    max-width: calc(100% - 2.25rem) !important;
+    height: calc(100dvh - 2.25rem) !important;
+    max-height: calc(100dvh - 2.25rem) !important;
+    border: 1px solid var(--color-cockpit-intelligence-border) !important;
+    border-radius: 2.0625rem !important;
+  }
+
+  dialog.kredo-cockpit-intelligence-drawer header {
+    padding: 1.875rem 1.75rem 0.9375rem !important;
+  }
+
+  dialog.kredo-cockpit-intelligence-drawer div.overflow-y-auto {
+    padding: 0 !important;
   }
 }
 

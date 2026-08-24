@@ -1,0 +1,37 @@
+{
+  "title": "Cockpit Intelligence mobile — version finale consolidée",
+  "created_at": "2026-08-24",
+  "status": "final_visual_reference",
+  "base_direction": "Proposition B — Transposition enrichie",
+  "production_mode": "deterministic-html-css-playwright",
+  "image_generation_used": false,
+  "source_artifact": "../cockpit-intelligence-mobile-menu-derived-2026-08-24/",
+  "outputs": [
+    {
+      "file": "cockpit-intelligence-mobile-final.png",
+      "role": "final_review_board",
+      "dimensions": "1280x1197"
+    },
+    {
+      "file": "cockpit-intelligence-mobile-final-panel.png",
+      "role": "final_mobile_panel",
+      "dimensions": "480x960"
+    },
+    {
+      "file": "cockpit-intelligence-mobile-final-details.png",
+      "role": "component_detail_board",
+      "dimensions": "654x1012"
+    }
+  ],
+  "invariants": {
+    "directions_presented": 1,
+    "actions": 4,
+    "modules": 2,
+    "shortcuts": 4,
+    "action_columns_max": 2,
+    "module_columns_max": 2,
+    "shortcut_rows": 1,
+    "functional_logic_changed": false,
+    "menu_mobile_transposition_preserved": true
+  }
+}

@@ -12,7 +12,7 @@ function formatDurationMs(ms: number | null): string {
 }
 
 function formatCostEur(cost: number | null): string {
-  if (cost === null || cost === undefined) return "0,00 €"
+  if (cost === null || cost === undefined) return "Indisponible"
   return `${cost.toFixed(2).replace(".", ",")} €`
 }
 
@@ -59,6 +59,7 @@ export function TechnicalReportContent({
 
   const isOptimal = healthStatus === "optimal"
   const isWarning = healthStatus === "warning"
+  const isUnavailable = healthStatus === "unavailable"
 
   return (
     <div className="flex flex-col gap-6 py-2">
@@ -83,7 +84,8 @@ export function TechnicalReportContent({
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
                 isOptimal && "border-success/30 bg-success/10 text-success",
                 isWarning && "border-warning/30 bg-warning/10 text-warning",
-                !isOptimal && !isWarning && "border-danger/30 bg-danger/10 text-danger",
+                healthStatus === "critical" && "border-danger/30 bg-danger/10 text-danger",
+                isUnavailable && "border-border bg-surface text-muted",
               )}
             >
               <span
@@ -91,13 +93,15 @@ export function TechnicalReportContent({
                   "size-2 rounded-full",
                   isOptimal && "bg-success animate-pulse",
                   isWarning && "bg-warning",
-                  !isOptimal && !isWarning && "bg-danger animate-ping",
+                  healthStatus === "critical" && "bg-danger animate-ping",
+                  isUnavailable && "bg-muted",
                 )}
               />
               <span>
                 {isOptimal && `Système optimal (${successRatePct}%)`}
                 {isWarning && `Sous surveillance (${successRatePct}%)`}
-                {!isOptimal && !isWarning && `Action requise (${successRatePct}%)`}
+                {healthStatus === "critical" && `Action requise (${successRatePct}%)`}
+                {isUnavailable && "Santé indisponible — aucune exécution"}
               </span>
             </span>
 
@@ -129,8 +133,12 @@ export function TechnicalReportContent({
             Ratio Succès / Échecs
           </p>
           <div className="mt-1 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold tracking-tight text-heading">{successRatePct}%</span>
-            <span className="text-xs text-success">réussis</span>
+            <span className="text-2xl font-bold tracking-tight text-heading">
+              {successRatePct === null ? "—" : `${successRatePct}%`}
+            </span>
+            <span className="text-xs text-muted">
+              {successRatePct === null ? "indisponible" : "réussis"}
+            </span>
           </div>
           <p className="mt-1 text-[10px] text-muted">
             {successCount} succès &middot; {failureCount} échecs
@@ -145,15 +153,23 @@ export function TechnicalReportContent({
             <span
               className={cn(
                 "text-2xl font-bold tracking-tight",
-                topAlerts.length > 0 ? "text-danger" : "text-success",
+                topAlerts.length > 0
+                  ? "text-danger"
+                  : totalRuns === 0
+                    ? "text-muted"
+                    : "text-success",
               )}
             >
-              {topAlerts.length}
+              {totalRuns === 0 ? "—" : topAlerts.length}
             </span>
             <span className="text-xs text-muted">incidents</span>
           </div>
           <p className="mt-1 text-[10px] text-muted">
-            {topAlerts.length > 0 ? "Alertes à examiner" : "Aucun incident critique"}
+            {topAlerts.length > 0
+              ? "Alertes à examiner"
+              : totalRuns === 0
+                ? "Aucune exécution disponible"
+                : "Aucun incident critique"}
           </p>
         </div>
 
@@ -163,10 +179,12 @@ export function TechnicalReportContent({
           </p>
           <div className="mt-1 flex items-baseline gap-1.5">
             <span className="text-2xl font-bold tracking-tight text-heading">
-              {formatCostEur(totalCost)}
+              {totalRuns === 0 ? "—" : formatCostEur(totalCost)}
             </span>
           </div>
-          <p className="mt-1 text-[10px] text-muted">Consommation des APIs LLM & n8n</p>
+          <p className="mt-1 text-[10px] text-muted">
+            {totalRuns === 0 ? "Aucune exécution disponible" : "Consommation des APIs LLM & n8n"}
+          </p>
         </div>
       </div>
 
@@ -179,29 +197,37 @@ export function TechnicalReportContent({
           </span>
         </div>
 
-        <div className="mt-2.5 flex h-3.5 w-full overflow-hidden rounded-full border border-border/40 bg-surface">
-          <div
-            className="bg-success transition-all duration-500"
-            style={{ width: `${totalRuns > 0 ? (successCount / totalRuns) * 100 : 100}%` }}
-            title={`Succès: ${successCount}`}
-          />
-          <div
-            className="bg-danger transition-all duration-500"
-            style={{ width: `${totalRuns > 0 ? (failureCount / totalRuns) * 100 : 0}%` }}
-            title={`Échecs: ${failureCount}`}
-          />
-        </div>
+        {successRatePct === null ? (
+          <div className="mt-2.5 rounded-lg border border-border/50 bg-surface/30 p-3 text-center text-xs text-muted">
+            Aucune exécution disponible sur la période : le taux de succès et la santé ne sont pas calculables.
+          </div>
+        ) : (
+          <>
+            <div className="mt-2.5 flex h-3.5 w-full overflow-hidden rounded-full border border-border/40 bg-surface">
+              <div
+                className="bg-success transition-all duration-500"
+                style={{ width: `${(successCount / totalRuns) * 100}%` }}
+                title={`Succès: ${successCount}`}
+              />
+              <div
+                className="bg-danger transition-all duration-500"
+                style={{ width: `${(failureCount / totalRuns) * 100}%` }}
+                title={`Échecs: ${failureCount}`}
+              />
+            </div>
 
-        <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-success" />
-            <span>Succès: {successCount} ({successRatePct}%)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-danger" />
-            <span>Échecs: {failureCount} ({(100 - successRatePct).toFixed(1)}%)</span>
-          </div>
-        </div>
+            <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-success" />
+                <span>Succès: {successCount} ({successRatePct}%)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-danger" />
+                <span>Échecs: {failureCount} ({(100 - successRatePct).toFixed(1)}%)</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Section 1 : Top 3 des automatisations les plus utilisées ── */}
@@ -274,11 +300,20 @@ export function TechnicalReportContent({
         </div>
 
         {topAlerts.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 p-3.5 text-xs text-success">
+          <div className={cn(
+            "flex items-center gap-2 rounded-lg p-3.5 text-xs",
+            totalRuns === 0
+              ? "border border-border/50 bg-surface/30 text-muted"
+              : "border border-success/30 bg-success/5 text-success",
+          )}>
             <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>Aucune alerte de dysfonctionnement relevée sur la période. Tous les workflows s&apos;exécutent normalement.</span>
+            <span>
+              {totalRuns === 0
+                ? "Aucune alerte disponible : aucune exécution n’a été enregistrée sur la période."
+                : "Aucune alerte de dysfonctionnement relevée sur la période."}
+            </span>
           </div>
         ) : (
           <div className="grid gap-2.5">
@@ -319,7 +354,7 @@ export function TechnicalReportContent({
             Répartition et coût total des automatisations
           </h4>
           <span className="text-xs font-bold text-heading">
-            Total : {formatCostEur(totalCost)}
+            Total : {totalRuns === 0 ? "—" : formatCostEur(totalCost)}
           </span>
         </div>
 
