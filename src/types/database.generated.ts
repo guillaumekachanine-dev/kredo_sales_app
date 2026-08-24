@@ -8085,7 +8085,7 @@ export type Database = {
           has_study: boolean | null
           hq_location: string | null
           id: string | null
-          legacy_folio_score: number | null
+          open_opportunities_count: number | null
           lifecycle_status: string | null
           logo_path: string | null
           name: string | null
