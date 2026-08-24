@@ -112,10 +112,10 @@ const ACTIONS: Record<string, IntelligenceAction> = {
   prioritize_accounts: {
     id: "prioritize_accounts",
     label: "Prioriser les comptes",
-    description: "Classer le portefeuille par potentiel commercial et fraîcheur des données.",
+    description: "Identifier les comptes prioritaires à relancer d'après les signaux d'achat et la fraîcheur relationnelle.",
     icon: "prioritize",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   activity_report: {
     id: "activity_report",

@@ -57,6 +57,30 @@ describe("parseCorpusSelector — delivery_period", () => {
   })
 })
 
+describe("parseCorpusSelector — prospection_window", () => {
+  it("accepte un intervalle de dates calendaires valide", () => {
+    expect(
+      parseCorpusSelector({ kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" }),
+    ).toEqual({ kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" })
+  })
+
+  it("refuse une date qui n'existe pas, malgré une forme correcte", () => {
+    expect(
+      parseCorpusSelector({ kind: "prospection_window", periodStart: "2026-02-31", periodEnd: "2026-03-01" }),
+    ).toBeNull()
+  })
+
+  it("refuse un horodatage, une date partielle et un intervalle inversé", () => {
+    expect(
+      parseCorpusSelector({ kind: "prospection_window", periodStart: "2026-08-01T00:00:00Z", periodEnd: "2026-08-31" }),
+    ).toBeNull()
+    expect(parseCorpusSelector({ kind: "prospection_window", periodStart: "2026-08", periodEnd: "2026-08-31" })).toBeNull()
+    expect(
+      parseCorpusSelector({ kind: "prospection_window", periodStart: "2026-08-31", periodEnd: "2026-08-01" }),
+    ).toBeNull()
+  })
+})
+
 describe("parseCorpusSelector — intelligence_document", () => {
   it("accepte des uuid et les déduplique", () => {
     expect(parseCorpusSelector({ kind: "intelligence_document", ids: [UUID_A, UUID_A, UUID_B] })).toEqual({
@@ -152,5 +176,11 @@ describe("corpusSelectorKey", () => {
     expect(
       corpusSelectorKey({ kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" }),
     ).toBe("delivery_period:2026-07-01:2026-07-31")
+  })
+
+  it("rend la clé attendue pour un sélecteur prospection_window", () => {
+    expect(
+      corpusSelectorKey({ kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" }),
+    ).toBe("prospection_window:2026-08-01:2026-08-31")
   })
 })

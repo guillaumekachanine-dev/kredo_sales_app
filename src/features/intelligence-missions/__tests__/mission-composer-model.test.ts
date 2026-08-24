@@ -72,9 +72,11 @@ describe("mission composer launch contract", () => {
 })
 
 describe("mission composer action configs mapping", () => {
-  it("maps monthly watch and analyze_margins to their respective configs", () => {
+  it("maps monthly watch, analyze_margins, and prioritize_accounts to their respective configs", () => {
     expect(MISSION_COMPOSER_ACTION_CONFIGS[MONTHLY_WATCH_MISSION_ACTION_ID]).toEqual(VEILLE_MISSION_COMPOSER_CONFIG)
     expect(MISSION_COMPOSER_ACTION_CONFIGS.analyze_margins).toEqual(RENTABILITE_MISSION_COMPOSER_CONFIG)
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.prioritize_accounts).toBeDefined()
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.prioritize_accounts.missionSlug).toBe("activation-portefeuille")
   })
 
   it("builds delivery_period selectors for analyze_margins", () => {
@@ -82,6 +84,14 @@ describe("mission composer action configs mapping", () => {
     expect(config.missionSlug).toBe("rentabilite-portefeuille")
     expect(config.buildSelectors("2026-07")).toEqual([
       { kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" },
+    ])
+  })
+
+  it("builds prospection_window selectors for prioritize_accounts", () => {
+    const config = MISSION_COMPOSER_ACTION_CONFIGS.prioritize_accounts
+    expect(config.missionSlug).toBe("activation-portefeuille")
+    expect(config.buildSelectors("2026-08")).toEqual([
+      { kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" },
     ])
   })
 })

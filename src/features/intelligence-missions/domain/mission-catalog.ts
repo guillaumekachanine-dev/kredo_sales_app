@@ -119,6 +119,71 @@ Règles de concision et de sélection :
       maxOutputTokens: 8_000,
     },
   },
+  {
+    slug: "activation-portefeuille",
+    version: 1,
+    label: "Activation du portefeuille",
+    description:
+      "Identification et caractérisation des comptes prioritaires à relancer selon les signaux d'achat, la fraîcheur relationnelle et les enjeux cartographiés.",
+    corpus: {
+      base: [],
+      requiredAtLaunch: ["prospection_window"],
+      userAddition: {
+        allowed: false,
+        kinds: [],
+      },
+      budget: {
+        maxTotalChars: 120_000,
+        maxCharsPerItem: 2_000,
+        maxItems: 150,
+      },
+    },
+    intent: {
+      preset:
+        "À partir des signaux d'achat détectés sur la période, des comptes qu'ils touchent, de la fraîcheur relationnelle et des enjeux cartographiés, désigner au maximum 8 comptes à activer en priorité commercialement.",
+      userEditable: false,
+    },
+    constraints: {
+      rules: [
+        "Fonder l'analyse exclusivement sur le corpus fourni.",
+        "Ne mener aucune recherche externe.",
+        "Ne jamais inventer de fait, de chiffre, de source ou de causalité absente du corpus.",
+        "Relier toute conclusion factuelle à au moins une source du corpus.",
+        "Distinguer explicitement les faits observés des interprétations et recommandations.",
+        "Ne calcule, ne cumule ni ne moyenne aucun score de signal entre eux. Chaque score cité doit être attribué à un signal précis, jamais à un compte pris globalement.",
+      ],
+    },
+    promptTemplate: `Tu produis une analyse d'activation du portefeuille de prospection destinée à un manager commercial en ESN.
+
+À partir du corpus fourni uniquement :
+- synthétise les arbitrages prioritaires de prospection dans executiveSummary (maximum 8 phrases) en indiquant clairement sur quels comptes concentrer l'effort ce mois et lesquels laisser de côté ;
+- classe les constats dans findings (maximum 8 constats au total, un par compte désigné) avec les catégories opportunite, risque ou signal_faible ;
+- chaque statement de constat fait maximum 3 phrases ;
+- chaque constat dans findings doit obligatoirement être imputé à un compte nommé et rattaché à au moins un signal, une interaction ou un enjeu identifié ;
+- formule dans recommendations les actions d'activation prioritaires (maximum 5 recommandations) avec l'angle d'approche et l'interlocuteur pressenti si le corpus le connaît, en renseignant systématiquement l'horizon (immediate ou 30_days) ;
+- chaque rationale de recommandation fait maximum 3 phrases ;
+- si un compte présente des signaux forts mais que la classification est incomplète, la relation dormante ou qu'aucun interlocuteur qualifié n'est identifié, tu peux l'écarter explicitement en motivant ta décision plutôt que de l'omettre silencieusement ;
+- rattache chaque finding et chaque recommandation à ses preuves via SourceRef ;
+- consolide dans sourceRefs les sources effectivement mobilisées, sans jamais répéter plusieurs fois la même source.
+
+Règles de concision et de sélection :
+- Le rapport doit désigner au maximum 8 comptes au total. Ne cherche pas à restituer chaque élément du corpus.
+- Ne reconstitue aucun score global de compte et n'additionne pas les scores des signaux entre eux.
+- Privilégie les opportunités d'activation les plus structurantes et argumentées plutôt que l'exhaustivité.
+- Ne transforme jamais une absence d'information en conclusion. Si le corpus ne permet pas d'étayer un point, ne l'affirme pas.`,
+    model: {
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      // 16_000 et non 8_000 (contrairement aux deux presets précédents) : le JSON de
+      // cette mission répète un objet SourceRef complet par citation, dans findings,
+      // recommendations ET sourceRefs — un run réel a atteint stop_reason: max_tokens
+      // à 8_000, produisant un rawOutput tronqué que validateMissionReport rejette
+      // (JSON.parse échoue), vu côté n8n comme un 400 sur le nœud Callback. Le nœud
+      // "Call LLM" du workflow figé a un timeout de 180s ; à ~105 tokens/s observés,
+      // 16_000 tokens restent sous ce plafond avec marge.
+      maxOutputTokens: 16_000,
+    },
+  },
 ] satisfies MissionSpec[]
 
 /**

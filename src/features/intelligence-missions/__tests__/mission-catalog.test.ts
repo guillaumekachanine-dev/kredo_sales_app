@@ -6,7 +6,7 @@ describe("MISSION_CATALOG", () => {
   it("est type comme un catalogue de MissionSpec", () => {
     const typedCatalog: readonly MissionSpec[] = MISSION_CATALOG
 
-    expect(typedCatalog).toHaveLength(2)
+    expect(typedCatalog).toHaveLength(3)
   })
 
   it("ne declare jamais un corpus vide : base ou requiredAtLaunch est renseigne", () => {
@@ -33,10 +33,11 @@ describe("MISSION_CATALOG", () => {
     expect(new Set(slugs).size).toBe(slugs.length)
   })
 
-  it("contient les presets veille-analyse-mensuelle et rentabilite-portefeuille dans cet ordre", () => {
-    expect(MISSION_CATALOG).toHaveLength(2)
+  it("contient les presets veille-analyse-mensuelle, rentabilite-portefeuille et activation-portefeuille dans cet ordre", () => {
+    expect(MISSION_CATALOG).toHaveLength(3)
     expect(MISSION_CATALOG[0]?.slug).toBe("veille-analyse-mensuelle")
     expect(MISSION_CATALOG[1]?.slug).toBe("rentabilite-portefeuille")
+    expect(MISSION_CATALOG[2]?.slug).toBe("activation-portefeuille")
   })
 
   it("porte un preset complet sans configuration de type de sortie", () => {
@@ -153,5 +154,45 @@ describe("MISSION_CATALOG", () => {
     expect(preset.promptTemplate).toContain(
       "Privilégie les constats les plus structurants plutôt que l'exhaustivité.",
     )
+  })
+
+  it("porte un preset complet sans configuration de type de sortie pour activation-portefeuille", () => {
+    const preset = MISSION_CATALOG[2]
+
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    expect(preset.version).toBe(1)
+    expect(preset.slug).toBe("activation-portefeuille")
+    expect(preset.label.trim()).not.toBe("")
+    expect(preset.description.trim()).not.toBe("")
+    expect(preset.intent.preset.trim()).not.toBe("")
+    expect(preset.promptTemplate.trim()).not.toBe("")
+    expect(preset.constraints.rules.length).toBeGreaterThan(0)
+    expect(preset.corpus.budget.maxTotalChars).toBe(120_000)
+    expect(preset.corpus.budget.maxCharsPerItem).toBe(2_000)
+    expect(preset.corpus.budget.maxItems).toBe(150)
+    expect(preset.corpus.requiredAtLaunch).toEqual(["prospection_window"])
+    expect(preset.corpus.base).toEqual([])
+    expect(preset.corpus.userAddition.allowed).toBe(false)
+    expect(preset.corpus.userAddition.kinds).toEqual([])
+    expect(preset.model.provider).toBe("anthropic")
+    expect(preset.model.model.trim()).not.toBe("")
+    expect(preset.model.maxOutputTokens).toBe(16_000)
+
+    expect(preset).not.toHaveProperty("resultType")
+    expect(preset).not.toHaveProperty("outputSchema")
+    expect(preset).not.toHaveProperty("qaRules")
+  })
+
+  it("impose la règle anti-agrégation de score dans les contraintes de activation-portefeuille", () => {
+    const preset = MISSION_CATALOG[2]
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    const hasAntiAggregationRule = preset.constraints.rules.some((rule) =>
+      rule.includes("Ne calcule, ne cumule ni ne moyenne aucun score de signal"),
+    )
+    expect(hasAntiAggregationRule).toBe(true)
   })
 })

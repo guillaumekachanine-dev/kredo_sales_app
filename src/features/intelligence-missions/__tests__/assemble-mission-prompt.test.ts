@@ -223,3 +223,32 @@ describe("assembleMissionPrompt — preset rentabilite-portefeuille", () => {
     }
   })
 })
+
+const ACTIVATION_SPEC = findMissionSpec("activation-portefeuille") as MissionSpec
+
+const ACTIVATION_CORPUS: ResolvedCorpus = {
+  items: [
+    {
+      ref: { kind: "prospection_window", table: "v_active_account_signals", id: "sig-1" },
+      title: "Signal · Acme Corp · Levée de fonds",
+      date: "2026-08-10",
+      provenance: "v_active_account_signals",
+      content: "Compte : Acme Corp\nScore urgence : 8",
+      chars: 35,
+    },
+  ],
+  stats: { requested: 1, kept: 1, dropped: 0, totalChars: 35 },
+  trace: [],
+}
+
+describe("assembleMissionPrompt — preset activation-portefeuille", () => {
+  it("assemble le prompt sans lever d'erreur et contient les contraintes anti-agrégation", () => {
+    expect(ACTIVATION_SPEC).toBeDefined()
+    const { systemPrompt, userPrompt } = assembleMissionPrompt(ACTIVATION_SPEC, ACTIVATION_CORPUS)
+
+    expect(systemPrompt).toContain("Ne calcule, ne cumule ni ne moyenne aucun score de signal entre eux")
+    expect(userPrompt).toContain("## Mission — Activation du portefeuille")
+    expect(userPrompt).toContain(ACTIVATION_SPEC.intent.preset)
+    expect(userPrompt).toContain("kind: prospection_window")
+  })
+})

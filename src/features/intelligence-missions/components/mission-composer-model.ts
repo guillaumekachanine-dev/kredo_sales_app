@@ -76,6 +76,15 @@ export function monthToDeliveryPeriod(month: string): Extract<CorpusSelector, { 
   }
 }
 
+export function monthToProspectionWindow(month: string): Extract<CorpusSelector, { kind: "prospection_window" }> {
+  const { periodStart, periodEnd } = computeMonthBoundaries(month)
+  return {
+    kind: "prospection_window",
+    periodStart,
+    periodEnd,
+  }
+}
+
 export function defaultMissionMonth(reference = new Date()): string {
   const previousMonth = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() - 1, 1))
   return previousMonth.toISOString().slice(0, 7)
@@ -150,6 +159,14 @@ export const RENTABILITE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
   buildSelectors: (month) => [monthToDeliveryPeriod(month)],
 }
 
+export const ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
+  missionSlug: "activation-portefeuille",
+  label: "Activation du portefeuille",
+  description:
+    "Identifier les comptes prioritaires à relancer selon les signaux d'achat, la fraîcheur relationnelle et les enjeux cartographiés.",
+  buildSelectors: (month) => [monthToProspectionWindow(month)],
+}
+
 /**
  * Une action du cockpit peut déclencher le composeur de mission plutôt que la rédaction
  * ou un rapport déterministe. Cette table est la SEULE source de vérité de ce mapping —
@@ -159,5 +176,6 @@ export const RENTABILITE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
 export const MISSION_COMPOSER_ACTION_CONFIGS: Record<string, MissionComposerConfig> = {
   [MONTHLY_WATCH_MISSION_ACTION_ID]: VEILLE_MISSION_COMPOSER_CONFIG,
   analyze_margins: RENTABILITE_MISSION_COMPOSER_CONFIG,
+  prioritize_accounts: ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG,
 }
 
