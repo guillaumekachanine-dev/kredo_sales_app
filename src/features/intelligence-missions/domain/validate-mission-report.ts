@@ -69,6 +69,7 @@ const CORPUS_KINDS = {
   delivery_period: true,
   prospection_window: true,
   staffing_horizon: true,
+  account_delivery: true,
 } satisfies Record<CorpusKind, true>
 
 // `Set` construit depuis les clés : `has()` ne consulte pas la chaîne de prototypes,

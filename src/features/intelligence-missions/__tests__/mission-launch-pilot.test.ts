@@ -216,3 +216,178 @@ describe("resolveMissionRunEntity", () => {
     })
   })
 })
+
+describe("pilote revue-compte-client — bout en bout", () => {
+  const REVUE_SPEC = findMissionSpec("revue-compte-client") as MissionSpec
+  const COMPANY_ID = "33333333-3333-3333-3333-333333333333"
+
+  const REVUE_DATASET: FakeDataset = {
+    companies: [
+      {
+        id: COMPANY_ID,
+        workspace_id: WORKSPACE,
+        name: "BNP Paribas",
+        legal_name: "BNP Paribas SA",
+        relation_type: "client_actif",
+        lifecycle_status: "client_actif",
+        sector: "Banque & Finance",
+        segment: "banque-detail",
+        updated_at: "2026-08-01T00:00:00Z",
+      },
+    ],
+    v_active_account_signals: [
+      {
+        id: "sig-1",
+        workspace_id: WORKSPACE,
+        company_id: COMPANY_ID,
+        title: "Projet Core Banking Cloud",
+        summary: "Migration vers le cloud public.",
+        recommended_action: "Proposer notre offre Cloud.",
+        signal_category: "opportunite",
+        signal_type: "projet_it",
+        detected_at: "2026-08-10",
+        urgency_score: 80,
+        confidence_score: 90,
+      },
+    ],
+    contacts: [
+      {
+        id: "contact-1",
+        workspace_id: WORKSPACE,
+        company_id: COMPANY_ID,
+        person_id: "person-1",
+        job_title: "DSI Banque Privée",
+        department: "DSI",
+        relationship_role: "decideur",
+        decision_power: "fort",
+        relationship_level: "frequent",
+        is_priority: true,
+        updated_at: "2026-08-01",
+      },
+    ],
+    persons: [
+      {
+        id: "person-1",
+        workspace_id: WORKSPACE,
+        full_name: "François Dupont",
+      },
+    ],
+    missions: [
+      {
+        id: "mission-1",
+        workspace_id: WORKSPACE,
+        company_id: COMPANY_ID,
+        collaborator_id: "collab-1",
+        title: "Architecture Cloud",
+        status: "active",
+        tjm: 900,
+        cjm: 450,
+        gross_margin_pct: 50.0,
+        practice: "Cloud",
+        start_date: "2026-01-01",
+        end_date: null,
+      },
+    ],
+    mission_activity_reports: [
+      {
+        id: "cra-1",
+        workspace_id: WORKSPACE,
+        mission_id: "mission-1",
+        collaborator_id: "collab-1",
+        period_start: "2026-07-01",
+        period_end: "2026-07-31",
+        business_days: 22,
+        billable_days: 18,
+        non_billable_days: 2,
+        pto_days: 2,
+        sick_days: 0,
+        activity_rate_percent: 81.82,
+        tjm_snapshot: 900,
+        cjm_snapshot: 450,
+        status: "validated",
+      },
+    ],
+    v_profitability_alerts: [
+      {
+        collaborator_id: "collab-1",
+        full_name: "Julien Bernard",
+        period_start: "2026-07-01",
+        cra_status: "validated",
+        activity_rate_percent: 81.82,
+        real_margin_pct: 50.0,
+        alert_negative_margin: false,
+        alert_low_margin: false,
+        alert_low_activity: false,
+        alert_high_sick_days: false,
+        alert_cra_not_validated: false,
+      },
+    ],
+    v_mission_quarterly_revenue: [
+      {
+        mission_id: "mission-1",
+        mission_title: "Architecture Cloud",
+        mission_status: "active",
+        company_id: COMPANY_ID,
+        company_name: "BNP Paribas",
+        consultant_name: "Julien Bernard",
+        practice: "Cloud",
+        quarter_label: "Q2 2026",
+        quarter_start: "2026-04-01",
+        revenue: 54000,
+        cost: 27000,
+        gross_margin: 27000,
+        gross_margin_pct: 50.0,
+        billable_days: 60,
+        workspace_id: WORKSPACE,
+      },
+    ],
+  }
+
+  it("résout le corpus combiné (account_context + account_delivery), assemble le prompt et rattache l'entité company", async () => {
+    const fake = createFakeSupabase(REVUE_DATASET)
+    const selectors: CorpusSelector[] = [
+      { kind: "account_context", companyId: COMPANY_ID },
+      { kind: "account_delivery", companyId: COMPANY_ID },
+    ]
+
+    const corpusResult = await resolveMissionCorpus(
+      { workspaceId: WORKSPACE, supabase: fake.supabase },
+      REVUE_SPEC,
+      selectors,
+    )
+
+    if ("error" in corpusResult) throw new Error(corpusResult.error)
+
+    expect(corpusResult.items.length).toBeGreaterThan(0)
+    // Vérifie la présence des deux origines de données dans le corpus résolu
+    const kinds = new Set(corpusResult.items.map((i) => i.ref.kind))
+    expect(kinds.has("account_context")).toBe(true)
+    expect(kinds.has("account_delivery")).toBe(true)
+
+    // Vérifie le rattachement de l'entité
+    const entity = resolveMissionRunEntity(corpusResult, WORKSPACE)
+    expect(entity).toEqual({
+      entityType: "company",
+      entityId: COMPANY_ID,
+      companyId: COMPANY_ID,
+    })
+
+    // Assemblage du prompt
+    const { systemPrompt, userPrompt } = assembleMissionPrompt(REVUE_SPEC, corpusResult)
+    expect(systemPrompt).toContain("Ne recalcule aucun ratio ni écart")
+    expect(systemPrompt).toContain("Ne divulgue aucun chiffre de rémunération individuelle")
+    expect(userPrompt).toContain("BNP Paribas")
+    expect(userPrompt).toContain("Architecture Cloud")
+    expect(userPrompt).toContain("DSI Banque Privée")
+
+    // Construction de l'enveloppe
+    const envelope = buildMissionEnvelope(REVUE_SPEC, corpusResult, { systemPrompt, userPrompt }, REQUESTED_AT)
+    expect(envelope.missionSlug).toBe("revue-compte-client")
+    expect(envelope.userPrompt).toContain("BNP Paribas")
+
+    // Construction du snapshot
+    const snapshot = buildMissionInputSnapshot(REVUE_SPEC, corpusResult, selectors, REQUESTED_AT)
+    expect(snapshot.missionSlug).toBe("revue-compte-client")
+    expect(snapshot.selectors).toEqual(selectors)
+  })
+})

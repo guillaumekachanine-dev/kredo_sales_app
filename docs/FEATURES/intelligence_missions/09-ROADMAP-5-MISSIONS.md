@@ -193,7 +193,7 @@ Les deux presets existants passent par `inputKind: "month"` sans changement de c
 
 ---
 
-## 5. L7.4 — Mission `revue-compte-client`
+## 5. L7.4 — Mission `revue-compte-client` (CLOS)
 
 ### 5.1 Corpus — deux origines
 
@@ -233,12 +233,12 @@ Mode Entité `company` (`IntelligencePanel.tsx`, `AccountPanelContent`) — la m
 
 `__tests__/account-delivery-provider.test.ts` sur `fake-supabase.ts`, calqué sur `delivery-period-provider.test.ts` : fenêtre 6 mois, exclusion de `gross_annual` **prouvée** (pas supposée), `ref.id` composites stables, saturation tracée.
 
-### 5.6 Critère de sortie du pilote
+### 5.6 Critère de sortie du pilote — VALIDE (2026-08-24)
 
-Sur un compte client réel du dataset de test (au moins 2 missions, CRA sur plusieurs mois) :
-1. le rapport tranche explicitement sur la santé du compte, au-delà de l'énumération des chiffres ;
-2. au moins un `finding` croise relation (signal, interaction, enjeu) et exécution (marge, CRA) — c'est le test que la mission fait ce que rien d'existant ne fait (`08` §5, mission #2) ;
-3. aucun chiffre de rémunération individuelle n'apparaît, à aucun niveau du texte produit.
+Exécuté sur Voyage Privé (`e5f8fd19-7433-4e44-b759-400f4256545d`), 8 missions, 71 CRA (Run `50f97f64-d6fc-4d1c-867e-fe3e6c3bcc02`) :
+1. ✅ **Santé du compte tranchée explicitement** : synthèse concluant que le compte est sain sur le plan structurel mais présente des signaux de vigilance simultanés sur la rentabilité de certaines missions et sur le contexte de sécurité du client.
+2. ✅ **Croisement relation / exécution** : le finding n°2 (`risque`) croise la crise cyber et fuite de données (`account_signals`) avec l'alerte de marge/activité (`v_profitability_alerts`).
+3. ✅ **Confidentialité salariale** : aucun chiffre de rémunération individuelle ni donnée salariale brute/charges dans le rapport.
 
 ---
 

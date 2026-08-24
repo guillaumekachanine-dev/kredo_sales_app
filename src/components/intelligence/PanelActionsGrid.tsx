@@ -17,6 +17,7 @@ type PanelAction = {
 
 const ACCOUNT_ACTIONS: PanelAction[] = [
   { id: "write_email", label: "Rédiger un email", icon: "write_email", active: true },
+  { id: "review_account", label: "Revue de compte", icon: "report", active: true },
   { id: "search_news", label: "Signaux", icon: "search_news", active: false },
   { id: "sector_playbook", label: "Playbook", icon: "sector_analysis", active: false },
   { id: "deep_analysis", label: "Analyse", icon: "deep_analysis", active: false },

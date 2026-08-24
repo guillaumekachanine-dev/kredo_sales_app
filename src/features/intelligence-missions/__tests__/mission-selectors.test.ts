@@ -95,6 +95,21 @@ describe("parseCorpusSelector — staffing_horizon", () => {
   })
 })
 
+describe("parseCorpusSelector — account_delivery", () => {
+  it("accepte un companyId au format UUID valide", () => {
+    expect(parseCorpusSelector({ kind: "account_delivery", companyId: UUID_A })).toEqual({
+      kind: "account_delivery",
+      companyId: UUID_A,
+    })
+  })
+
+  it("refuse un companyId absent, non-UUID ou de mauvais type", () => {
+    expect(parseCorpusSelector({ kind: "account_delivery" })).toBeNull()
+    expect(parseCorpusSelector({ kind: "account_delivery", companyId: "invalid-uuid" })).toBeNull()
+    expect(parseCorpusSelector({ kind: "account_delivery", companyId: 12345 })).toBeNull()
+  })
+})
+
 describe("parseCorpusSelector — intelligence_document", () => {
   it("accepte des uuid et les déduplique", () => {
     expect(parseCorpusSelector({ kind: "intelligence_document", ids: [UUID_A, UUID_A, UUID_B] })).toEqual({
@@ -127,6 +142,8 @@ describe("parseCorpusSelector — formes hostiles", () => {
       { kind: "rpc_context", rpc: "get_manager_summary_facts" },
       { kind: "account_context" },
       { kind: "account_context", companyId: 12 },
+      { kind: "account_delivery" },
+      { kind: "account_delivery", companyId: "pas-un-uuid" },
       { kind: "content_collection", id: UUID_A },
     ]) {
       expect(parseCorpusSelector(hostile)).toBeNull()
@@ -202,5 +219,11 @@ describe("corpusSelectorKey", () => {
     expect(
       corpusSelectorKey({ kind: "staffing_horizon", periodStart: "2026-08-01", periodEnd: "2026-08-31" }),
     ).toBe("staffing_horizon:2026-08-01:2026-08-31")
+  })
+
+  it("rend la clé attendue pour un sélecteur account_delivery", () => {
+    expect(
+      corpusSelectorKey({ kind: "account_delivery", companyId: UUID_A }),
+    ).toBe(`account_delivery:${UUID_A}`)
   })
 })

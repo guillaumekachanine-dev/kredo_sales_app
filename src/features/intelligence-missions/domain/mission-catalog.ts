@@ -242,6 +242,65 @@ Règles de concision et de sélection :
       maxOutputTokens: 16_000,
     },
   },
+  {
+    slug: "revue-compte-client",
+    version: 1,
+    label: "Revue de compte client",
+    description:
+      "Analyse transversale de la relation et de la delivery d'un compte client : signaux, interlocuteurs, missions, rentabilité, dérives et plan d'action.",
+    corpus: {
+      base: [],
+      requiredAtLaunch: ["account_context", "account_delivery"],
+      userAddition: {
+        allowed: false,
+        kinds: [],
+      },
+      budget: {
+        maxTotalChars: 120_000,
+        maxCharsPerItem: 2_000,
+        maxItems: 200,
+      },
+    },
+    intent: {
+      preset:
+        "À partir de l'historique relationnel, des signaux, des contacts, des missions en cours, des CRA et de la rentabilité de la delivery, dresser le bilan complet de la relation client, identifier les risques et dérives, et formuler les actions prioritaires de consolidation et de développement du compte.",
+      userEditable: false,
+    },
+    constraints: {
+      rules: [
+        "Fonder l'analyse exclusivement sur le corpus fourni.",
+        "Ne mener aucune recherche externe.",
+        "Ne jamais inventer de fait, de chiffre, de source ou de causalité absente du corpus.",
+        "Relier toute conclusion factuelle à au moins une source du corpus.",
+        "Distinguer explicitement les faits observés des interprétations et recommandations.",
+        "Ne recalcule aucun ratio ni écart. Tous les chiffres nécessaires sont déjà fournis, pré-calculés, dans le corpus.",
+        "Ne divulgue aucun chiffre de rémunération individuelle dans le rapport.",
+      ],
+    },
+    promptTemplate: `Tu produis une revue de compte client destinée à un responsable de compte ou manager de centre de profit en ESN.
+
+À partir du corpus fourni uniquement :
+- synthétise dans executiveSummary (maximum 8 phrases) le bilan global de la relation client et de l'exécution de la delivery, en tranchant explicitement sur la santé globale du compte, au-delà de la simple énumération des chiffres ;
+- classe les constats dans findings (maximum 8 constats au total) avec les catégories opportunite, risque, signal_faible, tendance ou reglementaire ;
+- chaque statement de constat fait maximum 3 phrases ;
+- au moins un constat dans findings doit obligatoirement croiser la dimension relationnelle (signal, interaction, contact ou enjeu) et la dimension exécution / rentabilité (marge, CRA, alerte ou CA) ;
+- utilise autre uniquement lorsqu'un constat utile n'entre réellement dans aucune des cinq catégories précédentes ;
+- formule dans recommendations les actions prioritaires de consolidation, redressement ou développement du compte (maximum 5 recommandations), en renseignant systématiquement l'horizon (immediate, 30_days ou quarter) ;
+- chaque rationale de recommandation fait maximum 3 phrases ;
+- rattache chaque finding et chaque recommandation à ses preuves via SourceRef ;
+- consolide dans sourceRefs les sources effectivement mobilisées, sans jamais répéter plusieurs fois la même source.
+
+Règles de concision et de sélection :
+- Le rapport doit rester synthétique et centré sur le compte analysé. Ne cherche pas à restituer chaque élément du corpus.
+- Privilégie les constats et actions les plus structurants plutôt que l'exhaustivité.
+- Ne transforme jamais une absence d'information en conclusion. Si le corpus ne permet pas d'étayer un point, ne l'affirme pas.
+- Aucun chiffre de rémunération individuelle ne doit apparaître dans le rapport.`,
+    model: {
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      maxOutputTokens: 16_000,
+    },
+  },
 ] satisfies MissionSpec[]
 
 /**

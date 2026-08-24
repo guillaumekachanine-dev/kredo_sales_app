@@ -32,7 +32,7 @@ function stubProvider(kind: CorpusItem["ref"]["kind"], weight: number): CorpusPr
       const suffix =
         selector.kind === "intelligence_document"
           ? selector.ids.join("+")
-          : selector.kind === "account_context"
+          : selector.kind === "account_context" || selector.kind === "account_delivery"
             ? selector.companyId
             : `${selector.periodStart}`
       return { items: [stubItem(kind, `${kind}:${suffix}`)], exclusions: [] }
@@ -45,6 +45,7 @@ vi.mock("../data/corpus/corpus-provider-registry", () => ({
     veille_period: stubProvider("veille_period", 50),
     intelligence_document: stubProvider("intelligence_document", 70),
     account_context: stubProvider("account_context", 90),
+    account_delivery: stubProvider("account_delivery", 92),
   },
 }))
 
@@ -112,6 +113,22 @@ describe("resolveMissionCorpus — allowlist stricte", () => {
     expect(result).toEqual({
       error: "La mission « test-mission » exige un sélecteur « veille_period » au lancement.",
     })
+  })
+
+  it("refuse le lancement si l'un des multiples sélecteurs requis manque (ex: account_context + account_delivery)", async () => {
+    const multiSpec = spec({ requiredAtLaunch: ["account_context", "account_delivery"] })
+    const missingDelivery = await resolveMissionCorpus(CTX, multiSpec, [
+      { kind: "account_context", companyId: "c-1" },
+    ])
+    expect(missingDelivery).toEqual({
+      error: "La mission « test-mission » exige un sélecteur « account_delivery » au lancement.",
+    })
+
+    const bothProvided = await resolveMissionCorpus(CTX, multiSpec, [
+      { kind: "account_context", companyId: "c-1" },
+      { kind: "account_delivery", companyId: "c-1" },
+    ])
+    expect("error" in bothProvided).toBe(false)
   })
 
   it("borne le nombre de sélecteurs d'un lancement", async () => {

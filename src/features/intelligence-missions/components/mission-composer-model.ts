@@ -233,6 +233,25 @@ export const CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG: MissionComposerConfig = 
   },
 }
 
+export const REVUE_COMPTE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
+  missionSlug: "revue-compte-client",
+  label: "Revue de compte client",
+  description:
+    "Dresser le bilan croisé de la relation client et de la rentabilité de la delivery pour identifier les opportunités et corriger les dérives.",
+  inputKind: "account",
+  buildSelectors: (input) => {
+    if (input.kind !== "account") {
+      throw new Error(
+        `Entrée invalide pour la mission "revue-compte-client" : attendu "account", reçu "${input.kind}".`,
+      )
+    }
+    return [
+      { kind: "account_context", companyId: input.companyId },
+      { kind: "account_delivery", companyId: input.companyId },
+    ]
+  },
+}
+
 /**
  * Une action du cockpit peut déclencher le composeur de mission plutôt que la rédaction
  * ou un rapport déterministe. Cette table est la SEULE source de vérité de ce mapping —
@@ -244,5 +263,6 @@ export const MISSION_COMPOSER_ACTION_CONFIGS: Record<string, MissionComposerConf
   analyze_margins: RENTABILITE_MISSION_COMPOSER_CONFIG,
   prioritize_accounts: ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG,
   forecast_availability: CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG,
+  review_account: REVUE_COMPTE_MISSION_COMPOSER_CONFIG,
 }
 

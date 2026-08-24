@@ -6,7 +6,7 @@ describe("MISSION_CATALOG", () => {
   it("est type comme un catalogue de MissionSpec", () => {
     const typedCatalog: readonly MissionSpec[] = MISSION_CATALOG
 
-    expect(typedCatalog).toHaveLength(4)
+    expect(typedCatalog).toHaveLength(5)
   })
 
   it("ne declare jamais un corpus vide : base ou requiredAtLaunch est renseigne", () => {
@@ -33,12 +33,13 @@ describe("MISSION_CATALOG", () => {
     expect(new Set(slugs).size).toBe(slugs.length)
   })
 
-  it("contient les presets veille-analyse-mensuelle, rentabilite-portefeuille, activation-portefeuille et capacite-staffing dans cet ordre", () => {
-    expect(MISSION_CATALOG).toHaveLength(4)
+  it("contient les presets veille-analyse-mensuelle, rentabilite-portefeuille, activation-portefeuille, capacite-staffing et revue-compte-client dans cet ordre", () => {
+    expect(MISSION_CATALOG).toHaveLength(5)
     expect(MISSION_CATALOG[0]?.slug).toBe("veille-analyse-mensuelle")
     expect(MISSION_CATALOG[1]?.slug).toBe("rentabilite-portefeuille")
     expect(MISSION_CATALOG[2]?.slug).toBe("activation-portefeuille")
     expect(MISSION_CATALOG[3]?.slug).toBe("capacite-staffing")
+    expect(MISSION_CATALOG[4]?.slug).toBe("revue-compte-client")
   })
 
   it("porte un preset complet sans configuration de type de sortie", () => {
@@ -235,5 +236,53 @@ describe("MISSION_CATALOG", () => {
       rule.includes("ne conclus jamais à une absence de risque de banc"),
     )
     expect(hasUncertaintyRule).toBe(true)
+  })
+
+  it("porte un preset complet sans configuration de type de sortie pour revue-compte-client", () => {
+    const preset = MISSION_CATALOG[4]
+
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    expect(preset.version).toBe(1)
+    expect(preset.slug).toBe("revue-compte-client")
+    expect(preset.label.trim()).not.toBe("")
+    expect(preset.description.trim()).not.toBe("")
+    expect(preset.intent.preset.trim()).not.toBe("")
+    expect(preset.promptTemplate.trim()).not.toBe("")
+    expect(preset.constraints.rules.length).toBeGreaterThan(0)
+    expect(preset.corpus.budget.maxTotalChars).toBe(120_000)
+    expect(preset.corpus.budget.maxCharsPerItem).toBe(2_000)
+    expect(preset.corpus.budget.maxItems).toBe(200)
+    expect(preset.corpus.requiredAtLaunch).toEqual(["account_context", "account_delivery"])
+    expect(preset.corpus.base).toEqual([])
+    expect(preset.corpus.userAddition.allowed).toBe(false)
+    expect(preset.corpus.userAddition.kinds).toEqual([])
+    expect(preset.model.provider).toBe("anthropic")
+    expect(preset.model.model.trim()).not.toBe("")
+    expect(preset.model.maxOutputTokens).toBe(16_000)
+
+    expect(preset).not.toHaveProperty("resultType")
+    expect(preset).not.toHaveProperty("outputSchema")
+    expect(preset).not.toHaveProperty("qaRules")
+  })
+
+  it("impose les règles anti-recalcul et de confidentialité salariale dans revue-compte-client", () => {
+    const preset = MISSION_CATALOG[4]
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    const hasAntiRecalculation = preset.constraints.rules.some((rule) =>
+      rule.includes("Ne recalcule aucun ratio ni écart"),
+    )
+    expect(hasAntiRecalculation).toBe(true)
+
+    const hasSalaryRule = preset.constraints.rules.some((rule) =>
+      rule.includes("Ne divulgue aucun chiffre de rémunération individuelle"),
+    )
+    expect(hasSalaryRule).toBe(true)
+
+    expect(preset.promptTemplate).toContain("tranchant explicitement sur la santé globale du compte")
+    expect(preset.promptTemplate).toContain("croiser la dimension relationnelle")
   })
 })

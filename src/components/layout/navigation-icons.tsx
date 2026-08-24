@@ -7,7 +7,10 @@ export function getNavigationIcon(name?: string) {
     case "cockpit":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 16.5a7 7 0 0114 0M12 13.5l3-3.5M7.5 13.5h1M15.5 13.5h1" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h3M11 6h9M4 12h8M16 12h4M4 18h5M13 18h7" />
+          <circle cx="9" cy="6" r="2" />
+          <circle cx="14" cy="12" r="2" />
+          <circle cx="11" cy="18" r="2" />
         </svg>
       )
     case "calendar":
@@ -85,8 +88,7 @@ export function getNavigationIcon(name?: string) {
     case "finance":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <circle cx="12" cy="12" r="8.5" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16 8.25a5 5 0 100 7.5M6.75 10.25h6M6.75 13.75h6" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 20h17M5 20v-6h4v6M10 20V10h4v10M15 20V5h4v15" />
         </svg>
       )
     case "knowledge":

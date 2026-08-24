@@ -15,6 +15,28 @@
 
 ---
 
+### Session 51 — Missions d'intelligence, lot L7.4 : mission `revue-compte-client` et pilote (2026-08-24)
+
+Livraison du lot L7.4 : la première mission d'intelligence *entity-scoped* (`revue-compte-client`), combinant les origines `account_context` (données relationnelles) et `account_delivery` (données opérationnelles/financières sur 6 mois glissants).
+
+Changements clés :
+- Nouveau `CorpusKind: "account_delivery"` et sélecteur `{ kind: "account_delivery"; companyId }`.
+- Provider `accountDeliveryProvider` (poids 92, exécution `user_rls`, filtrage des alertes de rentabilité en 2 étapes pour isoler le compte, exclusion stricte des données salariales `gross_annual`/`charges_rate`/`working_days_per_year`).
+- Preset `revue-compte-client` (version 1) avec `requiredAtLaunch: ["account_context", "account_delivery"]`, contraintes anti-recalcul et confidentialité salariale, prompt d'arbitrage de santé globale et de croisement relation/exécution, `maxOutputTokens: 16_000`.
+- Composeur `REVUE_COMPTE_MISSION_COMPOSER_CONFIG` (`inputKind: "account"`) et câblage dans `PanelActionsGrid` et `IntelligencePanel.tsx` (`AccountPanelContent`).
+
+Exécution du pilote en conditions réelles (LLM réel Anthropic Claude 3.5 Sonnet / Sonnet 5 via n8n VPS et Supabase production) :
+- **Compte cible** : Voyage Privé (`e5f8fd19-7433-4e44-b759-400f4256545d`), workspace `98dcd39d-f87b-4f9d-add9-ce76d635953a` (8 missions, 71 CRA).
+- **Run ID** : `50f97f64-d6fc-4d1c-867e-fe3e6c3bcc02` (Result ID `eb7f5a4e-cb27-479d-9ba8-04668d005d11`, Document ID `ff003150-6f55-4498-8ef5-fb24fc1a4673`). Status: `succeeded`.
+- **Verdict des 3 critères de sortie (`09` §5.6)** :
+  1. *Santé du compte tranchée explicitement* : ✅ **VALIDE** — le rapport conclut explicitement (« compte sain sur le plan structurel mais présente des signaux de vigilance simultanés sur la rentabilité de certaines missions et sur le contexte de sécurité du client »).
+  2. *Croisement relation / exécution* : ✅ **VALIDE** — le finding n°2 (catégorie `risque`) croise les signaux de crise cyber / fuite de données (`account_signals`) avec les alertes de dérive de rentabilité (`v_profitability_alerts`).
+  3. *Confidentialité salariale* : ✅ **VALIDE** — aucun chiffre de rémunération individuelle ni donnée salariale brute/charges n'apparaît dans le rapport.
+
+Lot L7.4 fonctionnellement clos.
+
+---
+
 ### Session 50 — Suppression des scores globaux de compte, LOT 2 préparé (2026-08-24)
 
 Préparation destructive strictement hors production depuis un worktree propre basé sur

@@ -136,6 +136,24 @@ describe("mission composer action configs mapping", () => {
       'Entrée invalide pour la mission "capacite-staffing" : attendu "month", reçu "account".',
     )
   })
+
+  it("maps review_account to revue-compte-client", () => {
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.review_account).toBeDefined()
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.review_account.missionSlug).toBe("revue-compte-client")
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.review_account.inputKind).toBe("account")
+  })
+
+  it("builds both account_context and account_delivery selectors for review_account with input validation", () => {
+    const config = MISSION_COMPOSER_ACTION_CONFIGS.review_account
+    expect(config.missionSlug).toBe("revue-compte-client")
+    expect(config.buildSelectors({ kind: "account", companyId: "company-uuid-123" })).toEqual([
+      { kind: "account_context", companyId: "company-uuid-123" },
+      { kind: "account_delivery", companyId: "company-uuid-123" },
+    ])
+    expect(() => config.buildSelectors({ kind: "month", month: "2026-08" })).toThrow(
+      'Entrée invalide pour la mission "revue-compte-client" : attendu "account", reçu "month".',
+    )
+  })
 })
 
 describe("resolveInitialAccountSelection", () => {

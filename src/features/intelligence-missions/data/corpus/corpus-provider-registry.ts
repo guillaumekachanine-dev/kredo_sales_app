@@ -16,6 +16,7 @@ import "server-only"
  * l'ordre retenu est : ce qui ancre la mission d'abord, ce qui est le plus volumineux et
  * le plus redondant en dernier.
  *   95 `delivery_period`       — ancre chiffrée de la rentabilité : ne doit jamais tomber par troncature de budget
+ *   92 `account_delivery`      — exécution et rentabilité de la delivery du compte (missions, CRA, alertes, CA trimestriel)
  *   90 `account_context`       — identité et signaux du compte : sans eux la mission perd son sujet
  *   88 `staffing_horizon`      — capacité de staffing prospective (consultants, absences, besoins)
  *   85 `prospection_window`    — signaux et opportunités de prospection du portefeuille
@@ -25,6 +26,7 @@ import "server-only"
 
 import type { CorpusKind, CorpusProvider } from "../../domain/mission-contracts"
 import { accountContextProvider } from "./account-context-provider"
+import { accountDeliveryProvider } from "./account-delivery-provider"
 import { deliveryPeriodProvider } from "./delivery-period-provider"
 import { intelligenceDocumentProvider } from "./intelligence-document-provider"
 import { prospectionWindowProvider } from "./prospection-window-provider"
@@ -38,4 +40,5 @@ export const CORPUS_PROVIDERS: Record<CorpusKind, CorpusProvider> = {
   delivery_period: deliveryPeriodProvider,
   prospection_window: prospectionWindowProvider,
   staffing_horizon: staffingHorizonProvider,
+  account_delivery: accountDeliveryProvider,
 }

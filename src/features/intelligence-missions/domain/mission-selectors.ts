@@ -80,6 +80,12 @@ export function parseCorpusSelector(raw: unknown): CorpusSelector | null {
     return { kind: "staffing_horizon", periodStart, periodEnd }
   }
 
+  if (kind === "account_delivery") {
+    const { companyId } = candidate
+    if (!isUuid(companyId)) return null
+    return { kind: "account_delivery", companyId }
+  }
+
   return null
 }
 
@@ -114,6 +120,8 @@ export function corpusSelectorKey(selector: CorpusSelector): string {
       return `prospection_window:${selector.periodStart}:${selector.periodEnd}`
     case "staffing_horizon":
       return `staffing_horizon:${selector.periodStart}:${selector.periodEnd}`
+    case "account_delivery":
+      return `account_delivery:${selector.companyId}`
   }
 }
 

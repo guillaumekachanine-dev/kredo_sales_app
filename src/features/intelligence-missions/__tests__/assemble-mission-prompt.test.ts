@@ -281,3 +281,42 @@ describe("assembleMissionPrompt — preset capacite-staffing", () => {
     expect(userPrompt).toContain("kind: staffing_horizon")
   })
 })
+
+const REVUE_SPEC = findMissionSpec("revue-compte-client") as MissionSpec
+
+const REVUE_CORPUS: ResolvedCorpus = {
+  items: [
+    {
+      ref: { kind: "account_context", table: "companies", id: "comp-1" },
+      title: "Société Générale",
+      date: "2026-08-01",
+      provenance: "companies",
+      content: "Raison sociale : Société Générale\nStatut de relation : client_actif",
+      chars: 68,
+    },
+    {
+      ref: { kind: "account_delivery", table: "missions", id: "mission-1" },
+      title: "Mission · Transformation Cloud",
+      date: "2026-01-01",
+      provenance: "missions",
+      content: "Titre : Transformation Cloud\nStatut : active\nTJM : 850 €\nCJM : 420 €\nMarge brute (%) : 50,59 %",
+      chars: 98,
+    },
+  ],
+  stats: { requested: 2, kept: 2, dropped: 0, totalChars: 166 },
+  trace: [],
+}
+
+describe("assembleMissionPrompt — preset revue-compte-client", () => {
+  it("assemble le prompt sans lever d'erreur et contient les règles anti-recalcul et de confidentialité", () => {
+    expect(REVUE_SPEC).toBeDefined()
+    const { systemPrompt, userPrompt } = assembleMissionPrompt(REVUE_SPEC, REVUE_CORPUS)
+
+    expect(systemPrompt).toContain("Ne recalcule aucun ratio ni écart")
+    expect(systemPrompt).toContain("Ne divulgue aucun chiffre de rémunération individuelle")
+    expect(userPrompt).toContain("## Mission — Revue de compte client")
+    expect(userPrompt).toContain(REVUE_SPEC.intent.preset)
+    expect(userPrompt).toContain("kind: account_context")
+    expect(userPrompt).toContain("kind: account_delivery")
+  })
+})

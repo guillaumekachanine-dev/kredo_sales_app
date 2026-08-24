@@ -31,7 +31,7 @@ import {
 import { MissionComposerDesktop } from "@/features/intelligence-missions/components/MissionComposerDesktop"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
 
-type AccountPanelAction = "pitch" | "summary" | null
+type AccountPanelAction = "pitch" | "summary" | string | null
 
 function SectionHeading({ title, count }: { title: string; count?: number }) {
   return (
@@ -73,8 +73,9 @@ function AccountPanelContent() {
   if (!panelData || !entityContext) return null
 
   const { company, resources, sector, activity, contacts } = panelData
+  const isMissionAction = activeAction !== null && activeAction in MISSION_COMPOSER_ACTION_CONFIGS
 
-  if (activeAction === "pitch" || activeAction === "summary") {
+  if (activeAction === "pitch" || activeAction === "summary" || isMissionAction) {
     return (
       <>
         <button
@@ -87,18 +88,22 @@ function AccountPanelContent() {
           </svg>
           Retour
         </button>
-        <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
-          {activeAction === "pitch" ? (
-            <PitchMailDrawerContent
-              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
-              initialBrief={accountPitchBrief ?? undefined}
-            />
-          ) : (
-            <SummaryDrawerContent
-              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
-            />
-          )}
-        </div>
+        {isMissionAction ? (
+          <MissionComposerDesktop config={MISSION_COMPOSER_ACTION_CONFIGS[activeAction]} />
+        ) : (
+          <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
+            {activeAction === "pitch" ? (
+              <PitchMailDrawerContent
+                data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
+                initialBrief={accountPitchBrief ?? undefined}
+              />
+            ) : (
+              <SummaryDrawerContent
+                data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
+              />
+            )}
+          </div>
+        )}
       </>
     )
   }
@@ -135,7 +140,8 @@ function AccountPanelContent() {
           sectorSlug={sector.hasStructuredSector ? sector.structuredSectorSlug : null}
           onActionClick={(actionId) => {
             if (actionId === "generate_pitch") setActiveAction("pitch")
-            if (actionId === "generate_report") setActiveAction("summary")
+            else if (actionId === "generate_report") setActiveAction("summary")
+            else if (actionId in MISSION_COMPOSER_ACTION_CONFIGS) setActiveAction(actionId)
           }}
         />
       </section>
