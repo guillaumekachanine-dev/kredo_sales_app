@@ -291,4 +291,99 @@ describe("prospectionWindowProvider — résolveur de corpus", () => {
     expect(signalCall).toBeDefined()
     expect(signalCall?.eq).toContainEqual(["workspace_id", WS_ID])
   })
+
+  it("résout la dernière interaction PAR compte plutôt que via un plafond global partagé", async () => {
+    // Régression du défaut corrigé : une requête `interactions` unique plafonnée
+    // globalement et triée par date pouvait faire disparaître l'historique d'un compte
+    // peu actif derrière celui de comptes plus actifs, et produire à tort l'item
+    // synthétique "aucune interaction" pour un compte qui en a pourtant une. La preuve
+    // structurelle : une requête `interactions` DÉDIÉE par compte touché, jamais un
+    // seul appel partagé entre plusieurs comptes.
+    const companyA = "company-a-uuid"
+    const companyB = "company-b-uuid"
+    const dataset = {
+      v_active_account_signals: [
+        {
+          id: "signal-a1",
+          workspace_id: WS_ID,
+          company_id: companyA,
+          title: "Signal compte A",
+          detected_at: "2026-08-10",
+        },
+        {
+          id: "signal-b1",
+          workspace_id: WS_ID,
+          company_id: companyB,
+          title: "Signal compte B",
+          detected_at: "2026-08-11",
+        },
+      ],
+      companies: [
+        { id: companyA, workspace_id: WS_ID, name: "Compte A (actif)" },
+        { id: companyB, workspace_id: WS_ID, name: "Compte B (peu actif)" },
+      ],
+      // Compte A porte beaucoup plus d'interactions que compte B : un plafond global
+      // trié par date aurait pu totalement évincer l'unique interaction de B.
+      interactions: [
+        { id: "inter-a-1", workspace_id: WS_ID, company_id: companyA, type: "email", occurred_at: "2026-08-20", summary: "Relance A" },
+        { id: "inter-a-2", workspace_id: WS_ID, company_id: companyA, type: "call", occurred_at: "2026-08-18", summary: "Appel A" },
+        { id: "inter-b-1", workspace_id: WS_ID, company_id: companyB, type: "email", occurred_at: "2026-06-01", summary: "Contact initial B" },
+      ],
+      contacts: [],
+      account_issues: [],
+    }
+
+    const { supabase, calls } = createFakeSupabase(dataset)
+    const result = await prospectionWindowProvider.resolve(
+      { workspaceId: WS_ID, supabase },
+      { kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" },
+    )
+
+    // Une requête `interactions` par compte touché, jamais un appel partagé.
+    const interactionCalls = calls.filter((c) => c.table === "interactions")
+    expect(interactionCalls).toHaveLength(2)
+    expect(interactionCalls.map((c) => c.eq)).toContainEqual(
+      expect.arrayContaining([["workspace_id", WS_ID], ["company_id", companyB]]),
+    )
+
+    // Compte B obtient sa VRAIE interaction, pas l'item synthétique "aucune interaction".
+    const interactionItemB = result.items.find(
+      (item) => item.ref.table === "interactions" && item.title.includes("Compte B"),
+    )
+    expect(interactionItemB?.ref.id).toBe("inter-b-1")
+    expect(interactionItemB?.content).not.toContain("aucune interaction depuis l'ouverture")
+  })
+
+  it("hydrate uniquement les contacts décideur/prescripteur/sponsor, pas les autres rôles", async () => {
+    const companyId = "company-roles-uuid"
+    const dataset = {
+      v_active_account_signals: [
+        {
+          id: "signal-roles-1",
+          workspace_id: WS_ID,
+          company_id: companyId,
+          title: "Signal",
+          detected_at: "2026-08-10",
+        },
+      ],
+      companies: [{ id: companyId, workspace_id: WS_ID, name: "Compte Rôles" }],
+      interactions: [],
+      contacts: [
+        { id: "contact-decideur", workspace_id: WS_ID, company_id: companyId, person_id: "p1", relationship_role: "decideur", job_title: "DSI", updated_at: "2026-08-01" },
+        { id: "contact-acheteur", workspace_id: WS_ID, company_id: companyId, person_id: "p2", relationship_role: "acheteur", job_title: "Acheteur", updated_at: "2026-08-01" },
+        { id: "contact-rh", workspace_id: WS_ID, company_id: companyId, person_id: "p3", relationship_role: "rh", job_title: "RH", updated_at: "2026-08-01" },
+      ],
+      account_issues: [],
+    }
+
+    const { supabase } = createFakeSupabase(dataset)
+    const result = await prospectionWindowProvider.resolve(
+      { workspaceId: WS_ID, supabase },
+      { kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" },
+    )
+
+    const contactItems = result.items.filter((item) => item.ref.table === "contacts")
+    expect(contactItems).toHaveLength(1)
+    expect(contactItems[0]?.ref.id).toBe("contact-decideur")
+  })
 })

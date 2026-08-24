@@ -37,9 +37,15 @@ export const PROSPECTION_WINDOW_WEIGHT = 85
 /** Bornes dures de requête : gardes de volume, pas des règles métier. */
 export const PROSPECTION_SIGNALS_QUERY_LIMIT = 200
 export const PROSPECTION_COMPANIES_QUERY_LIMIT = 100
-export const PROSPECTION_INTERACTIONS_QUERY_LIMIT = 200
 export const PROSPECTION_CONTACTS_QUERY_LIMIT = 200
 export const PROSPECTION_ISSUES_QUERY_LIMIT = 200
+
+/**
+ * Rôles de contact qualifiés hydratés — strictement ceux du cadrage (PROMPT-KICKOFF-L7.1
+ * §2, 09-ROADMAP §2.2) : élargir cette liste changerait le périmètre de corpus validé,
+ * pas seulement une garde technique.
+ */
+const PROSPECTION_CONTACT_ROLES = ["decideur", "prescripteur", "sponsor"] as const
 
 /**
  * Dérive la fenêtre d'hydratation de 30 jours glissants :
@@ -138,56 +144,38 @@ export const prospectionWindowProvider: CorpusProvider<{
     }
 
     // ── 2. REQUÊTES EN PARALLÈLE POUR LES COMPTES TOUCHÉS ───────────────────
-    const [companiesResult, interactionsResult, contactsResult, issuesResult] =
-      await Promise.all([
-        ctx.supabase
-          .from("companies")
-          .select("id, name, segment_id, relation_type, lifecycle_status, classification_confiance")
-          .eq("workspace_id", ctx.workspaceId)
-          .in("id", touchedCompanyIds)
-          .limit(PROSPECTION_COMPANIES_QUERY_LIMIT),
+    // `interactions` n'est PAS dans ce lot : voir §5 — une requête globale plafonnée
+    // aurait pu tronquer l'historique de certains comptes et faire mentir le provider
+    // sur l'absence d'interaction (défaut réel constaté avant correction).
+    const [companiesResult, contactsResult, issuesResult] = await Promise.all([
+      ctx.supabase
+        .from("companies")
+        .select("id, name, segment_id, relation_type, lifecycle_status, classification_confiance")
+        .eq("workspace_id", ctx.workspaceId)
+        .in("id", touchedCompanyIds)
+        .limit(PROSPECTION_COMPANIES_QUERY_LIMIT),
 
-        ctx.supabase
-          .from("interactions")
-          .select("id, company_id, type, occurred_at, summary, sentiment")
-          .eq("workspace_id", ctx.workspaceId)
-          .in("company_id", touchedCompanyIds)
-          .order("occurred_at", { ascending: false })
-          .limit(PROSPECTION_INTERACTIONS_QUERY_LIMIT),
+      ctx.supabase
+        .from("contacts")
+        .select(
+          "id, company_id, person_id, job_title, department, relationship_role, decision_power, updated_at",
+        )
+        .eq("workspace_id", ctx.workspaceId)
+        .in("company_id", touchedCompanyIds)
+        .in("relationship_role", [...PROSPECTION_CONTACT_ROLES])
+        .limit(PROSPECTION_CONTACTS_QUERY_LIMIT),
 
-        ctx.supabase
-          .from("contacts")
-          .select(
-            "id, company_id, person_id, job_title, department, relationship_role, decision_power, updated_at",
-          )
-          .eq("workspace_id", ctx.workspaceId)
-          .in("company_id", touchedCompanyIds)
-          .in("relationship_role", [
-            "decideur",
-            "prescripteur",
-            "sponsor",
-            "acheteur",
-            "direction_metier",
-            "dsi",
-            "manager_technique",
-            "rh",
-          ])
-          .limit(PROSPECTION_CONTACTS_QUERY_LIMIT),
-
-        ctx.supabase
-          .from("account_issues")
-          .select("id, company_id, title, category, criticality, business_impact, status, updated_at")
-          .eq("workspace_id", ctx.workspaceId)
-          .in("company_id", touchedCompanyIds)
-          .eq("status", "open")
-          .limit(PROSPECTION_ISSUES_QUERY_LIMIT),
-      ])
+      ctx.supabase
+        .from("account_issues")
+        .select("id, company_id, title, category, criticality, business_impact, status, updated_at")
+        .eq("workspace_id", ctx.workspaceId)
+        .in("company_id", touchedCompanyIds)
+        .eq("status", "open")
+        .limit(PROSPECTION_ISSUES_QUERY_LIMIT),
+    ])
 
     if (companiesResult.error) {
       throw new Error(`Lecture des comptes touchés impossible : ${companiesResult.error.message}`)
-    }
-    if (interactionsResult.error) {
-      throw new Error(`Lecture des interactions impossible : ${interactionsResult.error.message}`)
     }
     if (contactsResult.error) {
       throw new Error(`Lecture des contacts qualifiés impossible : ${contactsResult.error.message}`)
@@ -200,17 +188,6 @@ export const prospectionWindowProvider: CorpusProvider<{
     if (companyRows.length === PROSPECTION_COMPANIES_QUERY_LIMIT) {
       exclusions.push(
         capExclusion("companies", "Comptes touchés", PROSPECTION_COMPANIES_QUERY_LIMIT),
-      )
-    }
-
-    const interactionRows = interactionsResult.data ?? []
-    if (interactionRows.length === PROSPECTION_INTERACTIONS_QUERY_LIMIT) {
-      exclusions.push(
-        capExclusion(
-          "interactions",
-          "Interactions des comptes",
-          PROSPECTION_INTERACTIONS_QUERY_LIMIT,
-        ),
       )
     }
 
@@ -319,22 +296,38 @@ export const prospectionWindowProvider: CorpusProvider<{
     }
 
     // ── 5. HYDRATATION DE LA DERNIÈRE INTERACTION PAR COMPTE ────────────────
-    const interactionsByCompany = new Map<string, typeof interactionRows>()
-    for (const inter of interactionRows) {
-      if (!inter.company_id) continue
-      const list = interactionsByCompany.get(inter.company_id) ?? []
-      list.push(inter)
-      interactionsByCompany.set(inter.company_id, list)
-    }
+    // Une requête PAR compte, plafonnée à 1 ligne chacune (jamais un `LIMIT` global trié
+    // par date sur l'ensemble des comptes touchés) : avec un plafond global, l'historique
+    // d'un compte peu actif pouvait être intégralement repoussé hors du lot renvoyé par
+    // les comptes aux interactions plus récentes, et le provider affirmait alors à tort
+    // "aucune interaction depuis l'ouverture du compte" — une fausse citation, pas un
+    // simple trou. Ici chaque compte obtient sa VRAIE dernière interaction, ou aucune.
+    const latestInteractionResults = await Promise.all(
+      touchedCompanyIds.map((companyId) =>
+        ctx.supabase
+          .from("interactions")
+          .select("id, company_id, type, occurred_at, summary, sentiment")
+          .eq("workspace_id", ctx.workspaceId)
+          .eq("company_id", companyId)
+          .order("occurred_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ),
+    )
 
-    for (const companyId of touchedCompanyIds) {
+    for (const [index, companyId] of touchedCompanyIds.entries()) {
+      const result = latestInteractionResults[index]
+      if (result?.error) {
+        throw new Error(
+          `Lecture de la dernière interaction du compte ${companyId} impossible : ${result.error.message}`,
+        )
+      }
+
       const compName = companyNameById.get(companyId) ?? "Compte inconnu"
-      const compInteractions = interactionsByCompany.get(companyId) ?? []
+      const latest = result?.data ?? null
 
-      if (compInteractions.length > 0) {
-        // Prendre la dernière interaction connue
-        const latest = compInteractions[0]
-        if (!latest || !latest.id) continue
+      if (latest) {
+        if (!latest.id) continue
 
         const content = compose([
           line("Compte", compName),
