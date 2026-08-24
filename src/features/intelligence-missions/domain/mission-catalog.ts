@@ -301,6 +301,64 @@ Règles de concision et de sélection :
       maxOutputTokens: 16_000,
     },
   },
+  {
+    slug: "post-mortem-commercial",
+    version: 1,
+    label: "Post-mortem commercial",
+    description:
+      "Analyse trimestrielle du pipe commercial clos : affaires gagnées, perdues et abandonnées, motifs récurrents et leviers d'amélioration.",
+    corpus: {
+      base: [],
+      requiredAtLaunch: ["pipeline_period"],
+      userAddition: {
+        allowed: false,
+        kinds: [],
+      },
+      budget: {
+        maxTotalChars: 120_000,
+        maxCharsPerItem: 2_000,
+        maxItems: 200,
+      },
+    },
+    intent: {
+      preset:
+        "À partir des affaires closes sur le trimestre (gagnées, perdues, abandonnées), de leur historique d'interactions, des profils présentés et des compétences requises, analyser les facteurs d'échec et de succès et identifier les motifs récurrents de perte et de gain.",
+      userEditable: false,
+    },
+    constraints: {
+      rules: [
+        "Fonder l'analyse exclusivement sur le corpus fourni.",
+        "Ne mener aucune recherche externe.",
+        "Ne jamais inventer de fait, de chiffre, de source ou de causalité absente du corpus.",
+        "Relier toute conclusion factuelle à au moins une source du corpus.",
+        "Distinguer explicitement les faits observés des interprétations et recommandations.",
+        "N'énonce aucune statistique en pourcentage sur l'ensemble des affaires (par exemple 'X % des pertes'). Le volume du corpus ne le permet pas. Formule des constats nominatifs, affaire par affaire.",
+      ],
+    },
+    promptTemplate: `Tu produis une analyse post-mortem commerciale trimestrielle destinée à un responsable commercial ou manager de centre de profit en ESN.
+
+À partir du corpus fourni uniquement :
+- synthétise dans executiveSummary (maximum 8 phrases) le bilan des affaires closes du trimestre, leurs volumes et les enseignements majeurs des succès et des échecs, sans jamais employer de pourcentage global sur l'ensemble des affaires ;
+- classe les constats dans findings (maximum 8 constats au total) avec les catégories opportunite, risque, signal_faible, tendance ou reglementaire ;
+- chaque statement de constat fait maximum 3 phrases ;
+- chaque constat dans findings doit obligatoirement désigner une affaire précise et nommée du corpus, jamais une moyenne ou un agrégat ;
+- au moins un motif récurrent de perte doit être identifié et distingué explicitement d'un motif de gain ;
+- n'énonce aucune statistique en pourcentage sur l'ensemble des affaires à aucun niveau (y compris dans executiveSummary) ;
+- formule dans recommendations les actions d'amélioration commerciale et de qualification prioritaires (maximum 5 recommandations), en renseignant systématiquement l'horizon (immediate, 30_days ou quarter) ;
+- chaque rationale de recommandation fait maximum 3 phrases ;
+- rattache chaque finding et chaque recommandation à ses preuves via SourceRef ;
+- consolide dans sourceRefs les sources effectivement mobilisées, sans jamais répéter plusieurs fois la même source.
+
+Règles de concision et de sélection :
+- Le rapport doit rester synthétique et centré sur les affaires du trimestre. Ne cherche pas à restituer chaque élément du corpus.
+- Privilégie les enseignements commerciaux les plus structurants plutôt que l'exhaustivité.
+- Ne transforme jamais une absence d'information en conclusion. Si le corpus ne permet pas d'étayer un point, ne l'affirme pas.`,
+    model: {
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      maxOutputTokens: 16_000,
+    },
+  },
 ] satisfies MissionSpec[]
 
 /**

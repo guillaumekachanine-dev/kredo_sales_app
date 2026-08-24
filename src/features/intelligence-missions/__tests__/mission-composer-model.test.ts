@@ -8,7 +8,9 @@ import {
   launchMonthlyWatchMission,
   MISSION_COMPOSER_ACTION_CONFIGS,
   MONTHLY_WATCH_MISSION_ACTION_ID,
+  monthToPipelinePeriod,
   monthToVeillePeriod,
+  POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG,
   RENTABILITE_MISSION_COMPOSER_CONFIG,
   resolveInitialAccountSelection,
   VEILLE_MISSION_COMPOSER_CONFIG,
@@ -23,6 +25,15 @@ describe("mission composer month selector", () => {
     ["2026-04", "2026-04-01", "2026-04-30"],
   ])("maps %s to its exact boundaries", (month, periodStart, periodEnd) => {
     expect(monthToVeillePeriod(month)).toEqual({ kind: "veille_period", periodStart, periodEnd })
+  })
+
+  it.each([
+    ["2026-01", "2026-01-01", "2026-03-31"], // M1 Q1
+    ["2026-05", "2026-04-01", "2026-06-30"], // M2 Q2
+    ["2026-09", "2026-07-01", "2026-09-30"], // M3 Q3
+    ["2026-12", "2026-10-01", "2026-12-31"], // M3 Q4 (décembre, pas de débordement)
+  ])("maps month %s to its quarterly boundaries (%s to %s)", (month, periodStart, periodEnd) => {
+    expect(monthToPipelinePeriod(month)).toEqual({ kind: "pipeline_period", periodStart, periodEnd })
   })
 
   it("defaults to the complete previous calendar month", () => {
@@ -75,11 +86,12 @@ describe("mission composer launch contract", () => {
 })
 
 describe("mission composer action configs mapping", () => {
-  it("declares inputKind 'month' on all four existing configs", () => {
+  it("declares inputKind 'month' on all five monthly/quarterly configs", () => {
     expect(VEILLE_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
     expect(RENTABILITE_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
     expect(ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
     expect(CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
+    expect(POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
   })
 
   it("maps monthly watch, analyze_margins, and prioritize_accounts to their respective configs", () => {
@@ -152,6 +164,22 @@ describe("mission composer action configs mapping", () => {
     ])
     expect(() => config.buildSelectors({ kind: "month", month: "2026-08" })).toThrow(
       'Entrée invalide pour la mission "revue-compte-client" : attendu "account", reçu "month".',
+    )
+  })
+
+  it("maps post_mortem_pipeline to post-mortem-commercial", () => {
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.post_mortem_pipeline).toBeDefined()
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.post_mortem_pipeline.missionSlug).toBe("post-mortem-commercial")
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.post_mortem_pipeline.inputKind).toBe("month")
+  })
+
+  it("builds pipeline_period quarterly selectors for post_mortem_pipeline with input validation", () => {
+    const config = MISSION_COMPOSER_ACTION_CONFIGS.post_mortem_pipeline
+    expect(config.buildSelectors({ kind: "month", month: "2026-05" })).toEqual([
+      { kind: "pipeline_period", periodStart: "2026-04-01", periodEnd: "2026-06-30" },
+    ])
+    expect(() => config.buildSelectors({ kind: "account", companyId: "c-1" })).toThrow(
+      'Entrée invalide pour la mission "post-mortem-commercial" : attendu "month", reçu "account".',
     )
   })
 })

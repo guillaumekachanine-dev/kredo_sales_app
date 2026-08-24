@@ -6,7 +6,7 @@ describe("MISSION_CATALOG", () => {
   it("est type comme un catalogue de MissionSpec", () => {
     const typedCatalog: readonly MissionSpec[] = MISSION_CATALOG
 
-    expect(typedCatalog).toHaveLength(5)
+    expect(typedCatalog).toHaveLength(6)
   })
 
   it("ne declare jamais un corpus vide : base ou requiredAtLaunch est renseigne", () => {
@@ -33,13 +33,14 @@ describe("MISSION_CATALOG", () => {
     expect(new Set(slugs).size).toBe(slugs.length)
   })
 
-  it("contient les presets veille-analyse-mensuelle, rentabilite-portefeuille, activation-portefeuille, capacite-staffing et revue-compte-client dans cet ordre", () => {
-    expect(MISSION_CATALOG).toHaveLength(5)
+  it("contient les 6 presets du catalogue dans l'ordre de la feuille de route", () => {
+    expect(MISSION_CATALOG).toHaveLength(6)
     expect(MISSION_CATALOG[0]?.slug).toBe("veille-analyse-mensuelle")
     expect(MISSION_CATALOG[1]?.slug).toBe("rentabilite-portefeuille")
     expect(MISSION_CATALOG[2]?.slug).toBe("activation-portefeuille")
     expect(MISSION_CATALOG[3]?.slug).toBe("capacite-staffing")
     expect(MISSION_CATALOG[4]?.slug).toBe("revue-compte-client")
+    expect(MISSION_CATALOG[5]?.slug).toBe("post-mortem-commercial")
   })
 
   it("porte un preset complet sans configuration de type de sortie", () => {
@@ -284,5 +285,39 @@ describe("MISSION_CATALOG", () => {
 
     expect(preset.promptTemplate).toContain("tranchant explicitement sur la santé globale du compte")
     expect(preset.promptTemplate).toContain("croiser la dimension relationnelle")
+  })
+
+  it("porte un preset complet et sans statistiques en pourcentage pour post-mortem-commercial", () => {
+    const preset = MISSION_CATALOG[5]
+
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    expect(preset.version).toBe(1)
+    expect(preset.slug).toBe("post-mortem-commercial")
+    expect(preset.label.trim()).not.toBe("")
+    expect(preset.description.trim()).not.toBe("")
+    expect(preset.intent.preset.trim()).not.toBe("")
+    expect(preset.promptTemplate.trim()).not.toBe("")
+    expect(preset.constraints.rules.length).toBeGreaterThan(0)
+    expect(preset.corpus.budget.maxTotalChars).toBe(120_000)
+    expect(preset.corpus.budget.maxCharsPerItem).toBe(2_000)
+    expect(preset.corpus.budget.maxItems).toBe(200)
+    expect(preset.corpus.requiredAtLaunch).toEqual(["pipeline_period"])
+    expect(preset.corpus.base).toEqual([])
+    expect(preset.corpus.userAddition.allowed).toBe(false)
+    expect(preset.corpus.userAddition.kinds).toEqual([])
+    expect(preset.model.provider).toBe("anthropic")
+    expect(preset.model.model.trim()).not.toBe("")
+    expect(preset.model.maxOutputTokens).toBe(16_000)
+
+    const hasAntiStatRule = preset.constraints.rules.some((rule) =>
+      rule.includes("N'énonce aucune statistique en pourcentage sur l'ensemble des affaires"),
+    )
+    expect(hasAntiStatRule).toBe(true)
+
+    expect(preset.promptTemplate).toContain("sans jamais employer de pourcentage global")
+    expect(preset.promptTemplate).toContain("chaque constat dans findings doit obligatoirement désigner une affaire précise et nommée")
+    expect(preset.promptTemplate).toContain("au moins un motif récurrent de perte doit être identifié et distingué explicitement d'un motif de gain")
   })
 })

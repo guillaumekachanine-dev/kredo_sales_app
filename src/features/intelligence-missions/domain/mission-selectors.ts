@@ -86,6 +86,13 @@ export function parseCorpusSelector(raw: unknown): CorpusSelector | null {
     return { kind: "account_delivery", companyId }
   }
 
+  if (kind === "pipeline_period") {
+    const { periodStart, periodEnd } = candidate
+    if (!isIsoDate(periodStart) || !isIsoDate(periodEnd)) return null
+    if (periodStart > periodEnd) return null
+    return { kind: "pipeline_period", periodStart, periodEnd }
+  }
+
   return null
 }
 
@@ -122,6 +129,8 @@ export function corpusSelectorKey(selector: CorpusSelector): string {
       return `staffing_horizon:${selector.periodStart}:${selector.periodEnd}`
     case "account_delivery":
       return `account_delivery:${selector.companyId}`
+    case "pipeline_period":
+      return `pipeline_period:${selector.periodStart}:${selector.periodEnd}`
   }
 }
 

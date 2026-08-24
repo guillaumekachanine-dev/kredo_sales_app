@@ -119,6 +119,26 @@ export function monthToStaffingHorizon(month: string): Extract<CorpusSelector, {
   }
 }
 
+export function monthToPipelinePeriod(month: string): Extract<CorpusSelector, { kind: "pipeline_period" }> {
+  const match = MONTH_PATTERN.exec(month)
+  if (!match) throw new Error("La période doit être un mois au format AAAA-MM.")
+
+  const year = Number(match[1])
+  const monthNumber = Number(match[2])
+  const quarterStartMonth = Math.floor((monthNumber - 1) / 3) * 3 + 1
+  const quarterEndMonth = quarterStartMonth + 2
+  const lastDay = new Date(Date.UTC(year, quarterEndMonth, 0)).getUTCDate()
+
+  const periodStart = `${year}-${String(quarterStartMonth).padStart(2, "0")}-01`
+  const periodEnd = `${year}-${String(quarterEndMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+
+  return {
+    kind: "pipeline_period",
+    periodStart,
+    periodEnd,
+  }
+}
+
 export function defaultMissionMonth(reference = new Date()): string {
   const previousMonth = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() - 1, 1))
   return previousMonth.toISOString().slice(0, 7)
@@ -252,6 +272,22 @@ export const REVUE_COMPTE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
   },
 }
 
+export const POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
+  missionSlug: "post-mortem-commercial",
+  label: "Post-mortem commercial",
+  description:
+    "Analyser les affaires gagnées et perdues du trimestre pour identifier les motifs récurrents de succès et d'échec.",
+  inputKind: "month",
+  buildSelectors: (input) => {
+    if (input.kind !== "month") {
+      throw new Error(
+        `Entrée invalide pour la mission "post-mortem-commercial" : attendu "month", reçu "${input.kind}".`,
+      )
+    }
+    return [monthToPipelinePeriod(input.month)]
+  },
+}
+
 /**
  * Une action du cockpit peut déclencher le composeur de mission plutôt que la rédaction
  * ou un rapport déterministe. Cette table est la SEULE source de vérité de ce mapping —
@@ -264,5 +300,6 @@ export const MISSION_COMPOSER_ACTION_CONFIGS: Record<string, MissionComposerConf
   prioritize_accounts: ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG,
   forecast_availability: CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG,
   review_account: REVUE_COMPTE_MISSION_COMPOSER_CONFIG,
+  post_mortem_pipeline: POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG,
 }
 

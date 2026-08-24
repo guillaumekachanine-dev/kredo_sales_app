@@ -149,6 +149,14 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     category: "contextual",
     status: "active",
   },
+  post_mortem_pipeline: {
+    id: "post_mortem_pipeline",
+    label: "Post-mortem commercial",
+    description: "Analyser les affaires gagnées et perdues du trimestre pour identifier les motifs récurrents de succès et d'échec.",
+    icon: "report",
+    category: "contextual",
+    status: "active",
+  },
   detect_risks: {
     id: "detect_risks",
     label: "Détection de risques",
@@ -397,7 +405,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   {
     pattern: "/missions/opps",
     label: "Besoins & Staffing",
-    actionIds: ["match_profiles", "prioritize_pipeline", "initiate_quote", "analyze_needs"],
+    actionIds: ["match_profiles", "prioritize_pipeline", "post_mortem_pipeline", "initiate_quote", "analyze_needs"],
   },
   {
     pattern: "/missions/actives",
