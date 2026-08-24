@@ -242,7 +242,7 @@ Exécuté sur Voyage Privé (`e5f8fd19-7433-4e44-b759-400f4256545d`), 8 missions
 
 ---
 
-## 6. L7.5 — Mission `post-mortem-commercial`
+## 6. L7.5 — Mission `post-mortem-commercial` (CLOS)
 
 ### 6.1 Corpus — nouveau `CorpusKind: pipeline_period`
 
@@ -272,13 +272,18 @@ Même patron : `mission-contracts.ts`, `mission-selectors.ts`, `validate-mission
 
 ### 6.5 Branchement cockpit
 
-Requalifie `prioritize_pipeline` (`active`, actuellement sans corpus réel dérrière — à vérifier au démarrage du lot) sur `/missions/opps`, ou nouvelle action dédiée si `prioritize_pipeline` sert déjà un autre usage à ce moment du calendrier.
+`prioritize_pipeline` servait déjà un usage actif et distinct (`getPrioritizePipeline`/`PrioritizePipelineResult.tsx`, mécanisme déterministe préexistant, vérifié au démarrage du lot) — laissé intact. Nouvelle action dédiée `post_mortem_pipeline` dans `intelligence-registry.ts` (`status: "active"`, sur `/missions/opps`) et `MISSION_COMPOSER_ACTION_CONFIGS`.
 
-### 6.6 Critère de sortie du pilote
+Correctif appliqué avant le premier déploiement : le filtrage de la fenêtre sur `opportunities` se fait côté requête (deux branches en parallèle — `closed_at` dans la fenêtre, ou repli `updated_at` dans la fenêtre quand `closed_at` est `null`), jamais après une `LIMIT` globale non liée à la fenêtre — une affaire du trimestre analysé ne peut plus être évincée par des affaires plus récemment mises à jour mais hors fenêtre.
 
-1. chaque `finding` nomme une affaire, pas une moyenne ;
-2. au moins un motif récurrent de perte est identifié et distingué d'un motif de gain ;
-3. aucune statistique en pourcentage sur l'ensemble n'apparaît dans le texte produit.
+### 6.6 Critère de sortie du pilote — VALIDE (2026-08-24)
+
+Exécuté sur Q2 2026 (`periodStart` 2026-04-01 / `periodEnd` 2026-06-30, 3 affaires closes : Voyage Privé et CHU de Nice gagnées, Exail Robotics perdue), workspace `98dcd39d-f87b-4f9d-add9-ce76d635953a`. Run `45ea1314-262d-4858-a10a-b55ccf553d1f`, Result `d9477124-79a0-45c4-80ca-a7d1a096b865`, Document `6c5b0fd1-d7b8-48da-9bc2-802544e2ddfb` — vérifiés en base, contenu relu intégralement, pas seulement le statut `succeeded` :
+1. ✅ **Constats nominatifs** : chaque `finding` désigne une affaire précise et nommée du corpus, jamais une moyenne ni un agrégat.
+2. ✅ **Motif de perte distingué du motif de gain** : l'`executiveSummary` et plusieurs `findings` opposent explicitement le motif de gain récurrent (adéquation profil/contrainte client — référence métier, disponibilité, télétravail négocié) au motif de perte (désalignement sur une contrainte opérationnelle non résolue, présence site, combiné à la perte de disponibilité du candidat initial).
+3. ✅ **Aucune statistique en pourcentage** : absente à tous les niveaux, y compris l'`executiveSummary`, qui rappelle lui-même l'absence de généralisation statistique possible sur 3 dossiers.
+
+Deux runs réels ont précédé ce succès et sont documentés pour mémoire (piège déjà rencontré, cf. `09` §9) : un premier échec par citations rejetées (`pipeline_period` pas encore déployé en production au moment du run — même classe d'incident que L7.4 §5.6), un second par sortie LLM non strictement JSON (aléa ponctuel du modèle, sans lien avec le code — le contrat M-2 refuse toute réparation heuristique, relance manuelle attendue).
 
 ---
 

@@ -15,6 +15,33 @@
 
 ---
 
+### Session 52 — Missions d'intelligence, lot L7.5 : mission `post-mortem-commercial` et pilote (2026-08-24)
+
+Livraison du lot L7.5 : la première mission d'intelligence à granularité trimestrielle (`post-mortem-commercial`), lisant le pipe commercial clos (`stage` ∈ `gagne`/`perdu`/`abandonne`), l'historique d'interactions, les profils présentés et les compétences requises.
+
+Changements clés :
+- Nouveau `CorpusKind: "pipeline_period"` et sélecteur `{ kind: "pipeline_period"; periodStart; periodEnd }`.
+- Provider `pipelinePeriodProvider` (poids 80, exécution `user_rls`, filtrage des affaires closes **côté requête** en deux branches — `closed_at` dans la fenêtre, ou repli `updated_at` dans la fenêtre quand `closed_at` est `null` — corrigé avant déploiement : une première version filtrait en JS après une `LIMIT` globale non liée à la fenêtre, risque d'éviction silencieuse d'affaires du trimestre analysé une fois l'historique total dépassant la borne).
+- Preset `post-mortem-commercial` (version 1) avec `requiredAtLaunch: ["pipeline_period"]`, contrainte stricte d'interdiction des statistiques en pourcentage et obligation de constats nominatifs affaire par affaire, `maxOutputTokens: 16_000`.
+- Composeur `POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG` (`inputKind: "month"`, dérivation automatique des bornes du trimestre via `monthToPipelinePeriod` — le formulaire reste un simple sélecteur de mois, n'importe quel mois du trimestre visé produit la même fenêtre).
+- Cockpit : action dédiée `post_mortem_pipeline` inscrite dans `intelligence-registry.ts` (`status: "active"`, sur `/missions/opps`) et branchée dans `MISSION_COMPOSER_ACTION_CONFIGS`, sans toucher à l'action déterministe préexistante `prioritize_pipeline` (mécanisme distinct, vérifié avant de coder).
+
+Deux runs réels ont échoué avant le succès, tous deux documentés (piège pour la suite, `09` §9) :
+1. Premier run lancé avant que le commit ne soit poussé/déployé : citations `pipeline_period` rejetées par le callback n8n (pointant toujours vers la production) — même classe d'incident que L7.4 Session 51. Corrigé en déployant le code.
+2. Second run : sortie LLM non strictement JSON (« Unexpected non-whitespace character after JSON »), aléa ponctuel du modèle sans lien avec le code — le contrat M-2 refuse toute réparation heuristique, relance manuelle attendue et suffisante.
+
+Exécution du pilote en conditions réelles, vérifiée en base (statut **et** contenu, pas seulement le message de succès de l'UI) :
+- **Fenêtre cible** : Q2 2026 (`periodStart` 2026-04-01 / `periodEnd` 2026-06-30, 3 affaires closes : Voyage Privé et CHU de Nice gagnées, Exail Robotics perdue), workspace `98dcd39d-f87b-4f9d-add9-ce76d635953a`.
+- **Run ID** : `45ea1314-262d-4858-a10a-b55ccf553d1f` (Result `d9477124-79a0-45c4-80ca-a7d1a096b865`, Document `6c5b0fd1-d7b8-48da-9bc2-802544e2ddfb`). Status : `succeeded`.
+- **Verdict des 3 critères de sortie (`09` §6.6)** :
+  1. *Constats nominatifs par affaire* : ✅ **VALIDE** — chaque `finding` désigne une affaire précise et nommée, jamais une moyenne ni un agrégat.
+  2. *Motif de perte distingué du motif de gain* : ✅ **VALIDE** — `executiveSummary` et plusieurs `findings` opposent explicitement le motif de gain récurrent (adéquation profil/contrainte client) au motif de perte (contrainte opérationnelle non résolue + perte de disponibilité candidat).
+  3. *Absence totale de statistique en pourcentage* : ✅ **VALIDE** — y compris dans l'`executiveSummary`, qui rappelle lui-même l'absence de généralisation statistique possible sur 3 dossiers.
+
+Lot L7.5 fonctionnellement clos.
+
+---
+
 ### Session 51 — Missions d'intelligence, lot L7.4 : mission `revue-compte-client` et pilote (2026-08-24)
 
 Livraison du lot L7.4 : la première mission d'intelligence *entity-scoped* (`revue-compte-client`), combinant les origines `account_context` (données relationnelles) et `account_delivery` (données opérationnelles/financières sur 6 mois glissants).
