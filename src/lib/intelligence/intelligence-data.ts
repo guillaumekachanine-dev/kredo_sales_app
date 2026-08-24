@@ -474,7 +474,6 @@ function parseAnalyseClient(raw: unknown): AnalyseClient | null {
   const root = asRecord(raw)
   if (Object.keys(root).length === 0) return null
 
-  const signaux = asRecord(root.signaux)
   const contexte = asRecord(root.contexte_sectoriel)
 
   return {
@@ -482,10 +481,10 @@ function parseAnalyseClient(raw: unknown): AnalyseClient | null {
     identite: flattenStrings(asRecord(root.identite)),
     positionnement: flattenStrings(asRecord(root.positionnement)),
     signaux: {
-      actualitesRecentes: strArray(signaux.actualites_recentes),
-      tendanceCroissance: str(signaux.tendance_croissance),
-      recrutementsRecents: str(signaux.recrutements_recents),
-      maturiteDigitale: str(signaux.indices_maturite_digitale),
+      actualitesRecentes: [],
+      tendanceCroissance: "",
+      recrutementsRecents: "",
+      maturiteDigitale: "",
     },
     contexteSectoriel: {
       secteur: str(contexte.secteur),
@@ -968,7 +967,7 @@ export async function getClientIntelligence(
       .limit(3)
       .returns<VeilleArticleRow[]>(),
     supabase
-      .from("account_signals")
+      .from("v_active_account_signals")
       .select<AccountSignalRow>(`
         id,
         signal_category,

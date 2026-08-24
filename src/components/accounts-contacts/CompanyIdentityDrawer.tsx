@@ -165,12 +165,6 @@ interface CompanyAnalysisData {
     clients_types?: string
     zone_geographique?: string
   }
-  signaux?: {
-    actualites_recentes?: string[]
-    tendance_croissance?: string
-    recrutements_recents?: string
-    indices_maturite_digitale?: string
-  }
   contexte_sectoriel?: {
     secteur?: string
     concurrents_identifies?: string[]
@@ -531,16 +525,7 @@ export function CompanyIdentityDrawer({
   
   const identite = analysisData.identite || {}
   const positionnement = analysisData.positionnement || {}
-  const signaux = analysisData.signaux || {}
   const synthese = analysisData.synthese_consultant || data?.company?.description || "Aucune synthèse disponible."
-
-  const hasMaturite = !!(
-    signaux.indices_maturite_digitale &&
-    signaux.indices_maturite_digitale.trim() !== "" &&
-    signaux.indices_maturite_digitale.trim() !== "-" &&
-    !signaux.indices_maturite_digitale.toLowerCase().includes("non renseigné") &&
-    !signaux.indices_maturite_digitale.toLowerCase().includes("non renseignée")
-  )
 
 
 
@@ -827,7 +812,7 @@ export function CompanyIdentityDrawer({
                         </span>
                       ) : (
                         <span className="text-xs font-bold text-heading">
-                          {formatDynamique(data.company.health, signaux.tendance_croissance)}
+                          {formatDynamique(data.company.health)}
                         </span>
                       )}
                     </div>
@@ -848,13 +833,6 @@ export function CompanyIdentityDrawer({
                         <span className="text-[9px] text-muted font-bold uppercase">Maturité digitale</span>
                         <span className="text-xs font-bold text-heading">
                           {data.studyEntry.maturiteNumerique}/5
-                        </span>
-                      </div>
-                    ) : hasMaturite ? (
-                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 col-span-2">
-                        <span className="text-[9px] text-muted font-bold uppercase">Maturité digitale</span>
-                        <span className="text-xs font-normal text-heading">
-                          {signaux.indices_maturite_digitale}
                         </span>
                       </div>
                     ) : null}
@@ -1653,130 +1631,9 @@ export function CompanyIdentityDrawer({
                   </div>
                 )}
 
-                {/* Recent News list */}
-                {signaux.actualites_recentes && signaux.actualites_recentes.length > 0 ? (
-                  <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-3 font-heading">
-                      Actualité récente
-                    </h4>
-                    <div className="bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4 pl-5">
-                      <div className="relative">
-                        {signaux.actualites_recentes?.map((item: string, idx: number) => {
-                          const isLast = idx === (signaux.actualites_recentes?.length ?? 0) - 1
-                          const match = item.match(/^(\d{1,2}\s+[a-zA-Zà-öø-ÿ]+\s+\d{4}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\s*[:\-–—]\s*(.*)$/i)
-                          const dateStr = match
-                            ? match[1].trim()
-                            : (data.company.updated_at
-                                ? new Date(data.company.updated_at).toLocaleDateString("fr-FR", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                : "Récent")
-                          const textStr = match ? match[2].trim() : item
-
-                          return (
-                            <div key={idx} className="relative flex gap-3.5 pb-4 last:pb-0">
-                              {!isLast && (
-                                <div
-                                  className="absolute left-[7px] top-[20px] w-0.5"
-                                  style={{
-                                    height: "calc(100% - 12px)",
-                                    background: idx === 0
-                                      ? "#FF9800"
-                                      : "var(--color-border)",
-                                  }}
-                                />
-                              )}
-
-                              <div
-                                className="relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] font-bold"
-                                style={{
-                                  borderColor: "#FF9800",
-                                  background: idx === 0
-                                    ? "#FF9800"
-                                    : "var(--color-canvas)",
-                                  color: idx === 0 ? "white" : "#FF9800",
-                                }}
-                              >
-                                {idx === 0 && "✓"}
-                              </div>
-
-                              <div className="min-w-0 flex-1 pb-3 border-b border-border/20 last:border-b-0 last:pb-0">
-                                <p className="text-xs leading-relaxed text-heading">
-                                  <span className="text-[10px] font-bold text-muted mr-1.5 uppercase tracking-wider inline-block">
-                                    {dateStr} :
-                                  </span>
-                                  {textStr}
-                                </p>
-                                <div className="mt-2 flex items-center gap-1.5 justify-start">
-                                  <a
-                                    href={
-                                      item.match(/(https?:\/\/[^\s]+)/)?.[0] ||
-                                      `https://www.google.com/search?q=${encodeURIComponent(`${data.company.name} ${item}`)}`
-                                    }
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="group relative overflow-hidden bg-[#FF9800] hover:bg-[#E88900] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(255,152,0,0.24)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
-                                    title="Accéder à la source du signal"
-                                  >
-                                    <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
-                                    <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
-                                    <Image
-                                      src="/icons_set/cockpit_intelligence/recherche_actualités.png"
-                                      alt=""
-                                      width={12}
-                                      height={12}
-                                      className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
-                                    />
-                                    <span className="relative z-10">Voir la source</span>
-                                  </a>
-
-                                  <ContextualCommunicationButton
-                                    entryPoint="signal_card"
-                                    companyId={data.company.id}
-                                    companyName={data.company.name}
-                                    primaryEntity={{ type: "company", id: data.company.id }}
-                                    label="Contacter sur ce signal"
-                                    className="group relative overflow-hidden bg-[#FF9800] hover:bg-[#E88900] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(255,152,0,0.24)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
-                                    aria-label={`Contacter ${data.company.name} sur le signal ${idx + 1}`}
-                                    refs={{
-                                      signalRef: item,
-                                      angle: data.company.sector ? `Angle sectoriel: ${data.company.sector}` : undefined,
-                                    }}
-                                    leftIcon={
-                                      <>
-                                        <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
-                                        <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
-                                        <Image
-                                          src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
-                                          alt=""
-                                          width={12}
-                                          height={12}
-                                          className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
-                                        />
-                                      </>
-                                    }
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : data.studySnapshot.triggerEvents.length === 0 ? (
+                {data.studySnapshot.triggerEvents.length === 0 && (
                   <div className="text-center py-6 bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 text-xs text-muted italic">
                     Aucune actualité ou signal faible disponible.
-                  </div>
-                ) : null}
-
-                {/* Recrutements Récents */}
-                {signaux.recrutements_recents && (
-                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                    <span className="text-[9px] text-muted font-bold uppercase">Actualité recrutement</span>
-                    <p className="text-xs text-body leading-relaxed font-normal">{signaux.recrutements_recents}</p>
                   </div>
                 )}
               </div>

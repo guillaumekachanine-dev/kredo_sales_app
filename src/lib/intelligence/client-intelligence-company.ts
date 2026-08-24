@@ -163,7 +163,6 @@ export function normalizeCompanyIdentity(
   const analysis = asRecord(root.analysis_data)
   const identity = asRecord(analysis.identite)
   const positioning = asRecord(analysis.positionnement)
-  const signals = asRecord(analysis.signaux)
 
   const employeeCount = company.employeeCount !== null
     ? new Intl.NumberFormat("fr-FR").format(company.employeeCount)
@@ -178,7 +177,7 @@ export function normalizeCompanyIdentity(
     revenue: displayValue(cleanText(company.revenue) ?? cleanText(identity.ca_estime)),
     employeeCount: displayValue(employeeCount),
     geographicReach: displayValue(cleanText(positioning.zone_geographique)),
-    companyMomentum: displayValue(cleanText(signals.tendance_croissance)),
+    companyMomentum: displayValue(null),
   }
 }
 

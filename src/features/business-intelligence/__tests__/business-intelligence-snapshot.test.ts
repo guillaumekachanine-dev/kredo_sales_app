@@ -7,11 +7,11 @@ import {
 import { getDashboardDeviceFromUserAgent } from "@/lib/dashboard/dashboard-device"
 
 describe("Business Intelligence snapshot", () => {
-  it("sélectionne summary et recommended_action sur account_signals", () => {
+  it("sélectionne summary et recommended_action sur v_active_account_signals", () => {
     const source = readFileSync("src/features/business-intelligence/data/get-business-intelligence-snapshot.ts", "utf8")
 
-    expect(source).toContain("id,company_id,title,summary,signal_type,relevance_score,urgency_score,detected_at,recommended_action")
-    expect(source).not.toContain('select<any>("id,company_id,title,description,signal_type')
+    expect(source).toContain('supabase.from("v_active_account_signals").select<AccountSignalRow>("id,company_id,title,summary,signal_type,relevance_score,urgency_score,detected_at,recommended_action")')
+    expect(source).not.toContain('supabase.from("account_signals")')
   })
 
   it("mappe summary et recommended_action sans les remplacer par des valeurs vides", () => {
@@ -79,5 +79,56 @@ describe("Business Intelligence snapshot", () => {
   it("sélectionne la branche Mobile avec un User-Agent iPhone et Desktop sinon", () => {
     expect(getDashboardDeviceFromUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)")).toBe("mobile")
     expect(getDashboardDeviceFromUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)")).toBe("desktop")
+  })
+
+  it("ne retient pas de signal FOLIO archivé comme topSignal lorsque seuls les signaux actifs sont projetés", async () => {
+    const { buildAccountPrioritizationModel } = await import("../models/build-account-prioritization-model")
+    const { buildAccountAttackModel } = await import("../models/build-account-attack-model")
+    const { makeBusinessIntelligenceSnapshot, makePortfolioAccount } = await import("./business-intelligence-test-fixtures")
+
+    const mockSnapshot = makeBusinessIntelligenceSnapshot({
+      accounts: [makePortfolioAccount("acc-1", {
+        name: "Acme Corp",
+        sectorId: "sec-1",
+        segmentId: "seg-1",
+        reachScore: 50,
+      })],
+      signals: [
+        // Signal KREDO actif légitime
+        {
+          id: "sig-kredo",
+          companyId: "acc-1",
+          title: "Signal KREDO Récent",
+          summary: "Expansion confirmée",
+          category: "growth",
+          relevanceScore: 0.9,
+          urgencyScore: 85,
+          detectedAt: "2026-08-20T10:00:00.000Z",
+          recommendedAction: "Proposer un RDV",
+        },
+      ],
+    })
+
+    const prioritization = buildAccountPrioritizationModel(mockSnapshot)
+    expect(prioritization[0].topSignal?.id).toBe("sig-kredo")
+
+    const attack = buildAccountAttackModel(mockSnapshot, "acc-1")
+    expect(attack?.topSignal?.id).toBe("sig-kredo")
+
+    // Si aucun signal actif dans snapshot.signals, topSignal doit être null (pas de fallback FOLIO)
+    const emptySignalSnapshot = makeBusinessIntelligenceSnapshot({
+      accounts: [makePortfolioAccount("acc-1", {
+        name: "Acme Corp",
+        sectorId: "sec-1",
+        segmentId: "seg-1",
+        reachScore: 50,
+      })],
+      signals: [],
+    })
+    const prioritizationEmpty = buildAccountPrioritizationModel(emptySignalSnapshot)
+    expect(prioritizationEmpty[0].topSignal).toBeNull()
+
+    const attackEmpty = buildAccountAttackModel(emptySignalSnapshot, "acc-1")
+    expect(attackEmpty?.topSignal).toBeNull()
   })
 })

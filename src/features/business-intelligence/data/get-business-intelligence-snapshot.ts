@@ -125,10 +125,10 @@ export const getBusinessIntelligenceSnapshot = cache(async (): Promise<BusinessI
       signalsResult,
     ] = await Promise.all([
       getSectorKnowledgeReadModels(segmentIds),
-      supabase.from("account_signals").select<AccountSignalRow>("id,company_id,title,summary,signal_type,relevance_score,urgency_score,detected_at,recommended_action"),
+      supabase.from("v_active_account_signals").select<AccountSignalRow>("id,company_id,title,summary,signal_type,relevance_score,urgency_score,detected_at,recommended_action"),
     ])
 
-    const signalRows = unwrapQueryResult("account_signals", signalsResult)
+    const signalRows = unwrapQueryResult("v_active_account_signals", signalsResult)
 
     const signals = mapAccountSignalRows(signalRows)
 
