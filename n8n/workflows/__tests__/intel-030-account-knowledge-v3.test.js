@@ -620,6 +620,9 @@ async function main() {
     check("Le prompt de génération interdit snippets et sources non consultées",
       /snippet de moteur de recherche/.test(draftNode.parameters.jsCode) &&
       /URL non consultee/.test(draftNode.parameters.jsCode))
+    check("Le prompt de génération V3 interdit FOLIO pour frictions, signaux et trends_and_news.analysis",
+      /FOLIO ne constitue JAMAIS une preuve/.test(draftNode.parameters.jsCode) &&
+      /trends_and_news\.analysis ne peuvent JAMAIS s'appuyer sur FOLIO_LEGACY/.test(draftNode.parameters.jsCode))
 
     // Toutes les sorties d'erreur V3 mènent au failure callback partagé.
     const v3Nodes = workflow.nodes.filter((n) => String(n.id).startsWith("n030v3-"))

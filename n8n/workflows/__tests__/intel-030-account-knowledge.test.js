@@ -377,6 +377,7 @@ async function main() {
   check("Le prompt exclut le macro-sectoriel et la roadmap",
     prompt.systemPrompt.includes("Aucune donnée sectorielle macro") && prompt.systemPrompt.includes("aucune roadmap"))
   check("FOLIO est présenté au modèle comme non sourcé", prompt.userPrompt.includes("FOLIO_LEGACY_NON_SOURCE"))
+  check("Le prompt V2 interdit FOLIO pour frictions et signaux", prompt.systemPrompt.includes('FOLIO ne constitue JAMAIS une preuve d\'une friction'))
 
   // ── 6. Validation de sortie ───────────────────────────────────────────────
   await runCodeNode("Parse & Validate Output", promptStore, llmResponse(validArtifact()))
