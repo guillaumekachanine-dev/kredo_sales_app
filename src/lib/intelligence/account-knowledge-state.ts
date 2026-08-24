@@ -111,7 +111,17 @@ export function resolveAccountKnowledge(
       }
     }
     if (!firstV1) {
-      firstV1 = { version: 1, data: parsed.content, resultId: row.id, createdAt: row.created_at }
+      // Lot 2 : neutralisation des signaux FOLIO legacy dans les résultats historiques V1.
+      // frictions_and_signals ne doit plus présenter de faits de provenance 'folio_legacy'.
+      // Les faits d'autres provenances (relational, inferred, human_verified) et les autres
+      // sections (identity_positioning, organisation_observed...) restent inchangés.
+      const sanitizedV1: AccountKnowledgeContent = {
+        ...parsed.content,
+        frictions_and_signals: parsed.content.frictions_and_signals.filter(
+          (fact) => fact.provenance !== "folio_legacy",
+        ),
+      }
+      firstV1 = { version: 1, data: sanitizedV1, resultId: row.id, createdAt: row.created_at }
     }
   }
 
