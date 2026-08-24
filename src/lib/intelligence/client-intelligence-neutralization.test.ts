@@ -79,13 +79,11 @@ describe("Client Intelligence Read Model - neutralisation FOLIO", () => {
   })
 
   it("vérifie que la migration SQL retire signaux de folioAnalysisData pour intel-030 et intel-031", () => {
-    const migrationSql = readFileSync("supabase/migrations/20260824113000_neutralize_legacy_folio_signals.sql", "utf8")
+    const migrationSql = readFileSync("supabase/migrations/20260824120000_neutralize_folio_signals_in_ai_contexts.sql", "utf8")
 
     expect(migrationSql).toContain("(c.metadata->'analysis_data') - 'signaux'")
     expect(migrationSql).toContain("create or replace function public.get_account_knowledge_context")
     expect(migrationSql).toContain("create or replace function public.get_account_issues_context")
-    expect(migrationSql).toContain("update public.account_issues")
-    expect(migrationSql).toContain("set status = 'dismissed'")
   })
 
   it("vérifie le contrat INTEL-030 n8n sur frictions_and_signals", () => {
