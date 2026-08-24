@@ -54,4 +54,18 @@ describe("contrat v_crm_account_list post Lot 1", () => {
     expect(accountListLoader).not.toContain("open_opportunities_count")
     expect(launcherRoute).not.toContain("open_opportunities_count")
   })
+
+  it("supprime aussi le contrat et le placeholder de score générique du launcher", () => {
+    const launcher = readFileSync(
+      join(SRC_ROOT, "components/crm/launcher/CrmAccountLauncher.tsx"),
+      "utf8",
+    )
+    const accountCard = readFileSync(
+      join(SRC_ROOT, "components/crm/launcher/CrmLauncherAccountCard.tsx"),
+      "utf8",
+    )
+
+    expect(launcher).not.toContain("score: number | null")
+    expect(accountCard).not.toContain("account.score")
+  })
 })

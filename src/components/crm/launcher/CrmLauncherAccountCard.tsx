@@ -81,7 +81,7 @@ export function CrmLauncherAccountCard({
         </div>
       </div>
 
-      {/* Colonne droite dépendante du mode ou du score */}
+      {/* Colonne droite dépendante du mode */}
       <div className="flex flex-col items-end shrink-0">
         {mode === "recent" && account.lastActivityAt && (
           <span className="text-[10px] font-bold text-primary">
@@ -100,19 +100,6 @@ export function CrmLauncherAccountCard({
           </div>
         )}
 
-        {mode !== "opportunities" && mode !== "recent" && account.score !== null && (
-          <div className="flex items-center gap-1 bg-surface-secondary/40 px-1.5 py-0.5 rounded border border-border/30">
-            <svg
-              className="w-3 h-3 text-warning fill-current"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-            </svg>
-            <span className="text-[10px] font-bold text-heading">
-              {account.score}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   )

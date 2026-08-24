@@ -8,7 +8,6 @@ export type CrmLauncherAccount = {
   name: string
   sector: string | null
   status: string | null
-  score: number | null
   website: string | null
   logoPath: string | null
   contactCount: number
