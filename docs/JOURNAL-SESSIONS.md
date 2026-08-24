@@ -15,6 +15,28 @@
 
 ---
 
+### Session 50 — Suppression des scores globaux de compte, LOT 2 préparé (2026-08-24)
+
+Préparation destructive strictement hors production depuis un worktree propre basé sur
+`f623e8c7`. L'audit live read-only a confirmé 112 comptes, 78 valeurs
+`legacy_folio_score`, 78 clés `metadata.potential_score_raw`, 10 runs, 51 composants et aucun
+feedback. Le croisement `pg_depend` / définitions de routines et vues / triggers / contraintes /
+policies / index / grants ne révèle aucune dépendance métier externe après le LOT 1.
+
+La migration forward-only `20260824080013_drop_account_global_scores.sql` purge uniquement la
+clé JSONB historique, supprime la vue, la RPC d'hydratation, les trois tables enfant→parent, les
+trois validateurs privés, les deux anciens calculs et la colonne FOLIO. Aucun `CASCADE` : les
+dépendances cataloguées bloquent les `DROP`, complétées par un garde textuel pour les corps
+PL/pgSQL. Les types Supabase ont été régénérés depuis un clone local du schéma live post-migration.
+
+Le clone local portait une fixture JSONB avec une clé témoin : 1 clé ciblée supprimée, clé témoin
+préservée, assertions de relations/fonctions/colonne/métadonnée vertes. Validation applicative :
+typecheck ✅ · **1 996 tests / 206 fichiers, 0 échec** · tous les harnais n8n ✅ · frontière
+serveur/client ✅ · lint ciblé ✅ · build Next.js production ✅. Migration non appliquée à
+Supabase production, aucun deploy ni push.
+
+---
+
 ### Session 49 — Missions d'intelligence, lot L4 : composeur UX desktop + mobile (2026-08-20)
 
 Le pilote L5 étant validé en production, L4 rend le seul preset réel

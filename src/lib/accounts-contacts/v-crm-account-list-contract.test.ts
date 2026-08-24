@@ -16,10 +16,9 @@ function sourceFiles(directory: string): string[] {
   })
 }
 
-describe("contrat v_crm_account_list post Lot 1", () => {
-  it("ne conserve aucune référence runtime à l'ancien champ FOLIO dans src", () => {
+describe("contrat v_crm_account_list post Lot 2", () => {
+  it("ne conserve aucune référence à l'ancien champ FOLIO dans src", () => {
     const occurrences = sourceFiles(SRC_ROOT).filter((path) => {
-      if (path === GENERATED_TYPES_PATH) return false
       const source = readFileSync(path, "utf8")
       return source.includes(FORBIDDEN_SNAKE_CASE) || source.includes(FORBIDDEN_CAMEL_CASE)
     })
@@ -39,6 +38,7 @@ describe("contrat v_crm_account_list post Lot 1", () => {
 
     expect(viewContract).toContain("open_opportunities_count: number | null")
     expect(viewContract).not.toContain(FORBIDDEN_SNAKE_CASE)
+    expect(generatedTypes).not.toContain(FORBIDDEN_SNAKE_CASE)
   })
 
   it("ne détourne pas le compteur d'opportunités dans les loaders sans besoin métier", () => {
