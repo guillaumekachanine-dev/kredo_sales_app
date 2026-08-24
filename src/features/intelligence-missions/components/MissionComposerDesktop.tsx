@@ -1,16 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/Button"
-import { Input } from "@/components/ui/Input"
+import type { AccountValue } from "@/components/missions/AccountCombobox"
+import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import {
   defaultMissionMonth,
+  resolveInitialAccountSelection,
   type MissionComposerConfig,
   type MissionComposerStatus,
+  type MissionLaunchInput,
 } from "./mission-composer-model"
 import { useMissionLauncher } from "./use-mission-launcher"
+import { MissionMonthField } from "./MissionMonthField"
+import { MissionAccountField } from "./MissionAccountField"
 
 const STATUS_COPY: Record<Exclude<MissionComposerStatus, "idle" | "succeeded" | "failed" | "timeout">, string> = {
   launching: "Lancement de l’analyse…",
@@ -19,9 +24,25 @@ const STATUS_COPY: Record<Exclude<MissionComposerStatus, "idle" | "succeeded" | 
 }
 
 export function MissionComposerDesktop({ config }: { config: MissionComposerConfig }) {
+  const entityContext = useIntelligenceContext((state) => state.entityContext)
   const [month, setMonth] = useState(defaultMissionMonth)
+  const [account, setAccount] = useState<AccountValue | null>(() =>
+    resolveInitialAccountSelection(entityContext),
+  )
+
   const launcher = useMissionLauncher(config)
   const isBusy = ["launching", "queued", "running"].includes(launcher.status)
+
+  const currentInput = useMemo<MissionLaunchInput | null>(() => {
+    switch (config.inputKind) {
+      case "month":
+        return month ? { kind: "month", month } : null
+      case "account":
+        return account?.id ? { kind: "account", companyId: account.id } : null
+      default:
+        return null
+    }
+  }, [config.inputKind, month, account])
 
   return (
     <section className="animate-in fade-in slide-in-from-right-2 space-y-5 duration-200" aria-labelledby="mission-composer-desktop-title">
@@ -35,20 +56,21 @@ export function MissionComposerDesktop({ config }: { config: MissionComposerConf
         </p>
       </header>
 
-      <div className="space-y-2">
-        <label htmlFor="mission-period-desktop" className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-fg/55">
-          Période analysée
-        </label>
-        <Input
-          id="mission-period-desktop"
-          type="month"
+      {config.inputKind === "month" ? (
+        <MissionMonthField
           value={month}
-          onChange={(event) => setMonth(event.target.value)}
+          onChange={setMonth}
           disabled={isBusy}
-          fullWidth
-          className="border-primary-fg/15 bg-primary-fg/[0.06] text-primary-fg [color-scheme:dark]"
+          variant="desktop"
         />
-      </div>
+      ) : config.inputKind === "account" ? (
+        <MissionAccountField
+          value={account}
+          onChange={setAccount}
+          disabled={isBusy}
+          variant="desktop"
+        />
+      ) : null}
 
       <div className="border-l-2 border-brand-brass pl-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-brass">Livrable</p>
@@ -93,7 +115,17 @@ export function MissionComposerDesktop({ config }: { config: MissionComposerConf
               <Link href="/reports" className="font-bold text-primary-fg underline underline-offset-2">Consulter les rapports</Link>
             </div>
           ) : null}
-          <Button variant="brass" fullWidth loading={launcher.status === "launching"} disabled={isBusy || !month} onClick={() => void launcher.launch(month)}>
+          <Button
+            variant="brass"
+            fullWidth
+            loading={launcher.status === "launching"}
+            disabled={isBusy || !currentInput}
+            onClick={() => {
+              if (currentInput) {
+                void launcher.launch(currentInput)
+              }
+            }}
+          >
             Lancer l’analyse
           </Button>
         </>

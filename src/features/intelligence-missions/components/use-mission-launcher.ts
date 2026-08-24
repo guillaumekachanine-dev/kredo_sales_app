@@ -9,6 +9,7 @@ import {
   type MissionComposerConfig,
   type MissionComposerResult,
   type MissionComposerStatus,
+  type MissionLaunchInput,
 } from "./mission-composer-model"
 
 export function useMissionLauncher(config: MissionComposerConfig) {
@@ -24,13 +25,13 @@ export function useMissionLauncher(config: MissionComposerConfig) {
     onSucceeded: setResult,
   })
 
-  const launch = useCallback(async (month: string) => {
+  const launch = useCallback(async (input: MissionLaunchInput) => {
     setLaunching(true)
     setLaunchError(null)
     setResult(null)
     setRunId(null)
     try {
-      const selectors = config.buildSelectors(month)
+      const selectors = config.buildSelectors(input)
       const response = await launchMission(config.missionSlug, selectors)
       setRunId(response.runId)
     } catch (error) {

@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from "vitest"
 
 import {
+  ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG,
   buildMonthlyWatchMissionPayload,
+  CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG,
   defaultMissionMonth,
   launchMonthlyWatchMission,
   MISSION_COMPOSER_ACTION_CONFIGS,
   MONTHLY_WATCH_MISSION_ACTION_ID,
   monthToVeillePeriod,
   RENTABILITE_MISSION_COMPOSER_CONFIG,
+  resolveInitialAccountSelection,
   VEILLE_MISSION_COMPOSER_CONFIG,
 } from "../components/mission-composer-model"
 import { resolveRunOutcome } from "@/lib/n8n/run-tracker-policy"
@@ -72,6 +75,13 @@ describe("mission composer launch contract", () => {
 })
 
 describe("mission composer action configs mapping", () => {
+  it("declares inputKind 'month' on all four existing configs", () => {
+    expect(VEILLE_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
+    expect(RENTABILITE_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
+    expect(ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
+    expect(CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG.inputKind).toBe("month")
+  })
+
   it("maps monthly watch, analyze_margins, and prioritize_accounts to their respective configs", () => {
     expect(MISSION_COMPOSER_ACTION_CONFIGS[MONTHLY_WATCH_MISSION_ACTION_ID]).toEqual(VEILLE_MISSION_COMPOSER_CONFIG)
     expect(MISSION_COMPOSER_ACTION_CONFIGS.analyze_margins).toEqual(RENTABILITE_MISSION_COMPOSER_CONFIG)
@@ -79,20 +89,36 @@ describe("mission composer action configs mapping", () => {
     expect(MISSION_COMPOSER_ACTION_CONFIGS.prioritize_accounts.missionSlug).toBe("activation-portefeuille")
   })
 
-  it("builds delivery_period selectors for analyze_margins", () => {
-    const config = MISSION_COMPOSER_ACTION_CONFIGS.analyze_margins
-    expect(config.missionSlug).toBe("rentabilite-portefeuille")
-    expect(config.buildSelectors("2026-07")).toEqual([
-      { kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" },
+  it("builds veille_period selectors for monthly watch with input validation", () => {
+    const config = VEILLE_MISSION_COMPOSER_CONFIG
+    expect(config.buildSelectors({ kind: "month", month: "2026-01" })).toEqual([
+      { kind: "veille_period", periodStart: "2026-01-01", periodEnd: "2026-01-31" },
     ])
+    expect(() => config.buildSelectors({ kind: "account", companyId: "c-1" })).toThrow(
+      'Entrée invalide pour la mission "veille-analyse-mensuelle" : attendu "month", reçu "account".',
+    )
   })
 
-  it("builds prospection_window selectors for prioritize_accounts", () => {
+  it("builds delivery_period selectors for analyze_margins with input validation", () => {
+    const config = MISSION_COMPOSER_ACTION_CONFIGS.analyze_margins
+    expect(config.missionSlug).toBe("rentabilite-portefeuille")
+    expect(config.buildSelectors({ kind: "month", month: "2026-07" })).toEqual([
+      { kind: "delivery_period", periodStart: "2026-07-01", periodEnd: "2026-07-31" },
+    ])
+    expect(() => config.buildSelectors({ kind: "account", companyId: "c-1" })).toThrow(
+      'Entrée invalide pour la mission "rentabilite-portefeuille" : attendu "month", reçu "account".',
+    )
+  })
+
+  it("builds prospection_window selectors for prioritize_accounts with input validation", () => {
     const config = MISSION_COMPOSER_ACTION_CONFIGS.prioritize_accounts
     expect(config.missionSlug).toBe("activation-portefeuille")
-    expect(config.buildSelectors("2026-08")).toEqual([
+    expect(config.buildSelectors({ kind: "month", month: "2026-08" })).toEqual([
       { kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" },
     ])
+    expect(() => config.buildSelectors({ kind: "account", companyId: "c-1" })).toThrow(
+      'Entrée invalide pour la mission "activation-portefeuille" : attendu "month", reçu "account".',
+    )
   })
 
   it("maps forecast_availability to capacite-staffing", () => {
@@ -100,12 +126,71 @@ describe("mission composer action configs mapping", () => {
     expect(MISSION_COMPOSER_ACTION_CONFIGS.forecast_availability.missionSlug).toBe("capacite-staffing")
   })
 
-  it("builds staffing_horizon selectors for forecast_availability", () => {
+  it("builds staffing_horizon selectors for forecast_availability with input validation", () => {
     const config = MISSION_COMPOSER_ACTION_CONFIGS.forecast_availability
     expect(config.missionSlug).toBe("capacite-staffing")
-    expect(config.buildSelectors("2026-08")).toEqual([
+    expect(config.buildSelectors({ kind: "month", month: "2026-08" })).toEqual([
       { kind: "staffing_horizon", periodStart: "2026-08-01", periodEnd: "2026-08-31" },
     ])
+    expect(() => config.buildSelectors({ kind: "account", companyId: "c-1" })).toThrow(
+      'Entrée invalide pour la mission "capacite-staffing" : attendu "month", reçu "account".',
+    )
+  })
+})
+
+describe("resolveInitialAccountSelection", () => {
+  it("returns null when entityContext is null", () => {
+    expect(resolveInitialAccountSelection(null)).toBeNull()
+  })
+
+  it.each([
+    ["contact", "person-123", "Jean Dupont"],
+    ["opportunity", "opp-456", "Refonte SI"],
+    ["collaborator", "collab-789", "Alice Martin"],
+    ["candidate", "cand-101", "Bob Smith"],
+  ] as const)("returns null when entityType is '%s'", (entityType, entityId, label) => {
+    expect(
+      resolveInitialAccountSelection({
+        entityType,
+        entityId,
+        label,
+        pathname: "/test",
+      }),
+    ).toBeNull()
+  })
+
+  it("returns null when entityId is empty or whitespace", () => {
+    expect(
+      resolveInitialAccountSelection({
+        entityType: "company",
+        entityId: "",
+        label: "Acme Corp",
+        pathname: "/prospection/accounts/1",
+      }),
+    ).toBeNull()
+    expect(
+      resolveInitialAccountSelection({
+        entityType: "company",
+        entityId: "   ",
+        label: "Acme Corp",
+        pathname: "/prospection/accounts/1",
+      }),
+    ).toBeNull()
+  })
+
+  it("resolves pre-filled AccountValue when entityType is 'company'", () => {
+    expect(
+      resolveInitialAccountSelection({
+        entityType: "company",
+        entityId: "comp-cegema-123",
+        label: "CEGEMA Courtage",
+        pathname: "/prospection/accounts/comp-cegema-123",
+      }),
+    ).toEqual({
+      id: "comp-cegema-123",
+      name: "CEGEMA Courtage",
+      isNew: false,
+    })
   })
 })
 

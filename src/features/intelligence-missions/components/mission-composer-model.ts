@@ -1,3 +1,5 @@
+import type { AccountValue } from "@/components/missions/AccountCombobox"
+import type { IntelligenceEntityContext } from "@/hooks/use-intelligence-context"
 import type { CorpusSelector, MissionReportV1 } from "../domain/mission-contracts"
 
 export const MONTHLY_WATCH_MISSION_ACTION_ID = "monthly_watch_mission" as const
@@ -25,6 +27,10 @@ export type MissionComposerStatus =
 
 export type MissionComposerResult = MissionReportV1
 
+export type MissionLaunchInput =
+  | { kind: "month"; month: string }
+  | { kind: "account"; companyId: string }
+
 export type MissionComposerConfig = {
   /** Slug catalogue — la seule chose envoyée au serveur avec les sélecteurs. */
   missionSlug: string
@@ -34,8 +40,27 @@ export type MissionComposerConfig = {
    *  `MissionSpec.description` du catalogue (registres différents : l'un nominal
    *  pour un catalogue, l'autre pour un utilisateur qui va cliquer "Lancer"). */
   description: string
-  /** Construit les sélecteurs à partir du mois choisi dans le formulaire. */
-  buildSelectors: (month: string) => CorpusSelector[]
+  /** Forme d'entrée attendue par le composeur. */
+  inputKind: MissionLaunchInput["kind"]
+  /** Construit les sélecteurs à partir de l'entrée validée du formulaire. */
+  buildSelectors: (input: MissionLaunchInput) => CorpusSelector[]
+}
+
+/**
+ * Résout la sélection initiale de compte à partir du contexte d'entité global.
+ * Fonction pure sans dépendance React, testable unitairement en .test.ts.
+ */
+export function resolveInitialAccountSelection(
+  entityContext: IntelligenceEntityContext | null,
+): AccountValue | null {
+  if (!entityContext) return null
+  if (entityContext.entityType !== "company") return null
+  if (!entityContext.entityId || !entityContext.entityId.trim()) return null
+  return {
+    id: entityContext.entityId,
+    name: entityContext.label ?? "",
+    isNew: false,
+  }
 }
 
 const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/
@@ -157,7 +182,13 @@ export const VEILLE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
   label: "Analyse mensuelle de la veille",
   description:
     "Identifier les tendances, signaux faibles, évolutions réglementaires, opportunités, risques et actions prioritaires d'une période de veille.",
-  buildSelectors: (month) => [monthToVeillePeriod(month)],
+  inputKind: "month",
+  buildSelectors: (input) => {
+    if (input.kind !== "month") {
+      throw new Error(`Entrée invalide pour la mission "${MONTHLY_WATCH_MISSION_SLUG}" : attendu "month", reçu "${input.kind}".`)
+    }
+    return [monthToVeillePeriod(input.month)]
+  },
 }
 
 export const RENTABILITE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
@@ -165,7 +196,13 @@ export const RENTABILITE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
   label: "Rentabilité du portefeuille",
   description:
     "Analyser les marges réelles, identifier les dérives par mission, client ou consultant et dégager les actions de redressement de la rentabilité.",
-  buildSelectors: (month) => [monthToDeliveryPeriod(month)],
+  inputKind: "month",
+  buildSelectors: (input) => {
+    if (input.kind !== "month") {
+      throw new Error(`Entrée invalide pour la mission "rentabilite-portefeuille" : attendu "month", reçu "${input.kind}".`)
+    }
+    return [monthToDeliveryPeriod(input.month)]
+  },
 }
 
 export const ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
@@ -173,7 +210,13 @@ export const ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG: MissionComposerCon
   label: "Activation du portefeuille",
   description:
     "Identifier les comptes prioritaires à relancer selon les signaux d'achat, la fraîcheur relationnelle et les enjeux cartographiés.",
-  buildSelectors: (month) => [monthToProspectionWindow(month)],
+  inputKind: "month",
+  buildSelectors: (input) => {
+    if (input.kind !== "month") {
+      throw new Error(`Entrée invalide pour la mission "activation-portefeuille" : attendu "month", reçu "${input.kind}".`)
+    }
+    return [monthToProspectionWindow(input.month)]
+  },
 }
 
 export const CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
@@ -181,7 +224,13 @@ export const CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG: MissionComposerConfig = 
   label: "Capacité de staffing",
   description:
     "Anticiper qui se libère dans les 3 mois à venir et rapprocher ces disponibilités des besoins ouverts.",
-  buildSelectors: (month) => [monthToStaffingHorizon(month)],
+  inputKind: "month",
+  buildSelectors: (input) => {
+    if (input.kind !== "month") {
+      throw new Error(`Entrée invalide pour la mission "capacite-staffing" : attendu "month", reçu "${input.kind}".`)
+    }
+    return [monthToStaffingHorizon(input.month)]
+  },
 }
 
 /**
