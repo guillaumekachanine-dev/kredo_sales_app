@@ -54,6 +54,15 @@ export function createFakeSupabase(
           rows = rows.filter((row) => values.includes(row[column]))
           return builder
         },
+        // Seule la forme `.not(column, "in", "(a,b,c)")` est utilisée dans le repo — la
+        // même syntaxe Postgres que celle produite par supabase-js pour cet opérateur.
+        not: (column: string, operator: string, value: string) => {
+          if (operator === "in") {
+            const excluded = value.replace(/^\(/, "").replace(/\)$/, "").split(",")
+            rows = rows.filter((row) => !excluded.includes(String(row[column])))
+          }
+          return builder
+        },
         gte: (column: string, value: unknown) => {
           rows = rows.filter((row) => compare(row[column], value) >= 0)
           return builder

@@ -252,3 +252,32 @@ describe("assembleMissionPrompt — preset activation-portefeuille", () => {
     expect(userPrompt).toContain("kind: prospection_window")
   })
 })
+
+const STAFFING_SPEC = findMissionSpec("capacite-staffing") as MissionSpec
+
+const STAFFING_CORPUS: ResolvedCorpus = {
+  items: [
+    {
+      ref: { kind: "staffing_horizon", table: "collaborators", id: "collab-1" },
+      title: "Staffing · Alice Martin",
+      date: "2026-10-15",
+      provenance: "collaborators",
+      content: "Consultant : Alice Martin\nDate de fin de mission : 2026-10-15",
+      chars: 55,
+    },
+  ],
+  stats: { requested: 1, kept: 1, dropped: 0, totalChars: 55 },
+  trace: [],
+}
+
+describe("assembleMissionPrompt — preset capacite-staffing", () => {
+  it("assemble le prompt sans lever d'erreur et contient la règle d'incertitude sur les fins de mission", () => {
+    expect(STAFFING_SPEC).toBeDefined()
+    const { systemPrompt, userPrompt } = assembleMissionPrompt(STAFFING_SPEC, STAFFING_CORPUS)
+
+    expect(systemPrompt).toContain("ne conclus jamais à une absence de risque de banc")
+    expect(userPrompt).toContain("## Mission — Capacité de staffing")
+    expect(userPrompt).toContain(STAFFING_SPEC.intent.preset)
+    expect(userPrompt).toContain("kind: staffing_horizon")
+  })
+})

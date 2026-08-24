@@ -85,6 +85,15 @@ export function monthToProspectionWindow(month: string): Extract<CorpusSelector,
   }
 }
 
+export function monthToStaffingHorizon(month: string): Extract<CorpusSelector, { kind: "staffing_horizon" }> {
+  const { periodStart, periodEnd } = computeMonthBoundaries(month)
+  return {
+    kind: "staffing_horizon",
+    periodStart,
+    periodEnd,
+  }
+}
+
 export function defaultMissionMonth(reference = new Date()): string {
   const previousMonth = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() - 1, 1))
   return previousMonth.toISOString().slice(0, 7)
@@ -167,6 +176,14 @@ export const ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG: MissionComposerCon
   buildSelectors: (month) => [monthToProspectionWindow(month)],
 }
 
+export const CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG: MissionComposerConfig = {
+  missionSlug: "capacite-staffing",
+  label: "Capacité de staffing",
+  description:
+    "Anticiper qui se libère dans les 3 mois à venir et rapprocher ces disponibilités des besoins ouverts.",
+  buildSelectors: (month) => [monthToStaffingHorizon(month)],
+}
+
 /**
  * Une action du cockpit peut déclencher le composeur de mission plutôt que la rédaction
  * ou un rapport déterministe. Cette table est la SEULE source de vérité de ce mapping —
@@ -177,5 +194,6 @@ export const MISSION_COMPOSER_ACTION_CONFIGS: Record<string, MissionComposerConf
   [MONTHLY_WATCH_MISSION_ACTION_ID]: VEILLE_MISSION_COMPOSER_CONFIG,
   analyze_margins: RENTABILITE_MISSION_COMPOSER_CONFIG,
   prioritize_accounts: ACTIVATION_PORTEFEUILLE_MISSION_COMPOSER_CONFIG,
+  forecast_availability: CAPACITE_STAFFING_MISSION_COMPOSER_CONFIG,
 }
 

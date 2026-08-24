@@ -216,10 +216,10 @@ const ACTIONS: Record<string, IntelligenceAction> = {
   forecast_availability: {
     id: "forecast_availability",
     label: "Prévoir les disponibilités",
-    description: "Anticiper l'intercontrat à partir des congés et fins de mission.",
+    description: "Anticiper qui se libère dans les 3 mois à venir et rapprocher ces disponibilités des besoins ouverts.",
     icon: "forecast",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   analyze_margins: {
     id: "analyze_margins",

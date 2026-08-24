@@ -81,6 +81,20 @@ describe("parseCorpusSelector — prospection_window", () => {
   })
 })
 
+describe("parseCorpusSelector — staffing_horizon", () => {
+  it("accepte un intervalle de dates calendaires valide", () => {
+    expect(
+      parseCorpusSelector({ kind: "staffing_horizon", periodStart: "2026-08-01", periodEnd: "2026-08-31" }),
+    ).toEqual({ kind: "staffing_horizon", periodStart: "2026-08-01", periodEnd: "2026-08-31" })
+  })
+
+  it("refuse un intervalle inversé", () => {
+    expect(
+      parseCorpusSelector({ kind: "staffing_horizon", periodStart: "2026-08-31", periodEnd: "2026-08-01" }),
+    ).toBeNull()
+  })
+})
+
 describe("parseCorpusSelector — intelligence_document", () => {
   it("accepte des uuid et les déduplique", () => {
     expect(parseCorpusSelector({ kind: "intelligence_document", ids: [UUID_A, UUID_A, UUID_B] })).toEqual({
@@ -182,5 +196,11 @@ describe("corpusSelectorKey", () => {
     expect(
       corpusSelectorKey({ kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" }),
     ).toBe("prospection_window:2026-08-01:2026-08-31")
+  })
+
+  it("rend la clé attendue pour un sélecteur staffing_horizon", () => {
+    expect(
+      corpusSelectorKey({ kind: "staffing_horizon", periodStart: "2026-08-01", periodEnd: "2026-08-31" }),
+    ).toBe("staffing_horizon:2026-08-01:2026-08-31")
   })
 })

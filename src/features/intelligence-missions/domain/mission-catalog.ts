@@ -184,6 +184,64 @@ Règles de concision et de sélection :
       maxOutputTokens: 16_000,
     },
   },
+  {
+    slug: "capacite-staffing",
+    version: 1,
+    label: "Capacité de staffing",
+    description:
+      "Anticipation de la capacité de staffing sur les 3 mois à venir : consultants qui se libèrent, absences, compétences disponibles et besoins ouverts à rapprocher.",
+    corpus: {
+      base: [],
+      requiredAtLaunch: ["staffing_horizon"],
+      userAddition: {
+        allowed: false,
+        kinds: [],
+      },
+      budget: {
+        maxTotalChars: 120_000,
+        maxCharsPerItem: 1_500,
+        maxItems: 200,
+      },
+    },
+    intent: {
+      preset:
+        "À partir des consultants actifs, de leurs missions en cours, de leurs absences, de leur activité YTD, de leurs compétences significatives et des besoins ouverts, anticiper la capacité de staffing sur les 3 mois à venir et rapprocher les consultants qui se libèrent des besoins compatibles.",
+      userEditable: false,
+    },
+    constraints: {
+      rules: [
+        "Fonder l'analyse exclusivement sur le corpus fourni.",
+        "Ne mener aucune recherche externe.",
+        "Ne jamais inventer de fait, de chiffre, de source ou de causalité absente du corpus.",
+        "Relier toute conclusion factuelle à au moins une source du corpus.",
+        "Distinguer explicitement les faits observés des interprétations et recommandations.",
+        "Ne recalcule aucun taux ni écart : les taux d'activité YTD et les écarts à la cible sont déjà fournis, pré-calculés, dans le corpus.",
+        "Quand une mission n'a pas de date de fin connue, dis-le explicitement comme une incertitude — ne conclus jamais à une absence de risque de banc sur cette base.",
+      ],
+    },
+    promptTemplate: `Tu produis une analyse de capacité de staffing destinée à un manager de centre de profit en ESN.
+
+À partir du corpus fourni uniquement :
+- synthétise dans executiveSummary (maximum 8 phrases) qui se libère dans les 3 mois à venir et sur quels besoins ouverts ces disponibilités peuvent se positionner ;
+- classe les constats dans findings (maximum 8 constats au total) avec les catégories opportunite, risque ou signal_faible ;
+- chaque statement de constat fait maximum 3 phrases ;
+- chaque constat dans findings doit obligatoirement être imputé à un consultant nommé ;
+- si une mission n'a pas de date de fin connue, signale-le explicitement comme une incertitude à traiter, jamais comme une absence de risque ;
+- formule dans recommendations les actions de repositionnement prioritaires (maximum 5 recommandations), en citant systématiquement le besoin ouvert correspondant quand il existe dans le corpus, et en renseignant l'horizon (immediate ou 30_days) ;
+- chaque rationale de recommandation fait maximum 3 phrases ;
+- rattache chaque finding et chaque recommandation à ses preuves via SourceRef ;
+- consolide dans sourceRefs les sources effectivement mobilisées, sans jamais répéter plusieurs fois la même source.
+
+Règles de concision et de sélection :
+- Le rapport doit rester synthétique. Ne cherche pas à restituer chaque élément du corpus.
+- Privilégie les rapprochements consultant-besoin les plus structurants et argumentés plutôt que l'exhaustivité.
+- Ne transforme jamais une absence d'information en conclusion. Si le corpus ne permet pas d'étayer un point, ne l'affirme pas.`,
+    model: {
+      provider: "anthropic",
+      model: "claude-sonnet-5",
+      maxOutputTokens: 16_000,
+    },
+  },
 ] satisfies MissionSpec[]
 
 /**

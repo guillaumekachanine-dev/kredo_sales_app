@@ -94,5 +94,18 @@ describe("mission composer action configs mapping", () => {
       { kind: "prospection_window", periodStart: "2026-08-01", periodEnd: "2026-08-31" },
     ])
   })
+
+  it("maps forecast_availability to capacite-staffing", () => {
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.forecast_availability).toBeDefined()
+    expect(MISSION_COMPOSER_ACTION_CONFIGS.forecast_availability.missionSlug).toBe("capacite-staffing")
+  })
+
+  it("builds staffing_horizon selectors for forecast_availability", () => {
+    const config = MISSION_COMPOSER_ACTION_CONFIGS.forecast_availability
+    expect(config.missionSlug).toBe("capacite-staffing")
+    expect(config.buildSelectors("2026-08")).toEqual([
+      { kind: "staffing_horizon", periodStart: "2026-08-01", periodEnd: "2026-08-31" },
+    ])
+  })
 })
 

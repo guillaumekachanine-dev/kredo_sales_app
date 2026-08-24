@@ -17,6 +17,7 @@ import "server-only"
  * le plus redondant en dernier.
  *   95 `delivery_period`       — ancre chiffrée de la rentabilité : ne doit jamais tomber par troncature de budget
  *   90 `account_context`       — identité et signaux du compte : sans eux la mission perd son sujet
+ *   88 `staffing_horizon`      — capacité de staffing prospective (consultants, absences, besoins)
  *   85 `prospection_window`    — signaux et opportunités de prospection du portefeuille
  *   70 `intelligence_document` — matière déjà curée par un humain
  *   50 `veille_period`         — flux brut, le plus volumineux et le plus redondant
@@ -27,6 +28,7 @@ import { accountContextProvider } from "./account-context-provider"
 import { deliveryPeriodProvider } from "./delivery-period-provider"
 import { intelligenceDocumentProvider } from "./intelligence-document-provider"
 import { prospectionWindowProvider } from "./prospection-window-provider"
+import { staffingHorizonProvider } from "./staffing-horizon-provider"
 import { veillePeriodProvider } from "./veille-period-provider"
 
 export const CORPUS_PROVIDERS: Record<CorpusKind, CorpusProvider> = {
@@ -35,4 +37,5 @@ export const CORPUS_PROVIDERS: Record<CorpusKind, CorpusProvider> = {
   account_context: accountContextProvider,
   delivery_period: deliveryPeriodProvider,
   prospection_window: prospectionWindowProvider,
+  staffing_horizon: staffingHorizonProvider,
 }

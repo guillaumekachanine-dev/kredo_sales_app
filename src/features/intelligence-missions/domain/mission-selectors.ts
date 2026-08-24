@@ -73,6 +73,13 @@ export function parseCorpusSelector(raw: unknown): CorpusSelector | null {
     return { kind: "prospection_window", periodStart, periodEnd }
   }
 
+  if (kind === "staffing_horizon") {
+    const { periodStart, periodEnd } = candidate
+    if (!isIsoDate(periodStart) || !isIsoDate(periodEnd)) return null
+    if (periodStart > periodEnd) return null
+    return { kind: "staffing_horizon", periodStart, periodEnd }
+  }
+
   return null
 }
 
@@ -105,6 +112,8 @@ export function corpusSelectorKey(selector: CorpusSelector): string {
       return `delivery_period:${selector.periodStart}:${selector.periodEnd}`
     case "prospection_window":
       return `prospection_window:${selector.periodStart}:${selector.periodEnd}`
+    case "staffing_horizon":
+      return `staffing_horizon:${selector.periodStart}:${selector.periodEnd}`
   }
 }
 

@@ -6,7 +6,7 @@ describe("MISSION_CATALOG", () => {
   it("est type comme un catalogue de MissionSpec", () => {
     const typedCatalog: readonly MissionSpec[] = MISSION_CATALOG
 
-    expect(typedCatalog).toHaveLength(3)
+    expect(typedCatalog).toHaveLength(4)
   })
 
   it("ne declare jamais un corpus vide : base ou requiredAtLaunch est renseigne", () => {
@@ -33,11 +33,12 @@ describe("MISSION_CATALOG", () => {
     expect(new Set(slugs).size).toBe(slugs.length)
   })
 
-  it("contient les presets veille-analyse-mensuelle, rentabilite-portefeuille et activation-portefeuille dans cet ordre", () => {
-    expect(MISSION_CATALOG).toHaveLength(3)
+  it("contient les presets veille-analyse-mensuelle, rentabilite-portefeuille, activation-portefeuille et capacite-staffing dans cet ordre", () => {
+    expect(MISSION_CATALOG).toHaveLength(4)
     expect(MISSION_CATALOG[0]?.slug).toBe("veille-analyse-mensuelle")
     expect(MISSION_CATALOG[1]?.slug).toBe("rentabilite-portefeuille")
     expect(MISSION_CATALOG[2]?.slug).toBe("activation-portefeuille")
+    expect(MISSION_CATALOG[3]?.slug).toBe("capacite-staffing")
   })
 
   it("porte un preset complet sans configuration de type de sortie", () => {
@@ -194,5 +195,45 @@ describe("MISSION_CATALOG", () => {
       rule.includes("Ne calcule, ne cumule ni ne moyenne aucun score de signal"),
     )
     expect(hasAntiAggregationRule).toBe(true)
+  })
+
+  it("porte un preset complet sans configuration de type de sortie pour capacite-staffing", () => {
+    const preset = MISSION_CATALOG[3]
+
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    expect(preset.version).toBe(1)
+    expect(preset.slug).toBe("capacite-staffing")
+    expect(preset.label.trim()).not.toBe("")
+    expect(preset.description.trim()).not.toBe("")
+    expect(preset.intent.preset.trim()).not.toBe("")
+    expect(preset.promptTemplate.trim()).not.toBe("")
+    expect(preset.constraints.rules.length).toBeGreaterThan(0)
+    expect(preset.corpus.budget.maxTotalChars).toBe(120_000)
+    expect(preset.corpus.budget.maxCharsPerItem).toBe(1_500)
+    expect(preset.corpus.budget.maxItems).toBe(200)
+    expect(preset.corpus.requiredAtLaunch).toEqual(["staffing_horizon"])
+    expect(preset.corpus.base).toEqual([])
+    expect(preset.corpus.userAddition.allowed).toBe(false)
+    expect(preset.corpus.userAddition.kinds).toEqual([])
+    expect(preset.model.provider).toBe("anthropic")
+    expect(preset.model.model.trim()).not.toBe("")
+    expect(preset.model.maxOutputTokens).toBe(16_000)
+
+    expect(preset).not.toHaveProperty("resultType")
+    expect(preset).not.toHaveProperty("outputSchema")
+    expect(preset).not.toHaveProperty("qaRules")
+  })
+
+  it("impose la règle d'incertitude sur les fins de mission inconnues dans les contraintes de capacite-staffing", () => {
+    const preset = MISSION_CATALOG[3]
+    expect(preset).toBeDefined()
+    if (!preset) return
+
+    const hasUncertaintyRule = preset.constraints.rules.some((rule) =>
+      rule.includes("ne conclus jamais à une absence de risque de banc"),
+    )
+    expect(hasUncertaintyRule).toBe(true)
   })
 })
