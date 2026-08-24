@@ -131,7 +131,7 @@ export function ClientIntelligenceCompanyTab({
     title: "Identité & positionnement",
     description: v2
       ? "Affirmations produites par le moteur, chacune adossée à sa source vérifiable."
-      : "Données relationnelles prioritaires, complétées uniquement par les champs FOLIO structurés disponibles.",
+      : "Attributs CRM et facts courants, complétés uniquement par les champs FOLIO structurés disponibles.",
     content: v2 ? (
       <div className="space-y-4">
         <IdentityV2Content identity={v2.identity} summary={v2.account_summary} sources={sourceIndex} />

@@ -27,6 +27,13 @@ export function CompanyIdentityPositioningContent({
     ["Segment métier", identity.segment],
     ["Chiffre d’affaires", identity.revenue],
     ["Nombre de salariés", identity.employeeCount],
+    ["Effectif France", identity.headcountFrance],
+    ["Nombre d’établissements", identity.establishmentCount],
+    ["Activité principale", identity.primaryActivity],
+    ["Modèle économique", identity.businessModel],
+    ["Identifiant légal", identity.legalId],
+    ["Convention collective", identity.collectiveAgreement],
+    ["Date de création", identity.incorporationDate],
     ["Rayonnement géographique", identity.geographicReach],
   ]
 
@@ -46,12 +53,35 @@ export function CompanyIdentityPositioningContent({
           <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Dynamique de l’entreprise</p>
           <p className="mt-1 text-xs leading-relaxed text-body">{identity.companyMomentum}</p>
         </div>
+        {(identity.establishments.length > 0 || identity.executives.length > 0) ? (
+          <div className="grid gap-4 border-x border-b border-border px-3 py-3 sm:grid-cols-2">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Établissements</p>
+              <div className="mt-2"><EditorialList items={identity.establishments} /></div>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Dirigeants</p>
+              <div className="mt-2"><EditorialList items={identity.executives} /></div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-5">
         <div className="border-l-2 border-brand-brass pl-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Proposition de valeur</h3>
           <p className="mt-2 text-sm leading-relaxed text-body">{positioning.valueProposition}</p>
+        </div>
+
+        <div className="grid gap-4 border-y border-border py-4 sm:grid-cols-2">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Positionnement marché</p>
+            <p className="mt-1 text-xs leading-relaxed text-body">{positioning.marketPosition}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Positionnement marketing</p>
+            <p className="mt-1 text-xs leading-relaxed text-body">{positioning.marketingPosition}</p>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -61,6 +91,10 @@ export function CompanyIdentityPositioningContent({
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Profil client type</p>
                 <p className="mt-1 text-xs leading-relaxed text-body">{positioning.customer.typicalProfile}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Clients cibles</p>
+                <div className="mt-2"><EditorialList items={positioning.targetCustomers} /></div>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Segments</p>
@@ -92,7 +126,16 @@ export function CompanyIdentityPositioningContent({
           </article>
 
           <article className="border-t border-border pt-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Chaîne de valeur</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Positionnement</h3>
+            <div className="mt-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Marchés</p>
+              <div className="mt-2"><EditorialList items={positioning.markets} /></div>
+            </div>
+            <div className="mt-4">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Différenciants</p>
+              <div className="mt-2"><EditorialList items={positioning.differentiators} /></div>
+            </div>
+            <h3 className="mt-6 text-xs font-bold uppercase tracking-wider text-heading">Chaîne de valeur</h3>
             <p className="mt-3 text-xs leading-relaxed text-body">{positioning.valueChain.description}</p>
             <div className="mt-4 space-y-4">
               <div>

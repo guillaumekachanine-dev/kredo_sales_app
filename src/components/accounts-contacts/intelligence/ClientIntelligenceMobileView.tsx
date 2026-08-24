@@ -53,6 +53,7 @@ import {
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
 import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
+import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import {
   buildMobileAccountCockpit,
   type MobileCockpitFeature,
@@ -85,6 +86,9 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const v3State = data.accountKnowledgeV3
   const v3 = v3State?.data
   const knowledge = v3State || data.accountKnowledge
+  // Même fallback structuré que le desktop. Les artefacts V2/V3 restent leur
+  // propre restitution narrative et ne sont volontairement pas doublés ici.
+  const showStructuredCompanyProfile = !v3 && knowledge?.version !== 2
   const knowledgeSourceIndex = useMemo(
     () => buildSourceIndex(data.accountKnowledgeSources),
     [data.accountKnowledgeSources],
@@ -318,6 +322,18 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 errorMessage={knowledgeErrorMsg}
                 onUpdate={() => void triggerKnowledgeRun()}
               />
+
+              {showStructuredCompanyProfile ? (
+                <div className="mb-3 space-y-3 border-t border-border/30 pt-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
+                    Données structurées du compte
+                  </p>
+                  <CompanyIdentityPositioningContent
+                    identity={data.companyProfile}
+                    positioning={data.companyPositioning}
+                  />
+                </div>
+              ) : null}
 
               {v3 ? (
                 <div className="mb-3 space-y-4 border-t border-border/30 pt-4 mt-2">

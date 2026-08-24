@@ -37,6 +37,8 @@ import {
   type AccountWatchSettingsState,
 } from "@/lib/intelligence/account-watch-settings"
 import { getMonitoredSourceLabels } from "@/lib/intelligence/client-intelligence-home"
+import { getCurrentCompanyFacts } from "@/lib/intelligence/company-facts"
+import type { CurrentCompanyFacts } from "@/lib/intelligence/company-facts-contract"
 import {
   normalizeCompanyIdentity,
   normalizeCompanyMarketPositioning,
@@ -336,6 +338,8 @@ export type ClientIntelligenceData = {
   }
   companyProfile: CompanyIdentityProfile
   companyPositioning: CompanyMarketPositioning
+  /** Current, provenance-preserving facts used by the shared profile normalizers. */
+  companyFacts: CurrentCompanyFacts
   operationalSnapshot: CompanyOperationalSnapshot
   diagnosticPdfUrl: string | null
   freshness: {
@@ -853,6 +857,7 @@ export async function getClientIntelligence(
 
   const [
     companyResult,
+    companyFacts,
     summaryResult,
     resultsResult,
     contactsResult,
@@ -880,6 +885,7 @@ export async function getClientIntelligence(
       )
       .eq("id", companyId)
       .maybeSingle(),
+    getCurrentCompanyFacts(companyId),
     supabase
       .from("v_ai_intelligence_summary")
       .select<SummaryRow>(
@@ -1237,8 +1243,8 @@ export async function getClientIntelligence(
     revenue: company.revenue,
     employeeCount: company.employee_count,
     sizeBand: company.size_band,
-  }, company.metadata)
-  const companyPositioning = normalizeCompanyMarketPositioning(company.metadata)
+  }, company.metadata, companyFacts)
+  const companyPositioning = normalizeCompanyMarketPositioning(company.metadata, companyFacts)
   const operationalSnapshot = normalizeCompanyOperationalSnapshot(engineProcessDiagnostic)
 
   // Synthèse fallback : description compte si aucune analyse.
@@ -1508,6 +1514,7 @@ export async function getClientIntelligence(
       },
       companyProfile,
       companyPositioning,
+      companyFacts,
       operationalSnapshot,
       freshness: {
         latestRunAt: summary?.latest_run_at ?? null,

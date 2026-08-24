@@ -5,10 +5,96 @@ import {
   normalizeOperationalDepartments,
   normalizeOperationalStakeholders,
   normalizeOperationalWorkload,
+  normalizeCompanyIdentity,
+  normalizeCompanyMarketPositioning,
   resolveContactOfferSuggestion,
   sortCompanyContacts,
   type ContactOfferCandidate,
 } from "./client-intelligence-company"
+import { indexCurrentCompanyFacts, type CurrentCompanyFact } from "./company-facts-contract"
+
+function currentFact(overrides: Partial<CurrentCompanyFact>): CurrentCompanyFact {
+  return {
+    id: "fact-id",
+    factType: "primary_activity",
+    factSubtype: null,
+    cardinality: "single",
+    isCurrent: true,
+    valueText: "Nouvelle valeur",
+    valueJson: null,
+    normalizedValue: "nouvelle valeur",
+    confidence: 0.9,
+    primarySourceId: "source-id",
+    sourceProposalId: "proposal-id",
+    effectiveAt: null,
+    expiresAt: null,
+    verifiedAt: null,
+    createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    ...overrides,
+  }
+}
+
+const profileCompany = {
+  name: "Compte test",
+  legalName: null,
+  hqLocation: null,
+  sector: null,
+  segment: null,
+  revenue: null,
+  employeeCount: 42,
+  sizeBand: null,
+}
+
+const legacyMetadata = {
+  analysis_data: {
+    identite: { effectif_estime: "Ancien effectif" },
+    positionnement: {
+      activite_principale: "Ancienne activité",
+      zone_geographique: "Ancienne zone",
+      proposition_valeur: "Ancienne proposition",
+      clients_types: "Ancien client cible",
+    },
+  },
+}
+
+describe("priorité account_facts dans le read-model partagé", () => {
+  it("fait primer les facts courants sur metadata/FOLIO et préserve les multi-values", () => {
+    const facts = indexCurrentCompanyFacts([
+      currentFact({ factType: "primary_activity", valueText: "Nouvelle activité" }),
+      currentFact({ id: "geo", factType: "geographic_reach", valueText: "Europe" }),
+      currentFact({ id: "value", factType: "value_proposition", valueText: "Nouvelle proposition" }),
+      currentFact({ id: "target-1", factType: "target_customers", cardinality: "multi", valueText: "ETI" }),
+      currentFact({ id: "target-2", factType: "target_customers", cardinality: "multi", valueText: "Groupes internationaux" }),
+    ])
+    const identity = normalizeCompanyIdentity(profileCompany, legacyMetadata, facts)
+    const positioning = normalizeCompanyMarketPositioning(legacyMetadata, facts)
+
+    expect(identity.primaryActivity).toBe("Nouvelle activité")
+    expect(identity.geographicReach).toBe("Europe")
+    expect(positioning.valueProposition).toBe("Nouvelle proposition")
+    expect(positioning.targetCustomers).toEqual(["ETI", "Groupes internationaux"])
+  })
+
+  it("conserve les fallbacks metadata/FOLIO en absence de fact courant", () => {
+    const identity = normalizeCompanyIdentity(profileCompany, legacyMetadata)
+    const positioning = normalizeCompanyMarketPositioning(legacyMetadata)
+
+    expect(identity.primaryActivity).toBe("Ancienne activité")
+    expect(identity.geographicReach).toBe("Ancienne zone")
+    expect(positioning.valueProposition).toBe("Ancienne proposition")
+    expect(positioning.targetCustomers).toEqual(["Ancien client cible"])
+  })
+
+  it("conserve companies comme source prioritaire des attributs CRM", () => {
+    const facts = indexCurrentCompanyFacts([
+      currentFact({ factType: "headcount_france", valueText: "120" }),
+    ])
+
+    expect(normalizeCompanyIdentity(profileCompany, legacyMetadata, facts).employeeCount).toBe("42")
+    expect(normalizeCompanyIdentity(profileCompany, legacyMetadata, facts).headcountFrance).toBe("120")
+  })
+})
 
 describe("normalisation des activités opérationnelles", () => {
   it("normalise le format direction → tableau d'activités", () => {

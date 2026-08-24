@@ -241,7 +241,9 @@ INSERT INTO public.companies (
   hq_location,
   sector,
   siren,
-  naf_code
+  naf_code,
+  segment_id,
+  relation_type
 )
 SELECT
   company_id,
@@ -254,7 +256,9 @@ SELECT
   'Paris',
   NULL,
   NULL,
-  NULL
+  NULL,
+  sector_id,
+  'prospect'
 FROM pg_temp.test_context;
 
 INSERT INTO public.companies (
@@ -262,25 +266,31 @@ INSERT INTO public.companies (
   workspace_id,
   owner_id,
   name,
-  description
+  description,
+  segment_id,
+  relation_type
 )
 SELECT
   other_company_id,
   other_workspace_id,
   actor_id,
   'Account Scan Other Workspace Company',
-  'Other workspace description'
+  'Other workspace description',
+  sector_id,
+  'prospect'
 FROM pg_temp.test_context;
 
 SELECT set_config('request.jwt.claim.sub', (SELECT actor_id::text FROM pg_temp.test_context), true);
 
 SELECT pg_temp.expect_exception(
   format(
-    'insert into public.companies (id, workspace_id, owner_id, name, siren) values (gen_random_uuid(), %L::uuid, %L::uuid, %L, %L)',
+    'insert into public.companies (id, workspace_id, owner_id, name, siren, segment_id, relation_type) values (gen_random_uuid(), %L::uuid, %L::uuid, %L, %L, %L::uuid, %L)',
     (SELECT workspace_id FROM pg_temp.test_context),
     (SELECT actor_id FROM pg_temp.test_context),
     'Invalid SIREN Company',
-    '12345'
+    '12345',
+    (SELECT sector_id FROM pg_temp.test_context),
+    'prospect'
   ),
   'companies_siren_format_check',
   'invalid SIREN format should be refused'
@@ -288,34 +298,38 @@ SELECT pg_temp.expect_exception(
 
 SELECT pg_temp.expect_exception(
   format(
-    'insert into public.companies (id, workspace_id, owner_id, name, naf_code) values (gen_random_uuid(), %L::uuid, %L::uuid, %L, %L)',
+    'insert into public.companies (id, workspace_id, owner_id, name, naf_code, segment_id, relation_type) values (gen_random_uuid(), %L::uuid, %L::uuid, %L, %L, %L::uuid, %L)',
     (SELECT workspace_id FROM pg_temp.test_context),
     (SELECT actor_id FROM pg_temp.test_context),
     'Invalid NAF Company',
-    '620A'
+    '620A',
+    (SELECT sector_id FROM pg_temp.test_context),
+    'prospect'
   ),
   'companies_naf_code_format_check',
   'invalid NAF format should be refused'
 );
 
-INSERT INTO public.companies (id, workspace_id, owner_id, name, siren, naf_code)
-SELECT gen_random_uuid(), workspace_id, actor_id, 'Unique SIREN Company', unique_siren, '62.02A'
+INSERT INTO public.companies (id, workspace_id, owner_id, name, siren, naf_code, segment_id, relation_type)
+SELECT gen_random_uuid(), workspace_id, actor_id, 'Unique SIREN Company', unique_siren, '62.02A', sector_id, 'prospect'
 FROM pg_temp.test_context;
 
 SELECT pg_temp.expect_exception(
   format(
-    'insert into public.companies (id, workspace_id, owner_id, name, siren) values (gen_random_uuid(), %L::uuid, %L::uuid, %L, %L)',
+    'insert into public.companies (id, workspace_id, owner_id, name, siren, segment_id, relation_type) values (gen_random_uuid(), %L::uuid, %L::uuid, %L, %L, %L::uuid, %L)',
     (SELECT workspace_id FROM pg_temp.test_context),
     (SELECT actor_id FROM pg_temp.test_context),
     'Duplicate SIREN Company',
-    (SELECT unique_siren FROM pg_temp.test_context)
+    (SELECT unique_siren FROM pg_temp.test_context),
+    (SELECT sector_id FROM pg_temp.test_context),
+    'prospect'
   ),
   'companies_workspace_siren_uniq',
   'duplicate SIREN in same workspace should be refused'
 );
 
-INSERT INTO public.companies (id, workspace_id, owner_id, name, siren)
-SELECT gen_random_uuid(), other_workspace_id, actor_id, 'Same SIREN Other Workspace', unique_siren
+INSERT INTO public.companies (id, workspace_id, owner_id, name, siren, segment_id, relation_type)
+SELECT gen_random_uuid(), other_workspace_id, actor_id, 'Same SIREN Other Workspace', unique_siren, sector_id, 'prospect'
 FROM pg_temp.test_context;
 
 DO $$

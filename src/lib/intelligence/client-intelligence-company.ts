@@ -1,4 +1,10 @@
 import type { AccountKnowledgeFact } from "@/lib/intelligence/account-intelligence-contracts"
+import {
+  EMPTY_CURRENT_COMPANY_FACTS,
+  getCurrentMultiFactTexts,
+  getCurrentSingleFactText,
+  type CurrentCompanyFacts,
+} from "@/lib/intelligence/company-facts-contract"
 
 type JsonRecord = Record<string, unknown>
 
@@ -12,6 +18,15 @@ export type CompanyIdentityProfile = {
   segment: string
   revenue: string
   employeeCount: string
+  headcountFrance: string
+  establishmentCount: string
+  primaryActivity: string
+  businessModel: string
+  legalId: string
+  collectiveAgreement: string
+  incorporationDate: string
+  establishments: string[]
+  executives: string[]
   geographicReach: string
   companyMomentum: string
 }
@@ -24,6 +39,11 @@ export type CompanyCustomerSegment = {
 
 export type CompanyMarketPositioning = {
   valueProposition: string
+  marketPosition: string
+  marketingPosition: string
+  markets: string[]
+  targetCustomers: string[]
+  differentiators: string[]
   customer: {
     typicalProfile: string
     segments: CompanyCustomerSegment[]
@@ -127,6 +147,21 @@ function displayValue(value: string | null): string {
   return value ?? "Non renseigné"
 }
 
+function uniqueTexts(values: readonly string[]): string[] {
+  return [...new Map(values.map((value) => [value.toLocaleLowerCase("fr-FR"), value])).values()]
+}
+
+function currentFactText(facts: CurrentCompanyFacts, factType: string): string | null {
+  return cleanText(getCurrentSingleFactText(facts, factType))
+}
+
+function currentFactTexts(facts: CurrentCompanyFacts, factType: string): string[] {
+  return uniqueTexts(getCurrentMultiFactTexts(facts, factType).flatMap((value) => {
+    const text = cleanText(value)
+    return text ? [text] : []
+  }))
+}
+
 function humanizeKey(value: string): string {
   const text = value.replace(/[_-]+/g, " ").trim()
   return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : "Non renseigné"
@@ -158,6 +193,7 @@ export function normalizeCompanyIdentity(
     sizeBand: string | null
   },
   metadata: unknown,
+  facts: CurrentCompanyFacts = EMPTY_CURRENT_COMPANY_FACTS,
 ): CompanyIdentityProfile {
   const root = asRecord(metadata)
   const analysis = asRecord(root.analysis_data)
@@ -168,6 +204,11 @@ export function normalizeCompanyIdentity(
     ? new Intl.NumberFormat("fr-FR").format(company.employeeCount)
     : cleanText(company.sizeBand) ?? cleanText(identity.effectif_estime)
 
+  const primaryActivity = currentFactText(facts, "primary_activity")
+    ?? cleanText(positioning.activite_principale)
+  const geographicReach = currentFactText(facts, "geographic_reach")
+    ?? cleanText(positioning.zone_geographique)
+
   return {
     name: displayValue(cleanText(company.name)),
     legalName: displayValue(cleanText(company.legalName) ?? cleanText(identity.nom_complet)),
@@ -176,12 +217,24 @@ export function normalizeCompanyIdentity(
     segment: displayValue(cleanText(company.segment)),
     revenue: displayValue(cleanText(company.revenue) ?? cleanText(identity.ca_estime)),
     employeeCount: displayValue(employeeCount),
-    geographicReach: displayValue(cleanText(positioning.zone_geographique)),
-    companyMomentum: displayValue(null),
+    headcountFrance: displayValue(currentFactText(facts, "headcount_france") ?? cleanText(identity.effectif_estime)),
+    establishmentCount: displayValue(currentFactText(facts, "establishment_count")),
+    primaryActivity: displayValue(primaryActivity),
+    businessModel: displayValue(currentFactText(facts, "business_model")),
+    legalId: displayValue(currentFactText(facts, "legal_id")),
+    collectiveAgreement: displayValue(currentFactText(facts, "collective_agreement")),
+    incorporationDate: displayValue(currentFactText(facts, "incorporation_date")),
+    establishments: currentFactTexts(facts, "establishment"),
+    executives: currentFactTexts(facts, "executive"),
+    geographicReach: displayValue(geographicReach),
+    companyMomentum: displayValue(currentFactText(facts, "growth_trend")),
   }
 }
 
-export function normalizeCompanyMarketPositioning(metadata: unknown): CompanyMarketPositioning {
+export function normalizeCompanyMarketPositioning(
+  metadata: unknown,
+  facts: CurrentCompanyFacts = EMPTY_CURRENT_COMPANY_FACTS,
+): CompanyMarketPositioning {
   const root = asRecord(metadata)
   const analysis = asRecord(root.analysis_data)
   const positioning = asRecord(analysis.positionnement)
@@ -202,8 +255,20 @@ export function normalizeCompanyMarketPositioning(metadata: unknown): CompanyMar
       })
     : []
 
+  const targetCustomers = currentFactTexts(facts, "target_customers")
+  const legacyTargetCustomers = cleanText(positioning.clients_types)
+    ? [cleanText(positioning.clients_types) as string]
+    : []
+
   return {
-    valueProposition: displayValue(cleanText(positioning.proposition_valeur)),
+    valueProposition: displayValue(
+      currentFactText(facts, "value_proposition") ?? cleanText(positioning.proposition_valeur),
+    ),
+    marketPosition: displayValue(currentFactText(facts, "market_position")),
+    marketingPosition: displayValue(currentFactText(facts, "marketing_position")),
+    markets: currentFactTexts(facts, "market"),
+    targetCustomers: targetCustomers.length > 0 ? targetCustomers : legacyTargetCustomers,
+    differentiators: currentFactTexts(facts, "differentiators"),
     customer: {
       typicalProfile: displayValue(cleanText(customer.profil_client_type)),
       segments,

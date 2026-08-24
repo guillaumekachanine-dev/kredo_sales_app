@@ -24,6 +24,14 @@ import {
   toggleCrmLauncherAccountId,
 } from "@/lib/crm/account-launcher-preferences"
 import { hasAccountStudySnapshotContent, type AccountStudySnapshot } from "@/features/competitive-map/domain/account-study-snapshot"
+import {
+  normalizeCompanyIdentity,
+  normalizeCompanyMarketPositioning,
+} from "@/lib/intelligence/client-intelligence-company"
+import {
+  getCurrentSingleFactText,
+  type CurrentCompanyFacts,
+} from "@/lib/intelligence/company-facts-contract"
 
 // Chargement différé : le bundle du scan (résultats desktop/mobile, DataTable…)
 // n'est chargé que si l'utilisateur clique effectivement sur "Scan".
@@ -146,6 +154,35 @@ type IdentityData = {
     revenuePerimetre: string | null
     headcountFrance: string | null
   }
+  companyFacts: CurrentCompanyFacts
+}
+
+function hasDisplayValue(value: string): boolean {
+  return value !== "Non renseigné"
+}
+
+function IntelligenceFactBlock({ label, value }: { label: string; value: string | string[] }) {
+  const values = Array.isArray(value) ? value : [value]
+  const visibleValues = values.filter(hasDisplayValue)
+  if (visibleValues.length === 0) return null
+
+  return (
+    <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+      <div className="flex items-center gap-1.5">
+        <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="6,4 18,12 6,20" />
+        </svg>
+        <span className="text-[9px] text-muted font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      {visibleValues.length === 1 ? (
+        <p className="text-xs text-body leading-relaxed pl-3.5">{visibleValues[0]}</p>
+      ) : (
+        <ul className="list-disc space-y-1 pl-7 text-xs leading-relaxed text-body">
+          {visibleValues.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      )}
+    </div>
+  )
 }
 
 interface CompanyAnalysisData {
@@ -526,6 +563,28 @@ export function CompanyIdentityDrawer({
   const identite = analysisData.identite || {}
   const positionnement = analysisData.positionnement || {}
   const synthese = analysisData.synthese_consultant || data?.company?.description || "Aucune synthèse disponible."
+  const companyProfile = data ? normalizeCompanyIdentity({
+    name: data.company.name,
+    legalName: data.company.legal_name,
+    hqLocation: data.company.hq_location,
+    sector: data.company.sector,
+    segment: data.company.segment,
+    revenue: data.company.revenue,
+    employeeCount: data.company.employee_count,
+    sizeBand: data.company.size_band,
+  }, metadata, data.companyFacts) : null
+  const companyPositioning = data
+    ? normalizeCompanyMarketPositioning(metadata, data.companyFacts)
+    : null
+  const currentHeadcountFrance = data
+    ? getCurrentSingleFactText(data.companyFacts, "headcount_france")
+    : null
+  const currentGrowthTrend = data
+    ? getCurrentSingleFactText(data.companyFacts, "growth_trend")
+    : null
+  const currentGeographicReach = data
+    ? getCurrentSingleFactText(data.companyFacts, "geographic_reach")
+    : null
 
 
 
@@ -781,7 +840,7 @@ export function CompanyIdentityDrawer({
                       <span className="text-xs font-bold text-heading">
                         {data.company.employee_count !== null
                           ? data.company.employee_count
-                          : (data.studyEntry.headcountFrance || identite.effectif_estime || (metadata.employee_count_raw as string) || "Non renseigné")}
+                          : (currentHeadcountFrance || data.studyEntry.headcountFrance || identite.effectif_estime || (metadata.employee_count_raw as string) || "Non renseigné")}
                       </span>
                     </div>
 
@@ -806,9 +865,9 @@ export function CompanyIdentityDrawer({
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Dynamique</span>
-                      {data.studySnapshot.trajectoire ? (
+                      {currentGrowthTrend || data.studySnapshot.trajectoire ? (
                         <span className="text-xs font-normal text-heading leading-relaxed">
-                          {data.studySnapshot.trajectoire}
+                          {currentGrowthTrend || data.studySnapshot.trajectoire}
                         </span>
                       ) : (
                         <span className="text-xs font-bold text-heading">
@@ -825,7 +884,7 @@ export function CompanyIdentityDrawer({
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Rayonnement</span>
                       <span className="text-xs font-bold text-heading">
-                        {formatRayonnement(positionnement.zone_geographique)}
+                        {currentGeographicReach || formatRayonnement(positionnement.zone_geographique)}
                       </span>
                     </div>
                     {data.studyEntry?.maturiteNumerique !== null && data.studyEntry?.maturiteNumerique !== undefined ? (
@@ -860,50 +919,23 @@ export function CompanyIdentityDrawer({
                   )}
                 </div>
 
-                {positionnement.activite_principale && (
-                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="6,4 18,12 6,20" />
-                      </svg>
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Activité Principale</span>
-                    </div>
-                    <p className="text-xs text-body leading-relaxed pl-3.5">{positionnement.activite_principale}</p>
-                  </div>
-                )}
-                {positionnement.proposition_valeur && (
-                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="6,4 18,12 6,20" />
-                      </svg>
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Proposition de Valeur</span>
-                    </div>
-                    <p className="text-xs text-body leading-relaxed pl-3.5">{positionnement.proposition_valeur}</p>
-                  </div>
-                )}
-                {positionnement.clients_types && (
-                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="6,4 18,12 6,20" />
-                      </svg>
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Clients Cibles / Typologie</span>
-                    </div>
-                    <p className="text-xs text-body leading-relaxed pl-3.5">{positionnement.clients_types}</p>
-                  </div>
-                )}
-                {positionnement.zone_geographique && (
-                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="6,4 18,12 6,20" />
-                      </svg>
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Zone Géographique</span>
-                    </div>
-                    <p className="text-xs text-body leading-relaxed font-medium pl-3.5">{positionnement.zone_geographique}</p>
-                  </div>
-                )}
+                {companyProfile && companyPositioning ? <>
+                  <IntelligenceFactBlock label="Activité principale" value={companyProfile.primaryActivity} />
+                  <IntelligenceFactBlock label="Modèle économique" value={companyProfile.businessModel} />
+                  <IntelligenceFactBlock label="Nombre d’établissements" value={companyProfile.establishmentCount} />
+                  <IntelligenceFactBlock label="Identifiant légal" value={companyProfile.legalId} />
+                  <IntelligenceFactBlock label="Convention collective" value={companyProfile.collectiveAgreement} />
+                  <IntelligenceFactBlock label="Date de création" value={companyProfile.incorporationDate} />
+                  <IntelligenceFactBlock label="Établissements" value={companyProfile.establishments} />
+                  <IntelligenceFactBlock label="Dirigeants" value={companyProfile.executives} />
+                  <IntelligenceFactBlock label="Proposition de valeur" value={companyPositioning.valueProposition} />
+                  <IntelligenceFactBlock label="Clients cibles / typologie" value={companyPositioning.targetCustomers} />
+                  <IntelligenceFactBlock label="Zone géographique" value={companyProfile.geographicReach} />
+                  <IntelligenceFactBlock label="Marchés" value={companyPositioning.markets} />
+                  <IntelligenceFactBlock label="Différenciants" value={companyPositioning.differentiators} />
+                  <IntelligenceFactBlock label="Positionnement marché" value={companyPositioning.marketPosition} />
+                  <IntelligenceFactBlock label="Positionnement marketing" value={companyPositioning.marketingPosition} />
+                </> : null}
 
                 {/* ADR-0019 — fiche 05-comptes de l'étude sectorielle (blocs B2/B3) */}
                 {data.studySnapshot.metier?.intro && (

@@ -9,6 +9,8 @@ import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contac
 import { createClient } from "@/lib/supabase/server"
 import { getCompetitiveMapCitation } from "@/features/competitive-map/data/get-competitive-map-citation"
 import { extractAccountStudySnapshot } from "@/features/competitive-map/domain/account-study-snapshot"
+import { getCurrentCompanyFacts } from "@/lib/intelligence/company-facts"
+import { EMPTY_CURRENT_COMPANY_FACTS } from "@/lib/intelligence/company-facts-contract"
 
 const REVALIDATE = "/prospection/accounts"
 
@@ -297,11 +299,12 @@ export async function getCompanyIdentity(companyId: string) {
             revenuePerimetre: null,
             headcountFrance: null,
           },
+          companyFacts: EMPTY_CURRENT_COMPANY_FACTS,
         },
       }
     }
 
-    const [contactsResult, oppsResult, missionsResult, interactionResult, studyCitation] = await Promise.all([
+    const [contactsResult, oppsResult, missionsResult, interactionResult, studyCitation, companyFacts] = await Promise.all([
       supabase
         .from("contacts")
         .select(`
@@ -330,6 +333,7 @@ export async function getCompanyIdentity(companyId: string) {
         .limit(1)
         .maybeSingle(),
       getCompetitiveMapCitation(companyId),
+      getCurrentCompanyFacts(companyId),
     ])
 
     if (contactsResult.error) console.error("Error fetching company contacts:", contactsResult.error)
@@ -364,6 +368,7 @@ export async function getCompanyIdentity(companyId: string) {
         lastInteraction: interactionResult.data || null,
         studySnapshot,
         studyEntry,
+        companyFacts,
       },
     }
   } catch (err) {
@@ -546,4 +551,3 @@ export async function updateContactDecisionPower(
   revalidatePath(REVALIDATE)
   return { error: null }
 }
-
