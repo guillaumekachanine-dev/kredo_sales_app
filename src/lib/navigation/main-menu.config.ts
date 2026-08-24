@@ -149,7 +149,7 @@ export const mainMenuItems: MainMenuItem[] = [
         label: "Besoins & Staffing",
         shortLabel: "Besoins",
         href: "/missions/opps",
-        icon: "sales",
+        icon: "staffing",
         primary: true,
       },
       {
@@ -180,7 +180,7 @@ export const mainMenuItems: MainMenuItem[] = [
         label: "Prospection",
         shortLabel: "Prospection",
         href: "/prospection-intelligence",
-        icon: "sales",
+        icon: "prospection",
       },
       {
         label: "Rapports & Rédaction",

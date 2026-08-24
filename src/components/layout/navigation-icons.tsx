@@ -7,7 +7,7 @@ export function getNavigationIcon(name?: string) {
     case "cockpit":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 16.5a7 7 0 0114 0M12 13.5l3-3.5M7.5 13.5h1M15.5 13.5h1" />
         </svg>
       )
     case "calendar":
@@ -19,7 +19,7 @@ export function getNavigationIcon(name?: string) {
     case "crm":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15A1.5 1.5 0 0121 4.5V21H3V4.5A1.5 1.5 0 014.5 3zM8.25 7.5h.008v.008H8.25V7.5zm0 3.75h.008v.008H8.25v-.008zm0 3.75h.008v.008H8.25V15zm3.742-7.5H12v.008h-.008V7.5zm0 3.75H12v.008h-.008v-.008zm0 3.75H12v.008h-.008V15zm3.75-7.5h.008v.008h-.008V7.5zm0 3.75h.008v.008h-.008v-.008zm0 3.75h.008v.008h-.008V15z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 20V10.5l4-2.5V20M7.5 20V4h9v16M16.5 20V8l4 2.5V20M11 9h.01M13 9h.01M11 12.5h.01M13 12.5h.01M11.5 20v-3h1v3" />
         </svg>
       )
     case "sales":
@@ -31,19 +31,27 @@ export function getNavigationIcon(name?: string) {
     case "staffing":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5l2.13 4.32 4.77.69-3.45 3.36.81 4.75L12 14.38l-4.26 2.24.81-4.75-3.45-3.36 4.77-.69L12 3.5z" />
         </svg>
       )
     case "engagements":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 9.75l3.25-3.25 3.5 3.5L7 13.25l-3.5-3.5zM20.5 9.75L17.25 6.5l-3.5 3.5 3.25 3.25 3.5-3.5zM8.25 12.25l3.25 3.25a1.25 1.25 0 001.77 0l.73-.73.73.73a1.25 1.25 0 001.77 0l.73-.73.5.5a1.25 1.25 0 001.77 0l.75-.75M10 10.5l1.5-1.5a2.25 2.25 0 013.18 0l1.82 1.82" />
         </svg>
       )
     case "bi":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+        </svg>
+      )
+    case "prospection":
+      return (
+        <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="7.5" />
+          <circle cx="12" cy="12" r="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5l5 5M5 5h3.5M5 5v3.5" />
         </svg>
       )
     case "reports":
@@ -55,13 +63,17 @@ export function getNavigationIcon(name?: string) {
     case "veille":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+          <circle cx="12" cy="12" r="8" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.25 7.5c1.5.9 3.55 1.5 5.75 1.5s4.25-.6 5.75-1.5M6.25 16.5c1.5-.9 3.55-1.5 5.75-1.5s4.25.6 5.75 1.5M12 4c2.25 2.15 3.5 4.95 3.5 8s-1.25 5.85-3.5 8M12 4c-2.25 2.15-3.5 4.95-3.5 8s1.25 5.85 3.5 8M3 9.5h18v5H3zM6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01" />
         </svg>
       )
     case "equipe":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 21c-2.243 0-4.32-.647-6.072-1.766a4.125 4.125 0 017.532-2.493l.08.15a11.859 11.859 0 013.376 3.07m0-3.07c.502-.91.786-1.957.786-3.07V12m0-1.5a3.375 3.375 0 100-6.75 3.375 3.375 0 000 6.75zm-7.5 0a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5zM20.25 9.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+          <circle cx="12" cy="7" r="2.75" />
+          <circle cx="6.75" cy="9.25" r="2" />
+          <circle cx="17.25" cy="9.25" r="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 19c0-3.25 2.7-5.5 6-5.5s6 2.25 6 5.5M2.75 19c0-2.2 1.8-3.75 4-3.75M21.25 19c0-2.2-1.8-3.75-4-3.75" />
         </svg>
       )
     case "recrutement":
@@ -73,7 +85,8 @@ export function getNavigationIcon(name?: string) {
     case "finance":
       return (
         <svg className={baseClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.251.251a3.502 3.502 0 004.996 0l2.251-2.251a3.502 3.502 0 000-4.996l-2.251-2.251a3.502 3.502 0 00-4.996 0L9 7.182M12 3v3.75m0 13.5V21" />
+          <circle cx="12" cy="12" r="8.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 8.25a5 5 0 100 7.5M6.75 10.25h6M6.75 13.75h6" />
         </svg>
       )
     case "knowledge":
