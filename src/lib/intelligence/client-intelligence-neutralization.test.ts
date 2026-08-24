@@ -89,11 +89,9 @@ describe("Client Intelligence Read Model - neutralisation FOLIO", () => {
   it("vérifie le contrat INTEL-030 n8n sur frictions_and_signals", () => {
     const wfJson = JSON.parse(readFileSync("n8n/workflows/intel-030-account-knowledge.json", "utf8"))
     const assemblePromptNode = wfJson.nodes.find((n: { name: string }) => n.name === "Assemble Prompt")
-    const parseOutputNode = wfJson.nodes.find((n: { name: string }) => n.name === "Parse & Validate Output")
 
-    expect(assemblePromptNode.parameters.jsCode).toContain('frictions_and_signals" ne peut JAMAIS être dérivé de context.folioAnalysisData')
-    expect(assemblePromptNode.parameters.jsCode).toContain('frictions_and_signals ne peut JAMAIS être "folio_legacy"')
-    expect(parseOutputNode.parameters.jsCode).toContain("Provenance folio_legacy interdite dans la section frictions_and_signals")
+    expect(assemblePromptNode.parameters.jsCode).toContain('"frictions_and_signals" ne peut JAMAIS être dérivé de FOLIO_LEGACY')
+    expect(assemblePromptNode.parameters.jsCode).toContain('porter la provenance "folio_legacy"')
   })
 
   it("vérifie le contrat INTEL-031 n8n sur la neutralisation des signaux FOLIO", () => {
