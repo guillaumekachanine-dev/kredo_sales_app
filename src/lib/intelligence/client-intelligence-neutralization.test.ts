@@ -87,7 +87,7 @@ describe("Client Intelligence Read Model - neutralisation FOLIO", () => {
   })
 
   it("vérifie le contrat INTEL-030 n8n sur frictions_and_signals", () => {
-    const wfJson = JSON.parse(readFileSync("n8n/wokflows_patchs/intel-030-account-knowledge.json", "utf8"))
+    const wfJson = JSON.parse(readFileSync("n8n/workflows/intel-030-account-knowledge.json", "utf8"))
     const assemblePromptNode = wfJson.nodes.find((n: { name: string }) => n.name === "Assemble Prompt")
     const parseOutputNode = wfJson.nodes.find((n: { name: string }) => n.name === "Parse & Validate Output")
 
