@@ -23,6 +23,7 @@ interface AccountScanDesktopResultsProps {
   onToggleSelectAll: (ids: string[]) => void
   onApplySelected: () => void
   applying: boolean
+  lastAppliedCount?: number | null
   bilanByProposalId: Map<string, AccountScanBilanCategory>
   onNewScan?: () => void
   onContacts?: () => void
@@ -58,6 +59,7 @@ export function AccountScanDesktopResults({
   onToggleSelectAll,
   onApplySelected,
   applying,
+  lastAppliedCount = null,
   bilanByProposalId,
   onNewScan,
   onContacts,
@@ -73,25 +75,7 @@ export function AccountScanDesktopResults({
   const visibleIds = visibleRows.map((row) => row.id)
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
 
-  const prevApplying = useRef(applying)
-  const prevSelectedSize = useRef(selectedIds.size)
-  const [successState, setSuccessState] = useState({ active: false, count: 0 })
-
-  useEffect(() => {
-    if (prevApplying.current && !applying) {
-      if (prevSelectedSize.current > 0) {
-        setSuccessState({ active: true, count: prevSelectedSize.current })
-      }
-    }
-    prevApplying.current = applying
-  }, [applying])
-
-  useEffect(() => {
-    if (selectedIds.size > 0) {
-      setSuccessState({ active: false, count: 0 })
-    }
-    prevSelectedSize.current = selectedIds.size
-  }, [selectedIds.size])
+  const isSuccessState = !applying && lastAppliedCount !== null && lastAppliedCount > 0 && selectedIds.size === 0
 
   const chooseGroup = (id: string) => {
     setActiveGroupId(id)
@@ -109,15 +93,15 @@ export function AccountScanDesktopResults({
         <button 
           type="button" 
           onClick={onApplySelected} 
-          disabled={applying || (selectedIds.size === 0 && !successState.active)} 
+          disabled={applying || (selectedIds.size === 0 && !isSuccessState)} 
           className={cn(
             "inline-flex min-h-9 items-center gap-2 rounded-md border px-4 text-xs font-bold transition-colors duration-300",
-            successState.active 
+            isSuccessState 
               ? "border-edito-brass bg-edito-brass text-edito-navy" 
               : "border-edito-brass bg-edito-navy text-white hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted"
           )}
         >
-          {applying ? "Application…" : successState.active ? `${successState.count} changement${successState.count > 1 ? "s" : ""} appliqués ✓` : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""} →`}
+          {applying ? "Application…" : isSuccessState ? `Appliqué ${lastAppliedCount} changement${lastAppliedCount! > 1 ? "s" : ""} ✓` : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""} →`}
         </button>
       </div>
 

@@ -148,52 +148,41 @@ function SourceRow({
     })
   }
 
-  const urlText = source.homepageUrl || (source.searchDomain ? `https://${source.searchDomain}` : "")
+  const displayUrl = source.searchDomain || (source.homepageUrl ? source.homepageUrl.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "") : "")
+  const descriptionText = source.family ?? source.publisher ?? ""
 
   return (
     <div className="group flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5 transition-colors hover:border-white/10 hover:bg-white/[0.05]">
-      {/* 1. Identity (Nom + URL) */}
+      {/* 1. Identity (Ligne 1: Nom + URL | Ligne 2: Description) */}
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-xs text-white truncate" title={source.name || "Source"}>
-          {source.name || "Source sans nom"}
+        <p className="font-semibold text-xs text-white truncate" title={`${source.name || "Source"}${displayUrl ? ` (${displayUrl})` : ""}`}>
+          <span>{source.name || "Source sans nom"}</span>
+          {displayUrl ? (
+            <span className="ml-1.5 font-normal text-[11px] text-white/50">
+              ({displayUrl})
+            </span>
+          ) : null}
         </p>
-        {urlText ? (
-          <p className="mt-0.5 text-[11px] text-white/50 truncate" title={urlText}>
-            {urlText}
+        {descriptionText ? (
+          <p className="mt-0.5 text-[11px] text-white/50 truncate" title={descriptionText}>
+            {descriptionText}
           </p>
         ) : null}
       </div>
 
-      {/* 2. Famille */}
-      <div className="min-w-0 w-24 shrink-0 text-right">
-        <span className="text-xs text-white/60 truncate block" title={source.family ?? ""}>
-          {source.family ?? <span className="text-white/30">—</span>}
-        </span>
-      </div>
-
-      {/* 3. Efficacité */}
-      <div className="min-w-0 w-32 shrink-0 text-right">
+      {/* 2. Efficacité & Actions (Switch + Menu) */}
+      <div className="flex shrink-0 items-center gap-3">
         {source.effectiveness && source.effectiveness.effectivenessScore !== null ? (
-          <div>
+          <div className="text-right hidden sm:block">
             <p className="font-bold text-xs text-brand-brass font-mono">
               {source.effectiveness.effectivenessScore}/100
             </p>
-            <p className="text-[10px] text-white/50 truncate">
-              {source.effectiveness.observations} runs · {source.effectiveness.productiveObservations} productifs
-            </p>
-          </div>
-        ) : (
-          <div>
-            <p className="text-xs font-medium text-white/60">À observer</p>
             <p className="text-[10px] text-white/40 truncate">
-              {source.effectiveness?.observations ?? 0}/3 runs
+              {source.effectiveness.observations} runs
             </p>
           </div>
-        )}
-      </div>
+        ) : null}
 
-      {/* 4. Switch & Action Discrete */}
-      <div className="flex shrink-0 items-center gap-1.5">
         <DarkSwitch
           checked={Boolean(source.isActive)}
           disabled={source.origin === "system" || source.isLocked || isPending}
@@ -242,23 +231,30 @@ export function SourceDenseList({ sources, onEdit }: SourceDenseListProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {groups.map((group, groupIndex) => (
-        <Fragment key={group.key}>
-          {groupIndex > 0 ? (
-            <div className="flex items-center my-3">
-              <div className="h-px flex-1 bg-white/5" />
-              <div className="size-1 rounded-full bg-brand-brass/40 mx-2" aria-hidden="true" />
-              <div className="h-px flex-1 bg-white/5" />
-            </div>
-          ) : null}
-          <div className="grid grid-cols-2 gap-x-3.5 gap-y-2">
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <div key={group.key} className="space-y-2.5">
+          <div className="flex items-center gap-2 pb-1.5 border-b border-white/10">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/60">
+              {group.label}
+            </h4>
+            <span className="text-[10px] font-semibold text-white/35">
+              ({group.sources.length})
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             {group.sources.map((source, index) => (
-              <SourceRow key={source?.id || source?.sourceKey || `source-${group.key}-${index}`} source={source} onEdit={onEdit} />
+              <SourceRow
+                key={source?.id || source?.sourceKey || `source-${group.key}-${index}`}
+                source={source}
+                onEdit={onEdit}
+              />
             ))}
           </div>
-        </Fragment>
+        </div>
       ))}
     </div>
   )
 }
+

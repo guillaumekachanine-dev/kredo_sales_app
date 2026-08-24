@@ -61,53 +61,41 @@ function CorpusItemRow({ item }: { item: SourceCorpusItemView }) {
   }
 
   const name = item.source?.name ?? item.externalSrcId ?? "Source inconnue"
-  const url = item.source?.homepageUrl || (item.source?.searchDomain ? `https://${item.source.searchDomain}` : "")
-  const family = item.source?.family ?? item.tier ?? "Corpus sectoriel"
+  const displayUrl = item.source?.searchDomain || (item.source?.homepageUrl ? item.source.homepageUrl.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "") : "")
+  const descriptionText = item.source?.family ?? item.tier ?? "Corpus sectoriel"
 
   return (
     <div className="group flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5 transition-colors hover:border-white/10 hover:bg-white/[0.05]">
-      {/* 1. Identity (Nom + URL) */}
+      {/* 1. Identity (Ligne 1: Nom + URL | Ligne 2: Description) */}
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-xs text-white truncate" title={name}>
-          {name}
+        <p className="font-semibold text-xs text-white truncate" title={`${name}${displayUrl ? ` (${displayUrl})` : ""}`}>
+          <span>{name}</span>
+          {displayUrl ? (
+            <span className="ml-1.5 font-normal text-[11px] text-white/50">
+              ({displayUrl})
+            </span>
+          ) : null}
         </p>
-        {url ? (
-          <p className="mt-0.5 text-[11px] text-white/50 truncate" title={url}>
-            {url}
+        {descriptionText ? (
+          <p className="mt-0.5 text-[11px] text-white/50 truncate" title={descriptionText}>
+            {descriptionText}
           </p>
         ) : null}
       </div>
 
-      {/* 2. Famille */}
-      <div className="min-w-0 w-24 shrink-0 text-right">
-        <span className="text-xs text-white/60 truncate block" title={family}>
-          {family}
-        </span>
-      </div>
-
-      {/* 3. Efficacité */}
-      <div className="min-w-0 w-32 shrink-0 text-right">
+      {/* 2. Efficacité & Switch */}
+      <div className="flex shrink-0 items-center gap-3">
         {item.source?.effectiveness && item.source.effectiveness.effectivenessScore !== null ? (
-          <div>
+          <div className="text-right hidden sm:block">
             <p className="font-bold text-xs text-brand-brass font-mono">
               {item.source.effectiveness.effectivenessScore}/100
             </p>
-            <p className="text-[10px] text-white/50 truncate">
-              {item.source.effectiveness.observations} runs · {item.source.effectiveness.productiveObservations} productifs
-            </p>
-          </div>
-        ) : (
-          <div>
-            <p className="text-xs font-medium text-white/60">À observer</p>
             <p className="text-[10px] text-white/40 truncate">
-              {item.source?.effectiveness?.observations ?? 0}/3 runs
+              {item.source.effectiveness.observations} runs
             </p>
           </div>
-        )}
-      </div>
+        ) : null}
 
-      {/* 4. Switch */}
-      <div className="flex shrink-0 items-center">
         <DarkSwitch
           checked={Boolean(item.isEnabled)}
           disabled={!item.isCollectable || isPending}

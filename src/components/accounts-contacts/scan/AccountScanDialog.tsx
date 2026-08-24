@@ -109,6 +109,7 @@ export function AccountScanDialog({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [selectedContactKeys, setSelectedContactKeys] = useState<Set<string>>(new Set())
   const [applying, setApplying] = useState(false)
+  const [lastAppliedCount, setLastAppliedCount] = useState<number | null>(null)
   const [importingContacts, setImportingContacts] = useState(false)
   const [importResult, setImportResult] = useState<ImportAccountScanContactsResult | null>(null)
   const [bilanByProposalId, setBilanByProposalId] = useState<Map<string, AccountScanBilanCategory>>(new Map())
@@ -197,14 +198,18 @@ export function AccountScanDialog({
   const applyProposalIds = useCallback(async (targetRunId: string, ids: string[]) => {
     if (ids.length === 0) return
     setApplying(true)
+    setErrorMessage(null)
+    const countToApply = ids.length
     const result = await applyAccountScanProposals({ runId: targetRunId, companyId: company.id, proposalIds: ids })
     setApplying(false)
 
     if (result.error) {
       setErrorMessage(result.error)
+      setLastAppliedCount(null)
       return
     }
 
+    setLastAppliedCount(countToApply)
     setBilanByProposalId((prev) => {
       const next = new Map(prev)
       for (const r of result.results) {
@@ -372,6 +377,7 @@ export function AccountScanDialog({
   async function triggerInformationScan(setup: AccountScanSetupValues, confirmedSiren?: string) {
     lastSetupRef.current = setup
     setErrorMessage(null)
+    setLastAppliedCount(null)
     setInformationOutput(null)
     setProposalRows([])
     setSelectedIds(new Set())
@@ -418,6 +424,7 @@ export function AccountScanDialog({
   async function triggerContactsScan(setup: AccountScanContactsSetupValues) {
     if (phase === "contacts_queued" || phase === "contacts_running") return
     setErrorMessage(null)
+    setLastAppliedCount(null)
     setContactsOutput(null)
     setContactsResultId(null)
     setSelectedContactKeys(new Set())
@@ -461,11 +468,13 @@ export function AccountScanDialog({
 
   function handleBackToInformationSetup() {
     setErrorMessage(null)
+    setLastAppliedCount(null)
     setPhase("information_setup")
   }
 
   function handleGoToContactsSetup() {
     setErrorMessage(null)
+    setLastAppliedCount(null)
     setPhase("contacts_setup")
   }
 
@@ -525,6 +534,7 @@ export function AccountScanDialog({
   }
 
   function handleToggleSelect(id: string) {
+    setLastAppliedCount(null)
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -534,6 +544,7 @@ export function AccountScanDialog({
   }
 
   function handleToggleSelectAll(ids: string[]) {
+    setLastAppliedCount(null)
     setSelectedIds((prev) => {
       const allSelected = ids.length > 0 && ids.every((id) => prev.has(id))
       return allSelected ? new Set() : new Set(ids)
@@ -662,7 +673,9 @@ export function AccountScanDialog({
         onToggleSelect={handleToggleSelect}
         onApplySelected={handleApplySelected}
         applying={applying}
+        lastAppliedCount={lastAppliedCount}
         bilanByProposalId={bilanByProposalId}
+        errorMessage={errorMessage}
         onNewScan={handleBackToInformationSetup}
         onContacts={handleGoToContactsSetup}
       />
@@ -675,6 +688,7 @@ export function AccountScanDialog({
         onToggleSelectAll={handleToggleSelectAll}
         onApplySelected={handleApplySelected}
         applying={applying}
+        lastAppliedCount={lastAppliedCount}
         bilanByProposalId={bilanByProposalId}
         onNewScan={handleBackToInformationSetup}
         onContacts={handleGoToContactsSetup}
@@ -687,7 +701,7 @@ export function AccountScanDialog({
         {/* ADR-0019 Lot 4 — absent des résultats produits avant ce lot : le bloc
             n'apparaît que si le workflow a été relancé avec requestClassification. */}
         {informationOutput.classification && informationResultId ? (
-          <div className="mt-5 border-t border-border pt-5">
+          <div className={cn("mt-5 border-t border-border pt-5", isMobile ? "px-4 pb-36" : "")}>
             <AccountScanClassificationPanel
               classification={informationOutput.classification}
               current={currentClassification}
