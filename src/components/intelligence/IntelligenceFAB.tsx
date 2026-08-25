@@ -363,9 +363,14 @@ function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, o
   )
 }
 
-function GenericEntityMobileContent() {
+function GenericEntityMobileContent({
+  activeActionId,
+  setActiveActionId,
+}: {
+  activeActionId: DeterministicIntelligenceActionId | null
+  setActiveActionId: (v: DeterministicIntelligenceActionId | null) => void
+}) {
   const { entityContext } = useIntelligenceContext()
-  const [activeActionId, setActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
   const nonCompanyType: Exclude<IntelligenceEntityType, "company"> | null =
     entityContext && entityContext.entityType !== "company" ? entityContext.entityType : null
 
@@ -377,21 +382,7 @@ function GenericEntityMobileContent() {
   if (!entityContext || !resolved || !nonCompanyType) return null
 
   if (activeActionId) {
-    return (
-      <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setActiveActionId(null)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 transition-colors hover:text-white"
-        >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Retour
-        </button>
-        <IntelligenceActionResultContent actionId={activeActionId} />
-      </div>
-    )
+    return <IntelligenceActionResultContent actionId={activeActionId} />
   }
 
   return (
@@ -441,6 +432,7 @@ export function IntelligenceFAB() {
   const eyebrow = isGenericEntityMode ? entityContext?.label : undefined
 
   const [activeDeterministicAction, setActiveDeterministicAction] = useState<DeterministicIntelligenceActionId | null>(null)
+  const [entityActiveActionId, setEntityActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
   const [eventTypePickerOpen, setEventTypePickerOpen] = useState(false)
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [selectedEventType, setSelectedEventType] = useState("")
@@ -563,6 +555,7 @@ export function IntelligenceFAB() {
           setIsOpen(next)
           if (!next) {
             setActiveDeterministicAction(null)
+            setEntityActiveActionId(null)
           }
         }}
         title={isCompanyMode && panelData ? (
@@ -570,8 +563,16 @@ export function IntelligenceFAB() {
             <h2 className="truncate text-xs font-semibold leading-4 text-white/75">Cockpit Intelligence</h2>
             <p className="mt-0.5 truncate text-base font-bold leading-5 text-white">{panelData.company.name}</p>
           </div>
-        ) : isCompanyMode ? "Cockpit Intelligence" : isGenericEntityMode ? "Cockpit Intelligence" : (
-          <CockpitIntelligenceHeader pageLabel={pageCockpit.label} />
+        ) : isCompanyMode ? "Cockpit Intelligence" : isGenericEntityMode ? (
+          <CockpitIntelligenceHeader
+            pageLabel={ENTITY_TYPE_LABELS[entityContext?.entityType as Exclude<IntelligenceEntityType, "company">] ?? "Entité"}
+            onBack={entityActiveActionId ? () => setEntityActiveActionId(null) : undefined}
+          />
+        ) : (
+          <CockpitIntelligenceHeader
+            pageLabel={pageCockpit.label}
+            onBack={activeDeterministicAction ? () => setActiveDeterministicAction(null) : undefined}
+          />
         )}
         side="bottom"
         eyebrow={eyebrow}
@@ -609,19 +610,7 @@ export function IntelligenceFAB() {
       >
         {displayMode === "page" && activeDeterministicAction ? (
           <CockpitIntelligenceShell>
-            <div className="space-y-4">
-              <button
-                type="button"
-                onClick={() => setActiveDeterministicAction(null)}
-                className="inline-flex min-h-11 items-center gap-1.5 text-[11px] font-semibold text-domain-intelligence transition-colors hover:text-primary motion-reduce:transition-none"
-              >
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-                Retour
-              </button>
-              <IntelligenceActionResultContent actionId={activeDeterministicAction} />
-            </div>
+            <IntelligenceActionResultContent actionId={activeDeterministicAction} />
           </CockpitIntelligenceShell>
         ) : isCompanyMode ? (
           panelData ? (
@@ -637,7 +626,11 @@ export function IntelligenceFAB() {
             />
           ) : null
         ) : isGenericEntityMode ? (
-          <GenericEntityMobileContent key={`${entityContext?.entityType}:${entityContext?.entityId}-${isOpen}`} />
+          <GenericEntityMobileContent
+            key={`${entityContext?.entityType}:${entityContext?.entityId}-${isOpen}`}
+            activeActionId={entityActiveActionId}
+            setActiveActionId={setEntityActiveActionId}
+          />
         ) : (
           <CockpitIntelligenceMobileContent
             pathname={pathname}

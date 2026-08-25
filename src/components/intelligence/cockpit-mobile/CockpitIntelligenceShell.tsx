@@ -1,18 +1,36 @@
 import type { ReactNode } from "react"
 
-export function CockpitIntelligenceHeader({ pageLabel }: { pageLabel: string }) {
+export function CockpitIntelligenceHeader({
+  pageLabel,
+  onBack,
+}: {
+  pageLabel: string
+  onBack?: () => void
+}) {
   return (
     <div className="min-w-0 text-white">
-      <p className="text-[7.5px] font-semibold uppercase leading-none tracking-[0.24em] text-white/60">
-        Espace intelligence
-      </p>
-      <h2 className="mt-1.5 truncate font-heading text-[22px] font-bold leading-[1.05] tracking-[-0.025em] text-white">
+      {/* Ligne 1 — eyebrow */}
+      <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.24em] text-white/55">
         Cockpit Intelligence
-      </h2>
-      <p className="mt-2.5 flex min-h-4 items-center gap-2 truncate text-[11px] font-semibold leading-none text-white/75">
-        <span className="h-3 w-0.5 shrink-0 rounded-full bg-brand-brass" aria-hidden="true" />
-        {pageLabel}
       </p>
+      {/* Ligne 2 — titre page */}
+      <h2 className="mt-1 truncate font-heading text-[22px] font-bold leading-[1.05] tracking-[-0.025em] text-white">
+        {pageLabel}
+      </h2>
+      {/* Ligne 3 — bouton Retour conditionnel */}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="mt-2 inline-flex min-h-[2rem] items-center gap-1 text-[11px] font-semibold text-white/55 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded"
+          aria-label="Retour à la liste des actions"
+        >
+          <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Retour
+        </button>
+      )}
     </div>
   )
 }
