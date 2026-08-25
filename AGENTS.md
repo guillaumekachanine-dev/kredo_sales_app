@@ -58,3 +58,28 @@ Workflows versionnés en JSON dans `n8n/workflows/`, un `.SETUP.md` par workflow
 l'activation sur le VPS sont manuels et faits par Guillaume** — ne pas tenter d'écrire via un MCP
 n8n. Patcher le JSON par script plutôt qu'à la main, valider les nœuds `code` avec `node --check`
 *et* par exécution réelle sur mocks.
+
+## QA visuelle — authentification navigateur
+
+Pour toute QA visuelle avec `agent-browser` sur KREDO :
+
+1. Charger systématiquement la session authentifiée persistante avant d’ouvrir une route protégée :
+
+   ```bash
+   agent-browser state load .codex/auth-state.json
+
+Ouvrir ensuite directement la route à contrôler :
+
+agent-browser open http://localhost:3000/<route>
+Ne jamais modifier, désactiver ou contourner le système d’authentification applicatif pour permettre la QA.
+Si l’ouverture redirige vers /login, considérer que la session QA a expiré ou est invalide. Ne pas tenter de corriger l’authentification dans le code : signaler qu’un renouvellement de .codex/auth-state.json est nécessaire.
+.codex/auth-state.json contient un état de session local sensible et ne doit jamais être commité.
+
+### Séquence QA recommandée
+
+```bash
+agent-browser state load .codex/auth-state.json
+agent-browser open http://localhost:3000/<route>
+agent-browser wait --load networkidle
+agent-browser screenshot --annotate
+agent-browser snapshot -i

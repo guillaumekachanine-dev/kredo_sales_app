@@ -12,6 +12,8 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
   hideIndicator?: boolean
   dropdownWidthMode?: "trigger" | "dynamic"
   maxDropdownWidth?: string
+  /** Force the desktop dropdown even on mobile viewports (e.g. when inside a modal where the drawer z-index is too low) */
+  forceDropdown?: boolean
 }
 
 type SelectItem =
@@ -140,6 +142,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       "aria-labelledby": ariaLabelledBy,
       dropdownWidthMode = "trigger",
       maxDropdownWidth,
+      forceDropdown = false,
       ...props
     },
     ref,
@@ -163,7 +166,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const displayOption = selectedOption ?? fallbackOption
     const displayLabel = displayOption?.label ?? "Sélectionner"
     const drawerTitle = ariaLabel ?? title ?? "Sélectionner une option"
-    const shouldRenderMobileSelect = isMobileViewport && !multiple
+    const shouldRenderMobileSelect = isMobileViewport && !multiple && !forceDropdown
 
     useEffect(() => {
       if (!drawerOpen) return

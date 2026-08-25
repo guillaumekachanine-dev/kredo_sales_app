@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import {
   resolvePageCockpitConfig,
   resolveEntityActions,
@@ -49,9 +49,14 @@ function SectionHeading({ title, count }: { title: string; count?: number }) {
   )
 }
 
-function AccountPanelContent() {
+function AccountPanelContent({
+  activeAction,
+  setActiveAction,
+}: {
+  activeAction: AccountPanelAction
+  setActiveAction: (v: AccountPanelAction) => void
+}) {
   const { panelData, entityContext } = useIntelligenceContext()
-  const [activeAction, setActiveAction] = useState<AccountPanelAction>(null)
   const accountPitchBrief = useMemo(() => {
     if (!panelData) return null
     const base = buildDefaultBrief(
@@ -78,16 +83,6 @@ function AccountPanelContent() {
   if (activeAction === "pitch" || activeAction === "summary" || isMissionAction) {
     return (
       <>
-        <button
-          type="button"
-          onClick={() => setActiveAction(null)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-fg/60 transition-colors hover:text-primary-fg"
-        >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Retour
-        </button>
         {isMissionAction ? (
           <MissionComposerDesktop config={MISSION_COMPOSER_ACTION_CONFIGS[activeAction]} />
         ) : (
@@ -170,9 +165,14 @@ function AccountPanelContent() {
   )
 }
 
-function GenericEntityPanelContent() {
+function GenericEntityPanelContent({
+  activeActionId,
+  setActiveActionId,
+}: {
+  activeActionId: DeterministicIntelligenceActionId | null
+  setActiveActionId: (v: DeterministicIntelligenceActionId | null) => void
+}) {
   const { entityContext } = useIntelligenceContext()
-  const [activeActionId, setActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
   const nonCompanyType: Exclude<IntelligenceEntityType, "company"> | null =
     entityContext && entityContext.entityType !== "company" ? entityContext.entityType : null
 
@@ -184,21 +184,7 @@ function GenericEntityPanelContent() {
   if (!entityContext || !resolved || !nonCompanyType) return null
 
   if (activeActionId) {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={() => setActiveActionId(null)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-fg/60 transition-colors hover:text-primary-fg"
-        >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Retour
-        </button>
-        <IntelligenceActionResultContent actionId={activeActionId} />
-      </>
-    )
+    return <IntelligenceActionResultContent actionId={activeActionId} />
   }
 
   return (
@@ -236,9 +222,14 @@ function GenericEntityPanelContent() {
   )
 }
 
-function RegistryPanelContent() {
+function RegistryPanelContent({
+  activeActionId,
+  setActiveActionId,
+}: {
+  activeActionId: string | null
+  setActiveActionId: (v: string | null) => void
+}) {
   const pathname = usePathname()
-  const [activeActionId, setActiveActionId] = useState<string | null>(null)
   const resolved = useMemo(() => resolvePageCockpitConfig(pathname), [pathname])
   const isAvailableMissionAction = activeActionId !== null
     && activeActionId in MISSION_COMPOSER_ACTION_CONFIGS
@@ -247,16 +238,6 @@ function RegistryPanelContent() {
   if (activeActionId && (isAvailableMissionAction || isDeterministicIntelligenceAction(activeActionId))) {
     return (
       <>
-        <button
-          type="button"
-          onClick={() => setActiveActionId(null)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-fg/60 transition-colors hover:text-primary-fg"
-        >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Retour
-        </button>
         {isAvailableMissionAction ? (
           <MissionComposerDesktop config={MISSION_COMPOSER_ACTION_CONFIGS[activeActionId]} />
         ) : isDeterministicIntelligenceAction(activeActionId) ? (
@@ -325,11 +306,33 @@ function RegistryPanelContent() {
 export function IntelligencePanel() {
   const { isOpen, close } = useIntelligencePanel()
   const { entityContext } = useIntelligenceContext()
+  const pathname = usePathname()
   const isAccountMode = entityContext?.entityType === "company"
 
-  // Les deux rails (navigation à gauche, Cockpit Intelligence à droite) ne
-  // peuvent pas être dépliés en même temps — maximise l'espace central.
-  // La sidebar ne se redéplie à la fermeture que si elle l'était déjà avant.
+  // Active action states — remontés au niveau du shell pour piloter le header
+  const [accountActiveAction, setAccountActiveAction] = useState<AccountPanelAction>(null)
+  const [entityActiveActionId, setEntityActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
+  const [registryActiveActionId, setRegistryActiveActionId] = useState<string | null>(null)
+
+  const hasSecondaryScreen =
+    (isAccountMode && accountActiveAction !== null) ||
+    (!isAccountMode && entityContext != null && entityActiveActionId !== null) ||
+    (!isAccountMode && entityContext == null && registryActiveActionId !== null)
+
+  const handleRetour = useCallback(() => {
+    if (isAccountMode) setAccountActiveAction(null)
+    else if (entityContext) setEntityActiveActionId(null)
+    else setRegistryActiveActionId(null)
+  }, [isAccountMode, entityContext])
+
+  // Label de la page courante (ligne 2 du header)
+  const pageLabel = useMemo(() => {
+    if (isAccountMode) return entityContext?.label ?? "Compte"
+    if (entityContext) return ENTITY_TYPE_LABELS[entityContext.entityType as Exclude<IntelligenceEntityType, "company">] ?? "Entité"
+    return resolvePageCockpitConfig(pathname).label
+  }, [isAccountMode, entityContext, pathname])
+
+  // Les deux rails ne peuvent pas être dépliés en même temps.
   useEffect(() => {
     const store = useSidebarCollapse.getState()
     if (isOpen) {
@@ -339,6 +342,13 @@ export function IntelligencePanel() {
     }
   }, [isOpen])
 
+  // Reset des écrans secondaires lors du changement d'entité
+  useEffect(() => {
+    setAccountActiveAction(null)
+    setEntityActiveActionId(null)
+    setRegistryActiveActionId(null)
+  }, [entityContext?.entityId, entityContext?.entityType])
+
   if (!isOpen) return null
 
   return (
@@ -347,21 +357,46 @@ export function IntelligencePanel() {
       className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-brand-primary kredo-intelligence-panel"
       aria-label="Cockpit Intelligence"
     >
-      <div className="relative space-y-5 p-5">
-        {/* Header */}
+      {/* ── Header 3 lignes ─────────────────────────────────────── */}
+      <div className="sticky top-0 z-10 bg-brand-primary px-5 pt-4 pb-3 border-b border-primary-fg/10">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2" aria-hidden>
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-            </span>
-            <h2
-              className="whitespace-nowrap text-[clamp(0.82rem,1.15vw,1rem)] font-bold uppercase tracking-[0.08em] leading-none"
+          <div className="min-w-0 flex-1">
+            {/* Ligne 1 — eyebrow */}
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+              </span>
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary-fg/50 leading-none">
+                Cockpit Intelligence
+              </p>
+            </div>
+
+            {/* Ligne 2 — titre page */}
+            <p
+              className="truncate text-[clamp(0.875rem,1.2vw,1.05rem)] font-bold leading-tight"
               style={{ color: "var(--color-secondary)" }}
             >
-              Cockpit intelligence
-            </h2>
+              {pageLabel}
+            </p>
+
+            {/* Ligne 3 — bouton Retour conditionnel */}
+            {hasSecondaryScreen && (
+              <button
+                type="button"
+                onClick={handleRetour}
+                className="mt-2 inline-flex min-h-[2rem] items-center gap-1 text-[11px] font-semibold text-primary-fg/55 transition-colors hover:text-primary-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded"
+                aria-label="Retour à la liste des actions"
+              >
+                <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Retour
+              </button>
+            )}
           </div>
+
+          {/* Bouton fermeture X */}
           <IconButton
             aria-label="Fermer le cockpit intelligence"
             variant="ghost"
@@ -374,13 +409,27 @@ export function IntelligencePanel() {
             </svg>
           </IconButton>
         </div>
+      </div>
 
+      {/* ── Contenu ────────────────────────────────────────────── */}
+      <div className="space-y-5 p-5">
         {isAccountMode ? (
-          <AccountPanelContent key={entityContext?.entityId} />
+          <AccountPanelContent
+            key={entityContext?.entityId}
+            activeAction={accountActiveAction}
+            setActiveAction={setAccountActiveAction}
+          />
         ) : entityContext ? (
-          <GenericEntityPanelContent key={`${entityContext.entityType}:${entityContext.entityId}`} />
+          <GenericEntityPanelContent
+            key={`${entityContext.entityType}:${entityContext.entityId}`}
+            activeActionId={entityActiveActionId}
+            setActiveActionId={setEntityActiveActionId}
+          />
         ) : (
-          <RegistryPanelContent />
+          <RegistryPanelContent
+            activeActionId={registryActiveActionId}
+            setActiveActionId={setRegistryActiveActionId}
+          />
         )}
       </div>
     </aside>

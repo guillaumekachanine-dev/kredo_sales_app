@@ -289,6 +289,7 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
                   value={modalDocType}
                   onChange={(event) => setModalDocType(event.target.value)}
                   fullWidth
+                  forceDropdown
                 >
                   <option value="all">Tous les types</option>
                   {Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => (

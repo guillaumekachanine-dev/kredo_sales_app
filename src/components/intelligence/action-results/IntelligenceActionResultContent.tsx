@@ -113,23 +113,26 @@ async function loadAction(id: DeterministicIntelligenceActionId): Promise<Loaded
 
 function DeterministicResultHeader({ title }: { title: string }) {
   return (
-    <header className="relative isolate grid min-h-32 grid-cols-[minmax(0,1fr)_clamp(6rem,28cqi,7.5rem)] overflow-hidden bg-edito-navy text-white">
-      <div className="flex min-w-0 items-center px-5 py-7 pr-7">
-        <h3 className="font-heading text-[clamp(1.375rem,6.5cqi,2rem)] font-black leading-[1.05] tracking-[-0.025em] text-white">
+    <header className="relative isolate grid grid-cols-[minmax(0,1fr)_clamp(5rem,24cqi,6.5rem)] overflow-hidden bg-edito-navy text-white">
+      {/* Zone gauche : titre */}
+      <div className="flex min-w-0 items-center px-5 py-4 pr-8">
+        <h3 className="font-heading text-[clamp(1rem,4.5cqi,1.4rem)] font-black leading-[1.1] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
           {title}
         </h3>
       </div>
 
-      <div className="flex items-center bg-brand-primary-deep px-1 py-6 pl-2">
-        <p className="flex flex-col text-[clamp(0.58rem,2.5cqi,0.68rem)] font-black uppercase leading-[1.45] tracking-[0.12em] text-white">
-          <span className="whitespace-nowrap">Résultat</span>
+      {/* Zone droite : pleine couleur, remplie jusqu'aux bords */}
+      <div className="flex items-center justify-center bg-brand-primary-deep px-3 py-4">
+        <p className="flex flex-col text-[clamp(0.5rem,2.2cqi,0.62rem)] font-black uppercase leading-[1.5] tracking-[0.13em] text-white/80">
+          <span className="whitespace-nowrap">Processus</span>
           <span className="whitespace-nowrap">déterministe</span>
         </p>
       </div>
 
+      {/* Séparateur diagonal */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-4 -top-4 right-[clamp(6rem,28cqi,7.5rem)] z-10 w-3 origin-center -skew-x-[16deg] bg-white"
+        className="pointer-events-none absolute -bottom-3 -top-3 right-[clamp(5rem,24cqi,6.5rem)] z-10 w-2.5 origin-center -skew-x-[14deg] bg-edito-navy"
       />
     </header>
   )
@@ -190,7 +193,7 @@ export function IntelligenceActionResultContent({ actionId }: { actionId: Determ
   return (
     <div data-theme="cockpit" className="rounded-2xl border border-white/15 bg-[#0c1838] p-4.5 text-white shadow-xl space-y-4">
       <div className="border-b border-white/12 pb-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-brass">Résultat déterministe</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-brass">Processus déterministe</p>
         <h3 className="mt-1 font-heading text-lg font-bold leading-tight text-white">{titleForAction(actionId)}</h3>
       </div>
 
