@@ -6,31 +6,45 @@ function urgencyLabel(urgency: ActionPrioritiesResultData["items"][number]["urge
   return "Modérée"
 }
 
+function formatPeriodMonth(periodStart?: string | null): string | null {
+  if (!periodStart) return null
+  const parts = periodStart.split("-")
+  if (parts.length < 2) return null
+  const year = Number(parts[0])
+  const month = Number(parts[1])
+  if (Number.isNaN(year) || Number.isNaN(month) || month < 1 || month > 12) return null
+  const date = new Date(Date.UTC(year, month - 1, 1))
+  const monthName = date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+  return monthName
+}
+
 export function ActionPrioritiesResult({ result }: { result: ActionPrioritiesResultData }) {
   return (
     <div className="px-5 pb-6 text-edito-body">
-      <section className="border-b border-edito-border py-6" aria-label="Synthèse des priorités">
-        <dl className="grid grid-cols-2">
-          <Metric label="Comptes dormants" value={result.meta.accountsWithoutRecentAction} className="border-b border-edito-border pb-6 pr-4" />
-          <Metric label="Opps stagnantes" value={result.meta.oppsStagnating} className="border-b border-l border-edito-border pb-6 pl-4" />
-          <Metric label="Fins mission" value={result.meta.missionsEndingSoon} className="pt-6 pr-4" />
-          <Metric label="CRA à valider" value={result.meta.craNotValidated} className="border-l border-edito-border pt-6 pl-4" />
+      {/* 1. Section KPI (Compacte sur 1 ligne, 3 KPIs) */}
+      <section className="border-b border-edito-border py-4" aria-label="Synthèse des priorités">
+        <dl className="grid grid-cols-3 divide-x divide-edito-border/60">
+          <Metric label="Opps stagnantes" value={result.meta.oppsStagnating} className="pr-2" />
+          <Metric label="Fins mission" value={result.meta.missionsEndingSoon} className="px-3" />
+          <Metric label="CRA à valider" value={result.meta.craNotValidated} className="pl-3" />
         </dl>
       </section>
 
+      {/* 2. Liste des priorités */}
       {result.items.length === 0 ? (
-        <section className="border-b border-edito-border py-6" aria-label="Aucune priorité">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-edito-heading">Aucune priorité critique</p>
-          <p className="mt-2 text-xs leading-relaxed text-edito-muted">Aucune priorité critique détectée avec les données disponibles.</p>
+        <section className="border-b border-edito-border py-5" aria-label="Aucune priorité">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-edito-heading">Aucune priorité critique</p>
+          <p className="mt-1 text-xs leading-relaxed text-edito-muted">Aucune priorité critique détectée avec les données disponibles.</p>
         </section>
       ) : (
-        <ol>
+        <ol className="divide-y divide-edito-border/60">
           {result.items.map((item) => (
             <PriorityRow key={`${item.entityType}:${item.entityId}:${item.rank}`} item={item} />
           ))}
         </ol>
       )}
 
+      {/* Données partielles le cas échéant */}
       <SourceIssues issues={result.sourceIssues} />
     </div>
   )
@@ -38,34 +52,43 @@ export function ActionPrioritiesResult({ result }: { result: ActionPrioritiesRes
 
 function PriorityRow({ item }: { item: ActionPrioritiesResultData["items"][number] }) {
   const isLinked = item.link.trim().length > 0
+  const periodText = formatPeriodMonth(item.periodStart)
+  const line3Text = periodText ? `${item.entityLabel} - ${periodText}` : item.entityLabel
+
   const content = (
-    <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-x-3 py-5">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-edito-brass text-sm font-black text-edito-navy">
-        {item.rank}
-      </span>
-      <div className="min-w-0">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] leading-tight">
-          <span className="font-black uppercase tracking-[0.15em] text-edito-navy">{urgencyLabel(item.urgency)}</span>
-          <span aria-hidden="true" className="text-edito-muted">•</span>
-          <span className="font-medium text-edito-muted">Score {item.score}</span>
-        </p>
-        <p className="mt-3 font-heading text-[clamp(0.95rem,4.2cqi,1.25rem)] font-black leading-[1.2] tracking-[-0.018em] text-edito-navy">
+    <div className="py-2.5">
+      {/* Ligne 1 : Urgence */}
+      <p className="text-[11px] font-bold leading-tight text-edito-brass">
+        {urgencyLabel(item.urgency)}
+      </p>
+
+      {/* Ligne 2 : Titre + ChevronRight aligné verticalement */}
+      <div className="mt-0.5 flex items-center justify-between gap-3">
+        <h4 className="font-heading text-sm font-black leading-snug text-edito-navy">
           {item.action}
-        </p>
-        <p className="mt-2 text-xs leading-snug text-edito-body">{item.entityLabel}</p>
-        <p className="mt-1 text-[11px] leading-snug text-edito-muted">{item.impactReason}</p>
+        </h4>
+        {isLinked && <ChevronRight />}
       </div>
-      {isLinked && <ChevronRight />}
+
+      {/* Ligne 3 : Entité / Période */}
+      <p className="mt-1 text-xs font-normal leading-tight text-edito-muted">
+        {line3Text}
+      </p>
     </div>
   )
 
   return (
-    <li className="border-b border-edito-border">
+    <li>
       {isLinked ? (
-        <a href={item.link} className="group block transition-colors hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary">
+        <a
+          href={item.link}
+          className="group block transition-colors hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+        >
           {content}
         </a>
-      ) : content}
+      ) : (
+        content
+      )}
     </li>
   )
 }
@@ -73,8 +96,8 @@ function PriorityRow({ item }: { item: ActionPrioritiesResultData["items"][numbe
 function Metric({ label, value, className }: { label: string; value: number; className: string }) {
   return (
     <div className={className}>
-      <dt className="whitespace-nowrap text-[clamp(0.53rem,2.7cqi,0.7rem)] font-bold uppercase leading-tight tracking-[0.14em] text-edito-heading">{label}</dt>
-      <dd className="mt-3 font-heading text-[clamp(2.5rem,11cqi,3.75rem)] font-black leading-none tracking-[-0.045em] text-edito-navy">{value}</dd>
+      <dt className="text-[10px] font-semibold leading-tight text-edito-muted">{label}</dt>
+      <dd className="mt-1 font-heading text-lg font-black leading-tight text-brand-primary">{value}</dd>
     </div>
   )
 }
@@ -82,8 +105,8 @@ function Metric({ label, value, className }: { label: string; value: number; cla
 function SourceIssues({ issues }: { issues: string[] }) {
   if (issues.length === 0) return null
   return (
-    <aside className="mt-5 border-l-2 border-edito-brass pl-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-edito-heading">Données partielles</p>
+    <aside className="mt-4 border-l-2 border-edito-brass pl-3 py-1">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-edito-heading">Données partielles</p>
       <p className="mt-1 text-[11px] leading-relaxed text-edito-muted">{issues.join(" ")}</p>
     </aside>
   )
@@ -91,7 +114,14 @@ function SourceIssues({ issues }: { issues: string[] }) {
 
 function ChevronRight() {
   return (
-    <svg className="mt-1 size-5 shrink-0 text-edito-navy transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+    <svg
+      className="size-4 shrink-0 text-edito-navy transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      aria-hidden="true"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
     </svg>
   )

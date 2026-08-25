@@ -53,6 +53,23 @@ export type ForecastPnlRow = {
   revenueTotal: number
 }
 
+export type ForecastCompanyRow = {
+  id: string
+  name: string
+}
+
+export type ForecastClientMonthRevenue = {
+  month: string
+  revenue: number
+}
+
+export type ForecastClientBreakdownRow = {
+  companyId: string | null
+  companyName: string
+  months: ForecastClientMonthRevenue[]
+  total: number
+}
+
 export type ForecastMonth = {
   month: string
   label: string
@@ -73,6 +90,7 @@ export type ForecastRevenueRulesResult = {
     pipeWeightedTotal: number
     trend: ForecastTrend
   }
+  clientBreakdown: ForecastClientBreakdownRow[]
 }
 
 export type ComputeMonthlyForecastInput = {
@@ -82,6 +100,7 @@ export type ComputeMonthlyForecastInput = {
   absences: ForecastAbsenceRow[]
   clientClosures: ForecastClientClosureRow[]
   pnlMonths: ForecastPnlRow[]
+  companies?: ForecastCompanyRow[]
 }
 
 const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
@@ -232,6 +251,83 @@ export function computeMonthlyForecast(input: ComputeMonthlyForecastInput): Fore
     .filter((opportunity) => !isTerminalOpportunityStage(opportunity.stage))
     .reduce((sum, opportunity) => sum + asNumber(opportunity.weightedGain), 0)
 
+  const companyMap = new Map((input.companies ?? []).map((c) => [c.id, c.name]))
+  const projectionMonths = months.map((m) => m.month)
+
+  const clientRevenueMap = new Map<
+    string,
+    {
+      companyId: string | null
+      companyName: string
+      monthlyMap: Map<string, number>
+      total: number
+    }
+  >()
+
+  for (const mission of input.missions) {
+    if (mission.status && mission.status !== "active") continue
+    const cid = mission.companyId ?? "non_attribue"
+    const cname = mission.companyId ? (companyMap.get(mission.companyId) ?? `Client ${mission.companyId.slice(0, 8)}`) : "Non attribué"
+
+    if (!clientRevenueMap.has(cid)) {
+      clientRevenueMap.set(cid, {
+        companyId: mission.companyId,
+        companyName: cname,
+        monthlyMap: new Map(),
+        total: 0,
+      })
+    }
+
+    const entry = clientRevenueMap.get(cid)!
+
+    for (const mKey of projectionMonths) {
+      const rev = missionRevenueForMonth(mission, mKey, input.absences, input.clientClosures)
+      if (rev > 0) {
+        const currentRev = entry.monthlyMap.get(mKey) ?? 0
+        entry.monthlyMap.set(mKey, currentRev + rev)
+        entry.total += rev
+      }
+    }
+  }
+
+  const sortedClients = Array.from(clientRevenueMap.values())
+    .filter((row) => row.total > 0)
+    .map((row) => ({
+      companyId: row.companyId,
+      companyName: row.companyName,
+      months: projectionMonths.map((mKey) => ({
+        month: mKey,
+        revenue: Math.round(row.monthlyMap.get(mKey) ?? 0),
+      })),
+      total: Math.round(row.total),
+    }))
+    .sort((a, b) => b.total - a.total)
+
+  let clientBreakdown: ForecastClientBreakdownRow[] = []
+  if (sortedClients.length <= 7) {
+    clientBreakdown = sortedClients
+  } else {
+    const top7 = sortedClients.slice(0, 7)
+    const rest = sortedClients.slice(7)
+    const autresMonths = projectionMonths.map((mKey) => ({
+      month: mKey,
+      revenue: rest.reduce(
+        (sum, r) => sum + (r.months.find((m) => m.month === mKey)?.revenue ?? 0),
+        0,
+      ),
+    }))
+    const autresTotal = rest.reduce((sum, r) => sum + r.total, 0)
+    clientBreakdown = [
+      ...top7,
+      {
+        companyId: "autres",
+        companyName: "Autres",
+        months: autresMonths,
+        total: autresTotal,
+      },
+    ]
+  }
+
   return {
     months,
     summary: {
@@ -253,6 +349,7 @@ export function computeMonthlyForecast(input: ComputeMonthlyForecastInput): Fore
       pipeWeightedTotal: Math.round(pipeWeightedTotal),
       trend: computeTrend(input.pnlMonths),
     },
+    clientBreakdown,
   }
 }
 

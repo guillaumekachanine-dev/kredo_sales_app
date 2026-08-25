@@ -23,6 +23,7 @@ export type ActionPriorityItem = {
   impactReason: string
   link: string
   score: number
+  periodStart?: string | null
 }
 
 export type ActionPrioritiesMeta = {
@@ -157,6 +158,7 @@ function pushScored(
     action: input.action,
     impactReason: input.impactReason,
     link: input.link,
+    periodStart: input.periodStart,
     rank: 0,
     urgency: urgencyFromTier(scored.tier),
     score: scored.rank,
@@ -251,6 +253,7 @@ export function buildActionPriorities(input: BuildActionPrioritiesInput): Action
         action: "Faire valider le CRA en retard",
         impactReason: alert.periodStart ? `Période ${alert.periodStart.slice(0, 7)}` : "CRA non validé",
         link: `/consultants/activite-conges?collaborator=${alert.collaboratorId}`,
+        periodStart: alert.periodStart,
       })
     }
     if (alert.alertNegativeMargin || alert.alertLowMargin || alert.alertLowActivity) {
@@ -269,6 +272,7 @@ export function buildActionPriorities(input: BuildActionPrioritiesInput): Action
         action: alert.alertNegativeMargin ? "Corriger la marge négative" : "Analyser l'activité ou la marge faible",
         impactReason: alert.alertNegativeMargin ? "Marge négative détectée" : alert.alertLowMargin ? "Marge sous le seuil" : "Activité sous le seuil",
         link: `/consultants/activite-conges?collaborator=${alert.collaboratorId}`,
+        periodStart: alert.periodStart,
       })
     }
   }

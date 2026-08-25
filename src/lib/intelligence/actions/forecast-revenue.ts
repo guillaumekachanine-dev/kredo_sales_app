@@ -7,6 +7,7 @@ import {
   computeMonthlyForecast,
   type ForecastAbsenceRow,
   type ForecastClientClosureRow,
+  type ForecastCompanyRow,
   type ForecastMissionRow,
   type ForecastOpportunityRow,
   type ForecastPnlRow,
@@ -59,6 +60,11 @@ type PnlRow = {
   revenue_total: number
 }
 
+type CompanyRow = {
+  id: string
+  name: string
+}
+
 async function safeRead<T>(
   label: string,
   query: PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
@@ -90,13 +96,14 @@ export async function getForecastRevenue(): Promise<ForecastRevenueResult> {
         pipeWeightedTotal: 0,
         trend: "stable",
       },
+      clientBreakdown: [],
       sourceIssues: ["Non authentifié."],
     }
   }
 
   const window = projectionWindow(generatedAt)
 
-  const [missions, opportunities, absences, clientClosures, pnlMonths] = await Promise.all([
+  const [missions, opportunities, absences, clientClosures, pnlMonths, companies] = await Promise.all([
     safeRead<MissionRow>(
       "Missions",
       supabase
@@ -144,6 +151,14 @@ export async function getForecastRevenue(): Promise<ForecastRevenueResult> {
         .limit(6)
         .returns<PnlRow[]>(),
     ),
+    safeRead<CompanyRow>(
+      "Comptes",
+      supabase
+        .from("companies")
+        .select("id,name")
+        .limit(500)
+        .returns<CompanyRow[]>(),
+    ),
   ])
 
   const mapped = computeMonthlyForecast({
@@ -182,12 +197,16 @@ export async function getForecastRevenue(): Promise<ForecastRevenueResult> {
       periodMonth: row.period_month,
       revenueTotal: row.revenue_total,
     })),
+    companies: companies.data.map<ForecastCompanyRow>((row) => ({
+      id: row.id,
+      name: row.name,
+    })),
   })
 
   return {
     generatedAt,
     ...mapped,
-    sourceIssues: [missions, opportunities, absences, clientClosures, pnlMonths]
+    sourceIssues: [missions, opportunities, absences, clientClosures, pnlMonths, companies]
       .map((result) => result.error)
       .filter((issue): issue is string => Boolean(issue)),
   }

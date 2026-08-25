@@ -1,5 +1,6 @@
 import type { ForecastRevenueResult as ForecastRevenueResultData } from "@/lib/intelligence/actions/forecast-revenue"
 import { formatEuroCompact } from "@/lib/formatters"
+import { cn } from "@/lib/utils"
 
 function trendLabel(trend: ForecastRevenueResultData["summary"]["trend"]) {
   if (trend === "growing") return "Hausse"
@@ -7,167 +8,194 @@ function trendLabel(trend: ForecastRevenueResultData["summary"]["trend"]) {
   return "Stable"
 }
 
-function buildPoints(
-  rows: ForecastRevenueResultData["months"],
-  key: "pessimistic" | "realistic" | "optimistic",
-  maxValue: number,
-) {
-  const width = 320
-  const height = 160
-  const left = 34
-  const right = 14
-  const top = 16
-  const bottom = 30
-  const plotWidth = width - left - right
-  const plotHeight = height - top - bottom
-  const step = rows.length > 1 ? plotWidth / (rows.length - 1) : plotWidth
-
-  return rows.map((row, index) => {
-    const x = left + index * step
-    const y = top + plotHeight - (row[key] / maxValue) * plotHeight
-    return { x, y, label: row.label, value: row[key] }
-  })
+function getIntensityLevel(value: number, max: number): 0 | 1 | 2 | 3 | 4 {
+  if (value <= 0) return 0
+  const ratio = value / max
+  if (ratio < 0.25) return 1
+  if (ratio < 0.5) return 2
+  if (ratio < 0.75) return 3
+  return 4
 }
 
-function ForecastChart({ rows }: { rows: ForecastRevenueResultData["months"] }) {
-  if (rows.length === 0) {
-    return (
-      <div className="flex h-40 items-center justify-center border-y border-edito-border text-xs font-medium text-edito-muted">
-        Aucune donnée de prévision disponible
-      </div>
-    )
+function intensityClasses(level: number): string {
+  switch (level) {
+    case 0:
+      return "border-edito-border/40 bg-edito-chip/50 text-edito-muted font-normal"
+    case 1:
+      return "border-brand-primary/20 bg-brand-primary/10 text-edito-navy font-semibold"
+    case 2:
+      return "border-brand-primary/35 bg-brand-primary/25 text-edito-navy font-bold"
+    case 3:
+      return "border-brand-primary/55 bg-brand-primary/50 text-edito-navy font-black"
+    case 4:
+      return "border-brand-primary bg-brand-primary text-white font-black"
+    default:
+      return "border-edito-border/40 bg-edito-chip/50 text-edito-muted font-normal"
   }
-
-  const maxValue = Math.max(...rows.flatMap((row) => [row.pessimistic, row.realistic, row.optimistic]), 1) * 1.12
-  const ticks = [0, maxValue / 2, maxValue]
-  const pessimistic = buildPoints(rows, "pessimistic", maxValue)
-  const realistic = buildPoints(rows, "realistic", maxValue)
-  const optimistic = buildPoints(rows, "optimistic", maxValue)
-  const pointString = (points: ReturnType<typeof buildPoints>) => points.map((point) => `${point.x},${point.y}`).join(" ")
-
-  return (
-    <figure className="border-b border-edito-border pb-6">
-      <svg viewBox="0 0 320 176" className="w-full overflow-visible" role="img" aria-label="Prévision de chiffre d'affaires à trois scénarios">
-        {ticks.map((tick) => {
-          const y = 130 - (tick / maxValue) * 114
-          return (
-            <g key={tick}>
-              <line x1={34} x2={306} y1={y} y2={y} stroke="var(--color-edito-border)" strokeOpacity={tick === 0 ? 0.9 : 0.62} strokeDasharray={tick === 0 ? undefined : "3 5"} />
-              <text x={29} y={y + 3} textAnchor="end" fill="var(--color-edito-muted)" fontSize={8} fontWeight={600} fontFamily="inherit">
-                {formatEuroCompact(tick)}
-              </text>
-            </g>
-          )
-        })}
-
-        <polyline points={pointString(optimistic)} fill="none" stroke="var(--color-edito-muted)" strokeOpacity={0.58} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 4" />
-        <polyline points={pointString(pessimistic)} fill="none" stroke="var(--color-edito-muted)" strokeOpacity={0.58} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 4" />
-        <polyline points={pointString(realistic)} fill="none" stroke="var(--color-brand-primary)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-
-        {realistic.map((point, index) => (
-          <g key={point.label}>
-            <circle cx={point.x} cy={optimistic[index].y} r={3} fill="var(--color-edito-surface)" stroke="var(--color-edito-muted)" strokeOpacity={0.7} strokeWidth={1.2} />
-            <circle cx={point.x} cy={pessimistic[index].y} r={3} fill="var(--color-edito-surface)" stroke="var(--color-edito-muted)" strokeOpacity={0.7} strokeWidth={1.2} />
-            <circle cx={point.x} cy={point.y} r={5} fill="var(--color-edito-surface)" stroke="var(--color-brand-primary)" strokeOpacity={0.35} strokeWidth={1.5} />
-            <circle cx={point.x} cy={point.y} r={3.25} fill="var(--color-brand-primary)" />
-            <text x={point.x} y={148} textAnchor="middle" fill="var(--color-edito-heading)" fontSize={9} fontWeight={700} fontFamily="inherit">
-              {point.label}
-            </text>
-            <text x={point.x} y={160} textAnchor="middle" fill="var(--color-edito-body)" fontSize={8} fontWeight={600} fontFamily="inherit">
-              {formatEuroCompact(point.value)}
-            </text>
-          </g>
-        ))}
-      </svg>
-      <div className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-2 text-[10px] font-semibold text-edito-body">
-        <Legend color="var(--color-edito-muted)" label="Bas" secondary />
-        <Legend color="var(--color-brand-primary)" label="Réel" />
-        <Legend color="var(--color-edito-muted)" label="Haut" secondary />
-      </div>
-      <figcaption className="mt-3 text-center text-[10px] italic leading-relaxed text-edito-muted">
-        Scénarios confondus sur la période
-      </figcaption>
-    </figure>
-  )
 }
 
 export function ForecastRevenueResult({ result }: { result: ForecastRevenueResultData }) {
-  return (
-    <div className="px-5 pb-6 pt-6 text-edito-body">
-      <section className="border-b border-edito-border pb-6" aria-labelledby="forecast-next-quarter">
-        <p id="forecast-next-quarter" className="text-[11px] font-bold uppercase tracking-[0.18em] text-edito-heading">
-          T suivant
-        </p>
-        <p className="mt-2 font-heading text-[clamp(3rem,16cqi,4.75rem)] font-black leading-none tracking-[-0.045em] text-edito-navy">
-          {formatEuroCompact(result.summary.q_next_realistic)}
-        </p>
+  const maxMonthValue = Math.max(...result.months.map((m) => m.realistic), 1)
+  const maxCellVal = Math.max(
+    ...(result.clientBreakdown ?? []).flatMap((c) => c.months.map((m) => m.revenue)),
+    1,
+  )
 
-        <dl className="mt-6 grid grid-cols-3">
-          <Metric label="T courant" value={formatEuroCompact(result.summary.q_current_realistic)} />
-          <Metric label="Couverture T+1" value={result.summary.missionsCoveringNextQuarter} separated />
-          <Metric label="Tendance" value={trendLabel(result.summary.trend)} separated />
+  return (
+    <div className="px-5 pb-6 pt-5 text-edito-body">
+      {/* A — Synthèse */}
+      <section className="border-b border-edito-border pb-5" aria-labelledby="forecast-next-quarter">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+          <p id="forecast-next-quarter" className="text-[11px] font-bold uppercase tracking-wider text-edito-muted">
+            CA projeté — prochain trimestre
+          </p>
+          <p className="font-heading text-2xl font-black tracking-tight text-edito-navy">
+            {formatEuroCompact(result.summary.q_next_realistic)}
+          </p>
+        </div>
+
+        <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-edito-border/60 pt-4">
+          <Metric label="CA projeté — trimestre en cours" value={formatEuroCompact(result.summary.q_current_realistic)} />
+          <Metric label="Missions actives sur le prochain trimestre" value={result.summary.missionsCoveringNextQuarter} separated />
+          <Metric label="Tendance du CA" value={trendLabel(result.summary.trend)} separated />
         </dl>
       </section>
 
-      <div className="pt-6">
-        <ForecastChart rows={result.months} />
-      </div>
+      {/* B — Projection mensuelle */}
+      <section aria-labelledby="forecast-monthly-title" className="border-b border-edito-border py-5">
+        <div>
+          <h3 id="forecast-monthly-title" className="font-heading text-xs font-black uppercase tracking-wider text-edito-heading">
+            Projection mensuelle du CA
+          </h3>
+          <p className="mt-0.5 text-[10px] font-medium text-edito-muted">
+            Missions actives + pipe commercial pondéré
+          </p>
+        </div>
 
-      <section aria-label="Détail mensuel">
-        {result.months.map((month) => (
-          <article key={month.month} className="border-b border-edito-border py-4">
-            <div className="flex items-start justify-between gap-3">
-              <h4 className="font-heading text-sm font-black leading-tight text-edito-navy">{month.label}</h4>
-              <p className="shrink-0 text-sm font-black leading-tight text-brand-primary">{formatEuroCompact(month.realistic)}</p>
-            </div>
-            <p className="mt-2 text-[10px] font-medium leading-relaxed text-edito-body">
-              Missions {formatEuroCompact(month.missionContribution)} <span aria-hidden="true">·</span> Pipe {formatEuroCompact(month.pipeContribution)} <span aria-hidden="true">·</span> Bas {formatEuroCompact(month.pessimistic)} <span aria-hidden="true">·</span>{" "}
-              <strong className="font-bold text-brand-primary">Réel {formatEuroCompact(month.realistic)}</strong>{" "}
-              <span aria-hidden="true">·</span> Haut {formatEuroCompact(month.optimistic)}
-            </p>
-          </article>
-        ))}
+        {result.months.length === 0 ? (
+          <div className="mt-4 flex h-28 items-center justify-center text-xs text-edito-muted">
+            Aucune donnée de prévision disponible
+          </div>
+        ) : (
+          <div className="mt-4 flex h-36 items-end justify-around gap-3 px-1">
+            {result.months.map((month) => {
+              const heightPct = Math.max(14, Math.round((month.realistic / maxMonthValue) * 100))
+              return (
+                <div key={month.month} className="flex flex-1 flex-col items-center justify-end h-full gap-1.5">
+                  <span className="text-[11px] font-black text-edito-navy">
+                    {formatEuroCompact(month.realistic)}
+                  </span>
+                  <div className="w-full max-w-[52px] flex-1 flex flex-col justify-end">
+                    <div
+                      className="w-full rounded-t-md bg-brand-primary transition-all duration-300"
+                      style={{ height: `${heightPct}%` }}
+                      aria-label={`${month.label} : ${formatEuroCompact(month.realistic)}`}
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-edito-heading">
+                    {month.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </section>
 
-      <dl className="space-y-1 border-b border-edito-border py-4 text-[11px] leading-relaxed text-edito-body">
+      {/* C — Répartition clients */}
+      <section aria-labelledby="forecast-clients-title" className="border-b border-edito-border py-5">
         <div>
-          <dt className="inline font-semibold">Pipe pondéré total :</dt>{" "}
-          <dd className="inline font-bold text-brand-primary">{formatEuroCompact(result.summary.pipeWeightedTotal)}</dd>
+          <h3 id="forecast-clients-title" className="font-heading text-xs font-black uppercase tracking-wider text-edito-heading">
+            Répartition clients
+          </h3>
+          <p className="mt-0.5 text-[10px] font-medium text-edito-muted">
+            Facturation missions projetée (hors pipe non attribué)
+          </p>
         </div>
-        <div>
-          <dt className="inline font-semibold">Missions finissant au prochain trimestre :</dt>{" "}
-          <dd className="inline font-bold text-brand-primary">{result.summary.missionsEndingNextQuarter}</dd>
-        </div>
-      </dl>
 
-      {result.sourceIssues.length > 0 && (
-        <aside className="mt-4 border-l-2 border-edito-brass pl-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-edito-heading">Données partielles</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-edito-muted">{result.sourceIssues.join(" ")}</p>
-        </aside>
-      )}
+        {!result.clientBreakdown || result.clientBreakdown.length === 0 ? (
+          <div className="mt-4 rounded border border-dashed border-edito-border p-4 text-center text-xs text-edito-muted">
+            Aucune mission active avec client sur la période
+          </div>
+        ) : (
+          <div className="mt-4 w-full" role="grid" aria-label="Répartition du CA projeté par client">
+            <div className="grid grid-cols-[minmax(90px,1.2fr)_repeat(3,minmax(0,1fr))] gap-1.5 pb-2" role="row">
+              <span role="columnheader" className="self-end text-[9px] font-bold uppercase tracking-wider text-edito-muted">
+                Client
+              </span>
+              {result.months.map((m) => (
+                <span key={m.month} role="columnheader" className="text-center text-[10px] font-bold text-edito-heading">
+                  {m.label}
+                </span>
+              ))}
+            </div>
+
+            <div className="space-y-1.5">
+              {result.clientBreakdown.map((client) => (
+                <div
+                  key={client.companyId ?? client.companyName}
+                  className="grid grid-cols-[minmax(90px,1.2fr)_repeat(3,minmax(0,1fr))] gap-1.5 items-center"
+                  role="row"
+                >
+                  <span
+                    role="rowheader"
+                    className="truncate pr-1 text-[10px] font-semibold text-edito-heading"
+                    title={client.companyName}
+                  >
+                    {client.companyName}
+                  </span>
+                  {client.months.map((mCell) => {
+                    const level = getIntensityLevel(mCell.revenue, maxCellVal)
+                    return (
+                      <div
+                        key={mCell.month}
+                        role="gridcell"
+                        className={cn(
+                          "flex h-9 items-center justify-center rounded-sm border px-1 text-center font-mono text-[9px] transition-colors",
+                          intensityClasses(level)
+                        )}
+                        title={`${client.companyName} · ${mCell.revenue > 0 ? formatEuroCompact(mCell.revenue) : "0 €"}`}
+                      >
+                        {mCell.revenue > 0 ? formatEuroCompact(mCell.revenue) : "—"}
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* D — Indicateurs complémentaires */}
+      <section aria-labelledby="forecast-complementary-title" className="pt-5">
+        <dl className="space-y-2.5 text-[11px] leading-relaxed text-edito-body">
+          <div className="flex items-center justify-between border-b border-edito-border/50 pb-2.5">
+            <dt className="font-semibold text-edito-heading">Pipe pondéré total :</dt>
+            <dd className="font-bold text-brand-primary">{formatEuroCompact(result.summary.pipeWeightedTotal)}</dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="font-semibold text-edito-heading">Missions finissant au prochain trimestre :</dt>
+            <dd className="font-bold text-brand-primary">{result.summary.missionsEndingNextQuarter}</dd>
+          </div>
+        </dl>
+
+        {result.sourceIssues.length > 0 && (
+          <aside className="mt-4 border-l-2 border-edito-brass pl-3 py-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-edito-heading">Données partielles</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-edito-muted">{result.sourceIssues.join(" ")}</p>
+          </aside>
+        )}
+      </section>
     </div>
-  )
-}
-
-function Legend({ color, label, secondary = false }: { color: string; label: string; secondary?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className={`h-0 w-6 border-t-2 ${secondary ? "border-dashed opacity-70" : "relative"}`}
-        style={{ borderColor: color }}
-      />
-      {label}
-    </span>
   )
 }
 
 function Metric({ label, value, separated = false }: { label: string; value: number | string; separated?: boolean }) {
   return (
-    <div className={separated ? "border-l border-edito-border pl-3" : "pr-3"}>
+    <div className={separated ? "border-l border-edito-border/60 pl-2.5" : "pr-1"}>
       <dt className="text-[9px] font-semibold leading-tight text-edito-muted">{label}</dt>
-      <dd className="mt-1 text-[clamp(0.75rem,3.8cqi,0.95rem)] font-black leading-tight text-brand-primary">{value}</dd>
+      <dd className="mt-1 font-heading text-xs sm:text-sm font-black leading-tight text-brand-primary">{value}</dd>
     </div>
   )
 }

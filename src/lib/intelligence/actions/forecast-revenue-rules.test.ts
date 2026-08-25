@@ -91,6 +91,37 @@ describe("computeMonthlyForecast", () => {
 
     expect(result.summary.trend).toBe("growing")
   })
+
+  it("builds client breakdown matrix for top 7 clients and groups remainder in Autres", () => {
+    const companies = Array.from({ length: 9 }, (_, i) => ({
+      id: `c-${i + 1}`,
+      name: `Client ${i + 1}`,
+    }))
+
+    const missions = companies.map((c, i) =>
+      mission({
+        id: `m-${i + 1}`,
+        companyId: c.id,
+        tjm: (10 - i) * 100, // Client 1 gets highest TJM, Client 9 lowest
+        startDate: "2026-01-01",
+        endDate: "2026-12-31",
+      }),
+    )
+
+    const result = computeMonthlyForecast({
+      ...baseInput,
+      companies,
+      missions,
+    })
+
+    // Should have top 7 + 1 Autres row = 8 rows total
+    expect(result.clientBreakdown.length).toBe(8)
+    expect(result.clientBreakdown[0].companyName).toBe("Client 1")
+    expect(result.clientBreakdown[6].companyName).toBe("Client 7")
+    expect(result.clientBreakdown[7].companyName).toBe("Autres")
+    expect(result.clientBreakdown[7].companyId).toBe("autres")
+    expect(result.clientBreakdown[7].total).toBeGreaterThan(0)
+  })
 })
 
 function mission(overrides: Partial<ComputeMonthlyForecastInput["missions"][number]>): ComputeMonthlyForecastInput["missions"][number] {
