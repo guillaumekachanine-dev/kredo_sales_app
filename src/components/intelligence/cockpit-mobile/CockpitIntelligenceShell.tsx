@@ -19,15 +19,15 @@ export function CockpitIntelligenceHeader({ pageLabel }: { pageLabel: string }) 
 
 export function CockpitIntelligenceShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative z-[1] min-h-full bg-gradient-to-b from-cockpit-cobalt-soft to-surface-raised px-7 pb-[2.125rem] pt-4 text-heading">
-      <div className="space-y-[1.125rem]">{children}</div>
+    <div className="relative z-[1] min-h-full bg-gradient-to-b from-cockpit-cobalt-soft to-surface-raised px-7 pb-[1.75rem] pt-3.5 text-heading">
+      <div className="space-y-3.5">{children}</div>
     </div>
   )
 }
 
 export function CockpitSectionHeader({ label }: { label: string }) {
   return (
-    <div className="mb-2.5 flex items-center gap-2.5">
+    <div className="mb-2 flex items-center gap-2.5">
       <span className="size-[5px] shrink-0 rounded-full bg-brand-brass" aria-hidden="true" />
       <h3 className="shrink-0 text-[9.5px] font-bold uppercase leading-none tracking-[0.18em] text-domain-intelligence">
         {label}
@@ -36,3 +36,4 @@ export function CockpitSectionHeader({ label }: { label: string }) {
     </div>
   )
 }
+

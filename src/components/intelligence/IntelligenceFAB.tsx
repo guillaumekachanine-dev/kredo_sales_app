@@ -389,9 +389,7 @@ function GenericEntityMobileContent() {
           </svg>
           Retour
         </button>
-        <div className="rounded-lg border border-border bg-surface p-4 text-body">
-          <IntelligenceActionResultContent actionId={activeActionId} />
-        </div>
+        <IntelligenceActionResultContent actionId={activeActionId} />
       </div>
     )
   }
@@ -579,12 +577,12 @@ export function IntelligenceFAB() {
         eyebrow={eyebrow}
         loading={isCompanyMode && panelData === null}
         className={cn(
-          "sm:hidden",
+          "sm:hidden kredo-cockpit-intelligence-drawer",
           isCompanyMode
-            ? "border-t border-cockpit-cobalt bg-cockpit-cobalt-deep text-white"
+            ? "border border-cockpit-cobalt bg-cockpit-cobalt-deep text-white"
             : isGenericEntityMode
-              ? "border-t border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]"
-              : "kredo-cockpit-intelligence-drawer border border-cockpit-intelligence-border bg-cockpit-cobalt-soft",
+              ? "border border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]"
+              : "border border-cockpit-intelligence-border bg-cockpit-cobalt-soft",
         )}
         headerClassName={isCompanyMode
           ? "border-b-2 border-brand-brass bg-cockpit-cobalt text-white [&_button]:border [&_button]:border-white/35 [&_button]:bg-white/15 [&_button]:text-white [&_button]:hover:border-white/55 [&_button]:hover:bg-white/25 [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
@@ -622,9 +620,7 @@ export function IntelligenceFAB() {
                 </svg>
                 Retour
               </button>
-              <div className="rounded-lg border border-border bg-surface p-4 text-body">
-                <IntelligenceActionResultContent actionId={activeDeterministicAction} />
-              </div>
+              <IntelligenceActionResultContent actionId={activeDeterministicAction} />
             </div>
           </CockpitIntelligenceShell>
         ) : isCompanyMode ? (

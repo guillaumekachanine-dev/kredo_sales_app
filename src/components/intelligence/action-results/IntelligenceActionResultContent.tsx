@@ -118,9 +118,9 @@ export function IntelligenceActionResultContent({ actionId }: { actionId: Determ
 
   useEffect(() => {
     let cancelled = false
-    setLoaded(null)
-    setError(null)
     startTransition(() => {
+      setLoaded(null)
+      setError(null)
       void loadAction(actionId)
         .then((result) => {
           if (!cancelled) setLoaded(result)
@@ -133,20 +133,21 @@ export function IntelligenceActionResultContent({ actionId }: { actionId: Determ
   }, [actionId])
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-brass">Résultat déterministe</p>
-        <h3 className="mt-1 text-base font-bold leading-tight text-primary-fg">{titleForAction(actionId)}</h3>
+    <div data-theme="cockpit" className="rounded-2xl border border-white/15 bg-[#0c1838] p-4.5 text-white shadow-xl space-y-4">
+      <div className="border-b border-white/12 pb-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-brass">Résultat déterministe</p>
+        <h3 className="mt-1 font-heading text-lg font-bold leading-tight text-white">{titleForAction(actionId)}</h3>
       </div>
 
       {(isPending || (!loaded && !error)) && (
-        <div className="rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-4 text-xs text-primary-fg/60">
-          Calcul en cours...
+        <div className="flex items-center gap-3 rounded-xl border border-white/12 bg-white/[0.05] p-4 text-xs font-medium text-white/75 animate-pulse">
+          <span className="size-4 animate-spin rounded-full border-2 border-brand-brass border-t-transparent" />
+          <span>Calcul en cours...</span>
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-primary-fg/75">
+        <div className="rounded-xl border border-danger/35 bg-danger/15 p-4 text-xs font-semibold text-white/90">
           {error}
         </div>
       )}

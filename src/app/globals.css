@@ -1063,16 +1063,16 @@ dialog.kredo-drawer-bottom {
   dialog.kredo-drawer-bottom.kredo-cockpit-intelligence-drawer {
     top: 1.125rem !important;
     inset-block-start: 1.125rem !important;
-    bottom: 1.125rem !important;
-    inset-block-end: 1.125rem !important;
+    bottom: calc(var(--layout-bottom-nav-height) + 0.75rem) !important;
+    inset-block-end: calc(var(--layout-bottom-nav-height) + 0.75rem) !important;
     left: 1.125rem !important;
     inset-inline-start: 1.125rem !important;
     right: 1.125rem !important;
     inset-inline-end: 1.125rem !important;
     width: calc(100% - 2.25rem) !important;
     max-width: calc(100% - 2.25rem) !important;
-    height: calc(100dvh - 2.25rem) !important;
-    max-height: calc(100dvh - 2.25rem) !important;
+    height: calc(100dvh - 1.125rem - var(--layout-bottom-nav-height) - 0.75rem) !important;
+    max-height: calc(100dvh - 1.125rem - var(--layout-bottom-nav-height) - 0.75rem) !important;
     border: 1px solid var(--color-cockpit-intelligence-border) !important;
     border-radius: 2.0625rem !important;
   }

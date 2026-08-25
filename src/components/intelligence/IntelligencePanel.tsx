@@ -196,9 +196,7 @@ function GenericEntityPanelContent() {
           </svg>
           Retour
         </button>
-        <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
-          <IntelligenceActionResultContent actionId={activeActionId} />
-        </div>
+        <IntelligenceActionResultContent actionId={activeActionId} />
       </>
     )
   }
@@ -262,9 +260,7 @@ function RegistryPanelContent() {
         {isAvailableMissionAction ? (
           <MissionComposerDesktop config={MISSION_COMPOSER_ACTION_CONFIGS[activeActionId]} />
         ) : isDeterministicIntelligenceAction(activeActionId) ? (
-          <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
-            <IntelligenceActionResultContent actionId={activeActionId} />
-          </div>
+          <IntelligenceActionResultContent actionId={activeActionId} />
         ) : null}
       </>
     )
