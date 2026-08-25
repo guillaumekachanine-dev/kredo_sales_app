@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/Button"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import type { AccountValue } from "@/components/missions/AccountCombobox"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import {
@@ -28,6 +29,7 @@ export function MissionComposerMobile({
   const [account, setAccount] = useState<AccountValue | null>(() =>
     resolveInitialAccountSelection(entityContext),
   )
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const launcher = useMissionLauncher(config)
   const isBusy = ["launching", "queued", "running"].includes(launcher.status)
@@ -116,15 +118,24 @@ export function MissionComposerMobile({
             fullWidth
             loading={launcher.status === "launching"}
             disabled={isBusy || !currentInput}
-            onClick={() => {
-              if (currentInput) {
-                void launcher.launch(currentInput)
-              }
-            }}
+            onClick={() => setConfirmOpen(true)}
             className="min-h-14 text-base"
           >
             Lancer l’analyse
           </Button>
+
+          <WorkflowExecutionConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            actionLabel="Lancer l’analyse"
+            runType={`mission:${config.missionSlug}`}
+            onConfirm={() => {
+              if (currentInput) {
+                void launcher.launch(currentInput)
+              }
+            }}
+            pending={isBusy}
+          />
         </>
       )}
     </section>

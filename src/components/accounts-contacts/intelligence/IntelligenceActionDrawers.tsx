@@ -3,6 +3,7 @@ import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/in
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import type {
   CommunicationBrief,
   CommunicationOutput,
@@ -566,6 +567,7 @@ export function SummaryDrawerContent({
   const [content, setContent] = useState<AccountSummaryContent | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   useRunTracker<AccountSummaryContent>({
     runId,
@@ -715,10 +717,10 @@ export function SummaryDrawerContent({
       <div className="pt-4 border-t border-border space-y-2">
         <button
           type="button"
-          onClick={handleGenerate}
+          onClick={() => setConfirmOpen(true)}
           disabled={runStatus === "loading"}
           className={cn(
-            "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors",
+            "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors cursor-pointer",
             isMobile ? "min-h-[44px]" : "min-h-[36px]",
             runStatus === "loading"
               ? "border-primary/20 bg-primary/5 text-primary/50 cursor-wait"
@@ -734,11 +736,14 @@ export function SummaryDrawerContent({
             "Générer la fiche"
           )}
         </button>
-        {runStatus === "loading" && (
-          <p className="text-[10px] text-muted text-center leading-normal">
-            n8n travaille… le résultat apparaîtra automatiquement.
-          </p>
-        )}
+        <WorkflowExecutionConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          actionLabel="Générer la fiche"
+          runType="report-account-summary"
+          onConfirm={handleGenerate}
+          pending={runStatus === "loading"}
+        />
       </div>
     </div>
   )

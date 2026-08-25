@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
@@ -267,6 +268,8 @@ function EnjeuxTab({ data }: { data: ClientIntelligenceData }) {
         ? "error"
         : "idle"
 
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
   async function handleGenerate() {
     if (inFlightRef.current) return
     inFlightRef.current = true
@@ -302,7 +305,7 @@ function EnjeuxTab({ data }: { data: ClientIntelligenceData }) {
           {errorMsg && <p className="text-[11px] font-medium text-danger">{errorMsg}</p>}
           <button
             type="button"
-            onClick={handleGenerate}
+            onClick={() => setConfirmOpen(true)}
             disabled={runStatus === "loading"}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px] disabled:cursor-wait disabled:opacity-60"
           >
@@ -312,6 +315,15 @@ function EnjeuxTab({ data }: { data: ClientIntelligenceData }) {
         </div>
       </div>
       <AccountIssuesTable issues={issues} contacts={contacts} onDismiss={handleDismiss} />
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        actionLabel="Lancer/actualiser la cartographie des enjeux"
+        runType="intel-031-issues-map"
+        onConfirm={handleGenerate}
+        pending={runStatus === "loading"}
+      />
     </div>
   )
 }
@@ -325,6 +337,7 @@ function StrategieTab({ data }: { data: ClientIntelligenceData }) {
   const [runId, setRunId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isTriggering, setIsTriggering] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const inFlightRef = useRef(false)
 
   const tracker = useRunTracker<CommercialStrategyContent>({
@@ -384,7 +397,7 @@ function StrategieTab({ data }: { data: ClientIntelligenceData }) {
           {errorMsg && <p className="text-[11px] font-medium text-danger">{errorMsg}</p>}
           <button
             type="button"
-            onClick={handleGenerateStrategy}
+            onClick={() => setConfirmOpen(true)}
             disabled={runStatus === "loading"}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px] disabled:cursor-wait disabled:opacity-60"
           >
@@ -393,6 +406,15 @@ function StrategieTab({ data }: { data: ClientIntelligenceData }) {
           </button>
         </div>
       </div>
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        actionLabel="Lancer/actualiser la stratégie"
+        runType="intel-032-strategy"
+        onConfirm={handleGenerateStrategy}
+        pending={runStatus === "loading"}
+      />
 
       {strategy ? (
         <CommercialStrategyGeneratedContent

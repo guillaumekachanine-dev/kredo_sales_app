@@ -9,6 +9,7 @@
 
 import { useMemo, useState } from "react"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { Button } from "@/components/ui/Button"
 import { Textarea } from "@/components/ui/Textarea"
 import { formatDateFr } from "@/lib/formatters"
@@ -83,6 +84,7 @@ export function WatchAnalysisComposerDesktop({
     return initial
   })
   const [activeFamily, setActiveFamily] = useState<SourceFamily>("digest")
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleClose = () => {
     onClose()
@@ -118,45 +120,56 @@ export function WatchAnalysisComposerDesktop({
   }
 
   return (
-    <IntelligenceSplitModalShell
-      open={open}
-      onClose={handleClose}
-      isMobile={false}
-      title={composer.screen === "compose" ? "Générer une analyse" : "Choisir une source"}
-      subtitle={composer.screen === "source-picker" ? SOURCE_FAMILY_LABELS[activeFamily] : undefined}
-      leftPane={null}
-      rightPane={null}
-      headerActions={
-        composer.screen === "source-picker" ? (
-          <button
-            type="button"
-            onClick={composer.backToCompose}
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
-            aria-label="Retour au compositeur"
-          >
-            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-        ) : null
-      }
-      content={
-        composer.screen === "compose" ? (
-          <ComposeScreen composer={composer} slotLabels={slotLabels} onOpenPicker={handleOpenPicker} onRemove={handleRemove} onLaunch={handleLaunch} />
-        ) : (
-          <SourcePickerScreen
-            activeFamily={activeFamily}
-            onChangeFamily={setActiveFamily}
-            currentDigest={currentDigest}
-            currentDigestNumber={currentDigestNumber}
-            pastDigests={pastDigests}
-            knownArticles={knownArticles}
-            existingSlotSource={composer.pickerSlotIndex !== null ? composer.slots[composer.pickerSlotIndex] : null}
-            onValidate={handleValidate}
-          />
-        )
-      }
-    />
+    <>
+      <IntelligenceSplitModalShell
+        open={open}
+        onClose={handleClose}
+        isMobile={false}
+        title={composer.screen === "compose" ? "Générer une analyse" : "Choisir une source"}
+        subtitle={composer.screen === "source-picker" ? SOURCE_FAMILY_LABELS[activeFamily] : undefined}
+        leftPane={null}
+        rightPane={null}
+        headerActions={
+          composer.screen === "source-picker" ? (
+            <button
+              type="button"
+              onClick={composer.backToCompose}
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+              aria-label="Retour au compositeur"
+            >
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+          ) : null
+        }
+        content={
+          composer.screen === "compose" ? (
+            <ComposeScreen composer={composer} slotLabels={slotLabels} onOpenPicker={handleOpenPicker} onRemove={handleRemove} onLaunch={() => setConfirmOpen(true)} />
+          ) : (
+            <SourcePickerScreen
+              activeFamily={activeFamily}
+              onChangeFamily={setActiveFamily}
+              currentDigest={currentDigest}
+              currentDigestNumber={currentDigestNumber}
+              pastDigests={pastDigests}
+              knownArticles={knownArticles}
+              existingSlotSource={composer.pickerSlotIndex !== null ? composer.slots[composer.pickerSlotIndex] : null}
+              onValidate={handleValidate}
+            />
+          )
+        }
+      />
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        actionLabel="Lancer l’analyse"
+        runType="intel-021-monthly-watch-analysis"
+        onConfirm={handleLaunch}
+        pending={composer.isLaunching}
+      />
+    </>
   )
 }
 

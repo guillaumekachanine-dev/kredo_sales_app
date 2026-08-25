@@ -8,6 +8,7 @@ import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/compon
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { Button } from "@/components/ui/Button"
 import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 import {
@@ -182,6 +183,7 @@ function ProcessRail({ data, onOpenTab }: ClientIntelligenceHomeTabProps) {
 function RecentSignals({ data }: { data: ClientIntelligenceData }) {
   const [feedback, setFeedback] = useState<{ tone: "success" | "error"; message: string } | null>(null)
   const [isRefreshing, startRefreshing] = useTransition()
+  const [confirmRefreshOpen, setConfirmRefreshOpen] = useState(false)
   const recentSignals = [...data.accountSignals]
     .sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime())
     .slice(0, 3)
@@ -220,7 +222,7 @@ function RecentSignals({ data }: { data: ClientIntelligenceData }) {
           type="button"
           variant="secondary"
           size="sm"
-          onClick={handleRefresh}
+          onClick={() => setConfirmRefreshOpen(true)}
           loading={isRefreshing}
           loadingLabel="Lancement"
           className="min-h-10 shrink-0"
@@ -228,6 +230,15 @@ function RecentSignals({ data }: { data: ClientIntelligenceData }) {
           Actualiser
         </Button>
       </div>
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmRefreshOpen}
+        onOpenChange={setConfirmRefreshOpen}
+        actionLabel="Actualiser la veille"
+        runType="account_watch_refresh"
+        onConfirm={handleRefresh}
+        pending={isRefreshing}
+      />
 
       {feedback ? (
         <p className={cn("mt-2 text-[11px] font-semibold", feedback.tone === "success" ? "text-success" : "text-danger")}>

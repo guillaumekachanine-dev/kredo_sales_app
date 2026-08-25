@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { createClient } from "@/lib/supabase/client"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import type { AccountScanOutput, AccountScanResolutionCandidate } from "@/lib/n8n/types"
@@ -116,6 +117,10 @@ export function AccountScanDialog({
   const [bilanByProposalId, setBilanByProposalId] = useState<Map<string, AccountScanBilanCategory>>(new Map())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [setupSummary, setSetupSummary] = useState<AccountScanSetupSummary>({ elementCount: 24, sourceCount: 4, mode: "find" })
+  const [confirmInfoScanOpen, setConfirmInfoScanOpen] = useState(false)
+  const [pendingInfoSetup, setPendingInfoSetup] = useState<AccountScanSetupValues | null>(null)
+  const [confirmContactsScanOpen, setConfirmContactsScanOpen] = useState(false)
+  const [pendingContactsScanSetup, setPendingContactsScanSetup] = useState<AccountScanContactsSetupValues | null>(null)
 
   const lastSetupRef = useRef<AccountScanSetupValues>({
     informationMode: "find",
@@ -372,7 +377,8 @@ export function AccountScanDialog({
   function prepareInformationScan(setup: AccountScanSetupValues) {
     lastSetupRef.current = setup
     setErrorMessage(null)
-    void triggerInformationScan(setup)
+    setPendingInfoSetup(setup)
+    setConfirmInfoScanOpen(true)
   }
 
   async function triggerInformationScan(setup: AccountScanSetupValues, confirmedSiren?: string) {
@@ -613,7 +619,8 @@ export function AccountScanDialog({
         isMobile={isMobile}
         launching={false}
         onLaunch={(setup) => {
-          void triggerContactsScan(setup)
+          setPendingContactsScanSetup(setup)
+          setConfirmContactsScanOpen(true)
         }}
         onBackToInformation={handleGoToInformationReview}
       />
@@ -765,6 +772,32 @@ export function AccountScanDialog({
       >
         <div key={phase} className={cn("h-full min-h-0", !isMobile && "overflow-y-auto")}>{body}</div>
       </AccountScanConsoleChrome>
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmInfoScanOpen}
+        onOpenChange={setConfirmInfoScanOpen}
+        actionLabel="Lancer l’exploration du compte"
+        runType="intel-010-refresh"
+        onConfirm={async () => {
+          if (pendingInfoSetup) {
+            await triggerInformationScan(pendingInfoSetup)
+          }
+        }}
+        pending={phase === "information_queued" || phase === "information_running"}
+      />
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmContactsScanOpen}
+        onOpenChange={setConfirmContactsScanOpen}
+        actionLabel="Lancer l’exploration des contacts"
+        runType="intel-010-refresh"
+        onConfirm={async () => {
+          if (pendingContactsScanSetup) {
+            await triggerContactsScan(pendingContactsScanSetup)
+          }
+        }}
+        pending={phase === "contacts_queued" || phase === "contacts_running"}
+      />
     </AppDialog>
   )
 }

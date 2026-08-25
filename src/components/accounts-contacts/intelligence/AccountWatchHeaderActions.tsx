@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/Button"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { AccountWatchSettingsDialog } from "./AccountWatchSettingsDialog"
@@ -24,6 +25,7 @@ export function AccountWatchHeaderActions({
   const router = useRouter()
   const triggerRef = useRef(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [runId, setRunId] = useState<string | null>(null)
   const [isRequesting, setIsRequesting] = useState(false)
 
@@ -98,7 +100,7 @@ export function AccountWatchHeaderActions({
         <Button
           variant="primary"
           size="sm"
-          onClick={() => void refreshWatch()}
+          onClick={() => setConfirmOpen(true)}
           loading={isUpdating}
           loadingLabel="Mise à jour…"
           leftIcon={<IntelligenceIcon name="search_news" preferVector />}
@@ -107,6 +109,15 @@ export function AccountWatchHeaderActions({
           Mettre à jour
         </Button>
       </div>
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        actionLabel="Mettre à jour la veille"
+        runType="account_watch_refresh"
+        onConfirm={refreshWatch}
+        pending={isUpdating}
+      />
 
       <AccountWatchSettingsDialog
         open={settingsOpen}

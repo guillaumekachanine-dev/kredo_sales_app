@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { Button } from "@/components/ui/Button"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { SourceManagementLauncher } from "@/features/source-management/components/SourceManagementLauncher"
@@ -419,41 +420,14 @@ export function VeilleActualitesMobile({
         }}
       />
 
-      <AppDialog
+      <WorkflowExecutionConfirmDialog
         open={isGenerateConfirmOpen}
         onOpenChange={setIsGenerateConfirmOpen}
-        title="Générer un digest"
-        description="Cette action va lancer la génération d’un nouveau digest de veille à partir des sources actives configurées."
-        dataTheme="edito-bright-veille"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => setIsGenerateConfirmOpen(false)}
-              disabled={isGenerating}
-            >
-              Annuler
-            </Button>
-            <Button
-              variant="brass"
-              onClick={handleConfirmGenerateDigest}
-              loading={isGenerating}
-              disabled={isGenerating}
-            >
-              Générer le digest
-            </Button>
-          </>
-        }
-      >
-        <p className="text-xs text-body leading-relaxed">
-          Le processus de collecte et d’analyse des sources actives sera déclenché immédiatement.
-        </p>
-        {generateError ? (
-          <p role="alert" className="mt-3 text-xs text-danger font-semibold">
-            {generateError}
-          </p>
-        ) : null}
-      </AppDialog>
+        actionLabel="Générer le digest"
+        runType="veille-hebdomadaire-kredo"
+        onConfirm={handleConfirmGenerateDigest}
+        pending={isGenerating}
+      />
     </div>
   )
 }

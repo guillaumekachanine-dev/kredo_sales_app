@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { Button } from "@/components/ui/Button"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import type { VeilleDigest } from "@/app/(app)/veille/_data/veille-data"
@@ -112,6 +113,8 @@ export function VeilleHeaderActions({
 
   const targetWorkflowId = health.workflowId ?? "veille-hebdomadaire-kredo"
 
+  const [confirmWorkflowOpen, setConfirmWorkflowOpen] = useState(false)
+
   const triggerGenerateDigest = async () => {
     if (isGenerating || health.state === "running" || health.state === "queued") return
     setIsGenerating(true)
@@ -183,7 +186,7 @@ export function VeilleHeaderActions({
             </Button>
             <Button
               variant="brass"
-              onClick={triggerGenerateDigest}
+              onClick={() => setConfirmWorkflowOpen(true)}
               loading={isGenerating}
               disabled={isGenerating || health.state === "running" || health.state === "queued"}
             >
@@ -203,6 +206,15 @@ export function VeilleHeaderActions({
         ) : null}
         {error ? <p role="alert" className="mt-4 text-danger">{error}</p> : null}
       </VeilleActionDialog>
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmWorkflowOpen}
+        onOpenChange={setConfirmWorkflowOpen}
+        actionLabel="Générer le digest"
+        runType={targetWorkflowId}
+        onConfirm={triggerGenerateDigest}
+        pending={isGenerating}
+      />
 
       <GlobalWatchSettingsDialog
         open={settingsOpen}

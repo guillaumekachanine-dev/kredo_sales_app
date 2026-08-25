@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
@@ -105,6 +106,8 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const [issuesRunId, setIssuesRunId] = useState<string | null>(null)
   const [issuesErrorMsg, setIssuesErrorMsg] = useState<string | null>(null)
   const [issuesTriggering, setIssuesTriggering] = useState(false)
+  const [confirmIssuesOpen, setConfirmIssuesOpen] = useState(false)
+  const [confirmStrategyOpen, setConfirmStrategyOpen] = useState(false)
   const issuesInFlightRef = useRef(false)
 
   const reloadIssues = useCallback(async () => {
@@ -564,9 +567,9 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             <>
               <button
                 type="button"
-                onClick={handleGenerateIssues}
+                onClick={() => setConfirmIssuesOpen(true)}
                 disabled={issuesRunStatus === "loading"}
-                className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60"
+                className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60 cursor-pointer"
               >
                 {issuesRunStatus === "loading" ? "Génération en cours…" : "Actualiser la cartographie des enjeux"}
               </button>
@@ -574,6 +577,15 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 <p className="mb-3 text-[11px] font-medium text-danger">{issuesErrorMsg}</p>
               )}
               <AccountIssuesTopList issues={issues} contacts={data.contacts} onDismiss={handleDismissIssue} />
+
+              <WorkflowExecutionConfirmDialog
+                open={confirmIssuesOpen}
+                onOpenChange={setConfirmIssuesOpen}
+                actionLabel="Actualiser la cartographie des enjeux"
+                runType="intel-031-issues-map"
+                onConfirm={handleGenerateIssues}
+                pending={issuesRunStatus === "loading"}
+              />
             </>
           )}
 
@@ -581,9 +593,9 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             <div className="space-y-4">
               <button
                 type="button"
-                onClick={handleGenerateStrategy}
+                onClick={() => setConfirmStrategyOpen(true)}
                 disabled={strategyRunStatus === "loading"}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60 cursor-pointer"
               >
                 <RefreshIcon className={cn("h-3.5 w-3.5", strategyRunStatus === "loading" && "animate-spin")} />
                 {strategyRunStatus === "loading" ? "Génération en cours…" : "Lancer/actualiser la stratégie"}
@@ -591,6 +603,15 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
               {strategyErrorMsg && (
                 <p className="text-[11px] font-medium text-danger">{strategyErrorMsg}</p>
               )}
+
+              <WorkflowExecutionConfirmDialog
+                open={confirmStrategyOpen}
+                onOpenChange={setConfirmStrategyOpen}
+                actionLabel="Lancer/actualiser la stratégie"
+                runType="intel-032-strategy"
+                onConfirm={handleGenerateStrategy}
+                pending={strategyRunStatus === "loading"}
+              />
               {strategy ? (
                 <CommercialStrategyGeneratedContent
                   strategy={strategy.data}

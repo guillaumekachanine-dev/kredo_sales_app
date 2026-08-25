@@ -1,8 +1,7 @@
-"use client"
-
 import { useState } from "react"
 import Image from "next/image"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
 import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligence/CompanyDocumentsModal"
 import { SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
@@ -122,6 +121,9 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
   const [runStatus, setRunStatus] = useState<"idle" | "running" | "done" | "error">("idle")
   const [runMessage, setRunMessage] = useState<string | null>(null)
   const [documents, setDocuments] = useState<"fiches" | "rapports" | null>(null)
+
+  const [confirmSummaryOpen, setConfirmSummaryOpen] = useState(false)
+  const [confirmAnalysisOpen, setConfirmAnalysisOpen] = useState(false)
 
   function backToCockpit() {
     setModal(null)
@@ -248,14 +250,29 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
             <button
               type="button"
               disabled={selectedAxes.length === 0 || runStatus === "running"}
-              onClick={() => summaryType === "account" ? setShowSummaryGenerator(true) : void launchIntelligenceSummary()}
-              className="min-h-11 w-full rounded bg-primary px-4 text-sm font-bold text-primary-fg disabled:opacity-50"
+              onClick={() => {
+                if (summaryType === "account") {
+                  setShowSummaryGenerator(true)
+                } else {
+                  setConfirmSummaryOpen(true)
+                }
+              }}
+              className="min-h-11 w-full rounded bg-primary px-4 text-sm font-bold text-primary-fg disabled:opacity-50 cursor-pointer"
             >
               {runStatus === "running" ? "Lancement…" : "Continuer et générer"}
             </button>
           </div>
         )}
       </AppDialog>
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmSummaryOpen}
+        onOpenChange={setConfirmSummaryOpen}
+        actionLabel="Continuer et générer"
+        runType="intel-030-account-knowledge"
+        onConfirm={launchIntelligenceSummary}
+        pending={runStatus === "running"}
+      />
 
       <AppDialog
         open={modal?.section === "analyses"}
@@ -279,13 +296,27 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
                 <textarea className="mt-2 min-h-24 w-full rounded border border-border bg-surface px-3 py-2 text-sm font-normal normal-case tracking-normal text-body" placeholder="Angle, période, sujets à inclure ou à exclure…" />
               </label>
               {runMessage ? <p className={cn("rounded px-3 py-2 text-xs", runStatus === "error" ? "bg-danger/10 text-danger" : "bg-success/10 text-success")}>{runMessage}</p> : null}
-              <button type="button" onClick={() => void launchAnalysis()} disabled={runStatus === "running"} className="min-h-11 w-full rounded bg-primary px-4 text-sm font-bold text-primary-fg disabled:opacity-50">
+              <button
+                type="button"
+                onClick={() => setConfirmAnalysisOpen(true)}
+                disabled={runStatus === "running"}
+                className="min-h-11 w-full rounded bg-primary px-4 text-sm font-bold text-primary-fg disabled:opacity-50 cursor-pointer"
+              >
                 {runStatus === "running" ? "Lancement…" : "Lancer l’analyse"}
               </button>
             </>
           )}
         </div>
       </AppDialog>
+
+      <WorkflowExecutionConfirmDialog
+        open={confirmAnalysisOpen}
+        onOpenChange={setConfirmAnalysisOpen}
+        actionLabel="Lancer l’analyse"
+        runType={analysisType === "issues" ? "intel-031-issues-map" : "intel-021-monthly-watch-analysis"}
+        onConfirm={launchAnalysis}
+        pending={runStatus === "running"}
+      />
     </div>
   )
 }

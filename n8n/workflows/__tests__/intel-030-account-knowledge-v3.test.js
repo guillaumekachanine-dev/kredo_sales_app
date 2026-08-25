@@ -88,7 +88,7 @@ const SIGNAL_B = "b2b2b2b2-2222-4222-8222-b2b2b2b2b2b2"
 const SIGNAL_C = "c3c3c3c3-3333-4333-8333-c3c3c3c3c3c3"
 const SIGNAL_D = "d4d4d4d4-4444-4444-8444-d4d4d4d4d4d4"
 
-function validatedEntity(schemaVersion = 3) {
+function validatedEntity(schemaVersion = 3, includedSubjects = null) {
   return {
     runId: RUN,
     workflowId: "intel-030-account-knowledge",
@@ -98,6 +98,7 @@ function validatedEntity(schemaVersion = 3) {
     callbackUrl: "https://kredo.example/api/n8n/callback",
     startedAtMs: Date.now() - 5000,
     accountKnowledgeSchemaVersion: schemaVersion,
+    includedSubjects,
   }
 }
 
@@ -213,8 +214,8 @@ function draftArtifact(cat) {
 
 // Fait tourner la chaîne V3 jusqu'à "V3 Assemble Draft Prompt" inclus et rend
 // le registre + le catalogue de source_id résolus.
-async function runUpToDraftPrompt(registry, ctxOverrides = {}, fetchOverrides = {}) {
-  registry["Validate Entity"] = validatedEntity(3)
+async function runUpToDraftPrompt(registry, ctxOverrides = {}, fetchOverrides = {}, includedSubjects = null) {
+  registry["Validate Entity"] = validatedEntity(3, includedSubjects)
   registry["Hydrate Context"] = rpcContext(ctxOverrides)
 
   await runCodeNode("V3 Prepare Context & Research Plan", registry, {})
@@ -526,9 +527,9 @@ async function main() {
   // ── 8c. Tests Génération Segmentée & Fusion ──────────────────────────────
   {
     const registry = {
-      "V3 Call LLM (Draft)": { content: [{ text: JSON.stringify({ schema_version: 3, account_summary: v3c("Summary text", [CRM_SOURCE_ID]), identity: { company_name: v3c("Name", [CRM_SOURCE_ID]) }, market_positioning: {} }) }], usage: { input_tokens: 1000, output_tokens: 500 } },
-      "V3 Call LLM (Draft B)": { content: [{ text: JSON.stringify({ schema_version: 3, offers_and_customers: {}, value_chain: {} }) }], usage: { input_tokens: 1100, output_tokens: 600 } },
-      "V3 Call LLM (Draft C)": { content: [{ text: JSON.stringify({ schema_version: 3, regulatory_environment: {}, trends_and_news: {} }) }], usage: { input_tokens: 1200, output_tokens: 700 } }
+      "V3 Call LLM (Draft)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, account_summary: v3c("Summary text", [CRM_SOURCE_ID]), identity: { company_name: v3c("Name", [CRM_SOURCE_ID]) }, market_positioning: {} }) }], usage: { input_tokens: 1000, output_tokens: 500 } },
+      "V3 Call LLM (Draft B)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, offers_and_customers: {}, value_chain: {} }) }], usage: { input_tokens: 1100, output_tokens: 600 } },
+      "V3 Call LLM (Draft C)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, regulatory_environment: {}, trends_and_news: {} }) }], usage: { input_tokens: 1200, output_tokens: 700 } }
     }
 
     // 1. Succès des trois fragments & fusion dans l'ordre exact des 7 sections
@@ -554,23 +555,73 @@ async function main() {
       registry["V3 Merge Segments"].usage.input_tokens === 3300 &&
       registry["V3 Merge Segments"].usage.output_tokens === 1800)
 
-    // 2. Absence d'un fragment
-    const registryMissing = {
-      "V3 Call LLM (Draft)": null,
-      "V3 Call LLM (Draft B)": { content: [{ text: "{}" }] },
-      "V3 Call LLM (Draft C)": { content: [{ text: "{}" }] }
+    // 1b. Régression réelle observée en prod (VPS) : un bloc "thinking" precede
+    // le bloc "text" dans response.content — le texte n'est jamais garanti en
+    // position 0. Doit s'extraire pareil que "V3 Parse Draft" (recherche par type).
+    const registryThinking = {
+      "V3 Call LLM (Draft)": { content: [
+        { type: "thinking", thinking: "Je réfléchis avant de répondre..." },
+        { type: "text", text: JSON.stringify({ schema_version: 3, account_summary: v3c("Summary", [CRM_SOURCE_ID]), identity: { company_name: v3c("Name", [CRM_SOURCE_ID]) }, market_positioning: {} }) },
+      ], usage: { input_tokens: 100, output_tokens: 50 } },
+      "V3 Call LLM (Draft B)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, offers_and_customers: {}, value_chain: {} }) }], usage: { input_tokens: 100, output_tokens: 50 } },
+      "V3 Call LLM (Draft C)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, regulatory_environment: {}, trends_and_news: {} }) }], usage: { input_tokens: 100, output_tokens: 50 } },
+    }
+    await runCodeNode("V3 Merge Segments", registryThinking, {})
+    const mergedThinking = JSON.parse(registryThinking["V3 Merge Segments"].content[0].text)
+    check("Un bloc 'thinking' avant le bloc 'text' n'empêche pas la fusion",
+      mergedThinking.identity.company_name.text === "Name")
+
+    // 2a. Segment sauté par la garde "V3 Segment X Active?" (includedSubjects
+    // ne le demandait pas) : le nœud n'a alors PRODUIT AUCUNE SORTIE — c'est
+    // le cas réel en production. La fusion substitue un stub vide plutôt que
+    // de planter (avant ce lot, les trois segments tournaient toujours).
+    const registrySkippedA = {
+      // "V3 Call LLM (Draft)" absent du registre : jamais exécuté (gate false).
+      "V3 Call LLM (Draft B)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, offers_and_customers: { core_business: v3c("Core", [CRM_SOURCE_ID]) }, value_chain: {} }) }], usage: { input_tokens: 500, output_tokens: 200 } },
+      "V3 Call LLM (Draft C)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, regulatory_environment: {}, trends_and_news: {} }) }], usage: { input_tokens: 400, output_tokens: 150 } },
+    }
+    await runCodeNode("V3 Merge Segments", registrySkippedA, {})
+    const mergedSkipped = JSON.parse(registrySkippedA["V3 Merge Segments"].content[0].text)
+    check("Segment A sauté → stub vide substitué, fusion réussie (pas d'erreur)",
+      mergedSkipped.schema_version === 3 && mergedSkipped.identity.company_name === null && mergedSkipped.account_summary === null)
+    check("Segment sauté ne compte pour aucun token (usage cumulé = B + C uniquement)",
+      registrySkippedA["V3 Merge Segments"].usage.input_tokens === 900 && registrySkippedA["V3 Merge Segments"].usage.output_tokens === 350)
+
+    // 2b. Fragment réellement présent mais illisible (JSON invalide) : ceci
+    // reste une vraie erreur, distincte du cas "sauté" ci-dessus — un segment
+    // qui a tourné mais renvoyé n'importe quoi ne doit jamais être traité
+    // comme un simple skip silencieux.
+    const registryMalformed = {
+      "V3 Call LLM (Draft)": { content: [{ type: "text", text: "ceci n'est pas du JSON" }], usage: { input_tokens: 10, output_tokens: 5 } },
+      "V3 Call LLM (Draft B)": { content: [{ type: "text", text: "{}" }], usage: { input_tokens: 10, output_tokens: 5 } },
+      "V3 Call LLM (Draft C)": { content: [{ type: "text", text: "{}" }], usage: { input_tokens: 10, output_tokens: 5 } },
     }
     await expectThrows(
-      "Absence d'un fragment de génération lève une erreur",
-      () => runCodeNode("V3 Merge Segments", registryMissing, {}),
-      /Failed to parse|Cannot read properties/
+      "Fragment présent mais JSON invalide lève toujours une erreur (pas confondu avec un skip)",
+      () => runCodeNode("V3 Merge Segments", registryMalformed, {}),
+      /Failed to parse/
+    )
+
+    // 2c. Fragment présent mais SANS aucun bloc "text" (ex. uniquement du
+    // "thinking", réponse tronquée avant le texte) : erreur explicite, jamais
+    // le "Cannot read properties of undefined (reading 'trim')" cryptique
+    // observé en prod avant ce correctif.
+    const registryNoText = {
+      "V3 Call LLM (Draft)": { content: [{ type: "thinking", thinking: "..." }], usage: { input_tokens: 10, output_tokens: 5 } },
+      "V3 Call LLM (Draft B)": { content: [{ type: "text", text: "{}" }], usage: { input_tokens: 10, output_tokens: 5 } },
+      "V3 Call LLM (Draft C)": { content: [{ type: "text", text: "{}" }], usage: { input_tokens: 10, output_tokens: 5 } },
+    }
+    await expectThrows(
+      "Aucun bloc 'text' dans la réponse → erreur explicite, jamais un crash cryptique",
+      () => runCodeNode("V3 Merge Segments", registryNoText, {}),
+      /aucun bloc 'text'/
     )
 
     // 3. Doublons de claim_path
     const registryDup = {
-      "V3 Call LLM (Draft)": { content: [{ text: JSON.stringify({ schema_version: 3, account_summary: null, identity: { company_name: v3c("Name A", [CRM_SOURCE_ID]) }, market_positioning: {} }) }] },
-      "V3 Call LLM (Draft B)": { content: [{ text: JSON.stringify({ schema_version: 3, offers_and_customers: { core_business: v3c("Core", [CRM_SOURCE_ID]) }, value_chain: {} }) }] },
-      "V3 Call LLM (Draft C)": { content: [{ text: JSON.stringify({ schema_version: 3, regulatory_environment: { current_regulations: [ v3c("Reg", [CRM_SOURCE_ID]) ] }, trends_and_news: { analysis: v3c("Analysis from C", [CRM_SOURCE_ID]) } }) }] }
+      "V3 Call LLM (Draft)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, account_summary: null, identity: { company_name: v3c("Name A", [CRM_SOURCE_ID]) }, market_positioning: {} }) }] },
+      "V3 Call LLM (Draft B)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, offers_and_customers: { core_business: v3c("Core", [CRM_SOURCE_ID]) }, value_chain: {} }) }] },
+      "V3 Call LLM (Draft C)": { content: [{ type: "text", text: JSON.stringify({ schema_version: 3, regulatory_environment: { current_regulations: [ v3c("Reg", [CRM_SOURCE_ID]) ] }, trends_and_news: { analysis: v3c("Analysis from C", [CRM_SOURCE_ID]) } }) }] }
     }
     registryDup["V3 Call LLM (Draft B)"].content[0].text = JSON.stringify({
       schema_version: 3,
@@ -591,6 +642,83 @@ async function main() {
     check("V3 A Truncated? TRUE -> Prepare Truncated Error", connA[0]?.[0]?.node === "Prepare Truncated Error")
     check("V3 B Truncated? TRUE -> Prepare Truncated Error", connB[0]?.[0]?.node === "Prepare Truncated Error")
     check("V3 C Truncated? TRUE -> Prepare Truncated Error", connC[0]?.[0]?.node === "Prepare Truncated Error")
+  }
+
+  // ── 8d. Lot remédiation volume : includedSubjects, segments differencies ──
+  {
+    // Regression du bug corrige : A/B/C recevaient EXACTEMENT le meme payload.
+    const registryFull = {}
+    await runUpToDraftPrompt(registryFull)
+    const full = registryFull["V3 Assemble Draft Prompt"]
+    check("draftUserPromptA / B / C sont trois payloads distincts (pas le meme blob)",
+      full.draftUserPromptA !== full.draftUserPromptB &&
+      full.draftUserPromptB !== full.draftUserPromptC &&
+      full.draftUserPromptA !== full.draftUserPromptC)
+    check("Etude complete (includedSubjects absent) → les 3 segments actifs",
+      full.activeSegments.A === true && full.activeSegments.B === true && full.activeSegments.C === true)
+    check("Le contexte du segment C ne contient pas les contacts/interactions/missions du CRM",
+      !/recentInteractions/.test(full.draftUserPromptC) && !/ELEMENTS_LIVRAISON_RECENTS/.test(full.draftUserPromptC))
+
+    // Un seul sujet demandé ("Fiche d'identité") → seul le segment A est actif.
+    const registryA = {}
+    await runUpToDraftPrompt(registryA, {}, {}, ["Fiche d’identité"])
+    const onlyA = registryA["V3 Assemble Draft Prompt"]
+    check("includedSubjects = [Fiche d'identité] → seul le segment A est actif",
+      onlyA.activeSegments.A === true && onlyA.activeSegments.B === false && onlyA.activeSegments.C === false)
+
+    // "Tendances et positionnement marché" touche A (reste de market_positioning) ET C (trends_and_news).
+    const registryAC = {}
+    await runUpToDraftPrompt(registryAC, {}, {}, ["Tendances et positionnement marché"])
+    const ac = registryAC["V3 Assemble Draft Prompt"]
+    check("includedSubjects = [Tendances et positionnement marché] → segments A et C actifs, B inactif",
+      ac.activeSegments.A === true && ac.activeSegments.B === false && ac.activeSegments.C === true)
+
+    // Vocabulaire inconnu (dérive UI non répercutée ici) → repli sur l'étude complète, jamais une étude vide.
+    const registryUnknown = {}
+    await runUpToDraftPrompt(registryUnknown, {}, {}, ["Un sujet qui n'existe pas"])
+    const unknown = registryUnknown["V3 Assemble Draft Prompt"]
+    check("Sujet inconnu → repli sur etude complete (jamais une etude entierement vide)",
+      unknown.subjectsFallbackToFull === true &&
+      unknown.activeSegments.A === true && unknown.activeSegments.B === true && unknown.activeSegments.C === true)
+
+    // Segment sauté de bout en bout : includedSubjects=[Échéances] (segment C seul)
+    // → les gates "V3 Segment A/B Active?" doivent être FALSE dans le graphe reel.
+    const gA = workflow.connections["V3 Segment A Active?"].main
+    const gB = workflow.connections["V3 Segment B Active?"].main
+    const gC = workflow.connections["V3 Segment C Active?"].main
+    check("Garde A : TRUE -> Draft A, FALSE -> Garde B",
+      gA[0][0].node === "V3 Call LLM (Draft)" && gA[1][0].node === "V3 Segment B Active?")
+    check("Garde B : TRUE -> Draft B, FALSE -> Garde C",
+      gB[0][0].node === "V3 Call LLM (Draft B)" && gB[1][0].node === "V3 Segment C Active?")
+    check("Garde C : TRUE -> Draft C, FALSE -> Merge Segments (segment C seul sauté aussi possible)",
+      gC[0][0].node === "V3 Call LLM (Draft C)" && gC[1][0].node === "V3 Merge Segments")
+    check("V3 Assemble Draft Prompt route vers la garde A (plus jamais direct vers Draft A)",
+      workflow.connections["V3 Assemble Draft Prompt"].main[0][0].node === "V3 Segment A Active?")
+    check("V3 A Truncated? (non tronque) route vers la garde B (plus jamais direct vers Draft B)",
+      workflow.connections["V3 A Truncated?"].main[1][0].node === "V3 Segment B Active?")
+    check("V3 B Truncated? (non tronque) route vers la garde C (plus jamais direct vers Draft C)",
+      workflow.connections["V3 B Truncated?"].main[1][0].node === "V3 Segment C Active?")
+
+    // Budgets de tokens differencies par segment (etaient uniformement 8000).
+    const tokensOf = (name) => Number((nodes[name].parameters.jsonBody.match(/max_tokens: (\d+)/) || [])[1])
+    check("Budgets de tokens differencies : A=6000, B=5000, C=4000 (etaient 8000 partout)",
+      tokensOf("V3 Call LLM (Draft)") === 6000 &&
+      tokensOf("V3 Call LLM (Draft B)") === 5000 &&
+      tokensOf("V3 Call LLM (Draft C)") === 4000)
+
+    // Le verificateur ne recoit que les sources reellement citees par les claims.
+    const registryVerify = {}
+    const cat = await runUpToDraftPrompt(registryVerify)
+    await runCodeNode("V3 Parse Draft", registryVerify, llmDraftResponse(draftArtifact(cat)))
+    await runCodeNode("V3 Assemble Verification Prompt", registryVerify, {})
+    const verifyPromptData = registryVerify["V3 Assemble Verification Prompt"]
+    const citedInDraft = new Set(registryVerify["V3 Parse Draft"].draftClaimsForVerify.flatMap((c) => c.source_refs))
+    const fullCatalogueSize = registryVerify["V3 Assemble Draft Prompt"].catalogue.length
+    check("Le vérificateur reçoit moins de sources que le catalogue complet quand tout n'est pas cité",
+      citedInDraft.size < fullCatalogueSize,
+      `cited=${citedInDraft.size} catalogue=${fullCatalogueSize}`)
+    check("evidenceForVerify (JSON du prompt) ne dépasse pas le nombre de sources citées",
+      (verifyPromptData.verifyUserPrompt.match(/"source_id":/g) || []).length <= citedInDraft.size)
   }
 
   // ── 9. Structure statique de la branche V3 ────────────────────────────────
@@ -620,9 +748,9 @@ async function main() {
     check("Le prompt de génération interdit snippets et sources non consultées",
       /snippet de moteur de recherche/.test(draftNode.parameters.jsCode) &&
       /URL non consultee/.test(draftNode.parameters.jsCode))
-    check("Le prompt de génération V3 interdit FOLIO pour frictions, signaux et trends_and_news.analysis",
-      /FOLIO ne constitue JAMAIS une preuve/.test(draftNode.parameters.jsCode) &&
-      /trends_and_news\.analysis ne peuvent JAMAIS s'appuyer sur FOLIO_LEGACY/.test(draftNode.parameters.jsCode))
+    check("Le prompt de génération V3 interdit FOLIO comme preuve (indice de recherche seulement)",
+      /FOLIO_HINT est un indice de recherche/.test(draftNode.parameters.jsCode) &&
+      /jamais un Claim, jamais un source_refs/.test(draftNode.parameters.jsCode))
 
     // Toutes les sorties d'erreur V3 mènent au failure callback partagé.
     const v3Nodes = workflow.nodes.filter((n) => String(n.id).startsWith("n030v3-"))
