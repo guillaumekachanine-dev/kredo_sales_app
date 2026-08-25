@@ -137,6 +137,13 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     icon: "prioritize",
     status: "coming_soon",
   },
+  mission_activation_portefeuille: {
+    id: "mission_activation_portefeuille",
+    label: "Intelligence Mission — Activation portefeuille",
+    description: "Identifier les comptes prioritaires à relancer selon les signaux d'achat et la fraîcheur relationnelle.",
+    icon: "prioritize",
+    status: "coming_soon",
+  },
   activity_report: {
     id: "activity_report",
     label: "Bilan d'activité",
@@ -279,7 +286,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
   },
   action_priorities: {
     id: "action_priorities",
-    label: "Priorités d'action",
+    label: "Priorités",
     description: "Recommander les actions les plus impactantes à mener cette semaine.",
     icon: "prioritize",
     status: "active",
@@ -355,7 +362,7 @@ const MODULES: Record<string, CockpitModule> = {
     description: "Analyses & scénarios",
     icon: "financial_modeling",
     href: "/finance",
-    status: "coming_soon",
+    status: "active",
   },
   activity_leave: {
     id: "activity_leave",
@@ -363,7 +370,7 @@ const MODULES: Record<string, CockpitModule> = {
     description: "Planning & absences",
     icon: "activity_leave",
     href: "/consultants/activite-conges",
-    status: "active",
+    status: "coming_soon",
   },
 }
 
@@ -380,8 +387,8 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/cockpit",
     label: "Cockpit",
-    actionIds: ["weekly_brief", "action_priorities", "pipeline_insights"],
-    moduleIds: [],
+    actionIds: ["action_priorities", "weekly_brief", "pipeline_insights", "mission_activation_portefeuille"],
+    moduleIds: ["financial_modeling", "activity_leave"],
   },
   {
     pattern: "/agenda",

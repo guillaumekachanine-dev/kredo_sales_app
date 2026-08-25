@@ -40,7 +40,7 @@ describe("Cockpit Intelligence registry", () => {
       "detect_anomalies",
     ])
     expect(finance.modules).toEqual([
-      expect.objectContaining({ id: "financial_modeling", status: "coming_soon", href: "/finance" }),
+      expect.objectContaining({ id: "financial_modeling", status: "active", href: "/finance" }),
     ])
   })
 

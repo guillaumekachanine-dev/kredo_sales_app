@@ -130,6 +130,7 @@ export function CockpitModuleCard({
   href,
   state,
   current = false,
+  onClick,
 }: {
   label: string
   description: string
@@ -137,10 +138,11 @@ export function CockpitModuleCard({
   href: string
   state: CockpitModuleCardState
   current?: boolean
+  onClick?: () => void
 }) {
   const className = cn(
     "group relative flex min-h-[6.125rem] w-full flex-col overflow-hidden rounded-[0.875rem] border border-cockpit-intelligence-border bg-cockpit-intelligence p-3 text-left transition-[transform,opacity] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2",
-    state === "active" && !current ? "hover:-translate-y-0.5 motion-reduce:hover:translate-y-0" : "cursor-not-allowed",
+    state === "active" && !current ? "cursor-pointer hover:-translate-y-0.5 motion-reduce:hover:translate-y-0" : "cursor-not-allowed",
   )
   const content = (
     <ModuleCardContent
@@ -152,6 +154,9 @@ export function CockpitModuleCard({
   )
 
   if (state === "active" && !current) {
+    if (onClick) {
+      return <button type="button" onClick={onClick} className={className}>{content}</button>
+    }
     return <Link href={href} className={className}>{content}</Link>
   }
 

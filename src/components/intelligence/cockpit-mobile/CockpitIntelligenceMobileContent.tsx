@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
 import type { ResolvedPageCockpitConfig } from "@/lib/intelligence/intelligence-registry"
 import { doesCockpitPatternMatch } from "@/lib/intelligence/intelligence-registry"
 import { IntelligenceActionCard } from "../IntelligenceActionCard"
@@ -12,6 +13,11 @@ import {
   type CockpitShortcutKind,
 } from "./CockpitIntelligenceCards"
 import { CockpitIntelligenceShell, CockpitSectionHeader } from "./CockpitIntelligenceShell"
+
+const FinancialModelingMobileFlow = dynamic(
+  () => import("@/features/financial-modeling/components/mobile/FinancialModelingMobileFlow").then((module) => module.FinancialModelingMobileFlow),
+  { ssr: false },
+)
 
 const COCKPIT_SHORTCUTS: Array<{
   label: string
@@ -34,6 +40,8 @@ export function CockpitIntelligenceMobileContent({
   onActionClick: (actionId: string) => void
 }) {
   const [missionActionId, setMissionActionId] = useState<string | null>(null)
+  const [isFinancialModelingOpen, setIsFinancialModelingOpen] = useState(false)
+
   const missionConfig = missionActionId ? MISSION_COMPOSER_ACTION_CONFIGS[missionActionId] : null
 
   if (missionConfig) {
@@ -85,6 +93,7 @@ export function CockpitIntelligenceMobileContent({
                 href={module.href}
                 state={module.status}
                 current={doesCockpitPatternMatch(pathname, module.href)}
+                onClick={module.id === "financial_modeling" ? () => setIsFinancialModelingOpen(true) : undefined}
               />
             ))}
           </div>
@@ -107,6 +116,13 @@ export function CockpitIntelligenceMobileContent({
           ))}
         </nav>
       </section>
+
+      {isFinancialModelingOpen && (
+        <FinancialModelingMobileFlow
+          open={isFinancialModelingOpen}
+          onOpenChange={setIsFinancialModelingOpen}
+        />
+      )}
     </CockpitIntelligenceShell>
   )
 }

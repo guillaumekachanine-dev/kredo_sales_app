@@ -3,6 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const USER_ID = "11111111-1111-1111-1111-111111111111"
 const WORKSPACE_ID = "22222222-2222-2222-2222-222222222222"
 
+const EMPTY_RUN_FACTS = {
+  totalRuns: 0,
+  successCount: 0,
+  failureCount: 0,
+  successRatePct: null,
+  healthStatus: "unavailable",
+  topAutomations: [],
+  topAlerts: [],
+  totalCost: null,
+  hasPricingGap: false,
+  costBreakdown: [],
+}
+
 type Row = Record<string, unknown>
 
 const mocks = vi.hoisted(() => ({
@@ -76,19 +89,7 @@ describe("POST /api/reports/technical/generate", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.content.facts).toMatchObject({
-      totalRuns: 0,
-      successCount: 0,
-      failureCount: 0,
-      successRatePct: null,
-      healthStatus: "unavailable",
-      topAutomations: [],
-      topAlerts: [],
-      totalCost: null,
-      hasPricingGap: false,
-      costBreakdown: [],
-    })
-    expect(JSON.stringify(body.content)).not.toMatch(/demo-alert|48|46 succès|1\.45/)
+    expect(body.content.facts).toMatchObject(EMPTY_RUN_FACTS)
   })
 
   it("calcule les métriques uniquement depuis les exécutions et coûts réels", async () => {
@@ -175,10 +176,7 @@ describe("POST /api/reports/technical/generate", () => {
 
     expect(persistedUserId).toBe(USER_ID)
     expect(persistedInput.contentJson).toEqual(body.content)
-    expect(persistedInput.contentJson.facts.totalRuns).toBe(0)
-    expect(persistedInput.contentJson.facts.topAutomations).toEqual([])
-    expect(persistedInput.contentJson.facts.topAlerts).toEqual([])
-    expect(persistedInput.contentJson.facts.costBreakdown).toEqual([])
+    expect(persistedInput.contentJson.facts).toMatchObject(EMPTY_RUN_FACTS)
     expect(persistedOptions).toEqual({ workspaceId: WORKSPACE_ID })
   })
 

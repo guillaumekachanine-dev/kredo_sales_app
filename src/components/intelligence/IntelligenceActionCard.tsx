@@ -212,7 +212,7 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
     }
 
     if (isWeeklyBrief) {
-      openReportGeneration({ origin: "agenda", reportType: "weekly_manager" })
+      openReportGeneration({ origin: "cockpit", reportType: "weekly_manager" })
       return
     }
 

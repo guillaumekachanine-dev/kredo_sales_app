@@ -68,6 +68,9 @@ export function cockpitIconForKey(icon: IntelligenceIconKey): string {
 }
 
 export function cockpitIconForAction(actionId: string, icon: IntelligenceIconKey): string {
+  if (actionId.includes("activation_portefeuille")) {
+    return cockpitActionIcons.prioritizeAccounts
+  }
   if (actionId in MISSION_COMPOSER_ACTION_CONFIGS || actionId.includes("mission")) {
     return cockpitActionIcons.cockpitIntelligence
   }
