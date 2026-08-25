@@ -370,7 +370,7 @@ const MODULES: Record<string, CockpitModule> = {
     description: "Planning & absences",
     icon: "activity_leave",
     href: "/consultants/activite-conges",
-    status: "coming_soon",
+    status: "active",
   },
 }
 
@@ -453,7 +453,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/consultants",
     label: "Équipe",
-    actionIds: ["analyze_skill_gaps", "suggest_training", "analyze_activity"],
+    actionIds: ["analyze_skill_gaps", "suggest_training", "analyze_activity", "forecast_availability"],
     moduleIds: ["activity_leave"],
   },
   {
