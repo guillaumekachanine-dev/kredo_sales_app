@@ -40,6 +40,7 @@ import {
   candidateShouldBeDefaultSelected,
   mergeProposalRows,
 } from "./account-scan-utils"
+import { resolveAccountScanApplyOutcome } from "./account-scan-apply-outcome"
 
 type Phase =
   | "loading"
@@ -109,7 +110,7 @@ export function AccountScanDialog({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [selectedContactKeys, setSelectedContactKeys] = useState<Set<string>>(new Set())
   const [applying, setApplying] = useState(false)
-  const [lastAppliedCount, setLastAppliedCount] = useState<number | null>(null)
+  const [completedApplyCount, setCompletedApplyCount] = useState<number | null>(null)
   const [importingContacts, setImportingContacts] = useState(false)
   const [importResult, setImportResult] = useState<ImportAccountScanContactsResult | null>(null)
   const [bilanByProposalId, setBilanByProposalId] = useState<Map<string, AccountScanBilanCategory>>(new Map())
@@ -199,17 +200,17 @@ export function AccountScanDialog({
     if (ids.length === 0) return
     setApplying(true)
     setErrorMessage(null)
-    const countToApply = ids.length
     const result = await applyAccountScanProposals({ runId: targetRunId, companyId: company.id, proposalIds: ids })
     setApplying(false)
 
     if (result.error) {
       setErrorMessage(result.error)
-      setLastAppliedCount(null)
+      setCompletedApplyCount(null)
       return
     }
 
-    setLastAppliedCount(countToApply)
+    const outcome = resolveAccountScanApplyOutcome(ids, result.results)
+    setCompletedApplyCount(outcome.completedApplyCount)
     setBilanByProposalId((prev) => {
       const next = new Map(prev)
       for (const r of result.results) {
@@ -219,11 +220,11 @@ export function AccountScanDialog({
     })
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      for (const id of ids) next.delete(id)
+      for (const id of outcome.appliedIds) next.delete(id)
       return next
     })
 
-    onApplied()
+    if (outcome.appliedIds.size > 0) onApplied()
   }, [company.id, onApplied])
 
   const loadProposalRows = useCallback(async (targetRunId: string, output: AccountScanOutput) => {
@@ -377,7 +378,7 @@ export function AccountScanDialog({
   async function triggerInformationScan(setup: AccountScanSetupValues, confirmedSiren?: string) {
     lastSetupRef.current = setup
     setErrorMessage(null)
-    setLastAppliedCount(null)
+    setCompletedApplyCount(null)
     setInformationOutput(null)
     setProposalRows([])
     setSelectedIds(new Set())
@@ -424,7 +425,7 @@ export function AccountScanDialog({
   async function triggerContactsScan(setup: AccountScanContactsSetupValues) {
     if (phase === "contacts_queued" || phase === "contacts_running") return
     setErrorMessage(null)
-    setLastAppliedCount(null)
+    setCompletedApplyCount(null)
     setContactsOutput(null)
     setContactsResultId(null)
     setSelectedContactKeys(new Set())
@@ -468,13 +469,13 @@ export function AccountScanDialog({
 
   function handleBackToInformationSetup() {
     setErrorMessage(null)
-    setLastAppliedCount(null)
+    setCompletedApplyCount(null)
     setPhase("information_setup")
   }
 
   function handleGoToContactsSetup() {
     setErrorMessage(null)
-    setLastAppliedCount(null)
+    setCompletedApplyCount(null)
     setPhase("contacts_setup")
   }
 
@@ -534,7 +535,7 @@ export function AccountScanDialog({
   }
 
   function handleToggleSelect(id: string) {
-    setLastAppliedCount(null)
+    setCompletedApplyCount(null)
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -544,7 +545,7 @@ export function AccountScanDialog({
   }
 
   function handleToggleSelectAll(ids: string[]) {
-    setLastAppliedCount(null)
+    setCompletedApplyCount(null)
     setSelectedIds((prev) => {
       const allSelected = ids.length > 0 && ids.every((id) => prev.has(id))
       return allSelected ? new Set() : new Set(ids)
@@ -673,7 +674,7 @@ export function AccountScanDialog({
         onToggleSelect={handleToggleSelect}
         onApplySelected={handleApplySelected}
         applying={applying}
-        lastAppliedCount={lastAppliedCount}
+        completedApplyCount={completedApplyCount}
         bilanByProposalId={bilanByProposalId}
         errorMessage={errorMessage}
         onNewScan={handleBackToInformationSetup}
@@ -688,7 +689,7 @@ export function AccountScanDialog({
         onToggleSelectAll={handleToggleSelectAll}
         onApplySelected={handleApplySelected}
         applying={applying}
-        lastAppliedCount={lastAppliedCount}
+        completedApplyCount={completedApplyCount}
         bilanByProposalId={bilanByProposalId}
         onNewScan={handleBackToInformationSetup}
         onContacts={handleGoToContactsSetup}

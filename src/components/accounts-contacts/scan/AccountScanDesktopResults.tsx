@@ -23,7 +23,7 @@ interface AccountScanDesktopResultsProps {
   onToggleSelectAll: (ids: string[]) => void
   onApplySelected: () => void
   applying: boolean
-  lastAppliedCount?: number | null
+  completedApplyCount?: number | null
   bilanByProposalId: Map<string, AccountScanBilanCategory>
   onNewScan?: () => void
   onContacts?: () => void
@@ -59,7 +59,7 @@ export function AccountScanDesktopResults({
   onToggleSelectAll,
   onApplySelected,
   applying,
-  lastAppliedCount = null,
+  completedApplyCount = null,
   bilanByProposalId,
   onNewScan,
   onContacts,
@@ -75,7 +75,7 @@ export function AccountScanDesktopResults({
   const visibleIds = visibleRows.map((row) => row.id)
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
 
-  const isSuccessState = !applying && lastAppliedCount !== null && lastAppliedCount > 0 && selectedIds.size === 0
+  const isSuccessState = completedApplyCount !== null && completedApplyCount > 0
 
   const chooseGroup = (id: string) => {
     setActiveGroupId(id)
@@ -101,7 +101,7 @@ export function AccountScanDesktopResults({
               : "border-edito-brass bg-edito-navy text-white hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted"
           )}
         >
-          {applying ? "Application…" : isSuccessState ? `Appliqué ${lastAppliedCount} changement${lastAppliedCount! > 1 ? "s" : ""} ✓` : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""} →`}
+          {applying ? "Application…" : isSuccessState ? `Appliqué ${completedApplyCount} changement${completedApplyCount > 1 ? "s" : ""} ✓` : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""} →`}
         </button>
       </div>
 

@@ -21,7 +21,7 @@ interface AccountScanMobileResultsProps {
   onToggleSelect: (id: string) => void
   onApplySelected: () => void
   applying: boolean
-  lastAppliedCount?: number | null
+  completedApplyCount?: number | null
   bilanByProposalId: Map<string, AccountScanBilanCategory>
   errorMessage?: string | null
   onNewScan?: () => void
@@ -35,7 +35,7 @@ export function AccountScanMobileResults({
   onToggleSelect,
   onApplySelected,
   applying,
-  lastAppliedCount = null,
+  completedApplyCount = null,
   bilanByProposalId,
   errorMessage,
   onNewScan,
@@ -45,7 +45,7 @@ export function AccountScanMobileResults({
   const [activeGroupId, setActiveGroupId] = useState(() => groups[0]?.id ?? "")
   const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0]
 
-  const isSuccessState = !applying && lastAppliedCount !== null && lastAppliedCount > 0 && selectedIds.size === 0
+  const isSuccessState = completedApplyCount !== null && completedApplyCount > 0
 
   return (
     <div className="flex min-h-full flex-col bg-edito-canvas pb-36">
@@ -210,7 +210,7 @@ export function AccountScanMobileResults({
             {applying
               ? "Application…"
               : isSuccessState
-                ? `Appliqué ${lastAppliedCount} changement${lastAppliedCount! > 1 ? "s" : ""} ✓`
+                ? `Appliqué ${completedApplyCount} changement${completedApplyCount > 1 ? "s" : ""} ✓`
                 : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""} →`}
           </button>
         </div>
@@ -238,4 +238,3 @@ export function AccountScanMobileResults({
     </div>
   )
 }
-
