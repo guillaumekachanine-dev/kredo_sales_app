@@ -111,6 +111,30 @@ async function loadAction(id: DeterministicIntelligenceActionId): Promise<Loaded
   }
 }
 
+function DeterministicResultHeader({ title }: { title: string }) {
+  return (
+    <header className="relative isolate grid min-h-32 grid-cols-[minmax(0,1fr)_clamp(6rem,28cqi,7.5rem)] overflow-hidden bg-edito-navy text-white">
+      <div className="flex min-w-0 items-center px-5 py-7 pr-7">
+        <h3 className="font-heading text-[clamp(1.375rem,6.5cqi,2rem)] font-black leading-[1.05] tracking-[-0.025em] text-white">
+          {title}
+        </h3>
+      </div>
+
+      <div className="flex items-center bg-brand-primary-deep px-1 py-6 pl-2">
+        <p className="flex flex-col text-[clamp(0.58rem,2.5cqi,0.68rem)] font-black uppercase leading-[1.45] tracking-[0.12em] text-white">
+          <span className="whitespace-nowrap">Résultat</span>
+          <span className="whitespace-nowrap">déterministe</span>
+        </p>
+      </div>
+
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-4 -top-4 right-[clamp(6rem,28cqi,7.5rem)] z-10 w-3 origin-center -skew-x-[16deg] bg-white"
+      />
+    </header>
+  )
+}
+
 export function IntelligenceActionResultContent({ actionId }: { actionId: DeterministicIntelligenceActionId }) {
   const [isPending, startTransition] = useTransition()
   const [loaded, setLoaded] = useState<LoadedResult | null>(null)
@@ -131,6 +155,37 @@ export function IntelligenceActionResultContent({ actionId }: { actionId: Determ
     })
     return () => { cancelled = true }
   }, [actionId])
+
+  if (actionId === "forecast_revenue" || actionId === "action_priorities") {
+    const isBrightPilotLoaded = actionId === "forecast_revenue"
+      ? loaded?.id === "forecast_revenue"
+      : loaded?.id === "action_priorities"
+
+    return (
+      <section
+        data-theme="edito-bright-cockpit"
+        className="overflow-hidden bg-edito-surface text-edito-body [container-type:inline-size] max-md:ml-[-1.3125rem] max-md:w-[calc(100vw_-_4rem)]"
+      >
+        <DeterministicResultHeader title={titleForAction(actionId)} />
+
+        {(isPending || (!isBrightPilotLoaded && !error)) && (
+          <div className="flex items-center gap-3 border-b border-edito-border px-5 py-6 text-xs font-semibold text-edito-muted animate-pulse">
+            <span className="size-4 animate-spin rounded-full border-2 border-brand-primary border-t-transparent" />
+            <span>Calcul en cours...</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="border-b border-danger/35 px-5 py-5 text-xs font-semibold leading-relaxed text-edito-body">
+            {error}
+          </div>
+        )}
+
+        {loaded?.id === "forecast_revenue" && <ForecastRevenueResult result={loaded.data} />}
+        {loaded?.id === "action_priorities" && <ActionPrioritiesResult result={loaded.data} />}
+      </section>
+    )
+  }
 
   return (
     <div data-theme="cockpit" className="rounded-2xl border border-white/15 bg-[#0c1838] p-4.5 text-white shadow-xl space-y-4">
