@@ -1,3 +1,5 @@
+"use client"
+
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import type {
   AccountIntelligenceAvailability,
@@ -23,6 +25,15 @@ function ProcessMarker({ state }: { state: AccountIntelligenceAvailability }) {
   return <span className="size-[18px] shrink-0 rounded-full border-2 border-white/45 bg-transparent" aria-hidden="true" />
 }
 
+function processAriaLabel(step: AccountIntelligenceHomeProcessStep) {
+  const status = step.state === "available"
+    ? "contenu disponible"
+    : step.state === "partial"
+      ? "contenu partiel"
+      : "contenu indisponible"
+  return `${step.label} — ${status}`
+}
+
 function ProcessRail({ steps }: { steps: readonly AccountIntelligenceHomeProcessStep[] }) {
   return (
     <nav aria-label="Parcours Account Intelligence" className="absolute left-[7%] top-[13%] h-[74%] w-[34%]">
@@ -45,14 +56,16 @@ function ProcessRail({ steps }: { steps: readonly AccountIntelligenceHomeProcess
               </>
             )
 
+            const className = "grid min-h-10 w-full grid-cols-[18px_1fr] items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass"
+
             return (
               <li key={step.id}>
-                {step.href ? (
-                  <a
-                    href={step.href}
-                    className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass"
-                    aria-label={`${step.label} — ${step.state === "available" ? "contenu disponible" : step.state === "partial" ? "contenu partiel" : "contenu indisponible"}`}
-                  >
+                {step.onClick ? (
+                  <button type="button" onClick={step.onClick} className={className} aria-label={processAriaLabel(step)}>
+                    {content}
+                  </button>
+                ) : step.href ? (
+                  <a href={step.href} className={className} aria-label={processAriaLabel(step)}>
                     {content}
                   </a>
                 ) : (
@@ -167,35 +180,60 @@ function ToolboxRow({ item }: { item: AccountIntelligenceHomeToolboxItem }) {
     </>
   )
 
-  return item.href ? (
-    <a
-      href={item.href}
-      className="grid grid-cols-[52px_1fr] items-start gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
-    >
-      {content}
-    </a>
-  ) : (
-    <div className="grid grid-cols-[52px_1fr] items-start gap-5">{content}</div>
-  )
+  const className = "grid w-full grid-cols-[52px_1fr] items-start gap-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
+
+  if (item.onClick) {
+    return (
+      <button type="button" onClick={item.onClick} disabled={item.disabled} className={`${className} ${item.disabled ? "cursor-default opacity-45" : ""}`}>
+        {content}
+      </button>
+    )
+  }
+
+  if (item.href && !item.disabled) {
+    return (
+      <a href={item.href} className={className}>
+        {content}
+      </a>
+    )
+  }
+
+  return <div className={`${className} ${item.disabled ? "opacity-45" : ""}`}>{content}</div>
 }
 
-function WatchStatus({ enabled, label }: AccountIntelligenceHomeTemplateProps["watch"]) {
-  return (
-    <div className="flex shrink-0 items-center gap-2">
-      <span className="whitespace-nowrap text-[10px] font-bold text-edito-muted">{label}</span>
-      <span
+function WatchStatus({ enabled, label, onToggle, pending }: AccountIntelligenceHomeTemplateProps["watch"]) {
+  const switchVisual = (
+    <span
+      className={`relative inline-flex h-[20px] w-[36px] items-center rounded-full border transition-colors ${
+        enabled ? "border-brand-primary bg-brand-primary" : "border-edito-border bg-edito-chip"
+      }`}
+      aria-hidden="true"
+    >
+      <span className={`size-[14px] rounded-full bg-white transition-transform ${enabled ? "translate-x-[17px]" : "translate-x-[2px]"}`} />
+    </span>
+  )
+
+  if (onToggle) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={pending}
         role="switch"
         aria-checked={enabled}
         aria-label={label}
-        className={`relative inline-flex h-[20px] w-[36px] items-center rounded-full border transition-colors ${
-          enabled ? "border-brand-primary bg-brand-primary" : "border-edito-border bg-edito-chip"
-        }`}
+        className="flex shrink-0 items-center gap-2 disabled:cursor-wait disabled:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
       >
-        <span
-          className={`size-[14px] rounded-full bg-white transition-transform ${enabled ? "translate-x-[17px]" : "translate-x-[2px]"}`}
-          aria-hidden="true"
-        />
-      </span>
+        <span className="whitespace-nowrap text-[10px] font-bold text-edito-muted">{label}</span>
+        {switchVisual}
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex shrink-0 items-center gap-2" role="switch" aria-checked={enabled} aria-label={label}>
+      <span className="whitespace-nowrap text-[10px] font-bold text-edito-muted">{label}</span>
+      {switchVisual}
     </div>
   )
 }
@@ -354,7 +392,7 @@ export function AccountIntelligenceHomeTemplate({
           <h2 className="mt-10 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
           <div className="mt-6 space-y-5">
             {toolbox.map((item) => (
-              <ToolboxRow key={item.title} item={item} />
+              <ToolboxRow key={item.id} item={item} />
             ))}
           </div>
         </div>
