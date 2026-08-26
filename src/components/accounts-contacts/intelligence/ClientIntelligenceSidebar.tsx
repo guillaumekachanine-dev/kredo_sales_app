@@ -65,7 +65,7 @@ export function ClientIntelligenceSidebar({
 }: ClientIntelligenceSidebarProps) {
   return (
     <nav
-      aria-label="Navigation du Cockpit Intelligence"
+      aria-label="Navigation Account Intelligence"
       className="flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
     >
       <button
