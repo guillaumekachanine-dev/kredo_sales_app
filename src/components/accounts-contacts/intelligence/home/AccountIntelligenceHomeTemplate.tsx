@@ -272,6 +272,26 @@ export function AccountIntelligenceHomeTemplate({
   watch,
   toolbox,
 }: AccountIntelligenceHomeTemplateProps) {
+  const reviewAction = review.available && review.href ? (
+    <a
+      href={review.href}
+      aria-label={review.title}
+      className="flex shrink-0 flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
+    >
+      <span className="flex size-9 items-center justify-center bg-edito-navy text-white">
+        <DocumentIcon />
+      </span>
+      <span className="text-[9px] font-bold uppercase tracking-[0.05em] text-edito-muted">Revue</span>
+    </a>
+  ) : (
+    <div className="flex shrink-0 flex-col items-center gap-1 opacity-40" aria-label={`${review.title} indisponible`}>
+      <span className="flex size-9 items-center justify-center bg-edito-navy text-white">
+        <DocumentIcon />
+      </span>
+      <span className="text-[9px] font-bold uppercase tracking-[0.05em] text-edito-muted">Revue</span>
+    </div>
+  )
+
   return (
     <div className="w-full overflow-hidden border border-edito-border bg-edito-surface">
       <div className="h-16 bg-edito-surface" />
@@ -313,8 +333,8 @@ export function AccountIntelligenceHomeTemplate({
             <div className="inline-flex border-2 border-white bg-edito-surface px-3 py-1.5 text-[27px] font-black uppercase leading-none tracking-tight text-brand-primary-deep">
               Business
             </div>
-            <div className="mt-3 text-[clamp(3.6rem,5vw,5.15rem)] font-black uppercase leading-[0.88] tracking-[-0.045em]">Account</div>
-            <div className="mt-1 whitespace-nowrap text-[clamp(2.35rem,3.55vw,3.7rem)] font-black uppercase leading-[0.9] tracking-[-0.035em]">
+            <div className="mt-3 text-[clamp(3.2rem,4.45vw,4.6rem)] font-black uppercase leading-[0.88] tracking-[-0.045em]">Account</div>
+            <div className="mt-1 whitespace-nowrap text-[clamp(2.55rem,3.75vw,3.9rem)] font-black uppercase leading-[0.9] tracking-[-0.035em]">
               Intelligence
             </div>
           </div>
@@ -323,65 +343,54 @@ export function AccountIntelligenceHomeTemplate({
 
       <section className="grid grid-cols-2 gap-[58px] px-[64px] pb-12 pt-[58px]">
         <div id="profil-entreprise">
-          <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Le compte</h2>
-          <p className="mt-5 max-h-[96px] max-w-[470px] overflow-hidden text-[14px] leading-6 text-edito-body">{companySummary}</p>
-
-          <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3">
-            {facts.map((fact) => (
-              <div key={fact.label} className="flex items-start gap-3 text-[12px] leading-5 text-edito-body">
-                <span className="mt-[7px] size-2 shrink-0 bg-brand-primary" aria-hidden="true" />
-                <span>
-                  <span className="font-bold text-edito-heading">{fact.label} · </span>
-                  {fact.value}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 flex items-center justify-between gap-4 border-t border-edito-border pt-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center bg-edito-navy text-white">
-                <DocumentIcon />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-[0.05em] text-edito-heading">{review.title}</p>
-                <p className="mt-0.5 truncate text-[10px] text-edito-muted">{review.subtitle}</p>
-              </div>
+          <div className="min-h-[250px]">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Le compte</h2>
+              {reviewAction}
             </div>
-            {review.available && review.href ? (
-              <a href={review.href} className="shrink-0 text-[10px] font-bold text-brand-primary underline decoration-brand-brass underline-offset-4">
-                Consulter
-              </a>
-            ) : (
-              <span className="shrink-0 text-[10px] font-bold text-edito-muted">Indisponible</span>
-            )}
+
+            <p className="mt-5 max-h-[96px] max-w-[470px] overflow-hidden text-[14px] leading-6 text-edito-body">{companySummary}</p>
+
+            <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3">
+              {facts.map((fact) => (
+                <div key={fact.label} className="flex items-start gap-3 text-[12px] leading-5 text-edito-body">
+                  <span className="mt-[7px] size-2 shrink-0 bg-brand-primary" aria-hidden="true" />
+                  <span>
+                    <span className="font-bold text-edito-heading">{fact.label} · </span>
+                    {fact.value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <MetricMosaic metrics={metrics} />
         </div>
 
         <div id="actualites-compte">
-          <div className="flex items-start justify-between gap-4">
-            <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Actualité récente</h2>
-            <WatchStatus {...watch} />
+          <div className="min-h-[250px]">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Actualité récente</h2>
+              <WatchStatus {...watch} />
+            </div>
+
+            {recentSignal ? (
+              <div className="mt-5">
+                <p className="text-[14px] font-bold leading-5 text-edito-heading">{recentSignal.title}</p>
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.06em] text-edito-muted">
+                  {recentSignal.dateLabel} · {recentSignal.importanceLabel}
+                </p>
+                <p className="mt-3 max-h-[72px] overflow-hidden text-[13px] leading-6 text-edito-body">
+                  <span className="font-bold text-edito-heading">Implication commerciale · </span>
+                  {recentSignal.implication}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-5 text-[13px] italic leading-6 text-edito-muted">Aucun signal récent détecté pour ce compte.</p>
+            )}
           </div>
 
-          {recentSignal ? (
-            <div className="mt-5">
-              <p className="text-[14px] font-bold leading-5 text-edito-heading">{recentSignal.title}</p>
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.06em] text-edito-muted">
-                {recentSignal.dateLabel} · {recentSignal.importanceLabel}
-              </p>
-              <p className="mt-3 max-h-[72px] overflow-hidden text-[13px] leading-6 text-edito-body">
-                <span className="font-bold text-edito-heading">Implication commerciale · </span>
-                {recentSignal.implication}
-              </p>
-            </div>
-          ) : (
-            <p className="mt-5 text-[13px] italic leading-6 text-edito-muted">Aucun signal récent détecté pour ce compte.</p>
-          )}
-
-          <h2 className="mt-10 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
+          <h2 className="mt-7 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
           <div className="mt-6 space-y-5">
             {toolbox.map((item) => (
               <ToolboxRow key={item.title} item={item} />
