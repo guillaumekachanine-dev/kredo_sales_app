@@ -1,6 +1,7 @@
 "use client"
 
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import styles from "../header/AccountIntelligenceSignatureHeader.module.css"
 import type {
   AccountIntelligenceAvailability,
   AccountIntelligenceHomeMetric,
@@ -299,140 +300,133 @@ export function AccountIntelligenceHomeTemplate({
   toolbox,
 }: AccountIntelligenceHomeTemplateProps) {
   return (
-    <>
-      <style>{`
-        .edito-bright-page:has([data-account-intelligence-home]) > .flex.min-w-0.flex-1.flex-col.overflow-hidden > header {
-          display: none;
-        }
-      `}</style>
-      <div data-account-intelligence-home className="w-full overflow-hidden border border-edito-border bg-edito-surface">
-        <section className="relative h-[350px] overflow-hidden border-b border-edito-border">
-          <div
-            className="absolute inset-0 bg-edito-navy"
-            style={{ clipPath: "polygon(0 0, 65% 0, 43% 100%, 0 100%)" }}
-          />
-          <div
-            className="absolute inset-0 bg-edito-surface"
-            style={{ clipPath: "polygon(65% 0, 68.2% 0, 46.2% 100%, 43% 100%)" }}
-          />
-          <div
-            className="absolute inset-0 bg-brand-primary"
-            style={{ clipPath: "polygon(68.2% 0, 100% 0, 100% 100%, 46.2% 100%)" }}
-          />
+    <div data-account-intelligence-home className="w-full overflow-hidden border border-edito-border bg-edito-surface">
+      <section className="relative h-[350px] overflow-hidden border-b border-edito-border">
+        <div
+          className="absolute inset-0 bg-edito-navy"
+          style={{ clipPath: "polygon(0 0, 65% 0, 43% 100%, 0 100%)" }}
+        />
+        <div
+          className="absolute inset-0 bg-edito-surface"
+          style={{ clipPath: "polygon(65% 0, 68.2% 0, 46.2% 100%, 43% 100%)" }}
+        />
+        <div
+          className={`absolute inset-0 ${styles.petrol}`}
+          style={{ clipPath: "polygon(68.2% 0, 100% 0, 100% 100%, 46.2% 100%)" }}
+        />
 
-          <ProcessRail steps={processSteps} />
+        <ProcessRail steps={processSteps} />
 
-          <div className="absolute right-[5.8%] top-[11%] w-[34%] text-white">
-            <div className="flex items-center justify-end gap-3">
-              <div className="min-w-0 text-right">
-                <p className="truncate text-[21px] font-bold uppercase leading-none tracking-tight">{account.name}</p>
-                <p className="mt-2 truncate text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">{account.segment}</p>
+        <div className="absolute right-[5.8%] top-[11%] w-[34%] text-white">
+          <div className="flex items-center justify-end gap-3">
+            <div className="min-w-0 text-right">
+              <p className="truncate text-[21px] font-bold uppercase leading-none tracking-tight">{account.name}</p>
+              <p className="mt-2 truncate text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">{account.segment}</p>
+            </div>
+            <div className="size-[52px] shrink-0 bg-white p-1.5">
+              <CompanyLogo
+                name={account.name}
+                logoPath={account.logoPath}
+                website={account.website}
+                fill
+                className="h-full w-full rounded-none border-0 bg-white text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-col items-end text-right">
+            <div className="inline-flex border-2 border-white bg-edito-surface px-3 py-1.5 text-[27px] font-black uppercase leading-none tracking-tight text-brand-primary-deep">
+              Business
+            </div>
+            <div className="mt-3 text-[clamp(3.2rem,4.45vw,4.6rem)] font-black uppercase leading-[0.88] tracking-[-0.045em]">Account</div>
+            <div className="mt-1 whitespace-nowrap text-[clamp(2.55rem,3.75vw,3.9rem)] font-black uppercase leading-[0.9] tracking-[-0.035em]">
+              Intelligence
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-[58px] px-[64px] pb-12 pt-[58px]">
+        <div id="profil-entreprise">
+          <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Le compte</h2>
+
+          <p className="mt-5 max-h-[96px] max-w-[470px] overflow-hidden text-[14px] leading-6 text-edito-body">{companySummary}</p>
+
+          <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3">
+            {facts.map((fact) => (
+              <div key={fact.label} className="flex items-start gap-3 text-[12px] leading-5 text-edito-body">
+                <span className="mt-[7px] size-2 shrink-0 bg-brand-primary" aria-hidden="true" />
+                <span>
+                  <span className="font-bold text-edito-heading">{fact.label} · </span>
+                  {fact.value}
+                </span>
               </div>
-              <div className="size-[52px] shrink-0 bg-white p-1.5">
-                <CompanyLogo
-                  name={account.name}
-                  logoPath={account.logoPath}
-                  website={account.website}
-                  fill
-                  className="h-full w-full rounded-none border-0 bg-white text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="mt-12 flex flex-col items-end text-right">
-              <div className="inline-flex border-2 border-white bg-edito-surface px-3 py-1.5 text-[27px] font-black uppercase leading-none tracking-tight text-brand-primary-deep">
-                Business
-              </div>
-              <div className="mt-3 text-[clamp(3.2rem,4.45vw,4.6rem)] font-black uppercase leading-[0.88] tracking-[-0.045em]">Account</div>
-              <div className="mt-1 whitespace-nowrap text-[clamp(2.55rem,3.75vw,3.9rem)] font-black uppercase leading-[0.9] tracking-[-0.035em]">
-                Intelligence
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-2 gap-[58px] px-[64px] pb-12 pt-[58px]">
-          <div id="profil-entreprise">
-            <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Le compte</h2>
-
-            <p className="mt-5 max-h-[96px] max-w-[470px] overflow-hidden text-[14px] leading-6 text-edito-body">{companySummary}</p>
-
-            <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3">
-              {facts.map((fact) => (
-                <div key={fact.label} className="flex items-start gap-3 text-[12px] leading-5 text-edito-body">
-                  <span className="mt-[7px] size-2 shrink-0 bg-brand-primary" aria-hidden="true" />
-                  <span>
-                    <span className="font-bold text-edito-heading">{fact.label} · </span>
-                    {fact.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <MetricMosaic metrics={metrics} />
+            ))}
           </div>
 
-          <div id="actualites-compte">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Actualité récente</h2>
-              <WatchStatus {...watch} />
-            </div>
+          <MetricMosaic metrics={metrics} />
+        </div>
 
-            {recentSignal ? (
-              <div className="mt-5">
-                <p className="text-[14px] font-bold leading-5 text-edito-heading">{recentSignal.title}</p>
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.06em] text-edito-muted">
-                  {recentSignal.dateLabel} · {recentSignal.importanceLabel}
-                </p>
-                <p className="mt-3 max-h-[72px] overflow-hidden text-[13px] leading-6 text-edito-body">
-                  <span className="font-bold text-edito-heading">Implication commerciale · </span>
-                  {recentSignal.implication}
-                </p>
-              </div>
-            ) : (
-              <p className="mt-5 text-[13px] italic leading-6 text-edito-muted">Aucun signal récent détecté pour ce compte.</p>
-            )}
+        <div id="actualites-compte">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Actualité récente</h2>
+            <WatchStatus {...watch} />
+          </div>
 
-            <h2 className="mt-10 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
-            <div className="mt-6 space-y-5">
-              {toolbox.map((item) => (
-                <ToolboxRow key={item.id} item={item} />
-              ))}
+          {recentSignal ? (
+            <div className="mt-5">
+              <p className="text-[14px] font-bold leading-5 text-edito-heading">{recentSignal.title}</p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.06em] text-edito-muted">
+                {recentSignal.dateLabel} · {recentSignal.importanceLabel}
+              </p>
+              <p className="mt-3 max-h-[72px] overflow-hidden text-[13px] leading-6 text-edito-body">
+                <span className="font-bold text-edito-heading">Implication commerciale · </span>
+                {recentSignal.implication}
+              </p>
             </div>
-          </div>
-        </section>
+          ) : (
+            <p className="mt-5 text-[13px] italic leading-6 text-edito-muted">Aucun signal récent détecté pour ce compte.</p>
+          )}
 
-        <footer className="mx-[64px] grid grid-cols-3 gap-8 border-t border-edito-border py-8">
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-full border-2 border-edito-ink text-edito-ink">
-              <FooterIcon type="web" />
-            </span>
-            <div>
-              <p className="text-[10px] font-semibold text-edito-muted">Site web</p>
-              <p className="text-[12px] font-bold text-edito-ink">{websiteLabel(account.website)}</p>
-            </div>
+          <h2 className="mt-10 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
+          <div className="mt-6 space-y-5">
+            {toolbox.map((item) => (
+              <ToolboxRow key={item.id} item={item} />
+            ))}
           </div>
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-full border-2 border-edito-ink text-edito-ink">
-              <FooterIcon type="status" />
-            </span>
-            <div>
-              <p className="text-[10px] font-semibold text-edito-muted">Statut CRM</p>
-              <p className="text-[12px] font-bold text-edito-ink">{account.lifecycle}</p>
-            </div>
+        </div>
+      </section>
+
+      <footer className="mx-[64px] grid grid-cols-3 gap-8 border-t border-edito-border py-8">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-full border-2 border-edito-ink text-edito-ink">
+            <FooterIcon type="web" />
+          </span>
+          <div>
+            <p className="text-[10px] font-semibold text-edito-muted">Site web</p>
+            <p className="text-[12px] font-bold text-edito-ink">{websiteLabel(account.website)}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-full border-2 border-edito-ink text-edito-ink">
-              <FooterIcon type="location" />
-            </span>
-            <div>
-              <p className="text-[10px] font-semibold text-edito-muted">Localisation</p>
-              <p className="text-[12px] font-bold text-edito-ink">{account.location}</p>
-            </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-full border-2 border-edito-ink text-edito-ink">
+            <FooterIcon type="status" />
+          </span>
+          <div>
+            <p className="text-[10px] font-semibold text-edito-muted">Statut CRM</p>
+            <p className="text-[12px] font-bold text-edito-ink">{account.lifecycle}</p>
           </div>
-        </footer>
-      </div>
-    </>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-full border-2 border-edito-ink text-edito-ink">
+            <FooterIcon type="location" />
+          </span>
+          <div>
+            <p className="text-[10px] font-semibold text-edito-muted">Localisation</p>
+            <p className="text-[12px] font-bold text-edito-ink">{account.location}</p>
+          </div>
+        </div>
+      </footer>
+    </div>
   )
 }
 
