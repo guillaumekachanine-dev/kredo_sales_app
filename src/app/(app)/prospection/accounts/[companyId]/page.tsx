@@ -4,6 +4,7 @@ import { RegisterBreadcrumbLabel } from "@/components/layout/RegisterBreadcrumbL
 import { RegisterIntelligenceContext } from "@/components/intelligence/RegisterIntelligenceContext"
 import { getClientIntelligence } from "@/lib/intelligence/intelligence-data"
 import { getAccountIntelligencePanelData } from "@/lib/intelligence/account-panel-data"
+import { getAccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-financials"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getActiveFinancialReferenceByCompanyId } from "@/features/financial-modeling/data/get-financial-reference"
 
@@ -28,6 +29,12 @@ export default async function ClientIntelligencePage({
     notFound()
   }
 
+  // Les agrégats portefeuille servent uniquement au template desktop : ne pas
+  // charger ce read-model supplémentaire sur mobile.
+  const homeFinancials = device === "mobile"
+    ? null
+    : await getAccountIntelligenceHomeFinancials(companyId)
+
   return (
     <>
       <RegisterBreadcrumbLabel segment={companyId} label={result.data.company.name} />
@@ -39,7 +46,13 @@ export default async function ClientIntelligencePage({
           panelData={panelResult.data}
         />
       )}
-      <ClientIntelligenceView data={result.data} device={device} financialReference={financialReference} />
+      <ClientIntelligenceView
+        data={result.data}
+        device={device}
+        financialReference={financialReference}
+        homeFinancials={homeFinancials}
+        playbookSlug={panelResult.data?.sector.structuredSectorSlug ?? null}
+      />
     </>
   )
 }
