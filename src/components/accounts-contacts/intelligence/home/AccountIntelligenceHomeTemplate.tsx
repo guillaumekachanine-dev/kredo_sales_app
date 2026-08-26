@@ -1,93 +1,87 @@
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import type {
+  AccountIntelligenceAvailability,
+  AccountIntelligenceHomeMetric,
+  AccountIntelligenceHomeProcessStep,
+  AccountIntelligenceHomeTemplateProps,
+  AccountIntelligenceHomeToolboxItem,
+} from "./account-intelligence-home-template.types"
 
-export type AccountIntelligenceHomeMetric = {
-  value: string
-  label: string
-  tone: "dark" | "light"
-}
-
-export type AccountIntelligenceHomePriority = {
-  title: string
-  description: string
-  icon: "chart" | "target" | "gear"
-}
-
-export type AccountIntelligenceHomeTemplateProps = {
-  account: {
-    name: string
-    sector: string
-    segment: string
-    website?: string | null
-    logoPath?: string | null
-    location: string
-    lifecycle: string
-  }
-  facts: readonly string[]
-  metrics: readonly [
-    AccountIntelligenceHomeMetric,
-    AccountIntelligenceHomeMetric,
-    AccountIntelligenceHomeMetric,
-    AccountIntelligenceHomeMetric,
-  ]
-  summary: string
-  priorities: readonly AccountIntelligenceHomePriority[]
-}
-
-function PriorityIcon({ icon }: { icon: AccountIntelligenceHomePriority["icon"] }) {
-  const common = {
-    className: "size-6",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
+function ProcessMarker({ state }: { state: AccountIntelligenceAvailability }) {
+  if (state === "available") {
+    return <span className="size-[18px] shrink-0 rounded-full border-2 border-white bg-brand-brass" aria-hidden="true" />
   }
 
-  if (icon === "chart") {
+  if (state === "partial") {
     return (
-      <svg {...common}>
-        <path d="M4 19V9" />
-        <path d="M10 19V5" />
-        <path d="M16 19v-7" />
-        <path d="M22 19V3" />
-      </svg>
+      <span className="flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 border-white bg-edito-navy" aria-hidden="true">
+        <span className="size-1.5 rounded-full bg-brand-brass" />
+      </span>
     )
   }
 
-  if (icon === "target") {
-    return (
-      <svg {...common}>
-        <circle cx="12" cy="12" r="8" />
-        <circle cx="12" cy="12" r="3" />
-        <path d="M18 6 21 3" />
-      </svg>
-    )
-  }
+  return <span className="size-[18px] shrink-0 rounded-full border-2 border-white/45 bg-transparent" aria-hidden="true" />
+}
 
+function ProcessRail({ steps }: { steps: readonly AccountIntelligenceHomeProcessStep[] }) {
   return (
-    <svg {...common}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.1.37.32.7.6 1 .3.29.68.48 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
-    </svg>
+    <nav aria-label="Parcours Account Intelligence" className="absolute left-[7%] top-[13%] h-[74%] w-[34%]">
+      <div className="relative h-full">
+        <div className="absolute bottom-2 left-[8px] top-2 w-px bg-white/45" aria-hidden="true" />
+        <ol className="relative flex h-full flex-col justify-between">
+          {steps.map((step) => {
+            const content = (
+              <>
+                <ProcessMarker state={step.state} />
+                <span
+                  className={
+                    step.state === "empty"
+                      ? "text-[12px] font-bold leading-4 text-white/48"
+                      : "text-[12px] font-bold leading-4 text-white"
+                  }
+                >
+                  {step.label}
+                </span>
+              </>
+            )
+
+            return (
+              <li key={step.id}>
+                {step.href ? (
+                  <a
+                    href={step.href}
+                    className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass"
+                    aria-label={`${step.label} — ${step.state === "available" ? "contenu disponible" : step.state === "partial" ? "contenu partiel" : "contenu indisponible"}`}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <div className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-4">{content}</div>
+                )}
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+    </nav>
   )
 }
 
-function MetricContent({ value, label }: AccountIntelligenceHomeMetric) {
+function MetricContent({ value, label, secondary }: AccountIntelligenceHomeMetric) {
   return (
     <div>
       <div className="text-[clamp(2rem,3.2vw,3.25rem)] font-bold leading-none tracking-tight">{value}</div>
       <div className="mt-2 text-[11px] font-semibold leading-4 opacity-80">{label}</div>
+      {secondary ? <div className="mt-0.5 text-[9px] font-semibold leading-3 opacity-65">{secondary}</div> : null}
     </div>
   )
 }
 
 function MetricMosaic({ metrics }: { metrics: AccountIntelligenceHomeTemplateProps["metrics"] }) {
   return (
-    <div className="relative mt-10 aspect-[2/1.38] w-full overflow-hidden border-2 border-edito-ink bg-edito-surface">
+    <div className="relative mt-7 aspect-[2/1.38] w-full overflow-hidden border-2 border-edito-ink bg-edito-surface">
       <div
-        className="absolute left-0 top-0 flex h-1/2 w-[55%] items-center justify-center bg-primary-deep px-6 text-center text-white"
+        className="absolute left-0 top-0 flex h-1/2 w-[55%] items-center justify-center bg-edito-navy px-6 text-center text-white"
         style={{ clipPath: "polygon(0 0, 100% 0, 82% 100%, 0 100%)" }}
       >
         <MetricContent {...metrics[0]} />
@@ -105,12 +99,114 @@ function MetricMosaic({ metrics }: { metrics: AccountIntelligenceHomeTemplatePro
         <MetricContent {...metrics[2]} />
       </div>
       <div
-        className="absolute bottom-0 right-0 flex h-1/2 w-[55%] items-center justify-center bg-primary-deep px-6 text-center text-white"
+        className="absolute bottom-0 right-0 flex h-1/2 w-[55%] items-center justify-center bg-edito-navy px-6 text-center text-white"
         style={{ clipPath: "polygon(18% 0, 100% 0, 100% 100%, 0 100%)" }}
       >
         <MetricContent {...metrics[3]} />
       </div>
       <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-edito-ink" />
+    </div>
+  )
+}
+
+function DocumentIcon() {
+  return (
+    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 3h7l4 4v14H7z" />
+      <path d="M14 3v5h5" />
+      <path d="M10 13h5" />
+      <path d="M10 17h5" />
+    </svg>
+  )
+}
+
+function ToolboxIcon({ icon }: { icon: AccountIntelligenceHomeToolboxItem["icon"] }) {
+  const common = {
+    className: "size-6",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  }
+
+  if (icon === "contacts") {
+    return (
+      <svg {...common}>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 19c.7-3.4 2.5-5.2 5.5-5.2s4.8 1.8 5.5 5.2" />
+        <path d="M16 7h4" />
+        <path d="M16 11h4" />
+        <path d="M17 15h3" />
+      </svg>
+    )
+  }
+
+  if (icon === "documents") {
+    return (
+      <svg {...common}>
+        <path d="M7 3h7l4 4v14H7z" />
+        <path d="M14 3v5h5" />
+        <path d="M10 13h5" />
+        <path d="M10 17h5" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...common}>
+      <path d="M5 4h14v16H5z" />
+      <path d="M8 8h8" />
+      <path d="M8 12h5" />
+      <path d="m8 16 2-2 2 1 4-4" />
+    </svg>
+  )
+}
+
+function ToolboxRow({ item }: { item: AccountIntelligenceHomeToolboxItem }) {
+  const content = (
+    <>
+      <div className="flex size-[52px] shrink-0 items-center justify-center bg-edito-navy text-white">
+        <ToolboxIcon icon={item.icon} />
+      </div>
+      <div className="pt-0.5">
+        <h3 className="text-[12px] font-black uppercase tracking-[0.06em] text-edito-ink">{item.title}</h3>
+        <p className="mt-1 text-[12px] leading-5 text-edito-body">{item.description}</p>
+      </div>
+    </>
+  )
+
+  return item.href ? (
+    <a
+      href={item.href}
+      className="grid grid-cols-[52px_1fr] items-start gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
+    >
+      {content}
+    </a>
+  ) : (
+    <div className="grid grid-cols-[52px_1fr] items-start gap-5">{content}</div>
+  )
+}
+
+function WatchStatus({ enabled, label }: AccountIntelligenceHomeTemplateProps["watch"]) {
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <span className="whitespace-nowrap text-[10px] font-bold text-edito-muted">{label}</span>
+      <span
+        role="switch"
+        aria-checked={enabled}
+        aria-label={label}
+        className={`relative inline-flex h-[20px] w-[36px] items-center rounded-full border transition-colors ${
+          enabled ? "border-brand-primary bg-brand-primary" : "border-edito-border bg-edito-chip"
+        }`}
+      >
+        <span
+          className={`size-[14px] rounded-full bg-white transition-transform ${enabled ? "translate-x-[17px]" : "translate-x-[2px]"}`}
+          aria-hidden="true"
+        />
+      </span>
     </div>
   )
 }
@@ -167,10 +263,14 @@ function websiteLabel(website?: string | null) {
 
 export function AccountIntelligenceHomeTemplate({
   account,
+  processSteps,
+  companySummary,
   facts,
+  review,
   metrics,
-  summary,
-  priorities,
+  recentSignal,
+  watch,
+  toolbox,
 }: AccountIntelligenceHomeTemplateProps) {
   return (
     <div className="w-full overflow-hidden border border-edito-border bg-edito-surface">
@@ -186,38 +286,35 @@ export function AccountIntelligenceHomeTemplate({
           style={{ clipPath: "polygon(65% 0, 68.2% 0, 46.2% 100%, 43% 100%)" }}
         />
         <div
-          className="absolute inset-0 bg-primary"
+          className="absolute inset-0 bg-brand-primary"
           style={{ clipPath: "polygon(68.2% 0, 100% 0, 100% 100%, 46.2% 100%)" }}
         />
 
-        <div className="absolute left-[7%] top-1/2 w-[31%] -translate-y-1/2">
-          <div className="aspect-[1.35/1] w-full border-2 border-white/90 bg-white p-7">
-            <CompanyLogo
-              name={account.name}
-              logoPath={account.logoPath}
-              website={account.website}
-              fill
-              className="h-full w-full rounded-none border-0 bg-white text-[2.75rem]"
-            />
-          </div>
-        </div>
+        <ProcessRail steps={processSteps} />
 
-        <div className="absolute right-[5.8%] top-[12%] w-[33%] text-white">
-          <div className="text-right">
-            <p className="truncate text-[22px] font-bold uppercase leading-none tracking-tight">{account.name}</p>
-            <p className="mt-2 truncate text-[11px] font-bold uppercase tracking-[0.22em] text-white/75">
-              {account.segment}
-            </p>
+        <div className="absolute right-[5.8%] top-[11%] w-[34%] text-white">
+          <div className="flex items-center justify-end gap-3">
+            <div className="min-w-0 text-right">
+              <p className="truncate text-[21px] font-bold uppercase leading-none tracking-tight">{account.name}</p>
+              <p className="mt-2 truncate text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">{account.segment}</p>
+            </div>
+            <div className="size-[52px] shrink-0 bg-white p-1.5">
+              <CompanyLogo
+                name={account.name}
+                logoPath={account.logoPath}
+                website={account.website}
+                fill
+                className="h-full w-full rounded-none border-0 bg-white text-sm"
+              />
+            </div>
           </div>
 
-          <div className="mt-14">
-            <div className="inline-flex border-2 border-white bg-edito-surface px-3 py-1.5 text-[27px] font-black uppercase leading-none tracking-tight text-primary-deep">
+          <div className="mt-12 flex flex-col items-end text-right">
+            <div className="inline-flex border-2 border-white bg-edito-surface px-3 py-1.5 text-[27px] font-black uppercase leading-none tracking-tight text-brand-primary-deep">
               Business
             </div>
-            <div className="mt-3 text-[clamp(3.8rem,5.2vw,5.35rem)] font-black uppercase leading-[0.88] tracking-[-0.045em]">
-              Account
-            </div>
-            <div className="mt-1 whitespace-nowrap text-[clamp(2.45rem,3.7vw,3.85rem)] font-black uppercase leading-[0.9] tracking-[-0.035em]">
+            <div className="mt-3 text-[clamp(3.6rem,5vw,5.15rem)] font-black uppercase leading-[0.88] tracking-[-0.045em]">Account</div>
+            <div className="mt-1 whitespace-nowrap text-[clamp(2.35rem,3.55vw,3.7rem)] font-black uppercase leading-[0.9] tracking-[-0.035em]">
               Intelligence
             </div>
           </div>
@@ -225,38 +322,69 @@ export function AccountIntelligenceHomeTemplate({
       </section>
 
       <section className="grid grid-cols-2 gap-[58px] px-[64px] pb-12 pt-[58px]">
-        <div>
+        <div id="profil-entreprise">
           <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Le compte</h2>
-          <p className="mt-5 max-w-[470px] text-[14px] leading-6 text-edito-body">{summary}</p>
+          <p className="mt-5 max-h-[96px] max-w-[470px] overflow-hidden text-[14px] leading-6 text-edito-body">{companySummary}</p>
 
           <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3">
             {facts.map((fact) => (
-              <div key={fact} className="flex items-start gap-3 text-[13px] leading-5 text-edito-body">
-                <span className="mt-[7px] size-2 shrink-0 bg-primary" aria-hidden="true" />
-                <span>{fact}</span>
+              <div key={fact.label} className="flex items-start gap-3 text-[12px] leading-5 text-edito-body">
+                <span className="mt-[7px] size-2 shrink-0 bg-brand-primary" aria-hidden="true" />
+                <span>
+                  <span className="font-bold text-edito-heading">{fact.label} · </span>
+                  {fact.value}
+                </span>
               </div>
             ))}
+          </div>
+
+          <div className="mt-5 flex items-center justify-between gap-4 border-t border-edito-border pt-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center bg-edito-navy text-white">
+                <DocumentIcon />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.05em] text-edito-heading">{review.title}</p>
+                <p className="mt-0.5 truncate text-[10px] text-edito-muted">{review.subtitle}</p>
+              </div>
+            </div>
+            {review.available && review.href ? (
+              <a href={review.href} className="shrink-0 text-[10px] font-bold text-brand-primary underline decoration-brand-brass underline-offset-4">
+                Consulter
+              </a>
+            ) : (
+              <span className="shrink-0 text-[10px] font-bold text-edito-muted">Indisponible</span>
+            )}
           </div>
 
           <MetricMosaic metrics={metrics} />
         </div>
 
-        <div>
-          <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Situation</h2>
-          <p className="mt-5 text-[14px] leading-6 text-edito-body">{summary}</p>
+        <div id="actualites-compte">
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Actualité récente</h2>
+            <WatchStatus {...watch} />
+          </div>
 
-          <h2 className="mt-12 text-[34px] font-black leading-none tracking-tight text-edito-ink">Priorités KREDO</h2>
+          {recentSignal ? (
+            <div className="mt-5">
+              <p className="text-[14px] font-bold leading-5 text-edito-heading">{recentSignal.title}</p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.06em] text-edito-muted">
+                {recentSignal.dateLabel} · {recentSignal.importanceLabel}
+              </p>
+              <p className="mt-3 max-h-[72px] overflow-hidden text-[13px] leading-6 text-edito-body">
+                <span className="font-bold text-edito-heading">Implication commerciale · </span>
+                {recentSignal.implication}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-5 text-[13px] italic leading-6 text-edito-muted">Aucun signal récent détecté pour ce compte.</p>
+          )}
+
+          <h2 className="mt-10 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
           <div className="mt-6 space-y-5">
-            {priorities.map((priority) => (
-              <div key={priority.title} className="grid grid-cols-[52px_1fr] items-start gap-5">
-                <div className="flex size-[52px] items-center justify-center bg-edito-navy text-white">
-                  <PriorityIcon icon={priority.icon} />
-                </div>
-                <div className="pt-0.5">
-                  <h3 className="text-[12px] font-black uppercase tracking-[0.06em] text-edito-ink">{priority.title}</h3>
-                  <p className="mt-1 text-[12px] leading-5 text-edito-body">{priority.description}</p>
-                </div>
-              </div>
+            {toolbox.map((item) => (
+              <ToolboxRow key={item.title} item={item} />
             ))}
           </div>
         </div>
@@ -294,3 +422,5 @@ export function AccountIntelligenceHomeTemplate({
     </div>
   )
 }
+
+export type { AccountIntelligenceHomeTemplateProps } from "./account-intelligence-home-template.types"
