@@ -1,7 +1,7 @@
 import { fold } from "@/lib/search/normalize"
 import type { AccountRow, ContactRow } from "./accounts-contacts-data"
 
-export type AccountsContactsTab = "accounts" | "contacts"
+export type AccountsContactsTab = "overview" | "accounts" | "contacts"
 
 export type SortAccountsValue = "alphabetique" | "activite"
 
@@ -62,8 +62,11 @@ function parseSortAccounts(value: string | null): SortAccountsValue {
 }
 
 export function parseFilters(params: URLSearchParams): AccountsContactsFilters {
+  const rawTab = params.get(KEYS.tab)
+  const tab: AccountsContactsTab = rawTab === "contacts" ? "contacts" : rawTab === "overview" ? "overview" : "accounts"
+
   return {
-    tab: params.get(KEYS.tab) === "contacts" ? "contacts" : "accounts",
+    tab,
     q: params.get(KEYS.q)?.trim() ?? "",
     includeStatus: readList(params, KEYS.includeStatus),
     excludeStatus: readList(params, KEYS.excludeStatus),

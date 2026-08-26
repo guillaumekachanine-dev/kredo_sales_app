@@ -24,6 +24,7 @@ import { SearchToolbar } from "@/components/search/SearchToolbar"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { FilterChip } from "@/components/search/FilterChip"
 import { FilterDropdown, type FilterOption } from "@/components/search/FilterDropdown"
+import { ContactOverviewTab } from "./overview/ContactOverviewTab"
 import {
   createCompany,
   updateCompany,
@@ -2458,27 +2459,21 @@ export function ProspectionAccountsView({
       {/* Sub-tab selection */}
       <div className={cn(device === "mobile" ? "grid grid-cols-[auto_1fr_auto] items-center gap-2" : "flex items-center gap-3")}>
         <PageViewSelector
-          items={
-            device === "mobile"
-              ? [
-                  { value: "accounts", label: "Comptes" },
-                  { value: "contacts", label: "Contacts" },
-                ]
-              : [
-                  { value: "accounts", label: "Comptes" },
-                  { value: "contacts", label: "Contacts" },
-                ]
-          }
+          items={[
+            { value: "overview", label: "Vue d'ensemble" },
+            { value: "accounts", label: "Comptes" },
+            { value: "contacts", label: "Contacts" },
+          ]}
           value={subTab}
           onChange={(value) => setParam("tab", value)}
-          ariaLabel="Sélection de la vue Comptes ou Contacts"
+          ariaLabel="Sélection de la vue Vue d'ensemble, Comptes ou Contacts"
         />
-        {device !== "mobile" && (
+        {device !== "mobile" && subTab !== "overview" && (
           <span className="text-xs font-bold text-muted ml-1">
             {totalFiltered} {subTab === "accounts" ? "comptes" : "contacts"}
           </span>
         )}
-        {device === "mobile" && mobileResultText ? (
+        {device === "mobile" && mobileResultText && subTab !== "overview" ? (
           <span className="min-w-0 text-center text-xs font-bold text-heading">
             {mobileResultText}
           </span>
@@ -2496,40 +2491,42 @@ export function ProspectionAccountsView({
       </div>
 
       {/* Search & quick filters */}
-      <div className={cn(
-        device !== "mobile" && "sticky top-0 z-30 -mx-6 px-6 py-3 bg-canvas border-b border-border/10 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.01),0_2px_4px_-1px_rgba(0,0,0,0.01)]"
-      )}>
-        <SearchToolbar
-          device={device}
-          query={filters.q}
-          totalFiltered={totalFiltered}
-          totalAll={totalAll}
-          mobileCompact={isMobileSearch}
-          resultLabel={isMobileAccounts ? "comptes" : isMobileContacts ? "contacts" : undefined}
-          placeholder={subTab === "accounts" ? "Rechercher un compte, contact, secteur, ville, email…" : "Rechercher un contact, email, poste, compte, secteur…"}
-          onQueryChange={(value) => setParam("q", value)}
-          onReset={() => clearAll(["tab"])}
-          hideReset={isMobileSearch}
-          hideChildrenWhenCompact={isMobileSearch}
-          hideCompactResult={isMobileSearch}
-          inlineDesktop={device !== "mobile"}
-          hideResultsOnDesktop={device !== "mobile"}
-          mobileAction={isMobileSearch ? (
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(true)}
-              aria-label="Ouvrir les filtres"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition-colors hover:text-heading"
-            >
-              <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
-              </svg>
-            </button>
-          ) : undefined}
-        >
-          {toolbarFilters}
-        </SearchToolbar>
-      </div>
+      {subTab !== "overview" && (
+        <div className={cn(
+          device !== "mobile" && "sticky top-0 z-30 -mx-6 px-6 py-3 bg-canvas border-b border-border/10 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.01),0_2px_4px_-1px_rgba(0,0,0,0.01)]"
+        )}>
+          <SearchToolbar
+            device={device}
+            query={filters.q}
+            totalFiltered={totalFiltered}
+            totalAll={totalAll}
+            mobileCompact={isMobileSearch}
+            resultLabel={isMobileAccounts ? "comptes" : isMobileContacts ? "contacts" : undefined}
+            placeholder={subTab === "accounts" ? "Rechercher un compte, contact, secteur, ville, email…" : "Rechercher un contact, email, poste, compte, secteur…"}
+            onQueryChange={(value) => setParam("q", value)}
+            onReset={() => clearAll(["tab"])}
+            hideReset={isMobileSearch}
+            hideChildrenWhenCompact={isMobileSearch}
+            hideCompactResult={isMobileSearch}
+            inlineDesktop={device !== "mobile"}
+            hideResultsOnDesktop={device !== "mobile"}
+            mobileAction={isMobileSearch ? (
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(true)}
+                aria-label="Ouvrir les filtres"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition-colors hover:text-heading"
+              >
+                <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
+                </svg>
+              </button>
+            ) : undefined}
+          >
+            {toolbarFilters}
+          </SearchToolbar>
+        </div>
+      )}
 
       {isMobileSearch && mobileFiltersOpen && (
         <div className="fixed inset-0 z-[1000] bg-heading/30 backdrop-blur-sm" onClick={() => setMobileFiltersOpen(false)}>
@@ -2580,6 +2577,17 @@ export function ProspectionAccountsView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Dynamic Views */}
+      {subTab === "overview" && (
+        <ContactOverviewTab
+          accounts={data.accounts}
+          contacts={data.contacts}
+          device={device}
+          onOpenCompany={openCompanyDrawer}
+          onOpenContact={openContactDrawer}
+        />
       )}
 
       {/* Dynamic Views */}

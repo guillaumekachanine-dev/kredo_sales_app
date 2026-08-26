@@ -1,11 +1,11 @@
-"use client"
-
 import { useMemo, useState } from "react"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getContactDisplayDecisionPower } from "@/lib/accounts-contacts/contact-constants"
 import { cn } from "@/lib/utils"
 import type { ContactDirectoryAccountItem, ContactDirectoryItem } from "@/app/(app)/prospection/accounts/actions"
 import { ContactDirectoryDetailPane, type ContactDetailData } from "./ContactDirectoryDetailPane"
+import { ContactOverviewTab } from "../overview/ContactOverviewTab"
+import type { AccountRow, ContactRow } from "@/lib/accounts-contacts/accounts-contacts-data"
 
 interface ContactDirectoryMobileProps {
   accounts: ContactDirectoryAccountItem[]
@@ -38,7 +38,7 @@ export function ContactDirectoryMobile({
   const filteredContacts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     return contacts.filter((c) => {
-      if (selectedCompanyId && c.companyId !== selectedCompanyId) {
+      if (selectedCompanyId && selectedCompanyId !== "overview" && c.companyId !== selectedCompanyId) {
         return false
       }
       if (!query) return true
@@ -52,6 +52,65 @@ export function ContactDirectoryMobile({
       )
     })
   }, [contacts, selectedCompanyId, searchQuery])
+
+  // Adapt data for ContactOverviewTab
+  const overviewAccounts = useMemo<AccountRow[]>(() => {
+    return accounts.map((a) => ({
+      id: a.id,
+      name: a.name,
+      sector: "",
+      sectorId: null,
+      sectorAttachment: null,
+      segment: "",
+      segmentId: null,
+      tier: null,
+      regimeAchat: null,
+      revenue: "",
+      location: "",
+      sizeBand: null,
+      priority: "normale",
+      status: "client_actif",
+      analysisStep: null,
+      hasDedicatedWatch: false,
+      website: a.website,
+      contactCount: a.contactCount,
+      emailCount: 0,
+      summary: "",
+      description: null,
+      logoPath: a.logoPath,
+      taskCount: 0,
+      employeeCount: null,
+      depthLevel: "noted",
+      origin: "manual",
+      hasStudy: false,
+    }))
+  }, [accounts])
+
+  const overviewContacts = useMemo<ContactRow[]>(() => {
+    return contacts.map((c) => ({
+      id: c.id,
+      personId: c.personId,
+      companyId: c.companyId,
+      companyName: c.companyName,
+      companySector: "",
+      fullName: c.fullName,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      email: c.email,
+      phone: c.phone,
+      linkedinUrl: c.linkedinUrl,
+      jobTitle: c.jobTitle,
+      relationshipRole: c.relationshipRole,
+      relationshipLevel: c.relationshipLevel,
+      department: c.department,
+      managerContactId: null,
+      status: "actif",
+      isPriority: c.isPriority,
+      campaignId: null,
+      logoPath: c.companyLogoPath,
+      website: c.companyWebsite,
+    }))
+  }, [contacts])
 
   // Screen 2: Detail view if contact selected
   if (selectedContactId !== null) {
@@ -73,14 +132,29 @@ export function ContactDirectoryMobile({
     <div className="flex h-full w-full flex-col overflow-hidden bg-[#0c0e24] text-white">
       {/* Account Selector Pill Rail */}
       <div className="flex shrink-0 items-center gap-2 overflow-x-auto p-4 border-b border-white/5 no-scrollbar">
+        {/* Pill 1: Vue d'ensemble */}
+        <button
+          type="button"
+          onClick={() => onSelectCompanyId("overview")}
+          className={cn(
+            "min-h-11 shrink-0 rounded-full px-4 text-xs font-bold transition-colors cursor-pointer border",
+            selectedCompanyId === "overview"
+              ? "bg-brand-brass text-slate-950 border-brand-brass font-black"
+              : "bg-white/10 text-white/80 border-white/10 hover:bg-white/15 hover:text-white"
+          )}
+        >
+          Vue d&apos;ensemble
+        </button>
+
+        {/* Pill 2: Tous les comptes */}
         <button
           type="button"
           onClick={() => onSelectCompanyId(null)}
           className={cn(
-            "min-h-11 shrink-0 rounded-full px-4 text-xs font-bold transition-colors cursor-pointer",
+            "min-h-11 shrink-0 rounded-full px-4 text-xs font-bold transition-colors cursor-pointer border",
             selectedCompanyId === null
-              ? "bg-brand-brass text-slate-950"
-              : "bg-white/10 text-white/70 hover:bg-white/15 hover:text-white"
+              ? "bg-brand-brass text-slate-950 border-brand-brass"
+              : "bg-white/10 text-white/70 border-white/5 hover:bg-white/15 hover:text-white"
           )}
         >
           Tous les comptes ({contacts.length})
@@ -106,6 +180,18 @@ export function ContactDirectoryMobile({
           </button>
         ))}
       </div>
+
+      {selectedCompanyId === "overview" ? (
+        <div className="flex-1 overflow-y-auto p-4">
+          <ContactOverviewTab
+            accounts={overviewAccounts}
+            contacts={overviewContacts}
+            device="mobile"
+            darkTheme
+          />
+        </div>
+      ) : (
+        <>
 
       {/* Search Input */}
       <div className="p-4 pb-2 shrink-0">
@@ -182,6 +268,8 @@ export function ContactDirectoryMobile({
           </div>
         )}
       </div>
-    </div>
+    </>
+  )}
+</div>
   )
 }
