@@ -34,18 +34,21 @@ const metrics = [
 
 const toolbox = [
   {
+    id: "contacts",
     title: "Répertoire de contacts",
     description: "Retrouver les interlocuteurs connus, leur fonction et leur relation avec KREDO.",
     icon: "contacts",
     href: "#",
   },
   {
+    id: "documents",
     title: "Bibliothèque de documents",
     description: "Accéder aux rapports, analyses et documents rattachés au compte.",
     icon: "documents",
     href: "#",
   },
   {
+    id: "playbook",
     title: "Playbook commercial",
     description: "Consulter les angles, messages et ressources d’adressage associés au compte.",
     icon: "playbook",
@@ -62,12 +65,6 @@ export function AccountIntelligenceTemplateLab() {
           processSteps={processSteps}
           companySummary="Eiffage est l’un des principaux groupes européens de construction et de concessions. Son positionnement repose sur une couverture intégrée des infrastructures, de l’énergie et des grands projets, avec une forte capacité à adresser des donneurs d’ordre publics comme privés."
           facts={facts}
-          review={{
-            title: "Revue du compte",
-            subtitle: "Dernière mission Intelligence disponible",
-            available: true,
-            href: "#review-compte",
-          }}
           metrics={metrics}
           recentSignal={{
             title: "Renforcement des investissements sur les infrastructures bas carbone",
