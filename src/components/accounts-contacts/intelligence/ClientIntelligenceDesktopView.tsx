@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
-import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
@@ -16,7 +15,6 @@ import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory
 import {
   ComingSoon,
   Field,
-  lifecycleLabel,
   SectionBlock,
   TagList,
 } from "./intelligence-parts"
@@ -27,6 +25,10 @@ import { ClientIntelligenceHomeTab } from "./ClientIntelligenceHomeTab"
 import { ClientIntelligenceSocleTab } from "./ClientIntelligenceSocleTab"
 import { ClientIntelligenceCompanyTab } from "./ClientIntelligenceCompanyTab"
 import { ClientIntelligenceSidebar } from "./ClientIntelligenceSidebar"
+import {
+  AccountIntelligenceSignatureHeaderDesktop,
+  getAccountIntelligenceTabLabel,
+} from "./header/AccountIntelligenceSignatureHeader"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { type TabKey } from "./intelligence-process"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
@@ -72,61 +74,14 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         onTabChange={setActiveTab}
       />
 
-      {/* ── Colonne principale : identité + contenu analytique scrollable ─────── */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* ── Header (compact) ─────────────────────────────────────────────── */}
-        <header className="shrink-0 bg-canvas px-6 pt-5">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3">
-            <div className="flex flex-col items-start">
-              <h2 className="edito-title-marker font-heading text-2xl font-bold leading-tight tracking-tight text-heading">
-                Cockpit intelligence
-              </h2>
-            </div>
+        {activeTab !== "accueil" ? (
+          <AccountIntelligenceSignatureHeaderDesktop
+            company={company}
+            title={getAccountIntelligenceTabLabel(activeTab)}
+          />
+        ) : null}
 
-            <div className="flex w-full items-start justify-between gap-6 rounded-xl border border-cockpit-petrol-medium bg-cockpit-petrol-medium p-5">
-              {/* Côté gauche : Logo + Informations du compte */}
-              <div className="flex items-start gap-4">
-                <CompanyLogo
-                  name={company.name}
-                  logoPath={company.logoPath}
-                  website={company.website}
-                  size="2xl"
-                  className="shrink-0 border-white bg-white p-1"
-                />
-                <div className="flex flex-col items-start gap-1">
-                  <h1 className="font-heading text-2xl font-bold leading-tight text-white">
-                    {company.name}
-                  </h1>
-                  <p className="text-xs leading-normal text-white/85">
-                    {company.sector} · {company.segment} · {company.hqLocation}
-                  </p>
-                  <span className="text-xs text-white/70">
-                    {lifecycleLabel(company.lifecycleStatus)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDirectoryOpen(true)}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass cursor-pointer"
-                >
-                  <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                    <circle cx="9" cy="8" r="3" />
-                    <path d="M3.5 19c.7-3.4 2.5-5.2 5.5-5.2s4.8 1.8 5.5 5.2" />
-                    <path d="M16 7h4" />
-                    <path d="M16 11h4" />
-                    <path d="M17 15h3" />
-                  </svg>
-                  <span>Répertoire contacts</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* ── Contenu de l'onglet actif ─────────────────────────────────────── */}
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-canvas px-6 pb-8">
           <div className="mx-auto w-full max-w-6xl">
             {activeTab === "accueil" && (
@@ -176,7 +131,6 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         </main>
       </div>
 
-      {/* ── Lecteur PDF plein écran (dialog native) ─────────────────────────── */}
       {diagnosticPdfUrl && (
         <dialog
           ref={pdfDialogRef}
@@ -216,8 +170,6 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
   )
 }
 
-// ─── Onglet Stratégie — génération de pitch (ADR-0009, lot H) ────────────────
-
 const PITCH_KIND_LABEL: Record<string, string> = {
   spoken_pitch: "Pitch oral 30 s",
   meeting_briefing: "Fiche de préparation RDV",
@@ -238,8 +190,6 @@ function EnjeuxTab({ data }: { data: ClientIntelligenceData }) {
   const inFlightRef = useRef(false)
 
   const reloadIssues = useCallback(async () => {
-    // Matérialisation faite côté callback (D-5) : rien à parser ici, on
-    // recharge les enjeux ouverts.
     const { data: rows } = await supabase
       .from("account_issues")
       .select("id,title,category,problem_statement,evidence_level,provenance,importance,urgency,criticality,business_impact,accessibility,kredo_fit,contact_ids,recommended_next_probe,status,created_at")
@@ -503,8 +453,6 @@ function StrategieTab({ data }: { data: ClientIntelligenceData }) {
   )
 }
 
-// ─── Sections historiques conservées exclusivement pour la vue Mobile ───────
-
 export type AnalysisTypeKey = "client" | "process"
 
 export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: string; icon: (p: { className?: string }) => ReactNode }[]> = {
@@ -585,10 +533,6 @@ function renderJsonValue(value: unknown, depth = 0, hasBullet = false): ReactNod
   return String(value)
 }
 
-
-
-// ─── Wrapper de section aérée (cockpit-reading) ──────────────────────────────
-
 function AnalysisSection({
   id,
   icon,
@@ -607,7 +551,6 @@ function AnalysisSection({
       id={id}
       className="cockpit-reading overflow-hidden rounded-xl border border-border scroll-mt-14"
     >
-      {/* En-tête de section */}
       <div className="flex items-center gap-4 border-b border-border bg-primary px-6 py-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white">
           {icon}
@@ -621,13 +564,10 @@ function AnalysisSection({
           )}
         </div>
       </div>
-      {/* Contenu */}
       <div className="px-6 py-5">{children}</div>
     </section>
   )
 }
-
-// ─── Analyse client — sections ────────────────────────────────────────────────
 
 export function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
   return (
@@ -729,8 +669,6 @@ export function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
   )
 }
 
-// ─── Étude sectorielle — sections ─────────────────────────────────────────────
-
 export function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
   return (
     <div className="space-y-6">
@@ -810,8 +748,6 @@ export function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
     </div>
   )
 }
-
-// ─── Diagnostic process — sections ───────────────────────────────────────────
 
 export function ProcessDiagnosticContent({ data }: { data: AnalyseDiagnostic }) {
   return (
@@ -928,8 +864,6 @@ export function ProcessDiagnosticContent({ data }: { data: AnalyseDiagnostic }) 
   )
 }
 
-// ─── Icônes — sélecteur d'analyses ───────────────────────────────────────────
-
 export function ClientAnalysisIcon({ className }: { className?: string }) {
   return (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -948,8 +882,6 @@ export function PlusCircleIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-
-// ─── Icônes — sections d'analyse ─────────────────────────────────────────────
 
 function SectionSyntheseIcon({ className }: { className?: string }) {
   return (
@@ -1109,8 +1041,6 @@ function SectionMatriceIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-
-// ─── Actions Rapides du Header ──────────────────────────────────────────────
 
 function RefreshIcon({ className }: { className?: string }) {
   return (
