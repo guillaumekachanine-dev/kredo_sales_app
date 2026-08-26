@@ -15,6 +15,7 @@ export type AccountIntelligenceHomeProcessStep = {
   label: string
   state: AccountIntelligenceAvailability
   href?: string
+  onClick?: () => void
 }
 
 export type AccountIntelligenceHomeFact = {
@@ -29,13 +30,6 @@ export type AccountIntelligenceHomeMetric = {
   tone: "dark" | "light"
 }
 
-export type AccountIntelligenceHomeReview = {
-  title: string
-  subtitle: string
-  available: boolean
-  href?: string
-}
-
 export type AccountIntelligenceHomeSignal = {
   title: string
   dateLabel: string
@@ -46,13 +40,18 @@ export type AccountIntelligenceHomeSignal = {
 export type AccountIntelligenceHomeWatch = {
   enabled: boolean
   label: string
+  onToggle?: () => void
+  pending?: boolean
 }
 
 export type AccountIntelligenceHomeToolboxItem = {
+  id: "contacts" | "documents" | "playbook"
   title: string
   description: string
   icon: "contacts" | "documents" | "playbook"
   href?: string
+  onClick?: () => void
+  disabled?: boolean
 }
 
 export type AccountIntelligenceHomeTemplateProps = {
@@ -65,7 +64,6 @@ export type AccountIntelligenceHomeTemplateProps = {
     AccountIntelligenceHomeFact,
     AccountIntelligenceHomeFact,
   ]
-  review: AccountIntelligenceHomeReview
   metrics: readonly [
     AccountIntelligenceHomeMetric,
     AccountIntelligenceHomeMetric,
