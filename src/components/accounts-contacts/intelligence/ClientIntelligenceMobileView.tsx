@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
-import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
@@ -57,6 +56,10 @@ import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
 import {
+  AccountIntelligenceSignatureHeaderMobile,
+  getAccountIntelligenceTabLabel,
+} from "./header/AccountIntelligenceSignatureHeader"
+import {
   buildMobileAccountCockpit,
   type MobileCockpitFeature,
 } from "@/lib/intelligence/mobile-account-cockpit"
@@ -83,14 +86,9 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
     return () => window.removeEventListener("kredo:open-account-intelligence", openAccountIntelligence)
   }, [company.id])
 
-  // Lot 1 — le contenu affiché vient directement de `data` (Server Component),
-  // rafraîchi par `router.refresh()` au succès du run. Aucun miroir local : la
-  // copie précédente se désynchronisait de la fiche après une curation.
   const v3State = data.accountKnowledgeV3
   const v3 = v3State?.data
   const knowledge = v3State || data.accountKnowledge
-  // Même fallback structuré que le desktop. Les artefacts V2/V3 restent leur
-  // propre restitution narrative et ne sont volontairement pas doublés ici.
   const showStructuredCompanyProfile = !v3 && knowledge?.version !== 2
   const knowledgeSourceIndex = useMemo(
     () => buildSourceIndex(data.accountKnowledgeSources),
@@ -102,8 +100,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
     trigger: triggerKnowledgeRun,
   } = useAccountKnowledgeRun(company.id)
 
-  // ADR-0012 Lot 4 — enjeux (matérialisation côté callback, D-5) : pas de
-  // contenu à parser côté client, on recharge la liste ouverte au succès.
   const [issues, setIssues] = useState(data.accountIssues)
   const [issuesRunId, setIssuesRunId] = useState<string | null>(null)
   const [issuesErrorMsg, setIssuesErrorMsg] = useState<string | null>(null)
@@ -187,7 +183,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
     setIssues((prev) => prev.filter((i) => i.id !== issueId))
   }
 
-  // ADR-0012 Lot 5 — même pattern que knowledgeContent (content_json pur, D-5).
   const [strategy, setStrategy] = useState(data.commercialStrategy)
   const [strategyRunId, setStrategyRunId] = useState<string | null>(null)
   const [strategyErrorMsg, setStrategyErrorMsg] = useState<string | null>(null)
@@ -247,66 +242,21 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   }, [pdfDialogOpen, diagnosticPdfUrl])
 
   if (activePanel !== "accueil") {
-    const stepDetails = {
-      socle: {
-        title: "Socle du compte",
-        description: "SIREN, NAF, taille et rattachement à la taxonomie sectorielle.",
-      },
-      connaissance: {
-        title: "Connaissance compte",
-        description: "Ce que l'on sait factuellement du compte : identité, organisation, interlocuteurs, relation et signaux.",
-      },
-      secteur: {
-        title: "Intelligence sectorielle",
-        description: "Enjeux, contraintes et fenêtres commerciales du secteur, contextualisés pour ce compte.",
-      },
-      enjeux: {
-        title: "Cartographie des enjeux",
-        description: "Transformer les constats en problématiques client.",
-      },
-      strategie: {
-        title: "Stratégie commerciale",
-        description: "Définir l’angle d’approche et les messages clés.",
-      },
-      roadmap: {
-        title: "Roadmap commerciale",
-        description: "Convertir la stratégie en prochaines actions.",
-      },
-    }[activePanel]
-
     return (
-      <div data-theme="cockpit" className="flex min-h-full flex-col gap-4 bg-canvas p-4 pb-24">
-        <div className="border-b border-border pb-3">
-          <div className="flex items-center gap-1.5 -ml-1">
-            <button
-              type="button"
-              onClick={() => setActivePanel("accueil")}
-              className="inline-flex items-center justify-center text-white hover:text-white/80 transition-colors rounded p-1 min-h-[44px] cursor-pointer"
-              aria-label="Retour à l'accueil"
-            >
-              <svg className="h-4.5 w-4.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <polygon points="16,5 7,12 16,19" />
-              </svg>
-            </button>
-            <h1 className="font-heading text-base font-bold text-heading uppercase tracking-wide">
-              {stepDetails.title}
-            </h1>
-          </div>
-          {activePanel !== "connaissance" && stepDetails.description && (
-            <p className="text-[11px] text-body mt-0.5 font-medium">
-              {stepDetails.description}
-            </p>
-          )}
-        </div>
+      <div data-theme="cockpit" className="flex min-h-full flex-col bg-canvas pb-24">
+        <AccountIntelligenceSignatureHeaderMobile
+          company={company}
+          title={getAccountIntelligenceTabLabel(activePanel)}
+          onBack={() => setActivePanel("accueil")}
+        />
 
-        <div className="flex flex-col gap-4 mt-1">
+        <div className="flex flex-col gap-4 p-4">
           {activePanel === "socle" && (
             <ClientIntelligenceSocleTab data={data} isMobile />
           )}
 
           {activePanel === "connaissance" && (
             <>
-              {/* ADR-0012 Lot 2 — blocs relationnels toujours disponibles (sans run n8n) */}
               <div className="space-y-3 mb-3">
                 <ContactsKeyCard contacts={contacts} />
                 <CommercialRelationCard opportunities={opportunities} missions={missions} />
@@ -319,7 +269,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 />
               </div>
 
-              {/* Lot 1 — action réelle de l'onglet Entreprise */}
               <AccountKnowledgeUpdateControlsMobile
                 state={knowledge}
                 lastUpdatedAt={data.accountKnowledgeLastUpdatedAt}
@@ -399,7 +348,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 </>
               )}
 
-              {/* 2 analyses sous forme d'icônes sur une seule ligne */}
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <button
                   type="button"
@@ -441,7 +389,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 </button>
               </div>
 
-              {/* Raccourcis/Pastilles vers les sections d'analyse */}
               {selectedAnalysis && selectedAnalysis !== "processus" && ANALYSIS_SECTIONS[selectedAnalysis as AnalysisTypeKey]?.length > 0 && (
                 <div className="sticky top-0 z-10 -mx-4 mb-2 border-b border-border/30 bg-canvas/90 px-4 py-2.5 backdrop-blur-sm">
                   <div className="flex items-center gap-2 overflow-x-auto justify-start no-scrollbar">
@@ -465,11 +412,9 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 </div>
               )}
 
-              {/* Contenu complet de l'analyse */}
               {selectedAnalysis === "client" && (
                 client ? (
                   <>
-                    {/* Cadre indiquant la date de réalisation / dernière mise à jour */}
                     <div className="rounded-lg border border-border bg-surface p-3.5 mb-4 flex items-center justify-between gap-3 shadow-sm">
                       <div>
                         <span className="block text-[10px] font-bold uppercase tracking-wider text-muted">Mise à jour de l&apos;analyse</span>
@@ -520,7 +465,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 ) : null
               )}
 
-              {/* Dialog PDF plein écran */}
               {diagnosticPdfUrl && (
                 <dialog
                   ref={pdfDialogRef}
@@ -680,9 +624,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
               <span className="text-[11px] text-muted/70">Disponible au lot 6</span>
             </div>
           )}
-
         </div>
-
       </div>
     )
   }
@@ -691,30 +633,10 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   return (
     <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full bg-canvas pb-24 text-body">
-      <header className="flex min-h-[88px] items-center justify-between gap-3 border-b-2 border-secondary bg-cockpit-cobalt px-4 py-3 text-white">
-        <div className="flex items-center gap-3 min-w-0">
-          <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" className="border-white/20 bg-white p-1" />
-          <div className="flex min-w-0 flex-col justify-center gap-0.5">
-            <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.17em] text-secondary">Cockpit Intelligence</p>
-            <h1 className="truncate text-[22px] font-bold leading-7 tracking-[-0.02em] text-white">{company.name}</h1>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setDirectoryOpen(true)}
-          className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white/10 text-white transition-colors active:bg-white/20"
-          title="Répertoire contacts"
-          aria-label="Répertoire contacts"
-        >
-          <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-            <circle cx="9" cy="8" r="3" />
-            <path d="M3.5 19c.7-3.4 2.5-5.2 5.5-5.2s4.8 1.8 5.5 5.2" />
-            <path d="M16 7h4" />
-            <path d="M16 11h4" />
-            <path d="M17 15h3" />
-          </svg>
-        </button>
-      </header>
+      <AccountIntelligenceSignatureHeaderMobile
+        company={company}
+        title={getAccountIntelligenceTabLabel("accueil")}
+      />
 
       <div className="px-4">
         <EditorialCockpitSection label="À faire maintenant" accentClassName="bg-secondary" actionClassName="border-secondary/35 bg-secondary/15 text-heading" feature={cockpit.nowAction} company={company} featured />
