@@ -1,9 +1,9 @@
 import { cookies } from "next/headers"
 import { DesktopSidebar } from "./DesktopSidebar"
-import { AppHeader } from "./AppHeader"
 import { MobileNav } from "./MobileNav"
 import { IntelligencePanel } from "@/components/intelligence/IntelligencePanel"
 import { IntelligenceFAB } from "@/components/intelligence/IntelligenceFAB"
+import { IntelligenceToggle } from "@/components/intelligence/IntelligenceToggle"
 import { MobileAccountQuickSearchHost } from "@/components/accounts-contacts/MobileAccountQuickSearchHost"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 
@@ -38,16 +38,22 @@ export async function AppShell({ device, children }: AppShellProps) {
     <div className="flex h-screen w-screen overflow-hidden bg-canvas">
       <DesktopSidebar defaultCollapsed={defaultCollapsed} />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AppHeader />
-
-        <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
+        {/* Main scrollable content with top-right floating Intelligence button */}
+        <div className="relative flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
           <main className="flex-1 flex flex-col overflow-y-auto min-w-0">
             {children}
           </main>
 
-          <IntelligencePanel />
+          {/* Absolute floating Intelligence toggle */}
+          <div className="pointer-events-none absolute right-4 top-3 z-30">
+            <div className="pointer-events-auto">
+              <IntelligenceToggle />
+            </div>
+          </div>
         </div>
+
+        <IntelligencePanel />
       </div>
     </div>
   )
