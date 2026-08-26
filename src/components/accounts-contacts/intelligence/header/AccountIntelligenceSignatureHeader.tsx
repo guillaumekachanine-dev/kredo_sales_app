@@ -3,6 +3,7 @@
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import type { TabKey } from "../intelligence-process"
+import styles from "./AccountIntelligenceSignatureHeader.module.css"
 
 const TAB_LABELS: Record<TabKey, string> = {
   accueil: "Account Intelligence",
@@ -37,7 +38,7 @@ function HeaderPlanes() {
         aria-hidden="true"
       />
       <div
-        className="absolute inset-0 bg-account-intelligence-petrol"
+        className={`absolute inset-0 ${styles.petrol}`}
         style={{ clipPath: "polygon(69% 0, 100% 0, 100% 100%, 64% 100%)" }}
         aria-hidden="true"
       />
