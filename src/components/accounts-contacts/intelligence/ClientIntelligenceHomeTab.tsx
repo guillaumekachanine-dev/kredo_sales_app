@@ -2,26 +2,23 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import { AccountIntelligenceHomeTemplate } from "./home/AccountIntelligenceHomeTemplate"
+import { useAccountIntelligenceHomeRuntime } from "./home/AccountIntelligenceHomeRuntimeContext"
 import { buildAccountIntelligenceHomeTemplateData } from "./home/account-intelligence-home-template.adapter"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
 import { saveAccountWatchSettings } from "./save-account-watch-settings"
 import type { ProcessStepKey } from "./intelligence-process"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-financials"
 
 interface ClientIntelligenceHomeTabProps {
   data: ClientIntelligenceData
   onOpenTab: (tab: ProcessStepKey) => void
-  financials: AccountIntelligenceHomeFinancials | null
-  playbookSlug: string | null
 }
 
 export function ClientIntelligenceHomeTab({
   data,
   onOpenTab,
-  financials,
-  playbookSlug,
 }: ClientIntelligenceHomeTabProps) {
+  const { financials, playbookSlug } = useAccountIntelligenceHomeRuntime()
   const [documentsOpen, setDocumentsOpen] = useState(false)
   const [watchEnabled, setWatchEnabled] = useState(data.accountWatch.isEnabled)
   const [isWatchSaving, startWatchSaving] = useTransition()
@@ -73,12 +70,11 @@ export function ClientIntelligenceHomeTab({
     return { ...step, onClick }
   })
 
-  const toolbox = baseModel.toolbox.map((item) => {
-    if (item.id === "documents") {
-      return { ...item, onClick: () => setDocumentsOpen(true) }
-    }
-    return item
-  }) as typeof baseModel.toolbox
+  const toolbox = [
+    baseModel.toolbox[0],
+    { ...baseModel.toolbox[1], onClick: () => setDocumentsOpen(true) },
+    baseModel.toolbox[2],
+  ] as const
 
   return (
     <div className="py-6">
