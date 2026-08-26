@@ -1,14 +1,8 @@
 import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
-import { normalizeCompanyRelationType, type CompanyRelationType } from "@/lib/accounts-contacts/company-constants"
-
-export type AccountIntelligenceHomeFinancials = {
-  relationType: CompanyRelationType
-  realizedRevenue: number | null
-  clientRank: number | null
-  clientCount: number | null
-}
+import { normalizeCompanyRelationType } from "@/lib/accounts-contacts/company-constants"
+import type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-contract"
 
 export async function getAccountIntelligenceHomeFinancials(
   companyId: string,
@@ -104,3 +98,5 @@ export async function getAccountIntelligenceHomeFinancials(
     clientCount: ranking.length,
   }
 }
+
+export type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-contract"
