@@ -4,8 +4,8 @@ import {
   getCurrentSingleFactText,
 } from "@/lib/intelligence/company-facts-contract"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
+import type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-contract"
 import { isTerminalOpportunityStage } from "@/lib/opportunities/stages"
-import type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-financials"
 import type { AccountIntelligenceHomeTemplateProps } from "./account-intelligence-home-template.types"
 
 const ACTIVE_MISSION_STATUSES = new Set(["active", "en_cours", "ongoing"])
