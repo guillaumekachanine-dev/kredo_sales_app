@@ -1,0 +1,7 @@
+:global(:root) {
+  --color-account-intelligence-petrol: #315D95;
+}
+
+.petrol {
+  background-color: var(--color-account-intelligence-petrol);
+}
