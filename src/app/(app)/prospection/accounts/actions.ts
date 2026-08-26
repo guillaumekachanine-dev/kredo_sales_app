@@ -551,3 +551,150 @@ export async function updateContactDecisionPower(
   revalidatePath(REVALIDATE)
   return { error: null }
 }
+
+// ─── Contact Directory Loader ──────────────────────────────────────────────────
+
+export type ContactDirectoryItem = {
+  id: string
+  personId: string | null
+  companyId: string | null
+  companyName: string
+  companyLogoPath: string | null
+  companyWebsite: string | null
+  firstName: string
+  lastName: string
+  fullName: string
+  email: string | null
+  phone: string | null
+  linkedinUrl: string | null
+  jobTitle: string
+  department: string | null
+  relationshipRole: string | null
+  relationshipLevel: string | null
+  decisionPower: string | null
+  isPriority: boolean
+}
+
+export type ContactDirectoryAccountItem = {
+  id: string
+  name: string
+  logoPath: string | null
+  website: string | null
+  contactCount: number
+}
+
+export async function getContactDirectoryData(): Promise<{
+  error: string | null
+  data: {
+    contacts: ContactDirectoryItem[]
+    accounts: ContactDirectoryAccountItem[]
+  } | null
+}> {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("contacts")
+      .select(`
+        id,
+        person_id,
+        company_id,
+        job_title,
+        department,
+        relationship_role,
+        relationship_level,
+        decision_power,
+        status,
+        is_priority,
+        persons (
+          id,
+          first_name,
+          last_name,
+          full_name,
+          primary_email,
+          phone,
+          linkedin_url
+        ),
+        companies (
+          id,
+          name,
+          meta_logo_path,
+          website
+        )
+      `)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching contact directory data:", error)
+      return { error: error.message, data: null }
+    }
+
+    const contacts: ContactDirectoryItem[] = []
+    const accountMap = new Map<string, ContactDirectoryAccountItem>()
+
+    for (const c of data || []) {
+      const personObj = Array.isArray(c.persons) ? c.persons[0] : c.persons
+      const companyObj = Array.isArray(c.companies) ? c.companies[0] : c.companies
+
+      const firstName = personObj?.first_name || ""
+      const lastName = personObj?.last_name || ""
+      const fullName = personObj?.full_name || `${firstName} ${lastName}`.trim() || "Contact sans nom"
+      const companyId = c.company_id || null
+      const companyName = companyObj?.name || "Compte non assigné"
+      const companyLogoPath = companyObj?.meta_logo_path || null
+      const companyWebsite = companyObj?.website || null
+
+      if (companyId && companyObj) {
+        const existingAcc = accountMap.get(companyId)
+        if (existingAcc) {
+          existingAcc.contactCount += 1
+        } else {
+          accountMap.set(companyId, {
+            id: companyId,
+            name: companyName,
+            logoPath: companyLogoPath,
+            website: companyWebsite,
+            contactCount: 1,
+          })
+        }
+      }
+
+      contacts.push({
+        id: c.id,
+        personId: c.person_id || personObj?.id || null,
+        companyId,
+        companyName,
+        companyLogoPath,
+        companyWebsite,
+        firstName,
+        lastName,
+        fullName,
+        email: personObj?.primary_email || null,
+        phone: personObj?.phone || null,
+        linkedinUrl: personObj?.linkedin_url || null,
+        jobTitle: c.job_title || "Fonction non renseignée",
+        department: c.department || null,
+        relationshipRole: c.relationship_role || null,
+        relationshipLevel: c.relationship_level || null,
+        decisionPower: c.decision_power || null,
+        isPriority: Boolean(c.is_priority),
+      })
+    }
+
+    const accounts = Array.from(accountMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, "fr")
+    )
+
+    return {
+      error: null,
+      data: {
+        contacts,
+        accounts,
+      },
+    }
+  } catch (err) {
+    console.error("Unhandled exception in getContactDirectoryData:", err)
+    return { error: "Une erreur inattendue est survenue", data: null }
+  }
+}
+

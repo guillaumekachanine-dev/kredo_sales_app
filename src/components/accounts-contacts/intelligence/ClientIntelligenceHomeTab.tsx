@@ -12,11 +12,13 @@ import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-dat
 interface ClientIntelligenceHomeTabProps {
   data: ClientIntelligenceData
   onOpenTab: (tab: ProcessStepKey) => void
+  onOpenContactDirectory?: () => void
 }
 
 export function ClientIntelligenceHomeTab({
   data,
   onOpenTab,
+  onOpenContactDirectory,
 }: ClientIntelligenceHomeTabProps) {
   const { financials, playbookSlug } = useAccountIntelligenceHomeRuntime()
   const [documentsOpen, setDocumentsOpen] = useState(false)
@@ -71,7 +73,7 @@ export function ClientIntelligenceHomeTab({
   })
 
   const toolbox = [
-    baseModel.toolbox[0],
+    { ...baseModel.toolbox[0], onClick: onOpenContactDirectory },
     { ...baseModel.toolbox[1], onClick: () => setDocumentsOpen(true) },
     baseModel.toolbox[2],
   ] as const

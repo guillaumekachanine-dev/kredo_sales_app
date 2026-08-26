@@ -564,7 +564,7 @@ function CompanyFormModal({
 //  Contact Form Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ContactFormModal({
+export function ContactFormModal({
   initial,
   accounts,
   contacts,

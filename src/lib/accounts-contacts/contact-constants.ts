@@ -84,3 +84,18 @@ export function relationshipRoleAccentColor(value: string | null | undefined): s
   if (!normalized) return null
   return RELATIONSHIP_ROLE_ACCENT_COLORS[normalized] ?? null
 }
+
+export function getContactDisplayDecisionPower(
+  decisionPower: string | null | undefined,
+  relationshipRole: string | null | undefined,
+): string {
+  if (decisionPower && decisionPower.trim()) {
+    return decisionPower.trim()
+  }
+  const normRole = normalizeContactRelationshipRole(relationshipRole)
+  if (normRole === "decideur") {
+    return "Décideur"
+  }
+  return "—"
+}
+

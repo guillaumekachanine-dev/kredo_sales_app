@@ -55,6 +55,7 @@ import { ContextualCommunicationButton } from "@/components/communication/Contex
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
 import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
+import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
 import {
   buildMobileAccountCockpit,
   type MobileCockpitFeature,
@@ -69,6 +70,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const [activePanel, setActivePanel] = useState<TabKey>("accueil")
   const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "processus" | null>(null)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [directoryOpen, setDirectoryOpen] = useState(false)
   const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
 
@@ -689,12 +691,29 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   return (
     <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full bg-canvas pb-24 text-body">
-      <header className="flex min-h-[88px] items-center gap-3 border-b-2 border-secondary bg-cockpit-cobalt px-4 py-3 text-white">
-        <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" className="border-white/20 bg-white p-1" />
-        <div className="flex min-w-0 flex-col justify-center gap-0.5">
-          <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.17em] text-secondary">Cockpit Intelligence</p>
-          <h1 className="truncate text-[22px] font-bold leading-7 tracking-[-0.02em] text-white">{company.name}</h1>
+      <header className="flex min-h-[88px] items-center justify-between gap-3 border-b-2 border-secondary bg-cockpit-cobalt px-4 py-3 text-white">
+        <div className="flex items-center gap-3 min-w-0">
+          <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" className="border-white/20 bg-white p-1" />
+          <div className="flex min-w-0 flex-col justify-center gap-0.5">
+            <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.17em] text-secondary">Cockpit Intelligence</p>
+            <h1 className="truncate text-[22px] font-bold leading-7 tracking-[-0.02em] text-white">{company.name}</h1>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setDirectoryOpen(true)}
+          className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white/10 text-white transition-colors active:bg-white/20"
+          title="Répertoire contacts"
+          aria-label="Répertoire contacts"
+        >
+          <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+            <circle cx="9" cy="8" r="3" />
+            <path d="M3.5 19c.7-3.4 2.5-5.2 5.5-5.2s4.8 1.8 5.5 5.2" />
+            <path d="M16 7h4" />
+            <path d="M16 11h4" />
+            <path d="M17 15h3" />
+          </svg>
+        </button>
       </header>
 
       <div className="px-4">
@@ -722,6 +741,13 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           ) : <p className="mt-2 text-[13px] leading-5 text-muted">Aucun mouvement planifié.</p>}
         </section>
       </div>
+
+      <ContactDirectoryDialog
+        open={directoryOpen}
+        onClose={() => setDirectoryOpen(false)}
+        initialCompanyId={company.id}
+        isMobile={true}
+      />
     </main>
   )
 }

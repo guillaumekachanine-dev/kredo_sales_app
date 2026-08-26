@@ -12,6 +12,7 @@ import type { CommercialStrategyContent } from "@/lib/intelligence/account-intel
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
+import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
 import {
   ComingSoon,
   Field,
@@ -38,6 +39,7 @@ import {
 export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
   const [expandedViewer, setExpandedViewer] = useState(false)
+  const [directoryOpen, setDirectoryOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const pathname = usePathname()
   const router = useRouter()
@@ -104,9 +106,22 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
                 </div>
               </div>
 
-              {/* Lot 1 : le bouton « Actions rapides » (modale placeholder, jamais
-                  branchée) a été retiré. L'action réelle de l'onglet Entreprise
-                  est « Mettre à jour l'entreprise », dans l'onglet lui-même. */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDirectoryOpen(true)}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass cursor-pointer"
+                >
+                  <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                    <circle cx="9" cy="8" r="3" />
+                    <path d="M3.5 19c.7-3.4 2.5-5.2 5.5-5.2s4.8 1.8 5.5 5.2" />
+                    <path d="M16 7h4" />
+                    <path d="M16 11h4" />
+                    <path d="M17 15h3" />
+                  </svg>
+                  <span>Répertoire contacts</span>
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -118,6 +133,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
               <ClientIntelligenceHomeTab
                 data={data}
                 onOpenTab={setActiveTab}
+                onOpenContactDirectory={() => setDirectoryOpen(true)}
               />
             )}
             {activeTab === "socle" && (
@@ -190,6 +206,12 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         </dialog>
       )}
 
+      <ContactDirectoryDialog
+        open={directoryOpen}
+        onClose={() => setDirectoryOpen(false)}
+        initialCompanyId={company.id}
+        isMobile={false}
+      />
     </div>
   )
 }
@@ -330,7 +352,6 @@ function EnjeuxTab({ data }: { data: ClientIntelligenceData }) {
 
 function StrategieTab({ data }: { data: ClientIntelligenceData }) {
   const { company, pitchDocuments, accountIssues, offersCatalog } = data
-  const supabase = useMemo(() => createBrowserClient(), [])
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
 
   const [strategy, setStrategy] = useState(data.commercialStrategy)
