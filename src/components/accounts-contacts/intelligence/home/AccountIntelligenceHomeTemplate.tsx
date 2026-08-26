@@ -109,17 +109,6 @@ function MetricMosaic({ metrics }: { metrics: AccountIntelligenceHomeTemplatePro
   )
 }
 
-function DocumentIcon() {
-  return (
-    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7 3h7l4 4v14H7z" />
-      <path d="M14 3v5h5" />
-      <path d="M10 13h5" />
-      <path d="M10 17h5" />
-    </svg>
-  )
-}
-
 function ToolboxIcon({ icon }: { icon: AccountIntelligenceHomeToolboxItem["icon"] }) {
   const common = {
     className: "size-6",
@@ -266,32 +255,11 @@ export function AccountIntelligenceHomeTemplate({
   processSteps,
   companySummary,
   facts,
-  review,
   metrics,
   recentSignal,
   watch,
   toolbox,
 }: AccountIntelligenceHomeTemplateProps) {
-  const reviewAction = review.available && review.href ? (
-    <a
-      href={review.href}
-      aria-label={review.title}
-      className="flex shrink-0 flex-col items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
-    >
-      <span className="flex size-9 items-center justify-center bg-edito-navy text-white">
-        <DocumentIcon />
-      </span>
-      <span className="text-[9px] font-bold uppercase tracking-[0.05em] text-edito-muted">Revue</span>
-    </a>
-  ) : (
-    <div className="flex shrink-0 flex-col items-center gap-1 opacity-40" aria-label={`${review.title} indisponible`}>
-      <span className="flex size-9 items-center justify-center bg-edito-navy text-white">
-        <DocumentIcon />
-      </span>
-      <span className="text-[9px] font-bold uppercase tracking-[0.05em] text-edito-muted">Revue</span>
-    </div>
-  )
-
   return (
     <div className="w-full overflow-hidden border border-edito-border bg-edito-surface">
       <div className="h-16 bg-edito-surface" />
@@ -343,54 +311,47 @@ export function AccountIntelligenceHomeTemplate({
 
       <section className="grid grid-cols-2 gap-[58px] px-[64px] pb-12 pt-[58px]">
         <div id="profil-entreprise">
-          <div className="min-h-[250px]">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Le compte</h2>
-              {reviewAction}
-            </div>
+          <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Le compte</h2>
 
-            <p className="mt-5 max-h-[96px] max-w-[470px] overflow-hidden text-[14px] leading-6 text-edito-body">{companySummary}</p>
+          <p className="mt-5 max-h-[96px] max-w-[470px] overflow-hidden text-[14px] leading-6 text-edito-body">{companySummary}</p>
 
-            <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3">
-              {facts.map((fact) => (
-                <div key={fact.label} className="flex items-start gap-3 text-[12px] leading-5 text-edito-body">
-                  <span className="mt-[7px] size-2 shrink-0 bg-brand-primary" aria-hidden="true" />
-                  <span>
-                    <span className="font-bold text-edito-heading">{fact.label} · </span>
-                    {fact.value}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3">
+            {facts.map((fact) => (
+              <div key={fact.label} className="flex items-start gap-3 text-[12px] leading-5 text-edito-body">
+                <span className="mt-[7px] size-2 shrink-0 bg-brand-primary" aria-hidden="true" />
+                <span>
+                  <span className="font-bold text-edito-heading">{fact.label} · </span>
+                  {fact.value}
+                </span>
+              </div>
+            ))}
           </div>
 
           <MetricMosaic metrics={metrics} />
         </div>
 
         <div id="actualites-compte">
-          <div className="min-h-[250px]">
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Actualité récente</h2>
-              <WatchStatus {...watch} />
-            </div>
-
-            {recentSignal ? (
-              <div className="mt-5">
-                <p className="text-[14px] font-bold leading-5 text-edito-heading">{recentSignal.title}</p>
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.06em] text-edito-muted">
-                  {recentSignal.dateLabel} · {recentSignal.importanceLabel}
-                </p>
-                <p className="mt-3 max-h-[72px] overflow-hidden text-[13px] leading-6 text-edito-body">
-                  <span className="font-bold text-edito-heading">Implication commerciale · </span>
-                  {recentSignal.implication}
-                </p>
-              </div>
-            ) : (
-              <p className="mt-5 text-[13px] italic leading-6 text-edito-muted">Aucun signal récent détecté pour ce compte.</p>
-            )}
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-[34px] font-black leading-none tracking-tight text-edito-ink">Actualité récente</h2>
+            <WatchStatus {...watch} />
           </div>
 
-          <h2 className="mt-7 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
+          {recentSignal ? (
+            <div className="mt-5">
+              <p className="text-[14px] font-bold leading-5 text-edito-heading">{recentSignal.title}</p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.06em] text-edito-muted">
+                {recentSignal.dateLabel} · {recentSignal.importanceLabel}
+              </p>
+              <p className="mt-3 max-h-[72px] overflow-hidden text-[13px] leading-6 text-edito-body">
+                <span className="font-bold text-edito-heading">Implication commerciale · </span>
+                {recentSignal.implication}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-5 text-[13px] italic leading-6 text-edito-muted">Aucun signal récent détecté pour ce compte.</p>
+          )}
+
+          <h2 className="mt-10 text-[34px] font-black leading-none tracking-tight text-edito-ink">KREDO Toolbox</h2>
           <div className="mt-6 space-y-5">
             {toolbox.map((item) => (
               <ToolboxRow key={item.title} item={item} />
