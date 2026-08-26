@@ -1,7 +1,8 @@
 import type { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-financials"
+import type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-contract"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
+import { AccountIntelligenceHomeRuntimeProvider } from "./home/AccountIntelligenceHomeRuntimeContext"
 import { ClientIntelligenceDesktopView } from "./ClientIntelligenceDesktopView"
 import { ClientIntelligenceMobileView } from "./ClientIntelligenceMobileView"
 
@@ -22,12 +23,16 @@ export function ClientIntelligenceView({
   if (device === "mobile") {
     return <ClientIntelligenceMobileView data={data} />
   }
+
   return (
-    <ClientIntelligenceDesktopView
-      data={data}
-      financialReference={financialReference}
-      homeFinancials={homeFinancials}
+    <AccountIntelligenceHomeRuntimeProvider
+      financials={homeFinancials}
       playbookSlug={playbookSlug}
-    />
+    >
+      <ClientIntelligenceDesktopView
+        data={data}
+        financialReference={financialReference}
+      />
+    </AccountIntelligenceHomeRuntimeProvider>
   )
 }
