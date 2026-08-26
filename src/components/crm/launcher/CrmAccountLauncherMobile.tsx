@@ -6,13 +6,11 @@ import { cn } from "@/lib/utils"
 import { CrmLauncherSearchBox } from "./CrmLauncherSearchBox"
 import { CrmLauncherModeTabs } from "./CrmLauncherModeTabs"
 import { CrmLauncherAccountCard } from "./CrmLauncherAccountCard"
-import type { CrmLauncherAccount, CrmLauncherDestination, CrmLauncherMode } from "./CrmAccountLauncher"
+import { crmLauncherEmptyStateLabel, type CrmLauncherAccount, type CrmLauncherMode } from "./CrmAccountLauncher"
 
 interface CrmAccountLauncherMobileProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  destination: CrmLauncherDestination
-  onDestinationChange: (dest: CrmLauncherDestination) => void
   mode: CrmLauncherMode
   onModeChange: (mode: CrmLauncherMode) => void
   searchQuery: string
@@ -201,7 +199,7 @@ export function CrmAccountLauncherMobile({
                   d="M20 12H4"
                 />
               </svg>
-              <p className="text-xs text-muted">Aucun compte trouvé</p>
+              <p className="text-xs text-muted">{crmLauncherEmptyStateLabel(mode)}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2 pb-2">

@@ -1,6 +1,7 @@
 "use client"
 
 import { create } from "zustand"
+import { recordCrmLauncherVisit } from "@/lib/crm/account-launcher-preferences"
 
 type CrmDrawerCompanyOptions = {
   returnTo?: { kind: "contact"; id: string }
@@ -23,7 +24,8 @@ interface CrmDrawerState {
 export const useCrmDrawer = create<CrmDrawerState>((set, get) => ({
   target: null,
 
-  openCompany: (companyId, options) =>
+  openCompany: (companyId, options) => {
+    recordCrmLauncherVisit(companyId)
     set({
       target: {
         kind: "company",
@@ -31,7 +33,8 @@ export const useCrmDrawer = create<CrmDrawerState>((set, get) => ({
         returnTo: options?.returnTo,
         autoOpenScan: options?.autoOpenScan,
       },
-    }),
+    })
+  },
 
   openContact: (contactId, returnTo) =>
     set({ target: { kind: "contact", id: contactId, returnTo } }),

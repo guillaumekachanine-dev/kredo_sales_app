@@ -6,9 +6,13 @@ const CHANGE_EVENT = "kredo:mobile-priority-accounts-change"
 
 const NEW_PREFS_SECTION_KEY = "crm_account_launcher"
 const NEW_PREFS_PINNED_IDS_KEY = "pinned_company_ids"
+const NEW_PREFS_RECENT_IDS_KEY = "recent_company_ids"
 
 const OLD_PREFS_SECTION_KEY = "mobile_account_quick_search"
 const OLD_PREFS_PINNED_IDS_KEY = "pinned_company_ids"
+
+// Onglet "Récents" : historique local, versionné (client-localstorage-schema).
+const RECENT_STORAGE_KEY = "kredo_crm_recent_accounts_v1"
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {}
@@ -157,6 +161,107 @@ export function toggleCrmLauncherAccountId(ids: string[], accountId: string): {
     nextIds: [...currentIds, trimmedId],
     status: "added",
   }
+}
+
+export function extractCrmLauncherRecentIdsFromUiPrefs(uiPrefs: unknown): string[] {
+  const prefs = asRecord(uiPrefs)
+  const section = asRecord(prefs[NEW_PREFS_SECTION_KEY])
+  return sanitizeCrmLauncherAccountIds(section[NEW_PREFS_RECENT_IDS_KEY])
+}
+
+export function mergeCrmLauncherRecentIdsIntoUiPrefs(uiPrefs: unknown, ids: string[]): Json {
+  const prefs = asRecord(uiPrefs)
+  const section = asRecord(prefs[NEW_PREFS_SECTION_KEY])
+  const sanitizedIds = sanitizeCrmLauncherAccountIds(ids)
+
+  return {
+    ...prefs,
+    [NEW_PREFS_SECTION_KEY]: {
+      ...section,
+      [NEW_PREFS_RECENT_IDS_KEY]: sanitizedIds,
+    },
+  } as unknown as Json
+}
+
+function readCrmLauncherRecentAccountIds(): string[] {
+  if (typeof window === "undefined") return []
+
+  try {
+    const raw = window.localStorage.getItem(RECENT_STORAGE_KEY)
+    if (!raw) return []
+    return sanitizeCrmLauncherAccountIds(JSON.parse(raw))
+  } catch {
+    return []
+  }
+}
+
+function writeCrmLauncherRecentAccountIds(ids: string[]) {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(sanitizeCrmLauncherAccountIds(ids)))
+}
+
+/**
+ * Relit l'historique persisté côté serveur (`profiles.ui_prefs`) et le
+ * remet en cache local — appelé à chaque ouverture du CRM Launcher pour
+ * que "Récents" reflète les visites faites depuis un autre poste.
+ */
+export async function fetchPersistedCrmLauncherRecentIds(): Promise<string[]> {
+  if (typeof window === "undefined") return []
+
+  const response = await fetch("/api/prospection/accounts/launcher/recent", {
+    method: "GET",
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const payload = (await response.json()) as { recentIds?: unknown }
+  const recentIds = sanitizeCrmLauncherAccountIds(payload.recentIds)
+  writeCrmLauncherRecentAccountIds(recentIds)
+  return recentIds
+}
+
+async function persistCrmLauncherRecentIds(ids: string[]): Promise<void> {
+  if (typeof window === "undefined") return
+
+  const response = await fetch("/api/prospection/accounts/launcher/recent", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ recentIds: sanitizeCrmLauncherAccountIds(ids) }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+}
+
+/**
+ * Enregistre la consultation d'un compte : le fait remonte en tête de la
+ * liste MRU (dédupliquée, plafonnée à 10). Écriture locale immédiate pour
+ * que l'ordre soit correct dès la prochaine ouverture du launcher sur ce
+ * poste ; la persistance serveur est best-effort et non bloquante — une
+ * visite ratée ne doit jamais interrompre la navigation qui la déclenche.
+ */
+export function recordCrmLauncherVisit(companyId: string): string[] {
+  const trimmedId = companyId.trim()
+  if (!trimmedId) return readCrmLauncherRecentAccountIds()
+
+  const current = readCrmLauncherRecentAccountIds()
+  const nextIds = sanitizeCrmLauncherAccountIds([
+    trimmedId,
+    ...current.filter((id) => id !== trimmedId),
+  ])
+  writeCrmLauncherRecentAccountIds(nextIds)
+
+  void persistCrmLauncherRecentIds(nextIds).catch((err) => {
+    console.error("[account-launcher-preferences] failed to persist recent visit", err)
+  })
+
+  return nextIds
 }
 
 export function sortIdsByPriority<T extends { id: string }>(items: T[], priorityIds: string[]): T[] {

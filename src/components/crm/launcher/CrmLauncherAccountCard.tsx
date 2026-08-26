@@ -89,15 +89,10 @@ export function CrmLauncherAccountCard({
           </span>
         )}
 
-        {mode === "opportunities" && account.openOpportunitiesCount !== undefined && (
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-bold text-success">
-              {formatEuro(account.weightedPipeline || 0)}
-            </span>
-            <span className="text-[9px] text-muted">
-              {account.openOpportunitiesCount} opp{account.openOpportunitiesCount > 1 ? "s" : ""} active{account.openOpportunitiesCount > 1 ? "s" : ""}
-            </span>
-          </div>
+        {mode === "clients" && account.realizedRevenue !== undefined && (
+          <span className="text-[10px] font-bold text-success">
+            {formatEuro(account.realizedRevenue)}
+          </span>
         )}
 
       </div>

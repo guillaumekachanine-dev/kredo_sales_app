@@ -11,13 +11,23 @@ export type CrmLauncherAccount = {
   website: string | null
   logoPath: string | null
   contactCount: number
-  openOpportunitiesCount?: number
-  weightedPipeline?: number
   lastActivityAt?: string | null
+  realizedRevenue?: number
 }
 
 export type CrmLauncherDestination = "cockpit" | "contacts" | "opportunities"
-export type CrmLauncherMode = "personal" | "search" | "recent" | "opportunities"
+export type CrmLauncherMode = "recent" | "clients" | "targets" | "search"
+
+const EMPTY_STATE_LABELS: Record<CrmLauncherMode, string> = {
+  recent: "Aucun compte consulté récemment",
+  clients: "Aucun client actif",
+  targets: "Aucune cible prioritaire définie — bientôt alimenté depuis Prospection",
+  search: "Aucun compte trouvé",
+}
+
+export function crmLauncherEmptyStateLabel(mode: CrmLauncherMode): string {
+  return EMPTY_STATE_LABELS[mode]
+}
 
 interface CrmAccountLauncherProps {
   open: boolean
@@ -36,8 +46,7 @@ export function CrmAccountLauncher({
   device,
   onSelectAccount,
 }: CrmAccountLauncherProps) {
-  const [destination, setDestination] = useState<CrmLauncherDestination>("cockpit")
-  const [mode, setMode] = useState<CrmLauncherMode>("personal")
+  const [mode, setMode] = useState<CrmLauncherMode>("recent")
   const [searchQuery, setSearchQuery] = useState("")
   const [accounts, setAccounts] = useState<CrmLauncherAccount[]>([])
   const [loading, setLoading] = useState(false)
@@ -71,12 +80,16 @@ export function CrmAccountLauncher({
     }
   }, [])
 
-  // Chargement initial au montage ou à l'ouverture du composant
+  // Chargement à chaque ouverture : retombe sur "Récents" et relit
+  // l'historique de consultation à jour (API lue en direct sur
+  // profiles.ui_prefs), plutôt que de rester sur le dernier onglet/recherche
+  // laissé par la session précédente.
   useEffect(() => {
     if (!open) return
 
-    setDestination("cockpit")
-    fetchAccounts("personal", "")
+    setMode("recent")
+    setSearchQuery("")
+    fetchAccounts("recent", "")
   }, [open, fetchAccounts])
 
   // Debounce de la recherche (200-250ms)
@@ -93,9 +106,9 @@ export function CrmAccountLauncher({
         setMode("search")
         fetchAccounts("search", trimmed)
       } else {
-        // Fallback sur le mode sélectionné précédemment (par défaut personal)
-        setMode("personal")
-        fetchAccounts("personal", "")
+        // Recherche vidée : retour sur "Récents"
+        setMode("recent")
+        fetchAccounts("recent", "")
       }
     }, 220)
   }
@@ -114,7 +127,10 @@ export function CrmAccountLauncher({
     onSelectAccount({
       companyId: account.id,
       companyName: account.name,
-      destination,
+      // Aucun sélecteur de destination n'a jamais été branché dans l'UI
+      // (CrmLauncherDestinationTabs, supprimé) : "cockpit" est la seule
+      // valeur jamais atteignable.
+      destination: "cockpit",
     })
     onOpenChange(false)
   }
@@ -130,8 +146,6 @@ export function CrmAccountLauncher({
       <CrmAccountLauncherMobile
         open={open}
         onOpenChange={onOpenChange}
-        destination={destination}
-        onDestinationChange={setDestination}
         mode={mode}
         onModeChange={handleModeChange}
         searchQuery={searchQuery}
@@ -149,8 +163,6 @@ export function CrmAccountLauncher({
     <CrmAccountLauncherDesktop
       open={open}
       onOpenChange={onOpenChange}
-      destination={destination}
-      onDestinationChange={setDestination}
       mode={mode}
       onModeChange={handleModeChange}
       searchQuery={searchQuery}

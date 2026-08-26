@@ -3,7 +3,7 @@ import "server-only"
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserId } from "@/lib/supabase/workspace"
-import { extractCrmLauncherAccountIdsFromUiPrefs } from "@/lib/crm/account-launcher-preferences"
+import { extractCrmLauncherRecentIdsFromUiPrefs } from "@/lib/crm/account-launcher-preferences"
 
 type CrmLauncherAccount = {
   id: string
@@ -13,9 +13,8 @@ type CrmLauncherAccount = {
   website: string | null
   logoPath: string | null
   contactCount: number
-  openOpportunitiesCount?: number
-  weightedPipeline?: number
   lastActivityAt?: string | null
+  realizedRevenue?: number
 }
 
 type AccountViewRow = {
@@ -34,11 +33,6 @@ type AccountViewRow = {
 // workspace, mais on ferme la porte à toute évasion de filtre intra-workspace.
 function sanitizeOrFilterTerm(value: string): string {
   return value.replace(/[,()*\\":]/g, " ").trim().slice(0, 100)
-}
-
-function isOpenOpportunityStage(stage: string | null | undefined): boolean {
-  if (!stage) return false
-  return !["gagne", "perdu", "abandonne", "non_traitee"].includes(stage)
 }
 
 function mapAccountRow(row: AccountViewRow): CrmLauncherAccount {
@@ -68,9 +62,9 @@ export async function GET(request: Request) {
 
   // 2. Query Params
   const { searchParams } = new URL(request.url)
-  const mode = searchParams.get("mode") || "personal"
+  const mode = searchParams.get("mode") || "recent"
   const q = searchParams.get("q") || ""
-  
+
   let limit = 10
   const limitParam = searchParams.get("limit")
   if (limitParam) {
@@ -83,41 +77,11 @@ export async function GET(request: Request) {
   try {
     let accounts: CrmLauncherAccount[] = []
 
-    if (mode === "personal") {
-      // Lire les favoris
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("ui_prefs")
-        .eq("id", userId)
-        .maybeSingle()
-
-      const pinnedIds = extractCrmLauncherAccountIdsFromUiPrefs(profile?.ui_prefs)
-
-      if (pinnedIds.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: dbAccounts, error: dbError } = await (supabase as any)
-          .from("v_crm_account_list")
-          .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
-          .in("id", pinnedIds)
-
-        if (dbError) throw dbError
-
-        const mapped = ((dbAccounts || []) as AccountViewRow[]).map(mapAccountRow)
-        // Conserver l'ordre exact des pinnedIds
-        const orderMap = new Map(pinnedIds.map((id, idx) => [id, idx]))
-        accounts = mapped.sort((a, b) => {
-          const idxA = orderMap.get(a.id) ?? 999
-          const idxB = orderMap.get(b.id) ?? 999
-          return idxA - idxB
-        })
-      }
-    } 
-    
-    else if (mode === "search") {
+    if (mode === "search") {
       const safeTerm = sanitizeOrFilterTerm(q)
       if (!safeTerm) {
-        // Fallback personal si query de recherche vide (ou vidée après sanitize)
-        return GET(new Request(`${request.url.split("?")[0]}?mode=personal&limit=${limit}`))
+        // Fallback "récents" si query de recherche vide (ou vidée après sanitize)
+        return GET(new Request(`${request.url.split("?")[0]}?mode=recent&limit=${limit}`))
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,132 +93,146 @@ export async function GET(request: Request) {
 
       if (dbError) throw dbError
       accounts = ((dbAccounts || []) as AccountViewRow[]).map(mapAccountRow)
-    } 
-    
+    }
+
     else if (mode === "recent") {
-      // Compte "modifié" = fiche compte éditée, ou entité rattachée créée/éditée
-      // (contact, événement agenda, interaction — dont les mails générés depuis
-      // le cockpit via intel-020). Agrégation en mémoire sur des tables courtes
-      // (dizaines à centaines de lignes), même pattern que les modes ci-dessus —
-      // pas de vue SQL dédiée pour un besoin de cette taille.
-      const [companiesRes, contactsRes, eventsRes, interactionsRes] = await Promise.all([
-        supabase.from("companies").select("id, updated_at"),
-        supabase.from("contacts").select("company_id, updated_at"),
-        // calendar_events n'a pas le trigger set_updated_at (cf. CLAUDE.md) :
-        // on prend le max(created_at, updated_at) pour ne pas dépendre de lui.
-        supabase.from("calendar_events").select("company_id, created_at, updated_at"),
-        // created_at (horodatage serveur), pas occurred_at (antidatable par l'utilisateur).
-        supabase.from("interactions").select("company_id, created_at"),
-      ])
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("ui_prefs")
+        .eq("id", userId)
+        .maybeSingle()
 
-      if (companiesRes.error) throw companiesRes.error
-      if (contactsRes.error) throw contactsRes.error
-      if (eventsRes.error) throw eventsRes.error
-      if (interactionsRes.error) throw interactionsRes.error
+      const visitedIds = extractCrmLauncherRecentIdsFromUiPrefs(profile?.ui_prefs).slice(0, limit)
 
-      const lastActivityByCompany = new Map<string, string>()
-      const bump = (companyId: string | null | undefined, timestamp: string | null | undefined) => {
-        if (!companyId || !timestamp) return
-        const current = lastActivityByCompany.get(companyId)
-        if (!current || timestamp > current) lastActivityByCompany.set(companyId, timestamp)
-      }
-
-      for (const row of companiesRes.data || []) bump(row.id, row.updated_at)
-      for (const row of contactsRes.data || []) bump(row.company_id, row.updated_at)
-      for (const row of eventsRes.data || []) {
-        bump(row.company_id, row.created_at)
-        bump(row.company_id, row.updated_at)
-      }
-      for (const row of interactionsRes.data || []) bump(row.company_id, row.created_at)
-
-      const sortedCompanies = [...lastActivityByCompany.entries()]
-        .sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : 0))
-        .slice(0, limit)
-
-      const targetIds = sortedCompanies.map(([companyId]) => companyId)
-
-      if (targetIds.length > 0) {
+      if (visitedIds.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: dbAccounts, error: dbError } = await (supabase as any)
           .from("v_crm_account_list")
           .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
-          .in("id", targetIds)
+          .in("id", visitedIds)
 
         if (dbError) throw dbError
 
         const mapped = ((dbAccounts || []) as AccountViewRow[]).map(mapAccountRow)
-        const activityMap = new Map(sortedCompanies)
+        // Conserver l'ordre exact de l'historique (le plus récemment consulté en tête).
+        const orderMap = new Map(visitedIds.map((id, idx) => [id, idx]))
+        accounts = mapped.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999))
+      } else {
+        // Aucun historique de consultation tracé pour cet utilisateur (premier usage,
+        // ou navigateur/poste jamais synchronisé) : on retombe sur les comptes les
+        // plus récemment modifiés (fiche compte éditée, ou entité rattachée
+        // créée/éditée — contact, événement agenda, interaction). Agrégation en
+        // mémoire sur des tables courtes (dizaines à centaines de lignes) — pas de
+        // vue SQL dédiée pour un besoin de cette taille.
+        const [companiesRes, contactsRes, eventsRes, interactionsRes] = await Promise.all([
+          supabase.from("companies").select("id, updated_at"),
+          supabase.from("contacts").select("company_id, updated_at"),
+          // calendar_events n'a pas le trigger set_updated_at (cf. CLAUDE.md) :
+          // on prend le max(created_at, updated_at) pour ne pas dépendre de lui.
+          supabase.from("calendar_events").select("company_id, created_at, updated_at"),
+          // created_at (horodatage serveur), pas occurred_at (antidatable par l'utilisateur).
+          supabase.from("interactions").select("company_id, created_at"),
+        ])
 
-        accounts = mapped
-          .map((acc) => ({
-            ...acc,
-            lastActivityAt: activityMap.get(acc.id) ?? null,
-          }))
-          // Conserver l'ordre trié (le plus récemment édité en premier)
-          .sort((a, b) => targetIds.indexOf(a.id) - targetIds.indexOf(b.id))
+        if (companiesRes.error) throw companiesRes.error
+        if (contactsRes.error) throw contactsRes.error
+        if (eventsRes.error) throw eventsRes.error
+        if (interactionsRes.error) throw interactionsRes.error
+
+        const lastActivityByCompany = new Map<string, string>()
+        const bump = (companyId: string | null | undefined, timestamp: string | null | undefined) => {
+          if (!companyId || !timestamp) return
+          const current = lastActivityByCompany.get(companyId)
+          if (!current || timestamp > current) lastActivityByCompany.set(companyId, timestamp)
+        }
+
+        for (const row of companiesRes.data || []) bump(row.id, row.updated_at)
+        for (const row of contactsRes.data || []) bump(row.company_id, row.updated_at)
+        for (const row of eventsRes.data || []) {
+          bump(row.company_id, row.created_at)
+          bump(row.company_id, row.updated_at)
+        }
+        for (const row of interactionsRes.data || []) bump(row.company_id, row.created_at)
+
+        const sortedCompanies = [...lastActivityByCompany.entries()]
+          .sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : 0))
+          .slice(0, limit)
+
+        const targetIds = sortedCompanies.map(([companyId]) => companyId)
+
+        if (targetIds.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: dbAccounts, error: dbError } = await (supabase as any)
+            .from("v_crm_account_list")
+            .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
+            .in("id", targetIds)
+
+          if (dbError) throw dbError
+
+          const mapped = ((dbAccounts || []) as AccountViewRow[]).map(mapAccountRow)
+          const activityMap = new Map(sortedCompanies)
+
+          accounts = mapped
+            .map((acc) => ({
+              ...acc,
+              lastActivityAt: activityMap.get(acc.id) ?? null,
+            }))
+            // Conserver l'ordre trié (le plus récemment édité en premier)
+            .sort((a, b) => targetIds.indexOf(a.id) - targetIds.indexOf(b.id))
+        }
       }
     }
 
-    else if (mode === "opportunities") {
-      // Récupérer toutes les opportunités actives/ouvertes
-      const { data: opportunities, error: oppsError } = await supabase
-        .from("opportunities")
-        .select("company_id, stage, weighted_gain")
+    else if (mode === "clients") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: dbAccounts, error: dbError } = await (supabase as any)
+        .from("v_crm_account_list")
+        .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
+        .eq("relation_type", "client")
 
-      if (oppsError) throw oppsError
+      if (dbError) throw dbError
 
-      // Filtrer et agréger en mémoire JS
-      const companyStats = new Map<string, { count: number; weightedPipeline: number }>()
-      for (const opp of opportunities || []) {
-        if (!opp.company_id || !isOpenOpportunityStage(opp.stage)) continue
-        const stats = companyStats.get(opp.company_id) || { count: 0, weightedPipeline: 0 }
-        stats.count += 1
-        stats.weightedPipeline += Number(opp.weighted_gain || 0)
-        companyStats.set(opp.company_id, stats)
+      const clientAccounts = (dbAccounts || []) as AccountViewRow[]
+      const clientIds = clientAccounts.map((row) => row.id)
+
+      // CA réalisé = somme du revenu trimestriel dérivé des CRA
+      // (v_mission_quarterly_revenue), toutes périodes confondues — pas de
+      // fenêtre glissante, l'onglet reflète le CA historique total du client.
+      const revenueByCompany = new Map<string, number>()
+      if (clientIds.length > 0) {
+        const { data: revenueRows, error: revenueError } = await supabase
+          .from("v_mission_quarterly_revenue")
+          .select("company_id, revenue")
+          .in("company_id", clientIds)
+
+        if (revenueError) throw revenueError
+
+        for (const row of revenueRows || []) {
+          if (!row.company_id) continue
+          revenueByCompany.set(
+            row.company_id,
+            (revenueByCompany.get(row.company_id) || 0) + Number(row.revenue || 0),
+          )
+        }
       }
 
-      // Trier par SUM(weighted_gain) DESC puis par COUNT(*) DESC
-      const sortedCompanies = [...companyStats.entries()]
-        .map(([companyId, stats]) => ({
-          companyId,
-          count: stats.count,
-          weightedPipeline: stats.weightedPipeline,
+      accounts = clientAccounts
+        .map((row) => ({
+          ...mapAccountRow(row),
+          realizedRevenue: revenueByCompany.get(row.id) || 0,
         }))
-        .sort((a, b) => b.weightedPipeline - a.weightedPipeline || b.count - a.count)
+        .sort((a, b) => (b.realizedRevenue || 0) - (a.realizedRevenue || 0))
         .slice(0, limit)
+    }
 
-      const targetIds = sortedCompanies.map((c) => c.companyId)
+    else if (mode === "targets") {
+      // Cibles prioritaires de prospection : le scoring qui alimentera cet
+      // onglet dépend de la page Prospection, non finalisée (cf. CLAUDE.md
+      // § Chantiers en cours). Vide explicite tant que la source n'existe
+      // pas — jamais de remplissage arbitraire dans un module de navigation.
+      accounts = []
+    }
 
-      if (targetIds.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: dbAccounts, error: dbError } = await (supabase as any)
-          .from("v_crm_account_list")
-          .select("id, name, sector, relation_type, website, logo_path, nb_contacts")
-          .in("id", targetIds)
-
-        if (dbError) throw dbError
-
-        const mapped = ((dbAccounts || []) as AccountViewRow[]).map(mapAccountRow)
-        const statsMap = new Map(sortedCompanies.map((c) => [c.companyId, c]))
-
-        accounts = mapped
-          .map((acc) => {
-            const stats = statsMap.get(acc.id)
-            return {
-              ...acc,
-              openOpportunitiesCount: stats?.count || 0,
-              weightedPipeline: stats?.weightedPipeline || 0,
-            }
-          })
-          // Conserver l'ordre trié
-          .sort((a, b) => {
-            const idxA = targetIds.indexOf(a.id)
-            const idxB = targetIds.indexOf(b.id)
-            return idxA - idxB
-          })
-      }
-    } 
-    
     else {
       return NextResponse.json({ error: "Mode invalide" }, { status: 400 })
     }

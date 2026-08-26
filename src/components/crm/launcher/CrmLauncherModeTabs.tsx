@@ -13,9 +13,9 @@ export function CrmLauncherModeTabs({
   onChange,
 }: CrmLauncherModeTabsProps) {
   const tabs = [
-    { value: "personal", label: "Favoris" },
     { value: "recent", label: "Récents" },
-    { value: "opportunities", label: "Opportunités" },
+    { value: "clients", label: "Clients" },
+    { value: "targets", label: "Cibles" },
   ] as const
 
   return (

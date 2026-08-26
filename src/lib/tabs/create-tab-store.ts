@@ -29,7 +29,7 @@ const sessionStorageAdapter = {
   },
 }
 
-export function createTabStore(moduleKey: string) {
+export function createTabStore(moduleKey: string, onOpenTab?: (tab: SectionTab) => void) {
   return create<TabStore>()(
     persist(
       (set, get) => ({
@@ -41,11 +41,13 @@ export function createTabStore(moduleKey: string) {
           const existing = tabs.find((t) => t.entityId === tabData.entityId)
           if (existing) {
             set({ activeTabId: existing.id })
+            onOpenTab?.(existing)
             return
           }
           const newTabs = tabs.length >= MAX_TABS ? tabs.slice(1) : tabs
           const newTab: SectionTab = { ...tabData, id: crypto.randomUUID() }
           set({ tabs: [...newTabs, newTab], activeTabId: newTab.id })
+          onOpenTab?.(newTab)
         },
 
         closeTab: (id) => {

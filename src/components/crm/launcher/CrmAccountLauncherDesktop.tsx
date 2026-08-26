@@ -5,15 +5,12 @@ import { useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { CrmLauncherSearchBox } from "./CrmLauncherSearchBox"
 import { CrmLauncherModeTabs } from "./CrmLauncherModeTabs"
-import { CrmLauncherDestinationTabs } from "./CrmLauncherDestinationTabs"
 import { CrmLauncherAccountCard } from "./CrmLauncherAccountCard"
-import type { CrmLauncherAccount, CrmLauncherDestination, CrmLauncherMode } from "./CrmAccountLauncher"
+import { crmLauncherEmptyStateLabel, type CrmLauncherAccount, type CrmLauncherMode } from "./CrmAccountLauncher"
 
 interface CrmAccountLauncherDesktopProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  destination: CrmLauncherDestination
-  onDestinationChange: (dest: CrmLauncherDestination) => void
   mode: CrmLauncherMode
   onModeChange: (mode: CrmLauncherMode) => void
   searchQuery: string
@@ -28,8 +25,6 @@ interface CrmAccountLauncherDesktopProps {
 export function CrmAccountLauncherDesktop({
   open,
   onOpenChange,
-  destination,
-  onDestinationChange,
   mode,
   onModeChange,
   searchQuery,
@@ -207,7 +202,7 @@ export function CrmAccountLauncherDesktop({
                   d="M20 12H4"
                 />
               </svg>
-              <p className="text-xs text-muted">Aucun compte trouvé</p>
+              <p className="text-xs text-muted">{crmLauncherEmptyStateLabel(mode)}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
