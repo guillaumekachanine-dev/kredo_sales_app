@@ -306,9 +306,7 @@ export function AccountIntelligenceHomeTemplate({
         }
       `}</style>
       <div data-account-intelligence-home className="w-full overflow-hidden border border-edito-border bg-edito-surface">
-        <div className="h-16 bg-edito-surface" />
-
-        <section className="relative h-[500px] overflow-hidden border-y border-edito-border">
+        <section className="relative h-[350px] overflow-hidden border-b border-edito-border">
           <div
             className="absolute inset-0 bg-edito-navy"
             style={{ clipPath: "polygon(0 0, 65% 0, 43% 100%, 0 100%)" }}
