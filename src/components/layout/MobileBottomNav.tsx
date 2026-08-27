@@ -11,15 +11,14 @@ import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-s
 //  Affiche en permanence dans l'ordre exact :
 //    1. ← Retour   (historique arrière avec restauration d'état)
 //    2. Cockpit    (route /cockpit)
-//    3. MENU       (ouvre le menu complet mobile)
+//    3. MENU       (ouvre le menu complet mobile - conservé avec son libellé)
 //    4. CRM        (ouvre le launcher rapide de compte CRM)
 //    5. Suivant →  (historique avant avec restauration d'état)
 //
-//  Sémantique du tap :
-//    · Historique (Retour / Suivant) → navigation arrière / avant
-//    · Menu                          → toggle le menu complet via callback
-//    · Module inactif                → navigation (<Link>)
-//    · Module actif avec rail        → toggle du rail (<button>)
+//  Sémantique d'affichage :
+//    · Seul le bouton central "Menu" affiche son libellé textuel.
+//    · Les 4 autres pictogrammes sont agrandis (w-6 h-6).
+//    · Lorsque le module est actif, son pictogramme passe en gras.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface MobileBottomNavProps {
@@ -104,30 +103,48 @@ export function MobileBottomNav({
         const isActive = "isActive" in btn && btn.isActive
         const togglesRail = btn.type === "link" && isActive && activeHasRail
 
+        const iconClassName = isMenuButton
+          ? "size-4 shrink-0 transition-colors"
+          : "size-6 shrink-0 transition-all duration-200 ease-out"
+
+        const strokeWidth = isMenuButton
+          ? 2
+          : isHistoryButton
+            ? 2.6
+            : 2
+
         const inner = (
           <>
             <div
               className={cn(
-                "inline-flex size-7 items-center justify-center rounded-[var(--radius-medium)] transition-[background-color,color,box-shadow,transform] duration-200 ease-out",
+                "inline-flex items-center justify-center rounded-[var(--radius-medium)] transition-[background-color,color,box-shadow,transform] duration-200 ease-out",
                 isMenuButton
                   ? cn(
-                      "text-primary",
+                      "size-7 text-primary",
                       isActive && "scale-105 text-primary shadow-[0_0_0_5px_rgba(37,84,184,0.08)]",
                     )
-                  : isHistoryButton
-                    ? btn.disabled
-                      ? "text-primary-fg/20"
-                      : "text-primary-fg/75 group-hover:text-primary-fg group-active:scale-90"
-                    : isActive
-                      ? "bg-white/12 text-white shadow-[0_10px_24px_-18px_rgba(255,255,255,0.9)]"
-                      : "text-primary-fg/64",
+                  : cn(
+                      "size-9",
+                      isHistoryButton
+                        ? btn.disabled
+                          ? "text-primary-fg/20"
+                          : "text-primary-fg/75 group-hover:text-primary-fg group-active:scale-90"
+                        : isActive
+                          ? "bg-white/12 text-white shadow-[0_10px_24px_-18px_rgba(255,255,255,0.9)]"
+                          : "text-primary-fg/64",
+                    ),
               )}
             >
-              {getNavigationIcon(btn.icon)}
+              {getNavigationIcon(btn.icon, iconClassName, strokeWidth)}
             </div>
-            <span className="max-w-full truncate text-[10px] tracking-tight">
-              {btn.label}
-            </span>
+
+            {/* Le libellé est affiché pour le bouton Menu ou pour la page active */}
+            {isMenuButton || (isActive && !isHistoryButton) ? (
+              <span className="max-w-full truncate text-[10px] tracking-tight">
+                {btn.label}
+              </span>
+            ) : null}
+
             {!isHistoryButton ? (
               <span
                 aria-hidden="true"
@@ -141,7 +158,7 @@ export function MobileBottomNav({
         )
 
         const className = cn(
-          "group relative flex min-h-[var(--layout-mobile-tap-target)] flex-1 flex-col items-center justify-center gap-1 px-1 text-center select-none",
+          "group relative flex min-h-[var(--layout-mobile-tap-target)] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-center select-none",
           "transition-[color,opacity,transform,background-color,box-shadow] duration-[var(--motion-duration-fast)]",
           "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
           isMenuButton

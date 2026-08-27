@@ -18,14 +18,14 @@ describe("MobileBottomNav (rendu et composition)", () => {
       }),
     )
 
-    // Vérifier l'ordre des labels dans le balisage
-    const labelsInOrder = ["Retour", "Cockpit", "Menu", "CRM", "Suivant"]
+    // Vérifier l'ordre des emplacements via les libellés et aria-labels
+    const labelsInOrder = ["Revenir en arrière", "Cockpit", "Menu", "CRM", "Aller en avant"]
     let lastIndex = -1
 
     for (const label of labelsInOrder) {
       const index = html.indexOf(label)
-      expect(index, `Label "${label}" doit être présent dans MobileBottomNav`).toBeGreaterThan(-1)
-      expect(index, `Label "${label}" doit apparaître après le précédent`).toBeGreaterThan(lastIndex)
+      expect(index, `Aria-label/Label "${label}" doit être présent dans MobileBottomNav`).toBeGreaterThan(-1)
+      expect(index, `Aria-label/Label "${label}" doit apparaître après le précédent`).toBeGreaterThan(lastIndex)
       lastIndex = index
     }
 
