@@ -11,6 +11,7 @@ import type { SectorMapCatalog } from "@/features/sector-mapping/data/sector-map
 import type { CompetitiveMapWorkspace } from "@/features/competitive-map/data/competitive-map-workspace-types"
 import { BusinessIntelligenceHeader } from "./BusinessIntelligenceHeader"
 import { BusinessIntelligenceLocalNavigation } from "./BusinessIntelligenceLocalNavigation"
+import { BusinessIntelligenceSignatureHeader } from "../header/BusinessIntelligenceSignatureHeader"
 import { SegmentHomeDashboardDesktop } from "../home/SegmentHomeDashboardDesktop"
 import { SegmentPickerDialogDesktop } from "../catalog/SegmentPickerDialogDesktop"
 import { SegmentChangeConfirmDialog } from "../catalog/SegmentChangeConfirmDialog"
@@ -86,6 +87,14 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
     />
   )
 
+  const signatureAvailability = {
+    "sector-analysis": workspace.coverage.study.available,
+    "competitive-environment": workspace.coverage.competitiveMap.available,
+    "regulatory-calendar": workspace.coverage.regulatory.available,
+    "value-chain": workspace.coverage.valueChain.available,
+    "sector-news": workspace.coverage.news.available,
+  } as const
+
   return (
     <div className="relative flex h-full min-h-0 overflow-hidden bg-canvas" aria-busy={isSegmentPending || undefined}>
       <BusinessIntelligenceLocalNavigation
@@ -95,6 +104,14 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
         onPlaybooksClick={() => setIsPlaybooksOpen(true)}
       />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <BusinessIntelligenceSignatureHeader
+          activeChapter={activeChapter}
+          title={CHAPTER_TITLES[activeChapter]}
+          segmentName={workspace.segment.name}
+          macroName={workspace.segment.macro?.name ?? null}
+          availability={signatureAvailability}
+          onNavigate={navigateChapter}
+        />
         <BusinessIntelligenceHeader
           title={CHAPTER_TITLES[activeChapter]}
           minimal={activeChapter === "competitive-environment"}
