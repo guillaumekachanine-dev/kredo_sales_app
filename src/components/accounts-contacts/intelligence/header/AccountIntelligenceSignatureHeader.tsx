@@ -24,7 +24,7 @@ type SignatureHeaderProps = {
   title: string
 }
 
-function HeaderPlanes() {
+export function HeaderPlanes() {
   return (
     <>
       <div

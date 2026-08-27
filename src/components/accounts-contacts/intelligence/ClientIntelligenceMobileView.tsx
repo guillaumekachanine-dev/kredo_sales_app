@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
-import Link from "next/link"
 import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
@@ -53,15 +52,17 @@ import {
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
 import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
+import { AccountWatchSettingsDialog } from "@/components/accounts-contacts/intelligence/AccountWatchSettingsDialog"
 import {
   AccountIntelligenceSignatureHeaderMobile,
   getAccountIntelligenceTabLabel,
+  HeaderPlanes,
 } from "./header/AccountIntelligenceSignatureHeader"
 import {
   buildMobileAccountCockpit,
-  type MobileCockpitFeature,
 } from "@/lib/intelligence/mobile-account-cockpit"
 
 type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
@@ -75,6 +76,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [directoryOpen, setDirectoryOpen] = useState(false)
   const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
+  const [watchSettingsOpen, setWatchSettingsOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -630,37 +632,136 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   }
 
   const cockpit = buildMobileAccountCockpit(data, new Date(data.loadedAt))
+  const latestSignal = accountSignals && accountSignals.length > 0 ? accountSignals[0] : null
 
   return (
-    <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full bg-canvas pb-24 text-body">
+    <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full bg-canvas pb-24 text-body space-y-4">
       <AccountIntelligenceSignatureHeaderMobile
         company={company}
         title={getAccountIntelligenceTabLabel("accueil")}
       />
 
-      <div className="px-4">
-        <EditorialCockpitSection label="À faire maintenant" accentClassName="bg-secondary" actionClassName="border-secondary/35 bg-secondary/15 text-heading" feature={cockpit.nowAction} company={company} featured />
-        <EditorialCockpitSection label="Actualité" accentClassName="bg-info" actionClassName="border-info/25 bg-info/10 text-info" feature={cockpit.actuality} company={company} />
-        <EditorialCockpitSection label="À exploiter" accentClassName="bg-brand-brass" actionClassName="border-brand-brass/30 bg-brand-brass/10 text-heading" feature={cockpit.opportunityWindow} company={company} />
-        <EditorialCockpitSection label="Développer" accentClassName="bg-success" actionClassName="border-success/25 bg-success/10 text-success" feature={cockpit.developmentAction} company={company} />
+      <div className="px-4 space-y-4">
+        {/* Section 1 : Informations générales */}
+        <section className="rounded-2xl border border-edito-border bg-edito-surface/90 p-4 shadow-sm space-y-4">
+          <div className="flex items-center gap-3.5">
+            {/* Logo grand format dans le coin supérieur gauche */}
+            <div className="size-20 shrink-0 rounded-xl bg-white p-2.5 shadow-xs border border-border flex items-center justify-center overflow-hidden">
+              <CompanyLogo
+                name={company.name}
+                logoPath={company.logoPath}
+                website={company.website}
+                fill
+                className="h-full w-full rounded-none border-0 bg-white object-contain"
+              />
+            </div>
 
-        <section className="py-3" aria-labelledby="mobile-cockpit-upcoming-title">
-          <div className="flex items-center gap-2">
-            <div className="h-0.5 w-5 bg-edito-navy" aria-hidden="true" />
-            <h2 id="mobile-cockpit-upcoming-title" className="text-[10px] font-bold uppercase leading-4 tracking-[0.15em] text-muted">Prochains mouvements</h2>
+            {/* Segment métier et secteur d'activité (sans titres, seulement le contenu) */}
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+              {company.segment ? (
+                <p className="font-bold text-sm leading-snug text-heading">{company.segment}</p>
+              ) : null}
+              {company.sector ? (
+                <p className="text-xs font-semibold leading-snug text-muted">{company.sector}</p>
+              ) : null}
+            </div>
           </div>
-          {cockpit.upcoming.length > 0 ? (
-            <ul className="mt-1.5 divide-y divide-border">
-              {cockpit.upcoming.map((item) => (
-                <li key={item.id}>
-                  <Link href={item.href} className="flex min-h-11 items-center justify-between gap-4 py-1.5 text-[13px] leading-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
-                    <span className="min-w-0 truncate font-semibold text-heading">{item.label}</span>
-                    <span className={cn("shrink-0 text-[11px] font-semibold", item.overdue ? "text-danger" : "text-muted")}>{item.timing}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="mt-2 text-[13px] leading-5 text-muted">Aucun mouvement planifié.</p>}
+
+          {/* Ligne de 3 KPI côte à côte : Chiffre d'affaires, Effectifs, Siège social */}
+          <div className="grid grid-cols-3 gap-2 border-t border-border/40 pt-3">
+            <div className="min-w-0">
+              <span className="block text-[11px] font-semibold text-muted">Chiffre d&apos;affaires</span>
+              <span className="mt-0.5 block truncate text-[14px] font-bold text-heading">
+                {data.companyProfile?.revenue || "—"}
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <span className="block text-[11px] font-semibold text-muted">Effectifs</span>
+              <span className="mt-0.5 block truncate text-[14px] font-bold text-heading">
+                {data.companyProfile?.employeeCount || data.companyProfile?.headcountFrance || "—"}
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <span className="block text-[11px] font-semibold text-muted">Siège social</span>
+              <span className="mt-0.5 block truncate text-[14px] font-bold text-heading">
+                {company.hqLocation || data.companyProfile?.hqLocation || "—"}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2 : 4 boutons de raccourci vers les onglets (1 par ligne) */}
+        <section className="space-y-2.5">
+          <AccountIntelligenceTabBannerButton
+            company={company}
+            label="Entreprise"
+            onClick={() => setActivePanel("connaissance")}
+          />
+          <AccountIntelligenceTabBannerButton
+            company={company}
+            label="Secteur"
+            onClick={() => setActivePanel("secteur")}
+          />
+          <AccountIntelligenceTabBannerButton
+            company={company}
+            label="Enjeux"
+            onClick={() => setActivePanel("enjeux")}
+          />
+          <AccountIntelligenceTabBannerButton
+            company={company}
+            label="Stratégie"
+            onClick={() => setActivePanel("strategie")}
+          />
+        </section>
+
+        {/* Section 3 : Actualités du compte */}
+        <section className="rounded-2xl border border-info/25 bg-info/[0.06] p-4 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 border-b border-info/20 pb-2">
+            <div className="h-0.5 w-5 bg-info" aria-hidden="true" />
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.15em] text-info">Actualités du compte</h2>
+          </div>
+
+          <div>
+            {latestSignal ? (
+              <div>
+                <span className="inline-block rounded bg-info/15 px-2 py-0.5 text-[10px] font-bold text-info uppercase tracking-wider mb-1">
+                  Signal compte
+                </span>
+                <h3 className="font-bold text-sm text-heading line-clamp-2">{latestSignal.title}</h3>
+                {latestSignal.summary ? (
+                  <p className="mt-1 text-xs text-body leading-relaxed line-clamp-2">{latestSignal.summary}</p>
+                ) : null}
+              </div>
+            ) : cockpit.actuality.title ? (
+              <div>
+                <span className="inline-block rounded bg-info/15 px-2 py-0.5 text-[10px] font-bold text-info uppercase tracking-wider mb-1">
+                  Actualité sectorielle
+                </span>
+                <h3 className="font-bold text-sm text-heading line-clamp-2">{cockpit.actuality.title}</h3>
+                {cockpit.actuality.context ? (
+                  <p className="mt-1 text-xs text-body leading-relaxed line-clamp-2">{cockpit.actuality.context}</p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-xs italic text-muted">Aucune actualité récente ou signal détecté pour le moment.</p>
+            )}
+          </div>
+
+          <div className="pt-1 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setWatchSettingsOpen(true)}
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-info/30 bg-info/15 px-3.5 text-xs font-bold text-info transition-all hover:bg-info/25 active:scale-98 cursor-pointer"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.27 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.527-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.149-.894Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              Paramétrer la veille
+            </button>
+          </div>
         </section>
       </div>
 
@@ -670,118 +771,57 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         initialCompanyId={company.id}
         isMobile={true}
       />
+
+      <AccountWatchSettingsDialog
+        open={watchSettingsOpen}
+        onOpenChange={setWatchSettingsOpen}
+        companyId={company.id}
+        companyName={company.name}
+        companyLogoPath={company.logoPath}
+        companyWebsite={company.website}
+        onBack={() => setWatchSettingsOpen(false)}
+        onReturnToCockpit={() => setWatchSettingsOpen(false)}
+      />
     </main>
   )
 }
 
-function EditorialCockpitSection({ label, accentClassName, actionClassName, feature, company, featured = false }: {
+function AccountIntelligenceTabBannerButton({
+  company,
+  label,
+  onClick,
+}: {
+  company: ClientIntelligenceData["company"]
   label: string
-  accentClassName: string
-  actionClassName: string
-  feature: MobileCockpitFeature
-  company: ClientIntelligenceData["company"]
-  featured?: boolean
+  onClick: () => void
 }) {
   return (
-    <section className={cn(
-      "border-b border-border py-3",
-      featured && "-mx-4 border-y border-secondary/25 bg-secondary/[0.07] px-4",
-    )}>
-      <div className="flex items-center gap-2">
-        <div className={cn("h-0.5 w-5", accentClassName)} aria-hidden="true" />
-        <h2 className={cn(
-          "text-[10px] font-bold uppercase leading-4 tracking-[0.15em] text-muted",
-          featured && "text-heading",
-        )}>{label}</h2>
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative flex h-[52px] w-full items-center justify-between overflow-hidden rounded-xl border border-edito-border text-left shadow-xs transition-transform active:scale-[0.99] cursor-pointer"
+    >
+      <HeaderPlanes />
+      <div className="relative z-10 flex min-w-0 items-center gap-2.5 pl-3">
+        <div className="size-7 shrink-0 bg-white p-0.5 rounded shadow-xs flex items-center justify-center">
+          <CompanyLogo
+            name={company.name}
+            logoPath={company.logoPath}
+            website={company.website}
+            fill
+            className="h-full w-full rounded-none border-0 bg-white text-[10px]"
+          />
+        </div>
+        <span className="max-w-[42vw] truncate text-[13px] font-black uppercase tracking-[0.03em] text-white">
+          {company.name}
+        </span>
       </div>
-      <h3 className={cn(
-        "mt-1 max-w-[35ch] font-bold leading-5 tracking-[-0.01em] text-heading",
-        featured ? "line-clamp-2 text-[18px]" : "line-clamp-3 text-[16px]",
-      )}>{feature.title}</h3>
-      {feature.meta ? <p className="mt-0.5 text-[12px] font-semibold leading-4 text-body">{feature.meta}</p> : null}
-      {feature.context ? <p className="mt-0.5 line-clamp-1 text-[12px] leading-4 text-body">{feature.context}</p> : null}
-      <EditorialFeatureActions feature={feature} company={company} actionClassName={actionClassName} />
-    </section>
-  )
-}
-
-function getFeatureSource(feature: MobileCockpitFeature, companyName: string): { href: string; label: string } {
-  if (feature.actionKind === "agenda") return { href: feature.href ?? "/agenda", label: "Voir l’agenda" }
-  if (feature.actionKind === "actuality") {
-    if (feature.id.startsWith("article:")) return { href: "/veille", label: "Consulter la veille" }
-    return { href: "/veille", label: "Consulter les signaux" }
-  }
-  if (feature.actionKind === "veille") return { href: feature.href ?? "/veille", label: "Ouvrir la veille" }
-  if (feature.actionKind === "opportunity") {
-    if (feature.missionId) return { href: feature.href ?? "/missions/actives", label: "Voir les missions" }
-    if (feature.signalId) return { href: "/veille", label: "Consulter les signaux" }
-    if (feature.id.startsWith("regulatory:")) return { href: feature.href ?? "/prospection/approche-sectorielle", label: "Voir le secteur" }
-    return {
-      href: feature.href ?? "/missions/opps",
-      label: feature.opportunityId
-        ? /renfort|staffing/i.test(feature.opportunityTitle ?? feature.title) ? "Voir le staffing" : "Voir l’opportunité"
-        : "Voir le pipe",
-    }
-  }
-  if (feature.opportunityId) return { href: `/missions/opps/${feature.opportunityId}/modifier`, label: "Voir l’opportunité" }
-  if (feature.signalId) return { href: "/veille", label: "Consulter les signaux" }
-  return {
-    href: `/prospection/accounts?tab=contacts&q=${encodeURIComponent(companyName)}`,
-    label: "Voir les contacts",
-  }
-}
-
-function EditorialFeatureActions({ feature, company, actionClassName }: {
-  feature: MobileCockpitFeature
-  company: ClientIntelligenceData["company"]
-  actionClassName: string
-}) {
-  const source = getFeatureSource(feature, company.name)
-  const framedButtonClassName = "inline-flex min-h-11 min-w-0 items-center justify-center rounded-[var(--radius-medium)] border px-2.5 text-center text-[12px] font-bold leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-  const actionIsLink = feature.id === "plan-next-action" || feature.id === "actuality-empty" || feature.id === "window-empty"
-  const intent = feature.actionKind === "agenda"
-    ? "discovery_preparation"
-    : feature.missionId
-      ? "mission_renewal"
-      : feature.actionKind === "actuality"
-        ? "signal_outreach"
-        : "prospection_follow_up"
-
-  return (
-    <div className="mt-2 grid grid-cols-2 gap-2">
-      <Link
-        href={source.href}
-        className={cn(framedButtonClassName, "border-cockpit-cobalt/20 bg-cockpit-cobalt/[0.06] text-cockpit-cobalt hover:bg-cockpit-cobalt/10")}
-      >
-        {source.label}
-      </Link>
-      {actionIsLink ? (
-        <Link href={feature.href ?? source.href} className={cn(framedButtonClassName, actionClassName)}>
-          {feature.ctaLabel}
-        </Link>
-      ) : (
-        <ContextualCommunicationButton
-          intent={intent}
-          companyId={company.id}
-          companyName={company.name}
-          contactId={feature.contactId}
-          contactName={feature.contactName}
-          opportunityId={feature.opportunityId}
-          opportunityTitle={feature.opportunityTitle}
-          missionId={feature.missionId}
-          missionTitle={feature.missionTitle}
-          signalId={feature.signalId}
-          eventId={feature.eventId}
-          eventTitle={feature.eventTitle}
-          eventStartsAt={feature.eventStartsAt}
-          primaryEntity={{ type: "company", id: company.id }}
-          label={feature.ctaLabel}
-          mustInclude={feature.signalTitle ?? feature.context ?? feature.title}
-          variant="ghost"
-          className={cn(framedButtonClassName, "!h-11 !w-full !min-w-0 !px-2.5", actionClassName)}
-        />
-      )}
-    </div>
+      <div className="relative z-10 pr-4 text-right">
+        <span className="text-[12px] font-black uppercase tracking-[0.1em] text-white">
+          {label}
+        </span>
+      </div>
+    </button>
   )
 }
 
