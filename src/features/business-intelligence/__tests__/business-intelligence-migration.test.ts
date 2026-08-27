@@ -22,8 +22,8 @@ describe("Business Intelligence migration", () => {
     const mobileBottomNav = read("src/components/layout/MobileBottomNav.tsx")
     expect(mobileMenu).toContain('href: "/intelligence", icon: "bi"')
     expect(mobileMenu).not.toContain('href: "/intelligence", icon: "bi", disabled: true')
-    expect(mobileBottomNav).toContain('href: "/intelligence"')
-    expect(mobileBottomNav).toContain('pathname.startsWith("/intelligence")')
+    // Intelligence a été retirée de la bottom bar fixe au profit de la navigation 5 slots avec historique
+    expect(mobileBottomNav).not.toContain('label: "Intelligence"')
   })
 
   it.each([

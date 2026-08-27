@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef } from "react"
 import type { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import { CrmAccountLauncherDesktop } from "./CrmAccountLauncherDesktop"
 import { CrmAccountLauncherMobile } from "./CrmAccountLauncherMobile"
@@ -40,57 +40,68 @@ interface CrmAccountLauncherProps {
   }) => void
 }
 
+import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
+
 export function CrmAccountLauncher({
   open,
   onOpenChange,
   device,
   onSelectAccount,
 }: CrmAccountLauncherProps) {
-  const [mode, setMode] = useState<CrmLauncherMode>("recent")
-  const [searchQuery, setSearchQuery] = useState("")
+  const mode = useCrmAccountLauncherStore((s) => s.mode)
+  const searchQuery = useCrmAccountLauncherStore((s) => s.searchQuery)
+  const setMode = useCrmAccountLauncherStore((s) => s.setMode)
+  const setSearchQuery = useCrmAccountLauncherStore((s) => s.setSearchQuery)
+
   const [accounts, setAccounts] = useState<CrmLauncherAccount[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
   
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Déclaré comme fonction stable avec useCallback
-  const fetchAccounts = useCallback(async (fetchMode: CrmLauncherMode, query: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const params = new URLSearchParams()
-      params.set("mode", fetchMode)
-      if (query.trim()) {
-        params.set("q", query.trim())
-      }
-      params.set("limit", "10")
-
-      const res = await fetch(`/api/prospection/accounts/launcher?${params.toString()}`)
-      if (!res.ok) {
-        throw new Error(`Erreur HTTP: ${res.status}`)
-      }
-      const data = await res.json()
-      setAccounts(data.items || [])
-    } catch (err) {
-      console.error("[CrmAccountLauncher] Fetch error:", err)
-      setError("Impossible de charger les comptes.")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Chargement à chaque ouverture : retombe sur "Récents" et relit
-  // l'historique de consultation à jour (API lue en direct sur
-  // profiles.ui_prefs), plutôt que de rester sur le dernier onglet/recherche
-  // laissé par la session précédente.
+  // Chargement à chaque ouverture ou changement de mode / query
   useEffect(() => {
     if (!open) return
+    let active = true
 
-    setMode("recent")
-    setSearchQuery("")
-    fetchAccounts("recent", "")
-  }, [open, fetchAccounts])
+    async function loadData() {
+      setLoading(true)
+      setError(null)
+      try {
+        const params = new URLSearchParams()
+        params.set("mode", mode)
+        if (searchQuery.trim()) {
+          params.set("q", searchQuery.trim())
+        }
+        params.set("limit", "10")
+
+        const res = await fetch(`/api/prospection/accounts/launcher?${params.toString()}`)
+        if (!res.ok) {
+          throw new Error(`Erreur HTTP: ${res.status}`)
+        }
+        const data = await res.json()
+        if (active) {
+          setAccounts(data.items || [])
+        }
+      } catch (err) {
+        if (active) {
+          console.error("[CrmAccountLauncher] Fetch error:", err)
+          setError("Impossible de charger les comptes.")
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadData()
+
+    return () => {
+      active = false
+    }
+  }, [open, mode, searchQuery, retryKey])
 
   // Debounce de la recherche (200-250ms)
   const handleSearchChange = (query: string) => {
@@ -104,23 +115,20 @@ export function CrmAccountLauncher({
       const trimmed = query.trim()
       if (trimmed.length > 0) {
         setMode("search")
-        fetchAccounts("search", trimmed)
       } else {
         // Recherche vidée : retour sur "Récents"
         setMode("recent")
-        fetchAccounts("recent", "")
       }
     }, 220)
   }
 
   const handleModeChange = (newMode: CrmLauncherMode) => {
     setMode(newMode)
-    setSearchQuery("") // Clear de la recherche quand on change de tab
-    fetchAccounts(newMode, "")
+    setSearchQuery("")
   }
 
   const handleRetry = () => {
-    fetchAccounts(mode, searchQuery)
+    setRetryKey((k) => k + 1)
   }
 
   const handleSelect = (account: CrmLauncherAccount) => {

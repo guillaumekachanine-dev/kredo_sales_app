@@ -10,7 +10,7 @@ import { useLegacySandboxStore } from "@/features/legacy/LegacySandboxStore"
 import { cn } from "@/lib/utils"
 import styles from "./MobileNavigationMenu.module.css"
 
-type MenuItemId =
+export type MenuItemId =
   | "cockpit"
   | "agenda"
   | "crm"
@@ -22,7 +22,7 @@ type MenuItemId =
 
 type TabAlignment = "start" | "end"
 
-type MenuItem = {
+export type MenuItem = {
   id: MenuItemId
   label: string
   icon: string
@@ -38,7 +38,7 @@ type MenuItem = {
   }>
 }
 
-const mainItems: MenuItem[] = [
+export const mainItems: MenuItem[] = [
   { id: "cockpit", label: "Cockpit", icon: "cockpit", tone: "cobalt", href: "/cockpit" },
   { id: "agenda", label: "Agenda", icon: "calendar", tone: "brass", href: "/agenda" },
   {
@@ -108,6 +108,8 @@ const quickActions = [
 interface MobileNavigationMenuProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  expandedId?: MenuItemId | null
+  onExpandedChange?: (id: MenuItemId | null) => void
 }
 
 function ChevronIcon() {
@@ -134,7 +136,7 @@ function chunkRows(items: MenuItem[]) {
   return rows
 }
 
-function getInitialExpandedId(pathname: string): MenuItemId | null {
+export function getInitialExpandedId(pathname: string): MenuItemId | null {
   if (pathname.startsWith("/prospection")) return "crm"
   if (pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")) return "besoins"
   if (pathname.startsWith("/missions")) return "missions"
@@ -282,10 +284,25 @@ function ExpandedTabs({
   )
 }
 
-export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationMenuProps) {
+export function MobileNavigationMenu({
+  isOpen,
+  onOpenChange,
+  expandedId: controlledExpandedId,
+  onExpandedChange,
+}: MobileNavigationMenuProps) {
   const pathname = usePathname()
   const rows = useMemo(() => chunkRows(mainItems), [])
-  const [expandedId, setExpandedId] = useState<MenuItemId | null>(null)
+  const [internalExpandedId, setInternalExpandedId] = useState<MenuItemId | null>(null)
+
+  const isControlled = controlledExpandedId !== undefined
+  const expandedId = isControlled ? controlledExpandedId : internalExpandedId
+  const setExpandedId = (id: MenuItemId | null) => {
+    if (!isControlled) {
+      setInternalExpandedId(id)
+    }
+    onExpandedChange?.(id)
+  }
+
   const isFocusMode = expandedId !== null
   const openSandbox = useLegacySandboxStore((s) => s.open)
 
@@ -293,14 +310,17 @@ export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationM
     if (!isOpen) return
 
     const timeout = window.setTimeout(() => {
-      setExpandedId(getInitialExpandedId(pathname))
+      if (!isControlled && internalExpandedId === null) {
+        setInternalExpandedId(getInitialExpandedId(pathname))
+      }
     }, 0)
 
     return () => window.clearTimeout(timeout)
-  }, [isOpen, pathname])
+  }, [isOpen, pathname, isControlled, internalExpandedId])
 
   function handleToggle(id: MenuItemId) {
-    setExpandedId((current) => (current === id ? null : id))
+    const nextId = expandedId === id ? null : id
+    setExpandedId(nextId)
   }
 
   function closeMenu() {

@@ -19,6 +19,7 @@ export async function AppShell({ device, children }: AppShellProps) {
     return (
       <div className="flex min-h-[100dvh] min-w-0 max-w-full flex-col overflow-x-clip bg-canvas">
         <main
+          data-kredo-mobile-scroll-root="true"
           className="flex-1 flex flex-col overflow-y-auto overflow-x-clip pt-[var(--space-3)] pb-[var(--layout-mobile-content-bottom-offset)] min-w-0 max-w-full"
         >
           {children}
