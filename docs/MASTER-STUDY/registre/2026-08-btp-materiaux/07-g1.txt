@@ -1,0 +1,76 @@
+==============================================================================
+G1 — CONFORMITÉ · 2026-08-btp-materiaux
+MASTER-STUDY 10-ETAPE-E7 §3 · exécuté le 2026-08-26
+==============================================================================
+
+── PARSABILITE ───────────────────────────────────────────────────────────────
+  [PASS] Chaque .json du run charge
+      3 fichier(s) JSON, 0 illisible(s)
+
+  [PASS] Aucun JSON collé dans un markdown
+      aucun
+
+── INVARIANT A9 ──────────────────────────────────────────────────────────────
+  [PASS] 00-cadrage.json : compteurs == len(listes)
+      4 compteur(s) — sans liste correspondante : offre_kredo_practices, offre_kredo_offers
+
+  [PASS] 01-taxonomie.json : compteurs == len(listes)
+      4 compteur(s)
+
+  [PASS] 02-socle.json : compteurs == len(listes)
+      9 compteur(s)
+
+── SCHEMA ────────────────────────────────────────────────────────────────────
+  [PASS] 00-cadrage.json valide contre son schéma
+      conforme contre cadrage.schema.json
+
+  [PASS] 01-taxonomie.json valide contre son schéma
+      conforme contre taxonomie.schema.json
+
+  [PASS] 02-socle.json valide contre son schéma
+      conforme contre socle.schema.json
+
+── SOURCES ───────────────────────────────────────────────────────────────────
+  [SKIP] 02-socle.json : chaque URL réglementaire répond (HEAD 2xx/3xx)
+      6 URL(s) — passer --check-urls pour vérifier
+
+── INVARIANT A9 ──────────────────────────────────────────────────────────────
+  [PASS] 02-socle.json : total des faits = somme du détail
+      12 faits sur 2 comptes résolus, tous sourcés
+
+── JOURNAL ───────────────────────────────────────────────────────────────────
+  [PASS] 02-journal.md : ≥ 3 requêtes distinctes
+      34 requête(s) jouée(s)
+
+  [FAIL] 03-journal.md : ≥ 15 requêtes distinctes
+      fichier absent
+
+  [FAIL] 04-journal.md : ≥ 25 requêtes distinctes
+      fichier absent
+
+  [FAIL] 05-journal.md : ≥ 25 requêtes distinctes
+      fichier absent
+
+── ECHEANCE PIVOT ────────────────────────────────────────────────────────────
+  [PASS] echeance_pivot datée, future et sourcée officiellement
+      « Facturation électronique obligatoire entre entreprises : obligation de RÉCEPTION pour toutes les entreprises, et obligation d'ÉMISSION pour les grandes entreprises et les ETI » · 2026-09-01 · future · source officielle
+
+  [PASS] échéances revalidées le jour du run
+      revalides_le = '2026-08-26', run du 2026-08-26, 34 requête(s) jouée(s)
+
+── VOCABULAIRE ───────────────────────────────────────────────────────────────
+  [PASS] aucune inférence non marquée (A11)
+      aucune occurrence de « besoins SI probables » ou équivalent
+
+── PORTEE ────────────────────────────────────────────────────────────────────
+  [PASS] toute écriture sectorielle porte le segment (A4)
+      segment seg-btp-materiaux cohérent sur tous les fichiers
+
+==============================================================================
+  PASS 14   FAIL 3   NON EXÉCUTÉ 1
+
+  VERDICT G1 : FAIL
+
+  Bloquant. Les contrôles en échec ne se corrigent pas dans le JSON :
+  ils se corrigent dans la matière, ou le contrat est faux.
+==============================================================================

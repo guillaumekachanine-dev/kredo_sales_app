@@ -1,0 +1,151 @@
+{
+  "segment": {
+    "slug": "seg-btp-materiaux",
+    "id": "dce89dd8-529d-4a37-8966-4e46400a95eb",
+    "level": "segment",
+    "macro_slug": "btp-construction-immobilier",
+    "macro_id": "d2466a4e-8d57-4258-bffa-73db1746c1d2",
+    "display_code": "7.2"
+  },
+  "comptes": {
+    "total": 3,
+    "confiance_faible": 0,
+    "mapped": 0,
+    "total_rattaches_toutes_profondeurs": 3,
+    "detail": [
+      {
+        "nom": "Audemard",
+        "depth_level": "active",
+        "relation_type": "client",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": "client — exclu des cibles de prospection sous objectif ouverture (E0 §4.3)",
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "Ciffreo Bona",
+        "depth_level": "active",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      },
+      {
+        "nom": "Richardson",
+        "depth_level": "active",
+        "relation_type": "prospect",
+        "axes_manquants": [],
+        "hors_cibles_de_prospection": null,
+        "dans_la_cartographie": true
+      }
+    ],
+    "classifies_5_axes_obligatoires": 3,
+    "axes_conditionnels_nuls_non_documentes": 0,
+    "dans_le_perimetre_g0": 3
+  },
+  "corpus_existant": {
+    "regulatory_items_segment": 0,
+    "regulatory_items_macro": 5,
+    "regulatory_items_futurs": 3,
+    "regulatory_items_sans_source_url": 0,
+    "pain_points_segment": 0,
+    "pain_points_macro": 6,
+    "events_segment": 0,
+    "events_macro": 4,
+    "news_segment_et_macro": 0,
+    "playbook_segment_cles_remplies": 0,
+    "playbook_macro_cles": 4,
+    "playbook_macro_entrees": 16,
+    "description_segment": false,
+    "description_macro": true,
+    "competitive_map_entries": 0,
+    "account_facts_comptes": 14,
+    "account_signals_comptes": 20,
+    "contacts_comptes": 24,
+    "opportunites_ouvertes": 1,
+    "commentaire": "Fracture macro/segment à l'état pur : le segment ne porte aucune connaissance propre (description NULL, playbook = squelette de seed à 4 tableaux vides), le macro en porte 15 items plus un playbook de 16 entrées. E4 reçoit donc ces 15 items en entrée et ne repart pas d'une page blanche — mais il écrit au segment (A4), et la résolution clé par clé de v_sector_knowledge_resolved fera remonter le playbook macro sans que le squelette vide ne l'écrase. Écart favorable au run parfumerie : ici les 5 items réglementaires portent TOUS une source_url, dont 3 à échéance future. Les 14 account_facts sont tous sur Audemard ; Ciffreo Bona et Richardson en ont zéro."
+  },
+  "controles_e1": [
+    {
+      "n": 1,
+      "libelle": "Le macro est le parent_id du segment",
+      "resultat": "pass",
+      "note": "parent_id = d2466a4e… = btp-construction-immobilier, cohérent sur les 3 comptes"
+    },
+    {
+      "n": 2,
+      "libelle": "regime_achat, modele_eco et tier renseignés ensemble",
+      "resultat": "pass",
+      "note": "3/3 — regime_achat prive sur les 3 ; modele_eco industriel×1 (Audemard) et multi_sites×2 (Ciffreo Bona, Richardson) ; tier eti×2, grand_compte×1"
+    },
+    {
+      "n": 3,
+      "libelle": "classification_note présente si classification_confiance faible",
+      "resultat": "pass",
+      "note": "aucune confiance faible : les 3 comptes portent classification_confiance = haute, classifiés le 09/08/2026"
+    },
+    {
+      "n": 4,
+      "libelle": "Aucun sector_id divergent de segment.parent_id",
+      "resultat": "pass",
+      "note": "3/3 cohérents — projection écrite par apply_account_classification() seule"
+    },
+    {
+      "n": 5,
+      "libelle": "Aucun segment créé sans les 3 conditions cumulatives",
+      "resultat": "pass",
+      "note": "segment préexistant (display_code 7.2), aucune création dans ce run"
+    },
+    {
+      "n": 6,
+      "libelle": "Aucun compte mapped dans les compteurs",
+      "resultat": "pass",
+      "note": "0 compte mapped sur ce segment ; 6 comptes mapped en base, aucun rattaché ici"
+    },
+    {
+      "n": 7,
+      "libelle": "Axes conditionnels : renseignés ou légitimement NULL",
+      "resultat": "pass",
+      "note": "moment NULL sur 3/3 — conforme au référentiel §5.5, qui interdit de le renseigner sans fait daté sourçable ; c'est précisément ce que E2 et E4 doivent produire. vertical_client NULL sur 3/3 — conforme au §5.7 : l'axe est un canal d'héritage réservé aux fournisseurs d'une filière qu'ils ne partagent pas, or ces trois comptes SONT déjà classés dans la filière qu'ils servent (BTP), l'héritage serait circulaire. Aucun NULL inventé."
+    },
+    {
+      "n": 8,
+      "libelle": "Règle des 70 % — cohérence interne du segment (référentiel §4.2)",
+      "resultat": "warn",
+      "note": "Le segment réunit un industriel (Audemard, production béton/granulats, NAF div. 23) et deux négociants multi-agences (Ciffreo Bona, Richardson, NAF div. 46). Un briefing sur les données produits (FDES, marquage CE, RE2020) reste pertinent des deux côtés, de même que la facturation électronique et l'intégration SI post-acquisitions ; en revanche la bascule e-commerce du négoce et la logistique multi-agences ne concernent pas l'industriel. Estimation à ~70 %, soit exactement le seuil. Pas de scission proposée : E5 devra produire deux sous-familles dans sa segmentation plutôt qu'un discours unique."
+    },
+    {
+      "n": 9,
+      "libelle": "Gisement A7 mesuré avant engagement (etat-du-chantier §5, critère 3)",
+      "resultat": "warn",
+      "note": "Mesuré en direct le 26/08/2026 sur l'API France Travail Offres v2 (2 appels par division, range=0-0, comptage lu dans content-range). Division 46 (commerce de gros / négoce) : 8 477 offres dont 81 SI (M18), soit 1,0 %. Division 23 (fabrication produits minéraux — béton, ciment, granulats) : 384 offres dont 0 SI. A7 rendra donc quelque chose sur Ciffreo Bona et Richardson, et rien sur le compte étalon Audemard. Pour comparaison, les deux autres segments BTP sont plus pauvres : div. 41 (constructeurs) 1 offre SI, div. 68 (immobilier) 19."
+    }
+  ],
+  "verdict_g0": "go",
+  "motif": "Les six conditions de G0 sont tenues : le segment existe en level='segment' avec un parent_id, 3 comptes y sont rattachés (seuil 3, atteint tout juste, clients compris conformément à l'amendement A2), les 5 axes toujours renseignables le sont à 100 %, les 2 axes conditionnels sont NULL de façon conforme au référentiel §5.5 et §5.7, l'objectif commercial 'ouverture' est déclaré en E0, et E3 est planifié. Le corpus d'entrée est le meilleur des quatre segments BTP : 15 items au macro dont 5 réglementaires TOUS sourcés et 3 à échéance future.",
+  "reserves": [
+    "Le seuil des 3 comptes est atteint tout juste, sans marge : la perte d'un compte du périmètre (reclassement, fusion) ferait repasser le segment sous G0. La longlist d'E5 devra donc élargir hors portefeuille — c'est l'objet des quotas — sous peine d'une carte à trois points.",
+    "Le segment mélange un métier industriel et un métier de distribution (contrôle 8, ~70 %). E5 produit deux sous-familles, pas un message unique ; si l'écart se révèle supérieur à ce qui est estimé ici, c'est une question de taxonomie à rouvrir en E1 d'un run ultérieur, jamais un effet de bord de cette étude.",
+    "Le compte étalon Audemard n'a pas de gisement A7 (0 offre SI dans toute sa division NAF au national). Son calibrage portera sur l'identité, l'économie et la chaîne de valeur, pas sur l'intensité SI.",
+    "companies.siren est NULL sur les 3 comptes, alors qu'un account_fact legal_id '950399014' existe déjà sur Audemard. E2 doit réconcilier les deux et non écraser l'un par l'autre — et arbitrer l'entité retenue, Audemard étant un groupe multi-sites (près de 38 sites déclarés) dont le fait legal_id porte une immatriculation de 1989 face à un discours de 140 ans d'histoire.",
+    "B4 (couche accessibilité, axe A6) est à 0 fait sur les 105 comptes de la base, ce segment compris. L'axe 'accessibilite' de la formule d'appétence /35 sera donc provisoire (appetence_provisoire=true) tant que E5 ne l'aura pas collecté à la main.",
+    "G2 (red team) n'a jamais été exécutée sur aucun run du corpus, y compris celui qui a été ingéré le 20/08. Si elle ne l'est pas ici non plus, le verdict final ne couvrira que G0/G1/G3 et devra le dire."
+  ],
+  "amendements_appliques": [
+    {
+      "ref": "A1",
+      "objet": "G0 distingue 5 axes toujours renseignables et 2 conditionnels",
+      "effet": "le run est franchissable ; sous la règle antérieure des 7 axes à 100 %, moment=NULL sur 3/3 l'aurait bloqué"
+    },
+    {
+      "ref": "A2",
+      "objet": "un compte client compte dans le seuil et figure dans la cartographie",
+      "effet": "le segment compte 3 comptes et franchit le seuil ; sans Audemard il n'en compterait que 2 et G0 serait no_go"
+    }
+  ],
+  "compteurs": {
+    "detail": 3,
+    "controles_e1": 9,
+    "reserves": 6,
+    "amendements_appliques": 2
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "version": "1.0",
+  "date_snapshot": "2026-08-26",
+  "variante": "master",
+  "segment": {
+    "slug": "seg-btp-materiaux",
+    "nom": "Matériaux — production & négoce",
+    "sector_intelligence_id": "dce89dd8-529d-4a37-8966-4e46400a95eb",
+    "macro_slug": "btp-construction-immobilier"
+  },
+  "definition_du_marche": "La production industrielle et la distribution professionnelle des matériaux qui entrent dans un ouvrage de bâtiment ou de travaux publics en France — granulats, béton prêt à l'emploi, ciment et liants, produits de gros œuvre et de second œuvre. Les clients sont des entreprises de construction, des artisans, des maîtres d'ouvrage et d'autres négociants ; le segment réunit donc deux métiers, l'industriel qui produit sur site fixe et le négociant multi-agences qui distribue.",
+  "hors_champ": [
+    "Les fabricants de composants et d'équipements du bâtiment — menuiserie, fermeture, quincaillerie, protection solaire — qui relèvent du segment seg-btp-composants-equipements (Griesser, Sepalumic, Torbel)",
+    "Les entreprises de travaux, constructeurs et promoteurs, qui achètent ces matériaux et relèvent de seg-btp-constructeurs-promoteurs",
+    "L'investissement, la transaction et la gestion immobilière, qui relèvent de seg-btp-immobilier",
+    "La distribution grand public de bricolage (GSB) : clientèle, modèle de marge et SI de caisse sans rapport avec le négoce professionnel",
+    "Le négoce généraliste industriel sans dominante bâtiment, dont le corpus réglementaire (RE2020, FDES, REP PMCB) ne s'applique pas"
+  ],
+  "geographie": "France entière (métropole + DROM)",
+  "compte_etalon": {
+    "nom": "Audemard",
+    "company_id": "2ea63e2c-346a-4f98-810f-d2ea252206f0",
+    "motif_du_choix": "Seul client du segment, donc le seul compte dont la fiche est confrontable à ce qu'on sait déjà — et le seul des trois qui porte déjà de la matière en base : 14 account_facts et 8 contacts. C'est aussi le seul pur industriel face à deux négociants : si sa fiche est juste, la bascule production/distribution de l'étude tient ; si elle est fausse sur ce qu'on connaît, la méthode est fausse et l'étude s'arrête.",
+    "reserve": "Son gisement A7 est nul par construction — division NAF 23, mesurée le 26/08/2026 à 0 offre SI en France. Le compte étalon ne pourra donc pas être calibré sur l'axe intensité SI ; il l'est sur l'identité, l'économie et la chaîne de valeur."
+  },
+  "quotas": {
+    "leaders": 3,
+    "challengers": 3,
+    "mid_market": 3,
+    "outsiders_emergents": 2,
+    "outsiders_niche": 3
+  },
+  "profondeur_historique_ans": 10,
+  "exercice_de_reference": "dernier exercice clos publié",
+  "objectif_commercial": "ouverture",
+  "offre_kredo": {
+    "practices": [
+      "cloud-engineering",
+      "cybersecurity",
+      "data-ai",
+      "digital-business-solutions",
+      "digital-experience",
+      "legacy-systems-mainframe",
+      "project-agile-delivery",
+      "quality-engineering-testing"
+    ],
+    "offers": [
+      "agile-at-scale-release-coordination",
+      "agile-delivery-scrum-kanban",
+      "ai-machine-learning-mlops",
+      "application-management-productive-tma",
+      "application-modernization-legacy-refactoring",
+      "application-security-devsecops-offensive-testing",
+      "bi-analytics-decision-intelligence",
+      "business-analysis-digital-process-design",
+      "change-management-adoption",
+      "cloud-migration-application-modernization",
+      "cloud-operations-sre-observability",
+      "cloud-strategy-assessment-landing-zones",
+      "connected-products-iot-embedded-software",
+      "custom-business-applications-b2b-portals",
+      "cyber-strategy-grc-compliance",
+      "data-ai-strategy-governance",
+      "data-platforms-engineering-dataops",
+      "digital-product-management-optimization",
+      "finops-greenops-cloud-optimization",
+      "functional-api-integration-testing",
+      "generative-ai-rag-automation",
+      "iam-pam-zero-trust",
+      "legacy-estate-assessment-risk-reduction",
+      "legacy-infrastructure-mco-expert-operations",
+      "legacy-modernization-knowledge-transfer",
+      "legacy-performance-reliability-major-incidents",
+      "mainframe-application-maintenance-evolution",
+      "mobile-accessibility-experience-quality",
+      "mobile-applications-omnichannel-services",
+      "performance-reliability-resilience-testing",
+      "platform-engineering-devops-kubernetes",
+      "pmo-portfolio-transformation-governance",
+      "product-design-ui-design-systems",
+      "project-program-management",
+      "quality-strategy-test-governance",
+      "security-architecture-cloud-security",
+      "soc-detection-incident-response",
+      "software-architecture-apis-integration",
+      "test-automation-continuous-quality",
+      "ux-research-service-design",
+      "web-experiences-portals-ecommerce"
+    ],
+    "lu_en_base_le": "2026-08-26"
+  },
+  "comptes_exclus": [
+    {
+      "nom": "Audemard",
+      "motif": "client"
+    }
+  ],
+  "ce_que_j_en_ferai": "Armer l'affaire en cours chez Ciffreo Bona — une opportunité « Architecte Cloud, cadrage move-to-Cloud » est ouverte au stade recherche_profil — en lui donnant le contexte sectoriel qui la fait sortir du staffing : la bascule en ligne du négoce, la facturation électronique obligatoire au 01/09/2026 et l'intégration SI post-acquisitions. Et ouvrir Richardson, 2 080 salariés et 9 contacts déjà en base, sur le même triptyque, avec Audemard comme référence activable auprès de ses voisins de filière.",
+  "compteurs": {
+    "hors_champ": 5,
+    "comptes_exclus": 1,
+    "offre_kredo_practices": 8,
+    "offre_kredo_offers": 41
+  }
+}

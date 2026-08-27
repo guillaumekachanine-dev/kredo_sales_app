@@ -1,0 +1,245 @@
+{
+  "date_execution": "2026-08-26",
+  "mode": "execution_reelle",
+  "commentaire_mode": "Régime déterministe intégral, aucun LLM sollicité pour un champ du socle (axiome A1). Trois canaux joués en direct : registre national des entreprises via recherche-entreprises.api.gouv.fr (relais ouvert de Sirene — API Entreprise est réservée aux administrations, cf. E2 §2), API France Travail Offres v2 pour A7, et revalidation en ligne des textes réglementaires. Aucune écriture en base : l'ingestion est l'arrêt n°3, elle attend un accord explicite.",
+  "perimetre": {
+    "segment_slug": "seg-btp-materiaux",
+    "comptes_rattaches": 3,
+    "dont_mapped": 0,
+    "commentaire": "Audemard (client), Ciffreo Bona, Richardson. Les trois sont depth_level='active'."
+  },
+  "identite": {
+    "comptes_cibles": 3,
+    "resolus": 2,
+    "ambigus": 1,
+    "non_tentes": 0,
+    "taux_couverture": 0.67,
+    "detail_resolus": [
+      {
+        "nom": "Richardson",
+        "siren": "054800958",
+        "naf_code": "4674B",
+        "faits_identite": 6,
+        "entite_retenue": "RICHARDSON — SIREN 054800958, siège 2 place Gantes, 13002 Marseille, NAF 46.74B (commerce de gros de fournitures pour plomberie et chauffage), catégorie ETI, 130 établissements ouverts, tranche d'effectif 51 (2 000 à 4 999 salariés, millésime 2023), immatriculée le 01/01/1954.",
+        "concordance_crm": "employee_count CRM = 2 080, cohérent avec la tranche 51. Résolution non ambiguë : un seul RICHARDSON du registre porte cette taille et cette activité.",
+        "a_verifier": "Dirigeants déclarés : RICHARDSON BRUNO, JOLIETTE MATERIEL, ORIGA GROUP. Le rattachement capitalistique à ORIGA GROUP n'a pas été instruit et peut déplacer l'entité de décision SI.",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=Richardson"
+      },
+      {
+        "nom": "Ciffreo Bona",
+        "siren": "954801999",
+        "naf_code": "4673A",
+        "faits_identite": 6,
+        "entite_retenue": "ETS CIFFREO ET BONA (CB) — SIREN 954801999, siège 2 rue Diderot, 06000 Nice, NAF 46.73A (commerce de gros de bois et matériaux de construction), catégorie ETI, 16 établissements ouverts, tranche 32, immatriculée le 01/01/1954.",
+        "concordance_crm": "Arbitrage documenté, pas une intuition : le registre déclare ETS CIFFREO ET BONA comme dirigeant personne morale de CIFFREO BONA (487652257, Cannes, 33 établissements) ET de CIFFREO & BONA (323778860, Meyrargues, 23 établissements). C'est donc la tête de groupe, et le compte KREDO à 1 300 salariés désigne le groupe, pas une des filiales.",
+        "a_verifier": "Le compte KREDO porte exactement le nom de la filiale cannoise (487652257). Si l'interlocuteur commercial est chez elle et non au siège niçois, l'entité retenue doit basculer — c'est un arbitrage que le registre ne peut pas trancher.",
+        "source": "https://recherche-entreprises.api.gouv.fr/search?q=Ciffreo%20Bona"
+      }
+    ],
+    "echecs": [
+      {
+        "company_id": "2ea63e2c-346a-4f98-810f-d2ea252206f0",
+        "nom": "Audemard",
+        "motif": "homonymie"
+      }
+    ],
+    "ecart_contrat": "DÉFAUT TROUVÉ EN BASE — le fait account_facts.legal_id = '950399014' porté aujourd'hui par Audemard est une résolution fausse. Le registre le décrit comme « AUDEMARD », siège 1 place Croix-Paquet 69001 LYON, NAF 51.4C (nomenclature NAF rév.1, périmée depuis 2008), immatriculé le 01/09/1989, **0 établissement ouvert**. Rien de cela ne correspond au compte KREDO : un industriel des granulats et du béton implanté dans les Alpes-Maritimes, le Var et les DROM, déclarant près de 38 sites et 200 salariés. Une entité sans établissement ouvert ne peut pas exploiter 38 sites. Ce fait doit être invalidé, pas complété.",
+    "faits_avec_source": {
+      "total": 12,
+      "avec_primary_source_id": 12,
+      "regle": "Chaque fait projeté porte primary_source_id pointant l'appel API joué, origin='relational', effective_at = 2026-08-26. Aucun n'est écrit tant que l'arrêt n°3 n'est pas levé.",
+      "faits_projetes_richardson": [
+        "legal_id",
+        "naf_code",
+        "establishment",
+        "establishment_count",
+        "incorporation_date",
+        "headcount_france_tranche"
+      ],
+      "faits_projetes_ciffreo_bona": [
+        "legal_id",
+        "naf_code",
+        "establishment",
+        "establishment_count",
+        "incorporation_date",
+        "headcount_france_tranche"
+      ],
+      "non_ecrit": "headcount_france en valeur : le registre ne publie qu'une tranche (51 pour Richardson, 32 pour Ciffreo Bona), jamais un effectif. Écrire une valeur serait une invention — même règle qu'au run Spatial.",
+      "statut": "PROJETÉ, non écrit. Les 12 faits ci-dessus sont ceux que l'ingestion produirait ; chacun porte l'URL de l'appel registre qui l'établit. Aucun n'existe en base au 26/08/2026 — l'écriture est l'arrêt n°3."
+    },
+    "candidats_audemard": [
+      {
+        "denomination": "ENTREPRISES AUDEMARD",
+        "siren": "961801313",
+        "naf": "0990Z",
+        "siege": "LID 1ère avenue 14ème rue, 06510 CARROS",
+        "categorie": "ETI",
+        "role": "Tête opérationnelle probable — déclarée dirigeant personne morale de LES BETONS NICOIS (498217561, NAF 23.63Z, Carros). Dirigeants personnes physiques : AUDEMARD Daniel, Geneviève, Philippe, Marie-Pierre."
+      },
+      {
+        "denomination": "SOC FINANCIERE AUDEMARD",
+        "siren": "414368365",
+        "naf": "6820A",
+        "siege": "Zone industrielle 1ère av 14ème rue, 06510 CARROS",
+        "categorie": "ETI",
+        "role": "Holding patrimoniale — même adresse, même famille dirigeante. Une holding immobilière n'est pas l'entité qui achète du SI."
+      }
+    ],
+    "commentaire_audemard": "Le groupe est bien identifié — filiales opérationnelles TRANSBETON, TERALTA GRANULAT BETON REUNION, LES BETONS NICOIS, PROVENCE GRANULATS, SOCIETE GUYANAISE DE GRANULATS, MADININA BETON, TURBIE BETON, cohérentes avec l'implantation 06/83/DROM du CRM. Ce qui reste ouvert, c'est LAQUELLE des deux têtes est l'entité de référence du compte. La règle E2 §4.1-2 s'applique : résolution ambiguë = fait à confidence_score bas, companies laissée intacte. Guillaume tranche en cinq secondes, c'est son client."
+  },
+  "reglementaire": {
+    "items_segment": 0,
+    "items_macro": 5,
+    "futurs": 3,
+    "datees": 4,
+    "revalides_le": "2026-08-26",
+    "commentaire_revalidation": "Les 5 items du macro btp-construction-immobilier portent tous une source_url — écart favorable au run parfumerie, où 5 sur 5 en étaient dépourvus. Les 5 URL ont été appelées le 26/08/2026. Trois répondent 200 en HTTP direct. Les deux URL Légifrance renvoient 403 à un appel curl (protection anti-robot, qui ne prouve rien sur l'existence du texte) : elles ont donc été revalidées par un second canal, qui a restitué le contenu réel des deux décrets. Les deux identifiants JORFTEXT sont authentiques et concordent avec le libellé stocké en base — contrairement à l'identifiant Légifrance inventé du run précédent.",
+    "echeance_pivot": {
+      "libelle": "Facturation électronique obligatoire entre entreprises : obligation de RÉCEPTION pour toutes les entreprises, et obligation d'ÉMISSION pour les grandes entreprises et les ETI",
+      "date": "2026-09-01",
+      "authority": "DGFiP — Direction de l'information légale et administrative",
+      "source_url": "https://entreprendre.service-public.gouv.fr/actualites/A15683",
+      "kredo_practice": "multi",
+      "reg_item_portee": "macro (btp-construction-immobilier) — s'impose à toute la famille, cas légitime d'écriture au macro (A4)",
+      "revalide_le": "2026-08-26",
+      "contenu_revalide": "Page officielle mise à jour le 27/02/2026 : réception obligatoire pour toutes les entreprises au 01/09/2026 ; émission obligatoire au 01/09/2026 pour les grandes entreprises et les ETI, au 01/09/2027 pour les PME et TPE.",
+      "portee_sur_les_3_comptes": "Les trois comptes sont ETI ou grand compte (tier eti×2, grand_compte×1). Ils sont donc soumis à l'obligation d'ÉMISSION, pas seulement de réception — la marche la plus haute, à la première date.",
+      "reserve": "L'échéance tombe dans 6 jours. C'est un motif d'appel maximal aujourd'hui et périmé au 02/09/2026 : après cette date, l'angle n'est plus la mise en conformité mais le rattrapage et le contentieux de facturation. E4 et E5 doivent l'écrire ainsi, sous peine d'un livrable faux une semaine après sa production."
+    },
+    "items_futurs": [
+      {
+        "name": "Facturation électronique obligatoire",
+        "deadline_date": "2026-09-01",
+        "urgency": "critical",
+        "kredo_practice": "multi",
+        "source_url": "https://entreprendre.service-public.gouv.fr/actualites/A15683",
+        "url_http": 200,
+        "revalide": true
+      },
+      {
+        "name": "CSRD révisée par la directive Omnibus",
+        "deadline_date": "2028-01-01",
+        "urgency": "medium",
+        "kredo_practice": "data_ai",
+        "source_url": "https://portail-rse.beta.gouv.fr/csrd/seuils-csrd-omnibus-criteres-d-application/",
+        "url_http": 200,
+        "revalide": true,
+        "note": "L'Omnibus divise par cinq le périmètre d'assujettissement. Aucun des trois comptes n'a été testé contre les nouveaux seuils : à instruire en E5, car un compte sorti du périmètre CSRD n'a pas de budget CSRD."
+      },
+      {
+        "name": "RE2020 — seuil carbone 2028 (décret n° 2024-1258)",
+        "deadline_date": "2028-01-01",
+        "urgency": "medium",
+        "kredo_practice": "data_ai",
+        "source_url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000050873122",
+        "url_http": "403 (anti-robot)",
+        "revalide": true,
+        "note": "Texte revalidé par second canal : « Décret n° 2024-1258 du 30 décembre 2024 modifiant les exigences de performance énergétique et environnementale des constructions de bâtiment en France métropolitaine », entré en vigueur le 01/01/2025, portant des plafonds distincts pour les années 2025-2027 puis à partir de 2028. Identifiant authentique, libellé concordant."
+      }
+    ],
+    "items_passes_non_marques": [
+      {
+        "name": "Décret n° 2026-16 du 15 janvier 2026 — extension de la RE2020",
+        "deadline_date": "2026-05-01",
+        "source_url": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053378848",
+        "url_http": "403 (anti-robot)",
+        "revalide": true,
+        "constat": "Échéance PASSÉE depuis 117 jours et non marquée comme telle en base. Texte revalidé par second canal : « Décret n° 2026-16 du 15 janvier 2026 relatif aux exigences de performance énergétique et environnementale des constructions de bâtiments d'activités tertiaires spécifiques et de bâtiments à usage industriel et artisanal en France métropolitaine », JORF n°0014 du 17/01/2026, entrée en vigueur au 01/05/2026, treize catégories de bâtiments. Identifiant authentique.",
+        "consequence": "Ne jamais l'annoncer comme une échéance à venir. Elle reste exploitable comme fait accompli — les ouvrages industriels et artisanaux sont soumis depuis le 1er mai, ce qui crée une demande de données produits (FDES, ACV) déjà exigible aujourd'hui."
+      }
+    ],
+    "items_sans_date": [
+      {
+        "name": "REP PMCB — refondation de la filière",
+        "deadline_date": null,
+        "source_url": "https://www.ecologie.gouv.fr/presse/refondation-rep-pmcb-filiere-plus-efficace-plus-lisible-economiquement-soutenable",
+        "url_http": 200,
+        "constat": "Communiqué du ministère daté du 19/02/2026, sans date d'application dans l'item. À dater en E4 sur le texte d'application, ou à laisser sans date en le déclarant — jamais à dater au plausible."
+      }
+    ]
+  },
+  "intensite_si": {
+    "canal": "API France Travail — Offres d'emploi v2",
+    "methode": "Enveloppe déterministe par division NAF (E2 §4.3 et src/features/hiring-intensity/README.md), balayage exhaustif du domaine ROME M18 au national, puis appariement sur le nom de l'employeur. L'API n'expose aucun filtre SIREN/SIRET : l'enveloppe NAF est le seul chemin d'exécution.",
+    "date_mesure": "2026-08-26",
+    "divisions_naf_balayees": [
+      {
+        "division": "46",
+        "libelle": "Commerce de gros — les deux négociants du segment",
+        "offres_totales": 8477,
+        "offres_si_m18": 81,
+        "part_si": 0.01,
+        "employeurs_nommes": 65,
+        "offres_anonymisees": 6,
+        "couverture_nominative": 0.93
+      },
+      {
+        "division": "23",
+        "libelle": "Fabrication d'autres produits minéraux non métalliques — béton, ciment, granulats (compte étalon Audemard)",
+        "offres_totales": 384,
+        "offres_si_m18": 0,
+        "part_si": 0.0,
+        "employeurs_nommes": 0,
+        "offres_anonymisees": 0,
+        "couverture_nominative": null
+      }
+    ],
+    "resultat_par_compte": [
+      {
+        "nom": "Audemard",
+        "offres_si": 0,
+        "seuil_franchi": false,
+        "signal_emis": false,
+        "commentaire": "Zéro structurel : sa division NAF entière ne porte aucune offre SI en France. A7 est muet sur ce compte, et le dire vaut mieux que l'inférer."
+      },
+      {
+        "nom": "Ciffreo Bona",
+        "offres_si": 0,
+        "seuil_franchi": false,
+        "signal_emis": false,
+        "commentaire": "Zéro mesuré à 93 % de couverture nominative — ce n'est pas une absence de mesure."
+      },
+      {
+        "nom": "Richardson",
+        "offres_si": 0,
+        "seuil_franchi": false,
+        "signal_emis": false,
+        "commentaire": "Idem. 130 établissements, 2 080 salariés, aucune offre SI publiée sur ce canal."
+      }
+    ],
+    "signaux_emis": 0,
+    "ce_que_le_zero_dit_vraiment": "Le résultat commercialement exploitable n'est pas le zéro des trois comptes, c'est le contraste. Sur les mêmes 81 offres, six concurrents directs du négoce recrutent du SI en interne, avec des intitulés qui recouvrent exactement les pain points du macro : SAMSE, « Gestionnaire de données produits » (Grenoble, publiée le 20/08/2026) — soit la rubrique FDES / marquage CE / NF du playbook ; QUINCAILLERIE SETIN, « Chef de Projet AS400 » (Martot, 18/08/2026) — legacy mainframe assumé ; RESEAU PROVENCE DAUPHINE, « Chargé de projets infrastructure SI » (Barbentane, 28/07/2026) ; MARTIN BELAYSOUD, « Développeur Web » (Villeurbanne, 30/07/2026) ; SAS KLEBER MALECOT, « Adjoint responsable informatique » ; CHAVANEL et ETABLISSEMENTS DUCROS, « Technicien informatique ». C'est un écart observé entre acteurs comparables, pas une inférence (A11) : les concurrents internalisent, nos trois comptes ne publient rien. Deux lectures restent ouvertes et E5 doit trancher laquelle — soit ils n'ont pas de chantier SI, soit ils le mènent sans recruter, c'est-à-dire avec un prestataire. Les deux sont des angles d'entrée, opposés.",
+    "longlist_amorcee_pour_e5": [
+      "SAMSE",
+      "POINT.P",
+      "MARTIN BELAYSOUD",
+      "QUINCAILLERIE SETIN",
+      "SAS KLEBER MALECOT",
+      "RESEAU PROVENCE DAUPHINE",
+      "CHAVANEL SAS",
+      "ETABLISSEMENTS DUCROS"
+    ],
+    "reserve": "Ces huit noms sont des employeurs observés dans une enveloppe NAF, pas une longlist qualifiée : ni leur périmètre, ni leur taille, ni leur appartenance au segment n'ont été instruits ici. E5 les reprend comme candidats, jamais comme acquis."
+  },
+  "marches_publics": {
+    "statut": "non_execute",
+    "motif": "Les trois comptes sont regime_achat = 'prive' sur les trois. E2 §4.4 qualifie ce canal d'« élevé sur le public, nul sur le privé » : TED, BOAMP et PLACE ne rendraient rien. Non exécuté par décision, pas par oubli."
+  },
+  "accessibilite_a6": {
+    "statut": "non_execute",
+    "faits_en_base": 0,
+    "motif": "B4 est le chantier ouvert du corpus : 0 fait d'accessibilité sur les 105 comptes de la base. Le sous-bloc déterministe (marchés publics) est sans objet ici puisque le régime d'achat est privé ; les sous-blocs panel, référencement, habilitation et ESN en place sont humains et relèvent de E5. Conséquence contractuelle : l'axe 'accessibilite' de la formule d'appétence /35 sera provisoire, et competitive_map_entries.appetence_provisoire doit valoir true à l'ingestion.",
+    "matiere_crm_disponible": "24 contacts en base sur les trois comptes (Audemard 8, Ciffreo Bona 7, Richardson 9) et une opportunité ouverte chez Ciffreo Bona — « Architecte Cloud, cadrage move-to-Cloud », stade recherche_profil, créée le 26/08/2026. C'est le point de départ du bloc accessibilité, pas une page blanche."
+  },
+  "compteurs": {
+    "detail_resolus": 2,
+    "echecs": 1,
+    "candidats_audemard": 2,
+    "items_futurs": 3,
+    "items_passes_non_marques": 1,
+    "items_sans_date": 1,
+    "divisions_naf_balayees": 2,
+    "resultat_par_compte": 3,
+    "longlist_amorcee_pour_e5": 8
+  }
+}

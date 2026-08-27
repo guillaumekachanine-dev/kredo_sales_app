@@ -44,12 +44,21 @@ c'est ce qui rend la mise à jour différentielle (V3) possible et la comparaiso
 
 | Run | Segment | Variante | Snapshot | G0 | G1 | G2 | G3 | Verdict | Péremption triggers | Péremption carto |
 |---|---|---|---|:-:|:-:|:-:|:-:|---|---|---|
+| `2026-08-btp-materiaux` | seg-btp-materiaux | master | 2026-08-26 | ✅ go | ◐ 14 PASS / 3 FAIL (E3-E4-E5 absents) | — | — | **en cours — E0, E1, G0 et E2 produits le 26/08/2026.** Première étude *neuve* du corpus : contrairement au Spatial (conversion) et à la parfumerie (matière hors-corpus reprise), rien n'existait sur ce segment. E2 exécuté en réel, 29 requêtes sur 3 canaux (registre national, France Travail, revalidation réglementaire). **Trois trouvailles** : le fait `Audemard.legal_id = 950399014` en base est une résolution fausse (entité lyonnaise, 0 établissement ouvert, NAF rév.1 périmée) ; l'échéance pivot — facturation électronique au **01/09/2026**, obligation d'**émission** puisque les 3 comptes sont ETI ou grand compte — tombe 6 jours après le run et périme le 02/09 ; A7 rend **0 offre SI sur les 3 comptes à 93 % de couverture nominative**, alors que 8 concurrents directs du négoce recrutent (SAMSE « gestionnaire de données produits », Quincaillerie Setin « chef de projet AS400 »…). Ce contraste est le résultat commercialement exploitable, pas le zéro. Suite dans `MODE-OPERATOIRE.md`. | 2026-11-26 | 2027-08-26 |
 | `2026-08-parfumerie-compositions-b2b` | seg-parfumerie-compositions-b2b | master | 2026-08-14 | ✅ go | ◐ 38/5 (rejoué 20/08) | — | ✅ validé | **usable_with_caveats** (`07-verdict.json`, rendu par Guillaume le 20/08) — **Ingéré en base (`--live` le 20/08/2026, ADR-0021 L3)**. `run_id: 522cfe06-f241-4620-a820-a0806a902571`, `document_id: c8e7aa8b-8ecd-4af4-9e9e-5b04884d1b35`. 6 maillons chaîne de valeur amorcés, 2 items réglementaires segment, 4 pain points, 7 événements, verrous `market_size_eur_bn`/`market_growth_pct` posés (`not_published`). 8 `competitive_map_entries` laissées orphelines (décision différée à L4/L5). **Vérification indépendante post-ingestion (20/08)** : les 18 assertions `069_sector_knowledge_resolution.assertions.sql` rejouées une à une révèlent ASSERT 14 en échec — la RPC ne promeut jamais `sector_intelligence.status`, resté `development` malgré un playbook désormais résolu au niveau segment, ce qui aurait rendu ce segment invisible pour Prospection · Fenêtres (`get-playbook-sectors.ts` filtre `status='active'`). Corrigé par `UPDATE` ponctuel sur ce seul segment (`status → active`) ; les 18 assertions sont vertes depuis. **À trancher pour L4** : automatiser cette promotion dans la RPC ou la garder comme geste humain distinct. | 2026-11-14 | 2027-08-14 |
 | `2026-08-aero-spatial-defense` | seg-aero-spatial-defense | master (conversion) | 2026-08-13 | ⚠️ | ❌ | — | — | **rejected** — 13 FAIL contre corpus v1.0, 12 contre v1.1 ; aucune ingestion. Voir `08-rapport-ecarts.md` et `ROADMAP-CORRECTIONS.md` | 2026-11-13 | 2027-08-13 |
 
 ---
 
-## Run en cours — `2026-08-parfumerie-compositions-b2b`
+## Run en cours — `2026-08-btp-materiaux`
+
+E0, E1, G0 et E2 sont produits (26/08/2026). **Le parcours de reprise, autoportant, est dans
+[`2026-08-btp-materiaux/MODE-OPERATOIRE.md`](2026-08-btp-materiaux/MODE-OPERATOIRE.md)** — il
+porte les quatre arbitrages à rendre avant de lancer E3, et le détail de ce que E2 a trouvé.
+
+---
+
+## Run précédent — `2026-08-parfumerie-compositions-b2b` (ingéré le 20/08)
 
 **Premier run produit sous le corpus complet, et le premier qui cherche réellement.** Le
 segment a été choisi sur mesure en base : 7 comptes rattachés — le mieux doté des 38 —, les
@@ -148,7 +157,7 @@ défauts identifiés et non corrigés — les réutiliser sans correction reprod
 
 | Étude | Emplacement | Snapshot | Défauts connus | Statut |
 |---|---|---|---|---|
-| **BTP — grands travaux** | `sector_intelligence/livrables_etudes/2026-08-btp-travaux-publics/` | 08/08/2026 | Couche ESN vide sur 14/14 comptes · confiance moyenne (accès aux sources primaires bloqué) | Ingérée partiellement · retour de test documenté |
+| **BTP — grands travaux** | `sector_intelligence/livrables_etudes/2026-08-btp-travaux-publics/` | 08/08/2026 | Couche ESN vide sur 14/14 comptes · confiance moyenne (accès aux sources primaires bloqué) | **NON ingérée** — vérifié en base le 26/08/2026 : les 23 `competitive_map_entries` se répartissent en 10 Spatial, 8 parfumerie et 5 tourisme, **zéro BTP**, et aucun de ses comptes (Eiffage, Vinci, Bouygues, NGE, Colas) n'existe dans `companies`. La mention « ingérée partiellement » portée ici jusqu'à cette date était fausse. Conséquence : son univers est **disjoint** des 12 comptes BTP du portefeuille — ce n'est pas de la matière de conversion pour `2026-08-btp-materiaux`. Retour de test documenté |
 | **Spatial, défense & systèmes critiques (A)** | `livrables_etudes/KREDO_Cartographie_Spatial_…_structure_reference.md` | 08/2026 | Top 3 contredisant le tableau /35 · 90 sources réduites à 15 « familles » sans URL · journal de recherche absent · identité `null` sur 10/10 · couche ESN vide | **Ingérée** dans `competitive_map_entries` (10 entrées) après correction partielle |
 | **Spatial, défense & systèmes critiques (B)** | `livrables_etudes/Secteur Spatial, défense & systèmes critiques.md` — **au dépôt en markdown**, pas seulement en PDF (vérifié le 13/08) ; 0 URL, 100 jetons de citation non résolvables | 08/2026 | Écrit pour le compte étalon, pas pour l'ESN · pas de segmentation, pas de score, pas de top 3 | Source de fond de l'étude A |
 | **Tourisme, hôtellerie & loisirs** | `cartographie-concurrentielle/assets/` | 08/2026 | Sans `profile_json` | **Ingérée** (5 entrées) |
