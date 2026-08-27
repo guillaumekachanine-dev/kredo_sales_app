@@ -72,11 +72,12 @@ export function relationshipRoleLabel(value: string | null | undefined): string 
 
 /**
  * Accent de bordure gauche par rôle relationnel : jaune ambre pour les décideurs,
- * argent vif pour les prescripteurs. Aucun accent pour les autres rôles.
+ * argent vif pour les prescripteurs et sponsors. Aucun accent pour les autres rôles.
  */
 const RELATIONSHIP_ROLE_ACCENT_COLORS: Partial<Record<ContactRelationshipRole, string>> = {
   decideur: "#FFB812",
   prescripteur: "#9FB0C7",
+  sponsor: "#9FB0C7",
 }
 
 export function relationshipRoleAccentColor(value: string | null | undefined): string | null {

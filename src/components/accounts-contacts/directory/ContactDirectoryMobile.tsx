@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { getContactDisplayDecisionPower } from "@/lib/accounts-contacts/contact-constants"
+import { getContactDisplayDecisionPower, relationshipRoleAccentColor } from "@/lib/accounts-contacts/contact-constants"
 import { cn } from "@/lib/utils"
 import type { ContactDirectoryAccountItem, ContactDirectoryItem } from "@/app/(app)/prospection/accounts/actions"
 import { ContactDirectoryDetailPane, type ContactDetailData } from "./ContactDirectoryDetailPane"
@@ -228,14 +228,22 @@ export function ContactDirectoryMobile({
         {filteredContacts.length > 0 ? (
           filteredContacts.map((contact) => {
             const displayDecision = getContactDisplayDecisionPower(contact.decisionPower, contact.relationshipRole)
+            const accentColor = relationshipRoleAccentColor(contact.relationshipRole)
 
             return (
               <button
                 key={contact.id}
                 type="button"
                 onClick={() => onSelectContactId(contact.id)}
-                className="flex w-full min-h-[64px] items-center justify-between rounded-2xl border border-white/5 bg-white/[0.03] p-3.5 text-left transition-all active:bg-white/10 cursor-pointer"
+                className="relative flex w-full min-h-[64px] items-center justify-between overflow-hidden rounded-2xl border border-white/5 bg-white/[0.03] p-3.5 pl-4 text-left transition-all active:bg-white/10 cursor-pointer"
               >
+                {accentColor ? (
+                  <span
+                    className="absolute bottom-0 left-0 top-0 w-1.5 rounded-l-2xl"
+                    style={{ backgroundColor: accentColor }}
+                    aria-hidden="true"
+                  />
+                ) : null}
                 <div className="min-w-0 flex-1 pr-3">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-sm text-white truncate">{contact.fullName}</span>

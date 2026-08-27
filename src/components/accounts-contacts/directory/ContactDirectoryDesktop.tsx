@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { getContactDisplayDecisionPower } from "@/lib/accounts-contacts/contact-constants"
+import { getContactDisplayDecisionPower, relationshipRoleAccentColor } from "@/lib/accounts-contacts/contact-constants"
 import { cn } from "@/lib/utils"
 import type { ContactDirectoryAccountItem, ContactDirectoryItem } from "@/app/(app)/prospection/accounts/actions"
 import { ContactDirectoryDetailPane, type ContactDetailData } from "./ContactDirectoryDetailPane"
@@ -309,18 +309,27 @@ export function ContactDirectoryDesktop({
                 filteredContacts.map((contact) => {
                   const isSelected = selectedContactId === contact.id
                   const displayDecision = getContactDisplayDecisionPower(contact.decisionPower, contact.relationshipRole)
+                  const accentColor = relationshipRoleAccentColor(contact.relationshipRole)
 
                   return (
                     <div
                       key={contact.id}
                       onClick={() => onSelectContactId(contact.id)}
                       className={cn(
-                        "flex items-center justify-between rounded-xl px-3 py-2.5 transition-all cursor-pointer border",
+                        "relative flex items-center justify-between overflow-hidden rounded-xl px-3 py-2.5 transition-all cursor-pointer border",
+                        accentColor && "pl-4",
                         isSelected
                           ? "border-brand-brass/40 bg-white/10 text-white shadow-sm"
                           : "border-transparent text-white/80 hover:border-white/5 hover:bg-white/5 hover:text-white"
                       )}
                     >
+                      {accentColor ? (
+                        <span
+                          className="absolute bottom-0 left-0 top-0 w-1 rounded-l-xl"
+                          style={{ backgroundColor: accentColor }}
+                          aria-hidden="true"
+                        />
+                      ) : null}
                       <div className="min-w-0 flex-1 pr-3">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs truncate text-white">{contact.fullName}</span>

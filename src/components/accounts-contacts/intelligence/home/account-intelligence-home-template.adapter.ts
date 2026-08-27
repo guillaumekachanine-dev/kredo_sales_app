@@ -171,6 +171,8 @@ export function buildAccountIntelligenceHomeTemplateData(
     ? `(${financials.clientRank}/${financials.clientCount} clients)`
     : undefined
 
+  const resolvedPlaybookSlug = playbookSlug || data.sectorSnapshot?.slug || null
+
   return {
     account: {
       name: data.company.name,
@@ -226,21 +228,22 @@ export function buildAccountIntelligenceHomeTemplateData(
         title: "Répertoire de contacts",
         description: "Retrouver les interlocuteurs connus et leurs rôles sur le compte.",
         icon: "contacts",
-        disabled: true,
+        disabled: false,
       },
       {
         id: "documents",
         title: "Bibliothèque de documents",
         description: "Consulter les rapports, analyses et contenus liés au compte.",
         icon: "documents",
+        disabled: false,
       },
       {
         id: "playbook",
         title: "Playbook commercial",
         description: "Accéder aux angles, personas, objections et arguments du segment.",
         icon: "playbook",
-        href: playbookSlug ? `/ressources/playbook/${playbookSlug}` : undefined,
-        disabled: !playbookSlug,
+        href: resolvedPlaybookSlug ? `/ressources/playbook/${resolvedPlaybookSlug}` : undefined,
+        disabled: !resolvedPlaybookSlug,
       },
     ],
   }

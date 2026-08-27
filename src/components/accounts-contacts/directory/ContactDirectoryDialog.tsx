@@ -13,6 +13,7 @@ import { ContactDirectoryMobile } from "./ContactDirectoryMobile"
 import type { ContactDetailData } from "./ContactDirectoryDetailPane"
 import { ContactFormModal } from "@/components/accounts-contacts/AccountsContactsViews"
 import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
+import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButton"
 import type { AccountRow, ContactRow } from "@/lib/accounts-contacts/accounts-contacts-data"
 
 export interface ContactDirectoryDialogProps {
@@ -20,6 +21,7 @@ export interface ContactDirectoryDialogProps {
   onClose: () => void
   initialCompanyId?: string | null
   isMobile?: boolean
+  onReturnToCockpit?: () => void
 }
 
 export function ContactDirectoryDialog({
@@ -27,6 +29,7 @@ export function ContactDirectoryDialog({
   onClose,
   initialCompanyId,
   isMobile = false,
+  onReturnToCockpit,
 }: ContactDirectoryDialogProps) {
   const [accounts, setAccounts] = useState<ContactDirectoryAccountItem[]>([])
   const [contacts, setContacts] = useState<ContactDirectoryItem[]>([])
@@ -212,13 +215,16 @@ export function ContactDirectoryDialog({
         onClose={onClose}
         title="Répertoire contacts"
         subtitle={
-          selectedCompanyId
-            ? `Contacts du compte « ${accounts.find((a) => a.id === selectedCompanyId)?.name ?? ""} »`
-            : "Tous les contacts du workspace"
+          isMobile
+            ? undefined
+            : selectedCompanyId
+              ? `Contacts du compte « ${accounts.find((a) => a.id === selectedCompanyId)?.name ?? ""} »`
+              : "Tous les contacts du workspace"
         }
         leftPane={null}
         rightPane={null}
         isMobile={isMobile}
+        headerActions={onReturnToCockpit ? <CockpitReturnButton onClick={onReturnToCockpit} hideLabelOnMobile={isMobile} /> : null}
         content={
           <div className="flex flex-1 items-stretch overflow-hidden relative">
             {isLoadingData ? (

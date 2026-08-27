@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useMemo, useState, useTransition } from "react"
 import { AccountIntelligenceHomeTemplate } from "./home/AccountIntelligenceHomeTemplate"
 import { useAccountIntelligenceHomeRuntime } from "./home/AccountIntelligenceHomeRuntimeContext"
 import { buildAccountIntelligenceHomeTemplateData } from "./home/account-intelligence-home-template.adapter"
@@ -13,21 +13,27 @@ interface ClientIntelligenceHomeTabProps {
   data: ClientIntelligenceData
   onOpenTab: (tab: ProcessStepKey) => void
   onOpenContactDirectory?: () => void
+  onOpenDocuments?: () => void
 }
 
 export function ClientIntelligenceHomeTab({
   data,
   onOpenTab,
   onOpenContactDirectory,
+  onOpenDocuments,
 }: ClientIntelligenceHomeTabProps) {
   const { financials, playbookSlug } = useAccountIntelligenceHomeRuntime()
   const [documentsOpen, setDocumentsOpen] = useState(false)
-  const [watchEnabled, setWatchEnabled] = useState(data.accountWatch.isEnabled)
+  const [userWatchEnabled, setUserWatchEnabled] = useState<boolean | null>(null)
+  const [prevCompanyId, setPrevCompanyId] = useState(data.company.id)
   const [isWatchSaving, startWatchSaving] = useTransition()
 
-  useEffect(() => {
-    setWatchEnabled(data.accountWatch.isEnabled)
-  }, [data.company.id, data.accountWatch.isEnabled])
+  if (data.company.id !== prevCompanyId) {
+    setPrevCompanyId(data.company.id)
+    setUserWatchEnabled(null)
+  }
+
+  const watchEnabled = userWatchEnabled ?? data.accountWatch.isEnabled
 
   const baseModel = useMemo(
     () => buildAccountIntelligenceHomeTemplateData(data, financials, playbookSlug),
@@ -36,6 +42,7 @@ export function ClientIntelligenceHomeTab({
 
   function handleWatchToggle() {
     const nextEnabled = !watchEnabled
+    setUserWatchEnabled(nextEnabled)
 
     startWatchSaving(async () => {
       const result = await saveAccountWatchSettings(data.company.id, {
@@ -44,7 +51,9 @@ export function ClientIntelligenceHomeTab({
       })
 
       if (!result.error && result.data) {
-        setWatchEnabled(result.data.isEnabled)
+        setUserWatchEnabled(result.data.isEnabled)
+      } else {
+        setUserWatchEnabled(null)
       }
     })
   }
@@ -72,9 +81,11 @@ export function ClientIntelligenceHomeTab({
     return { ...step, onClick }
   })
 
+  const handleOpenDocuments = onOpenDocuments ?? (() => setDocumentsOpen(true))
+
   const toolbox = [
-    { ...baseModel.toolbox[0], onClick: onOpenContactDirectory },
-    { ...baseModel.toolbox[1], onClick: () => setDocumentsOpen(true) },
+    { ...baseModel.toolbox[0], onClick: onOpenContactDirectory, disabled: !onOpenContactDirectory },
+    { ...baseModel.toolbox[1], onClick: handleOpenDocuments },
     baseModel.toolbox[2],
   ] as const
 
@@ -92,13 +103,15 @@ export function ClientIntelligenceHomeTab({
         toolbox={toolbox}
       />
 
-      <CompanyDocumentsModal
-        open={documentsOpen}
-        onClose={() => setDocumentsOpen(false)}
-        companyId={data.company.id}
-        companyName={data.company.name}
-        isMobile={false}
-      />
+      {!onOpenDocuments && (
+        <CompanyDocumentsModal
+          open={documentsOpen}
+          onClose={() => setDocumentsOpen(false)}
+          companyId={data.company.id}
+          companyName={data.company.name}
+          isMobile={false}
+        />
+      )}
     </div>
   )
 }

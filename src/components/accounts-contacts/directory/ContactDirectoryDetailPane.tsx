@@ -3,7 +3,8 @@
 import { useMemo } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { departmentLabel, getContactDisplayDecisionPower, relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants"
+import { departmentLabel, getContactDisplayDecisionPower, relationshipRoleAccentColor, relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 import { formatDate } from "@/lib/formatters"
 
@@ -139,6 +140,7 @@ export function ContactDirectoryDetailPane({
   const fullName = person?.full_name || `${firstName} ${lastName}`.trim() || "Contact sans nom"
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "?"
   const displayDecisionPower = getContactDisplayDecisionPower(contact.decision_power, contact.relationship_role)
+  const accentColor = relationshipRoleAccentColor(contact.relationship_role)
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#0a0c1e]/60 text-white">
@@ -173,7 +175,14 @@ export function ContactDirectoryDetailPane({
       {/* Main Detail Body Scrollable */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
         {/* Contact Identity Card */}
-        <div className="flex items-start gap-4">
+        <div className="relative flex items-start gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          {accentColor ? (
+            <span
+              className="absolute bottom-0 left-0 top-0 w-1.5 rounded-l-2xl"
+              style={{ backgroundColor: accentColor }}
+              aria-hidden="true"
+            />
+          ) : null}
           <div className="relative shrink-0">
             <div className="flex size-14 items-center justify-center rounded-full bg-brand-brass/20 border border-brand-brass/40 font-heading text-lg font-bold text-brand-brass shadow-md">
               {initials}
@@ -258,6 +267,16 @@ export function ContactDirectoryDetailPane({
           ) : (
             <p className="text-xs italic text-white/40">Aucune activité enregistrée pour ce contact.</p>
           )}
+
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => onScheduleContact(contact.id, company ? { id: company.id, name: company.name } : null)}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-brand-brass px-3.5 py-2 text-xs font-bold text-slate-950 transition-all hover:bg-brand-brass/90 active:scale-98 cursor-pointer shadow-sm"
+            >
+              + Événement
+            </button>
+          </div>
         </div>
       </div>
 
@@ -274,10 +293,24 @@ export function ContactDirectoryDetailPane({
 
         <button
           type="button"
-          onClick={() => onScheduleContact(contact.id, company ? { id: company.id, name: company.name } : null)}
-          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-brand-brass px-4 text-xs font-bold text-slate-950 transition-colors hover:bg-brand-brass/90 cursor-pointer"
+          onClick={() => {
+            openCommunicationComposer({
+              origin: "contact",
+              companyId: company?.id ?? null,
+              companyName: company?.name ?? null,
+              contactId: contact.id,
+              primaryEntity: { type: "contact", id: contact.id },
+              preset: {
+                contactId: contact.id,
+              },
+            })
+          }}
+          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-brand-brass px-4 text-xs font-bold text-slate-950 transition-colors hover:bg-brand-brass/90 cursor-pointer"
         >
-          Planifier
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+          </svg>
+          Rédiger
         </button>
       </div>
     </div>

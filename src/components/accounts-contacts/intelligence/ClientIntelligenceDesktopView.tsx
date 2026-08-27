@@ -12,6 +12,8 @@ import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
 import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
+import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligence/CompanyDocumentsModal"
+import { useAccountIntelligenceHomeRuntime } from "./home/AccountIntelligenceHomeRuntimeContext"
 import {
   ComingSoon,
   Field,
@@ -42,6 +44,9 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
   const [expandedViewer, setExpandedViewer] = useState(false)
   const [directoryOpen, setDirectoryOpen] = useState(false)
+  const [documentsOpen, setDocumentsOpen] = useState(false)
+  const { playbookSlug: runtimePlaybookSlug } = useAccountIntelligenceHomeRuntime()
+  const playbookSlug = runtimePlaybookSlug || data.sectorSnapshot?.slug || null
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const pathname = usePathname()
   const router = useRouter()
@@ -72,6 +77,9 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         activeTab={activeTab}
         onBackToAccounts={handleBackToAccounts}
         onTabChange={setActiveTab}
+        onOpenContactDirectory={() => setDirectoryOpen(true)}
+        onOpenDocuments={() => setDocumentsOpen(true)}
+        playbookSlug={playbookSlug}
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -89,6 +97,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
                 data={data}
                 onOpenTab={setActiveTab}
                 onOpenContactDirectory={() => setDirectoryOpen(true)}
+                onOpenDocuments={() => setDocumentsOpen(true)}
               />
             )}
             {activeTab === "socle" && (
@@ -164,6 +173,14 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         open={directoryOpen}
         onClose={() => setDirectoryOpen(false)}
         initialCompanyId={company.id}
+        isMobile={false}
+      />
+
+      <CompanyDocumentsModal
+        open={documentsOpen}
+        onClose={() => setDocumentsOpen(false)}
+        companyId={company.id}
+        companyName={company.name}
         isMobile={false}
       />
     </div>

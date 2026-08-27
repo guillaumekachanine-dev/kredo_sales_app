@@ -1,9 +1,10 @@
 "use client"
 
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { TabKey } from "./intelligence-process"
 
-type SidebarIconName = "home" | "socle" | "company" | "sector" | "issues" | "strategy" | "roadmap"
+type SidebarIconName = "home" | "socle" | "company" | "sector" | "issues" | "strategy" | "roadmap" | "contacts" | "documents" | "playbook"
 
 export const CLIENT_INTELLIGENCE_NAV_ITEMS: ReadonlyArray<{
   key: TabKey
@@ -23,6 +24,9 @@ interface ClientIntelligenceSidebarProps {
   activeTab: TabKey
   onBackToAccounts: () => void
   onTabChange: (tab: TabKey) => void
+  onOpenContactDirectory?: () => void
+  onOpenDocuments?: () => void
+  playbookSlug?: string | null
 }
 
 function SidebarIcon({ name }: { name: SidebarIconName }) {
@@ -55,14 +59,47 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
   if (name === "strategy") {
     return <svg {...commonProps}><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2.1 5-4.9 2 2.1-5 4.9-2Z" /></svg>
   }
-  return <svg {...commonProps}><path d="M5 21V4" /><path d="M5 5c4-3 7 3 14 0v10c-7 3-10-3-14 0" /></svg>
+  if (name === "roadmap") {
+    return <svg {...commonProps}><path d="M5 21V4" /><path d="M5 5c4-3 7 3 14 0v10c-7 3-10-3-14 0" /></svg>
+  }
+  if (name === "contacts") {
+    return (
+      <svg {...commonProps}>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 19c.7-3.4 2.5-5.2 5.5-5.2s4.8 1.8 5.5 5.2" />
+        <path d="M16 7h4" />
+        <path d="M16 11h4" />
+        <path d="M17 15h3" />
+      </svg>
+    )
+  }
+  if (name === "documents") {
+    return (
+      <svg {...commonProps}>
+        <path d="M7 3h7l4 4v14H7z" />
+        <path d="M14 3v5h5" />
+        <path d="M10 13h5" />
+        <path d="M10 17h5" />
+      </svg>
+    )
+  }
+  return (
+    <svg {...commonProps}>
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+    </svg>
+  )
 }
 
 export function ClientIntelligenceSidebar({
   activeTab,
   onBackToAccounts,
   onTabChange,
+  onOpenContactDirectory,
+  onOpenDocuments,
+  playbookSlug,
 }: ClientIntelligenceSidebarProps) {
+  const playbookHref = playbookSlug ? `/ressources/playbook/${playbookSlug}` : undefined
+
   return (
     <nav
       aria-label="Navigation Account Intelligence"
@@ -108,6 +145,70 @@ export function ClientIntelligenceSidebar({
               </button>
             )
           })}
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-edito-border pt-4">
+        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
+          Modules
+        </p>
+        <div className="mt-2 space-y-1">
+          <button
+            type="button"
+            onClick={onOpenContactDirectory}
+            disabled={!onOpenContactDirectory}
+            className={cn(
+              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
+              !onOpenContactDirectory ? "cursor-default opacity-45" : "cursor-pointer"
+            )}
+          >
+            <span className="text-edito-navy opacity-75 shrink-0">
+              <SidebarIcon name="contacts" />
+            </span>
+            <span className="truncate">Répertoire</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenDocuments}
+            disabled={!onOpenDocuments}
+            className={cn(
+              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
+              !onOpenDocuments ? "cursor-default opacity-45" : "cursor-pointer"
+            )}
+          >
+            <span className="text-edito-navy opacity-75 shrink-0">
+              <SidebarIcon name="documents" />
+            </span>
+            <span className="truncate">Bibliothèque</span>
+          </button>
+
+          {playbookHref ? (
+            <Link
+              href={playbookHref}
+              className={cn(
+                "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30 cursor-pointer"
+              )}
+            >
+              <span className="text-edito-navy opacity-75 shrink-0">
+                <SidebarIcon name="playbook" />
+              </span>
+              <span className="truncate">Playbook</span>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className={cn(
+                "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted opacity-45 cursor-default"
+              )}
+            >
+              <span className="text-edito-navy opacity-75 shrink-0">
+                <SidebarIcon name="playbook" />
+              </span>
+              <span className="truncate">Playbook</span>
+            </button>
+          )}
         </div>
       </div>
     </nav>

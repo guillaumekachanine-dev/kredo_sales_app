@@ -55,6 +55,10 @@ const CompanyDocumentsModal = dynamic(
   () => import("@/components/accounts-contacts/intelligence/CompanyDocumentsModal").then((module) => module.CompanyDocumentsModal),
   { ssr: false },
 )
+const ContactDirectoryDialog = dynamic(
+  () => import("@/components/accounts-contacts/directory/ContactDirectoryDialog").then((module) => module.ContactDirectoryDialog),
+  { ssr: false },
+)
 const FinancialModelingMobileFlow = dynamic(
   () => import("@/features/financial-modeling/components/mobile/FinancialModelingMobileFlow").then((module) => module.FinancialModelingMobileFlow),
   { ssr: false },
@@ -283,11 +287,12 @@ function AccountSimulationDialog({
   )
 }
 
-function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onDocumentsClick, onSimulateClick, onRecruitClick, onClose }: {
+function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onDocumentsClick, onContactsClick, onSimulateClick, onRecruitClick, onClose }: {
   onWriteEmailClick: () => void
   onPlanClick: () => void
   onInformClick: () => void
   onDocumentsClick: () => void
+  onContactsClick: () => void
   onSimulateClick: () => void
   onRecruitClick: () => void
   onClose: () => void
@@ -355,7 +360,11 @@ function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, o
             iconSrc="/icons_set/cockpit_intelligence/dossier_pitchs.png"
             onClick={onDocumentsClick}
           />
-          <EditorialResourceRow label="Contacts" iconSrc="/icons_set/cockpit_intelligence/compte_contact.png" href={`/prospection/accounts/${company.id}/contacts`} onClick={onClose} />
+          <EditorialResourceRow
+            label="Contacts"
+            iconSrc="/icons_set/cockpit_intelligence/compte_contact.png"
+            onClick={onContactsClick}
+          />
           <EditorialResourceRow label="Playbook" iconSrc={cockpitActionIcons.sectorAnalysis} href={sector.structuredSectorSlug ? `/ressources/playbook/${sector.structuredSectorSlug}` : "/prospection/approche-sectorielle"} onClick={onClose} />
         </div>
       </section>
@@ -441,6 +450,7 @@ export function IntelligenceFAB() {
   const [watchSettingsOpen, setWatchSettingsOpen] = useState(false)
   const [signalsOpen, setSignalsOpen] = useState(false)
   const [documentsModalOpen, setDocumentsModalOpen] = useState(false)
+  const [contactsDirectoryOpen, setContactsDirectoryOpen] = useState(false)
   const [simulationPickerOpen, setSimulationPickerOpen] = useState(false)
   const [financialModelingOpen, setFinancialModelingOpen] = useState(false)
   const [automationSimulatorOpen, setAutomationSimulatorOpen] = useState(false)
@@ -455,6 +465,7 @@ export function IntelligenceFAB() {
       setWatchSettingsOpen(false)
       setSignalsOpen(false)
       setDocumentsModalOpen(false)
+      setContactsDirectoryOpen(false)
       setSimulationPickerOpen(false)
       setFinancialModelingOpen(false)
       setAutomationSimulatorOpen(false)
@@ -514,6 +525,11 @@ export function IntelligenceFAB() {
   function openDocumentsFromCockpit() {
     setIsOpen(false)
     window.setTimeout(() => setDocumentsModalOpen(true), 280)
+  }
+
+  function openContactsFromCockpit() {
+    setIsOpen(false)
+    window.setTimeout(() => setContactsDirectoryOpen(true), 280)
   }
 
   function openSimulationPickerFromCockpit() {
@@ -620,6 +636,7 @@ export function IntelligenceFAB() {
               onPlanClick={openPlannerFromCockpit}
               onInformClick={openInformationFromCockpit}
               onDocumentsClick={openDocumentsFromCockpit}
+              onContactsClick={openContactsFromCockpit}
               onSimulateClick={openSimulationPickerFromCockpit}
               onRecruitClick={openRecruitmentFromCockpit}
               onClose={() => setIsOpen(false)}
@@ -725,6 +742,17 @@ export function IntelligenceFAB() {
             isMobile
             onReturnToCockpit={() => {
               setDocumentsModalOpen(false)
+              returnToAccountCockpit()
+            }}
+          />
+          <ContactDirectoryDialog
+            key={`contact-directory-${panelData.company.id}-${contactsDirectoryOpen}`}
+            open={contactsDirectoryOpen}
+            onClose={() => setContactsDirectoryOpen(false)}
+            initialCompanyId={panelData.company.id}
+            isMobile
+            onReturnToCockpit={() => {
+              setContactsDirectoryOpen(false)
               returnToAccountCockpit()
             }}
           />

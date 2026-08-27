@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import styles from "../header/AccountIntelligenceSignatureHeader.module.css"
 import type {
@@ -9,7 +10,6 @@ import type {
   AccountIntelligenceHomeTemplateProps,
   AccountIntelligenceHomeToolboxItem,
 } from "./account-intelligence-home-template.types"
-
 function ProcessMarker({ state }: { state: AccountIntelligenceAvailability }) {
   if (state === "available") {
     return <span className="size-[18px] shrink-0 rounded-full border-2 border-white bg-brand-brass" aria-hidden="true" />
@@ -171,21 +171,21 @@ function ToolboxIcon({ icon }: { icon: AccountIntelligenceHomeToolboxItem["icon"
 function ToolboxRow({ item }: { item: AccountIntelligenceHomeToolboxItem }) {
   const content = (
     <>
-      <div className="flex size-[52px] shrink-0 items-center justify-center bg-edito-navy text-white">
+      <div className="flex size-[52px] shrink-0 items-center justify-center bg-edito-navy text-white transition-colors group-hover:bg-brand-primary">
         <ToolboxIcon icon={item.icon} />
       </div>
       <div className="pt-0.5">
-        <h3 className="text-[12px] font-black uppercase tracking-[0.06em] text-edito-ink">{item.title}</h3>
+        <h3 className="text-[12px] font-black uppercase tracking-[0.06em] text-edito-ink group-hover:text-brand-primary transition-colors">{item.title}</h3>
         <p className="mt-1 text-[12px] leading-5 text-edito-body">{item.description}</p>
       </div>
     </>
   )
 
-  const className = "grid w-full grid-cols-[52px_1fr] items-start gap-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
+  const className = "group grid w-full grid-cols-[52px_1fr] items-start gap-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
 
   if (item.onClick) {
     return (
-      <button type="button" onClick={item.onClick} disabled={item.disabled} className={`${className} ${item.disabled ? "cursor-default opacity-45" : ""}`}>
+      <button type="button" onClick={item.onClick} disabled={item.disabled} className={`${className} ${item.disabled ? "cursor-default opacity-45" : "cursor-pointer"}`}>
         {content}
       </button>
     )
@@ -193,9 +193,9 @@ function ToolboxRow({ item }: { item: AccountIntelligenceHomeToolboxItem }) {
 
   if (item.href && !item.disabled) {
     return (
-      <a href={item.href} className={className}>
+      <Link href={item.href} className={`${className} cursor-pointer`}>
         {content}
-      </a>
+      </Link>
     )
   }
 
