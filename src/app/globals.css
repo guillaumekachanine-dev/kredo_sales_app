@@ -1831,6 +1831,12 @@ html {
   --layout-mobile-content-bottom-offset: var(--layout-bottom-nav-height);
 }
 
+@media (max-width: 767px) {
+  :root {
+    --layout-bottom-nav-height: calc(5rem + env(safe-area-inset-bottom));
+  }
+}
+
 #__next,
 body>div:first-child {
   width: 100%;

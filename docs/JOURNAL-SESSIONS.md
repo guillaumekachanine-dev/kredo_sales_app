@@ -13,6 +13,14 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 54 — Navigation mobile KREDO Premium, LOT 3 (2026-08-28)
+
+Refonte ciblée du shell mobile selon la variante B validée : sheet claire à grille 2 × 2 et raccourcis 4 × 2, bottom navigation persistante à cinq positions, CRM branché sur le launcher existant, et Focus Mode générique alimenté par les configurations canoniques d'onglets. La distribution et le repli utilisent transforms/opacité avec stagger, une lane horizontale isolée en cas de débordement et un mode `prefers-reduced-motion`. L'historique mobile conserve les snapshots `menuOpen`, rail et carte dépliée.
+
+Validation : typecheck, 2 125 tests, frontière serveur/client et build production passés. Le lint ciblé LOT 3 est sans erreur ; le lint global reste bloqué par la dette préexistante hors périmètre. QA authentifiée réalisée à 390 × 844 sur menu fermé, menu ouvert, Focus Mode, repli par ancre/backdrop, navigation canonique et CRM sans changement d'URL.
+
+---
+
 ### Session 53 — Missions d'intelligence, lot L7.6 : mission `funnel-recrutement` et pilote (2026-08-24)
 
 Livraison du lot L7.6 : le dernier lot du catalogue initial de 5 missions (`08-CATALOGUE-CANDIDAT-5-MISSIONS.md`), la mission `funnel-recrutement`, qui analyse où le funnel de recrutement perd des candidats et mesure les délais réels entre jalons.

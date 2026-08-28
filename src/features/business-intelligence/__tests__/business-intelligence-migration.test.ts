@@ -8,7 +8,7 @@ import {
 const read = (path: string) => readFileSync(path, "utf8")
 
 describe("Business Intelligence migration", () => {
-  it("active une seule entrée Intelligence sur Desktop et Mobile", () => {
+  it("conserve Intelligence sur Desktop et applique le contrat mobile LOT 3", () => {
     const intelligenceItems = mainMenuItems
       .flatMap((item) => item.items ?? [item])
       .filter((item) => item.href === "/intelligence")
@@ -20,8 +20,9 @@ describe("Business Intelligence migration", () => {
 
     const mobileMenu = read("src/components/layout/MobileNavigationMenu.tsx")
     const mobileBottomNav = read("src/components/layout/MobileBottomNav.tsx")
-    expect(mobileMenu).toContain('href: "/intelligence", icon: "bi"')
-    expect(mobileMenu).not.toContain('href: "/intelligence", icon: "bi", disabled: true')
+    expect(mobileMenu).not.toContain('href: "/intelligence", icon: "bi"')
+    expect(mobileMenu).toContain('href: "/prospection-intelligence"')
+    expect(mobileMenu).toContain('href: "/veille"')
     // Intelligence a été retirée de la bottom bar fixe au profit de la navigation 5 slots avec historique
     expect(mobileBottomNav).not.toContain('label: "Intelligence"')
   })

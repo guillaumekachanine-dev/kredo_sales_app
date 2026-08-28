@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { getSectionTabsForPath, SectionTab } from "@/lib/navigation/main-menu.config"
+import { getMobileTabsForPath } from "@/lib/navigation/main-menu.config"
 import { MobileBottomNav } from "./MobileBottomNav"
 import { MobileSectionRail } from "./MobileSectionRail"
 import { MobileNavigationMenu, type MenuItemId } from "./MobileNavigationMenu"
@@ -19,27 +19,6 @@ import {
 //  et contrôle les 5 boutons de la bottom nav.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function getMobileTabsForPath(pathname: string): SectionTab[] {
-  if (pathname.startsWith("/prospection")) {
-    return getSectionTabsForPath(pathname)
-  }
-  if (pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")) {
-    return [
-      { label: "Besoins & Staffing", shortLabel: "Besoins", href: "/missions/opps" },
-      { label: "Recrutement", shortLabel: "Recrutement", href: "/recruitment" },
-    ]
-  }
-  if (pathname.startsWith("/reports") || pathname.startsWith("/veille")) {
-    return [
-      { label: "Rapports & Rédaction", shortLabel: "Rapports", href: "/reports" },
-      { label: "Veille & Actualités", shortLabel: "Veille", href: "/veille" },
-    ]
-  }
-  return getSectionTabsForPath(pathname).filter(
-    (tab) => !tab.disabled && !tab.comingSoon,
-  )
-}
-
 export function MobileNav() {
   const pathname = usePathname()
   const [isRailOpen, setRailOpen] = useState(false)
@@ -52,6 +31,11 @@ export function MobileNav() {
 
   const clickableTabs = getMobileTabsForPath(pathname)
   const activeHasRail = clickableTabs.length > 1
+
+  function closeMenu() {
+    setMenuOpen(false)
+    setExpandedMenuId(null)
+  }
 
   // Enregistrement du provider de capture / restauration pour le shell
   useEffect(() => {
@@ -100,7 +84,13 @@ export function MobileNav() {
         activeHasRail={activeHasRail}
         onActiveModulePress={() => setRailOpen((open) => !open)}
         isMenuOpen={isMenuOpen}
-        onMenuToggle={() => setMenuOpen((open) => !open)}
+        onMenuToggle={() => {
+          setMenuOpen((open) => {
+            if (open) setExpandedMenuId(null)
+            return !open
+          })
+        }}
+        onMenuDismiss={closeMenu}
         canGoBack={canGoBack}
         canGoForward={canGoForward}
         onGoBack={goBack}
@@ -108,7 +98,10 @@ export function MobileNav() {
       />
       <MobileNavigationMenu
         isOpen={isMenuOpen}
-        onOpenChange={setMenuOpen}
+        onOpenChange={(open) => {
+          setMenuOpen(open)
+          if (!open) setExpandedMenuId(null)
+        }}
         expandedId={expandedMenuId}
         onExpandedChange={setExpandedMenuId}
       />

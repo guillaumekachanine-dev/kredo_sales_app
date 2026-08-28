@@ -49,11 +49,11 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
     <div
       ref={railRef}
       role="tablist"
-      className="kredo-rail-in fixed left-0 right-0 z-[calc(var(--z-bottom-nav)-1)] border-t border-white/10 bg-primary-deep bottom-[var(--layout-bottom-nav-height)]"
+      className="kredo-rail-in fixed left-0 right-0 z-[calc(var(--z-dropdown)-1)] border-t border-white/10 bg-primary-deep bottom-[var(--layout-bottom-nav-height)]"
     >
       <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-none px-3 h-11">
         {tabs.map((tab) => {
-          const isActive = pathname === tab.href
+          const isActive = pathname === tab.href.split("?")[0]
           const isUnavailable = tab.disabled || tab.comingSoon
 
           if (isUnavailable) {

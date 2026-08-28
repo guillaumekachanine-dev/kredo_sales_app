@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { getModuleTabs, getSectionTabsForPath } from "./main-menu.config"
+import {
+  getMobileTabsForPath,
+  getModuleTabs,
+  getSectionTabsForPath,
+} from "./main-menu.config"
 
 describe("navigation de section", () => {
   it("ne rend plus de navigation de section dans CRM - Comptes", () => {
@@ -14,5 +18,24 @@ describe("navigation de section", () => {
       "Missions",
       "Projets",
     ])
+  })
+
+  it("résout les regroupements mobiles vers leurs URLs canoniques", () => {
+    expect(getMobileTabsForPath("/missions/opps")).toEqual([
+      {
+        label: "Besoins & Staffing",
+        shortLabel: "Besoins",
+        href: "/missions/opps?scope=needs",
+      },
+      {
+        label: "Recrutement",
+        shortLabel: "Recrutement",
+        href: "/recruitment",
+      },
+    ])
+
+    expect(getMobileTabsForPath("/consultants")).toEqual(
+      getModuleTabs("/consultants"),
+    )
   })
 })

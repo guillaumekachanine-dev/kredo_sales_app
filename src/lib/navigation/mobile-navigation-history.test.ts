@@ -214,19 +214,37 @@ describe("mobile-navigation-history (moteur pur et intégration)", () => {
     expect(state.entries[0].snapshot.scroll?.main).toBe(300)
   })
 
-  it("conserve Staffing et Intelligence dans le menu complet mobile (Cas 4)", () => {
+  it("expose le menu KREDO Premium et ses focus lanes canoniques (Cas 4)", () => {
     const itemIds = mainItems.map((item) => item.id)
-    expect(itemIds).toContain("besoins") // Staffing / Besoins & Recrutement
-    expect(itemIds).toContain("intelligence") // Intelligence / BI & Rapports & Veille
+    expect(itemIds).toEqual([
+      "agenda",
+      "prospection",
+      "besoins",
+      "veille",
+      "finance",
+      "engagements",
+      "recrutement",
+      "equipe",
+      "reports",
+      "knowledge",
+      "automations",
+      "settings",
+    ])
 
     const besoinsItem = mainItems.find((item) => item.id === "besoins")
-    expect(besoinsItem?.tabs?.map((t) => t.href)).toContain("/missions/opps")
+    expect(besoinsItem?.tabs?.map((t) => t.href)).toContain("/missions/opps?scope=needs")
     expect(besoinsItem?.tabs?.map((t) => t.href)).toContain("/recruitment")
 
-    const intelligenceItem = mainItems.find((item) => item.id === "intelligence")
-    expect(intelligenceItem?.tabs?.map((t) => t.href)).toContain("/intelligence")
-    expect(intelligenceItem?.tabs?.map((t) => t.href)).toContain("/reports")
-    expect(intelligenceItem?.tabs?.map((t) => t.href)).toContain("/veille")
+    const engagementsItem = mainItems.find((item) => item.id === "engagements")
+    expect(engagementsItem?.tabs?.map((t) => t.href)).toEqual([
+      "/missions",
+      "/missions/actives",
+      "/missions/projets",
+    ])
+
+    expect(mainItems.find((item) => item.id === "prospection")?.href).toBe(
+      "/prospection-intelligence",
+    )
   })
 
   it("conserve et restaure l'état du launcher CRM (Cas 5 : shortcut CRM launcher)", () => {

@@ -2,38 +2,30 @@
 
 import Link from "next/link"
 import { getNavigationIcon } from "./navigation-icons"
+import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 import { cn } from "@/lib/utils"
-import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  MobileBottomNav — Barre de navigation mobile fixe (5 emplacements)
-//
-//  Affiche en permanence dans l'ordre exact :
-//    1. ← Retour   (historique arrière avec restauration d'état)
-//    2. Cockpit    (route /cockpit)
-//    3. MENU       (ouvre le menu complet mobile - conservé avec son libellé)
-//    4. CRM        (ouvre le launcher rapide de compte CRM)
-//    5. Suivant →  (historique avant avec restauration d'état)
-//
-//  Sémantique d'affichage :
-//    · Seul le bouton central "Menu" affiche son libellé textuel.
-//    · Les 4 autres pictogrammes sont agrandis (w-6 h-6).
-//    · Lorsque le module est actif, son pictogramme passe en gras.
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface MobileBottomNavProps {
   pathname: string
   isRailOpen: boolean
-  /** Le module actif possède-t-il un rail d'onglets cliquables ? */
   activeHasRail: boolean
   onActiveModulePress: () => void
   isMenuOpen: boolean
   onMenuToggle: () => void
+  onMenuDismiss?: () => void
   canGoBack?: boolean
   canGoForward?: boolean
   onGoBack?: () => void
   onGoForward?: () => void
 }
+
+const itemClassName = cn(
+  "group relative flex h-full min-h-[var(--layout-mobile-tap-target)] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-center",
+  "text-[11px] font-medium text-body transition-[color,opacity,transform] duration-[var(--motion-duration-fast)]",
+  "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-primary/35 focus-visible:ring-inset",
+)
+
+const noop = () => {}
 
 export function MobileBottomNav({
   pathname,
@@ -42,219 +34,95 @@ export function MobileBottomNav({
   onActiveModulePress,
   isMenuOpen,
   onMenuToggle,
+  onMenuDismiss = noop,
   canGoBack = false,
   canGoForward = false,
   onGoBack,
   onGoForward,
 }: MobileBottomNavProps) {
-  const buttons = [
-    {
-      id: "back",
-      label: "Retour",
-      ariaLabel: "Revenir en arrière",
-      icon: "arrow-left",
-      disabled: !canGoBack,
-      onClick: onGoBack,
-      type: "history" as const,
-    },
-    {
-      id: "cockpit",
-      label: "Cockpit",
-      icon: "cockpit",
-      isActive: pathname.startsWith("/cockpit"),
-      href: "/cockpit",
-      type: "link" as const,
-    },
-    {
-      id: "menu",
-      label: "Menu",
-      icon: "navigation",
-      isActive: isMenuOpen,
-      onClick: onMenuToggle,
-      type: "button" as const,
-    },
-    {
-      id: "crm",
-      label: "CRM",
-      icon: "crm",
-      isActive: pathname.startsWith("/prospection"),
-      href: "/prospection/accounts",
-      type: "link" as const,
-    },
-    {
-      id: "forward",
-      label: "Suivant",
-      ariaLabel: "Aller en avant",
-      icon: "arrow-right",
-      disabled: !canGoForward,
-      onClick: onGoForward,
-      type: "history" as const,
-    },
-  ]
+  const openCrmLauncher = useCrmAccountLauncherStore((state) => state.open)
+  const cockpitActive = pathname.startsWith("/cockpit")
+  const cockpitTogglesRail = cockpitActive && activeHasRail
 
   return (
     <nav
       aria-label="Navigation principale mobile"
-      className="fixed bottom-0 left-0 right-0 z-[var(--z-bottom-nav)] flex h-[var(--layout-bottom-nav-height)] items-center justify-around border-t border-white/12 bg-[var(--color-bg-mobile-nav)] px-2"
+      className="fixed inset-x-0 bottom-0 z-[var(--z-dropdown)] grid h-[var(--layout-bottom-nav-height)] grid-cols-5 items-stretch border-t border-border bg-surface px-2 pb-[env(safe-area-inset-bottom)]"
     >
-      {buttons.map((btn) => {
-        const isMenuButton = btn.id === "menu"
-        const isHistoryButton = btn.type === "history"
-        const isActive = "isActive" in btn && btn.isActive
-        const togglesRail = btn.type === "link" && isActive && activeHasRail
+      <button
+        type="button"
+        onClick={onGoBack}
+        disabled={!canGoBack}
+        aria-disabled={!canGoBack ? "true" : undefined}
+        aria-label="Revenir en arrière"
+        className={cn(itemClassName, !canGoBack && "cursor-not-allowed opacity-25")}
+      >
+        {getNavigationIcon("arrow-left", "size-7", 2.2)}
+      </button>
 
-        const iconClassName = isMenuButton
-          ? "size-4 shrink-0 transition-colors"
-          : "size-6 shrink-0 transition-all duration-200 ease-out"
+      {cockpitTogglesRail ? (
+        <button
+          type="button"
+          onClick={onActiveModulePress}
+          aria-current="page"
+          aria-expanded={isRailOpen}
+          className={cn(itemClassName, "font-semibold text-primary")}
+        >
+          {getNavigationIcon("cockpit-mobile", "size-7", 1.9)}
+          <span>Cockpit</span>
+        </button>
+      ) : (
+        <Link
+          href="/cockpit"
+          onClick={onMenuDismiss}
+          aria-current={cockpitActive ? "page" : undefined}
+          className={cn(itemClassName, cockpitActive && "font-semibold text-primary")}
+        >
+          {getNavigationIcon("cockpit-mobile", "size-7", 1.9)}
+          <span>Cockpit</span>
+        </Link>
+      )}
 
-        const strokeWidth = isMenuButton
-          ? 2
-          : isHistoryButton
-            ? 2.6
-            : 2
+      <button
+        type="button"
+        onClick={onMenuToggle}
+        aria-label={isMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        aria-expanded={isMenuOpen}
+        className={cn(
+          itemClassName,
+          "mx-auto -mt-5 h-[calc(100%+1.25rem)] w-16 max-w-16 self-start justify-start font-semibold text-primary",
+          "active:scale-95",
+        )}
+      >
+        <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary text-primary-fg shadow-[var(--shadow-overlay-sm)]">
+          {getNavigationIcon(isMenuOpen ? "close" : "menu", "size-8", 2)}
+        </span>
+        <span className="absolute bottom-1 text-[11px] font-semibold text-primary">Menu</span>
+      </button>
 
-        const inner = (
-          <>
-            <div
-              className={cn(
-                "inline-flex items-center justify-center rounded-[var(--radius-medium)] transition-[background-color,color,box-shadow,transform] duration-200 ease-out",
-                isMenuButton
-                  ? cn(
-                      "size-7 text-primary",
-                      isActive && "scale-105 text-primary shadow-[0_0_0_5px_rgba(37,84,184,0.08)]",
-                    )
-                  : cn(
-                      "size-9",
-                      isHistoryButton
-                        ? btn.disabled
-                          ? "text-primary-fg/20"
-                          : "text-primary-fg/75 group-hover:text-primary-fg group-active:scale-90"
-                        : isActive
-                          ? "bg-white/12 text-white shadow-[0_10px_24px_-18px_rgba(255,255,255,0.9)]"
-                          : "text-primary-fg/64",
-                    ),
-              )}
-            >
-              {getNavigationIcon(btn.icon, iconClassName, strokeWidth)}
-            </div>
+      <button
+        type="button"
+        onClick={() => {
+          onMenuDismiss()
+          openCrmLauncher()
+        }}
+        aria-label="Ouvrir le CRM Launcher"
+        className={cn(itemClassName, pathname.startsWith("/prospection/accounts") && "font-semibold text-primary")}
+      >
+        {getNavigationIcon("crm-mobile", "size-7", 1.9)}
+        <span>CRM</span>
+      </button>
 
-            {/* Le libellé est affiché pour le bouton Menu ou pour la page active */}
-            {isMenuButton || (isActive && !isHistoryButton) ? (
-              <span className="max-w-full truncate text-[10px] tracking-tight">
-                {btn.label}
-              </span>
-            ) : null}
-
-            {!isHistoryButton ? (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "absolute bottom-1.5 h-0.5 w-3 rounded-full bg-[#c89a2b] transition-[opacity,transform,width] duration-200 ease-out",
-                  isActive ? "opacity-95 scale-x-100" : "opacity-0 scale-x-50",
-                )}
-              />
-            ) : null}
-          </>
-        )
-
-        const className = cn(
-          "group relative flex min-h-[var(--layout-mobile-tap-target)] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-center select-none",
-          "transition-[color,opacity,transform,background-color,box-shadow] duration-[var(--motion-duration-fast)]",
-          "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
-          isMenuButton
-            ? cn(
-                "-mt-5 h-[4.25rem] max-w-[4.25rem] rounded-full bg-[radial-gradient(circle_at_50%_24%,#ffffff_0%,#ffffff_46%,#f1ebdf_100%)] font-semibold text-primary shadow-[0_18px_34px_-20px_rgba(0,0,0,0.52)] [box-shadow:0_18px_34px_-20px_rgba(0,0,0,0.52),inset_0_-2px_0_rgba(200,154,43,0.62),inset_0_1px_0_rgba(255,255,255,0.98)]",
-                isActive &&
-                  "-translate-y-1 bg-[radial-gradient(circle_at_50%_22%,#ffffff_0%,#ffffff_52%,#f1ebdf_100%)] shadow-[0_22px_38px_-19px_rgba(0,0,0,0.6)] [box-shadow:0_22px_38px_-19px_rgba(0,0,0,0.6),inset_0_-3px_0_rgba(200,154,43,0.84),inset_0_1px_0_rgba(255,255,255,1)]",
-              )
-            : "h-full",
-          isHistoryButton
-            ? btn.disabled
-              ? "opacity-30 cursor-not-allowed pointer-events-none text-primary-fg/30"
-              : "text-primary-fg/75 hover:text-primary-fg active:scale-95 cursor-pointer"
-            : !isMenuButton &&
-                (isActive
-                  ? "-translate-y-0.5 font-semibold text-white"
-                  : "text-primary-fg/64 hover:text-primary-fg"),
-        )
-
-        if (isHistoryButton) {
-          return (
-            <button
-              key={btn.id}
-              type="button"
-              onClick={btn.onClick}
-              disabled={btn.disabled}
-              aria-label={btn.ariaLabel}
-              aria-disabled={btn.disabled ? "true" : undefined}
-              className={className}
-            >
-              {inner}
-            </button>
-          )
-        }
-
-        if (btn.type === "button") {
-          return (
-            <button
-              key={btn.id}
-              type="button"
-              onClick={btn.onClick}
-              aria-label={btn.label}
-              aria-current={isActive ? "page" : undefined}
-              aria-expanded={isMenuOpen}
-              className={className}
-            >
-              {inner}
-            </button>
-          )
-        }
-
-        if (btn.id === "crm") {
-          return (
-            <Link
-              key={btn.id}
-              href="/prospection/accounts"
-              onClick={() => {
-                openMobileAccountQuickSearch()
-              }}
-              aria-label={btn.label}
-              aria-current={isActive ? "page" : undefined}
-              className={className}
-            >
-              {inner}
-            </Link>
-          )
-        }
-
-        if (togglesRail) {
-          return (
-            <button
-              key={btn.id}
-              type="button"
-              onClick={onActiveModulePress}
-              aria-label={btn.label}
-              aria-current="page"
-              aria-expanded={isRailOpen}
-              className={className}
-            >
-              {inner}
-            </button>
-          )
-        }
-
-        return (
-          <Link
-            key={btn.id}
-            href={btn.href!}
-            aria-label={btn.label}
-            aria-current={isActive ? "page" : undefined}
-            className={className}
-          >
-            {inner}
-          </Link>
-        )
-      })}
+      <button
+        type="button"
+        onClick={onGoForward}
+        disabled={!canGoForward}
+        aria-disabled={!canGoForward ? "true" : undefined}
+        aria-label="Aller en avant"
+        className={cn(itemClassName, !canGoForward && "cursor-not-allowed opacity-25")}
+      >
+        {getNavigationIcon("arrow-right", "size-7", 2.2)}
+      </button>
     </nav>
   )
 }

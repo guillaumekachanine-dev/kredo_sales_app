@@ -1,401 +1,375 @@
+dialog.mobileMenuDrawer.mobileMenuDrawer {
+  z-index: calc(var(--z-dropdown) - 1) !important;
+  top: clamp(4.5rem, 17dvh, 9rem) !important;
+  inset-block-start: clamp(4.5rem, 17dvh, 9rem) !important;
+  bottom: var(--layout-bottom-nav-height) !important;
+  inset-block-end: var(--layout-bottom-nav-height) !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  border-radius: 1.75rem 1.75rem 0 0 !important;
+  background: var(--color-surface) !important;
+}
+
+.pageBackdrop {
+  position: fixed;
+  inset: 0 0 var(--layout-bottom-nav-height);
+  z-index: calc(var(--z-dropdown) - 2);
+  border: 0;
+  background: color-mix(in srgb, var(--color-heading) 66%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: pageBackdropIn 220ms ease-out both;
+}
+
 .menuShell {
   position: relative;
   isolation: isolate;
-  min-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 4px 24px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(249, 247, 241, 0) 18%),
-    linear-gradient(160deg, rgba(37, 84, 184, 0.03), transparent 24%),
-    #f9f7f1;
-  color: #1a2540;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden auto;
+  padding: 1rem clamp(1.5rem, 7vw, 1.75rem) 1.25rem;
+  background: var(--color-surface);
+  color: var(--color-heading);
+  scrollbar-width: none;
 }
 
-.focusOverlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: rgba(17, 28, 52, 0);
-  opacity: 0;
-  backdrop-filter: blur(0) saturate(1);
-  -webkit-backdrop-filter: blur(0) saturate(1);
+.menuShell::-webkit-scrollbar,
+.focusScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.normalLayer {
   transition:
-    opacity 150ms cubic-bezier(0.2, 0, 0, 1),
-    backdrop-filter 150ms cubic-bezier(0.2, 0, 0, 1),
-    -webkit-backdrop-filter 150ms cubic-bezier(0.2, 0, 0, 1);
+    filter 180ms ease-out,
+    opacity 180ms ease-out;
 }
 
-.focusMode .focusOverlay {
-  opacity: 1;
-  background: transparent;
-  backdrop-filter: blur(4px) saturate(0.96);
-  -webkit-backdrop-filter: blur(4px) saturate(0.96);
+.focusMode .normalLayer {
+  filter: blur(4px) saturate(0.62);
+  opacity: 0.5;
+}
+
+.dragHandle {
+  width: 2.875rem;
+  height: 0.3125rem;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: var(--color-border-strong);
 }
 
 .menuHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 8px 2px 16px;
+  display: grid;
+  place-items: center;
+  min-height: 3.875rem;
 }
 
 .menuHeader h2 {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 22px;
-  line-height: 1.08;
-  letter-spacing: 0;
-  color: #1a2540;
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.07em;
+  color: var(--color-heading);
 }
 
-.closeButton {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #526074;
+.menuHeader h2:focus {
+  outline: none;
 }
 
-.stateIcon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-}
-
-.moduleGrid {
-  display: grid;
-  gap: 7px;
-}
-
-.moduleRow {
-  display: grid;
-  gap: 2px;
-}
-
-.modulePair {
+.primaryGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 1rem;
 }
 
-.moduleCard {
-  --tone: #2554b8;
-  position: relative;
-  min-height: 64px;
+.secondaryGrid {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 8px;
-  overflow: hidden;
-  border: 0;
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--tone) 6%, transparent), transparent 66%),
-    #fdfcfa;
-  color: #1a2540;
-  text-align: left;
-  text-decoration: none;
-  transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    background 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
 }
 
-.moduleCard:focus-visible,
-.tabCard:focus-visible,
-.quickAction:focus-visible,
-.closeButton:focus-visible {
-  outline: 3px solid rgba(37, 84, 184, 0.32);
-  outline-offset: 2px;
-}
-
-.moduleCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 34px -30px color-mix(in srgb, var(--tone) 55%, transparent);
-}
-
-.activeCard {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--tone) 10%, transparent), transparent 66%),
-    #fdfcfa;
-}
-
-.expandedCard {
-  box-shadow: 0 18px 38px -30px color-mix(in srgb, var(--tone) 70%, transparent);
-}
-
-.focusActiveCard {
-  z-index: 2;
-}
-
-.expandedCard::after {
-  content: "";
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--tone);
-}
-
-.moduleIcon {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #2554b8;
-}
-
-.moduleIcon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.moduleText {
+.menuCard {
+  position: relative;
   min-width: 0;
-  display: block;
-}
-
-.moduleLabel {
-  display: block;
-  color: #1a2540;
-  font-size: 13px;
-  font-weight: 850;
-  line-height: 1.1;
-  overflow-wrap: normal;
-}
-
-.chevron {
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: color-mix(in srgb, var(--tone) 70%, #526074);
-  transform: rotate(0deg) scale(0.76);
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.chevronOpen {
-  transform: rotate(90deg) scale(0.76);
-}
-
-.expandedTabs {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-rows: 1fr;
-  width: calc(50% - 13px);
-  padding: 0;
-  overflow: hidden;
-  transform-origin: top center;
-  animation: unfoldTabs 190ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.expandedTabsStart {
-  margin-left: 7px;
-}
-
-.expandedTabsEnd {
-  margin-left: calc(50% + 12px);
-}
-
-.tabGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 3px;
-}
-
-.tabCard {
-  min-height: 34px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border: 0;
-  border-radius: 6px;
-  background:
-    linear-gradient(135deg, rgba(37, 84, 184, 0.035), transparent 78%),
-    rgba(255, 255, 255, 0.94);
-  box-shadow: 0 10px 20px -20px rgba(20, 33, 60, 0.28);
-  color: #33435a;
-  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
+  background: var(--color-surface);
+  color: var(--color-heading);
+  text-align: center;
   text-decoration: none;
   transition:
     transform 180ms cubic-bezier(0.2, 0, 0, 1),
-    background 180ms cubic-bezier(0.2, 0, 0, 1),
-    color 180ms cubic-bezier(0.2, 0, 0, 1);
-  animation: tabReveal 150ms cubic-bezier(0.2, 0, 0, 1) both;
+    color 180ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 180ms cubic-bezier(0.2, 0, 0, 1),
+    border-color 180ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 180ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.tabCard:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.98);
+.menuCard:active {
+  transform: scale(0.975);
 }
 
-.activeTab {
-  color: #1f4ca5;
-  background:
-    linear-gradient(135deg, rgba(37, 84, 184, 0.09), transparent 84%),
-    rgba(255, 255, 255, 0.98);
-  box-shadow: 0 16px 34px -28px rgba(37, 84, 184, 0.34);
+.menuCard:focus-visible,
+.focusTab:focus-visible,
+.focusBackdrop:focus-visible {
+  outline: var(--focus-ring-width) solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  outline-offset: 3px;
 }
 
-.tabIcon {
-  width: 16px;
-  height: 16px;
+.primaryCard {
+  aspect-ratio: 1;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1.375rem;
+}
+
+.secondaryCard {
+  aspect-ratio: 1;
+  gap: 0.5rem;
+  padding: 0.4rem 0.2rem;
+  border-radius: 1rem;
+}
+
+.cardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #2554b8;
+  color: var(--color-primary);
 }
 
-.tabIcon svg {
-  width: 15px;
-  height: 15px;
+.primaryCard .cardIcon {
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
-.tabLabel {
-  font-size: 10.5px;
-  font-weight: 800;
-  line-height: 1.08;
+.primaryCard .cardIcon svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.65;
 }
 
-.disabledTab {
-  cursor: not-allowed;
-  opacity: 0.48;
+.secondaryCard .cardIcon {
+  width: 2rem;
+  height: 2rem;
 }
 
-.quickSection {
-  margin-top: 12px;
-  padding: 12px 0 0;
+.secondaryCard .cardIcon svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.7;
+}
+
+.cardLabel {
+  max-width: 100%;
+  color: inherit;
+  font-family: var(--font-heading);
+  font-weight: 750;
+  line-height: 1.12;
+}
+
+.primaryCard .cardLabel {
+  font-size: clamp(0.9rem, 4vw, 1rem);
+}
+
+.secondaryCard .cardLabel {
+  font-size: clamp(0.55rem, 2.4vw, 0.625rem);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.routeActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+}
+
+.routeActive .cardIcon {
+  color: var(--color-primary-fg);
+}
+
+.sourceExpanded {
+  opacity: 0.42;
+}
+
+.focusBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
   border: 0;
-  border-top: 1px solid rgba(22, 38, 80, 0.08);
-  border-radius: 8px;
-  background: transparent;
+  background: color-mix(in srgb, var(--color-surface) 42%, transparent);
+  opacity: 0;
+  backdrop-filter: blur(9px) saturate(0.58);
+  -webkit-backdrop-filter: blur(9px) saturate(0.58);
+  transition:
+    opacity 180ms ease-out,
+    backdrop-filter 180ms ease-out,
+    -webkit-backdrop-filter 180ms ease-out;
 }
 
-.quickHeader {
+.focusMode .focusBackdrop {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.focusLayer {
+  --focus-tab-width: 4.75rem;
+  --focus-gap: 0.5rem;
+  position: absolute;
+  top: var(--focus-top);
+  left: 0;
+  z-index: 20;
+  width: 100%;
+  height: var(--focus-anchor-height);
+  overflow: visible;
+}
+
+.focusScroller {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.focusRow {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.quickHeader h3 {
-  margin: 0;
-  color: #1a2540;
-  font-size: 13px;
-  line-height: 1;
-}
-
-.quickHeader span {
-  color: #8390a3;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.quickList {
-  display: grid;
-  gap: 4px;
-}
-
-.quickAction {
-  min-height: 40px;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto;
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
   align-items: center;
-  gap: 8px;
-  padding: 8px 4px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #1a2540;
-  text-align: left;
+  gap: var(--focus-gap);
+}
+
+.focusDirectionStart .focusRow {
+  padding-left: var(--focus-anchor-left);
+  padding-right: 1.5rem;
+}
+
+.focusDirectionEnd .focusRow {
+  padding-left: max(0px, calc(var(--focus-anchor-left) - var(--focus-tabs-span)));
+  padding-right: max(1.5rem, calc(var(--focus-shell-width) - var(--focus-anchor-left) - var(--focus-anchor-width)));
+}
+
+.focusAnchor {
+  width: var(--focus-anchor-width);
+  height: var(--focus-anchor-height);
+  flex: 0 0 auto;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+}
+
+.focusAnchor .cardIcon {
+  color: var(--color-primary-fg);
+}
+
+.focusAnchor:focus-visible {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+.focusTab {
+  width: var(--focus-tab-width);
+  height: var(--focus-tab-width);
+  min-width: var(--layout-mobile-tap-target);
+  min-height: var(--layout-mobile-tap-target);
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+  border-radius: 1rem;
+  background: var(--color-surface);
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  line-height: 1.1;
+  text-align: center;
   text-decoration: none;
-  font-size: 12px;
-  font-weight: 760;
+  opacity: 0;
+  transform-origin: center;
+  animation: distributeTab 280ms cubic-bezier(0.16, 1, 0.3, 1) var(--tab-delay) both;
 }
 
-.quickAction strong {
-  color: #2554b8;
-  font-size: 10px;
+.focusTabActive {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  color: var(--color-primary-deep);
 }
 
-.quickIcon {
-  width: 20px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #2554b8;
+.focusTabDisabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
-.quickIcon svg {
-  width: 18px;
-  height: 18px;
+.focusClosing .focusTab {
+  animation: stackTab 260ms cubic-bezier(0.4, 0, 1, 1) var(--tab-close-delay) both;
 }
 
-.tone_cobalt { --tone: #2554b8; }
-.tone_brass { --tone: #c89a2b; }
-.tone_teal { --tone: #247b8d; }
-.tone_amber { --tone: #e5a600; }
-.tone_indigo { --tone: #5a58a8; }
-.tone_navy { --tone: #173d89; }
-.tone_olive { --tone: #6b7d2f; }
-.tone_sage { --tone: #5f8750; }
+@keyframes pageBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-@keyframes unfoldTabs {
+@keyframes distributeTab {
   from {
     opacity: 0;
-    transform: translateY(-5px) scaleY(0.96);
-    clip-path: inset(0 0 100% 0 round 6px);
+    transform: translate3d(var(--tab-origin-x), 0, 0) scale(0.84);
   }
-
   to {
     opacity: 1;
-    transform: translateY(0) scaleY(1);
-    clip-path: inset(0 0 0 0 round 6px);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
-@keyframes tabReveal {
+@keyframes stackTab {
   from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-
-  to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(var(--tab-origin-x), 0, 0) scale(0.84);
   }
 }
 
-.tabGrid > :nth-child(1) { animation-delay: 8ms; }
-.tabGrid > :nth-child(2) { animation-delay: 24ms; }
-.tabGrid > :nth-child(3) { animation-delay: 40ms; }
-.tabGrid > :nth-child(4) { animation-delay: 56ms; }
+@media (max-width: 359px) {
+  .menuShell {
+    padding-inline: 1rem;
+  }
+
+  .primaryGrid {
+    gap: 0.75rem;
+  }
+
+  .secondaryGrid {
+    gap: 0.5rem;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .focusOverlay,
-  .moduleCard,
-  .tabCard,
-  .chevron,
-  .expandedTabs {
+  .pageBackdrop,
+  .menuCard,
+  .normalLayer,
+  .focusBackdrop,
+  .focusTab {
     animation: none;
-    transition-duration: 0ms;
+    transition-duration: 1ms;
+  }
+
+  .focusTab {
+    opacity: 1;
+    transform: none;
   }
 }

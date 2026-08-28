@@ -53,6 +53,8 @@ export interface AppDrawerProps {
   closeLabel?: string
   showMobileCloseButton?: boolean
   hideHeaderOnDesktop?: boolean
+  /** Utilise show() au lieu de showModal() quand un chrome persistant doit rester interactif. */
+  modal?: boolean
 }
 
 function DrawerLoadingState() {
@@ -110,6 +112,7 @@ export function AppDrawer({
   closeLabel = "Fermer",
   showMobileCloseButton = false,
   hideHeaderOnDesktop = false,
+  modal = true,
 }: AppDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -141,7 +144,11 @@ export function AppDrawer({
         : null
 
       if (!dialog.open) {
-        dialog.showModal()
+        if (modal) {
+          dialog.showModal()
+        } else {
+          dialog.show()
+        }
       }
 
       const timeout = window.setTimeout(() => {
@@ -165,7 +172,7 @@ export function AppDrawer({
 
       return () => window.clearTimeout(timer)
     }
-  }, [open])
+  }, [open, modal])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -178,6 +185,20 @@ export function AppDrawer({
 
     dialog.addEventListener("cancel", handleCancel)
     return () => dialog.removeEventListener("cancel", handleCancel)
+  })
+
+  useEffect(() => {
+    if (modal || !open) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        requestClose("escape")
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
   })
 
   function requestClose(reason: AppDrawerCloseReason) {
@@ -208,7 +229,7 @@ export function AppDrawer({
       aria-labelledby={titleId}
       aria-describedby={headerDescriptionId}
       aria-busy={loading || undefined}
-      aria-modal="true"
+      aria-modal={modal ? "true" : undefined}
       role="dialog"
       onClick={(event) => {
         if (event.target === dialogRef.current) {

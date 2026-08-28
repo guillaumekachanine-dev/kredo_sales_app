@@ -8,6 +8,112 @@ export function getNavigationIcon(
   const baseClasses = className ?? "w-4 h-4 shrink-0 transition-colors"
 
   switch (name) {
+    case "cockpit-mobile":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <rect x="3.5" y="4.5" width="17" height="12" rx="1.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 20h8M10 16.5V20m4-3.5V20" />
+        </svg>
+      )
+    case "crm-mobile":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <rect x="3" y="7" width="18" height="13" rx="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V5.5A1.5 1.5 0 019.5 4h5A1.5 1.5 0 0116 5.5V7M3 12h18M9.5 12v1h5v-1" />
+        </svg>
+      )
+    case "prospection-mobile":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <circle cx="9" cy="7" r="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 18c0-3 2.4-5 5.5-5 1.25 0 2.4.33 3.3.93" />
+          <circle cx="16.5" cy="15.5" r="3.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.1 18.1L22 21" />
+        </svg>
+      )
+    case "news-mobile":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 5.5h12a2 2 0 012 2V19H6a2 2 0 01-2-2V7.5a2 2 0 012-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 9h8M8 13h3M13 13h3M8 16h8" />
+        </svg>
+      )
+    case "clipboard-mobile":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <rect x="5" y="4" width="14" height="17" rx="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5V3h6v2M8 14l2.3 2.3L16 10.5" />
+        </svg>
+      )
+    case "graduation-mobile":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-5 9 5-9 5-9-5zM7 12v5c2.8 2 7.2 2 10 0v-5M21 10v6" />
+        </svg>
+      )
+    case "workflow-mobile":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <rect x="9" y="3" width="6" height="5" rx="1" />
+          <rect x="3" y="16" width="6" height="5" rx="1" />
+          <rect x="15" y="16" width="6" height="5" rx="1" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4M6 16v-4h12v4" />
+        </svg>
+      )
+    case "close":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      )
     case "cockpit":
       return (
         <svg

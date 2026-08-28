@@ -1,109 +1,157 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { getNavigationIcon } from "./navigation-icons"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
-import { useLegacySandboxStore } from "@/features/legacy/LegacySandboxStore"
+import {
+  getMobileTabsForPath,
+  type SectionTab,
+} from "@/lib/navigation/main-menu.config"
 import { cn } from "@/lib/utils"
+import { getNavigationIcon } from "./navigation-icons"
 import styles from "./MobileNavigationMenu.module.css"
 
 export type MenuItemId =
-  | "cockpit"
   | "agenda"
-  | "crm"
+  | "prospection"
   | "besoins"
-  | "missions"
-  | "intelligence"
+  | "veille"
   | "finance"
-  | "consultants"
+  | "engagements"
+  | "recrutement"
+  | "equipe"
+  | "reports"
+  | "knowledge"
+  | "automations"
+  | "settings"
 
-type TabAlignment = "start" | "end"
+type MenuItemSize = "primary" | "secondary"
 
 export type MenuItem = {
   id: MenuItemId
   label: string
   icon: string
-  tone: string
-  href?: string
-  tabs?: Array<{
-    label: string
-    shortLabel?: string
-    href: string
-    icon: string
-    disabled?: boolean
-    comingSoon?: boolean
-  }>
+  href: string
+  size: MenuItemSize
+  activePaths: string[]
+  tabs?: SectionTab[]
+}
+
+function tabsFor(pathname: string): SectionTab[] | undefined {
+  const tabs = getMobileTabsForPath(pathname)
+  return tabs.length > 1 ? tabs : undefined
 }
 
 export const mainItems: MenuItem[] = [
-  { id: "cockpit", label: "Cockpit", icon: "cockpit", tone: "cobalt", href: "/cockpit" },
-  { id: "agenda", label: "Agenda", icon: "calendar", tone: "brass", href: "/agenda" },
   {
-    id: "crm",
-    label: "CRM",
-    icon: "crm",
-    tone: "teal",
-    tabs: [
-      { label: "Comptes & Contacts", shortLabel: "Comptes", href: "/prospection/accounts", icon: "equipe" },
-    ],
+    id: "agenda",
+    label: "Agenda",
+    icon: "calendar",
+    href: "/agenda",
+    size: "primary",
+    activePaths: ["/agenda"],
+  },
+  {
+    id: "prospection",
+    label: "Prospection",
+    icon: "prospection-mobile",
+    href: "/prospection-intelligence",
+    size: "primary",
+    activePaths: ["/prospection-intelligence"],
   },
   {
     id: "besoins",
     label: "Opportunités",
-    icon: "sales",
-    tone: "amber",
-    tabs: [
-      { label: "Besoins & Staffing", shortLabel: "Besoins", href: "/missions/opps", icon: "sales" },
-      { label: "Recrutement", href: "/recruitment", icon: "recrutement" },
-    ],
-  },
-  {
-    id: "missions",
-    label: "Contrats actifs",
     icon: "engagements",
-    tone: "indigo",
-    tabs: [
-      { label: "Synthèse", href: "/missions", icon: "engagements" },
-      { label: "Missions", href: "/missions/actives", icon: "sales" },
-      { label: "Projets", href: "/missions/projets", icon: "automations" },
-    ],
+    href: "/missions/opps",
+    size: "primary",
+    activePaths: ["/missions/opps"],
+    tabs: tabsFor("/missions/opps"),
   },
   {
-    id: "intelligence",
-    label: "Intelligence",
-    icon: "bi",
-    tone: "navy",
-    tabs: [
-      { label: "Business Intelligence", shortLabel: "BI", href: "/intelligence", icon: "bi" },
-      { label: "Prospection", href: "/prospection/accounts", icon: "equipe" },
-      { label: "Rapports & rédaction", shortLabel: "Rapports", href: "/reports", icon: "reports" },
-      { label: "Veille & actualités", shortLabel: "Veille", href: "/veille", icon: "veille" },
-    ],
+    id: "veille",
+    label: "Veille & actualités",
+    icon: "news-mobile",
+    href: "/veille",
+    size: "primary",
+    activePaths: ["/veille"],
   },
-  { id: "finance", label: "Finance", icon: "finance", tone: "olive", href: "/finance" },
   {
-    id: "consultants",
+    id: "finance",
+    label: "Finance",
+    icon: "finance",
+    href: "/finance",
+    size: "secondary",
+    activePaths: ["/finance"],
+  },
+  {
+    id: "engagements",
+    label: "Engagements",
+    icon: "clipboard-mobile",
+    href: "/missions",
+    size: "secondary",
+    activePaths: ["/missions", "/missions/actives", "/missions/projets"],
+    tabs: tabsFor("/missions"),
+  },
+  {
+    id: "recrutement",
+    label: "Recrutement",
+    icon: "recrutement",
+    href: "/recruitment",
+    size: "secondary",
+    activePaths: ["/recruitment"],
+  },
+  {
+    id: "equipe",
     label: "Équipe",
     icon: "equipe",
-    tone: "sage",
-    tabs: [
-      { label: "Synthèse", href: "/consultants", icon: "equipe" },
-      { label: "Pool de compétences", shortLabel: "Compétences", href: "/consultants/pool-competences", icon: "knowledge" },
-      { label: "Activité & congés", shortLabel: "Activité", href: "/consultants/activite-conges", icon: "calendar" },
-    ],
+    href: "/consultants",
+    size: "secondary",
+    activePaths: ["/consultants"],
+    tabs: tabsFor("/consultants"),
+  },
+  {
+    id: "reports",
+    label: "Rapports & rédaction",
+    icon: "reports",
+    href: "/reports",
+    size: "secondary",
+    activePaths: ["/reports"],
+  },
+  {
+    id: "knowledge",
+    label: "Knowledge Hub",
+    icon: "graduation-mobile",
+    href: "/knowledge",
+    size: "secondary",
+    activePaths: ["/knowledge"],
+  },
+  {
+    id: "automations",
+    label: "Automatisations",
+    icon: "workflow-mobile",
+    href: "/automations",
+    size: "secondary",
+    activePaths: ["/automations"],
+  },
+  {
+    id: "settings",
+    label: "Paramètres",
+    icon: "settings",
+    href: "/settings",
+    size: "secondary",
+    activePaths: ["/settings"],
   },
 ]
 
-const quickActions = [
-  { label: "Favoris", icon: "cockpit", href: "/cockpit", meta: "4 épingles" },
-  { label: "Paramètres", icon: "settings", href: "/settings", meta: "Système" },
-  { label: "Knowledge Hub", icon: "knowledge", href: "/knowledge", meta: "Sources" },
-  { label: "Automatisations", icon: "automations", href: "/automations", meta: "n8n" },
-  { label: "Bac à sable", icon: "sandbox", action: "sandbox", meta: "Legacy" },
-]
+const primaryItems = mainItems.filter((item) => item.size === "primary")
+const secondaryItems = mainItems.filter((item) => item.size === "secondary")
 
 interface MobileNavigationMenuProps {
   isOpen: boolean
@@ -112,173 +160,209 @@ interface MobileNavigationMenuProps {
   onExpandedChange?: (id: MenuItemId | null) => void
 }
 
-function ChevronIcon() {
-  return (
-    <svg className={styles.stateIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
-  )
+type FocusGeometry = {
+  top: number
+  left: number
+  width: number
+  height: number
+  shellWidth: number
+  direction: "start" | "end"
 }
 
-function CloseIcon() {
-  return (
-    <svg className={styles.stateIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  )
-}
-
-function chunkRows(items: MenuItem[]) {
-  const rows: MenuItem[][] = []
-  for (let index = 0; index < items.length; index += 2) {
-    rows.push(items.slice(index, index + 2))
-  }
-  return rows
-}
-
-export function getInitialExpandedId(pathname: string): MenuItemId | null {
-  if (pathname.startsWith("/prospection")) return "crm"
-  if (pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")) return "besoins"
-  if (pathname.startsWith("/missions")) return "missions"
-  if (pathname.startsWith("/reports") || pathname.startsWith("/veille") || pathname.startsWith("/intelligence")) return "intelligence"
-  if (pathname.startsWith("/consultants")) return "consultants"
-  return null
+function pathMatches(pathname: string, href: string) {
+  const hrefPathname = href.split("?")[0]
+  return pathname === hrefPathname || pathname.startsWith(hrefPathname + "/")
 }
 
 function isItemActive(item: MenuItem, pathname: string) {
-  if (item.id === "cockpit") return pathname === "/cockpit"
-  if (item.id === "agenda") return pathname === "/agenda"
-  if (item.id === "crm") return pathname.startsWith("/prospection")
-  if (item.id === "besoins") return pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")
-  if (item.id === "missions") return pathname.startsWith("/missions") && !pathname.startsWith("/missions/opps")
-  if (item.id === "intelligence") return pathname.startsWith("/reports") || pathname.startsWith("/veille") || pathname.startsWith("/intelligence")
-  if (item.id === "finance") return pathname.startsWith("/finance")
-  if (item.id === "consultants") return pathname.startsWith("/consultants")
-  return false
+  if (item.id === "engagements") {
+    return item.activePaths.some((href) =>
+      href === "/missions" ? pathname === href : pathMatches(pathname, href),
+    )
+  }
+
+  return item.activePaths.some((href) => pathMatches(pathname, href))
 }
 
-function ModuleCard({
+function activeTabHref(tabs: SectionTab[], pathname: string) {
+  return tabs
+    .filter((tab) => pathMatches(pathname, tab.href))
+    .sort((left, right) => right.href.length - left.href.length)[0]?.href
+}
+
+function CardContent({ item }: { item: MenuItem }) {
+  return (
+    <>
+      <span className={styles.cardIcon} aria-hidden="true">
+        {getNavigationIcon(item.icon)}
+      </span>
+      <span className={styles.cardLabel}>{item.label}</span>
+    </>
+  )
+}
+
+function MenuCard({
   item,
-  expanded,
   active,
-  focusActive,
+  expanded,
   onToggle,
   onNavigate,
 }: {
   item: MenuItem
-  expanded: boolean
   active: boolean
-  focusActive: boolean
+  expanded: boolean
   onToggle: (id: MenuItemId) => void
   onNavigate: () => void
 }) {
-  const hasTabs = Boolean(item.tabs?.length)
   const className = cn(
-    styles.moduleCard,
-    styles[`tone_${item.tone}`],
-    active && styles.activeCard,
-    expanded && styles.expandedCard,
-    focusActive && styles.focusActiveCard
+    styles.menuCard,
+    item.size === "primary" ? styles.primaryCard : styles.secondaryCard,
+    active && styles.routeActive,
+    expanded && styles.sourceExpanded,
   )
 
-  const content = (
-    <>
-      <span className={styles.moduleIcon}>{getNavigationIcon(item.icon)}</span>
-      <span className={styles.moduleText}>
-        <span className={styles.moduleLabel}>{item.label}</span>
-      </span>
-      {hasTabs ? (
-        <span className={cn(styles.chevron, expanded && styles.chevronOpen)} aria-hidden="true">
-          <ChevronIcon />
-        </span>
-      ) : null}
-    </>
-  )
-
-  if (hasTabs) {
+  if (item.tabs?.length) {
     return (
       <button
         type="button"
+        data-menu-card-id={item.id}
         aria-expanded={expanded}
         className={className}
         onClick={() => onToggle(item.id)}
       >
-        {content}
+        <CardContent item={item} />
       </button>
     )
   }
 
   return (
-    <Link href={item.href ?? "/cockpit"} onClick={onNavigate} className={className}>
-      {content}
+    <Link
+      href={item.href}
+      data-menu-card-id={item.id}
+      aria-current={active ? "page" : undefined}
+      className={className}
+      onClick={onNavigate}
+    >
+      <CardContent item={item} />
     </Link>
   )
 }
 
-function ExpandedTabs({
+function FocusLayer({
   item,
-  align,
   pathname,
+  geometry,
+  closing,
+  onCollapse,
   onNavigate,
 }: {
   item: MenuItem
-  align: TabAlignment
   pathname: string
+  geometry: FocusGeometry
+  closing: boolean
+  onCollapse: () => void
   onNavigate: () => void
 }) {
-  if (!item.tabs?.length) return null
+  const anchorRef = useRef<HTMLButtonElement>(null)
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const tabs = item.tabs ?? []
+  const currentTabHref = activeTabHref(tabs, pathname)
+
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current
+    if (geometry.direction === "end" && scroller) {
+      scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth
+    }
+    anchorRef.current?.focus({ preventScroll: true })
+  }, [geometry.direction, item.id])
+
+  const layerStyle = {
+    "--focus-top": `${geometry.top}px`,
+    "--focus-anchor-left": `${geometry.left}px`,
+    "--focus-anchor-width": `${geometry.width}px`,
+    "--focus-anchor-height": `${geometry.height}px`,
+    "--focus-shell-width": `${geometry.shellWidth}px`,
+    "--focus-tab-count": tabs.length,
+    "--focus-tabs-span": `${tabs.length * 84}px`,
+  } as React.CSSProperties
+
+  const renderedTabs = tabs.map((tab, index) => {
+    const unavailable = tab.disabled || tab.comingSoon
+    const tabClassName = cn(
+      styles.focusTab,
+      tab.href === currentTabHref && styles.focusTabActive,
+      unavailable && styles.focusTabDisabled,
+    )
+    const distance = geometry.direction === "start" ? index + 1 : tabs.length - index
+    const tabStyle = {
+      "--tab-index": index,
+      "--tab-distance": distance,
+      "--tab-origin-x": `${geometry.direction === "start" ? -distance * 84 : distance * 84}px`,
+      "--tab-delay": `${index * 28}ms`,
+      "--tab-close-delay": `${(tabs.length - index - 1) * 24}ms`,
+    } as React.CSSProperties
+
+    if (unavailable) {
+      return (
+        <span
+          key={tab.href}
+          aria-disabled="true"
+          className={tabClassName}
+          style={tabStyle}
+        >
+          {tab.shortLabel ?? tab.label}
+        </span>
+      )
+    }
+
+    return (
+      <Link
+        key={tab.href}
+        href={tab.href}
+        data-focus-tab
+        aria-current={tab.href === currentTabHref ? "page" : undefined}
+        className={tabClassName}
+        style={tabStyle}
+        onClick={onNavigate}
+      >
+        {tab.shortLabel ?? tab.label}
+      </Link>
+    )
+  })
+
+  const anchor = (
+    <button
+      ref={anchorRef}
+      type="button"
+      aria-expanded="true"
+      aria-label={`Replier ${item.label}`}
+      className={cn(
+        styles.menuCard,
+        item.size === "primary" ? styles.primaryCard : styles.secondaryCard,
+        styles.focusAnchor,
+      )}
+      onClick={onCollapse}
+    >
+      <CardContent item={item} />
+    </button>
+  )
 
   return (
     <div
       className={cn(
-        styles.expandedTabs,
-        align === "end" ? styles.expandedTabsEnd : styles.expandedTabsStart
+        styles.focusLayer,
+        geometry.direction === "end" ? styles.focusDirectionEnd : styles.focusDirectionStart,
+        closing && styles.focusClosing,
       )}
-      aria-label={`Onglets ${item.label}`}
+      style={layerStyle}
+      aria-label={`Navigation ${item.label}`}
     >
-      <div className={styles.tabGrid}>
-        {item.tabs.map((tab) => {
-          const isUnavailable = tab.disabled || tab.comingSoon
-          const isActive = pathname === tab.href
-          const className = cn(
-            styles.tabCard,
-            isActive && styles.activeTab,
-            isUnavailable && styles.disabledTab
-          )
-
-          if (isUnavailable) {
-            return (
-              <div key={tab.href} className={className} aria-disabled="true">
-                <span className={styles.tabIcon}>{getNavigationIcon(tab.icon)}</span>
-                <span className={styles.tabLabel}>{tab.shortLabel ?? tab.label}</span>
-              </div>
-            )
-          }
-
-          if (tab.href === "/prospection/accounts") {
-            return (
-              <button
-                key={tab.href}
-                type="button"
-                onClick={() => {
-                  onNavigate()
-                  openMobileAccountQuickSearch()
-                }}
-                className={className}
-              >
-                <span className={styles.tabIcon}>{getNavigationIcon(tab.icon)}</span>
-                <span className={styles.tabLabel}>{tab.shortLabel ?? tab.label}</span>
-              </button>
-            )
-          }
-
-          return (
-            <Link key={tab.href} href={tab.href} onClick={onNavigate} className={className}>
-              <span className={styles.tabIcon}>{getNavigationIcon(tab.icon)}</span>
-              <span className={styles.tabLabel}>{tab.shortLabel ?? tab.label}</span>
-            </Link>
-          )
-        })}
+      <div ref={scrollerRef} className={styles.focusScroller}>
+        <div className={styles.focusRow}>
+          {geometry.direction === "start" ? anchor : null}
+          {renderedTabs}
+          {geometry.direction === "end" ? anchor : null}
+        </div>
       </div>
     </div>
   )
@@ -291,139 +375,190 @@ export function MobileNavigationMenu({
   onExpandedChange,
 }: MobileNavigationMenuProps) {
   const pathname = usePathname()
-  const rows = useMemo(() => chunkRows(mainItems), [])
+  const shellRef = useRef<HTMLDivElement>(null)
+  const collapseTimerRef = useRef<number | null>(null)
   const [internalExpandedId, setInternalExpandedId] = useState<MenuItemId | null>(null)
-
+  const [focusGeometry, setFocusGeometry] = useState<FocusGeometry | null>(null)
+  const [focusClosing, setFocusClosing] = useState(false)
   const isControlled = controlledExpandedId !== undefined
   const expandedId = isControlled ? controlledExpandedId : internalExpandedId
-  const setExpandedId = (id: MenuItemId | null) => {
-    if (!isControlled) {
-      setInternalExpandedId(id)
-    }
+  const expandedItem = mainItems.find((item) => item.id === expandedId) ?? null
+
+  function setExpandedId(id: MenuItemId | null) {
+    if (!isControlled) setInternalExpandedId(id)
     onExpandedChange?.(id)
   }
 
-  const isFocusMode = expandedId !== null
-  const openSandbox = useLegacySandboxStore((s) => s.open)
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const timeout = window.setTimeout(() => {
-      if (!isControlled && internalExpandedId === null) {
-        setInternalExpandedId(getInitialExpandedId(pathname))
-      }
-    }, 0)
-
-    return () => window.clearTimeout(timeout)
-  }, [isOpen, pathname, isControlled, internalExpandedId])
-
-  function handleToggle(id: MenuItemId) {
-    const nextId = expandedId === id ? null : id
-    setExpandedId(nextId)
-  }
-
   function closeMenu() {
+    if (collapseTimerRef.current !== null) {
+      window.clearTimeout(collapseTimerRef.current)
+      collapseTimerRef.current = null
+    }
+    setFocusClosing(false)
+    setExpandedId(null)
     onOpenChange(false)
   }
 
+  function requestCollapse() {
+    if (!expandedId || focusClosing) return
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    setFocusClosing(true)
+    collapseTimerRef.current = window.setTimeout(() => {
+      setExpandedId(null)
+      setFocusClosing(false)
+      collapseTimerRef.current = null
+      shellRef.current
+        ?.querySelector<HTMLElement>(`[data-menu-card-id="${expandedId}"]`)
+        ?.focus({ preventScroll: true })
+    }, reduceMotion ? 0 : 290)
+  }
+
+  function handleToggle(id: MenuItemId) {
+    if (expandedId === id) {
+      requestCollapse()
+      return
+    }
+    setFocusClosing(false)
+    setExpandedId(id)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (collapseTimerRef.current !== null) {
+        window.clearTimeout(collapseTimerRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const main = document.querySelector<HTMLElement>("main")
+    if (!main) return
+    main.inert = true
+    return () => {
+      main.inert = false
+    }
+  }, [isOpen])
+
+  useLayoutEffect(() => {
+    if (!expandedId || !isOpen) {
+      return
+    }
+
+    function measure() {
+      const shell = shellRef.current
+      const card = shell?.querySelector<HTMLElement>(
+        `[data-menu-card-id="${expandedId}"]`,
+      )
+      if (!shell || !card) return
+
+      const shellRect = shell.getBoundingClientRect()
+      const cardRect = card.getBoundingClientRect()
+      const left = cardRect.left - shellRect.left
+      setFocusGeometry({
+        top: cardRect.top - shellRect.top,
+        left,
+        width: cardRect.width,
+        height: cardRect.height,
+        shellWidth: shellRect.width,
+        direction: left + cardRect.width / 2 > shellRect.width / 2 ? "end" : "start",
+      })
+    }
+
+    measure()
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
+  }, [expandedId, isOpen])
+
+  const focusActive = Boolean(expandedItem && focusGeometry)
+
   return (
-    <AppDrawer
-      open={isOpen}
-      onOpenChange={onOpenChange}
-      title=""
-      subtitle={undefined}
-      icon={undefined}
-      side="bottom"
-      headerClassName="!hidden"
-      className="!border-0 !shadow-none [--drawer-header-fade-start:rgba(249,247,241,0.96)] [--drawer-header-fade-end:rgba(249,247,241,0)] max-h-[85vh] overflow-y-auto"
-    >
-      <div className={cn(styles.menuShell, isFocusMode && styles.focusMode)}>
-        <div className={styles.focusOverlay} aria-hidden="true" />
-        <header className={styles.menuHeader}>
-          <h2>Navigation</h2>
-          <button type="button" className={styles.closeButton} aria-label="Fermer" onClick={closeMenu}>
-            <CloseIcon />
-          </button>
-        </header>
+    <>
+      {isOpen ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={focusActive ? "Replier les onglets" : "Fermer le menu"}
+          className={styles.pageBackdrop}
+          onClick={focusActive ? requestCollapse : closeMenu}
+        />
+      ) : null}
 
-        <div className={styles.moduleGrid}>
-          {rows.map((row) => {
-            const rowExpandedItem = row.find((item) => item.id === expandedId && item.tabs?.length)
-            const expandedIndex = rowExpandedItem ? row.findIndex((item) => item.id === rowExpandedItem.id) : -1
-            const tabAlignment: TabAlignment = expandedIndex === 1 ? "end" : "start"
+      <AppDrawer
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) closeMenu()
+        }}
+        onRequestClose={() => {
+          if (focusActive) {
+            requestCollapse()
+            return false
+          }
+        }}
+        title="Menu"
+        side="bottom"
+        modal={false}
+        headerClassName="!hidden"
+        contentClassName="!overflow-hidden !p-0"
+        className={cn(styles.mobileMenuDrawer, "!border-0 !shadow-none")}
+      >
+        <div
+          ref={shellRef}
+          className={cn(styles.menuShell, focusActive && styles.focusMode)}
+        >
+          <button
+            type="button"
+            tabIndex={focusActive ? 0 : -1}
+            aria-label="Replier les onglets"
+            className={styles.focusBackdrop}
+            onClick={requestCollapse}
+          />
 
-            return (
-              <div
-                key={row.map((item) => item.id).join("-")}
-                className={styles.moduleRow}
-              >
-                <div className={styles.modulePair}>
-                  {row.map((item) => (
-                    <ModuleCard
-                      key={item.id}
-                      item={item}
-                      expanded={item.id === expandedId}
-                      active={isItemActive(item, pathname)}
-                      focusActive={item.id === expandedId}
-                      onToggle={handleToggle}
-                      onNavigate={closeMenu}
-                    />
-                  ))}
-                </div>
-                {rowExpandedItem ? (
-                  <ExpandedTabs
-                    item={rowExpandedItem}
-                    align={tabAlignment}
-                    pathname={pathname}
-                    onNavigate={closeMenu}
-                  />
-                ) : null}
-              </div>
-            )
-          })}
+          <div className={styles.normalLayer}>
+            <div className={styles.dragHandle} aria-hidden="true" />
+            <header className={styles.menuHeader}>
+              <h2 tabIndex={-1} data-autofocus="true">MENU</h2>
+            </header>
+
+            <div className={styles.primaryGrid}>
+              {primaryItems.map((item) => (
+                <MenuCard
+                  key={item.id}
+                  item={item}
+                  active={isItemActive(item, pathname)}
+                  expanded={item.id === expandedId}
+                  onToggle={handleToggle}
+                  onNavigate={closeMenu}
+                />
+              ))}
+            </div>
+
+            <div className={styles.secondaryGrid}>
+              {secondaryItems.map((item) => (
+                <MenuCard
+                  key={item.id}
+                  item={item}
+                  active={isItemActive(item, pathname)}
+                  expanded={item.id === expandedId}
+                  onToggle={handleToggle}
+                  onNavigate={closeMenu}
+                />
+              ))}
+            </div>
+          </div>
+
+          {expandedItem && focusGeometry ? (
+            <FocusLayer
+              item={expandedItem}
+              pathname={pathname}
+              geometry={focusGeometry}
+              closing={focusClosing}
+              onCollapse={requestCollapse}
+              onNavigate={closeMenu}
+            />
+          ) : null}
         </div>
-
-        <section className={styles.quickSection} aria-label="Accès rapide">
-          <div className={styles.quickHeader}>
-            <h3>Accès rapide</h3>
-            <span>Actions fréquentes</span>
-          </div>
-          <div className={styles.quickList}>
-            {quickActions.map((action) => {
-              if (action.action === "sandbox") {
-                return (
-                  <button
-                    key={action.label}
-                    onClick={() => {
-                      closeMenu()
-                      openSandbox()
-                    }}
-                    type="button"
-                    className={cn(styles.quickAction, "cursor-pointer outline-none")}
-                  >
-                    <span className={styles.quickIcon}>
-                      <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                      </svg>
-                    </span>
-                    <span>{action.label}</span>
-                    <strong className="text-[10px] text-brand-brass uppercase tracking-wide">{action.meta}</strong>
-                  </button>
-                )
-              }
-
-              return (
-                <Link key={action.label} href={action.href!} onClick={closeMenu} className={styles.quickAction}>
-                  <span className={styles.quickIcon}>{getNavigationIcon(action.icon)}</span>
-                  <span>{action.label}</span>
-                  <strong>{action.meta}</strong>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-      </div>
-    </AppDrawer>
+      </AppDrawer>
+    </>
   )
 }

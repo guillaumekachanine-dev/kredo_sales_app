@@ -116,6 +116,38 @@ export function getSectionTabsForPath(pathname: string): SectionTab[] {
   return bestTabs
 }
 
+/**
+ * Résout les onglets réellement navigables du shell mobile.
+ *
+ * Certains regroupements mobiles réunissent plusieurs modules desktop qui
+ * disposent déjà de routes canoniques distinctes (Staffing/Recrutement et
+ * Rapports/Veille). Les autres modules réutilisent directement leurs tabs de
+ * section : le menu mobile ne maintient donc aucune copie locale de ces listes.
+ */
+export function getMobileTabsForPath(pathname: string): SectionTab[] {
+  if (pathname.startsWith("/prospection")) {
+    return getSectionTabsForPath(pathname)
+  }
+
+  if (pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")) {
+    return [
+      { label: "Besoins & Staffing", shortLabel: "Besoins", href: "/missions/opps?scope=needs" },
+      { label: "Recrutement", shortLabel: "Recrutement", href: "/recruitment" },
+    ]
+  }
+
+  if (pathname.startsWith("/reports") || pathname.startsWith("/veille")) {
+    return [
+      { label: "Rapports & Rédaction", shortLabel: "Rapports", href: "/reports" },
+      { label: "Veille & Actualités", shortLabel: "Veille", href: "/veille" },
+    ]
+  }
+
+  return getSectionTabsForPath(pathname).filter(
+    (tab) => !tab.disabled && !tab.comingSoon,
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Menu principal
 // ─────────────────────────────────────────────────────────────────────────────
