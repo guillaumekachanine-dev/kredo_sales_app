@@ -576,7 +576,7 @@ export function IntelligenceFAB() {
         }}
         title={isCompanyMode && panelData ? (
           <div className="min-w-0">
-            <h2 className="truncate text-xs font-semibold leading-4 text-white/75">Cockpit Intelligence</h2>
+            <h2 className="truncate text-xs font-semibold leading-4 text-brand-brass">Cockpit Intelligence</h2>
             <p className="mt-0.5 truncate text-base font-bold leading-5 text-white">{panelData.company.name}</p>
           </div>
         ) : isCompanyMode ? "Cockpit Intelligence" : isGenericEntityMode ? (
@@ -605,7 +605,7 @@ export function IntelligenceFAB() {
           ? "border-b-2 border-brand-brass bg-cockpit-cobalt text-white [&_button]:border [&_button]:border-white/35 [&_button]:bg-white/15 [&_button]:text-white [&_button]:hover:border-white/55 [&_button]:hover:bg-white/25 [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
           : isGenericEntityMode
             ? "border-b border-white/15 bg-primary text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"
-            : "relative min-h-[7.25rem] border-b border-white/10 bg-domain-intelligence !px-7 !pb-[0.9375rem] !pt-[1.875rem] text-white before:absolute before:left-1/2 before:top-2.5 before:h-1 before:w-[3.125rem] before:-translate-x-1/2 before:rounded-full before:bg-white/30 [&_button]:mt-0.5 [&_button]:size-[2.375rem] [&_button]:rounded-[0.625rem] [&_button]:border [&_button]:border-white/25 [&_button]:bg-white/10 [&_button]:text-white [&_button]:hover:bg-white/20"}
+            : "relative min-h-[6rem] border-b border-white/10 bg-domain-intelligence !px-5 !pb-3 !pt-6 text-white before:absolute before:left-1/2 before:top-2.5 before:h-1 before:w-[3.125rem] before:-translate-x-1/2 before:rounded-full before:bg-white/30 [&_button]:mt-0.5 [&_button]:size-[2.25rem] [&_button]:rounded-[0.5rem] [&_button]:border [&_button]:border-white/25 [&_button]:bg-white/10 [&_button]:text-white [&_button]:hover:bg-white/20"}
         contentClassName={isCompanyMode
           ? "bg-cockpit-cobalt-deep text-white [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"
           : isGenericEntityMode

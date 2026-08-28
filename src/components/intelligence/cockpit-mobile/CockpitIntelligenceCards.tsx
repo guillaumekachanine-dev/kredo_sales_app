@@ -36,7 +36,7 @@ export function CockpitActionCard({
       aria-pressed={state === "selected" || undefined}
       onClick={disabled ? undefined : onClick}
       className={cn(
-        "group relative flex min-h-[7.25rem] w-full select-none flex-col justify-between overflow-hidden rounded-[0.9375rem] border px-3 pb-3 pt-2.5 text-left transition-[background-color,border-color,transform,opacity] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2",
+        "group relative flex h-[6.5rem] w-full select-none flex-col items-start justify-center gap-1.5 overflow-hidden rounded-[0.8125rem] border px-3 py-2.5 text-left transition-[background-color,border-color,transform,opacity] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2",
         isStrong
           ? "border-brand-brass bg-primary text-white"
           : "border-cockpit-action-border bg-surface text-heading",
@@ -52,7 +52,7 @@ export function CockpitActionCard({
       ) : null}
 
       <span className={cn(
-        "relative flex size-[2.875rem] items-center justify-center rounded-[0.75rem]",
+        "relative flex size-[2.625rem] items-center justify-center rounded-[0.625rem]",
         isStrong ? "bg-white/12" : "bg-cockpit-cobalt-soft",
       )}>
         <Image
@@ -62,7 +62,7 @@ export function CockpitActionCard({
           height={56}
           className={cn(
             "object-contain transition-transform duration-200 motion-reduce:transition-none group-hover:scale-[1.03] motion-reduce:group-hover:scale-100",
-            isStrong ? "size-[3rem]" : "size-[2.875rem]",
+            isStrong ? "size-[2.75rem]" : "size-[2.625rem]",
           )}
         />
         {isBusy ? (
@@ -72,7 +72,7 @@ export function CockpitActionCard({
         ) : null}
       </span>
 
-      <span className="relative mt-2 flex min-h-6 items-end text-[11.5px] font-bold leading-[1.15]">
+      <span className="relative line-clamp-2 text-[12px] font-bold leading-[1.2]">
         {label}
       </span>
 
@@ -89,21 +89,21 @@ export type CockpitModuleCardState = "active" | "disabled" | "coming_soon"
 
 function ModuleCardContent({
   label,
-  iconSrc,
+  icon,
   state,
 }: {
   label: string
-  iconSrc: string
+  icon: CockpitMobileModuleIcon
   state: CockpitModuleCardState
 }) {
   return (
     <>
       <span className="absolute inset-x-0 top-0 h-[3px] bg-brand-brass" aria-hidden="true" />
-      <span className="flex size-[2.375rem] shrink-0 items-center justify-center rounded-[0.625rem] border border-white/12 bg-white/10">
-        <Image src={iconSrc} alt="" width={44} height={44} className="size-7 object-contain" />
+      <span className="flex size-[2rem] shrink-0 items-center justify-center rounded-[0.5rem] border border-white/12 bg-white/10 text-white" aria-hidden="true">
+        <CockpitModuleIcon icon={icon} />
       </span>
-      <span className="mt-1.5 min-w-0 pr-4">
-        <span className="block text-[11.5px] font-bold leading-[1.15] text-white">{label}</span>
+      <span className="min-w-0 pr-4">
+        <span className="line-clamp-2 text-[12px] font-bold leading-[1.2] text-white">{label}</span>
       </span>
       <svg className="absolute bottom-2.5 right-2.5 size-3 text-brand-brass transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
@@ -115,10 +115,29 @@ function ModuleCardContent({
   )
 }
 
-const MODULE_ICON_PATHS = {
-  financial_modeling: "/icons_set/cockpit_intelligence/rapport_financier_ai.png",
-  activity_leave: "/icons_set/date.png",
-} as const
+type CockpitMobileModuleIcon =
+  | "financial_modeling"
+  | "activity_leave"
+  | "write_pitch"
+  | "report_summary"
+
+function CockpitModuleIcon({ icon }: { icon: CockpitMobileModuleIcon }) {
+  if (icon === "write_pitch") {
+    return (
+      <svg className="size-[1.125rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 5.75h11.25a2 2 0 0 1 2 2v2.5M4.5 5.75a2 2 0 0 0-2 2v8.5a2 2 0 0 0 2 2h8.25M4.5 5.75l5.75 4.5a2.75 2.75 0 0 0 3.5 0l4-3.13M15 18.25l4.8-4.8a1.41 1.41 0 0 1 2 2l-4.8 4.8-3 .75.75-3Z" />
+      </svg>
+    )
+  }
+
+  const navigationIcon = icon === "financial_modeling"
+    ? "finance"
+    : icon === "activity_leave"
+      ? "calendar"
+      : "reports"
+
+  return getNavigationIcon(navigationIcon, "size-[1.125rem]", 1.9)
+}
 
 export function CockpitModuleCard({
   label,
@@ -130,20 +149,20 @@ export function CockpitModuleCard({
 }: {
   label: string
   description?: string
-  icon: keyof typeof MODULE_ICON_PATHS
-  href: string
+  icon: CockpitMobileModuleIcon
+  href?: string
   state: CockpitModuleCardState
   current?: boolean
   onClick?: () => void
 }) {
   const className = cn(
-    "group relative flex min-h-[4.5rem] w-full flex-col justify-between overflow-hidden rounded-[0.875rem] border border-cockpit-intelligence-border bg-cockpit-intelligence p-2.5 text-left transition-[transform,opacity] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2",
+    "group relative flex h-[5rem] w-full flex-col items-start justify-center gap-1 overflow-hidden rounded-[0.75rem] border border-cockpit-intelligence-border bg-cockpit-intelligence p-2 text-left transition-[transform,opacity] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2",
     state === "active" && !current ? "cursor-pointer hover:-translate-y-0.5 motion-reduce:hover:translate-y-0" : "cursor-not-allowed",
   )
   const content = (
     <ModuleCardContent
       label={label}
-      iconSrc={MODULE_ICON_PATHS[icon]}
+      icon={icon}
       state={state}
     />
   )
@@ -152,54 +171,10 @@ export function CockpitModuleCard({
     if (onClick) {
       return <button type="button" onClick={onClick} className={className}>{content}</button>
     }
-    return <Link href={href} className={className}>{content}</Link>
+    if (href) {
+      return <Link href={href} className={className}>{content}</Link>
+    }
   }
 
   return <button type="button" disabled aria-current={current ? "page" : undefined} className={className}>{content}</button>
-}
-
-export type CockpitShortcutKind = "documents" | "knowledge" | "workflows" | "settings"
-
-const SHORTCUT_NAV_ICON_KEYS: Record<CockpitShortcutKind, string> = {
-  documents: "reports",
-  knowledge: "knowledge",
-  workflows: "automations",
-  settings: "settings",
-}
-
-function ShortcutIcon({ kind }: { kind: CockpitShortcutKind }) {
-  return (
-    <span className="flex size-6 items-center justify-center text-domain-intelligence [&_svg]:size-4.5">
-      {getNavigationIcon(SHORTCUT_NAV_ICON_KEYS[kind])}
-    </span>
-  )
-}
-
-export function CockpitShortcutCard({
-  label,
-  href,
-  kind,
-  current = false,
-}: {
-  label: string
-  href: string
-  kind: CockpitShortcutKind
-  current?: boolean
-}) {
-  const className = cn(
-    "flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1 rounded-[0.75rem] border border-cockpit-action-border bg-surface px-1 text-center text-domain-intelligence transition-[background-color,transform,opacity] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2",
-    current ? "cursor-default bg-cockpit-cobalt-soft opacity-65" : "hover:-translate-y-0.5 hover:bg-cockpit-cobalt-soft motion-reduce:hover:translate-y-0",
-  )
-  const content = (
-    <>
-      <ShortcutIcon kind={kind} />
-      <span className="w-full truncate text-[9px] font-bold leading-none">{label}</span>
-    </>
-  )
-
-  if (current) {
-    return <button type="button" disabled aria-current="page" className={className}>{content}</button>
-  }
-
-  return <Link href={href} className={className}>{content}</Link>
 }

@@ -4,14 +4,12 @@ import { useState } from "react"
 import dynamic from "next/dynamic"
 import type { ResolvedPageCockpitConfig } from "@/lib/intelligence/intelligence-registry"
 import { doesCockpitPatternMatch } from "@/lib/intelligence/intelligence-registry"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import { IntelligenceActionCard } from "../IntelligenceActionCard"
 import { MissionComposerMobile } from "@/features/intelligence-missions/components/MissionComposerMobile"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
-import {
-  CockpitModuleCard,
-  CockpitShortcutCard,
-  type CockpitShortcutKind,
-} from "./CockpitIntelligenceCards"
+import { CockpitModuleCard } from "./CockpitIntelligenceCards"
 import { CockpitIntelligenceShell, CockpitSectionHeader } from "./CockpitIntelligenceShell"
 
 const FinancialModelingMobileFlow = dynamic(
@@ -19,16 +17,10 @@ const FinancialModelingMobileFlow = dynamic(
   { ssr: false },
 )
 
-const COCKPIT_SHORTCUTS: Array<{
-  label: string
-  href: string
-  kind: CockpitShortcutKind
-}> = [
-  { label: "Documents", href: "/reports", kind: "documents" },
-  { label: "KB", href: "/knowledge", kind: "knowledge" },
-  { label: "Workflows", href: "/automations", kind: "workflows" },
-  { label: "Paramètres", href: "/settings", kind: "settings" },
-]
+const COMMON_MOBILE_MODULES = [
+  { id: "write_pitch", label: "Rédiger mail / pitch", icon: "write_pitch" },
+  { id: "report_summary", label: "Générer rapport / synthèse", icon: "report_summary" },
+] as const
 
 export function CockpitIntelligenceMobileContent({
   pathname,
@@ -82,39 +74,38 @@ export function CockpitIntelligenceMobileContent({
 
       <section>
         <CockpitSectionHeader label="Modules" />
-        {resolved.modules.length > 0 ? (
-          <div className="grid grid-cols-2 gap-[0.6875rem]">
-            {resolved.modules.map((module) => (
+        <div className="grid grid-cols-2 gap-[0.6875rem]">
+          {resolved.modules.map((module) => (
+            <CockpitModuleCard
+              key={module.id}
+              label={module.label}
+              description={module.description}
+              icon={module.icon}
+              href={module.href}
+              state={module.status}
+              current={doesCockpitPatternMatch(pathname, module.href)}
+              onClick={module.id === "financial_modeling" ? () => setIsFinancialModelingOpen(true) : undefined}
+            />
+          ))}
+
+          <div className="col-span-2 grid grid-cols-2 gap-[0.6875rem]">
+            {COMMON_MOBILE_MODULES.map((module) => (
               <CockpitModuleCard
                 key={module.id}
                 label={module.label}
-                description={module.description}
                 icon={module.icon}
-                href={module.href}
-                state={module.status}
-                current={doesCockpitPatternMatch(pathname, module.href)}
-                onClick={module.id === "financial_modeling" ? () => setIsFinancialModelingOpen(true) : undefined}
+                state="active"
+                onClick={module.id === "write_pitch"
+                  ? () => openCommunicationComposer({
+                      origin: "intelligence_common",
+                      selectedOutputKind: "written_message",
+                      startWithGeneralPicker: true,
+                    })
+                  : () => openReportGeneration({ origin: "intelligence_common" })}
               />
             ))}
           </div>
-        ) : (
-          <p className="rounded-[0.875rem] border border-dashed border-cockpit-action-border bg-surface px-4 py-4 text-center text-[11px] font-medium text-body">
-            Aucun module disponible sur cette page.
-          </p>
-        )}
-      </section>
-
-      <section>
-        <CockpitSectionHeader label="Raccourcis" />
-        <nav aria-label="Raccourcis du Cockpit Intelligence" className="grid grid-cols-4 gap-[0.5625rem]">
-          {COCKPIT_SHORTCUTS.map((shortcut) => (
-            <CockpitShortcutCard
-              key={shortcut.href}
-              {...shortcut}
-              current={doesCockpitPatternMatch(pathname, shortcut.href)}
-            />
-          ))}
-        </nav>
+        </div>
       </section>
 
       {isFinancialModelingOpen && (

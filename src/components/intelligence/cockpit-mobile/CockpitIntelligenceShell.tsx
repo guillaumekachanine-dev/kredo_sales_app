@@ -10,7 +10,7 @@ export function CockpitIntelligenceHeader({
   return (
     <div className="min-w-0 text-white">
       {/* Ligne 1 — eyebrow */}
-      <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.24em] text-white/55">
+      <p className="text-[8px] font-bold uppercase leading-none tracking-[0.22em] text-brand-brass">
         Cockpit Intelligence
       </p>
       {/* Ligne 2 — titre page */}
@@ -37,8 +37,8 @@ export function CockpitIntelligenceHeader({
 
 export function CockpitIntelligenceShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative z-[1] min-h-full bg-gradient-to-b from-cockpit-cobalt-soft to-surface-raised px-7 pb-[1.75rem] pt-3.5 text-heading">
-      <div className="space-y-3.5">{children}</div>
+    <div className="relative z-[1] min-h-full bg-gradient-to-b from-cockpit-cobalt-soft to-surface-raised px-5 pb-5 pt-3 text-heading">
+      <div className="space-y-3">{children}</div>
     </div>
   )
 }
@@ -54,4 +54,3 @@ export function CockpitSectionHeader({ label }: { label: string }) {
     </div>
   )
 }
-
