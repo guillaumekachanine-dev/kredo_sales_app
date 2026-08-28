@@ -45,7 +45,13 @@ export type MenuItem = {
 
 function tabsFor(pathname: string): SectionTab[] | undefined {
   const tabs = getMobileTabsForPath(pathname)
-  return tabs.length > 1 ? tabs : undefined
+  if (tabs.length <= 1) return undefined
+  return tabs.map((tab) => {
+    if (tab.shortLabel === "Compétences" || tab.label.toLowerCase().includes("compétences")) {
+      return { ...tab, shortLabel: "Expertises", label: "Pool d'expertises" }
+    }
+    return tab
+  })
 }
 
 export const mainItems: MenuItem[] = [
@@ -60,7 +66,7 @@ export const mainItems: MenuItem[] = [
   {
     id: "prospection",
     label: "Prospection",
-    icon: "prospection-mobile",
+    icon: "prospection",
     href: "/prospection-intelligence",
     size: "primary",
     activePaths: ["/prospection-intelligence"],
@@ -68,7 +74,7 @@ export const mainItems: MenuItem[] = [
   {
     id: "besoins",
     label: "Opportunités",
-    icon: "engagements",
+    icon: "staffing",
     href: "/missions/opps",
     size: "primary",
     activePaths: ["/missions/opps"],
@@ -77,7 +83,7 @@ export const mainItems: MenuItem[] = [
   {
     id: "veille",
     label: "Veille & actualités",
-    icon: "news-mobile",
+    icon: "veille",
     href: "/veille",
     size: "primary",
     activePaths: ["/veille"],
@@ -93,7 +99,7 @@ export const mainItems: MenuItem[] = [
   {
     id: "engagements",
     label: "Engagements",
-    icon: "clipboard-mobile",
+    icon: "engagements",
     href: "/missions",
     size: "secondary",
     activePaths: ["/missions", "/missions/actives", "/missions/projets"],
@@ -127,15 +133,15 @@ export const mainItems: MenuItem[] = [
   {
     id: "knowledge",
     label: "Knowledge Hub",
-    icon: "graduation-mobile",
+    icon: "knowledge",
     href: "/knowledge",
     size: "secondary",
     activePaths: ["/knowledge"],
   },
   {
     id: "automations",
-    label: "Automatisations",
-    icon: "workflow-mobile",
+    label: "Workflows",
+    icon: "automations",
     href: "/automations",
     size: "secondary",
     activePaths: ["/automations"],

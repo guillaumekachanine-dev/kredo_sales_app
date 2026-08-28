@@ -44,9 +44,9 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <circle cx="12" cy="12" r="8" />
+          <circle cx="12" cy="12" r="7.5" />
           <circle cx="12" cy="12" r="3" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5l5 5M5 5h3.5M5 5v3.5" />
         </svg>
       )
     case "news-mobile":
@@ -59,8 +59,8 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <rect x="5" y="3" width="14" height="18" rx="2" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6M9 12h6M9 16h4" />
+          <circle cx="12" cy="12" r="8" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.25 7.5c1.5.9 3.55 1.5 5.75 1.5s4.25-.6 5.75-1.5M6.25 16.5c1.5-.9 3.55-1.5 5.75-1.5s4.25.6 5.75 1.5M12 4c2.25 2.15 3.5 4.95 3.5 8s-1.25 5.85-3.5 8M12 4c-2.25 2.15-3.5 4.95-3.5 8s1.25 5.85 3.5 8M3 9.5h18v5H3zM6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01" />
         </svg>
       )
     case "clipboard-mobile":
@@ -72,7 +72,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3L4 6v6c0 5.25 3.75 9.5 8 11 4.25-1.5 8-5.75 8-11V6l-8-3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z" />
         </svg>
       )
     case "graduation-mobile":
@@ -85,7 +85,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M22 10L12 4 2 10l10 6 10-6zM6 12.5V17c0 2 3 3.5 6 3.5s6-1.5 6-3.5v-4.5M22 10v6" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-16.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-16.25v16.25" />
         </svg>
       )
     case "workflow-mobile":
@@ -98,7 +98,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
         </svg>
       )
     case "close":
@@ -110,8 +110,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <rect x="4" y="5" width="16" height="15" rx="2.5" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16 3v4M8 3v4M4 10h16" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
         </svg>
       )
     case "cockpit":
@@ -123,10 +122,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h3M11 6h9M4 12h8M16 12h4M4 18h5M13 18h7" />
-          <circle cx="9" cy="6" r="2" />
-          <circle cx="14" cy="12" r="2" />
-          <circle cx="11" cy="18" r="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 20V10.5l4-2.5V20M7.5 20V4h9v16M16.5 20V8l4 2.5V20M11 9h.01M13 9h.01M11 12.5h.01M13 12.5h.01M11.5 20v-3h1v3" />
         </svg>
       )
     case "calendar":
@@ -162,7 +158,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z" />
         </svg>
       )
     case "staffing":
@@ -186,7 +182,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 9.75l3.25-3.25 3.5 3.5L7 13.25l-3.5-3.5zM20.5 9.75L17.25 6.5l-3.5 3.5 3.25 3.25 3.5-3.5zM8.25 12.25l3.25 3.25a1.25 1.25 0 001.77 0l.73-.73.73.73a1.25 1.25 0 001.77 0l.73-.73.5.5a1.25 1.25 0 001.77 0l.75-.75M10 10.5l1.5-1.5a2.25 2.25 0 013.18 0l1.82 1.82" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
         </svg>
       )
     case "bi":
@@ -222,10 +218,10 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <circle cx="9" cy="8" r="3" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 18c0-3 2.5-4.5 6-4.5s6 1.5 6 4.5" />
-          <circle cx="16" cy="9" r="2.5" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16 13.5c1.8 0 3.5 1 4.5 2.5" />
+          <circle cx="12" cy="7" r="2.75" />
+          <circle cx="6.75" cy="9.25" r="2" />
+          <circle cx="17.25" cy="9.25" r="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 19c0-3.25 2.7-5.5 6-5.5s6 2.25 6 5.5M2.75 19c0-2.2 1.8-3.75 4-3.75M21.25 19c0-2.2-1.8-3.75-4-3.75" />
         </svg>
       )
     case "recrutement":
@@ -237,8 +233,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <circle cx="10" cy="8" r="3.5" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 19c0-3.5 3-5.5 6.5-5.5.9 0 1.8.15 2.6.45M17 11v6M14 14h6" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM3 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 019.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
         </svg>
       )
     case "finance":
@@ -250,7 +245,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h16M6 20V12M12 20V6M18 20V14" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 20h17M5 20v-6h4v6M10 20V10h4v10M15 20V5h4v15" />
         </svg>
       )
     case "settings":
