@@ -4,6 +4,15 @@ import type { WatchAnalysisOutputV2 } from "@/lib/n8n/types"
 export const GLOBAL_WATCH_WORKFLOW_ID = process.env.NEXT_PUBLIC_GLOBAL_WATCH_WORKFLOW_ID ?? null
 export const MONTHLY_WATCH_WORKFLOW_ID = "intel-021-monthly-watch-analysis" as const
 
+/**
+ * Identifiant canonique unique du déclenchement utilisateur d'un digest de veille.
+ * = chemin du webhook n8n (`/webhook/veille-ia-marche-on-demand`) ET `run_type`
+ * écrit dans `ai_intelligence_runs`. Desktop ET Mobile postent CELUI-CI, jamais
+ * `veille-hebdomadaire-kredo` (cron sans webhook) ni `GLOBAL_WATCH_WORKFLOW_ID`
+ * (identifiant interne n8n du cron, réservé au suivi de santé).
+ */
+export const ON_DEMAND_DIGEST_WORKFLOW_ID = "veille-ia-marche-on-demand" as const
+
 export type VeilleSection = "news" | "watched-accounts" | "strategic-analysis" | "history"
 
 export type GlobalWatchCadence = "weekly"

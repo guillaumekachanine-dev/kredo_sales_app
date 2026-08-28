@@ -34,6 +34,20 @@ export type TriggerN8nRunResult =
   | { ok: true; runId: string }
   | { ok: false; runId?: string; error: string }
 
+// `callN8nWebhook` lève soit un `n8n webhook error <status>: <detail>` (réponse
+// HTTP non-ok), soit l'erreur brute de `fetch` (n8n réellement injoignable).
+// On classe le message rendu au front SANS jamais y recopier `<detail>` (corps de
+// réponse n8n, potentiellement verbeux). Le message complet reste, lui, écrit
+// dans `ai_intelligence_runs.error_message` pour le drill-down /automations.
+function classifyWebhookError(raw: string): string {
+  const status = raw.match(/n8n webhook error (\d{3})/)?.[1]
+  if (status === "404") return "Webhook n8n introuvable ou workflow non activé."
+  if (status === "401" || status === "403") return "n8n a refusé la requête (signature ou authentification)."
+  if (status && status.startsWith("5")) return "Le workflow n8n a échoué à l'exécution."
+  if (status) return `n8n a répondu une erreur ${status}.`
+  return "n8n injoignable — le serveur n'a pas répondu."
+}
+
 export function resolveAppBaseUrl(): string {
   // VERCEL_URL pointe vers l'URL unique du déploiement (protégée par le SSO
   // Vercel par défaut) — VERCEL_PROJECT_PRODUCTION_URL pointe vers le domaine
@@ -72,11 +86,12 @@ export async function triggerN8nRun(params: TriggerN8nRunInput): Promise<Trigger
   try {
     await callN8nWebhook(params.workflowId, payload)
   } catch (err) {
+    const rawMessage = err instanceof Error ? err.message : String(err)
     await updateRunStatus(runId, "failed", {
-      errorMessage: `Webhook call failed: ${err instanceof Error ? err.message : String(err)}`,
+      errorMessage: `Webhook call failed: ${rawMessage}`,
     }).catch(console.error)
 
-    return { ok: false, runId, error: "n8n injoignable — le run a été marqué en échec" }
+    return { ok: false, runId, error: `${classifyWebhookError(rawMessage)} Le run a été marqué en échec.` }
   }
 
   return { ok: true, runId }

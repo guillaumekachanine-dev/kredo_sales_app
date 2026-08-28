@@ -14,6 +14,10 @@ export type N8nWorkflowId =
   | "intel-011-sector"              // INTEL-011 : étude sectorielle mutualisée
   | "intel-020-communication"       // INTEL-020 : rédaction assistée (email/LinkedIn/note)
   | "intel-021-monthly-watch-analysis" // INTEL-021 : synthèse mensuelle de la veille globale
+  // Veille IA & Marché
+  | "veille-ia-marche-on-demand"     // VEILLE-001 : génération de digest à la demande (webhook)
+                                     // Le pipeline cron (`KREDO — Veille Hebdomadaire IA & Marché`)
+                                     // n'expose pas de webhook — il n'a jamais été un N8nWorkflowId.
   | "intel-022-campaign"            // INTEL-022 : création campagne
   | "intel-030-account-knowledge"   // ADR-0012 Lot 2 : connaissance compte (étape 1 chaîne de décision)
   | "intel-031-issues-map"          // ADR-0012 Lot 4 : cartographie des enjeux (étape 3 chaîne de décision)
@@ -113,6 +117,17 @@ export type TriggerResponse = {
 
 export type TriggerErrorResponse = {
   error: string
+}
+
+// ─── Veille IA & Marché — génération de digest à la demande ─────────────────
+// docs/FEATURES/veille_signaux_actualites/analyse_a_la_demande/
+// Le navigateur n'envoie QUE ces deux champs : les paramètres métier (volume,
+// profondeur, familles de sources) sont résolus côté serveur depuis
+// `workspaces.settings` via `getGlobalWatchSettings()`. `workspaceId` est imposé
+// par la gateway (session authentifiée), jamais choisi par le client.
+export type OnDemandDigestInput = {
+  schemaVersion: 1
+  triggerMode: "manual"
 }
 
 export type MonthlyWatchAnalysisInput = {

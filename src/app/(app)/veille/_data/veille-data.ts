@@ -5,6 +5,7 @@ import type { Database } from "@/types/database"
 import {
   GLOBAL_WATCH_WORKFLOW_ID,
   MONTHLY_WATCH_WORKFLOW_ID,
+  ON_DEMAND_DIGEST_WORKFLOW_ID,
   healthFromRun,
   parseGlobalWatchSettings,
   parseStrategicWatchAnalysisOutput,
@@ -48,11 +49,16 @@ export async function getGlobalWatchWorkflowHealth(): Promise<GlobalWatchWorkflo
   if (!workspaceId || !GLOBAL_WATCH_WORKFLOW_ID) {
     return healthFromRun({ workflowId: GLOBAL_WATCH_WORKFLOW_ID, run: null })
   }
+  // Le widget de santé reflète le dernier run de veille globale, qu'il soit
+  // programmé (`GLOBAL_WATCH_WORKFLOW_ID`, écrit par le cron) ou déclenché par un
+  // utilisateur (`ON_DEMAND_DIGEST_WORKFLOW_ID`). Les deux restent distincts dans
+  // le journal /automations — c'est seulement l'indicateur « OK / Erreur / En
+  // cours » de l'en-tête Veille qui les agrège.
   const { data } = await supabase
     .from("ai_intelligence_runs")
     .select("id, status, created_at, completed_at, error_message")
     .eq("workspace_id", workspaceId)
-    .eq("run_type", GLOBAL_WATCH_WORKFLOW_ID)
+    .in("run_type", [GLOBAL_WATCH_WORKFLOW_ID, ON_DEMAND_DIGEST_WORKFLOW_ID])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle()

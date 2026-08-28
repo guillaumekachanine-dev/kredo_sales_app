@@ -1,5 +1,5 @@
 {
-  "name": "KREDO — Veille Hebdomadaire IA & Marché",
+  "name": "KREDO — Veille IA & Marché",
   "nodes": [
     {
       "parameters": {
@@ -59,7 +59,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst secteurs = items.map(i => i.json.name).filter(Boolean);\nconst secteursActifs = secteurs.length ? secteurs.join(', ') : 'transverse';\n\nconst blocContexteKredo = `# CONTEXTE — Veille commerciale KREDO\n\nTu opères au sein de KREDO, une plateforme de CRM et d'intelligence commerciale\ndestinée aux fonctions commerciales d'une ESN (Entreprise de Services du Numérique).\n\n## Ton lecteur\nUn commercial / avant-vente d'ESN, profil \"pont commerce-technique\" : il n'est pas\ningénieur, mais il doit paraître crédible et pertinent face à un DSI ou un décideur\nmétier. Il vend des prestations intellectuelles (conseil, intégration, IA, data).\nIl n'a PAS besoin d'actualité pour dirigeants d'ESN (M&A, book-to-bill, salaires).\nIl a besoin de MUNITIONS COMMERCIALES.\n\n## Ses cibles (ICP)\nDSI et décideurs métiers d'ETI et de grands comptes, sur les secteurs actuellement\ncouverts par KREDO : ${secteursActifs}.\n\n## La question à laquelle toute ton analyse doit répondre\n\"En quoi cette information donne-t-elle à un commercial d'ESN une RAISON D'AGIR :\nun angle d'ouverture, un déclencheur de prise de contact, un argument de crédibilité,\nou une preuve de ROI qu'il peut réutiliser dans un pitch ?\"\n\n## Est PERTINENT\n- Un cas d'usage IA concret en entreprise, avec impact business chiffrable.\n- Une tendance qui va faire réagir un DSI (agents IA, souveraineté, coûts, sécurité).\n- Une évolution réglementaire qui crée un besoin de service (audit, mise en conformité).\n- Un signal touchant un des secteurs de ${secteursActifs} (acteur, tendance, chiffre).\n- Une annonce d'un grand acteur (OpenAI, Anthropic, Mistral...) que le prospect aura vue.\n\n## N'est PAS pertinent (à écarter ou noter faible)\n- La recherche académique pure, les détails techniques sans traduction business.\n- Le buzz sans substance, les listes d'outils, les annonces produit mineures.\n- L'actualité \"dirigeant d'ESN\" (fusions, valorisations, politique salariale).\n- Ce qui ne se transforme en AUCUN angle commercial exploitable.\n\n## Posture éditoriale\nReste factuel et neutre. Ne prends pas parti dans les rivalités entre acteurs\n(fournisseurs, éditeurs, modèles). Une veille commerciale crédible informe, elle ne\nmilite pas. N'invente aucun chiffre ni citation : si une information n'est pas dans\nle contenu fourni, ne l'ajoute pas.`;\n\nreturn [{\n  json: {\n    secteursActifs,\n    blocContexteKredo,\n    workspaceId: '98dcd39d-f87b-4f9d-add9-ce76d635953a',\n    digestDate: new Date().toISOString().slice(0, 10),\n  }\n}];"
+        "jsCode": "const items = $input.all();\nconst secteurs = items.map(i => i.json.name).filter(Boolean);\nconst secteursActifs = secteurs.length ? secteurs.join(', ') : 'transverse';\n\nconst blocContexteKredo = `# CONTEXTE — Veille commerciale KREDO\n\nTu opères au sein de KREDO, une plateforme de CRM et d'intelligence commerciale\ndestinée aux fonctions commerciales d'une ESN (Entreprise de Services du Numérique).\n\n## Ton lecteur\nUn commercial / avant-vente d'ESN, profil \"pont commerce-technique\" : il n'est pas\ningénieur, mais il doit paraître crédible et pertinent face à un DSI ou un décideur\nmétier. Il vend des prestations intellectuelles (conseil, intégration, IA, data).\nIl n'a PAS besoin d'actualité pour dirigeants d'ESN (M&A, book-to-bill, salaires).\nIl a besoin de MUNITIONS COMMERCIALES.\n\n## Ses cibles (ICP)\nDSI et décideurs métiers d'ETI et de grands comptes, sur les secteurs actuellement\ncouverts par KREDO : ${secteursActifs}.\n\n## La question à laquelle toute ton analyse doit répondre\n\"En quoi cette information donne-t-elle à un commercial d'ESN une RAISON D'AGIR :\nun angle d'ouverture, un déclencheur de prise de contact, un argument de crédibilité,\nou une preuve de ROI qu'il peut réutiliser dans un pitch ?\"\n\n## Est PERTINENT\n- Un cas d'usage IA concret en entreprise, avec impact business chiffrable.\n- Une tendance qui va faire réagir un DSI (agents IA, souveraineté, coûts, sécurité).\n- Une évolution réglementaire qui crée un besoin de service (audit, mise en conformité).\n- Un signal touchant un des secteurs de ${secteursActifs} (acteur, tendance, chiffre).\n- Une annonce d'un grand acteur (OpenAI, Anthropic, Mistral...) que le prospect aura vue.\n\n## N'est PAS pertinent (à écarter ou noter faible)\n- La recherche académique pure, les détails techniques sans traduction business.\n- Le buzz sans substance, les listes d'outils, les annonces produit mineures.\n- L'actualité \"dirigeant d'ESN\" (fusions, valorisations, politique salariale).\n- Ce qui ne se transforme en AUCUN angle commercial exploitable.\n\n## Posture éditoriale\nReste factuel et neutre. Ne prends pas parti dans les rivalités entre acteurs\n(fournisseurs, éditeurs, modèles). Une veille commerciale crédible informe, elle ne\nmilite pas. N'invente aucun chiffre ni citation : si une information n'est pas dans\nle contenu fourni, ne l'ajoute pas.`;\n\nreturn [{\n  json: {\n    secteursActifs,\n    blocContexteKredo,\n    workspaceId: $('Résoudre Contexte Déclenchement').first().json.workspaceId,\n    digestDate: $('Résoudre Contexte Déclenchement').first().json.digestDate,\n  }\n}];"
       },
       "id": "189d5d24-f0d9-46fd-be2a-fb3d3f5d20e8",
       "name": "Build Contexte KREDO",
@@ -383,7 +383,8 @@
           "id": "MERo2FsyLlNgDQXh",
           "name": "Anthropic API (KREDO)"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -449,7 +450,8 @@
           "id": "MERo2FsyLlNgDQXh",
           "name": "Anthropic API (KREDO)"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -462,7 +464,8 @@
       "position": [
         7224,
         1328
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -502,7 +505,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -555,7 +559,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -894,7 +899,8 @@
       "position": [
         7424,
         1328
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -940,6 +946,318 @@
         6340,
         1500
       ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "veille-ia-marche-on-demand",
+        "authentication": "none",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true,
+          "responseCode": 202
+        }
+      },
+      "id": "vod-webhook-veille-on-demand",
+      "name": "Webhook Veille On-Demand",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        3616,
+        1104
+      ],
+      "webhookId": "veille-ia-marche-on-demand"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex",
+        "binaryData": true,
+        "binaryPropertyName": "data"
+      },
+      "id": "vod-vérifier-signature",
+      "name": "Vérifier Signature",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        3872,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requete rejetee');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\nif (body.workflowId !== 'veille-ia-marche-on-demand') {\n  throw new Error(`workflowId inattendu : ${body.workflowId}`);\n}\nconst input = body.input || {};\nif (input.schemaVersion !== 1 || input.triggerMode !== 'manual') {\n  throw new Error('input doit valoir { schemaVersion: 1, triggerMode: \"manual\" }');\n}\n\nreturn [{\n  json: {\n    __trigger: 'webhook',\n    runId: body.runId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    callbackUrl: body.callbackUrl,\n    triggerMode: 'manual',\n  }\n}];"
+      },
+      "id": "vod-valider-signature--payload",
+      "name": "Valider Signature & Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4128,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Branche cron uniquement : aucun run KREDO a tracer, workspace mono-tenant.\n// Le mode manuel NE PASSE JAMAIS ici — il lit `workspaceId` dans le payload webhook.\nreturn [{\n  json: {\n    __trigger: 'schedule',\n    runId: null,\n    workspaceId: '98dcd39d-f87b-4f9d-add9-ce76d635953a',\n    userId: null,\n    callbackUrl: null,\n    triggerMode: 'scheduled',\n  }\n}];"
+      },
+      "id": "vod-contexte-déclenchement-programmé",
+      "name": "Contexte Déclenchement Programmé",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3872,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nœud COMMUN aux deux declencheurs : source de verite unique pour tout l'aval.\n// Un seul declencheur s'execute par run, donc un seul item arrive ici.\nconst src = $input.first().json || {};\nconst isWebhook = src.__trigger === 'webhook';\n\nreturn [{\n  json: {\n    triggerMode: isWebhook ? 'manual' : 'scheduled',\n    runId: isWebhook ? (src.runId || null) : null,\n    workspaceId: src.workspaceId,\n    userId: isWebhook ? (src.userId || null) : null,\n    callbackUrl: isWebhook ? (src.callbackUrl || null) : null,\n    digestDate: new Date().toISOString().slice(0, 10),\n  }\n}];"
+      },
+      "id": "vod-résoudre-contexte-déclenchement",
+      "name": "Résoudre Contexte Déclenchement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4128,
+        1216
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "vod-if-runmanuel-0001",
+              "leftValue": "={{ $json.triggerMode }}",
+              "rightValue": "manual",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "vod-router-run-manuel",
+      "name": "Router Run Manuel",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4384,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs?id=eq.{{ $json.runId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: \"running\", started_at: new Date().toISOString() } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "vod-marquer-run-running",
+      "name": "Marquer Run Running",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4640,
+        1040
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "vod-if-cbdigest-0001",
+              "leftValue": "={{ $('Résoudre Contexte Déclenchement').first().json.triggerMode }}",
+              "rightValue": "manual",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "vod-router-callback-digest",
+      "name": "Router Callback Digest",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7680,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Résoudre Contexte Déclenchement').first().json;\n\nconst digestResp = $('Créer Digest').first().json;\nconst digest = Array.isArray(digestResp) ? digestResp[0] : digestResp;\n\nconst articles = $('Remplacer Articles Digest (RPC)').all()\n  .map((i) => i.json)\n  .filter((a) => a && a.id);\n\nconst dedup = $('Dédup + Filtre Récence + Préfiltre Qualité').first().json || {};\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: ctx.runId,\n  phase: 1,\n  resultType: 'watch_digest_generation',\n  status: 'succeeded',\n  contentJson: {\n    digestId: digest && digest.id ? digest.id : null,\n    digestDate: ctx.digestDate,\n    articlesCount: articles.length,\n    candidatesCount: $('Dédup + Filtre Récence + Préfiltre Qualité').all().length,\n    sourcesCount: dedup.sourcesContributrices != null ? dedup.sourcesContributrices : null,\n  },\n  title: (digest && digest.titre_digest) ? digest.titre_digest : `Veille IA & Marché — ${ctx.digestDate}`,\n};\n\nreturn [{ json: { callbackUrl: ctx.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+      },
+      "id": "vod-préparer-callback-digest",
+      "name": "Préparer Callback Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7936,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex",
+        "binaryData": false,
+        "value": "={{ $json.rawBody }}"
+      },
+      "id": "vod-signer-callback-digest",
+      "name": "Signer Callback Digest",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        8192,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "vod-envoyer-callback-digest",
+      "name": "Envoyer Callback Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8448,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let ctx = {};\ntry { ctx = $('Résoudre Contexte Déclenchement').first().json || {}; } catch (e) { ctx = {}; }\n// Declenchement programme (pas de runId) : rien a notifier.\nif (!ctx.runId) return [];\n\nconst err = $input.first().json || {};\nlet errorMessage = 'Echec du workflow Veille IA & Marche';\nif (err.error) {\n  errorMessage = typeof err.error === 'string' ? err.error : (err.error.message || JSON.stringify(err.error));\n} else if (err.message) {\n  errorMessage = err.message;\n}\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: ctx.runId,\n  phase: 1,\n  resultType: 'watch_digest_generation',\n  status: 'failed',\n  contentJson: {},\n  errorMessage: String(errorMessage).slice(0, 1500),\n};\n\nreturn [{ json: { callbackUrl: ctx.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+      },
+      "id": "vod-préparer-callback-échec",
+      "name": "Préparer Callback Échec",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7936,
+        1792
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex",
+        "binaryData": false,
+        "value": "={{ $json.rawBody }}"
+      },
+      "id": "vod-signer-callback-échec",
+      "name": "Signer Callback Échec",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        8192,
+        1792
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "vod-envoyer-callback-échec",
+      "name": "Envoyer Callback Échec",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8448,
+        1792
+      ]
     }
   ],
   "pinData": {},
@@ -948,7 +1266,7 @@
       "main": [
         [
           {
-            "node": "Récupérer Secteurs Actifs",
+            "node": "Contexte Déclenchement Programmé",
             "type": "main",
             "index": 0
           }
@@ -1166,6 +1484,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Préparer Callback Échec",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -1188,6 +1513,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Préparer Callback Échec",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -1196,6 +1528,13 @@
         [
           {
             "node": "Préparer Lignes Articles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Préparer Callback Échec",
             "type": "main",
             "index": 0
           }
@@ -1276,6 +1615,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Préparer Callback Échec",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -1284,6 +1630,13 @@
         [
           {
             "node": "Créer Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Préparer Callback Échec",
             "type": "main",
             "index": 0
           }
@@ -1343,7 +1696,20 @@
     },
     "Remplacer Articles Digest (RPC)": {
       "main": [
-        []
+        [
+          {
+            "node": "Router Callback Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Préparer Callback Échec",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Préparer Métriques Sources": {
@@ -1351,6 +1717,132 @@
         [
           {
             "node": "Écrire Métriques Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexte Déclenchement Programmé": {
+      "main": [
+        [
+          {
+            "node": "Résoudre Contexte Déclenchement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Veille On-Demand": {
+      "main": [
+        [
+          {
+            "node": "Vérifier Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier Signature": {
+      "main": [
+        [
+          {
+            "node": "Valider Signature & Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider Signature & Payload": {
+      "main": [
+        [
+          {
+            "node": "Résoudre Contexte Déclenchement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Résoudre Contexte Déclenchement": {
+      "main": [
+        [
+          {
+            "node": "Récupérer Secteurs Actifs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Router Run Manuel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Run Manuel": {
+      "main": [
+        [
+          {
+            "node": "Marquer Run Running",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Callback Digest": {
+      "main": [
+        [
+          {
+            "node": "Préparer Callback Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer Callback Digest": {
+      "main": [
+        [
+          {
+            "node": "Signer Callback Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signer Callback Digest": {
+      "main": [
+        [
+          {
+            "node": "Envoyer Callback Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer Callback Échec": {
+      "main": [
+        [
+          {
+            "node": "Signer Callback Échec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signer Callback Échec": {
+      "main": [
+        [
+          {
+            "node": "Envoyer Callback Échec",
             "type": "main",
             "index": 0
           }

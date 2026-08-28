@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import { Button } from "@/components/ui/Button"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { SourceManagementLauncher } from "@/features/source-management/components/SourceManagementLauncher"
 import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
@@ -27,7 +28,7 @@ import {
   buildNewsRows,
   type ArchiveEntryVM,
 } from "./mobile/veille-mobile-view-models"
-import type { StrategicWatchAnalysis } from "./veille-desktop-contracts"
+import { ON_DEMAND_DIGEST_WORKFLOW_ID, type StrategicWatchAnalysis } from "./veille-desktop-contracts"
 import type {
   CompanyContextStats,
   VeilleArticle,
@@ -96,9 +97,10 @@ export function VeilleActualitesMobile({
   const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [digestRunId, setDigestRunId] = useState<string | null>(null)
 
   const handleConfirmGenerateDigest = async () => {
-    if (isGenerating) return
+    if (isGenerating || digestRunId) return
     setIsGenerating(true)
     setGenerateError(null)
     try {
@@ -106,7 +108,7 @@ export function VeilleActualitesMobile({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          workflowId: "veille-hebdomadaire-kredo",
+          workflowId: ON_DEMAND_DIGEST_WORKFLOW_ID,
           entityType: "workspace",
           input: { schemaVersion: 1, triggerMode: "manual" },
         }),
@@ -117,8 +119,9 @@ export function VeilleActualitesMobile({
         setIsGenerating(false)
         return
       }
+      setDigestRunId(payload.runId)
       setIsGenerateConfirmOpen(false)
-      showFeedback("Génération du digest lancée.")
+      showFeedback("Génération du digest lancée…")
     } catch {
       setGenerateError("Erreur réseau lors du déclenchement.")
     } finally {
@@ -187,6 +190,24 @@ export function VeilleActualitesMobile({
     setFeedback(message)
     window.setTimeout(() => setFeedback(null), 4000)
   }, [])
+
+  // Suivi du run de génération (parité Desktop) : Realtime en accélérateur,
+  // relance périodique en garantie. À la fin, on rafraîchit la page pour que le
+  // nouveau digest — chargé côté serveur par `getPastVeilleDigests` — apparaisse.
+  useRunTracker({
+    runId: digestRunId,
+    withResult: false,
+    onSucceeded: () => {
+      setDigestRunId(null)
+      showFeedback("Nouveau digest disponible.")
+      router.refresh()
+    },
+    onFailed: (message) => {
+      setDigestRunId(null)
+      showFeedback(message || "La génération du digest a échoué.")
+    },
+    onTimeout: () => setDigestRunId(null),
+  })
 
   const handleChangePeriod = useCallback(
     (index: number) => {
@@ -424,7 +445,7 @@ export function VeilleActualitesMobile({
         open={isGenerateConfirmOpen}
         onOpenChange={setIsGenerateConfirmOpen}
         actionLabel="Générer le digest"
-        runType="veille-hebdomadaire-kredo"
+        runType={ON_DEMAND_DIGEST_WORKFLOW_ID}
         onConfirm={handleConfirmGenerateDigest}
         pending={isGenerating}
       />

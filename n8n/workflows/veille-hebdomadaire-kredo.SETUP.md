@@ -1,19 +1,54 @@
-# Veille hebdomadaire IA & Marché — SETUP
+# Veille IA & Marché — SETUP
 
-**Workflow n8n :** `KREDO — Veille Hebdomadaire IA & Marché`
-**Fichier :** `n8n/workflows/veille-hebdomadaire-kredo.json` (25 nœuds)
-**Déclencheur :** cron `0 6 * * 1` — lundi 6 h, Europe/Paris
-**Écrit dans :** `veille_digests` (1 ligne, upsert) puis `veille_articles` (5 lignes)
+**Workflow n8n :** `KREDO — Veille IA & Marché` (ex-`KREDO — Veille Hebdomadaire IA & Marché`)
+**Fichier :** `n8n/workflows/veille-hebdomadaire-kredo.json` (51 nœuds — nom de fichier conservé)
+**Déclencheurs :** deux, convergeant vers **un seul** pipeline métier :
+1. `scheduleTrigger` — cron `0 6 * * 1`, lundi 6 h Europe/Paris (`run_type` : `veille-hebdomadaire-kredo`)
+2. `webhook` POST `/webhook/veille-ia-marche-on-demand` — génération à la demande depuis
+   l'UI Veille (Desktop + Mobile), `run_type` : `veille-ia-marche-on-demand`
+**Écrit dans :** `veille_digests` (1 ligne, upsert `on_conflict=workspace_id,digest_date`)
+puis `veille_articles` (RPC `replace_veille_digest_articles`, remplacement idempotent)
 
-> ⚠️ Ce workflow vivait sous `n8n/veille_ia/`, **hors du périmètre de
-> `npm run n8n:status`** : sa dérive repo ↔ VPS n'a jamais été mesurée. Il a été
-> déplacé ici le 2026-08-14 (Lot 0 « Gestion des sources »).
->
-> **Lot 2 (2026-08-15) : le tableau de sources codé en dur a disparu.** Le workflow lit
-> désormais `public.v_effective_watch_sources` (`usage_scope=news`). **Repo à jour, VPS non
-> réimporté** — voir `docs/FEATURES/gestion_des_sources/HANDOFF-LOT2.md` pour le protocole de
-> publication. Le premier `n8n:status` après réimport fera foi (il verra un écart de nœuds
-> 25/20 tant que le réimport n'a pas eu lieu — c'est le signal attendu, pas une anomalie).
+> ⚠️ **Dérive repo ↔ VPS non résolue.** Le fichier repo porte des évolutions jamais
+> réimportées : lecture de `v_effective_watch_sources` (Lot 2, 2026-08-15), sous-pipeline
+> « convergences comptes » (non décrit dans le diagramme ci-dessous), et **le double
+> déclencheur webhook ci-dessus**. Le VPS tourne encore une version antérieure, cron-seul.
+> **Avant tout import : exporter le workflow live, diffuser ses correctifs runtime dans le
+> repo, PUIS rejouer `python3 scripts/patch-veille-on-demand.py`** (idempotent, structurel).
+
+## Déclenchement à la demande (webhook)
+
+Ajouté par `scripts/patch-veille-on-demand.py`. Contrat = gateway KREDO standard
+(cf. `src/lib/n8n/trigger-run.ts`), le navigateur n'envoie que
+`input: { schemaVersion: 1, triggerMode: "manual" }` — **aucun `settings`** : le
+cadrage métier est résolu côté serveur.
+
+```
+Webhook Veille On-Demand → Vérifier Signature (HMAC SHA-256 sur rawBody)
+  → Valider Signature & Payload  (rejet si X-KREDO-Signature ≠ ; champs requis)
+  → Résoudre Contexte Déclenchement ─┬─→ Récupérer Secteurs Actifs … (pipeline commun)
+                                     └─→ Router Run Manuel → Marquer Run Running (PATCH status=running)
+
+Lundi 6h Europe Paris → Contexte Déclenchement Programmé → Résoudre Contexte Déclenchement → …
+```
+
+- **`Résoudre Contexte Déclenchement`** = source de vérité unique de `workspaceId` /
+  `runId` / `callbackUrl` / `digestDate` pour tout l'aval. Le **mode manuel prend
+  `workspaceId` DANS LE PAYLOAD** (session authentifiée Next) ; seule la branche cron
+  utilise la constante mono-tenant `98dcd39d-…`. `Build Contexte KREDO` ne code plus
+  le workspace en dur — il lit ce nœud.
+- **Cycle de vie du run** : `queued` (créé par Next avant l'appel webhook) → `running`
+  (`Marquer Run Running`) → `succeeded` / `failed` via callback signé.
+- **Callback succès** (après `Remplacer Articles Digest (RPC)`, si `triggerMode=manual`) :
+  `resultType: "watch_digest_generation"`, `phase: 1`, `contentJson: { digestId,
+  digestDate, articlesCount, candidatesCount, sourcesCount }`. Le contenu éditorial
+  reste dans `veille_digests` / `veille_articles` — le résultat n'est qu'une trace.
+- **Callback échec** : sortie d'erreur (`onError: continueErrorOutput`) des nœuds
+  LLM + écriture digest → callback `status: "failed"`. Limite assumée : une erreur
+  hors de ces nœuds laisse le run `running` jusqu'à reprise OPS-004 (`reap_stale_intelligence_runs`)
+  — comportement identique à celui du cron.
+- **HMAC** : nœuds `crypto` avec `secret: "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET"` —
+  à remplacer par `N8N_WEBHOOK_SECRET` à l'import (même secret que `report-weekly-manager`).
 
 ---
 
@@ -35,7 +70,8 @@ cron → Récupérer Secteurs Actifs → Build Contexte KREDO
                        → Dédup + Filtre Récence + Préfiltre Qualité   ← plafond 40, clé source_id
                        → Construire Prompt Classement → Haiku → Parser Top 5
                        → Construire Prompt Analyse    → Sonnet → Parser Digest Final
-                       → Créer Digest (upsert)  → Préparer Lignes Articles → Créer Articles
+                       → Créer Digest (upsert)  → Préparer Lignes Articles → Remplacer Articles Digest (RPC)
+                       → [si triggerMode=manual] Router Callback Digest → Préparer/Signer/Envoyer Callback Digest
 ```
 
 Modèles : classement `claude-haiku-4-5-20251001`, analyse `claude-sonnet-5`.
@@ -44,15 +80,29 @@ Modèles : classement `claude-haiku-4-5-20251001`, analyse `claude-sonnet-5`.
 
 | Nœud | Credential |
 |---|---|
-| `Récupérer Secteurs Actifs`, `Charger Sources Effectives (Supabase)`, `Récupérer Hash Articles Vus`, `Créer Digest`, `Créer Articles` | `supabaseApi` |
+| `Récupérer Secteurs Actifs`, `Charger Sources Effectives (Supabase)`, `Récupérer Hash Articles Vus`, `Créer Digest`, `Remplacer Articles Digest (RPC)`, `Marquer Run Running`, `Charger Comptes/Enjeux/Playbooks/Signaux/Faits/Opportunités`, `Écrire Métriques Sources` | `supabaseApi` |
 | `Appel Claude Haiku — Classement`, `Appel Claude Sonnet — Analyse` | credential Anthropic du workspace n8n |
 | `Récupérer Flux Google News` | aucun — flux RSS public, pas d'authentification |
+| `Vérifier Signature`, `Signer Callback Digest`, `Signer Callback Échec` | aucun credential — `secret` = `N8N_WEBHOOK_SECRET` en clair dans le nœud (placeholder à remplacer) |
+| `Envoyer Callback Digest`, `Envoyer Callback Échec` | aucun — POST signé vers `callbackUrl` |
 
 ## Import
 
 Import et activation sont **manuels, faits par Guillaume** (le MCP n8n est bloqué
-en session agent). Importer le JSON, réassocier les credentials, activer, puis
-`npm run n8n:status` pour mesurer la dérive.
+en session agent).
+
+1. **Réconcilier d'abord** : exporter le workflow live du VPS, diffuser tout correctif
+   runtime dans le fichier repo, puis `python3 scripts/patch-veille-on-demand.py`.
+2. Importer le JSON, réassocier les credentials `supabaseApi`.
+3. **Remplacer les 3 `secret` `REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET`** par la valeur
+   réelle de `N8N_WEBHOOK_SECRET`.
+4. Activer le workflow (le webhook n'existe que workflow actif).
+5. `npm run n8n:status` — le workflow doit désormais matcher par **path webhook**
+   (`veille-ia-marche-on-demand`), plus par nom.
+6. Smoke test réel : bouton « Générer un digest » (Desktop *et* Mobile) →
+   `ai_intelligence_runs` (`queued`→`running`→`succeeded`) → exécution n8n →
+   `veille_digests` / `veille_articles` → digest visible après refresh. Relancer
+   le même jour pour vérifier l'idempotence (pas de doublon).
 
 ---
 
@@ -139,10 +189,11 @@ Neuron, a16z) redeviennent collectées via `site_search`.
 ## Tests
 
 ```bash
-node n8n/workflows/__tests__/veille-hebdomadaire-kredo.test.js
+node n8n/workflows/__tests__/veille-hebdomadaire-kredo.test.js   # pipeline collecte/analyse — 114 assertions
+node n8n/workflows/__tests__/veille-ia-marche-on-demand.test.js  # webhook + HMAC + cycle de vie + callbacks — 49 assertions
 ```
 
-60 assertions : structure (le `slice` positionnel ne peut pas revenir, le plafond
+`veille-hebdomadaire-kredo.test.js` : structure (le `slice` positionnel ne peut pas revenir, le plafond
 reste à 40, plus de tableau de sources en dur), lecture de `v_effective_watch_sources`
 (filtre `usage_scope=news`, tri, échec explicite si 0 ligne), les deux modes de
 collecte, déballage de la provenance Google News, un flux Google News à 0 résultat qui

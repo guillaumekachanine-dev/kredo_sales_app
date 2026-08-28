@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/Button"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import type { VeilleDigest } from "@/app/(app)/veille/_data/veille-data"
 import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
-import type {
-  GlobalWatchSettings,
-  GlobalWatchWorkflowHealth,
+import {
+  ON_DEMAND_DIGEST_WORKFLOW_ID,
+  type GlobalWatchSettings,
+  type GlobalWatchWorkflowHealth,
 } from "./veille-desktop-contracts"
 import { GlobalWatchSettingsDialog } from "./GlobalWatchSettingsDialog"
 
@@ -111,8 +112,6 @@ export function VeilleHeaderActions({
     ]
   }, [settings])
 
-  const targetWorkflowId = health.workflowId ?? "veille-hebdomadaire-kredo"
-
   const [confirmWorkflowOpen, setConfirmWorkflowOpen] = useState(false)
 
   const triggerGenerateDigest = async () => {
@@ -124,9 +123,11 @@ export function VeilleHeaderActions({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          workflowId: targetWorkflowId,
+          workflowId: ON_DEMAND_DIGEST_WORKFLOW_ID,
           entityType: "workspace",
-          input: { schemaVersion: 1, triggerMode: "manual", settings },
+          // Le navigateur ne transmet pas `settings` : le workflow résout le
+          // cadrage métier côté serveur depuis `workspaces.settings`.
+          input: { schemaVersion: 1, triggerMode: "manual" },
         }),
       })
       const payload = (await response.json()) as { runId?: string; error?: string }
@@ -211,7 +212,7 @@ export function VeilleHeaderActions({
         open={confirmWorkflowOpen}
         onOpenChange={setConfirmWorkflowOpen}
         actionLabel="Générer le digest"
-        runType={targetWorkflowId}
+        runType={ON_DEMAND_DIGEST_WORKFLOW_ID}
         onConfirm={triggerGenerateDigest}
         pending={isGenerating}
       />

@@ -13,6 +13,7 @@ export const LEGACY_WORKFLOW_TYPES = [
 
 export const CANONICAL_ACTIVE_WORKFLOWS: Array<{ runType: string; label: string; nomenclature: string }> = [
   { runType: "veille-hebdomadaire-kredo", label: "Veille hebdomadaire IA & Marché", nomenclature: "VEILLE-001 - Veille hebdomadaire IA & Marché" },
+  { runType: "veille-ia-marche-on-demand", label: "Veille IA & Marché à la demande", nomenclature: "VEILLE-001 - Veille IA & Marché à la demande" },
   { runType: "intel-010-refresh", label: "Scan rapide compte", nomenclature: "INTEL-010 - Scan rapide compte" },
   { runType: "intel-011-sector", label: "Étude sectorielle", nomenclature: "INTEL-011 - Étude sectorielle" },
   { runType: "intel-020-communication", label: "Rédaction assistée", nomenclature: "INTEL-020 - Rédaction assistée" },
@@ -33,6 +34,7 @@ export const CANONICAL_ACTIVE_WORKFLOWS: Array<{ runType: string; label: string;
 
 export const WORKFLOW_LABELS: Record<string, string> = {
   "veille-hebdomadaire-kredo": "Veille hebdomadaire IA & Marché",
+  "veille-ia-marche-on-demand": "Veille IA & Marché à la demande",
   "global-watch": "Veille hebdomadaire IA & Marché",
   "global_watch": "Veille hebdomadaire IA & Marché",
   "KREDO — Veille Hebdomadaire IA & Marché": "Veille hebdomadaire IA & Marché",
@@ -58,6 +60,7 @@ export const WORKFLOW_LABELS: Record<string, string> = {
 
 export const WORKFLOW_NOMENCLATURE: Record<string, string> = {
   "veille-hebdomadaire-kredo": "VEILLE-001 - Veille hebdomadaire IA & Marché",
+  "veille-ia-marche-on-demand": "VEILLE-001 - Veille IA & Marché à la demande",
   "global-watch": "VEILLE-001 - Veille hebdomadaire IA & Marché",
   "global_watch": "VEILLE-001 - Veille hebdomadaire IA & Marché",
   "KREDO — Veille Hebdomadaire IA & Marché": "VEILLE-001 - Veille hebdomadaire IA & Marché",
