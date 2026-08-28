@@ -14,6 +14,7 @@ import {
   computeOverallActivityRate,
   computeYtdActivityRate,
   computeEstimatedContractValue,
+  computeAnnualContractValueThroughYearEnd,
   computeTheoreticalMarginPct,
   computeEstimatedMonthlySalary,
   buildCraAlerts,
@@ -239,6 +240,55 @@ describe("computeEstimatedContractValue", () => {
     const value = computeEstimatedContractValue(mission)
     expect(value).not.toBeNull()
     expect(value!).toBeGreaterThan(0)
+  })
+})
+
+// ─── computeAnnualContractValueThroughYearEnd ─────────────────────────────────
+
+describe("computeAnnualContractValueThroughYearEnd", () => {
+  const ref = new Date(2026, 5, 15) // 15 juin 2026
+
+  it("returns null when the mission has an end date (use TCV instead)", () => {
+    const mission = makeMission({ start_date: "2025-01-01", end_date: "2026-12-31" })
+    expect(computeAnnualContractValueThroughYearEnd(mission, ref)).toBeNull()
+  })
+
+  it("returns null when start_date is null", () => {
+    const mission = makeMission({ start_date: null, end_date: null })
+    expect(computeAnnualContractValueThroughYearEnd(mission, ref)).toBeNull()
+  })
+
+  it("returns null when the TJM is unknown", () => {
+    const mission = makeMission({ start_date: "2024-01-01", end_date: null, tjm: 0 })
+    expect(computeAnnualContractValueThroughYearEnd(mission, ref)).toBeNull()
+  })
+
+  it("values a mission started before the year from 1 January to 31 December", () => {
+    const mission = makeMission({ start_date: "2024-03-01", end_date: null, tjm: 600 })
+    // ~364 jours calendaires × 5/7 ≈ 260 j ouvrés × 600
+    const value = computeAnnualContractValueThroughYearEnd(mission, ref)
+    expect(value).not.toBeNull()
+    expect(value!).toBeGreaterThan(150_000)
+    expect(value!).toBeLessThan(160_000)
+  })
+
+  it("prorates from the mission start date when it starts within the year", () => {
+    const started = makeMission({ start_date: "2026-01-01", end_date: null, tjm: 600 })
+    const startedMidYear = makeMission({ start_date: "2026-07-01", end_date: null, tjm: 600 })
+    const full = computeAnnualContractValueThroughYearEnd(started, ref)!
+    const partial = computeAnnualContractValueThroughYearEnd(startedMidYear, ref)!
+    expect(partial).toBeGreaterThan(0)
+    expect(partial).toBeLessThan(full)
+  })
+
+  it("derives the year from the reference date (no hardcoded year)", () => {
+    const mission = makeMission({ start_date: "2020-01-01", end_date: null, tjm: 500 })
+    const in2026 = computeAnnualContractValueThroughYearEnd(mission, new Date(2026, 0, 1))
+    const in2031 = computeAnnualContractValueThroughYearEnd(mission, new Date(2031, 0, 1))
+    expect(in2026).not.toBeNull()
+    expect(in2031).not.toBeNull()
+    // Année pleine dans les deux cas (~260 j ouvrés × 500)
+    expect(Math.abs(in2031! - in2026!)).toBeLessThanOrEqual(500)
   })
 })
 

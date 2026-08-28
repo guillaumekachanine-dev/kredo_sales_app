@@ -164,6 +164,35 @@ export function computeEstimatedContractValue(
   return workingDaysEstimate * mission.tjm
 }
 
+/**
+ * ACV — Annual Contract Value pour une mission SANS date de fin (mission ouverte).
+ *
+ * Convention KREDO (Engagements) : valeur de la mission sur l'année civile en cours,
+ * de max(date de début, 1er janvier) au 31 décembre. L'année est dérivée dynamiquement
+ * de `reference` — jamais de date en dur.
+ *
+ * Même base d'estimation que `computeEstimatedContractValue` (jours ouvrés ≈ 5/7 des
+ * jours calendaires × TJM) pour ne pas introduire de seconde convention contradictoire.
+ * Renvoie `null` si la mission a une date de fin (→ utiliser le TCV), si le TJM est
+ * inconnu, ou si la fenêtre est vide.
+ */
+export function computeAnnualContractValueThroughYearEnd(
+  mission: MissionSummary,
+  reference: Date = new Date()
+): number | null {
+  if (mission.end_date) return null
+  if (!mission.start_date || mission.tjm <= 0) return null
+  const start = parseDateOnly(mission.start_date)
+  if (!start) return null
+  const yearStart = new Date(reference.getFullYear(), 0, 1)
+  const yearEnd = new Date(reference.getFullYear(), 11, 31)
+  const from = start > yearStart ? start : yearStart
+  if (from >= yearEnd) return null
+  const calendarDays = Math.round((yearEnd.getTime() - from.getTime()) / 86_400_000)
+  const workingDaysEstimate = Math.round((calendarDays * 5) / 7)
+  return workingDaysEstimate * mission.tjm
+}
+
 /** Marge théorique depuis les champs courants (pour comparaison avec la marge réelle) */
 export function computeTheoreticalMarginPct(mission: MissionSummary): number | null {
   if (mission.gross_margin_pct !== null) return mission.gross_margin_pct
