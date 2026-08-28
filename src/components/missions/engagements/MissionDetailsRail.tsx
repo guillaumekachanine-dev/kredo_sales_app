@@ -100,7 +100,7 @@ export function MissionDetailsRail({ detail }: { detail: EngagementMissionDetail
   const contractValue = hasEnd
     ? computeEstimatedContractValue(missionSummary)
     : computeAnnualContractValueThroughYearEnd(missionSummary)
-  const contractValueLabel = hasEnd ? "TCV" : "ACV"
+  const contractValueLabel = hasEnd ? "TCV estimé" : "Projection CA à fin d’année"
   const contractValueHint = hasEnd ? "période contractuelle" : `jusqu’au 31/12/${new Date().getFullYear()}`
 
   const billing = billingLabel(mission.billingCondition)
