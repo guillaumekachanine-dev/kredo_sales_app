@@ -263,9 +263,11 @@ function FocusLayer({
   onCollapse: () => void
   onNavigate: () => void
 }) {
-  const anchorRef = useRef<HTMLButtonElement>(null)
+  const anchorRef = useRef<HTMLAnchorElement | HTMLButtonElement>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const tabs = item.tabs ?? []
+  const firstTab = tabs[0]
+  const remainingTabs = tabs.slice(1)
   const currentTabHref = activeTabHref(tabs, pathname)
 
   useLayoutEffect(() => {
@@ -276,6 +278,8 @@ function FocusLayer({
     anchorRef.current?.focus({ preventScroll: true })
   }, [geometry.direction, item.id])
 
+  const tabsRowWidthPx = tabs.length * 76 + Math.max(0, tabs.length - 1) * 8
+
   const layerStyle = {
     "--focus-top": `${geometry.top}px`,
     "--focus-anchor-left": `${geometry.left}px`,
@@ -284,22 +288,69 @@ function FocusLayer({
     "--focus-shell-width": `${geometry.shellWidth}px`,
     "--focus-tab-count": tabs.length,
     "--focus-tabs-span": `${tabs.length * 84}px`,
+    "--focus-tabs-row-width": `${tabsRowWidthPx}px`,
   } as React.CSSProperties
 
-  const renderedTabs = tabs.map((tab, index) => {
+  const isFirstTabActive = firstTab && firstTab.href === currentTabHref
+
+  const anchorClassName = cn(
+    styles.menuCard,
+    item.size === "primary" ? styles.primaryCard : styles.secondaryCard,
+    styles.focusAnchor,
+    isFirstTabActive && styles.focusTabActive,
+  )
+
+  const anchorContent = (
+    <>
+      <span className={styles.cardIcon} aria-hidden="true">
+        {getNavigationIcon(item.icon)}
+      </span>
+      <span className={styles.cardLabel}>
+        {firstTab ? (firstTab.shortLabel ?? firstTab.label) : item.label}
+      </span>
+    </>
+  )
+
+  const anchor = firstTab ? (
+    <Link
+      ref={anchorRef as React.RefObject<HTMLAnchorElement>}
+      href={firstTab.href}
+      data-focus-tab
+      aria-current={isFirstTabActive ? "page" : undefined}
+      aria-label={`Aller à ${firstTab.label}`}
+      className={anchorClassName}
+      onClick={onNavigate}
+    >
+      {anchorContent}
+    </Link>
+  ) : (
+    <button
+      ref={anchorRef as React.RefObject<HTMLButtonElement>}
+      type="button"
+      aria-expanded="true"
+      aria-label={`Replier ${item.label}`}
+      className={anchorClassName}
+      onClick={onCollapse}
+    >
+      {anchorContent}
+    </button>
+  )
+
+  const renderedTabs = remainingTabs.map((tab, indexInRemaining) => {
+    const index = indexInRemaining + 1
     const unavailable = tab.disabled || tab.comingSoon
     const tabClassName = cn(
       styles.focusTab,
       tab.href === currentTabHref && styles.focusTabActive,
       unavailable && styles.focusTabDisabled,
     )
-    const distance = geometry.direction === "start" ? index + 1 : tabs.length - index
+    const distance = geometry.direction === "start" ? index : remainingTabs.length - indexInRemaining
     const tabStyle = {
       "--tab-index": index,
       "--tab-distance": distance,
       "--tab-origin-x": `${geometry.direction === "start" ? -distance * 84 : distance * 84}px`,
       "--tab-delay": `${index * 28}ms`,
-      "--tab-close-delay": `${(tabs.length - index - 1) * 24}ms`,
+      "--tab-close-delay": `${(remainingTabs.length - indexInRemaining - 1) * 24}ms`,
     } as React.CSSProperties
 
     if (unavailable) {
@@ -330,38 +381,26 @@ function FocusLayer({
     )
   })
 
-  const anchor = (
-    <button
-      ref={anchorRef}
-      type="button"
-      aria-expanded="true"
-      aria-label={`Replier ${item.label}`}
-      className={cn(
-        styles.menuCard,
-        item.size === "primary" ? styles.primaryCard : styles.secondaryCard,
-        styles.focusAnchor,
-      )}
-      onClick={onCollapse}
-    >
-      <CardContent item={item} />
-    </button>
-  )
-
   return (
     <div
       className={cn(
         styles.focusLayer,
         geometry.direction === "end" ? styles.focusDirectionEnd : styles.focusDirectionStart,
         closing && styles.focusClosing,
+        item.size === "primary" ? styles.focusPrimary : styles.focusSecondary,
       )}
       style={layerStyle}
       aria-label={`Navigation ${item.label}`}
     >
+      <div className={styles.focusHeader}>
+        <span className={styles.focusTitle}>{item.label}</span>
+        <div className={styles.focusCobaltLine} aria-hidden="true" />
+      </div>
+
       <div ref={scrollerRef} className={styles.focusScroller}>
         <div className={styles.focusRow}>
-          {geometry.direction === "start" ? anchor : null}
+          {anchor}
           {renderedTabs}
-          {geometry.direction === "end" ? anchor : null}
         </div>
       </div>
     </div>

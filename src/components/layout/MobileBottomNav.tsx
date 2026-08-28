@@ -86,7 +86,7 @@ export function MobileBottomNav({
       <button
         type="button"
         onClick={onMenuToggle}
-        aria-label={isMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        aria-label={isMenuOpen ? "Fermer le menu" : "Ouvrir le Menu"}
         aria-expanded={isMenuOpen}
         className={cn(
           itemClassName,
@@ -95,9 +95,8 @@ export function MobileBottomNav({
         )}
       >
         <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary text-primary-fg shadow-[var(--shadow-overlay-sm)]">
-          {getNavigationIcon(isMenuOpen ? "close" : "menu", "size-8", 2)}
+          {getNavigationIcon(isMenuOpen ? "arrow-down" : "menu", "size-8", 2.2)}
         </span>
-        <span className="absolute bottom-1 text-[11px] font-semibold text-primary">Menu</span>
       </button>
 
       <button
