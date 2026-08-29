@@ -6,6 +6,8 @@ import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getEngagementsOverview } from "@/app/(app)/missions/_data/get-engagements-overview"
 import { getCurrentEngagementMissions } from "@/app/(app)/missions/_data/get-current-engagement-missions"
 import { getEngagementMissionDetail } from "@/app/(app)/missions/_data/get-engagement-mission-detail"
+import { getEngagementsActivityAnalytics } from "@/app/(app)/missions/_data/get-engagements-activity-analytics"
+import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
 import {
   EngagementsDesktopView,
   type EngagementsView,
@@ -13,6 +15,8 @@ import {
 import { CurrentMissionsList } from "@/components/missions/engagements/CurrentMissionsList"
 import { MissionOverview } from "@/components/missions/engagements/MissionOverview"
 import { MissionDetailsRail } from "@/components/missions/engagements/MissionDetailsRail"
+import { EngagementsActivityDesktop } from "@/components/missions/engagements/EngagementsActivityDesktop"
+import { EngagementsPlanningDesktop } from "@/components/missions/engagements/EngagementsPlanningDesktop"
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -22,20 +26,6 @@ const VIEWS: readonly EngagementsView[] = [
   "activite-conges",
   "planning-at",
 ]
-
-const COMING_SOON_COPY: Record<
-  "activite-conges" | "planning-at",
-  { title: string; body: string }
-> = {
-  "activite-conges": {
-    title: "Activité & congés",
-    body: "Le suivi du taux d’activité et des congés des consultants en assistance technique arrivera dans une prochaine phase.",
-  },
-  "planning-at": {
-    title: "Planning des AT",
-    body: "Le planning annuel des missions d’assistance technique arrivera dans une prochaine phase.",
-  },
-}
 
 function pickParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value
@@ -54,21 +44,6 @@ function SynthesisError() {
         <p className="mt-2 text-sm text-body">
           Les engagements actifs n’ont pas pu être lus. Réessayez dans quelques instants.
         </p>
-      </div>
-    </div>
-  )
-}
-
-function ComingSoonPane({ view }: { view: "activite-conges" | "planning-at" }) {
-  const copy = COMING_SOON_COPY[view]
-  return (
-    <div className="flex min-h-0 flex-1 items-center justify-center bg-canvas px-8 text-center">
-      <div className="max-w-sm">
-        <span className="inline-flex rounded-full border border-border bg-canvas px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted">
-          À venir
-        </span>
-        <h2 className="mt-3 font-heading text-lg font-bold text-heading">{copy.title}</h2>
-        <p className="mt-1.5 text-xs leading-5 text-muted">{copy.body}</p>
       </div>
     </div>
   )
@@ -144,9 +119,26 @@ export default async function MissionsPage({
     )
   }
 
+  if (view === "activite-conges") {
+    const analytics = await getEngagementsActivityAnalytics()
+
+    return (
+      <EngagementsDesktopView activeView="activite-conges">
+        <div className="engagements-scrollbar min-h-0 flex-1 overflow-y-auto bg-canvas">
+          <EngagementsActivityDesktop data={analytics} />
+        </div>
+      </EngagementsDesktopView>
+    )
+  }
+
+  // ── Planning des AT ────────────────────────────────────────────────────────
+  const planningRows = await getActiveMissionsPlanning()
+
   return (
-    <EngagementsDesktopView activeView={view}>
-      <ComingSoonPane view={view} />
+    <EngagementsDesktopView activeView="planning-at">
+      <div className="engagements-scrollbar min-h-0 flex-1 overflow-y-auto bg-canvas">
+        <EngagementsPlanningDesktop rows={planningRows} />
+      </div>
     </EngagementsDesktopView>
   )
 }

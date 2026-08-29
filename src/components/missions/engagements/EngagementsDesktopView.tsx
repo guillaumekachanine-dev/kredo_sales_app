@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
-import { ActivityIcon, CalendarRangeIcon, LayoutGridIcon } from "./engagement-icons"
+import { ActivityIcon, CalendarRangeIcon, ChartBarIcon, LayoutGridIcon } from "./engagement-icons"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Shell Desktop d'Engagements — chrome uniquement (thème + repli sidebar + nav
@@ -22,7 +22,6 @@ interface NavEntry {
   view: EngagementsView
   label: string
   icon: ReactNode
-  comingSoon?: boolean
 }
 
 const ROOT_ENTRY: NavEntry = {
@@ -33,8 +32,8 @@ const ROOT_ENTRY: NavEntry = {
 
 const MISSIONS_AT_ENTRIES: NavEntry[] = [
   { view: "missions-at", label: "En cours", icon: <ActivityIcon /> },
-  { view: "activite-conges", label: "Activité & congés", icon: <CalendarRangeIcon />, comingSoon: true },
-  { view: "planning-at", label: "Planning des AT", icon: <CalendarRangeIcon />, comingSoon: true },
+  { view: "activite-conges", label: "Activité & congés", icon: <ChartBarIcon /> },
+  { view: "planning-at", label: "Planning des AT", icon: <CalendarRangeIcon /> },
 ]
 
 function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
@@ -54,11 +53,6 @@ function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
         <span className="block size-4">{entry.icon}</span>
       </span>
       <span className="min-w-0 flex-1 truncate">{entry.label}</span>
-      {entry.comingSoon ? (
-        <span className="shrink-0 rounded-full border border-border bg-canvas px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">
-          Bientôt
-        </span>
-      ) : null}
     </Link>
   )
 }

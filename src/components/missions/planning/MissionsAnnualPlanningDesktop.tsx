@@ -19,7 +19,12 @@ interface MissionsAnnualPlanningDesktopProps {
   year: number
   onOpenMission: (row: MissionPlanningRow) => void
   onOpenEvent: (eventId: string) => void
-  onCreateEventForMission: (row: MissionPlanningRow) => void
+  /**
+   * Optionnel : quand fourni, une action « + » par ligne ouvre la création
+   * d'événement (page /missions/actives). Absente sur les surfaces purement
+   * analytiques (shell Engagements › Planning des AT).
+   */
+  onCreateEventForMission?: (row: MissionPlanningRow) => void
 }
 
 const CATEGORY_BASE_TOP = {
@@ -69,17 +74,19 @@ export function MissionsAnnualPlanningDesktop({
             </p>
           </button>
 
-          <IconButton
-            aria-label={`Créer un événement pour ${row.title}`}
-            variant="ghost"
-            size="sm"
-            onClick={() => onCreateEventForMission(row)}
-            className="size-8 border border-border text-muted hover:text-primary"
-          >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-          </IconButton>
+          {onCreateEventForMission ? (
+            <IconButton
+              aria-label={`Créer un événement pour ${row.title}`}
+              variant="ghost"
+              size="sm"
+              onClick={() => onCreateEventForMission(row)}
+              className="size-8 border border-border text-muted hover:text-primary"
+            >
+              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </IconButton>
+          ) : null}
         </div>
       )}
       renderTimelineRow={(row) => {
