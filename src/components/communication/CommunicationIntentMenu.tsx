@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Button } from "@/components/ui/Button"
+import { Button, type ButtonVariant } from "@/components/ui/Button"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import type { CommunicationEntryIntent } from "@/lib/communication/communication-entry-intents"
 import type { CommunicationBrief } from "@/lib/n8n/types"
@@ -54,6 +54,8 @@ type CommunicationIntentMenuProps = {
   mustInclude?: string
   className?: string
   menuClassName?: string
+  variant?: ButtonVariant
+  buttonClassName?: string
 }
 
 export function CommunicationIntentMenu({
@@ -91,6 +93,8 @@ export function CommunicationIntentMenu({
   mustInclude,
   className,
   menuClassName,
+  variant = "secondary",
+  buttonClassName,
 }: CommunicationIntentMenuProps) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -112,9 +116,9 @@ export function CommunicationIntentMenu({
     <div ref={containerRef} className={cn("relative inline-flex", className)}>
       <Button
         type="button"
-        variant="secondary"
+        variant={variant}
         size="sm"
-        className="min-h-11 text-xs font-semibold"
+        className={cn("min-h-11 text-xs font-semibold", buttonClassName)}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={(event) => {

@@ -3,10 +3,13 @@
 import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { StatusPill } from '@/components/ui/StatusPill'
+import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { RegisterIntelligenceEntity } from '@/components/intelligence/RegisterIntelligenceEntity'
 import { CommunicationIntentMenu } from '@/components/communication/CommunicationIntentMenu'
+import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from '@/components/agenda/AgendaEventDrawer'
+import { getPracticeByName } from '@/lib/config/practices'
 import {
   computeMetrics,
   type DrawerAbsence,
@@ -22,12 +25,12 @@ interface ConsultantDrawerProps {
   onOpenChange: (open: boolean) => void
 }
 
-type Tab = 'synthese' | 'activite' | 'competences'
+type Tab = 'synthese' | 'competences' | 'activite'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'synthese',     label: 'Synthèse' },
-  { id: 'activite',    label: 'Activité' },
+  { id: 'synthese',    label: 'Synthèse' },
   { id: 'competences', label: 'Compétences' },
+  { id: 'activite',    label: 'Activité' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,6 +66,13 @@ function resolveFullName(data: DrawerConsultantData): string {
   const fn = data.person?.first_name ?? ''
   const ln = data.person?.last_name ?? ''
   return `${fn} ${ln}`.trim() || 'Consultant'
+}
+
+function getInitials(name: string): string {
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
 const ABSENCE_LABELS: Record<string, string> = {
@@ -115,35 +125,6 @@ function DrawerSkeleton() {
       <div className="space-y-1.5">
         {[0, 1, 2].map((i) => <Sk key={i} className="h-10 rounded-xl w-full" />)}
       </div>
-    </div>
-  )
-}
-
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-
-function KpiCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string
-  value: string
-  accent?: boolean
-}) {
-  return (
-    <div
-      className="border rounded-xl p-3 flex flex-col gap-0.5"
-      style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-    >
-      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
-        {label}
-      </p>
-      <p
-        className="text-[14px] font-bold leading-snug"
-        style={{ color: accent ? 'var(--color-accent)' : 'var(--color-heading)' }}
-      >
-        {value}
-      </p>
     </div>
   )
 }
@@ -329,11 +310,11 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
   )
 
   return (
-    <div className="space-y-3">
-      {/* Profil métier */}
+    <div className="space-y-4">
+      {/* Profil métier (mise en avant distinctive) */}
       {data.current_title && (
         <div
-          className="rounded-xl border px-3 py-2.5"
+          className="rounded-xl border px-3.5 py-3"
           style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)' }}
         >
           <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-muted)' }}>
@@ -345,76 +326,165 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
         </div>
       )}
 
-      {/* Ligne 1 : identité */}
-      <div className="grid grid-cols-3 gap-2">
-        <KpiCard label="Intégration" value={fmtDate(data.entry_date)} />
-        <KpiCard label="Séniorité" value={data.seniority ?? '—'} />
-        <KpiCard
-          label="Salaire brut"
-          value={metrics.activeGrossAnnual !== null ? fmtEur(metrics.activeGrossAnnual) : '—'}
-        />
-      </div>
-
-      {/* Ligne 2 : financier — TJM | Rentabilité YTD | CA généré YTD */}
-      <div className="grid grid-cols-3 gap-2">
-        <KpiCard
-          label="TJM moyen"
-          value={metrics.tjmMoyenFacture !== null ? fmtEur(metrics.tjmMoyenFacture) : '—'}
-        />
-        <KpiCard
-          label="Rentabilité YTD"
-          value={metrics.realMarginPct !== null ? `${metrics.realMarginPct} %` : '—'}
-          accent
-        />
-        <KpiCard
-          label="CA généré YTD"
-          value={metrics.caGenere > 0 ? fmtEur(metrics.caGenere) : '—'}
-        />
-      </div>
-
-      {/* Missions */}
-      {data.missions.length > 0 && (
-        <div className="space-y-0">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
-            Missions ({data.missions.length})
+      {/* KPI — Sections ouvertes sans cadres individuels */}
+      <div className="grid grid-cols-3 gap-y-4 gap-x-3 py-2 border-t border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+            Intégration
           </p>
-          {data.missions.map((m) => (
-            <div key={m.id} className="flex items-start gap-2 py-1.5">
-              {/* Puce triangulaire */}
-              <span
-                className="mt-[3px] shrink-0 text-[8px] leading-none"
-                style={{ color: 'var(--color-heading)' }}
-                aria-hidden="true"
-              >
-                ▸
-              </span>
+          <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-heading)' }}>
+            {fmtDate(data.entry_date)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+            Séniorité
+          </p>
+          <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-heading)' }}>
+            {data.seniority ?? '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+            Salaire brut
+          </p>
+          <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-heading)' }}>
+            {metrics.activeGrossAnnual !== null ? fmtEur(metrics.activeGrossAnnual) : '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+            TJM moyen
+          </p>
+          <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-heading)' }}>
+            {metrics.tjmMoyenFacture !== null ? fmtEur(metrics.tjmMoyenFacture) : '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+            Rentabilité YTD
+          </p>
+          <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-accent)' }}>
+            {metrics.realMarginPct !== null ? `${metrics.realMarginPct} %` : '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+            CA généré YTD
+          </p>
+          <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-heading)' }}>
+            {metrics.caGenere > 0 ? fmtEur(metrics.caGenere) : '—'}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
-              {/* Client + dates */}
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <span className="text-xs font-bold" style={{ color: 'var(--color-heading)' }}>
-                    {m.company?.name ?? 'Client inconnu'}
-                  </span>
-                  {(m.start_date || m.end_date) && (
-                    <span className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
-                      {fmtDateShort(m.start_date)} → {m.end_date ? fmtDateShort(m.end_date) : 'en cours'}
-                    </span>
-                  )}
-                </div>
-              </div>
+// ─── Onglet Compétences ───────────────────────────────────────────────────────
 
-              {/* Marge + statut */}
-              <div className="flex shrink-0 items-center gap-2">
-                {m.gross_margin_pct !== null && (
-                  <span className="text-[10px] font-bold" style={{ color: 'var(--color-accent)' }}>
-                    {m.gross_margin_pct} %
+const LEVEL_LABELS: Record<number, string> = {
+  1: 'Notions', 2: 'Débutant', 3: 'Intermédiaire', 4: 'Avancé', 5: 'Expert',
+}
+
+function TabCompetences({
+  skills,
+  practice,
+}: {
+  skills: DrawerSkill[]
+  practice: string | null
+}) {
+  const sorted = useMemo(() =>
+    [...skills].sort((a, b) => {
+      const aMain = (a.level ?? 0) >= 4 ? 0 : 1
+      const bMain = (b.level ?? 0) >= 4 ? 0 : 1
+      if (aMain !== bMain) return aMain - bMain
+      const diff = (b.level ?? -1) - (a.level ?? -1)
+      if (diff !== 0) return diff
+      return a.skill.name.localeCompare(b.skill.name, 'fr')
+    }),
+  [skills])
+
+  const practiceConfig = useMemo(() => getPracticeByName(practice), [practice])
+
+  return (
+    <div className="space-y-4">
+      {/* Practice de rattachement (mise en avant distinctive selon couleur canonique) */}
+      {practice && (
+        <div
+          className="rounded-xl border px-3.5 py-3"
+          style={{
+            background: practiceConfig?.color ? `${practiceConfig.color}0F` : 'var(--color-canvas)',
+            borderColor: practiceConfig?.color ? `${practiceConfig.color}35` : 'var(--color-border)',
+          }}
+        >
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-muted)' }}>
+            Practice de rattachement
+          </p>
+          <p
+            className="text-sm font-semibold leading-snug"
+            style={{ color: practiceConfig?.color ?? 'var(--color-heading)' }}
+          >
+            {practice}
+          </p>
+        </div>
+      )}
+
+      {/* Liste des compétences — Sans lignes intercalaires, avec puces discrètes */}
+      {sorted.length === 0 ? (
+        <div
+          className="flex h-32 items-center justify-center rounded-xl border border-dashed"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+        >
+          <p className="text-xs">Aucune compétence renseignée</p>
+        </div>
+      ) : (
+        <div className="space-y-1 py-1">
+          {sorted.map((ps) => (
+            <div key={ps.id} className="flex items-center justify-between gap-3 py-1.5">
+              <div className="min-w-0 flex-1 flex items-center gap-2.5 flex-wrap">
+                <span
+                  className="inline-block size-1.5 rounded-full shrink-0"
+                  style={{ background: 'var(--color-muted)' }}
+                  aria-hidden="true"
+                />
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-heading)' }}>
+                  {ps.skill.name}
+                </span>
+                {ps.skill.category && (
+                  <span className="text-[10px] capitalize" style={{ color: 'var(--color-muted)' }}>
+                    {ps.skill.category}
                   </span>
                 )}
-                <StatusPill
-                  label={missionStatusLabel(m.status)}
-                  variant={missionStatusVariant(m.status)}
-                  dot={false}
-                />
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <span
+                  className="flex items-center gap-0.5"
+                  title={ps.level !== null ? LEVEL_LABELS[ps.level] : undefined}
+                >
+                  {[1, 2, 3, 4, 5].map((dot) => (
+                    <span
+                      key={dot}
+                      className="inline-block h-1.5 w-1.5 rounded-full"
+                      style={{
+                        background:
+                          ps.level !== null && dot <= ps.level
+                            ? 'var(--color-primary)'
+                            : 'var(--color-border)',
+                      }}
+                    />
+                  ))}
+                </span>
+
+                {ps.years !== null && (
+                  <span
+                    className="text-[10px] font-medium w-12 text-right"
+                    style={{ color: 'var(--color-muted)' }}
+                  >
+                    {ps.years} an{ps.years > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -434,7 +504,7 @@ function AbsencesList({ absences }: { absences: DrawerAbsence[] }) {
 
   if (sorted.length === 0) {
     return (
-      <p className="text-[11px] py-2" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-xs py-2" style={{ color: 'var(--color-muted)' }}>
         Aucune absence ou congé enregistré.
       </p>
     )
@@ -445,7 +515,7 @@ function AbsencesList({ absences }: { absences: DrawerAbsence[] }) {
       {sorted.map((ab) => (
         <div key={ab.id} className="flex items-center justify-between gap-2 py-2">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold" style={{ color: 'var(--color-body)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--color-body)' }}>
               {ABSENCE_LABELS[ab.absence_type] ?? ab.absence_type}
             </p>
             <p className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
@@ -453,7 +523,7 @@ function AbsencesList({ absences }: { absences: DrawerAbsence[] }) {
             </p>
           </div>
           <span
-            className="shrink-0 text-[10px] font-medium"
+            className="shrink-0 text-xs font-medium"
             style={{ color: 'var(--color-muted)' }}
           >
             {ab.duration_days} j
@@ -497,145 +567,111 @@ function TabActivite({ data }: { data: DrawerConsultantData }) {
   }, [reports])
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2">
-        <KpiCard
-          label="Productivité YTD"
-          value={
-            metrics.avgActivityRate !== null
-              ? `${metrics.avgActivityRate.toFixed(0)} %`
-              : '—'
-          }
-          accent
-        />
-        <KpiCard label="Jours facturés" value={`${metrics.totalBillableDays} j`} />
-        <KpiCard label="Mois couverts" value={String(chartPoints.length)} />
-      </div>
-
-      <div
-        className="rounded-xl border p-4"
-        style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-      >
-        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
-          Taux d&apos;activité mensuel
+    <div className="space-y-5">
+      {/* Missions (Remonté tout en haut de l'onglet Activité) */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+          Missions {data.missions.length > 0 && `(${data.missions.length})`}
         </p>
-        <AreaChart points={chartPoints} />
+        {data.missions.length === 0 ? (
+          <div
+            className="rounded-xl border px-3.5 py-3 text-xs font-medium"
+            style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+          >
+            Aucune mission enregistrée
+          </div>
+        ) : (
+          <div className="divide-y border-t border-b" style={{ '--tw-divide-color': 'var(--color-border)', borderColor: 'var(--color-border)' } as React.CSSProperties}>
+            {data.missions.map((m) => (
+              <div key={m.id} className="flex items-center justify-between gap-2 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span className="text-xs font-bold" style={{ color: 'var(--color-heading)' }}>
+                      {m.title || m.company?.name || 'Mission sans titre'}
+                    </span>
+                    {(m.start_date || m.end_date) && (
+                      <span className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
+                        {fmtDateShort(m.start_date)} → {m.end_date ? fmtDateShort(m.end_date) : 'en cours'}
+                      </span>
+                    )}
+                  </div>
+                  {m.company?.name && m.title && (
+                    <p className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
+                      Client : {m.company.name}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  {m.gross_margin_pct !== null && (
+                    <span className="text-[10px] font-bold" style={{ color: 'var(--color-accent)' }}>
+                      {m.gross_margin_pct} %
+                    </span>
+                  )}
+                  <StatusPill
+                    label={missionStatusLabel(m.status)}
+                    variant={missionStatusVariant(m.status)}
+                    dot={false}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Absences & congés */}
-      <div>
-        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
-          Absences &amp; congés
+      {/* Activité (KPIs + Graphique Taux d'activité) */}
+      <div className="space-y-3 pt-1">
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+          Activité
+        </p>
+
+        <div className="grid grid-cols-3 gap-y-2 gap-x-3 py-2 border-t border-b" style={{ borderColor: 'var(--color-border)' }}>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+              Productivité YTD
+            </p>
+            <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-accent)' }}>
+              {metrics.avgActivityRate !== null ? `${metrics.avgActivityRate.toFixed(0)} %` : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+              Jours facturés
+            </p>
+            <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-heading)' }}>
+              {metrics.totalBillableDays} j
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+              Mois couverts
+            </p>
+            <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-heading)' }}>
+              {chartPoints.length}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="rounded-xl border p-3.5"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+            Taux d&apos;activité mensuel
+          </p>
+          <AreaChart points={chartPoints} />
+        </div>
+      </div>
+
+      {/* Congés & planning */}
+      <div className="space-y-2 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+          Congés &amp; planning
           {data.absences.length > 0 && ` (${data.absences.length})`}
         </p>
         <AbsencesList absences={data.absences} />
       </div>
-    </div>
-  )
-}
-
-// ─── Onglet Compétences ───────────────────────────────────────────────────────
-
-const LEVEL_LABELS: Record<number, string> = {
-  1: 'Notions', 2: 'Débutant', 3: 'Intermédiaire', 4: 'Avancé', 5: 'Expert',
-}
-
-function TabCompetences({
-  skills,
-  practice,
-}: {
-  skills: DrawerSkill[]
-  practice: string | null
-}) {
-  const sorted = useMemo(() =>
-    [...skills].sort((a, b) => {
-      const aMain = (a.level ?? 0) >= 4 ? 0 : 1
-      const bMain = (b.level ?? 0) >= 4 ? 0 : 1
-      if (aMain !== bMain) return aMain - bMain
-      const diff = (b.level ?? -1) - (a.level ?? -1)
-      if (diff !== 0) return diff
-      return a.skill.name.localeCompare(b.skill.name, 'fr')
-    }),
-  [skills])
-
-  return (
-    <div className="space-y-3">
-      {/* Practice de rattachement */}
-      {practice && (
-        <div
-          className="rounded-xl border px-3 py-2.5"
-          style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)' }}
-        >
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-muted)' }}>
-            Practice de rattachement
-          </p>
-          <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--color-heading)' }}>
-            {practice}
-          </p>
-        </div>
-      )}
-
-      {sorted.length === 0 ? (
-        <div
-          className="flex h-32 items-center justify-center rounded-xl border"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-        >
-          <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
-            Aucune compétence renseignée
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {sorted.map((ps) => (
-            <div
-              key={ps.id}
-              className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
-              style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-            >
-              {/* Nom + catégorie sur la même ligne */}
-              <div className="min-w-0 flex-1 flex items-baseline gap-1.5 flex-wrap">
-                <span className="text-xs font-semibold" style={{ color: 'var(--color-heading)' }}>
-                  {ps.skill.name}
-                </span>
-                {ps.skill.category && (
-                  <span className="text-[10px] capitalize" style={{ color: 'var(--color-muted)' }}>
-                    {ps.skill.category}
-                  </span>
-                )}
-              </div>
-
-              {/* Dots niveau */}
-              <span
-                className="flex shrink-0 items-center gap-0.5"
-                title={ps.level !== null ? LEVEL_LABELS[ps.level] : undefined}
-              >
-                {[1, 2, 3, 4, 5].map((dot) => (
-                  <span
-                    key={dot}
-                    className="inline-block h-1.5 w-1.5 rounded-full"
-                    style={{
-                      background:
-                        ps.level !== null && dot <= ps.level
-                          ? 'var(--color-primary)'
-                          : 'var(--color-border)',
-                    }}
-                  />
-                ))}
-              </span>
-
-              {/* Expérience */}
-              {ps.years !== null && (
-                <span
-                  className="shrink-0 text-[10px] font-medium"
-                  style={{ color: 'var(--color-muted)' }}
-                >
-                  {ps.years} an{ps.years > 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -647,6 +683,10 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
   const [loading, setLoading]       = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeTab, setActiveTab]   = useState<Tab>('synthese')
+
+  // Planning Event Drawer state
+  const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
+  const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues | undefined>()
 
   const loadDrawerData = useEffectEvent(async (nextCollaboratorId: string) => {
     setLoading(true)
@@ -696,8 +736,8 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
     })
   }, [open, collaboratorId])
 
-  const name     = drawerData ? resolveFullName(drawerData) : '…'
-  const subtitle = drawerData?.current_title ?? undefined
+  const name = drawerData ? resolveFullName(drawerData) : '…'
+  const initials = getInitials(name)
   const activeMissions = drawerData?.missions.filter((mission) => mission.status === 'active') ?? []
   const reliableMission = activeMissions.length === 1 ? activeMissions[0] : null
   const consultantContextLines = drawerData
@@ -711,112 +751,170 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
     : undefined
 
   return (
-    <AppDrawer
-      open={open}
-      onOpenChange={onOpenChange}
-      title={name}
-      subtitle={subtitle}
-      className="max-w-[480px]"
-    >
-      {open && collaboratorId && drawerData && (
-        <RegisterIntelligenceEntity
-          entityType="collaborator"
-          entityId={collaboratorId}
-          label={name}
-        />
-      )}
-      {!loading && drawerData && collaboratorId && (
-        <div className="-mt-2 mb-4 flex justify-end">
-          <CommunicationIntentMenu
-            label="Rédiger / préparer"
-            origin="consultant"
-            scope="collaborator"
-            collaboratorId={collaboratorId}
-            collaboratorName={name}
-            primaryEntity={{ type: 'collaborator', id: collaboratorId }}
-            missionId={reliableMission?.id ?? null}
-            missionTitle={reliableMission?.title ?? null}
-            mustInclude={consultantContextLines}
-            items={[
-              { intent: 'consultant_message', label: 'Message' },
-              { intent: 'consultant_recognition', label: 'Reconnaissance' },
-              { intent: 'consultant_one_to_one', label: 'Point 1:1' },
-              { intent: 'consultant_feedback_follow_up', label: 'Feedback écrit' },
-              { intent: 'consultant_feedback_talk_track', label: 'Feedback oral' },
-              { intent: 'consultant_assignment_change', label: 'Changement mission' },
-              { intent: 'consultant_intercontract_message', label: 'Plan intercontrat' },
-              { intent: 'consultant_retention_briefing', label: 'Rétention' },
-              { intent: 'consultant_annual_review', label: 'Entretien annuel' },
-              { intent: 'consultant_sensitive_meeting', label: 'Échange sensible' },
-            ]}
-          />
-        </div>
-      )}
-      {/* ── Barre d'onglets ──────────────────────────────────────────── */}
-      {!loading && drawerData && (
-        <div
-          className="-mt-4 mb-4 flex gap-0 border-b"
-          style={{ borderColor: 'var(--color-border)' }}
-          role="tablist"
-        >
-          {TABS.map(({ id, label }) => {
-            const isActive = activeTab === id
-            return (
-              <button
-                key={id}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setActiveTab(id)}
-                className="px-3 py-2 text-[11px] font-semibold transition-colors focus-visible:outline-none"
-                style={{
-                  color: isActive ? 'var(--color-primary)' : 'var(--color-muted)',
-                  borderBottom: isActive
-                    ? '2px solid var(--color-primary)'
-                    : '2px solid transparent',
-                  marginBottom: '-1px',
-                  background: 'transparent',
+    <>
+      <AppDrawer
+        open={open}
+        onOpenChange={onOpenChange}
+        title={
+          <div className="flex flex-col items-center text-center pt-2 pb-1 w-full">
+            {/* Grand cercle d'avatar centré */}
+            <div
+              className="flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-extrabold select-none border mb-2"
+              style={{
+                background: 'var(--color-canvas)',
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-heading)',
+              }}
+            >
+              {initials}
+            </div>
+
+            {/* Identité centrée : Nom + Poste */}
+            <h2 className="font-heading text-lg sm:text-xl font-bold leading-tight" style={{ color: 'var(--color-heading)' }}>
+              {name}
+            </h2>
+            {drawerData?.current_title && (
+              <p className="mt-1 text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+                {drawerData.current_title}
+              </p>
+            )}
+          </div>
+        }
+        className="max-w-[480px]"
+        footer={
+          !loading && drawerData && collaboratorId ? (
+            <div className="flex items-center justify-between w-full">
+              {/* Action Planifier (à gauche) */}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setEventInitialValues({
+                    title: `Point · ${name}`,
+                    event_type: 'suivi_collaborateur',
+                    company: reliableMission?.company?.name ? { id: '', name: reliableMission.company.name, isNew: false } : null,
+                  })
+                  setEventDrawerOpen(true)
                 }}
+                className="bg-[var(--color-cockpit-cobalt-soft)] text-[var(--color-primary)] border border-[var(--color-primary)]/20 hover:bg-[var(--color-primary)]/10 font-semibold"
               >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      )}
+                Planifier
+              </Button>
 
-      {/* ── États ────────────────────────────────────────────────────── */}
-      {loading && <DrawerSkeleton />}
+              {/* Action Rédiger / préparer (à droite) */}
+              <CommunicationIntentMenu
+                label="Rédiger / préparer"
+                variant="brass"
+                origin="consultant"
+                scope="collaborator"
+                collaboratorId={collaboratorId}
+                collaboratorName={name}
+                primaryEntity={{ type: 'collaborator', id: collaboratorId }}
+                missionId={reliableMission?.id ?? null}
+                missionTitle={reliableMission?.title ?? null}
+                mustInclude={consultantContextLines}
+                menuClassName="bottom-full top-auto mb-2 right-0"
+                items={[
+                  { intent: 'consultant_message', label: 'Message' },
+                  { intent: 'consultant_recognition', label: 'Reconnaissance' },
+                  { intent: 'consultant_one_to_one', label: 'Point 1:1' },
+                  { intent: 'consultant_feedback_follow_up', label: 'Feedback écrit' },
+                  { intent: 'consultant_feedback_talk_track', label: 'Feedback oral' },
+                  { intent: 'consultant_assignment_change', label: 'Changement mission' },
+                  { intent: 'consultant_intercontract_message', label: 'Plan intercontrat' },
+                  { intent: 'consultant_retention_briefing', label: 'Rétention' },
+                  { intent: 'consultant_annual_review', label: 'Entretien annuel' },
+                  { intent: 'consultant_sensitive_meeting', label: 'Échange sensible' },
+                ]}
+              />
+            </div>
+          ) : undefined
+        }
+      >
+        {open && collaboratorId && drawerData && (
+          <RegisterIntelligenceEntity
+            entityType="collaborator"
+            entityId={collaboratorId}
+            label={name}
+          />
+        )}
 
-      {fetchError && !loading && (
-        <div
-          className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-12 text-center"
-          style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-        >
-          <p className="text-sm font-semibold">Erreur de chargement</p>
-          <p className="text-xs">{fetchError}</p>
-          <button
-            onClick={() => open && collaboratorId && setLoading(true)}
-            className="mt-1 text-xs underline underline-offset-2"
-            style={{ color: 'var(--color-primary)' }}
+        {/* ── Barre d'onglets (33.3% chacun, ordre: Synthèse, Compétences, Activité) ── */}
+        {!loading && drawerData && (
+          <div
+            className="-mt-2 mb-4 flex w-full border-b"
+            style={{ borderColor: 'var(--color-border)' }}
+            role="tablist"
           >
-            Réessayer
-          </button>
-        </div>
-      )}
+            {TABS.map(({ id, label }) => {
+              const isActive = activeTab === id
+              return (
+                <button
+                  key={id}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(id)}
+                  className="flex-1 py-2 text-center text-xs font-semibold transition-colors focus-visible:outline-none"
+                  style={{
+                    color: isActive ? 'var(--color-primary)' : 'var(--color-muted)',
+                    borderBottom: isActive
+                      ? '2px solid var(--color-primary)'
+                      : '2px solid transparent',
+                    marginBottom: '-1px',
+                    background: 'transparent',
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
-      {/* ── Contenu ──────────────────────────────────────────────────── */}
-      {!loading && !fetchError && drawerData && (
-        <div role="tabpanel">
-          {activeTab === 'synthese'    && <TabSynthese    data={drawerData} />}
-          {activeTab === 'activite'    && <TabActivite    data={drawerData} />}
-          {activeTab === 'competences' && (
-            <TabCompetences
-              skills={drawerData.person?.person_skills ?? []}
-              practice={drawerData.practice}
-            />
-          )}
-        </div>
-      )}
-    </AppDrawer>
+        {/* ── États ────────────────────────────────────────────────────── */}
+        {loading && <DrawerSkeleton />}
+
+        {fetchError && !loading && (
+          <div
+            className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-12 text-center"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+          >
+            <p className="text-sm font-semibold">Erreur de chargement</p>
+            <p className="text-xs">{fetchError}</p>
+            <button
+              onClick={() => open && collaboratorId && setLoading(true)}
+              className="mt-1 text-xs underline underline-offset-2"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        {/* ── Contenu ──────────────────────────────────────────────────── */}
+        {!loading && !fetchError && drawerData && (
+          <div role="tabpanel">
+            {activeTab === 'synthese' && <TabSynthese data={drawerData} />}
+            {activeTab === 'competences' && (
+              <TabCompetences
+                skills={drawerData.person?.person_skills ?? []}
+                practice={drawerData.practice}
+              />
+            )}
+            {activeTab === 'activite' && <TabActivite data={drawerData} />}
+          </div>
+        )}
+      </AppDrawer>
+
+      {/* Modal / Drawer création d'événement (Planifier) */}
+      <AgendaEventDrawer
+        open={eventDrawerOpen}
+        onOpenChange={setEventDrawerOpen}
+        event={null}
+        onSaved={() => {}}
+        initialValues={eventInitialValues}
+      />
+    </>
   )
 }

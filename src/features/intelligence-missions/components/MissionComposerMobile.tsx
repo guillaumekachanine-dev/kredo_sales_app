@@ -55,13 +55,25 @@ export function MissionComposerMobile({
 
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-200" aria-labelledby="mission-composer-mobile-title">
-      <button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-white/75 hover:text-white">
-        <span aria-hidden="true">←</span> Retour
-      </button>
-
       <header className="space-y-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">Mission prédéfinie</p>
-        <h3 id="mission-composer-mobile-title" className="text-xl font-bold leading-tight text-white">{config.label}</h3>
+        <button
+          type="button"
+          onClick={onBack}
+          className="group -ml-1 inline-flex min-h-[2.5rem] items-center gap-2 rounded p-1 text-left text-white transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cockpit-amber cursor-pointer"
+          aria-label={`Retour depuis ${config.label}`}
+        >
+          <svg
+            className="size-3 shrink-0 fill-white"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M16 19.5V4.5L5 12z" />
+          </svg>
+          <h3 id="mission-composer-mobile-title" className="text-xl font-bold leading-tight text-white">
+            {config.label}
+          </h3>
+        </button>
         <p className="text-sm leading-5 text-white/70">{config.description}</p>
       </header>
 

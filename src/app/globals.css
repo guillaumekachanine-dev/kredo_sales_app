@@ -38,7 +38,7 @@
   --color-brand-ember: #D97020;
   --color-brand-ink: #1A2540;
 
-  /* ── Cockpit Intelligence · cobalt identity ──────────────
+  /* ── Cockpit Intelligence · cobalt identity & mobile palette ──
      Déclarés dans @theme pour générer les utilitaires Tailwind v4.
      Les redéclarations contextuelles seules ne créent pas de classes. */
   --color-cockpit-cobalt: var(--color-brand-primary);
@@ -47,6 +47,10 @@
   --color-cockpit-intelligence: #173D89;
   --color-cockpit-intelligence-border: #4567A1;
   --color-cockpit-action-border: #AFC1DC;
+  --color-cockpit-grey: #607D8B;
+  --color-cockpit-grey-border: #4F6A77;
+  --color-cockpit-light-grey: #F3F4F3;
+  --color-cockpit-amber: #FFB400;
 
   /* ── Navigation · navy sidebar ─────────────────────────── */
   --color-sidebar-bg: #162650;
@@ -1115,7 +1119,7 @@ dialog.kredo-drawer-bottom {
   }
 
   dialog.kredo-cockpit-intelligence-drawer header {
-    padding: 1.5rem 1.25rem 0.75rem !important;
+    padding: 1.25rem 1.25rem 0.625rem !important;
   }
 
   dialog.kredo-cockpit-intelligence-drawer div.overflow-y-auto {

@@ -391,7 +391,12 @@ function GenericEntityMobileContent({
   if (!entityContext || !resolved || !nonCompanyType) return null
 
   if (activeActionId) {
-    return <IntelligenceActionResultContent actionId={activeActionId} />
+    return (
+      <IntelligenceActionResultContent
+        actionId={activeActionId}
+        onBack={() => setActiveActionId(null)}
+      />
+    )
   }
 
   return (
@@ -582,12 +587,10 @@ export function IntelligenceFAB() {
         ) : isCompanyMode ? "Cockpit Intelligence" : isGenericEntityMode ? (
           <CockpitIntelligenceHeader
             pageLabel={ENTITY_TYPE_LABELS[entityContext?.entityType as Exclude<IntelligenceEntityType, "company">] ?? "Entité"}
-            onBack={entityActiveActionId ? () => setEntityActiveActionId(null) : undefined}
           />
         ) : (
           <CockpitIntelligenceHeader
             pageLabel={pageCockpit.label}
-            onBack={activeDeterministicAction ? () => setActiveDeterministicAction(null) : undefined}
           />
         )}
         side="bottom"
@@ -599,18 +602,18 @@ export function IntelligenceFAB() {
             ? "border border-cockpit-cobalt bg-cockpit-cobalt-deep text-white"
             : isGenericEntityMode
               ? "border border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]"
-              : "border border-cockpit-intelligence-border bg-cockpit-cobalt-soft",
+              : "border border-cockpit-intelligence-border bg-cockpit-light-grey",
         )}
         headerClassName={isCompanyMode
           ? "border-b-2 border-brand-brass bg-cockpit-cobalt text-white [&_button]:border [&_button]:border-white/35 [&_button]:bg-white/15 [&_button]:text-white [&_button]:hover:border-white/55 [&_button]:hover:bg-white/25 [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
           : isGenericEntityMode
             ? "border-b border-white/15 bg-primary text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"
-            : "relative min-h-[6rem] border-b border-white/10 bg-domain-intelligence !px-5 !pb-3 !pt-6 text-white before:absolute before:left-1/2 before:top-2.5 before:h-1 before:w-[3.125rem] before:-translate-x-1/2 before:rounded-full before:bg-white/30 [&_button]:mt-0.5 [&_button]:size-[2.25rem] [&_button]:rounded-[0.5rem] [&_button]:border [&_button]:border-white/25 [&_button]:bg-white/10 [&_button]:text-white [&_button]:hover:bg-white/20"}
+            : "relative min-h-[4.75rem] border-b border-white/10 bg-domain-intelligence !px-5 !pb-2.5 !pt-5 text-white before:absolute before:left-1/2 before:top-2 before:h-1 before:w-[3.125rem] before:-translate-x-1/2 before:rounded-full before:bg-white/30 [&_button]:mt-0 [&_button]:size-[2.125rem] [&_button]:rounded-[0.5rem] [&_button]:border [&_button]:border-white/25 [&_button]:bg-white/10 [&_button]:text-white [&_button]:hover:bg-white/20"}
         contentClassName={isCompanyMode
           ? "bg-cockpit-cobalt-deep text-white [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"
           : isGenericEntityMode
             ? "bg-primary text-white"
-            : "!p-0 bg-cockpit-cobalt-soft [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"}
+            : "!p-0 bg-cockpit-light-grey [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"}
         showMobileCloseButton={isCompanyMode || !isGenericEntityMode}
         icon={isCompanyMode && panelData ? (
           <CompanyLogo
@@ -626,7 +629,10 @@ export function IntelligenceFAB() {
       >
         {displayMode === "page" && activeDeterministicAction ? (
           <CockpitIntelligenceShell>
-            <IntelligenceActionResultContent actionId={activeDeterministicAction} />
+            <IntelligenceActionResultContent
+              actionId={activeDeterministicAction}
+              onBack={() => setActiveDeterministicAction(null)}
+            />
           </CockpitIntelligenceShell>
         ) : isCompanyMode ? (
           panelData ? (

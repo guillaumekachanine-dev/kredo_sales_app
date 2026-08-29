@@ -9,17 +9,33 @@ import { openReportGeneration } from "@/lib/reports/report-generation"
 import { IntelligenceActionCard } from "../IntelligenceActionCard"
 import { MissionComposerMobile } from "@/features/intelligence-missions/components/MissionComposerMobile"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
-import { CockpitModuleCard } from "./CockpitIntelligenceCards"
+import { CockpitActionCard, CockpitModuleCard } from "./CockpitIntelligenceCards"
 import { CockpitIntelligenceShell, CockpitSectionHeader } from "./CockpitIntelligenceShell"
+import { cockpitActionIcons } from "../cockpit-action-icons"
 
 const FinancialModelingMobileFlow = dynamic(
   () => import("@/features/financial-modeling/components/mobile/FinancialModelingMobileFlow").then((module) => module.FinancialModelingMobileFlow),
   { ssr: false },
 )
 
-const COMMON_MOBILE_MODULES = [
-  { id: "write_pitch", label: "Rédiger mail / pitch", icon: "write_pitch" },
-  { id: "report_summary", label: "Générer rapport / synthèse", icon: "report_summary" },
+const COMMON_MOBILE_ACTIONS = [
+  {
+    id: "write_pitch",
+    label: "Rédiger mail / pitch",
+    iconSrc: cockpitActionIcons.message,
+    onClick: () =>
+      openCommunicationComposer({
+        origin: "intelligence_common",
+        selectedOutputKind: "written_message",
+        startWithGeneralPicker: true,
+      }),
+  },
+  {
+    id: "report_summary",
+    label: "Générer synthèse / analyse",
+    iconSrc: cockpitActionIcons.generatedReport,
+    onClick: () => openReportGeneration({ origin: "intelligence_common" }),
+  },
 ] as const
 
 export function CockpitIntelligenceMobileContent({
@@ -48,28 +64,31 @@ export function CockpitIntelligenceMobileContent({
     <CockpitIntelligenceShell>
       <section>
         <CockpitSectionHeader label="Actions" />
-        {resolved.actions.length > 0 ? (
-          <div className="grid grid-cols-2 gap-[0.6875rem]">
-            {resolved.actions.map((action) => (
-              <IntelligenceActionCard
-                key={action.id}
-                action={action}
-                tone="cockpit-mobile"
-                onActionClick={(actionId) => {
-                  if (actionId in MISSION_COMPOSER_ACTION_CONFIGS) {
-                    setMissionActionId(actionId)
-                    return
-                  }
-                  onActionClick(actionId)
-                }}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-[0.875rem] border border-dashed border-cockpit-action-border bg-surface px-4 py-5 text-center text-[11px] font-medium text-body">
-            Aucune action disponible sur cette page.
-          </p>
-        )}
+        <div className="grid grid-cols-2 gap-[0.6875rem]">
+          {resolved.actions.map((action) => (
+            <IntelligenceActionCard
+              key={action.id}
+              action={action}
+              tone="cockpit-mobile"
+              onActionClick={(actionId) => {
+                if (actionId in MISSION_COMPOSER_ACTION_CONFIGS) {
+                  setMissionActionId(actionId)
+                  return
+                }
+                onActionClick(actionId)
+              }}
+            />
+          ))}
+
+          {COMMON_MOBILE_ACTIONS.map((action) => (
+            <CockpitActionCard
+              key={action.id}
+              label={action.label}
+              iconSrc={action.iconSrc}
+              onClick={action.onClick}
+            />
+          ))}
+        </div>
       </section>
 
       <section>
@@ -87,24 +106,6 @@ export function CockpitIntelligenceMobileContent({
               onClick={module.id === "financial_modeling" ? () => setIsFinancialModelingOpen(true) : undefined}
             />
           ))}
-
-          <div className="col-span-2 grid grid-cols-2 gap-[0.6875rem]">
-            {COMMON_MOBILE_MODULES.map((module) => (
-              <CockpitModuleCard
-                key={module.id}
-                label={module.label}
-                icon={module.icon}
-                state="active"
-                onClick={module.id === "write_pitch"
-                  ? () => openCommunicationComposer({
-                      origin: "intelligence_common",
-                      selectedOutputKind: "written_message",
-                      startWithGeneralPicker: true,
-                    })
-                  : () => openReportGeneration({ origin: "intelligence_common" })}
-              />
-            ))}
-          </div>
         </div>
       </section>
 

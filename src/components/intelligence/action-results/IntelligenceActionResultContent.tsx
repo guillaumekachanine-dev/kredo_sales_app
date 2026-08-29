@@ -111,14 +111,34 @@ async function loadAction(id: DeterministicIntelligenceActionId): Promise<Loaded
   }
 }
 
-function DeterministicResultHeader({ title }: { title: string }) {
+function DeterministicResultHeader({ title, onBack }: { title: string; onBack?: () => void }) {
   return (
     <header className="relative isolate grid grid-cols-[minmax(0,1fr)_clamp(5rem,24cqi,6.5rem)] overflow-hidden bg-edito-navy text-white">
       {/* Zone gauche : titre */}
       <div className="flex min-w-0 items-center px-5 py-4 pr-8">
-        <h3 className="font-heading text-[clamp(1rem,4.5cqi,1.4rem)] font-black leading-[1.1] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
-          {title}
-        </h3>
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="group -ml-1 inline-flex min-h-[2.5rem] items-center gap-2 rounded p-1 text-left text-white transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cockpit-amber cursor-pointer"
+            aria-label={`Retour depuis ${title}`}
+          >
+            <svg
+              className="size-3 shrink-0 fill-white"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M16 19.5V4.5L5 12z" />
+            </svg>
+            <h3 className="font-heading text-[clamp(1rem,4.5cqi,1.4rem)] font-black leading-[1.1] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
+              {title}
+            </h3>
+          </button>
+        ) : (
+          <h3 className="font-heading text-[clamp(1rem,4.5cqi,1.4rem)] font-black leading-[1.1] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
+            {title}
+          </h3>
+        )}
       </div>
 
       {/* Zone droite : pleine couleur, remplie jusqu'aux bords */}
@@ -138,7 +158,13 @@ function DeterministicResultHeader({ title }: { title: string }) {
   )
 }
 
-export function IntelligenceActionResultContent({ actionId }: { actionId: DeterministicIntelligenceActionId }) {
+export function IntelligenceActionResultContent({
+  actionId,
+  onBack,
+}: {
+  actionId: DeterministicIntelligenceActionId
+  onBack?: () => void
+}) {
   const [isPending, startTransition] = useTransition()
   const [loaded, setLoaded] = useState<LoadedResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -169,7 +195,7 @@ export function IntelligenceActionResultContent({ actionId }: { actionId: Determ
         data-theme="edito-bright-cockpit"
         className="overflow-hidden bg-edito-surface text-edito-body [container-type:inline-size] max-md:ml-[-1.3125rem] max-md:w-[calc(100vw_-_4rem)]"
       >
-        <DeterministicResultHeader title={titleForAction(actionId)} />
+        <DeterministicResultHeader title={titleForAction(actionId)} onBack={onBack} />
 
         {(isPending || (!isBrightPilotLoaded && !error)) && (
           <div className="flex items-center gap-3 border-b border-edito-border px-5 py-6 text-xs font-semibold text-edito-muted animate-pulse">
@@ -194,7 +220,25 @@ export function IntelligenceActionResultContent({ actionId }: { actionId: Determ
     <div data-theme="cockpit" className="rounded-2xl border border-white/15 bg-[#0c1838] p-4.5 text-white shadow-xl space-y-4">
       <div className="border-b border-white/12 pb-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-brass">Processus déterministe</p>
-        <h3 className="mt-1 font-heading text-lg font-bold leading-tight text-white">{titleForAction(actionId)}</h3>
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="group -ml-1 mt-1 inline-flex min-h-[2.5rem] items-center gap-2 rounded p-1 text-left text-white transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cockpit-amber cursor-pointer"
+            aria-label={`Retour depuis ${titleForAction(actionId)}`}
+          >
+            <svg
+              className="size-3 shrink-0 fill-white"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M16 19.5V4.5L5 12z" />
+            </svg>
+            <h3 className="font-heading text-lg font-bold leading-tight text-white">{titleForAction(actionId)}</h3>
+          </button>
+        ) : (
+          <h3 className="mt-1 font-heading text-lg font-bold leading-tight text-white">{titleForAction(actionId)}</h3>
+        )}
       </div>
 
       {(isPending || (!loaded && !error)) && (
