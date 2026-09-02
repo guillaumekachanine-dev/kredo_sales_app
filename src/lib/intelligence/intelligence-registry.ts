@@ -349,6 +349,34 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     icon: "deep_analysis",
     status: "active",
   },
+  analyze_automation_errors: {
+    id: "analyze_automation_errors",
+    label: "Analyser les erreurs",
+    description: "Regrouper les pannes des workflows sur 30 jours et distinguer les vraies erreurs des runs bloqués.",
+    icon: "detect_risks",
+    status: "active",
+  },
+  analyze_automation_costs: {
+    id: "analyze_automation_costs",
+    label: "Analyser les coûts",
+    description: "Répartir le coût des automatisations par workflow, mesurer la dérive et signaler les coûts incomplets.",
+    icon: "analyze_margins",
+    status: "active",
+  },
+  prioritize_automation_fixes: {
+    id: "prioritize_automation_fixes",
+    label: "Prioriser les corrections",
+    description: "Ordonner les workflows à corriger selon le taux d'échec, le volume, les runs bloqués et la récence.",
+    icon: "prioritize",
+    status: "active",
+  },
+  upcoming_deadlines: {
+    id: "upcoming_deadlines",
+    label: "Anticiper les échéances",
+    description: "Consolider sur 30/60/90 jours les fins de mission, closings attendus, absences longues et fermetures client.",
+    icon: "forecast",
+    status: "active",
+  },
   weekly_brief: {
     id: "weekly_brief",
     label: "Brief hebdomadaire",
@@ -555,7 +583,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/agenda",
     label: "Agenda",
-    actionIds: ["prepare_day", "prepare_meeting", "weekly_brief", "action_priorities"],
+    actionIds: ["prepare_day", "prepare_meeting", "upcoming_deadlines", "action_priorities", "weekly_brief"],
     moduleIds: ["commercial_activity"],
   },
 
@@ -607,7 +635,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/missions",
     label: "Engagements",
-    actionIds: ["detect_risks", "analyze_margins", "forecast_revenue"],
+    actionIds: ["analyze_margins", "detect_risks", "forecast_revenue", "upcoming_deadlines"],
     moduleIds: ["portfolio_atlas", "activity_leave"],
   },
 
@@ -643,7 +671,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/automations",
     label: "Automatisations",
-    actionIds: ["common_report"],
+    actionIds: ["common_report", "analyze_automation_errors", "analyze_automation_costs", "prioritize_automation_fixes"],
     moduleIds: ["automation_metrics", "cadence_simulator"],
   },
   {

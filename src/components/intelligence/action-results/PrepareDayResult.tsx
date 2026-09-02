@@ -24,7 +24,7 @@ export function PrepareDayResult({ result }: { result: PrepareDayResultData }) {
         <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-brass">Timeline</h3>
         {result.events.length === 0 ? (
           <p className="rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-3 text-xs text-primary-fg/65">
-            Aucun événement agenda aujourd'hui.
+            Aucun événement agenda aujourd&apos;hui.
           </p>
         ) : (
           <div className="space-y-2.5">

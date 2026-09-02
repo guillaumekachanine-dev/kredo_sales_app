@@ -145,6 +145,22 @@ describe("Cockpit Intelligence route resolution", () => {
     expect(resolvePageCockpitConfig("/prospection/accounts/company-123/contacts").label).toBe("Fiche compte")
   })
 
+  it("gives Automatisations its full action set", () => {
+    expect(resolvePageCockpitConfig("/automations").actions.map((action) => action.id)).toEqual([
+      "common_report",
+      "analyze_automation_errors",
+      "analyze_automation_costs",
+      "prioritize_automation_fixes",
+    ])
+  })
+
+  it("serves the runway on both pages that ask for it", () => {
+    for (const pathname of ["/agenda", "/missions", "/missions/actives"]) {
+      expect(resolvePageCockpitConfig(pathname).actions.map((action) => action.id))
+        .toContain("upcoming_deadlines")
+    }
+  })
+
   it("aligns the Équipe and Recrutement configurations on the target matrix", () => {
     expect(resolvePageCockpitConfig("/consultants").actions.map((action) => action.id)).toEqual([
       "forecast_availability",

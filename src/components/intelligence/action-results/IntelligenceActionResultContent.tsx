@@ -12,6 +12,15 @@ import { getAnalyzeNeeds, type AnalyzeNeedsResult as AnalyzeNeedsResultData } fr
 import { getScanContacts, type ScanContactsResult as ScanContactsResultData } from "@/lib/intelligence/actions/scan-contacts"
 import { getAnalyzeFunnel, type AnalyzeFunnelResult as AnalyzeFunnelResultData } from "@/lib/intelligence/actions/analyze-funnel"
 import { getAnalyzeMargins, type AnalyzeMarginsResult as AnalyzeMarginsResultData } from "@/lib/intelligence/actions/analyze-margins"
+import { getUpcomingDeadlines, type UpcomingDeadlinesResult as UpcomingDeadlinesResultData } from "@/lib/intelligence/actions/upcoming-deadlines"
+import {
+  getAutomationCosts,
+  getAutomationErrors,
+  getAutomationFixes,
+  type AutomationCostsResult as AutomationCostsResultData,
+  type AutomationErrorsResult as AutomationErrorsResultData,
+  type AutomationFixesResult as AutomationFixesResultData,
+} from "@/lib/intelligence/actions/automation-intelligence"
 import { ActionPrioritiesResult } from "./ActionPrioritiesResult"
 import { PrepareDayResult } from "./PrepareDayResult"
 import { DetectRisksResult } from "./DetectRisksResult"
@@ -23,6 +32,10 @@ import { AnalyzeNeedsResult } from "./AnalyzeNeedsResult"
 import { ScanContactsResult } from "./ScanContactsResult"
 import { AnalyzeFunnelResult } from "./AnalyzeFunnelResult"
 import { AnalyzeMarginsResult } from "./AnalyzeMarginsResult"
+import { UpcomingDeadlinesResult } from "./UpcomingDeadlinesResult"
+import { AutomationErrorsResult } from "./AutomationErrorsResult"
+import { AutomationCostsResult } from "./AutomationCostsResult"
+import { AutomationFixesResult } from "./AutomationFixesResult"
 import { CockpitBrightHeader, CockpitBrightSection } from "../CockpitBrightSection"
 
 export const DETERMINISTIC_INTELLIGENCE_ACTION_IDS = [
@@ -37,6 +50,10 @@ export const DETERMINISTIC_INTELLIGENCE_ACTION_IDS = [
   "scan_contacts",
   "analyze_funnel",
   "analyze_margins",
+  "upcoming_deadlines",
+  "analyze_automation_errors",
+  "analyze_automation_costs",
+  "prioritize_automation_fixes",
 ] as const
 
 export type DeterministicIntelligenceActionId = typeof DETERMINISTIC_INTELLIGENCE_ACTION_IDS[number]
@@ -53,6 +70,10 @@ type LoadedResult =
   | { id: "scan_contacts"; data: ScanContactsResultData }
   | { id: "analyze_funnel"; data: AnalyzeFunnelResultData }
   | { id: "analyze_margins"; data: AnalyzeMarginsResultData }
+  | { id: "upcoming_deadlines"; data: UpcomingDeadlinesResultData }
+  | { id: "analyze_automation_errors"; data: AutomationErrorsResultData }
+  | { id: "analyze_automation_costs"; data: AutomationCostsResultData }
+  | { id: "prioritize_automation_fixes"; data: AutomationFixesResultData }
 
 export function isDeterministicIntelligenceAction(id: string): id is DeterministicIntelligenceActionId {
   return DETERMINISTIC_INTELLIGENCE_ACTION_IDS.includes(id as DeterministicIntelligenceActionId)
@@ -82,6 +103,14 @@ function titleForAction(id: DeterministicIntelligenceActionId) {
       return "Analyse du funnel"
     case "analyze_margins":
       return "Analyse des marges"
+    case "upcoming_deadlines":
+      return "Anticiper les échéances"
+    case "analyze_automation_errors":
+      return "Analyser les erreurs"
+    case "analyze_automation_costs":
+      return "Analyser les coûts"
+    case "prioritize_automation_fixes":
+      return "Prioriser les corrections"
   }
 }
 
@@ -109,6 +138,14 @@ async function loadAction(id: DeterministicIntelligenceActionId): Promise<Loaded
       return { id, data: await getAnalyzeFunnel() }
     case "analyze_margins":
       return { id, data: await getAnalyzeMargins() }
+    case "upcoming_deadlines":
+      return { id, data: await getUpcomingDeadlines() }
+    case "analyze_automation_errors":
+      return { id, data: await getAutomationErrors() }
+    case "analyze_automation_costs":
+      return { id, data: await getAutomationCosts() }
+    case "prioritize_automation_fixes":
+      return { id, data: await getAutomationFixes() }
   }
 }
 
@@ -220,6 +257,10 @@ export function IntelligenceActionResultContent({
       {loaded?.id === "scan_contacts" && <ScanContactsResult result={loaded.data} />}
       {loaded?.id === "analyze_funnel" && <AnalyzeFunnelResult result={loaded.data} />}
       {loaded?.id === "analyze_margins" && <AnalyzeMarginsResult result={loaded.data} />}
+      {loaded?.id === "upcoming_deadlines" && <UpcomingDeadlinesResult result={loaded.data} />}
+      {loaded?.id === "analyze_automation_errors" && <AutomationErrorsResult result={loaded.data} />}
+      {loaded?.id === "analyze_automation_costs" && <AutomationCostsResult result={loaded.data} />}
+      {loaded?.id === "prioritize_automation_fixes" && <AutomationFixesResult result={loaded.data} />}
     </div>
   )
 }

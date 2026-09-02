@@ -53,7 +53,7 @@ export function AnalyzeMarginsResult({ result }: { result: AnalyzeMarginsResultD
               </div>
               {item.source === "activity_summary" && (
                 <p className="mt-2 text-[10px] leading-snug text-primary-fg/45">
-                  Marge issue de la vue analytique d'activité.
+                  Marge issue de la vue analytique d&apos;activité.
                 </p>
               )}
             </a>
