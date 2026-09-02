@@ -17,6 +17,15 @@ export type CockpitModuleCardState = "active" | "disabled" | "coming_soon"
 export type CockpitMobileModuleIcon =
   | "financial_modeling"
   | "activity_leave"
+  | "pool_competences"
+  | "automation_metrics"
+  | "commercial_activity"
+  | "source_management"
+  | "cadence_simulator"
+  | "portfolio_atlas"
+  | "playbooks"
+  | "revenue_modeling"
+  | "agenda_light"
   | "write_pitch"
   | "report_summary"
 
@@ -78,6 +87,25 @@ function CockpitCardBaseLayout({
   )
 }
 
+// Vocabulaire d'icônes de la navigation principale, réutilisé tel quel : le
+// Cockpit ne dessine pas ses propres pictogrammes de module. Deux modules d'une
+// même page ne doivent jamais partager la même icône.
+const NAVIGATION_ICON_BY_MODULE_ICON: Record<CockpitMobileModuleIcon, string> = {
+  financial_modeling: "finance",
+  activity_leave: "calendar",
+  pool_competences: "equipe",
+  automation_metrics: "automations",
+  commercial_activity: "sales",
+  source_management: "veille",
+  cadence_simulator: "workflow-mobile",
+  portfolio_atlas: "engagements",
+  playbooks: "bi",
+  revenue_modeling: "reports",
+  agenda_light: "calendar",
+  write_pitch: "reports",
+  report_summary: "reports",
+}
+
 function CockpitModuleIcon({ icon }: { icon: CockpitMobileModuleIcon }) {
   if (icon === "write_pitch") {
     return (
@@ -87,13 +115,7 @@ function CockpitModuleIcon({ icon }: { icon: CockpitMobileModuleIcon }) {
     )
   }
 
-  const navigationIcon = icon === "financial_modeling"
-    ? "finance"
-    : icon === "activity_leave"
-      ? "calendar"
-      : "reports"
-
-  return getNavigationIcon(navigationIcon, "size-[1.25rem]", 1.9)
+  return getNavigationIcon(NAVIGATION_ICON_BY_MODULE_ICON[icon] ?? "reports", "size-[1.25rem]", 1.9)
 }
 
 export function CockpitActionCard({

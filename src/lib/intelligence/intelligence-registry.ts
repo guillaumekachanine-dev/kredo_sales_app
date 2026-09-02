@@ -21,14 +21,41 @@ export type IntelligenceAction = {
 
 export type CockpitModuleStatus = "active" | "disabled" | "coming_soon"
 
-export type CockpitModuleIconKey = "financial_modeling" | "activity_leave"
+export type CockpitModuleIconKey =
+  | "financial_modeling"
+  | "activity_leave"
+  | "pool_competences"
+  | "automation_metrics"
+  | "commercial_activity"
+  | "source_management"
+  | "cadence_simulator"
+  | "portfolio_atlas"
+  | "playbooks"
+  | "revenue_modeling"
+  | "agenda_light"
+
+/**
+ * Comment un module s'ouvre. Déclaratif : le rendu mobile ne connaît plus d'id
+ * en dur (`module.id === "financial_modeling"`), il lit ce champ.
+ *
+ *  - `route`    : navigation vers `href`.
+ *  - `launcher` : monte un flow client, chargé à l'ouverture via `next/dynamic`.
+ *                 `href` reste facultatif et purement informatif (page d'origine).
+ *
+ * Un module `launcher` doit être AUTOPORTANT : il charge ses propres données
+ * (server action appelée depuis le client). Un composant qui exige un snapshot
+ * en prop ne peut pas être monté depuis le panneau — il reste `coming_soon`
+ * tant que son chargeur n'existe pas.
+ */
+export type CockpitModuleKind = "route" | "launcher"
 
 export type CockpitModule = {
   id: string
   label: string
   description: string
   icon: CockpitModuleIconKey
-  href: string
+  kind: CockpitModuleKind
+  href?: string
   status: CockpitModuleStatus
 }
 
@@ -144,6 +171,13 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     icon: "prioritize",
     status: "coming_soon",
   },
+  review_account: {
+    id: "review_account",
+    label: "Revue de compte client",
+    description: "Croiser relation commerciale, intelligence compte et rentabilité de la delivery pour un compte donné.",
+    icon: "report",
+    status: "coming_soon",
+  },
   activity_report: {
     id: "activity_report",
     label: "Bilan d'activité",
@@ -160,10 +194,10 @@ const ACTIONS: Record<string, IntelligenceAction> = {
   },
   match_profiles: {
     id: "match_profiles",
-    label: "Matching profils",
-    description: "Rechercher l'adéquation entre consultants, candidats et offres.",
+    label: "Matcher les profils",
+    description: "Classer candidats et collaborateurs disponibles sur un besoin : compétences, séniorité, TJM, practice.",
     icon: "match_profiles",
-    status: "coming_soon",
+    status: "active",
   },
   prioritize_pipeline: {
     id: "prioritize_pipeline",
@@ -277,6 +311,44 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     icon: "report",
     status: "coming_soon",
   },
+  // ── Adaptateurs Lot C : point d'entrée contextualisé vers une capacité
+  //    transverse existante (INTEL-020 rédaction, manual_custom V2). Aucun
+  //    moteur propre — c'est tout l'intérêt.
+  prepare_meeting: {
+    id: "prepare_meeting",
+    label: "Préparer un RDV",
+    description: "Construire la fiche de préparation d'un rendez-vous : contexte, angles, objections et prochaines étapes.",
+    icon: "generate_pitch",
+    status: "active",
+  },
+  prepare_candidate: {
+    id: "prepare_candidate",
+    label: "Préparer un candidat",
+    description: "Préparer un profil à une étape de son parcours : entretien client, soutenance ou point de closing.",
+    icon: "match_profiles",
+    status: "active",
+  },
+  candidate_communication: {
+    id: "candidate_communication",
+    label: "Communication candidat",
+    description: "Composer un message candidat contextualisé : approche, relance, feedback ou invitation.",
+    icon: "write_email",
+    status: "active",
+  },
+  manual_analysis: {
+    id: "manual_analysis",
+    label: "Analyse à la demande",
+    description: "Croiser jusqu'à trois familles de sources autour d'une intention libre, avec preuves rattachées.",
+    icon: "deep_analysis",
+    status: "active",
+  },
+  cross_analysis: {
+    id: "cross_analysis",
+    label: "Analyse transverse",
+    description: "Analyser ensemble digests, signaux, documents et collections pour en tirer une lecture sourcée.",
+    icon: "deep_analysis",
+    status: "active",
+  },
   weekly_brief: {
     id: "weekly_brief",
     label: "Brief hebdomadaire",
@@ -356,11 +428,13 @@ const ACTIONS: Record<string, IntelligenceAction> = {
 // ─── Modules définis ─────────────────────────────────────────────────────────
 
 const MODULES: Record<string, CockpitModule> = {
+  // ── Prêts : moteur réel, surface mobile réelle ──────────────────────────
   financial_modeling: {
     id: "financial_modeling",
     label: "Modélisation financière",
     description: "Analyses & scénarios",
     icon: "financial_modeling",
+    kind: "launcher",
     href: "/finance",
     status: "active",
   },
@@ -369,8 +443,96 @@ const MODULES: Record<string, CockpitModule> = {
     label: "Activité & congés",
     description: "Planning & absences",
     icon: "activity_leave",
+    kind: "route",
     href: "/consultants/activite-conges",
     status: "active",
+  },
+  pool_competences: {
+    id: "pool_competences",
+    label: "Pool de compétences",
+    description: "Offre & tension",
+    icon: "pool_competences",
+    kind: "route",
+    href: "/consultants/pool-competences",
+    status: "active",
+  },
+  automation_metrics: {
+    id: "automation_metrics",
+    label: "Métriques",
+    description: "Volume, coûts & incidents",
+    icon: "automation_metrics",
+    kind: "launcher",
+    href: "/automations",
+    status: "active",
+  },
+
+  // ── Déclarés mais pas ouvrables : la surface existe, son chargeur non ───
+  //
+  //  Ces quatre modules sont montés aujourd'hui DANS leur page, qui leur passe
+  //  un snapshot chargé côté serveur (`snapshot`, `baseline`, `overview`). Le
+  //  panneau Cockpit est un composant client sans ces données : les brancher
+  //  demande d'écrire le chargeur autoportant correspondant, pas de recâbler
+  //  le panneau. Ils restent honnêtement `coming_soon` d'ici là.
+  commercial_activity: {
+    id: "commercial_activity",
+    label: "Métriques activité",
+    description: "Rythme & résultats commerciaux",
+    icon: "commercial_activity",
+    kind: "launcher",
+    status: "coming_soon",
+  },
+  source_management: {
+    id: "source_management",
+    label: "Gestion des sources",
+    description: "Socle éditorial & corpus",
+    icon: "source_management",
+    kind: "launcher",
+    href: "/veille",
+    status: "coming_soon",
+  },
+  cadence_simulator: {
+    id: "cadence_simulator",
+    label: "Simuler la cadence",
+    description: "Coût & fréquence des workflows",
+    icon: "cadence_simulator",
+    kind: "launcher",
+    href: "/automations",
+    status: "coming_soon",
+  },
+  portfolio_atlas: {
+    id: "portfolio_atlas",
+    label: "Atlas du portefeuille",
+    description: "Missions, clients & marges",
+    icon: "portfolio_atlas",
+    kind: "launcher",
+    href: "/missions",
+    status: "coming_soon",
+  },
+
+  // ── Capacité métier absente — chantiers dédiés, pas un défaut de câblage ─
+  playbooks: {
+    id: "playbooks",
+    label: "Playbooks",
+    description: "Angles & argumentaires par segment",
+    icon: "playbooks",
+    kind: "launcher",
+    status: "coming_soon",
+  },
+  revenue_modeling: {
+    id: "revenue_modeling",
+    label: "Modélisation du CA",
+    description: "Scénarios gain / perte",
+    icon: "revenue_modeling",
+    kind: "launcher",
+    status: "coming_soon",
+  },
+  agenda_light: {
+    id: "agenda_light",
+    label: "Agenda light",
+    description: "Prochaines échéances",
+    icon: "agenda_light",
+    kind: "launcher",
+    status: "coming_soon",
   },
 }
 
@@ -393,8 +555,8 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/agenda",
     label: "Agenda",
-    actionIds: ["weekly_brief", "prepare_day", "action_priorities", "flag_unprepared_meetings"],
-    moduleIds: [],
+    actionIds: ["prepare_day", "prepare_meeting", "weekly_brief", "action_priorities"],
+    moduleIds: ["commercial_activity"],
   },
 
   // ── CRM & Prospection ─────────────────────────────────────────────────
@@ -413,25 +575,25 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/intelligence",
     label: "Business Intelligence",
-    actionIds: ["common_sector_analysis", "search_news", "build_roadmap"],
-    moduleIds: [],
+    actionIds: ["manual_analysis"],
+    moduleIds: ["playbooks"],
   },
   {
     pattern: "/veille",
     label: "Veille & Actualités",
-    actionIds: [MONTHLY_WATCH_MISSION_ACTION_ID],
-    moduleIds: [],
+    actionIds: [MONTHLY_WATCH_MISSION_ACTION_ID, "cross_analysis"],
+    moduleIds: ["source_management"],
   },
   {
     pattern: "/prospection-intelligence",
     label: "Prospection Intelligence",
-    actionIds: ["prioritize_accounts", "search_news", "create_campaign", "build_roadmap"],
-    moduleIds: [],
+    actionIds: ["prioritize_accounts", "review_account", "create_campaign"],
+    moduleIds: ["playbooks", "agenda_light"],
   },
   {
     pattern: "/reports",
     label: "Rapports & Rédaction",
-    actionIds: ["common_report"],
+    actionIds: ["common_report", "cross_analysis"],
     moduleIds: [],
   },
 
@@ -439,28 +601,28 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/missions/opps",
     label: "Besoins & Staffing",
-    actionIds: ["match_profiles", "prioritize_pipeline", "post_mortem_pipeline", "initiate_quote", "analyze_needs"],
-    moduleIds: [],
+    actionIds: ["prioritize_pipeline", "match_profiles", "prepare_candidate", "post_mortem_pipeline", "analyze_needs"],
+    moduleIds: ["financial_modeling", "revenue_modeling"],
   },
   {
     pattern: "/missions",
     label: "Engagements",
     actionIds: ["detect_risks", "analyze_margins", "forecast_revenue"],
-    moduleIds: [],
+    moduleIds: ["portfolio_atlas", "activity_leave"],
   },
 
   // ── Équipe et Recrutement ─────────────────────────────────────────────
   {
     pattern: "/consultants",
     label: "Équipe",
-    actionIds: ["analyze_skill_gaps", "suggest_training", "analyze_activity", "forecast_availability"],
-    moduleIds: ["activity_leave"],
+    actionIds: ["forecast_availability", "analyze_needs", "match_profiles", "analyze_activity"],
+    moduleIds: ["pool_competences", "activity_leave"],
   },
   {
     pattern: "/recruitment",
     label: "Recrutement",
-    actionIds: ["analyze_funnel", "analyze_hiring_delays", "match_profiles", "initiate_offer", "analyze_skill_gaps"],
-    moduleIds: [],
+    actionIds: ["analyze_hiring_delays", "analyze_needs", "candidate_communication", "match_profiles", "analyze_funnel"],
+    moduleIds: ["agenda_light"],
   },
 
   // ── Finance ───────────────────────────────────────────────────────────
@@ -468,7 +630,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
     pattern: "/finance",
     label: "Finance",
     actionIds: ["analyze_margins", "forecast_revenue", "detect_anomalies"],
-    moduleIds: ["financial_modeling"],
+    moduleIds: ["portfolio_atlas", "activity_leave"],
   },
 
   // ── Outils / Paramètres — placeholders, pas d'action inventée ────────
@@ -481,8 +643,8 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/automations",
     label: "Automatisations",
-    actionIds: [],
-    moduleIds: [],
+    actionIds: ["common_report"],
+    moduleIds: ["automation_metrics", "cadence_simulator"],
   },
   {
     pattern: "/settings",

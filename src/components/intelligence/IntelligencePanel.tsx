@@ -30,6 +30,8 @@ import {
 } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { MissionComposerDesktop } from "@/features/intelligence-missions/components/MissionComposerDesktop"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
+import { MATCHING_COMPOSER_ACTION_ID } from "@/lib/intelligence/matching-composer-action"
+import { MatchingComposer } from "@/components/intelligence/matching/MatchingComposer"
 
 type AccountPanelAction = "pitch" | "summary" | string | null
 
@@ -169,8 +171,8 @@ function GenericEntityPanelContent({
   activeActionId,
   setActiveActionId,
 }: {
-  activeActionId: DeterministicIntelligenceActionId | null
-  setActiveActionId: (v: DeterministicIntelligenceActionId | null) => void
+  activeActionId: string | null
+  setActiveActionId: (v: string | null) => void
 }) {
   const { entityContext } = useIntelligenceContext()
   const nonCompanyType: Exclude<IntelligenceEntityType, "company"> | null =
@@ -183,7 +185,11 @@ function GenericEntityPanelContent({
 
   if (!entityContext || !resolved || !nonCompanyType) return null
 
-  if (activeActionId) {
+  if (activeActionId === MATCHING_COMPOSER_ACTION_ID) {
+    return <MatchingComposer variant="desktop" onBack={() => setActiveActionId(null)} />
+  }
+
+  if (activeActionId && isDeterministicIntelligenceAction(activeActionId)) {
     return <IntelligenceActionResultContent actionId={activeActionId} />
   }
 
@@ -211,7 +217,9 @@ function GenericEntityPanelContent({
                 action={action}
                 tone="dark"
                 onActionClick={(actionId) => {
-                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                  if (actionId === MATCHING_COMPOSER_ACTION_ID || isDeterministicIntelligenceAction(actionId)) {
+                    setActiveActionId(actionId)
+                  }
                 }}
               />
             ))}
@@ -234,6 +242,10 @@ function RegistryPanelContent({
   const isAvailableMissionAction = activeActionId !== null
     && activeActionId in MISSION_COMPOSER_ACTION_CONFIGS
     && resolved.actions.some((action) => action.id === activeActionId)
+
+  if (activeActionId === MATCHING_COMPOSER_ACTION_ID) {
+    return <MatchingComposer variant="desktop" onBack={() => setActiveActionId(null)} />
+  }
 
   if (activeActionId && (isAvailableMissionAction || isDeterministicIntelligenceAction(activeActionId))) {
     return (
@@ -259,7 +271,11 @@ function RegistryPanelContent({
                 action={action}
                 tone="dark"
                 onActionClick={(actionId) => {
-                  if (actionId in MISSION_COMPOSER_ACTION_CONFIGS || isDeterministicIntelligenceAction(actionId)) {
+                  if (
+                    actionId === MATCHING_COMPOSER_ACTION_ID ||
+                    actionId in MISSION_COMPOSER_ACTION_CONFIGS ||
+                    isDeterministicIntelligenceAction(actionId)
+                  ) {
                     setActiveActionId(actionId)
                   }
                 }}
@@ -311,7 +327,7 @@ export function IntelligencePanel() {
 
   // Active action states — remontés au niveau du shell pour piloter le header
   const [accountActiveAction, setAccountActiveAction] = useState<AccountPanelAction>(null)
-  const [entityActiveActionId, setEntityActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
+  const [entityActiveActionId, setEntityActiveActionId] = useState<string | null>(null)
   const [registryActiveActionId, setRegistryActiveActionId] = useState<string | null>(null)
 
   const hasSecondaryScreen =

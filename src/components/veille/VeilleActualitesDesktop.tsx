@@ -31,6 +31,7 @@ import {
 import { VeilleConvergencesRail } from "./VeilleConvergencesRail"
 import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
 import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
+import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { SourceManagementDialogDesktop } from "@/features/source-management/components/SourceManagementDialogDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
@@ -800,6 +801,18 @@ function StrategicAnalysisSection({
   const [pending, setPending] = useState(Boolean(generation.activeRun))
   const [error, setError] = useState<string | null>(generation.latestRun?.status === "failed" ? generation.latestRun.errorMessage : null)
   const [composerOpen, setComposerOpen] = useState(false)
+
+  // L'action « Analyse transverse » du Cockpit Intelligence émet un événement
+  // global. Sur /veille, c'est CE composeur qui doit s'ouvrir — il a le digest
+  // courant, les digests passés et les articles résolus, là où l'hôte global
+  // n'aurait qu'une famille « digest » vide. Voir WATCH_ANALYSIS_LOCAL_OWNER_PATHS.
+  useEffect(() => {
+    function handleOpenComposer() {
+      setComposerOpen(true)
+    }
+    window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
+    return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
+  }, [])
 
   const [openSections, setOpenSections] = useState<Record<StrategicSectionKey, boolean>>({
     trends: false,

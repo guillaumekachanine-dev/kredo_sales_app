@@ -1,21 +1,11 @@
 "use client"
 
-import { useState } from "react"
-import { createOpportunityStaffing } from "@/app/(app)/missions/_actions/opportunity-staffing"
 import { AppDialog } from "@/components/ui/AppDialog"
-import { runOpportunityMatching } from "@/lib/staffing-matching/actions"
+import { useOpportunityMatching } from "@/lib/staffing-matching/use-opportunity-matching"
 import type { MatchingResult, ProfileMatchResult } from "@/lib/staffing-matching/types"
 import { MatchingResultsDesktop } from "./MatchingResultsDesktop"
 import { MatchingResultsMobile } from "./MatchingResultsMobile"
 import { profileSourceKey } from "./matching-ui-utils"
-
-type Phase = "idle" | "loading" | "results" | "error"
-
-interface PresentState {
-  presenting: boolean
-  presented: boolean
-  error: string | null
-}
 
 function selectedProfileFor(
   result: MatchingResult,
@@ -41,62 +31,21 @@ export function MatchingDialog({
   isMobile,
   onStaffed,
 }: MatchingDialogProps) {
-  const [phase, setPhase] = useState<Phase>("idle")
-  const [result, setResult] = useState<MatchingResult | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [selectedSourceKey, setSelectedSourceKey] = useState<string | null>(null)
-  const [presentStateByKey, setPresentStateByKey] = useState<Map<string, PresentState>>(new Map())
+  // Orchestration partagée avec le Cockpit Intelligence — voir
+  // `useOpportunityMatching`. Ce composant ne garde que sa mise en page.
+  const {
+    phase,
+    result,
+    errorMessage,
+    selectedSourceKey,
+    setSelectedSourceKey,
+    presentStateByKey,
+    run,
+    present,
+  } = useOpportunityMatching(opportunityId)
 
-  // Le moteur est 100% déterministe et synchrone (aucun LLM, aucun run n8n à
-  // attendre) — pas de Realtime nécessaire ici, contrairement à AccountScanDialog.
-  // Le composant reste monté entre deux ouvertures (résultat conservé tant que
-  // le besoin ne change pas) : le parent remonte ce composant via `key={opportunity.id}`
-  // pour réinitialiser l'état si le besoin change sous le dialog (pattern React
-  // recommandé plutôt qu'un setState synchrone dans un effet).
-  async function handleRun() {
-    setPhase("loading")
-    setErrorMessage(null)
-    const outcome = await runOpportunityMatching(opportunityId)
-    if (!outcome.ok) {
-      setErrorMessage(outcome.error)
-      setPhase("error")
-      return
-    }
-    setResult(outcome.result)
-    setPresentStateByKey(new Map())
-    setSelectedSourceKey(null)
-    setPhase("results")
-  }
-
-  async function handlePresent(sourceKey: string) {
-    if (!result) return
-    const profile = result.rankedProfiles.find((p) => profileSourceKey(p) === sourceKey)
-    if (!profile) return
-
-    setPresentStateByKey((prev) => {
-      const next = new Map(prev)
-      next.set(sourceKey, { presenting: true, presented: false, error: null })
-      return next
-    })
-
-    const outcome = await createOpportunityStaffing({
-      opportunity_id: opportunityId,
-      source_type: profile.sourceType,
-      source_id: profile.sourceId,
-      positioning_origin: "Matching IA",
-      initial_status: "identifie",
-    })
-
-    setPresentStateByKey((prev) => {
-      const next = new Map(prev)
-      next.set(sourceKey, outcome.error
-        ? { presenting: false, presented: false, error: outcome.error }
-        : { presenting: false, presented: true, error: null })
-      return next
-    })
-
-    if (!outcome.error) onStaffed?.()
-  }
+  const handleRun = run
+  const handlePresent = (sourceKey: string) => present(sourceKey, onStaffed)
 
   let body: React.ReactNode
   if (phase === "idle") {

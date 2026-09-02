@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { CreateCommercialWindowDialog, QualifySignalDialog } from "./SignalDialogs"
 import { AddToListSheetMobile } from "@/features/content-collections/components/AddToListSheetMobile"
 import { ManageCollectionsMobile } from "@/features/content-collections/components/ManageCollectionsMobile"
+import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"
 import { WatchAnalysisComposerMobile } from "@/features/watch-analysis/components/WatchAnalysisComposerMobile"
 import { extractMatchedCompany } from "./veille-utils"
 import { VeilleAnalysesTab } from "./mobile/VeilleAnalysesTab"
@@ -94,6 +95,18 @@ export function VeilleActualitesMobile({
   const [isAddAnalysisToListOpen, setIsAddAnalysisToListOpen] = useState(false)
   const [isManageListsOpen, setIsManageListsOpen] = useState(false)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
+
+  // L'action « Analyse transverse » du Cockpit Intelligence émet un événement
+  // global. Sur /veille, c'est CE composeur qui doit s'ouvrir — il a le digest
+  // courant, les digests passés et les articles résolus, là où l'hôte global
+  // n'aurait qu'une famille « digest » vide. Voir WATCH_ANALYSIS_LOCAL_OWNER_PATHS.
+  useEffect(() => {
+    function handleOpenComposer() {
+      setIsComposerOpen(true)
+    }
+    window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
+    return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
+  }, [])
   const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)

@@ -43,6 +43,14 @@ const ReportGenerationHost = dynamic(
   { ssr: false },
 )
 
+const WatchAnalysisComposerHost = dynamic(
+  () =>
+    import("@/features/watch-analysis/components/WatchAnalysisComposerHost").then(
+      (mod) => mod.WatchAnalysisComposerHost,
+    ),
+  { ssr: false },
+)
+
 const CrmAccountLauncherHost = dynamic(
   () =>
     import("@/components/crm/launcher/CrmAccountLauncherHost").then(
@@ -71,6 +79,7 @@ export function AppOverlayHosts({ device }: AppOverlayHostsProps) {
       <CrmIdentityDrawerHost />
       <CommunicationComposerHost device={device} />
       <ReportGenerationHost />
+      <WatchAnalysisComposerHost device={device} />
       <CrmAccountLauncherHost device={device} />
       <LegacyNavigationDrawer device={device} />
     </>

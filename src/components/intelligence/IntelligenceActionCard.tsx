@@ -3,12 +3,14 @@
 import type { IntelligenceAction } from "@/lib/intelligence/intelligence-registry"
 import { openCommunicationComposer, type CommunicationComposerOrigin, type CommunicationComposerRequest } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import { openWatchAnalysisComposer } from "@/lib/reports/watch-analysis-launcher"
 import { useIntelligenceContext, type IntelligenceEntityContext } from "@/hooks/use-intelligence-context"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { cockpitIconForAction } from "./cockpit-action-icons"
 import { isDeterministicIntelligenceAction } from "./action-results/IntelligenceActionResultContent"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
+import { MATCHING_COMPOSER_ACTION_ID } from "@/lib/intelligence/matching-composer-action"
 import { CockpitActionCard } from "./cockpit-mobile/CockpitIntelligenceCards"
 
 interface IntelligenceActionCardProps {
@@ -25,6 +27,12 @@ type CommunicationActionConfig = {
   origin?: CommunicationComposerOrigin
   scope?: CommunicationComposerRequest["scope"]
 }
+
+// Adaptateur `manual_custom` V2 : ces deux actions n'ont pas de moteur propre,
+// elles ouvrent le composeur d'analyse transverse. Deux libellés produits
+// distincts (« Analyse à la demande » en BI, « Analyse transverse » ailleurs),
+// une seule capacité derrière — c'est l'invariant §6 du programme.
+const WATCH_ANALYSIS_ACTIONS = new Set(["manual_analysis", "cross_analysis"])
 
 const INTERNAL_SCOPE_ACTIONS = new Set([
   "analyze_skill_gaps",
@@ -93,12 +101,12 @@ function resolveCommunicationConfig(
       return { scenario: "weekly_briefing_prep", objective: "align_internal", tone: "direct", scope: "internal" }
     case "flag_unprepared_meetings":
       return { scenario: "sensitive_meeting_briefing", objective: "align_internal", tone: "diplomatic", scope: "internal" }
-    case "match_profiles":
-      return {
-        scenario: entityType === "candidate" ? "candidate_to_client_pitch" : "opportunity_to_candidate_pitch",
-        objective: entityType === "candidate" ? "advocate_for_candidate" : "request_action",
-        tone: "direct",
-      }
+    case "prepare_meeting":
+      return { scenario: "meeting_prep_discovery", objective: "get_meeting", tone: "direct" }
+    case "prepare_candidate":
+      return { scenario: "candidate_to_client_pitch", objective: "advocate_for_candidate", tone: "direct" }
+    case "candidate_communication":
+      return { scenario: "candidate_follow_up", objective: "get_reply", tone: "warm" }
     case "initiate_quote":
       return { scenario: "proposal_defense_pitch", objective: "accelerate_decision", tone: "assertive" }
     case "initiate_offer":
@@ -174,8 +182,10 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
   const isWeeklyBrief = action.id === "weekly_brief"
   const isSupportedReportAction = isCommonReport || isActivityReport || isWeeklyBrief
   const isDeterministicAction = isDeterministicIntelligenceAction(action.id)
+  const isWatchAnalysis = WATCH_ANALYSIS_ACTIONS.has(action.id)
+  const isMatchingComposer = action.id === MATCHING_COMPOSER_ACTION_ID
   const isMissionComposerAction = action.id in MISSION_COMPOSER_ACTION_CONFIGS
-  const isInteractive = isMissionComposerAction || isDeterministicAction || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
+  const isInteractive = isMissionComposerAction || isDeterministicAction || isMatchingComposer || isWatchAnalysis || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
   const isComingSoon = action.status === "coming_soon"
   const canInteract = isInteractive && !isComingSoon
   const iconSrc = cockpitIconForAction(action.id, action.icon)
@@ -186,6 +196,11 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
     : action.label
 
   function handleClick() {
+    if (isMatchingComposer) {
+      onActionClick?.(action.id)
+      return
+    }
+
     if (isMissionComposerAction) {
       onActionClick?.(action.id)
       return
@@ -193,6 +208,11 @@ export function IntelligenceActionCard({ action, tone = "dark", onActionClick }:
 
     if (isDeterministicAction) {
       onActionClick?.(action.id)
+      return
+    }
+
+    if (isWatchAnalysis) {
+      openWatchAnalysisComposer()
       return
     }
 

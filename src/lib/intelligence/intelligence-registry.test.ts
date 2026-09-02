@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest"
 
-import { MONTHLY_WATCH_MISSION_ACTION_ID } from "@/features/intelligence-missions/components/mission-composer-model"
 import {
+  MISSION_COMPOSER_ACTION_CONFIGS,
+  MONTHLY_WATCH_MISSION_ACTION_ID,
+} from "@/features/intelligence-missions/components/mission-composer-model"
+import { isDeterministicIntelligenceAction } from "@/components/intelligence/action-results/IntelligenceActionResultContent"
+import { MODULE_LAUNCHERS } from "@/components/intelligence/cockpit-mobile/CockpitIntelligenceMobileContent"
+import {
+  PAGE_COCKPIT_CONFIGS,
   doesCockpitPatternMatch,
   resolveCockpitDisplayMode,
   resolveEntityActions,
@@ -17,8 +23,11 @@ describe("Cockpit Intelligence registry", () => {
         label: "Analyse mensuelle de la veille",
         status: "active",
       }),
+      expect.objectContaining({ id: "cross_analysis", status: "active" }),
     ])
-    expect(veille.modules).toEqual([])
+    expect(veille.modules).toEqual([
+      expect.objectContaining({ id: "source_management", status: "coming_soon", kind: "launcher" }),
+    ])
     expect(veille).not.toHaveProperty("commonActions")
   })
 
@@ -40,8 +49,70 @@ describe("Cockpit Intelligence registry", () => {
       "detect_anomalies",
     ])
     expect(finance.modules).toEqual([
-      expect.objectContaining({ id: "financial_modeling", status: "active", href: "/finance" }),
+      expect.objectContaining({ id: "portfolio_atlas", status: "coming_soon", kind: "launcher" }),
+      expect.objectContaining({
+        id: "activity_leave",
+        status: "active",
+        kind: "route",
+        href: "/consultants/activite-conges",
+      }),
     ])
+  })
+
+  // Lot A — invariant de non-régression : toute entrée du registre porte un handler
+  // réel. `coming_soon` reste autorisé (l'inverse serait un bouton actif fictif),
+  // mais un id `active` sans moteur déterministe, sans composeur de mission et sans
+  // handler nommé dans IntelligenceActionCard est exactement ce que le programme
+  // interdit.
+  it("never exposes an active action without a real handler", () => {
+    const HANDLED_WITHOUT_ENGINE = new Set([
+      "common_report",
+      "activity_report",
+      "weekly_brief",
+      "common_write_email",
+      // Lot D — composeur de matching (picker de besoin + moteur déterministe).
+      "match_profiles",
+      // Adaptateurs Lot C — handlers nommés dans IntelligenceActionCard.
+      "prepare_meeting",
+      "prepare_candidate",
+      "candidate_communication",
+      "manual_analysis",
+      "cross_analysis",
+    ])
+
+    const pathnames = PAGE_COCKPIT_CONFIGS.map((config) => config.pattern.replace(/:[^/]+/g, "sample"))
+
+    for (const pathname of pathnames) {
+      for (const action of resolvePageCockpitConfig(pathname).actions) {
+        if (action.status !== "active") continue
+
+        const isHandled =
+          isDeterministicIntelligenceAction(action.id) ||
+          action.id in MISSION_COMPOSER_ACTION_CONFIGS ||
+          HANDLED_WITHOUT_ENGINE.has(action.id)
+
+        expect(isHandled, `${action.id} (${pathname}) est actif sans handler`).toBe(true)
+      }
+    }
+  })
+
+  // Lot B — pendant module de l'invariant d'action : un module `route` doit avoir
+  // une destination, et un module `launcher` actif doit avoir une implémentation
+  // montable depuis le panneau. Sans ça on livre une carte cliquable sans effet.
+  it("never exposes a module without a real destination", () => {
+    for (const config of PAGE_COCKPIT_CONFIGS) {
+      for (const entry of resolvePageCockpitConfig(config.pattern.replace(/:[^/]+/g, "sample")).modules) {
+        if (entry.kind === "route") {
+          expect(entry.href, `${entry.id} est une route sans href`).toBeTruthy()
+          continue
+        }
+        if (entry.status !== "active") continue
+        expect(
+          entry.id in MODULE_LAUNCHERS,
+          `${entry.id} est un launcher actif sans implémentation`,
+        ).toBe(true)
+      }
+    }
   })
 
   it("returns a factual empty configuration for an unmapped page", () => {
@@ -72,6 +143,22 @@ describe("Cockpit Intelligence route resolution", () => {
     expect(resolvePageCockpitConfig("/prospection/accounts").label).toBe("Comptes & contacts")
     expect(resolvePageCockpitConfig("/prospection/accounts/company-123").label).toBe("Fiche compte")
     expect(resolvePageCockpitConfig("/prospection/accounts/company-123/contacts").label).toBe("Fiche compte")
+  })
+
+  it("aligns the Équipe and Recrutement configurations on the target matrix", () => {
+    expect(resolvePageCockpitConfig("/consultants").actions.map((action) => action.id)).toEqual([
+      "forecast_availability",
+      "analyze_needs",
+      "match_profiles",
+      "analyze_activity",
+    ])
+    expect(resolvePageCockpitConfig("/recruitment").actions.map((action) => action.id)).toEqual([
+      "analyze_hiring_delays",
+      "analyze_needs",
+      "candidate_communication",
+      "match_profiles",
+      "analyze_funnel",
+    ])
   })
 
   it("keeps all consultants tabs in the Équipe family", () => {

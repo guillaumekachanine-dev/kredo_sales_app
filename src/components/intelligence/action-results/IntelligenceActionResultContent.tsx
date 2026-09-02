@@ -23,6 +23,7 @@ import { AnalyzeNeedsResult } from "./AnalyzeNeedsResult"
 import { ScanContactsResult } from "./ScanContactsResult"
 import { AnalyzeFunnelResult } from "./AnalyzeFunnelResult"
 import { AnalyzeMarginsResult } from "./AnalyzeMarginsResult"
+import { CockpitBrightHeader, CockpitBrightSection } from "../CockpitBrightSection"
 
 export const DETERMINISTIC_INTELLIGENCE_ACTION_IDS = [
   "action_priorities",
@@ -111,53 +112,6 @@ async function loadAction(id: DeterministicIntelligenceActionId): Promise<Loaded
   }
 }
 
-function DeterministicResultHeader({ title, onBack }: { title: string; onBack?: () => void }) {
-  return (
-    <header className="relative isolate grid grid-cols-[minmax(0,1fr)_clamp(5rem,24cqi,6.5rem)] overflow-hidden bg-edito-navy text-white">
-      {/* Zone gauche : titre */}
-      <div className="flex min-w-0 items-center px-5 py-4 pr-8">
-        {onBack ? (
-          <button
-            type="button"
-            onClick={onBack}
-            className="group -ml-1 inline-flex min-h-[2.5rem] items-center gap-2 rounded p-1 text-left text-white transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cockpit-amber cursor-pointer"
-            aria-label={`Retour depuis ${title}`}
-          >
-            <svg
-              className="size-3 shrink-0 fill-white"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path d="M16 19.5V4.5L5 12z" />
-            </svg>
-            <h3 className="font-heading text-[clamp(1rem,4.5cqi,1.4rem)] font-black leading-[1.1] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
-              {title}
-            </h3>
-          </button>
-        ) : (
-          <h3 className="font-heading text-[clamp(1rem,4.5cqi,1.4rem)] font-black leading-[1.1] tracking-[-0.02em] text-white [overflow-wrap:anywhere]">
-            {title}
-          </h3>
-        )}
-      </div>
-
-      {/* Zone droite : pleine couleur, remplie jusqu'aux bords */}
-      <div className="flex items-center justify-center bg-brand-primary-deep px-3 py-4">
-        <p className="flex flex-col text-[clamp(0.5rem,2.2cqi,0.62rem)] font-black uppercase leading-[1.5] tracking-[0.13em] text-white/80">
-          <span className="whitespace-nowrap">Processus</span>
-          <span className="whitespace-nowrap">déterministe</span>
-        </p>
-      </div>
-
-      {/* Séparateur diagonal */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-3 -top-3 right-[clamp(5rem,24cqi,6.5rem)] z-10 w-2.5 origin-center -skew-x-[14deg] bg-edito-navy"
-      />
-    </header>
-  )
-}
-
 export function IntelligenceActionResultContent({
   actionId,
   onBack,
@@ -191,11 +145,12 @@ export function IntelligenceActionResultContent({
       : loaded?.id === "action_priorities"
 
     return (
-      <section
-        data-theme="edito-bright-cockpit"
-        className="overflow-hidden bg-edito-surface text-edito-body [container-type:inline-size] max-md:ml-[-1.3125rem] max-md:w-[calc(100vw_-_4rem)]"
-      >
-        <DeterministicResultHeader title={titleForAction(actionId)} onBack={onBack} />
+      <CockpitBrightSection>
+        <CockpitBrightHeader
+          title={titleForAction(actionId)}
+          kicker={["Processus", "déterministe"]}
+          onBack={onBack}
+        />
 
         {(isPending || (!isBrightPilotLoaded && !error)) && (
           <div className="flex items-center gap-3 border-b border-edito-border px-5 py-6 text-xs font-semibold text-edito-muted animate-pulse">
@@ -212,7 +167,7 @@ export function IntelligenceActionResultContent({
 
         {loaded?.id === "forecast_revenue" && <ForecastRevenueResult result={loaded.data} />}
         {loaded?.id === "action_priorities" && <ActionPrioritiesResult result={loaded.data} />}
-      </section>
+      </CockpitBrightSection>
     )
   }
 
