@@ -223,7 +223,7 @@ describe("mobile-navigation-history (moteur pur et intégration)", () => {
       "veille",
       "finance",
       "engagements",
-      "recrutement",
+      "intelligence",
       "equipe",
       "reports",
       "knowledge",

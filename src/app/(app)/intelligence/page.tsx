@@ -9,6 +9,8 @@ import { buildBusinessIntelligenceWorkspaceAdapter } from "@/features/business-i
 import { resolveBusinessIntelligenceRoute } from "@/features/business-intelligence/data/resolve-business-intelligence-route"
 import { SegmentCatalogLandingDesktop } from "@/features/business-intelligence/catalog/SegmentCatalogLandingDesktop"
 import { SegmentCatalogLandingMobile } from "@/features/business-intelligence/catalog/SegmentCatalogLandingMobile"
+import { BusinessIntelligenceEntryGate } from "@/features/business-intelligence/session/BusinessIntelligenceEntryGate"
+import { BusinessIntelligenceSessionTracker } from "@/features/business-intelligence/session/BusinessIntelligenceSessionTracker"
 import { BusinessIntelligenceErrorState } from "@/features/business-intelligence/states/BusinessIntelligenceErrorState"
 import { BusinessIntelligenceLoadingDesktop, BusinessIntelligenceLoadingMobile } from "@/features/business-intelligence/states/BusinessIntelligenceLoading"
 import { redirect } from "next/navigation"
@@ -35,9 +37,13 @@ async function BusinessIntelligencePageContent({ searchParams }: BusinessIntelli
   if (route.kind === "catalog" || route.kind === "invalid") {
     const [device, catalog] = await Promise.all([getDashboardDevice(), getBusinessIntelligenceCatalog()])
     const issue = route.kind === "invalid" ? route.reason : null
-    return device === "mobile"
-      ? <SegmentCatalogLandingMobile catalog={catalog} issue={issue} />
-      : <SegmentCatalogLandingDesktop catalog={catalog} issue={issue} />
+    return (
+      <BusinessIntelligenceEntryGate catalog={catalog} device={device} issue={issue}>
+        {device === "mobile"
+          ? <SegmentCatalogLandingMobile catalog={catalog} issue={issue} />
+          : <SegmentCatalogLandingDesktop catalog={catalog} issue={issue} />}
+      </BusinessIntelligenceEntryGate>
+    )
   }
 
   const chapter = resolveBiChapter(route.tab)
@@ -56,6 +62,7 @@ async function BusinessIntelligencePageContent({ searchParams }: BusinessIntelli
     const viewModel = buildBusinessIntelligenceMobileModel(snapshot)
     return (
       <div data-theme="edito-bright-cockpit" className="min-h-screen bg-edito-canvas text-edito-body">
+        <BusinessIntelligenceSessionTracker segmentId={workspace.segment.id} />
         <BusinessIntelligenceMobile
           viewModel={viewModel}
           snapshot={snapshot}
@@ -72,6 +79,7 @@ async function BusinessIntelligencePageContent({ searchParams }: BusinessIntelli
 
   return (
     <div data-theme="edito-bright-cockpit" className="flex min-h-0 flex-1 bg-canvas text-body">
+      <BusinessIntelligenceSessionTracker segmentId={workspace.segment.id} />
       <BusinessIntelligenceDesktop
         viewModel={viewModel}
         snapshot={snapshot}
@@ -82,5 +90,4 @@ async function BusinessIntelligencePageContent({ searchParams }: BusinessIntelli
       />
     </div>
   )
-
 }

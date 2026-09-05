@@ -25,6 +25,7 @@ export type MenuItemId =
   | "finance"
   | "engagements"
   | "recrutement"
+  | "intelligence"
   | "equipe"
   | "reports"
   | "knowledge"
@@ -106,12 +107,12 @@ export const mainItems: MenuItem[] = [
     tabs: tabsFor("/missions"),
   },
   {
-    id: "recrutement",
-    label: "Recrutement",
-    icon: "recrutement",
-    href: "/recruitment",
+    id: "intelligence",
+    label: "Business Intelligence",
+    icon: "bi",
+    href: "/intelligence",
     size: "secondary",
-    activePaths: ["/recruitment"],
+    activePaths: ["/intelligence"],
   },
   {
     id: "equipe",

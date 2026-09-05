@@ -62,13 +62,6 @@ type SceneLayout = {
   width: number
 }
 
-type MetricItem = {
-  label: string
-  value: number | string
-  detail: string
-  progress: number
-}
-
 type PoolSkill = PoolCompetencesDataset["skills"][number]
 
 type MarketSignalNode = PoolSkill & {
@@ -224,7 +217,7 @@ export function PoolCompetencesMap({
   dataset,
   collaborators,
 }: PoolCompetencesMapProps) {
-  const { practices, skills, lastUpdatedAt } = dataset
+  const { practices, skills } = dataset
   const [selectedSlug, setSelectedSlug] = useState(practices[0]?.slug ?? "")
   const [activeCategory, setActiveCategory] = useState<PracticeCategoryKey | null>(null)
   const [hoveredCategory, setHoveredCategory] = useState<PracticeCategoryKey | null>(null)
@@ -253,10 +246,6 @@ export function PoolCompetencesMap({
   )
   const activeSkillCategory = hoveredSkillCategory ?? pinnedSkillCategory
   const selectedSkills = skillGroups.flatMap((group) => group.skills)
-  const totalSelectedSkills = selectedSkills.length
-  const suppliedSelectedSkills = selectedSkills.filter((skill) => skill.supplyCount > 0).length
-  const coverageRate =
-    totalSelectedSkills > 0 ? Math.round((suppliedSelectedSkills / totalSelectedSkills) * 100) : 0
 
   const attachedCollaborators = useMemo(
     () =>
@@ -275,33 +264,6 @@ export function PoolCompetencesMap({
   )
 
   const categoryNodes = practiceCategoryNodes
-
-  const metrics: MetricItem[] = [
-    {
-      label: "Practices",
-      value: practices.length,
-      detail: "territoires actifs",
-      progress: 100,
-    },
-    {
-      label: "Offres",
-      value: practices.reduce((sum, practice) => sum + practice.offers.length, 0),
-      detail: "offres catalogue branchees",
-      progress: 100,
-    },
-    {
-      label: "Referentiel",
-      value: skills.length,
-      detail: "competences de la base",
-      progress: 100,
-    },
-    {
-      label: "Couverture active",
-      value: `${coverageRate}%`,
-      detail: `${suppliedSelectedSkills}/${totalSelectedSkills} competences portees`,
-      progress: coverageRate,
-    },
-  ]
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -412,32 +374,13 @@ export function PoolCompetencesMap({
 
   return (
     <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-4 py-5 sm:px-6">
-      <header className="grid gap-4 border-b border-border pb-5 xl:grid-cols-[minmax(260px,0.42fr)_minmax(0,1fr)] xl:items-end">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
-            Equipe / Pool de competences
-          </p>
-          <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-heading">
-            Parcours practices, categories et contenus
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-body">
-            Derniere mise a jour base : {formatDate(lastUpdatedAt)}
-          </p>
-        </div>
-
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((metric, index) => (
-            <Metric
-              key={metric.label}
-              label={metric.label}
-              value={metric.value}
-              detail={metric.detail}
-              progress={metric.progress}
-              featured={index === 3}
-              tone={selectedPractice.tone}
-            />
-          ))}
-        </div>
+      <header className="border-b border-border pb-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
+          Équipe / Pool de compétences
+        </p>
+        <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-heading">
+          Expertises & savoir-faire
+        </h1>
       </header>
 
       <main className="flex flex-col gap-5">
@@ -1384,69 +1327,3 @@ function ProfilesPanel({ practice }: { practice: PracticeTerritory }) {
   )
 }
 
-function Metric({
-  label,
-  value,
-  detail,
-  progress,
-  featured,
-  tone,
-}: {
-  label: string
-  value: number | string
-  detail: string
-  progress: number
-  featured?: boolean
-  tone: PracticeTerritory["tone"]
-}) {
-  const toneStyle = toneClasses[tone]
-
-  return (
-    <div
-      className={cn(
-        "kredo-hover-reference group relative min-h-24 overflow-hidden rounded-[var(--radius-medium)] border bg-surface px-4 py-3.5",
-        featured ? cn("border-primary/35", toneStyle.soft) : "border-border"
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
-          {label}
-        </p>
-        <span
-          className={cn(
-            "mt-0.5 h-2 w-2 shrink-0 rounded-full transition-transform duration-200 group-hover:scale-125",
-            featured ? toneStyle.fill : "bg-border"
-          )}
-          aria-hidden="true"
-        />
-      </div>
-      <p className="mt-3 font-heading text-2xl font-bold leading-none tracking-tight text-heading">
-        {value}
-      </p>
-      <p className="mt-2 min-h-8 text-xs leading-4 text-body">{detail}</p>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/70">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            featured ? toneStyle.fill : "bg-heading/55"
-          )}
-          style={{ width: `${Math.max(8, Math.min(100, progress))}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "non renseignee"
-
-  try {
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(value))
-  } catch {
-    return value
-  }
-}
