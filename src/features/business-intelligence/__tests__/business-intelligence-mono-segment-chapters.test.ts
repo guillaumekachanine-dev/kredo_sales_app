@@ -633,7 +633,7 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
         }),
       )
 
-      expect(markup).toContain("Calendrier réglementaire")
+      expect(markup).not.toContain("Calendrier réglementaire")
       expect(markup).toContain("Amendement IFRA 51 — Entrée en vigueur obligatoire")
       expect(markup).toContain("Urgent")
       expect(markup).toContain("IFRA")

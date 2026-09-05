@@ -7,6 +7,7 @@ type CompetitiveMobileMatrixProps = {
   actors: CompetitiveMapActor[]
   selectedActorId: string | null
   onSelectActor: (actorId: string) => void
+  onImport?: () => void
 }
 
 const CATEGORY_COLORS: Record<CompetitiveMapActor["category"], string> = {
@@ -17,7 +18,7 @@ const CATEGORY_COLORS: Record<CompetitiveMapActor["category"], string> = {
   outsider_niche: "var(--color-dataviz-5)",
 }
 
-export function CompetitiveMobileMatrix({ actors, selectedActorId, onSelectActor }: CompetitiveMobileMatrixProps) {
+export function CompetitiveMobileMatrix({ actors, selectedActorId, onSelectActor, onImport }: CompetitiveMobileMatrixProps) {
   const positionedActors = useMemo(() => actors.filter((actor) => actor.isPositioned), [actors])
   const nonPositionedActors = useMemo(() => actors.filter((actor) => !actor.isPositioned), [actors])
   const width = 350
@@ -30,12 +31,34 @@ export function CompetitiveMobileMatrix({ actors, selectedActorId, onSelectActor
 
   return (
     <section aria-labelledby="competitive-mobile-matrix-title" className="border-y border-edito-border bg-edito-surface px-4 py-4">
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h2 id="competitive-mobile-matrix-title" className="font-heading text-base font-bold text-edito-navy">Matrice concurrentielle</h2>
           <p className="mt-1 text-[11px] text-edito-muted">Appétence /35 × accessibilité /5</p>
         </div>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-edito-muted">Touchez un point</span>
+        {onImport ? (
+          <button
+            type="button"
+            onClick={onImport}
+            className="relative inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-edito-border bg-edito-chip px-2.5 text-xs font-bold text-edito-navy transition-colors hover:bg-edito-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:opacity-75 before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-['']"
+          >
+            <svg
+              className="size-3.5 shrink-0"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M2.5 10.5v2a1 1 0 001 1h9a1 1 0 001-1v-2" />
+              <path d="M8 2.5v7" />
+              <path d="M5.5 7l2.5 2.5L10.5 7" />
+            </svg>
+            <span>Importer</span>
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-3 overflow-hidden rounded-xl border border-edito-border bg-edito-canvas">

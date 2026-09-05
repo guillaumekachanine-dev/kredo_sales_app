@@ -159,7 +159,7 @@ describe("TerrainHomeDashboardMobile UI Integration", () => {
     const html = renderToString(createElement(TerrainHomeDashboardMobile, { workspace: ws }))
 
     expect(html).toContain('data-terrain-surface="home"')
-    expect(html).toContain("Corpus fiable")
+    expect(html).not.toContain("Corpus fiable")
     expect(html).toContain("IFRA 52")
     expect(html).toContain("Angle du jour")
     expect(html).toContain("Copier l’accroche")
@@ -177,7 +177,7 @@ describe("TerrainHomeDashboardMobile UI Integration", () => {
     const html = renderToString(createElement(TerrainHomeDashboardMobile, { workspace: ws }))
 
     expect(html).toContain('data-terrain-surface="home"')
-    expect(html).toContain("Corpus fiable")
+    expect(html).not.toContain("Corpus fiable")
     expect(html).not.toContain("Accès aux modes Terrain")
   })
 

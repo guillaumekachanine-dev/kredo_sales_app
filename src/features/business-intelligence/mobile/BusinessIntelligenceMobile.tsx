@@ -62,7 +62,11 @@ export function BusinessIntelligenceWorkspaceMobile({ sectorMapCatalog, competit
 
   return (
     <main className="relative min-h-dvh overflow-x-hidden bg-edito-canvas pb-[max(1rem,env(safe-area-inset-bottom))] text-edito-body" aria-busy={isSegmentPending || undefined}>
-      <BusinessIntelligenceMobileHeader segmentName={workspace.segment.name} onChangeSegment={() => setIsPickerOpen(true)} />
+      <BusinessIntelligenceMobileHeader
+        segmentName={workspace.segment.name}
+        activeChapter={activeChapter}
+        onChangeSegment={() => setIsPickerOpen(true)}
+      />
       <nav aria-label="Chapitres Business Intelligence" className="sticky top-0 z-20 flex overflow-x-auto border-y border-edito-border bg-edito-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {BI_CHAPTERS.map((chapter) => {
           const selected = activeChapter === chapter.id

@@ -8,7 +8,6 @@ import { buildTerrainStories } from "./terrain-stories-model"
 import { buildTerrainRevisionCards } from "./terrain-revision-model"
 import { buildTerrainTopAccounts } from "./terrain-top-accounts-model"
 import { buildTerrainEssentials } from "./terrain-essentials-model"
-import { TerrainConfidenceBadge } from "./TerrainConfidenceBadge"
 import { TerrainRegulatoryCard } from "./TerrainRegulatoryCard"
 import { TerrainAngleCard } from "./TerrainAngleCard"
 import { TerrainStoriesMobile } from "./TerrainStoriesMobile"
@@ -103,10 +102,7 @@ export function TerrainHomeDashboardMobile({
       className="space-y-4 px-4 py-4"
       data-terrain-surface="home"
     >
-      {/* 1. Badge de confiance du corpus */}
-      <TerrainConfidenceBadge confidence={model.confidence} />
-
-      {/* 2. Prochaine échéance réglementaire */}
+      {/* 1. Prochaine échéance réglementaire */}
       <TerrainRegulatoryCard item={model.regulatory} />
 
       {/* 3. Angle du jour & action de copie de l'accroche */}

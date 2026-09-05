@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import type { CompetitiveMapSnapshot } from "@/features/competitive-map/data/competitive-map-workspace-types"
 import { SectorAccountDrillDownDialog } from "./SectorAccountDrillDownDialog"
 import type { SectorKnowledgeReadModel, SectorResolvedLevel } from "@/features/master-study/data/get-sector-knowledge-read-model"
@@ -8,14 +8,14 @@ import type { ResolvedSource } from "../shared/SourceChip"
 import { SourceChipList } from "../shared/SourceChip"
 import { DoncCallout } from "../shared/DoncCallout"
 import { formatStudyDate, provenanceLabel } from "../home/home-model"
-import { CorpusConfidenceBanner } from "../shared/CorpusConfidenceBanner"
+import { Select } from "@/components/ui/Select"
+import { AppDrawer } from "@/components/ui/AppDrawer"
 import {
   formatAttractiveness,
   formatDigitalMaturity,
   formatMarketGrowth,
   formatMarketSize,
   formatPracticeName,
-  formatTjmRange,
   parseCaveats,
   parseCriticalDependencies,
   parseEconomicModels,
@@ -75,7 +75,77 @@ export function SectorAnalysisChapterMobile({
   })
 
   const [openEconomicModelsMobile, setOpenEconomicModelsMobile] = useState<Record<number, boolean>>({ 0: true })
+  const [isInfoDrawerOpen, setIsInfoDrawerOpen] = useState(false)
+  const [gapsOpen, setGapsOpen] = useState(true)
+  const gaps = corpusMetadata?.gaps ?? []
   const valueChainSummary = buildSectorValueChainSummary(valueChain)
+
+  const availableSections = useMemo(() => {
+    const list: { id: string; label: string }[] = []
+    if (knowledge.description) {
+      list.push({ id: "sector-section-synthesis", label: "Synthèse du marché" })
+    }
+    if (competitiveMap && competitiveMap.actors.length > 0) {
+      list.push({ id: "sector-section-accounts", label: `Comptes du segment (${competitiveMap.actors.length})` })
+    }
+    if (clientBlocks.length > 0) {
+      list.push({ id: "sector-section-client-blocks", label: `Blocs clients (${clientBlocks.length})` })
+    }
+    if (economicModels.length > 0) {
+      list.push({ id: "sector-section-economic-models", label: `Modèles économiques (${economicModels.length})` })
+    }
+    if (valueChainSummary) {
+      list.push({ id: "sector-section-value-chain", label: `Chaîne de valeur (${valueChainSummary.steps.length} étapes)` })
+    }
+    if (techFronts.length > 0) {
+      list.push({ id: "sector-section-tech-fronts", label: `Fronts technologiques (${techFronts.length})` })
+    }
+    if (criticalDependencies.length > 0) {
+      list.push({ id: "sector-section-critical-dependencies", label: `Dépendances critiques (${criticalDependencies.length})` })
+    }
+    if (timeline.datedItems.length > 0 || timeline.permanentItems.length > 0) {
+      list.push({ id: "sector-section-timeline", label: `Réglementation & ruptures (${timeline.datedItems.length + timeline.permanentItems.length})` })
+    }
+    if (riskOpportunities.length > 0) {
+      list.push({ id: "sector-section-risk-opportunities", label: `Risques × opportunités (${riskOpportunities.length})` })
+    }
+    if (pacaPlayers.length > 0 || nationalPlayers.length > 0) {
+      list.push({ id: "sector-section-ecosystem", label: `Écosystème & Acteurs clés (${pacaPlayers.length + nationalPlayers.length})` })
+    }
+    if (knowledge.painPoints.length > 0) {
+      list.push({ id: "sector-section-pain-points", label: `Pain points sectoriels (${knowledge.painPoints.length})` })
+    }
+    if (caveats) {
+      list.push({ id: "sector-section-caveats", label: "Sources méthodologiques" })
+    }
+    return list
+  }, [
+    knowledge.description,
+    competitiveMap,
+    clientBlocks.length,
+    economicModels.length,
+    valueChainSummary,
+    techFronts.length,
+    criticalDependencies.length,
+    timeline.datedItems.length,
+    timeline.permanentItems.length,
+    riskOpportunities.length,
+    pacaPlayers.length,
+    nationalPlayers.length,
+    knowledge.painPoints.length,
+    caveats,
+  ])
+
+  const handleQuickNav = (sectionId: string) => {
+    if (!sectionId) return
+    const el = document.getElementById(sectionId)
+    if (el) {
+      if (el instanceof HTMLDetailsElement) {
+        el.open = true
+      }
+      el.scrollIntoView({ behavior: "instant", block: "start" })
+    }
+  }
 
   const resolveSource = (srcId: number) => sourceResolution?.[srcId] ?? null
 
@@ -90,7 +160,6 @@ export function SectorAnalysisChapterMobile({
   const marketGrowth = formatMarketGrowth(knowledge.marketGrowthPct, knowledge.marketGrowthPctLevel)
   const attractiveness = formatAttractiveness(knowledge.attractivenessScore)
   const digitalMaturity = formatDigitalMaturity(knowledge.digitalMaturity)
-  const tjmRange = formatTjmRange(knowledge.avgTjmMin, knowledge.avgTjmMax)
 
   const metrics = [
     marketSize ? {
@@ -117,39 +186,30 @@ export function SectorAnalysisChapterMobile({
       level: null,
       isLocked: false,
     } : null,
-    tjmRange ? {
-      label: "TJM réf.",
-      value: tjmRange,
-      level: null,
-      isLocked: false,
-    } : null,
   ].filter((m): m is NonNullable<typeof m> => m !== null)
 
   return (
     <div className="space-y-4 px-4 py-4" data-chapter="sector-analysis-mobile">
-      {/* Bandeau de confiance (Mobile) */}
-      {corpusMetadata ? (
-        <CorpusConfidenceBanner
-          qualityVerdict={corpusMetadata.qualityVerdict}
-          activationState={corpusMetadata.activationState}
-          snapshotDate={corpusMetadata.snapshotDate}
-          gaps={corpusMetadata.gaps}
-        />
-      ) : null}
-
       {/* En-tête Mobile */}
       <section className="rounded-xl border border-edito-border bg-edito-surface p-4 shadow-sm">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">{macroName ?? "Macro-secteur"}</p>
-        <h1 className="mt-1 font-heading text-xl font-bold text-edito-navy">{segmentName}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-edito-body">
-          <span className="font-semibold text-edito-navy">{knowledge.effectiveStatus}</span>
-          <span aria-hidden="true">·</span>
-          <span className="text-edito-muted">{formatStudyDate(knowledge.studySnapshotDate)}</span>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">{macroName ?? "Macro-secteur"}</p>
+          <button
+            type="button"
+            onClick={() => setIsInfoDrawerOpen(true)}
+            aria-label="Informations sur l'étude sectorielle"
+            className="relative -my-2 -mr-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-edito-muted transition-colors hover:text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-edito-border bg-edito-canvas font-serif text-xs font-bold italic text-edito-navy">
+              i
+            </span>
+          </button>
         </div>
+        <h1 className="mt-1 font-heading text-xl font-bold text-edito-navy">{segmentName}</h1>
 
-        {/* Métriques clés en grille compacte */}
+        {/* Métriques clés en grille compacte (2 colonnes x 2 lignes max) */}
         {metrics.length > 0 ? (
-          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-edito-border pt-3">
+          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-edito-border pt-3">
             {metrics.map((metric) => (
               <div key={metric.label} className="rounded-lg border border-edito-border/80 bg-edito-canvas/60 p-2.5">
                 <div className="flex items-center justify-between">
@@ -167,9 +227,71 @@ export function SectorAnalysisChapterMobile({
         ) : null}
       </section>
 
+      {/* Modale d'informations sur l'étude sectorielle */}
+      <AppDrawer
+        open={isInfoDrawerOpen}
+        onOpenChange={setIsInfoDrawerOpen}
+        side="bottom"
+        title="Informations sur l'étude sectorielle"
+        description={segmentName}
+        showMobileCloseButton
+      >
+        <div className="space-y-3 py-2 text-xs text-edito-body">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-edito-navy">{knowledge.effectiveStatus}</span>
+            <span aria-hidden="true">·</span>
+            <span className="text-edito-muted">{formatStudyDate(knowledge.studySnapshotDate)}</span>
+          </div>
+
+          {gaps.length > 0 ? (
+            <div className="border-t border-edito-border/60 pt-2">
+              <button
+                type="button"
+                onClick={() => setGapsOpen((prev) => !prev)}
+                aria-expanded={gapsOpen}
+                className="inline-flex min-h-[44px] items-center text-[11px] font-bold text-edito-petrol hover:underline"
+              >
+                {gapsOpen ? "Masquer" : "Voir"} les {gaps.length} zone{gaps.length > 1 ? "s" : ""} non couverte{gaps.length > 1 ? "s" : ""} {gapsOpen ? "↑" : "↓"}
+              </button>
+              {gapsOpen ? (
+                <ul className="mt-1.5 space-y-1.5 rounded-lg border border-edito-border/60 bg-edito-canvas/40 p-2.5 text-xs text-edito-body">
+                  {gaps.map((gap, index) => (
+                    <li key={index} className="text-[11px] leading-relaxed">
+                      {gap.famille ? <span className="font-semibold text-edito-navy">{gap.famille} — </span> : null}
+                      <span>{gap.motif}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </AppDrawer>
+
+      {/* Accès rapide aux sections de l'étude */}
+      {availableSections.length > 0 ? (
+        <Select
+          id="sector-quick-nav-select"
+          value=""
+          onChange={(e) => handleQuickNav(e.target.value)}
+          fullWidth
+          size="sm"
+          aria-label="Aller à une section"
+        >
+          <option value="" disabled>
+            Aller à une section…
+          </option>
+          {availableSections.map((section) => (
+            <option key={section.id} value={section.id}>
+              {section.label}
+            </option>
+          ))}
+        </Select>
+      ) : null}
+
       {/* Synthèse */}
       {knowledge.description ? (
-        <section className="rounded-xl border border-edito-border bg-edito-surface p-4 shadow-sm">
+        <section id="sector-section-synthesis" className="scroll-mt-14 rounded-xl border border-edito-border bg-edito-surface p-4 shadow-sm">
           <div className="flex items-center justify-between gap-2 border-b border-edito-border pb-2">
             <h2 className="text-xs font-bold uppercase tracking-wider text-edito-navy">Synthèse du marché</h2>
             <ProvenanceBadge level={knowledge.descriptionLevel} />
@@ -194,7 +316,7 @@ export function SectorAnalysisChapterMobile({
           }
 
           return (
-            <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+            <details id="sector-section-accounts" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
               <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                 <span>Comptes du segment ({sortedActors.length})</span>
                 <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
@@ -251,7 +373,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Blocs clients Mobile (Lot 5) */}
         {clientBlocks.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-client-blocks" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span>Blocs clients ({clientBlocks.length})</span>
               <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
@@ -285,7 +407,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Modèles économiques Mobile (Lot 5) */}
         {economicModels.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-economic-models" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span>Modèles économiques ({economicModels.length})</span>
               <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
@@ -361,7 +483,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Chaîne de valeur — vue synthétique (Lot 6 Mobile) */}
         {valueChainSummary ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-value-chain" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="flex items-center gap-2">
                 <span>Chaîne de valeur ({valueChainSummary.steps.length} étapes)</span>
@@ -420,7 +542,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Fronts technologiques (Lot 7 Mobile) */}
         {techFronts.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-tech-fronts" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="flex items-center gap-2">
                 <span>Fronts technologiques ({techFronts.length})</span>
@@ -475,7 +597,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Dépendances critiques & Supply chain (Lot 8 Mobile) */}
         {criticalDependencies.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-critical-dependencies" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="flex items-center gap-2">
                 <span>Dépendances critiques &amp; Supply chain ({criticalDependencies.length})</span>
@@ -563,7 +685,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Réglementation & ruptures sectorielles (Lot 9 Mobile) */}
         {timeline.datedItems.length > 0 || timeline.permanentItems.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-timeline" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="flex items-center gap-2">
                 <span>Réglementation &amp; ruptures ({timeline.datedItems.length + timeline.permanentItems.length})</span>
@@ -724,7 +846,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Risques × opportunités (Lot 10 Mobile) */}
         {riskOpportunities.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-risk-opportunities" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="flex items-center gap-2">
                 <span>Risques × opportunités ({riskOpportunities.length})</span>
@@ -790,7 +912,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Écosystème & Acteurs clés */}
         {pacaPlayers.length > 0 || nationalPlayers.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-ecosystem" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span>Écosystème &amp; Acteurs clés ({pacaPlayers.length + nationalPlayers.length})</span>
               <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
@@ -851,7 +973,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Pain points sectoriels (Lot 11 Mobile) */}
         {knowledge.painPoints.length > 0 ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
+          <details id="sector-section-pain-points" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm" open>
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span>Pain points sectoriels ({knowledge.painPoints.length})</span>
               <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
@@ -932,7 +1054,7 @@ export function SectorAnalysisChapterMobile({
 
         {/* Sources & Limites */}
         {caveats ? (
-          <details className="group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm">
+          <details id="sector-section-caveats" className="scroll-mt-14 group rounded-xl border border-edito-border bg-edito-surface overflow-hidden shadow-sm">
             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span>Sources méthodologiques</span>
               <span className="text-edito-muted transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>

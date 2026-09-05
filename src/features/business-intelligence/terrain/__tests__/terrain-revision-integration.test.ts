@@ -151,7 +151,7 @@ describe("TerrainHomeDashboardMobile UI Integration with Révision", () => {
     const html = renderToString(createElement(TerrainHomeDashboardMobile, { workspace: ws }))
 
     expect(html).toContain('data-terrain-surface="home"')
-    expect(html).toContain("Corpus fiable")
+    expect(html).not.toContain("Corpus fiable")
     expect(html).toContain("IFRA 52")
     expect(html).toContain("Angle du jour")
 

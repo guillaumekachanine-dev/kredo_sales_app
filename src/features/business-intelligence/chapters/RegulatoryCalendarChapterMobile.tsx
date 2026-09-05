@@ -62,14 +62,6 @@ export function RegulatoryCalendarChapterMobile({ regulatory, segmentName }: Reg
 
   return (
     <div className="space-y-4 px-4 py-4" data-chapter="regulatory-calendar-mobile">
-      <section className="rounded-xl border border-border bg-surface p-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Conformité & Réglementations</p>
-        <h1 className="mt-1 font-heading text-xl font-bold text-heading">Calendrier réglementaire</h1>
-        <p className="mt-1 text-xs text-muted">
-          {regulatory.length} disposition{regulatory.length > 1 ? "s" : ""} applicable{regulatory.length > 1 ? "s" : ""}
-        </p>
-      </section>
-
       <div className="space-y-3">
         {sortedItems.map((item) => (
           <details key={item.id} className="group rounded-xl border border-border bg-surface overflow-hidden">

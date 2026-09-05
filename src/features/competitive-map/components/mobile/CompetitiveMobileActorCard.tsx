@@ -15,19 +15,36 @@ function DetailList({ title, items }: { title: string; items: string[] }) {
   )
 }
 
-export function CompetitiveMobileActorCard({ actor }: { actor: CompetitiveMapActor | null }) {
-  const [expandedActorId, setExpandedActorId] = useState<string | null>(null)
-  const expanded = actor !== null && expandedActorId === actor.id
+export function CompetitiveMobileActorCard({
+  actor,
+  isExpanded: controlledExpanded,
+  onToggleExpanded,
+}: {
+  actor: CompetitiveMapActor | null
+  isExpanded?: boolean
+  onToggleExpanded?: (expanded: boolean) => void
+}) {
+  const [internalExpandedActorId, setInternalExpandedActorId] = useState<string | null>(null)
+  const isControlled = controlledExpanded !== undefined
+  const expanded = actor !== null && (isControlled ? controlledExpanded : internalExpandedActorId === actor.id)
 
   if (!actor) {
     return <section className="px-4 py-5 text-sm text-edito-muted">Aucun acteur sélectionné.</section>
+  }
+
+  const handleToggle = () => {
+    if (isControlled) {
+      onToggleExpanded?.(!expanded)
+    } else {
+      setInternalExpandedActorId(expanded ? null : actor.id)
+    }
   }
 
   const mainDependency = actor.details.dependances.find(Boolean) ?? null
   const mainTrigger = actor.details.triggers.find(Boolean) ?? null
 
   return (
-    <section aria-labelledby="competitive-mobile-selected-title" className="px-4 py-5">
+    <section id="competitive-mobile-actor-card" aria-labelledby="competitive-mobile-selected-title" className="scroll-mt-14 px-4 py-5">
       <article className="rounded-xl border border-edito-border bg-edito-surface p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -49,7 +66,13 @@ export function CompetitiveMobileActorCard({ actor }: { actor: CompetitiveMapAct
           {mainTrigger ? <div><dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-edito-muted">Trigger principal</dt><dd className="mt-1 text-xs leading-relaxed text-edito-body">{mainTrigger}</dd></div> : null}
         </dl>
 
-        <button type="button" aria-expanded={expanded} aria-controls="competitive-mobile-actor-detail" onClick={() => setExpandedActorId(expanded ? null : actor.id)} className="mt-4 min-h-11 w-full rounded-lg border border-edito-border bg-edito-chip px-3 text-xs font-bold text-edito-navy transition-colors hover:bg-edito-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls="competitive-mobile-actor-detail"
+          onClick={handleToggle}
+          className="mt-4 min-h-11 w-full rounded-lg border border-edito-border bg-edito-chip px-3 text-xs font-bold text-edito-navy transition-colors hover:bg-edito-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass"
+        >
           {expanded ? "Réduire le détail" : "Développer le détail"}
         </button>
 
