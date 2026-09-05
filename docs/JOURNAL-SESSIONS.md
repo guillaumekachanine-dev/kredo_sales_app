@@ -13,6 +13,23 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 55 — Erreurs persistantes de build sur les routes protégées (2026-09-05)
+
+Le build de référence réussissait mais journalisait quatre erreurs `Dynamic server usage` sur
+`/missions/actives`, `/missions/projets` et `/legacy/folio/sector-studies`. Plusieurs loaders
+interceptaient l'exception de contrôle émise par `cookies()` lors de la tentative de pré-rendu,
+puis la transformaient en tableau vide. La cause commune était le layout `(app)` laissé en mode
+`auto` alors que toutes ses routes dépendent par contrat de la session Supabase et de la détection
+du device à la requête.
+
+Correction unique dans `src/app/(app)/layout.tsx` : `dynamic = "force-dynamic"`. Aucun loader,
+fallback, schéma Supabase ou workflow n8n modifié. Le build ne tente plus de pré-rendre les 26
+routes protégées concernées et ne journalise plus ces erreurs. Validation : typecheck, 2 199 tests,
+frontière serveur/client, lint ciblé du layout, build production et QA authentifiée mobile sur les
+trois routes affectées plus `/finance`.
+
+---
+
 ### Session 54 — Navigation mobile KREDO Premium, LOT 3 (2026-08-28)
 
 Refonte ciblée du shell mobile selon la variante B validée : sheet claire à grille 2 × 2 et raccourcis 4 × 2, bottom navigation persistante à cinq positions, CRM branché sur le launcher existant, et Focus Mode générique alimenté par les configurations canoniques d'onglets. La distribution et le repli utilisent transforms/opacité avec stagger, une lane horizontale isolée en cas de débordement et un mode `prefers-reduced-motion`. L'historique mobile conserve les snapshots `menuOpen`, rail et carte dépliée.

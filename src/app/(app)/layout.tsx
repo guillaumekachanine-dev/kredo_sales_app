@@ -2,6 +2,8 @@ import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { AppShell } from "@/components/layout/AppShell"
 import { AppOverlayHosts } from "@/components/layout/AppOverlayHosts"
 
+export const dynamic = "force-dynamic"
+
 export default async function AppLayout({
   children,
 }: Readonly<{
