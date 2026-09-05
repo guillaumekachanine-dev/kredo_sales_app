@@ -6497,11 +6497,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "source_collection_metrics_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["corpus_id"]
+          },
+          {
             foreignKeyName: "source_collection_metrics_source_catalog_id_fkey"
             columns: ["source_catalog_id"]
             isOneToOne: false
             referencedRelation: "source_catalog"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_collection_metrics_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["source_id"]
           },
           {
             foreignKeyName: "source_collection_metrics_workspace_id_fkey"
@@ -6687,11 +6701,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "source_corpus_items_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["corpus_id"]
+          },
+          {
             foreignKeyName: "source_corpus_items_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "source_catalog"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_corpus_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["source_id"]
           },
           {
             foreignKeyName: "source_corpus_items_workspace_id_fkey"
@@ -7131,6 +7159,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "veille_articles_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["source_id"]
+          },
+          {
             foreignKeyName: "veille_articles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -7143,46 +7178,93 @@ export type Database = {
         Row: {
           created_at: string
           digest_date: string
+          generation_mode: string | null
           id: string
           model_analyse: string
           model_classement: string
           nb_candidats_evalues: number
           nb_sources_actives: number
           resume_hebdo: string
+          source_corpus_id: string | null
           super_short_summary: string
           titre_digest: string
+          topic_key: string
+          topic_sector_id: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           created_at?: string
           digest_date: string
+          generation_mode?: string | null
           id?: string
           model_analyse: string
           model_classement: string
           nb_candidats_evalues?: number
           nb_sources_actives?: number
           resume_hebdo: string
+          source_corpus_id?: string | null
           super_short_summary: string
           titre_digest: string
+          topic_key?: string
+          topic_sector_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Update: {
           created_at?: string
           digest_date?: string
+          generation_mode?: string | null
           id?: string
           model_analyse?: string
           model_classement?: string
           nb_candidats_evalues?: number
           nb_sources_actives?: number
           resume_hebdo?: string
+          source_corpus_id?: string | null
           super_short_summary?: string
           titre_digest?: string
+          topic_key?: string
+          topic_sector_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "veille_digests_source_corpus_id_fkey"
+            columns: ["source_corpus_id"]
+            isOneToOne: false
+            referencedRelation: "source_corpora"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veille_digests_source_corpus_id_fkey"
+            columns: ["source_corpus_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["corpus_id"]
+          },
+          {
+            foreignKeyName: "veille_digests_topic_sector_id_fkey"
+            columns: ["topic_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veille_digests_topic_sector_id_fkey"
+            columns: ["topic_sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "veille_digests_topic_sector_id_fkey"
+            columns: ["topic_sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
           {
             foreignKeyName: "veille_digests_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -7777,6 +7859,29 @@ export type Database = {
           },
         ]
       }
+      v_corpus_news_sources: {
+        Row: {
+          collection_mode: string | null
+          collection_url: string | null
+          corpus_id: string | null
+          corpus_scope_kind:
+            | Database["public"]["Enums"]["corpus_scope_kind"]
+            | null
+          corpus_slug: string | null
+          domain: string | null
+          family: string | null
+          kredo_category: string | null
+          origin: Database["public"]["Enums"]["source_origin"] | null
+          priority: number | null
+          publisher: string | null
+          search_domain: string | null
+          source_id: string | null
+          source_key: string | null
+          source_name: string | null
+          utility_score: number | null
+        }
+        Relationships: []
+      }
       v_crm_account_list: {
         Row: {
           depth_level: string | null
@@ -8199,6 +8304,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "source_collection_metrics_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["source_id"]
+          },
+          {
             foreignKeyName: "source_collection_metrics_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -8427,7 +8539,12 @@ export type Database = {
       }
       ingest_master_study_e4: { Args: { p_payload: Json }; Returns: Json }
       ingest_source_corpus: {
-        Args: { p_payload: Json; p_reason: string; p_segment_slug: string }
+        Args: {
+          p_payload: Json
+          p_reason: string
+          p_scope_kind?: Database["public"]["Enums"]["corpus_scope_kind"]
+          p_segment_slug: string
+        }
         Returns: Json
       }
       kredo_normalize_company_name: { Args: { txt: string }; Returns: string }
@@ -8607,7 +8724,7 @@ export type Database = {
         | "production_ready"
         | "usable_with_caveats"
         | "rejected"
-      corpus_scope_kind: "system" | "sector"
+      corpus_scope_kind: "system" | "sector" | "thematic"
       corpus_source_role: "proof" | "corroboration" | "discovery" | "watch"
       intelligence_document_status: "draft" | "ready" | "used" | "archived"
       intelligence_document_type:
@@ -8690,12 +8807,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8719,11 +8836,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8744,11 +8861,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8769,11 +8886,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8786,11 +8903,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8853,7 +8970,7 @@ export const Constants = {
         "usable_with_caveats",
         "rejected",
       ],
-      corpus_scope_kind: ["system", "sector"],
+      corpus_scope_kind: ["system", "sector", "thematic"],
       corpus_source_role: ["proof", "corroboration", "discovery", "watch"],
       intelligence_document_status: ["draft", "ready", "used", "archived"],
       intelligence_document_type: [
