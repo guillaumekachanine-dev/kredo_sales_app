@@ -102,7 +102,11 @@ export async function getAnalyzeNeeds(): Promise<AnalyzeNeedsResult> {
       supabase
         .from("collaborators")
         .select("id,person_id,status,availability,current_title,practice")
-        .eq("status", "active")
+        // 🔴 `collaborators.status` ne vaut jamais "active" : le référentiel réel
+        // est `en_mission` / `intercontrat` / `sorti` (vérifié en base le
+        // 2026-09-04, 0 ligne sur 30 avec "active"). Ce filtre rendait
+        // l'effectif VIDE, sans erreur ni trace.
+        .not("status", "in", "(sorti)")
         .limit(300)
         .returns<CollaboratorRow[]>(),
     ),

@@ -4,9 +4,11 @@ import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
 import { isLegacyWorkflow, workflowLabelForRunType } from "./workflow-labels"
+import { getVeilleSimulatorBaseline } from "./automations-data"
 import type {
   CadenceSimulatorLoadResult,
   CadenceSimulatorWorkflow,
+  VeilleSimulatorBaseline,
 } from "./veille-cadence"
 
 const WEEKLY_WATCH_RUN_TYPES = new Set([
@@ -97,4 +99,17 @@ export async function fetchCadenceSimulatorWorkflows(): Promise<CadenceSimulator
   workflows.sort((a, b) => a.label.localeCompare(b.label, "fr") || a.runType.localeCompare(b.runType))
 
   return { ok: true, workflows }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Chargeur autoportant du simulateur de cadence.
+//
+//  `getVeilleSimulatorBaseline()` est appelée par la page /automations, qui
+//  passe ensuite la baseline en prop. Le Cockpit Intelligence, lui, est un
+//  composant client sans données de page : il lui faut ce point d'entrée
+//  appelable depuis le navigateur. Aucune logique dupliquée — un simple
+//  passe-plat vers la même lecture.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function loadVeilleSimulatorBaseline(): Promise<VeilleSimulatorBaseline> {
+  return getVeilleSimulatorBaseline()
 }

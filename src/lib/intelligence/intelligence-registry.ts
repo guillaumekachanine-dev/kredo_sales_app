@@ -349,6 +349,13 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     icon: "deep_analysis",
     status: "active",
   },
+  skills_vs_needs: {
+    id: "skills_vs_needs",
+    label: "Compétences VS besoins",
+    description: "Confronter la capacité sourcée (collaborateurs + vivier) à la demande reçue sur 12 mois, tendance 90 jours.",
+    icon: "analyze_skills",
+    status: "active",
+  },
   analyze_automation_errors: {
     id: "analyze_automation_errors",
     label: "Analyser les erreurs",
@@ -516,7 +523,7 @@ const MODULES: Record<string, CockpitModule> = {
     icon: "source_management",
     kind: "launcher",
     href: "/veille",
-    status: "coming_soon",
+    status: "active",
   },
   cadence_simulator: {
     id: "cadence_simulator",
@@ -525,7 +532,7 @@ const MODULES: Record<string, CockpitModule> = {
     icon: "cadence_simulator",
     kind: "launcher",
     href: "/automations",
-    status: "coming_soon",
+    status: "active",
   },
   portfolio_atlas: {
     id: "portfolio_atlas",
@@ -560,7 +567,7 @@ const MODULES: Record<string, CockpitModule> = {
     description: "Prochaines échéances",
     icon: "agenda_light",
     kind: "launcher",
-    status: "coming_soon",
+    status: "active",
   },
 }
 
@@ -643,13 +650,13 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/consultants",
     label: "Équipe",
-    actionIds: ["forecast_availability", "analyze_needs", "match_profiles", "analyze_activity"],
+    actionIds: ["forecast_availability", "skills_vs_needs", "match_profiles", "analyze_activity"],
     moduleIds: ["pool_competences", "activity_leave"],
   },
   {
     pattern: "/recruitment",
     label: "Recrutement",
-    actionIds: ["analyze_hiring_delays", "analyze_needs", "candidate_communication", "match_profiles", "analyze_funnel"],
+    actionIds: ["analyze_hiring_delays", "skills_vs_needs", "candidate_communication", "match_profiles", "analyze_funnel"],
     moduleIds: ["agenda_light"],
   },
 

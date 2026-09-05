@@ -4,10 +4,12 @@ import "server-only"
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { getSourceManagementSnapshot } from "../data/get-source-management-snapshot"
 import {
   buildManualSourceKey,
   validateManualSourceInput,
   type ManualSourceFormInput,
+  type SourceManagementSnapshot,
 } from "../domain/source-management-contracts"
 
 type MutationResult = { success: true } | { success: false; error: string }
@@ -260,4 +262,15 @@ export async function setCorpusItemEnabledAction(itemId: string, enabled: boolea
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")
   return { success: true }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Chargeur autoportant du socle de sources.
+//
+//  Même raison que pour le simulateur de cadence : la page /veille charge le
+//  snapshot côté serveur et le passe en prop, le Cockpit Intelligence n'a pas
+//  ce contexte. Passe-plat, aucune règle dupliquée.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function loadSourceManagementSnapshot(): Promise<SourceManagementSnapshot> {
+  return getSourceManagementSnapshot()
 }

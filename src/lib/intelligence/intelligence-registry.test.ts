@@ -26,7 +26,7 @@ describe("Cockpit Intelligence registry", () => {
       expect.objectContaining({ id: "cross_analysis", status: "active" }),
     ])
     expect(veille.modules).toEqual([
-      expect.objectContaining({ id: "source_management", status: "coming_soon", kind: "launcher" }),
+      expect.objectContaining({ id: "source_management", status: "active", kind: "launcher" }),
     ])
     expect(veille).not.toHaveProperty("commonActions")
   })
@@ -164,13 +164,13 @@ describe("Cockpit Intelligence route resolution", () => {
   it("aligns the Équipe and Recrutement configurations on the target matrix", () => {
     expect(resolvePageCockpitConfig("/consultants").actions.map((action) => action.id)).toEqual([
       "forecast_availability",
-      "analyze_needs",
+      "skills_vs_needs",
       "match_profiles",
       "analyze_activity",
     ])
     expect(resolvePageCockpitConfig("/recruitment").actions.map((action) => action.id)).toEqual([
       "analyze_hiring_delays",
-      "analyze_needs",
+      "skills_vs_needs",
       "candidate_communication",
       "match_profiles",
       "analyze_funnel",

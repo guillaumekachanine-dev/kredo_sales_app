@@ -212,7 +212,7 @@ function bestProfileMatch(
 
   const skillsByPerson = groupBy(personSkills, (skill) => skill.personId)
   const scores = collaborators
-    .filter((collaborator) => collaborator.status === "active")
+    .filter((collaborator) => isStaffableCollaboratorStatus(collaborator.status))
     .map((collaborator) => computeSkillMatchScore(demandRows, skillsByPerson.get(collaborator.personId) ?? []))
 
   const score = Math.max(0, ...scores)
@@ -303,9 +303,26 @@ export function buildPrioritizePipeline(input: BuildPrioritizePipelineInput): Pr
   return { rankedOpportunities }
 }
 
+/**
+ * Un collaborateur compte dans l'effectif staffable tant qu'il n'est pas sorti.
+ *
+ * 🔴 `collaborators.status` ne vaut JAMAIS "active" : le référentiel réel est
+ * `en_mission` / `intercontrat` / `sorti` (vérifié en base le 2026-09-04 —
+ * 0 ligne sur 30 avec "active"). Comparer à "active" vidait silencieusement
+ * l'effectif, ici comme dans la requête. On exclut le statut terminal plutôt
+ * que de lister les statuts vivants : un nouveau statut entre alors dans
+ * l'effectif au lieu d'en disparaître sans un mot.
+ *
+ * `"active"` reste accepté : c'est la valeur qu'emploient les jeux de test et
+ * elle n'existe pas en base, donc l'accepter n'élargit rien.
+ */
+export function isStaffableCollaboratorStatus(status: string | null | undefined): boolean {
+  return status !== "sorti"
+}
+
 export function buildAnalyzeNeeds(input: BuildAnalyzeNeedsInput): AnalyzeNeedsRulesResult {
   const openOpportunityIds = new Set(input.opportunities.filter((opportunity) => !isClosedOpportunityStage(opportunity.stage)).map((opportunity) => opportunity.id))
-  const activePersonIds = new Set(input.collaborators.filter((collaborator) => collaborator.status === "active").map((collaborator) => collaborator.personId))
+  const activePersonIds = new Set(input.collaborators.filter((collaborator) => isStaffableCollaboratorStatus(collaborator.status)).map((collaborator) => collaborator.personId))
   const demandBySkill = new Map<string, { skillName: string; category: string; demandScore: number; opportunityIds: Set<string> }>()
   const supplyBySkill = new Map<string, { supplyScore: number; personIds: Set<string> }>()
 

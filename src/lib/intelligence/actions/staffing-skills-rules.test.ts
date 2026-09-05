@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  isStaffableCollaboratorStatus,
   buildAnalyzeNeeds,
   buildPrioritizePipeline,
   buildScanContacts,
@@ -13,6 +14,18 @@ import {
   type PersonSkillSupplyRow,
   type StaffingOpportunityRow,
 } from "./staffing-skills-rules"
+
+// Régression vérifiée en base le 2026-09-04 : `collaborators.status` ne vaut
+// jamais "active" (0 ligne sur 30). Le filtre par égalité vidait l'effectif —
+// et donc l'offre de compétences — sans erreur ni trace.
+describe("isStaffableCollaboratorStatus", () => {
+  it("keeps the real statuses and drops only the terminal one", () => {
+    expect(isStaffableCollaboratorStatus("en_mission")).toBe(true)
+    expect(isStaffableCollaboratorStatus("intercontrat")).toBe(true)
+    expect(isStaffableCollaboratorStatus("active")).toBe(true)
+    expect(isStaffableCollaboratorStatus("sorti")).toBe(false)
+  })
+})
 
 describe("staffing skill normalization", () => {
   it("normalizes opportunity weight and person level onto a comparable scale", () => {

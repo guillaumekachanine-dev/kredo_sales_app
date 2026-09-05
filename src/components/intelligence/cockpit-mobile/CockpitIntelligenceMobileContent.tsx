@@ -34,6 +34,21 @@ const MatchingComposer = dynamic(
   { ssr: false },
 )
 
+const SourceManagementModule = dynamic(
+  () => import("@/components/intelligence/modules/SourceManagementModule").then((module) => module.SourceManagementModule),
+  { ssr: false },
+)
+
+const CadenceSimulatorModule = dynamic(
+  () => import("@/components/intelligence/modules/CadenceSimulatorModule").then((module) => module.CadenceSimulatorModule),
+  { ssr: false },
+)
+
+const AgendaLightModule = dynamic(
+  () => import("@/components/intelligence/modules/AgendaLightModule").then((module) => module.AgendaLightModule),
+  { ssr: false },
+)
+
 const AutomationMetricsModal = dynamic(
   () => import("@/features/automation-metrics/AutomationMetricsModal").then((module) => module.AutomationMetricsModal),
   { ssr: false },
@@ -48,6 +63,9 @@ export const MODULE_LAUNCHERS: Record<string, (props: ModuleLauncherProps) => Re
   automation_metrics: ({ onClose }) => (
     <AutomationMetricsModal open onClose={onClose} displayMode="mobile" />
   ),
+  source_management: ({ onClose }) => <SourceManagementModule onClose={onClose} />,
+  cadence_simulator: ({ onClose }) => <CadenceSimulatorModule onClose={onClose} />,
+  agenda_light: ({ onClose }) => <AgendaLightModule onClose={onClose} />,
 }
 
 const COMMON_MOBILE_ACTIONS = [

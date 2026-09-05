@@ -21,6 +21,7 @@ import {
   type AutomationErrorsResult as AutomationErrorsResultData,
   type AutomationFixesResult as AutomationFixesResultData,
 } from "@/lib/intelligence/actions/automation-intelligence"
+import { getSkillsVsNeeds, type SkillsVsNeedsResult as SkillsVsNeedsResultData } from "@/lib/intelligence/actions/skills-vs-needs"
 import { ActionPrioritiesResult } from "./ActionPrioritiesResult"
 import { PrepareDayResult } from "./PrepareDayResult"
 import { DetectRisksResult } from "./DetectRisksResult"
@@ -36,6 +37,7 @@ import { UpcomingDeadlinesResult } from "./UpcomingDeadlinesResult"
 import { AutomationErrorsResult } from "./AutomationErrorsResult"
 import { AutomationCostsResult } from "./AutomationCostsResult"
 import { AutomationFixesResult } from "./AutomationFixesResult"
+import { SkillsVsNeedsResult } from "./SkillsVsNeedsResult"
 import { CockpitBrightHeader, CockpitBrightSection } from "../CockpitBrightSection"
 
 export const DETERMINISTIC_INTELLIGENCE_ACTION_IDS = [
@@ -54,6 +56,7 @@ export const DETERMINISTIC_INTELLIGENCE_ACTION_IDS = [
   "analyze_automation_errors",
   "analyze_automation_costs",
   "prioritize_automation_fixes",
+  "skills_vs_needs",
 ] as const
 
 export type DeterministicIntelligenceActionId = typeof DETERMINISTIC_INTELLIGENCE_ACTION_IDS[number]
@@ -74,6 +77,7 @@ type LoadedResult =
   | { id: "analyze_automation_errors"; data: AutomationErrorsResultData }
   | { id: "analyze_automation_costs"; data: AutomationCostsResultData }
   | { id: "prioritize_automation_fixes"; data: AutomationFixesResultData }
+  | { id: "skills_vs_needs"; data: SkillsVsNeedsResultData }
 
 export function isDeterministicIntelligenceAction(id: string): id is DeterministicIntelligenceActionId {
   return DETERMINISTIC_INTELLIGENCE_ACTION_IDS.includes(id as DeterministicIntelligenceActionId)
@@ -111,6 +115,8 @@ function titleForAction(id: DeterministicIntelligenceActionId) {
       return "Analyser les coûts"
     case "prioritize_automation_fixes":
       return "Prioriser les corrections"
+    case "skills_vs_needs":
+      return "Compétences VS besoins"
   }
 }
 
@@ -146,6 +152,8 @@ async function loadAction(id: DeterministicIntelligenceActionId): Promise<Loaded
       return { id, data: await getAutomationCosts() }
     case "prioritize_automation_fixes":
       return { id, data: await getAutomationFixes() }
+    case "skills_vs_needs":
+      return { id, data: await getSkillsVsNeeds() }
   }
 }
 
@@ -261,6 +269,7 @@ export function IntelligenceActionResultContent({
       {loaded?.id === "analyze_automation_errors" && <AutomationErrorsResult result={loaded.data} />}
       {loaded?.id === "analyze_automation_costs" && <AutomationCostsResult result={loaded.data} />}
       {loaded?.id === "prioritize_automation_fixes" && <AutomationFixesResult result={loaded.data} />}
+      {loaded?.id === "skills_vs_needs" && <SkillsVsNeedsResult result={loaded.data} />}
     </div>
   )
 }
