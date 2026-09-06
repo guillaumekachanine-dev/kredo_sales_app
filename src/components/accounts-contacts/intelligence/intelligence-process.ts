@@ -16,9 +16,10 @@ export type TabKey =
   | "secteur"
   | "enjeux"
   | "strategie"
+  | "actualite"
   | "roadmap"
 
-export type ProcessStepKey = Exclude<TabKey, "accueil">
+export type ProcessStepKey = Exclude<TabKey, "accueil" | "actualite">
 
 export const INTELLIGENCE_PROCESS_STEPS: {
   key: ProcessStepKey

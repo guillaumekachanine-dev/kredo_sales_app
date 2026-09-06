@@ -56,16 +56,57 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
 import { AccountWatchSettingsDialog } from "@/components/accounts-contacts/intelligence/AccountWatchSettingsDialog"
+import { AccountWatchMobileTab } from "./AccountWatchMobileTab"
 import {
   AccountIntelligenceSignatureHeaderMobile,
   getAccountIntelligenceTabLabel,
-  HeaderPlanes,
 } from "./header/AccountIntelligenceSignatureHeader"
 import {
   buildMobileAccountCockpit,
 } from "@/lib/intelligence/mobile-account-cockpit"
 
 type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
+
+const MOBILE_NAV_ITEMS = [
+  { key: "connaissance", label: "Entreprise" },
+  { key: "secteur", label: "Secteur" },
+  { key: "enjeux", label: "Enjeux" },
+  { key: "strategie", label: "Stratégie" },
+  { key: "actualite", label: "Actualité" },
+] as const satisfies ReadonlyArray<{ key: TabKey; label: string }>
+
+function AccountIntelligenceMobileNav({
+  activePanel,
+  onNavigate,
+}: {
+  activePanel: TabKey
+  onNavigate: (panel: TabKey) => void
+}) {
+  return (
+    <nav
+      aria-label="Navigation Account Intelligence"
+      className="sticky top-0 z-20 flex w-full overflow-x-auto border-y border-edito-border bg-edito-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {MOBILE_NAV_ITEMS.map((item) => {
+        const selected = activePanel === item.key
+        return (
+          <button
+            key={item.key}
+            type="button"
+            aria-current={selected ? "page" : undefined}
+            onClick={() => onNavigate(item.key)}
+            className={cn(
+              "relative min-h-12 shrink-0 px-4 text-xs font-semibold text-edito-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+              selected && "text-edito-heading after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-edito-brass",
+            )}
+          >
+            {item.label}
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
 
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
   const { company, client, sector, diagnostic, diagnosticPdfUrl, contacts, opportunities, missions, accountSignals } = data
@@ -245,12 +286,13 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   if (activePanel !== "accueil") {
     return (
-      <div data-theme="cockpit" className="flex min-h-full flex-col bg-canvas pb-24">
+      <div data-theme="cockpit" className="flex min-h-full flex-col overflow-x-hidden bg-canvas pb-24">
         <AccountIntelligenceSignatureHeaderMobile
           company={company}
           title={getAccountIntelligenceTabLabel(activePanel)}
           onBack={() => setActivePanel("accueil")}
         />
+        <AccountIntelligenceMobileNav activePanel={activePanel} onNavigate={setActivePanel} />
 
         <div className="flex flex-col gap-4 p-4">
           {activePanel === "socle" && (
@@ -618,6 +660,12 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             </div>
           )}
 
+          {activePanel === "actualite" && (
+            <div className="-m-4">
+              <AccountWatchMobileTab data={data} />
+            </div>
+          )}
+
           {activePanel === "roadmap" && (
             <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
               <span className="text-xs font-bold uppercase tracking-wider text-muted">
@@ -635,11 +683,12 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const latestSignal = accountSignals && accountSignals.length > 0 ? accountSignals[0] : null
 
   return (
-    <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full bg-canvas pb-24 text-body space-y-4">
+    <main data-theme="edito-bright-cockpit" className="-mt-[var(--space-3)] min-h-full overflow-x-hidden bg-canvas pb-24 text-body space-y-4">
       <AccountIntelligenceSignatureHeaderMobile
         company={company}
         title={getAccountIntelligenceTabLabel("accueil")}
       />
+      <AccountIntelligenceMobileNav activePanel={activePanel} onNavigate={setActivePanel} />
 
       <div className="px-4 space-y-4">
         {/* Section 1 : Informations générales */}
@@ -692,31 +741,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           </div>
         </section>
 
-        {/* Section 2 : 4 boutons de raccourci vers les onglets (1 par ligne) */}
-        <section className="space-y-2.5">
-          <AccountIntelligenceTabBannerButton
-            company={company}
-            label="Entreprise"
-            onClick={() => setActivePanel("connaissance")}
-          />
-          <AccountIntelligenceTabBannerButton
-            company={company}
-            label="Secteur"
-            onClick={() => setActivePanel("secteur")}
-          />
-          <AccountIntelligenceTabBannerButton
-            company={company}
-            label="Enjeux"
-            onClick={() => setActivePanel("enjeux")}
-          />
-          <AccountIntelligenceTabBannerButton
-            company={company}
-            label="Stratégie"
-            onClick={() => setActivePanel("strategie")}
-          />
-        </section>
-
-        {/* Section 3 : Actualités du compte */}
+        {/* Section 2 : Actualités du compte */}
         <section className="rounded-2xl border border-info/25 bg-info/[0.06] p-4 shadow-sm space-y-3">
           <div className="flex items-center gap-2 border-b border-info/20 pb-2">
             <div className="h-0.5 w-5 bg-info" aria-hidden="true" />
@@ -783,45 +808,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         onReturnToCockpit={() => setWatchSettingsOpen(false)}
       />
     </main>
-  )
-}
-
-function AccountIntelligenceTabBannerButton({
-  company,
-  label,
-  onClick,
-}: {
-  company: ClientIntelligenceData["company"]
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="relative flex h-[52px] w-full items-center justify-between overflow-hidden rounded-xl border border-edito-border text-left shadow-xs transition-transform active:scale-[0.99] cursor-pointer"
-    >
-      <HeaderPlanes />
-      <div className="relative z-10 flex min-w-0 items-center gap-2.5 pl-3">
-        <div className="size-7 shrink-0 bg-white p-0.5 rounded shadow-xs flex items-center justify-center">
-          <CompanyLogo
-            name={company.name}
-            logoPath={company.logoPath}
-            website={company.website}
-            fill
-            className="h-full w-full rounded-none border-0 bg-white text-[10px]"
-          />
-        </div>
-        <span className="max-w-[42vw] truncate text-[13px] font-black uppercase tracking-[0.03em] text-white">
-          {company.name}
-        </span>
-      </div>
-      <div className="relative z-10 pr-4 text-right">
-        <span className="text-[12px] font-black uppercase tracking-[0.1em] text-white">
-          {label}
-        </span>
-      </div>
-    </button>
   )
 }
 

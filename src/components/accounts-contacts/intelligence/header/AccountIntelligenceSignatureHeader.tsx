@@ -12,6 +12,7 @@ const TAB_LABELS: Record<TabKey, string> = {
   secteur: "Secteur",
   enjeux: "Enjeux",
   strategie: "Stratégie",
+  actualite: "Actualité",
   roadmap: "Roadmap",
 }
 
