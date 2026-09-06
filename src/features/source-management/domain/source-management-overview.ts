@@ -44,13 +44,17 @@ const DATAVIZ_COLORS = [
 
 export function buildSourceManagementOverview(snapshot: SourceManagementSnapshot): SourceManagementOverview {
   const catalogSources = [...snapshot.systemSources, ...snapshot.manualSources]
+  const managedCorpora = [
+    ...snapshot.sectorCorpora,
+    ...(snapshot.thematicCorpora ?? []),
+  ]
 
   // Deduplicate by searchDomain
   const domainsSeen = new Set<string>()
   for (const s of catalogSources) {
     if (s.searchDomain) domainsSeen.add(s.searchDomain.toLowerCase())
   }
-  for (const corpus of snapshot.sectorCorpora) {
+  for (const corpus of managedCorpora) {
     for (const item of corpus.items) {
       if (item.source?.searchDomain) {
         domainsSeen.add(item.source.searchDomain.toLowerCase())
@@ -65,8 +69,8 @@ export function buildSourceManagementOverview(snapshot: SourceManagementSnapshot
   const activeSourceCount = activeCatalogSources.length
 
   // Corpora stats
-  const corpusCount = snapshot.sectorCorpora.length
-  const activeCorpusCount = snapshot.sectorCorpora.filter((c) => c.activationState === "active").length
+  const corpusCount = managedCorpora.length
+  const activeCorpusCount = managedCorpora.filter((c) => c.activationState === "active").length
 
   // Category distribution
   const categoryCounts = new Map<KredoSourceCategory, { count: number; activeCount: number }>()
@@ -98,9 +102,9 @@ export function buildSourceManagementOverview(snapshot: SourceManagementSnapshot
   })
 
   // Corpus activity for SVG Bar Chart
-  const corpusActivity: CorpusOverviewPoint[] = snapshot.sectorCorpora.map((corpus) => ({
+  const corpusActivity: CorpusOverviewPoint[] = managedCorpora.map((corpus) => ({
     id: corpus.id,
-    name: corpus.sectorName ?? corpus.slug,
+    name: corpus.name ?? corpus.sectorName ?? corpus.slug,
     slug: corpus.slug,
     totalSources: corpus.totalSources,
     activeSources: corpus.activeSources,

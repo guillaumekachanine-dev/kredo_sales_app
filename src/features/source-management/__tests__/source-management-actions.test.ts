@@ -49,8 +49,14 @@ describe("source management server actions", () => {
     expect(source).toContain('.eq("origin", "manual")')
   })
 
-  it("scopes every corpus mutation to scope_kind='sector', never the system corpus", () => {
-    expect(source).toContain('.eq("scope_kind", "sector")')
+  it("scopes setCorpusActivationAction to sector and thematic, excluding system", () => {
+    expect(source).toContain('.in("scope_kind", ["sector", "thematic"])')
+  })
+
+  it("scopes news and account-watch corpus actions strictly to sector", () => {
+    const occurrences = source.match(/\.eq\("scope_kind", "sector"\)/g) ?? []
+    // Both setCorpusNewsEnabledAction and setCorpusAccountWatchEnabledAction must be scoped to sector
+    expect(occurrences.length).toBe(2)
   })
 
   it("revalidates /veille after every successful mutation", () => {

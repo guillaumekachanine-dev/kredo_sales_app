@@ -71,14 +71,36 @@ describe("SourceCorpusCard — static/manual_only semantics and corpus toggles",
     expect(source).not.toMatch(/qualityVerdict\s*===\s*["'`]rejected["'`]\s*&&.*disabled/)
   })
 
-  it("exposes the three corpus-level toggles: activation, news usage, account-watch usage", () => {
+  it("exposes the three corpus-level toggles for sector corpora: activation, news usage, account-watch usage", () => {
     expect(source).toContain("setCorpusActivationAction(")
     expect(source).toContain("setCorpusNewsEnabledAction(")
     expect(source).toContain("setCorpusAccountWatchEnabledAction(")
   })
 
+  it("hides news and account-watch usage toggles for thematic corpora", () => {
+    expect(source).toContain('corpus.scopeKind !== "thematic"')
+  })
+
   it("exposes per-item modulation via setCorpusItemEnabledAction", () => {
     expect(source).toContain("setCorpusItemEnabledAction(")
+  })
+})
+
+describe("SourceCorpusDetailView — thematic corpora controls", () => {
+  const source = read("src/features/source-management/components/SourceCorpusDetailView.tsx")
+
+  it("hides Actualités and Veille comptes switches when scopeKind is thematic", () => {
+    expect(source).toContain('corpus?.scopeKind !== "thematic"')
+  })
+
+  it("always exposes Corpus actif switch", () => {
+    expect(source).toContain("Corpus actif")
+    expect(source).toContain("toggleActivation")
+  })
+
+  it("uses neutral corpus labels rather than hardcoded sector labels", () => {
+    expect(source).not.toContain("dans ce corpus sectoriel.")
+    expect(source).toContain("dans ce corpus.")
   })
 })
 
@@ -125,6 +147,25 @@ describe("Corpus import — wired to the Lot 4 wizard, gated on canManage", () =
 
   it("Mobile mounts the wizard with variant=\"mobile\"", () => {
     expect(mobile).toContain('<SourceCorpusImportWizard variant="mobile"')
+  })
+})
+
+describe("Thematic corpora display in Desktop and Mobile shells", () => {
+  const desktop = read("src/features/source-management/components/SourceManagementDialogDesktop.tsx")
+  const mobile = read("src/features/source-management/components/SourceManagementDrawerMobile.tsx")
+
+  it("Desktop displays Corpus thématiques section with snapshot.thematicCorpora", () => {
+    expect(desktop).toContain("Corpus thématiques")
+    expect(desktop).toContain("snapshot.thematicCorpora")
+  })
+
+  it("Desktop resolves activeCorpus from both sectorCorpora and thematicCorpora", () => {
+    expect(desktop).toContain("[...snapshot.sectorCorpora, ...snapshot.thematicCorpora]")
+  })
+
+  it("Mobile displays Corpus thématiques section with snapshot.thematicCorpora", () => {
+    expect(mobile).toContain("Corpus thématiques")
+    expect(mobile).toContain("snapshot.thematicCorpora")
   })
 })
 

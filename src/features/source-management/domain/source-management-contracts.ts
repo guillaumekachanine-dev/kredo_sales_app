@@ -101,11 +101,15 @@ export type SourceCorpusItemView = {
   isCollectable: boolean
 }
 
+export type SourceCorpusScopeKind = "system" | "sector" | "thematic"
+
 export type SourceCorpusView = {
   id: string
   slug: string
   version: string
   snapshotDate: string
+  scopeKind: SourceCorpusScopeKind
+  name: string | null
   sectorId: string | null
   sectorName: string | null
   qualityVerdict: CorpusQualityVerdict
@@ -125,6 +129,7 @@ export type SourceManagementSnapshot = {
   systemSources: SourceCatalogEntry[]
   manualSources: SourceCatalogEntry[]
   sectorCorpora: SourceCorpusView[]
+  thematicCorpora: SourceCorpusView[]
   activeNewsSourceCount: number
   canManage: boolean
 }
@@ -133,6 +138,7 @@ export const EMPTY_SOURCE_MANAGEMENT_SNAPSHOT: SourceManagementSnapshot = {
   systemSources: [],
   manualSources: [],
   sectorCorpora: [],
+  thematicCorpora: [],
   activeNewsSourceCount: 0,
   canManage: false,
 }

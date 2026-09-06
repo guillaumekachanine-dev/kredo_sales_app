@@ -210,7 +210,7 @@ export async function setCorpusActivationAction(
     .from("source_corpora")
     .update({ activation_state: activationState })
     .eq("id", corpusId)
-    .eq("scope_kind", "sector")
+    .in("scope_kind", ["sector", "thematic"])
 
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")

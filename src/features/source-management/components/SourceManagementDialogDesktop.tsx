@@ -65,7 +65,7 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
   const activeCatalogCount = catalogSources.filter((s) => s.isActive).length
 
   const activeCorpus = view.kind === "corpus"
-    ? snapshot.sectorCorpora.find((c) => c.id === view.corpusId)
+    ? [...snapshot.sectorCorpora, ...snapshot.thematicCorpora].find((c) => c.id === view.corpusId)
     : null
 
   const headerRightActions = snapshot.canManage ? (
@@ -158,7 +158,55 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
         />
       </button>
 
-      {/* 3. Corpus sectoriels (1 entrée par corpus réel) */}
+      {/* 3. Corpus thématiques */}
+      <div className="pt-2 space-y-1 border-t border-white/5">
+        <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-white/40">Corpus thématiques</p>
+        {snapshot.thematicCorpora.length === 0 ? (
+          <p className="px-3 py-1 text-[10px] text-white/40 italic">Aucun corpus thématique importé</p>
+        ) : (
+          snapshot.thematicCorpora.map((corpus) => {
+            const isActive = view.kind === "corpus" && view.corpusId === corpus.id
+            return (
+              <button
+                key={corpus.id}
+                type="button"
+                onClick={() => setView({ kind: "corpus", corpusId: corpus.id })}
+                className={cn(
+                  "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all cursor-pointer",
+                  isActive
+                    ? "border-brand-brass/40 bg-brand-brass/10 text-white"
+                    : "border-transparent bg-transparent text-white/75 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    isActive
+                      ? "bg-brand-brass/20 text-brand-brass"
+                      : "bg-white/[0.05] text-white/60 group-hover:bg-white/10 group-hover:text-white",
+                  )}
+                >
+                  <CorpusIcon className="size-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold truncate">{corpus.name ?? corpus.sectorName ?? corpus.slug}</p>
+                  <p className="mt-0.5 text-[10px] text-white/50 truncate">
+                    {corpus.activeSources} / {corpus.totalSources} sources actives
+                  </p>
+                </div>
+                <ChevronRight
+                  className={cn(
+                    "size-4 shrink-0 transition-transform",
+                    isActive ? "text-brand-brass translate-x-0" : "text-white/30 group-hover:translate-x-0.5 group-hover:text-white/60",
+                  )}
+                />
+              </button>
+            )
+          })
+        )}
+      </div>
+
+      {/* 4. Corpus sectoriels (1 entrée par corpus réel) */}
       <div className="pt-2 space-y-1 border-t border-white/5">
         <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-white/40">Corpus sectoriels</p>
         {snapshot.sectorCorpora.length === 0 ? (
@@ -189,7 +237,7 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
                   <CorpusIcon className="size-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold truncate">{corpus.sectorName ?? corpus.slug}</p>
+                  <p className="text-xs font-semibold truncate">{corpus.name ?? corpus.sectorName ?? corpus.slug}</p>
                   <p className="mt-0.5 text-[10px] text-white/50 truncate">
                     {corpus.activeSources} / {corpus.totalSources} sources actives
                   </p>

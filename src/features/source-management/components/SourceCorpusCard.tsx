@@ -106,7 +106,7 @@ export function SourceCorpusCard({ corpus, variant }: SourceCorpusCardProps) {
       <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3 px-3 py-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-heading">{corpus.sectorName ?? corpus.slug}</p>
+            <p className="font-semibold text-heading">{corpus.name ?? corpus.sectorName ?? corpus.slug}</p>
             <Badge variant={qualityVariant(corpus.qualityVerdict)} size="sm">
               {CORPUS_QUALITY_VERDICT_LABELS[corpus.qualityVerdict]}
             </Badge>
@@ -118,7 +118,8 @@ export function SourceCorpusCard({ corpus, variant }: SourceCorpusCardProps) {
             {corpus.slug} · v{corpus.version} · snapshot {corpus.snapshotDate}
           </p>
           <p className="mt-1 text-[11px] text-body">
-            {corpus.activeSources}/{corpus.totalSources} sources actives · {corpus.collectableSources} collectables · {corpus.accountsFed} comptes alimentés
+            {corpus.activeSources}/{corpus.totalSources} sources actives · {corpus.collectableSources} collectables
+            {corpus.scopeKind !== "thematic" ? ` · ${corpus.accountsFed} comptes alimentés` : ""}
           </p>
           <p className="mt-0.5 text-[11px] font-medium text-brand-brass">
             Efficacité observée : {corpus.averageEffectivenessScore != null ? `${corpus.averageEffectivenessScore}/100` : "À observer"} ({corpus.evaluatedSourcesCount} / {corpus.totalSources} sources évaluées)
@@ -135,14 +136,18 @@ export function SourceCorpusCard({ corpus, variant }: SourceCorpusCardProps) {
             <input type="checkbox" checked={corpus.activationState === "active"} disabled={isPending} onChange={toggleActivation} className="size-4 accent-primary" />
             Corpus activé
           </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={corpus.enabledForNews} disabled={isPending} onChange={toggleNews} className="size-4 accent-primary" />
-            Usage Actualités
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={corpus.enabledForAccountWatch} disabled={isPending} onChange={toggleAccountWatch} className="size-4 accent-primary" />
-            Usage Veille comptes
-          </label>
+          {corpus.scopeKind !== "thematic" ? (
+            <>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={corpus.enabledForNews} disabled={isPending} onChange={toggleNews} className="size-4 accent-primary" />
+                Usage Actualités
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={corpus.enabledForAccountWatch} disabled={isPending} onChange={toggleAccountWatch} className="size-4 accent-primary" />
+                Usage Veille comptes
+              </label>
+            </>
+          ) : null}
         </div>
 
         <div>

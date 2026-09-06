@@ -56,6 +56,19 @@ async function resolveWorkspace(supabase: Awaited<ReturnType<typeof createClient
   return { workspaceId: profile.workspace_id, isAdmin: profile.role === "owner" || profile.role === "admin" }
 }
 
+function extractCorpusName(corpus: SourceCorporaRow): string | null {
+  if (typeof corpus.metadata === "object" && corpus.metadata !== null) {
+    const meta = (corpus.metadata as Record<string, unknown>).meta
+    if (typeof meta === "object" && meta !== null && typeof (meta as Record<string, unknown>).name === "string") {
+      return (meta as Record<string, unknown>).name as string
+    }
+    if (typeof (corpus.metadata as Record<string, unknown>).name === "string") {
+      return (corpus.metadata as Record<string, unknown>).name as string
+    }
+  }
+  return null
+}
+
 export async function getSourceManagementSnapshot(): Promise<SourceManagementSnapshot> {
   const supabase = await createClient()
   const workspace = await resolveWorkspace(supabase)
@@ -66,7 +79,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
     supabase
       .from("source_corpora")
       .select("*")
-      .in("scope_kind", ["sector", "system"])
+      .in("scope_kind", ["sector", "system", "thematic"])
       .eq("is_current", true)
       .order("snapshot_date", { ascending: false }),
     supabase.from("v_source_effectiveness_30d").select("*"),
@@ -148,7 +161,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
     itemsByCorpus.set(item.corpus_id, bucket)
   }
 
-  const sectorCorpora: SourceCorpusView[] = corpusRows.map((corpus) => {
+  const allCorpora: SourceCorpusView[] = corpusRows.map((corpus) => {
     const rawItems = itemsByCorpus.get(corpus.id) ?? []
     const items: SourceCorpusItemView[] = rawItems.map((item) => {
       const source = sourcesById.get(item.source_id) ?? null
@@ -183,13 +196,18 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
           )
         : null
 
+    const resolvedSectorName = corpus.sector_id ? sectorNameById.get(corpus.sector_id) ?? null : null
+    const corpusName = extractCorpusName(corpus) ?? resolvedSectorName ?? corpus.slug
+
     return {
       id: corpus.id,
       slug: corpus.slug,
       version: corpus.version,
       snapshotDate: corpus.snapshot_date,
+      scopeKind: corpus.scope_kind,
+      name: corpusName,
       sectorId: corpus.sector_id,
-      sectorName: corpus.sector_id ? sectorNameById.get(corpus.sector_id) ?? null : null,
+      sectorName: resolvedSectorName,
       qualityVerdict: corpus.quality_verdict as CorpusQualityVerdict,
       activationState: corpus.activation_state,
       enabledForNews: corpus.enabled_for_news,
@@ -203,6 +221,9 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
       items,
     }
   })
+
+  const sectorCorpora = allCorpora.filter((c) => c.scopeKind === "sector" || c.scopeKind === "system")
+  const thematicCorpora = allCorpora.filter((c) => c.scopeKind === "thematic")
 
   const systemSources = sourceRows.map(mapSource).filter((s) => s.origin === "system").map((s) => {
     s.effectiveness = effectivenessBySourceId.get(s.id) ?? null
@@ -220,6 +241,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
     systemSources,
     manualSources,
     sectorCorpora,
+    thematicCorpora,
     activeNewsSourceCount,
     canManage: workspace.isAdmin,
   }

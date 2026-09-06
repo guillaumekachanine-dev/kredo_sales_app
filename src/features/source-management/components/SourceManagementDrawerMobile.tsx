@@ -37,7 +37,7 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
       open={open}
       onOpenChange={handleOpenChange}
       title={title}
-      description={view.kind === "list" ? "Socle éditorial, sources manuelles et corpus sectoriels." : undefined}
+      description={view.kind === "list" ? "Socle éditorial, corpus thématiques et corpus sectoriels." : undefined}
       side="right"
       width="wide"
       showMobileCloseButton
@@ -85,6 +85,33 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
                 variant="cards"
                 onEdit={(source) => setView({ kind: "edit", source })}
               />
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-edito-border bg-white p-4 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edito-chip pb-3">
+              <h3 className="font-heading text-sm font-bold text-edito-navy flex items-center gap-2">
+                <span className="size-2 rounded-full bg-edito-brass" aria-hidden="true" />
+                Corpus thématiques
+              </h3>
+              {snapshot.canManage ? (
+                <Button variant="brass" size="sm" onClick={() => setView({ kind: "import" })}>
+                  Importer
+                </Button>
+              ) : null}
+            </div>
+            <div className="mt-3">
+              {snapshot.thematicCorpora.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-edito-border bg-edito-canvas p-4 text-center text-xs text-edito-muted">
+                  Aucun corpus thématique importé pour l’instant.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {snapshot.thematicCorpora.map((corpus) => (
+                    <SourceCorpusCard key={corpus.id} corpus={corpus} variant="cards" />
+                  ))}
+                </div>
+              )}
             </div>
           </section>
 

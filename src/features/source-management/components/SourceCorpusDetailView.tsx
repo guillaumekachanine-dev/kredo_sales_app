@@ -62,7 +62,7 @@ function CorpusItemRow({ item }: { item: SourceCorpusItemView }) {
 
   const name = item.source?.name ?? item.externalSrcId ?? "Source inconnue"
   const displayUrl = item.source?.searchDomain || (item.source?.homepageUrl ? item.source.homepageUrl.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "") : "")
-  const descriptionText = item.source?.family ?? item.tier ?? "Corpus sectoriel"
+  const descriptionText = item.source?.family ?? item.tier ?? "Corpus"
 
   return (
     <div className="group flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-2.5 transition-colors hover:border-white/10 hover:bg-white/[0.05]">
@@ -152,7 +152,7 @@ export function SourceCorpusDetailView({ corpus }: SourceCorpusDetailViewProps) 
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3">
         <div>
           <h3 className="text-sm font-bold text-white truncate">
-            {corpus?.sectorName ?? corpus?.slug ?? "Corpus sectoriel"}
+            {corpus?.name ?? corpus?.sectorName ?? corpus?.slug ?? "Corpus"}
           </h3>
           <p className="mt-0.5 text-[11px] text-white/50">
             {totalSourcesCount} sources · {activeSourcesCount} actives · v{corpus?.version ?? "1.0"}
@@ -173,32 +173,36 @@ export function SourceCorpusDetailView({ corpus }: SourceCorpusDetailViewProps) 
             />
           </label>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-white/70">Actualités</span>
-            <DarkSwitch
-              checked={Boolean(corpus?.enabledForNews)}
-              disabled={isPending}
-              onChange={toggleNews}
-              label="Activer pour les actualités"
-            />
-          </label>
+          {corpus?.scopeKind !== "thematic" ? (
+            <>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-white/70">Actualités</span>
+                <DarkSwitch
+                  checked={Boolean(corpus?.enabledForNews)}
+                  disabled={isPending}
+                  onChange={toggleNews}
+                  label="Activer pour les actualités"
+                />
+              </label>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-white/70">Veille comptes</span>
-            <DarkSwitch
-              checked={Boolean(corpus?.enabledForAccountWatch)}
-              disabled={isPending}
-              onChange={toggleAccountWatch}
-              label="Activer pour la veille comptes"
-            />
-          </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-white/70">Veille comptes</span>
+                <DarkSwitch
+                  checked={Boolean(corpus?.enabledForAccountWatch)}
+                  disabled={isPending}
+                  onChange={toggleAccountWatch}
+                  label="Activer pour la veille comptes"
+                />
+              </label>
+            </>
+          ) : null}
         </div>
       </div>
 
       {/* ── DEUX COLONNES DE SOURCES DE CORPUS ───────────────────── */}
       {items.length === 0 ? (
         <div className="flex h-full min-h-[12rem] flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-center text-xs text-white/50">
-          <p>Aucune source référencée dans ce corpus sectoriel.</p>
+          <p>Aucune source référencée dans ce corpus.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-x-3.5 gap-y-2">
