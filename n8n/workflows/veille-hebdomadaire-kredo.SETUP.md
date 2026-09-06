@@ -11,12 +11,13 @@
 **Écrit dans :** `veille_digests` (1 ligne, upsert `on_conflict=workspace_id,digest_date,topic_key` avec `topic_key`, `topic_sector_id`, `source_corpus_id`, `generation_mode`)
 puis `veille_articles` (RPC `replace_veille_digest_articles`, remplacement idempotent)
 
-> ⚠️ **Dérive repo ↔ VPS non résolue.** Le fichier repo porte des évolutions jamais
-> réimportées : lecture de `v_effective_watch_sources` (Lot 2, 2026-08-15), sous-pipeline
-> « convergences comptes » (non décrit dans le diagramme ci-dessous), et **le double
-> déclencheur webhook ci-dessus avec support V2 Sujet × Corpus**. Le VPS tourne encore une version antérieure, cron-seul.
-> **Avant tout import : exporter le workflow live, diffuser ses correctifs runtime dans le
-> repo, PUIS rejouer `python3 scripts/patch-veille-on-demand.py`** (idempotent, structurel).
+> ℹ️ **Réconciliation repo ↔ VPS effectuée (2026-09-06).** Le workflow V2 `KREDO — Veille IA & Marché`
+> a été réimporté et validé en production (run n8n `83554` de bout en bout sur le sujet `ia` × corpus `folio-ai-tech`).
+> Les correctifs runtime issus du smoke test prod (Sonnet timeout=180s/max_tokens=12k, parser durci refusant `max_tokens`, sérialisation `jsonBody` `={{ {`) sont consolidés dans le repository et garantis par `scripts/patch-veille-on-demand.py`.
+>
+> ⚠️ **Sécurité** : Les 3 nœuds HMAC utilisent le placeholder `REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET` dans Git et doivent recevoir la valeur réelle de `N8N_WEBHOOK_SECRET` lors de l'import live.
+>
+> ℹ️ **Statut ADR-0022** : Le smoke test Sujet × Corpus est validé. Le smoke test LLM × Folio AI Tech (sujet sectoriel) reste à finaliser avant la clôture complète d'ADR-0022.
 
 ## Déclenchement à la demande (webhook)
 
@@ -110,6 +111,11 @@ cron / webhook → Résoudre Contexte Déclenchement
 ```
 
 Modèles : classement `claude-haiku-4-5-20251001`, analyse `claude-sonnet-5`.
+
+### Parameters & Invariants consolidés (Smoke Test 2026-09-06)
+- **Appel Claude Sonnet — Analyse** : `max_tokens = 12000`, `timeout = 180000` (180 s), `thinking: { type: "disabled" }`, retries (`maxTries = 2`, `waitBetweenTries = 5000`).
+- **Parser Digest Final** : refuse explicitement toute réponse tronquée (`stop_reason === "max_tokens"` avec log `output_tokens`), tente d'abord `JSON.parse` brut sans altération des smart quotes internes, puis fallback sur réparation des trailing commas.
+- **Créer Digest** : `jsonBody` correctement formaté en expression n8n `={{ { ... } }}`, upsert `on_conflict=workspace_id,digest_date,topic_key`.
 
 ## Credentials n8n requis
 

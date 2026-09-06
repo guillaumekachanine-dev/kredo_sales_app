@@ -1846,5 +1846,132 @@ check(
   nodes["Écrire Métriques Sources"]?.continueOnFail === true,
 )
 
+// --- Consolidation Runtime post-smoke test prod (2026-09-06) -------------------
+
+const sonnetNode = nodes["Appel Claude Sonnet — Analyse"]
+check(
+  "consolidation — Sonnet model === claude-sonnet-5",
+  (sonnetNode?.parameters?.jsonBody || "").includes('model: "claude-sonnet-5"'),
+)
+check(
+  "consolidation — Sonnet max_tokens === 12000",
+  (sonnetNode?.parameters?.jsonBody || "").includes("max_tokens: 12000"),
+)
+check(
+  "consolidation — Sonnet timeout === 180000",
+  sonnetNode?.parameters?.options?.timeout === 180000,
+)
+check(
+  "consolidation — Sonnet retryOnFail === true",
+  sonnetNode?.retryOnFail === true,
+)
+check(
+  "consolidation — Sonnet maxTries === 2",
+  sonnetNode?.maxTries === 2,
+)
+check(
+  "consolidation — Sonnet waitBetweenTries === 5000",
+  sonnetNode?.waitBetweenTries === 5000,
+)
+
+const parserNode = nodes["Parser Digest Final"]
+const parserCode = parserNode?.parameters?.jsCode || ""
+check(
+  "consolidation — Parser Digest Final contient garde stop_reason === max_tokens",
+  parserCode.includes('response.stop_reason === "max_tokens"'),
+)
+check(
+  "consolidation — Parser Digest Final utilise response.usage?.output_tokens",
+  parserCode.includes("response.usage?.output_tokens"),
+)
+check(
+  "consolidation — Parser Digest Final tente le parse brut avant réparation",
+  parserCode.includes("parsed = JSON.parse(extracted)") &&
+    parserCode.includes("parsed = JSON.parse(repairTrailingCommas(extracted))"),
+)
+check(
+  "consolidation — aucune regex globale de remplacement de guillemets typographiques dans le parser",
+  !/[“”]/.test(parserCode) && !/[‘’]/.test(parserCode),
+)
+
+// Execution du parser avec smart quotes internes
+const testSmartQuotesJson = {
+  content: [
+    {
+      type: "text",
+      text: JSON.stringify({
+        titre_digest: "IA : les entreprises parlent d’« agents autonomes »",
+        resume_hebdo: "Le marché accélère autour des usages “agentiques”.",
+        super_short_summary: "Les agents entrent en production",
+        articles: [],
+      }),
+    },
+  ],
+}
+
+const parsedSmartQuotes = runCodeNode("Parser Digest Final", {
+  input: [testSmartQuotesJson],
+  registry: { "Construire Prompt Analyse": [{ sourceArticles: [] }] },
+})[0].json
+
+check(
+  "consolidation — Parser Digest Final préserve les guillemets typographiques internes sans les altérer",
+  parsedSmartQuotes.titreDigest === "IA : les entreprises parlent d’« agents autonomes »" &&
+    parsedSmartQuotes.resumeHebdo === "Le marché accélère autour des usages “agentiques”.",
+  JSON.stringify(parsedSmartQuotes),
+)
+
+// Execution du parser avec stop_reason = max_tokens -> doit lever une exception
+checkThrows(
+  "consolidation — Parser Digest Final refuse une réponse tronquée max_tokens",
+  () => {
+    runCodeNode("Parser Digest Final", {
+      input: [
+        {
+          stop_reason: "max_tokens",
+          usage: { output_tokens: 12000 },
+          content: [{ type: "text", text: '{"titre_digest": "Partiel"' }],
+        },
+      ],
+      registry: { "Construire Prompt Analyse": [{ sourceArticles: [] }] },
+    })
+  },
+  "L'erreur de troncature doit être levée",
+)
+
+const creerDigestNode = nodes["Créer Digest"]
+const jsonBodyDigest = creerDigestNode?.parameters?.jsonBody || ""
+check(
+  "consolidation — Créer Digest jsonBody commence par une expression n8n valide (={{ {)",
+  jsonBodyDigest.startsWith("={{ {"),
+  jsonBodyDigest.slice(0, 20),
+)
+check(
+  "consolidation — Créer Digest ne contient pas la forme fautive (={ {)",
+  !jsonBodyDigest.includes("={ {"),
+)
+check(
+  "consolidation — Créer Digest renseigne topic_key, topic_sector_id, source_corpus_id, generation_mode",
+  jsonBodyDigest.includes("topic_key:") &&
+    jsonBodyDigest.includes("topic_sector_id:") &&
+    jsonBodyDigest.includes("source_corpus_id:") &&
+    jsonBodyDigest.includes("generation_mode:"),
+)
+check(
+  "consolidation — Créer Digest fait un upsert sur workspace_id,digest_date,topic_key",
+  (creerDigestNode?.parameters?.url || "").includes("on_conflict=workspace_id,digest_date,topic_key"),
+)
+
+// Test idempotence & --check du script de patch
+const cp = require("node:child_process")
+const patchScriptPath = path.join(__dirname, "..", "..", "..", "scripts", "patch-veille-on-demand.py")
+
+const patchCheck = cp.spawnSync("python3", [patchScriptPath, "--check"], { encoding: "utf8" })
+check(
+  "consolidation — patch-veille-on-demand.py --check retourne 0 sur le repo consolidé",
+  patchCheck.status === 0,
+  patchCheck.stderr || patchCheck.stdout,
+)
+
 console.log(`\n${passed} ok · ${failed} échec(s)`)
 process.exit(failed === 0 ? 0 : 1)

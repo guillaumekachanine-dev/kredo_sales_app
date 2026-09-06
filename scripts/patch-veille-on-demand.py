@@ -6,7 +6,8 @@ Patch `n8n/workflows/veille-hebdomadaire-kredo.json` pour lui ajouter :
 3. le routage de sources V1 / V2 sans relire les sources globales en V2 ;
 4. la déduplication jointe sur `veille_digests.topic_key` ;
 5. l'upsert à 3 colonnes `(workspace_id, digest_date, topic_key)` sur `veille_digests` ;
-6. la correction DEF-1 / H-2 des métriques de sources (dataflow post-boucle).
+6. la correction DEF-1 / H-2 des métriques de sources (dataflow post-boucle) ;
+7. la consolidation runtime post-smoke test prod 2026-09-06 (Sonnet max_tokens 12000, timeout 180s, parser durci, expression n8n ={{ { dans Créer Digest).
 
 Après patch, le workflow (nommé « KREDO — Veille IA & Marché ») porte :
   - le `scheduleTrigger` cron `0 6 * * 1` existant (inchangé, topicKey='global', scheduled) ;
@@ -505,6 +506,92 @@ return metrics.map((m) => ({ json: m }));
 """.strip()
 
 
+PARSER_DIGEST_FINAL_JS = """
+const response = $input.first().json;
+const textBlock = (response.content || []).find((b) => b.type === "text");
+const rawText = textBlock?.text || "";
+const sourceArticles = $("Construire Prompt Analyse").first().json.sourceArticles;
+
+if (response.stop_reason === "max_tokens") {
+  throw new Error(
+    `Analyse Sonnet tronquée : max_tokens atteint. output_tokens=${response.usage?.output_tokens ?? "?"}`
+  );
+}
+
+function extractJson(text) {
+  const fenced = text.match(/^```(?:json)?\\s*([\\s\\S]*?)\\s*```$/i);
+  if (fenced) return fenced[1].trim();
+  const first = text.indexOf("{");
+  const last = text.lastIndexOf("}");
+  if (first >= 0 && last > first) return text.slice(first, last + 1);
+  return text;
+}
+
+function repairTrailingCommas(text) {
+  return text.replace(/,\\s*([}\\]])/g, "$1");
+}
+
+const extracted = extractJson(rawText);
+let parsed;
+
+try {
+  parsed = JSON.parse(extracted);
+} catch (firstError) {
+  try {
+    parsed = JSON.parse(repairTrailingCommas(extracted));
+  } catch (secondError) {
+    throw new Error(
+      "L analyse Sonnet n a pas renvoye un JSON exploitable : " +
+      String(secondError?.message || secondError) +
+      " | stop_reason=" +
+      String(response.stop_reason || "unknown") +
+      " | début=" +
+      rawText.slice(0, 500)
+    );
+  }
+}
+
+// Clé stable : on relie chaque article renvoyé par le LLM à sa source via son
+// `id` (art_0, art_1…), pas via la position dans le tableau — le contrat LLM
+// n'est pas garanti de préserver l'ordre ou le compte exact. Fallback sur
+// l'index uniquement si le modèle a omis le champ `id`.
+const byId = Object.fromEntries(sourceArticles.map((a) => [a.id, a]));
+
+const articles = (parsed.articles || []).map((a, idx) => {
+  const src = byId[a.id] || sourceArticles[idx] || {};
+  return {
+    selectionRank: a.selection_rank || idx + 1,
+    titreFr: a.titre_fr,
+    resume: a.resume,
+    analyseKredo: a.analyse_kredo,
+    actionCommerciale: a.action_commerciale,
+    secteurPrincipal: a.secteur_principal || src.secteurPrincipal || "transverse",
+    secteurSecondaire: a.secteur_secondaire || "",
+    categorie: a.categorie || src.categorie,
+    tags: a.tags || [],
+    convergences: a.convergences,
+    url: src.url,
+    urlHash: src.urlHash,
+    sourceName: src.source,
+    sourceCatalogId: src.sourceCatalogId || null,
+    collectedVia: src.collectedVia || null,
+    publishedAt: src.publishedAt || null,
+  };
+});
+
+return [
+  {
+    json: {
+      titreDigest: parsed.titre_digest,
+      resumeHebdo: parsed.resume_hebdo,
+      superShortSummary: parsed.super_short_summary,
+      articles,
+    },
+  },
+];
+""".strip()
+
+
 PREPARER_CALLBACK_OK_JS = f"""
 const ctx = $('{CTX_NODE}').first().json;
 
@@ -709,6 +796,18 @@ def patch(wf: dict) -> dict:
     node_map[PREPARER_METRIQUES]["parameters"]["jsCode"] = PREPARER_METRIQUES_JS
     node_map[ECRIRE_METRIQUES]["continueOnFail"] = True
 
+    # 2.1 Consolidation Sonnet & Parser Digest Final (runtime fixes 2026-09-06)
+    if "Appel Claude Sonnet — Analyse" in node_map:
+        sonnet = node_map["Appel Claude Sonnet — Analyse"]
+        sonnet["parameters"]["jsonBody"] = (
+            '={{ { model: "claude-sonnet-5", max_tokens: 12000, thinking: { type: "disabled" }, '
+            'messages: [ { role: "user", content: $json.promptAnalyse } ] } }}'
+        )
+        sonnet["parameters"].setdefault("options", {})["timeout"] = 180000
+
+    if "Parser Digest Final" in node_map:
+        node_map["Parser Digest Final"]["parameters"]["jsCode"] = PARSER_DIGEST_FINAL_JS
+
     # 3. Récupérer Hash Articles Vus : jointure sur veille_digests.topic_key
     recup_hash = node_map[RECUPERER_HASH]
     recup_hash["parameters"]["sendQuery"] = True
@@ -724,7 +823,7 @@ def patch(wf: dict) -> dict:
     creer_dig = node_map[CREER_DIGEST]
     creer_dig["parameters"]["url"] = f"{SUPABASE_REST}/veille_digests?on_conflict=workspace_id,digest_date,topic_key"
     creer_dig["parameters"]["jsonBody"] = (
-        f"={{ {{ "
+        "={{ { "
         f"workspace_id: $('{CTX_NODE}').first().json.workspaceId, "
         f"digest_date: $('{CTX_NODE}').first().json.digestDate, "
         f"topic_key: $('{CTX_NODE}').first().json.topicKey, "
@@ -818,6 +917,8 @@ def is_v2_ready(wf: dict) -> bool:
     creer_dig = node_map.get(CREER_DIGEST)
     if not creer_dig or "on_conflict=workspace_id,digest_date,topic_key" not in creer_dig.get("parameters", {}).get("url", ""):
         return False
+    if not creer_dig.get("parameters", {}).get("jsonBody", "").startswith("={{ {"):
+        return False
 
     recup_hash = node_map.get(RECUPERER_HASH)
     if not recup_hash or "veille_digests!inner(topic_key)" not in json.dumps(recup_hash.get("parameters", {})):
@@ -825,6 +926,20 @@ def is_v2_ready(wf: dict) -> bool:
 
     valider = node_map.get("Valider Signature & Payload")
     if not valider or "schemaVersion === 2" not in valider.get("parameters", {}).get("jsCode", ""):
+        return False
+
+    sonnet = node_map.get("Appel Claude Sonnet — Analyse")
+    if not sonnet:
+        return False
+    sonnet_params = sonnet.get("parameters", {})
+    if "max_tokens: 12000" not in sonnet_params.get("jsonBody", "") or sonnet_params.get("options", {}).get("timeout") != 180000:
+        return False
+
+    parser = node_map.get("Parser Digest Final")
+    if not parser:
+        return False
+    parser_code = parser.get("parameters", {}).get("jsCode", "")
+    if 'stop_reason === "max_tokens"' not in parser_code or "[“”]" in parser_code:
         return False
 
     return True
@@ -837,7 +952,7 @@ def main() -> int:
 
     if check_only:
         if ready:
-            print("OK — workflow V2 prêt (webhook, routage V1/V2, dédup par topic, upsert 3 colonnes).")
+            print("OK — workflow V2 prêt (webhook, routage V1/V2, dédup par topic, upsert 3 colonnes, runtime consolidé).")
             return 0
         print("MANQUANT — le workflow n'est pas encore au niveau V2 attendu. Lancer : python3 scripts/patch-veille-on-demand.py")
         return 1
