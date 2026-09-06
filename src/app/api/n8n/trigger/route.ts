@@ -32,6 +32,12 @@ import {
   buildWatchAnalysisRunEnvelope,
   buildWatchAnalysisInputSnapshot,
 } from "@/features/watch-analysis/data/build-watch-analysis-launch"
+import { parseDigestLaunchInput } from "@/features/veille/digest/domain/digest-launch-contracts"
+import { resolveDigestLaunch } from "@/features/veille/digest/data/resolve-digest-launch"
+import {
+  buildDigestRunEnvelope,
+  buildDigestInputSnapshot,
+} from "@/features/veille/digest/data/build-digest-launch"
 import type {
   N8nEntityType,
   N8nWorkflowId,
@@ -290,6 +296,55 @@ export async function POST(request: Request) {
 
     if (!v2Result.ok) {
       console.error("[trigger] INTEL-021 V2 triggerN8nRun failed:", v2Result.error)
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: v2Result.error },
+        { status: v2Result.runId ? 502 : 500 }
+      )
+    }
+
+    return NextResponse.json<TriggerResponse>(
+      { runId: v2Result.runId, status: "queued" },
+      { status: 202 }
+    )
+  }
+
+  // ── 3quinquies. Branche V2 « Digest Sujet × Corpus » (ADR-0022 Lot 2B) ─────
+  if (
+    workflowId === "veille-ia-marche-on-demand" &&
+    (input as Record<string, unknown>).schemaVersion === 2
+  ) {
+    const validated = parseDigestLaunchInput(input)
+    if (!validated.ok) {
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: validated.error },
+        { status: 400 }
+      )
+    }
+
+    const resolved = await resolveDigestLaunch(supabase, profile.workspace_id, validated.value)
+    if ("error" in resolved) {
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: resolved.error },
+        { status: 400 }
+      )
+    }
+
+    const n8nEnvelope = buildDigestRunEnvelope(validated.value, resolved)
+    const inputSnapshot = buildDigestInputSnapshot(validated.value, resolved)
+
+    const v2Result = await triggerN8nRun({
+      workflowId,
+      entityType: "workspace",
+      entityId: profile.workspace_id,
+      companyId: null,
+      workspaceId: profile.workspace_id,
+      userId: user.id,
+      input: n8nEnvelope as unknown as Record<string, unknown>,
+      inputSnapshot: inputSnapshot as unknown as Record<string, unknown>,
+    })
+
+    if (!v2Result.ok) {
+      console.error("[trigger] veille-ia-marche-on-demand V2 triggerN8nRun failed:", v2Result.error)
       return NextResponse.json<TriggerErrorResponse>(
         { error: v2Result.error },
         { status: v2Result.runId ? 502 : 500 }
