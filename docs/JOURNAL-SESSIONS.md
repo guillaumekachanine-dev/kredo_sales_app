@@ -54,10 +54,26 @@ a passé les 46 comptes concernés : 28 cohérents, 0 faux positif, 9 SIREN susp
 (Ascoma cessé + mauvaise commune, CHU de Nice apparié à un bureau d'étudiants infirmiers) et
 6 propositions à arbitrer.
 
-**Deux points ouverts, à trancher avant le Lot 2 :** le réimport VPS de `intel-030` (non fait, et
-la dérive constatée le rend nécessaire avant toute mesure), et la transposition du module dans
-**`intel-010-refresh`, qui porte le même défaut et produit six fois plus de propositions d'identité**
-(124 runs contre 18) — c'est la principale source de contamination restante.
+**Extension le 07/09 — trois causes, pas une.** L'examen des `input_snapshot` a corrigé le
+diagnostic : Tournaire venait de la résolution automatique d'`intel-030` ; **D-Orbit** de celle
+d'`intel-010` (Jaccard sur le nom, bonus de localisation **jamais négatif**, donc un candidat du
+mauvais département n'était jamais écarté) ; **MMV d'un choix humain** — `selectedSiren` était
+renseigné, un utilisateur avait confirmé « DEPIL TECH » dans une liste rendue par
+`/api/intelligence/account-identity` **sans aucun score**, dont l'interface cochait le premier
+élément d'office. Aucun algorithme ne s'était trompé sur MMV : l'interface avait induit le choix.
+
+Les trois sites sont corrigés. `intel-010` reçoit la même transcription (patch dédié, 2 nœuds, sans
+modification de topologie ; `needs_human_confirmation` se projette sur l'état produit `ambiguous`
+déjà géré par `AccountScanDialog`, donc un résolveur plus strict oriente vers l'arbitrage humain au
+lieu de bloquer le scan). `selectedSiren` **reste souverain** — refuser un choix humain créerait une
+impasse — mais une contradiction produit désormais un avertissement explicite. La route d'identité
+score, ordonne et explique les candidats, et **ne présélectionne que si le module tranche de
+lui-même**. Harnais `intel-010` porté de 10 à 23 assertions, dont un contrôle croisé qui interdit aux
+deux transcriptions de diverger en silence.
+
+**Reste ouvert :** réimport VPS d'`intel-010` (celui d'`intel-030` est fait le 07/09) ; vérification
+par un run réel — `n8n:status` compare des compteurs de nœuds et ne peut pas prouver que le code
+déployé est le code patché ; et le clutter VPS (5 copies d'`intel-030`, 8 d'`intel-010`).
 
 ### Session 56 — ADR-0022 : Digest thématique Sujet × Corpus (2026-09-06)
 

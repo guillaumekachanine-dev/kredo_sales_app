@@ -477,6 +477,12 @@ export type AccountScanResolutionCandidate = {
   nafCode?: string | null
   hqLocation?: string | null
   matchScore: number
+  // Ajoutés par le Lot 1 Account Knowledge V4. Optionnels : les résultats de scan
+  // déjà en base n'en portent pas.
+  /** `false` quand la commune ou l'activité du candidat contredisent la fiche compte. */
+  coherent?: boolean
+  /** Premier signal négatif, en clair, pour que l'utilisateur puisse trancher. */
+  reason?: string | null
 }
 
 export type AccountScanResolution = {

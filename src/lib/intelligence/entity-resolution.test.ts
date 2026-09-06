@@ -13,6 +13,7 @@ import {
   normalizeRegistryResult,
   normalizeSiren,
   parseLocation,
+  rankIdentityCandidates,
   resolveEntity,
   scoreNamePair,
   toResolutionSnapshot,
@@ -414,6 +415,66 @@ describe("entity-resolution — briques de normalisation", () => {
 
   it("rejette un résultat sans SIREN exploitable", () => {
     expect(normalizeRegistryResult({ nom_complet: "SANS SIREN" })).toBeNull()
+  })
+})
+
+describe("entity-resolution — candidats soumis à une confirmation humaine", () => {
+  // Le compte MMV n'avait ni raison sociale ni siège au CRM. L'API a rendu
+  // « DEPIL TECH » parmi ses cinq premiers résultats, l'interface a coché le
+  // premier, un humain a confirmé. Six propositions portant l'identité d'un autre
+  // compte du CRM en sont sorties.
+  const MMV = account({ name: "MMV", sector: "Tourisme, Hôtellerie & Loisirs" })
+  const DEPIL_TECH = candidate({
+    siren: "529850455", legalName: "DEPIL TECH", nafCode: "96.02B", nafSection: "S",
+    hqCommune: "NICE", hqPostalCode: "06200", hqDepartment: "06",
+  })
+
+  it("ne recommande jamais un candidat que le module ne résoudrait pas lui-même", () => {
+    const ranking = rankIdentityCandidates(MMV, [DEPIL_TECH])
+    expect(ranking.recommendedSiren).toBeNull()
+  })
+
+  it("classe les candidats par score, pas dans l'ordre du registre", () => {
+    const ranking = rankIdentityCandidates(TOURNAIRE_ACCOUNT, [
+      TOURNAIRE_LYON,
+      TOURNAIRE_HOLDING,
+      TOURNAIRE_SA,
+    ])
+
+    expect(ranking.candidates[0].siren).toBe("415550110")
+    expect(ranking.candidates.map((c) => c.siren)).toContain("505063438")
+    expect(ranking.recommendedSiren).toBe("415550110")
+  })
+
+  it("marque comme incohérent un candidat que la géographie ou l'activité contredisent", () => {
+    const ranking = rankIdentityCandidates(TOURNAIRE_ACCOUNT, [TOURNAIRE_LYON, TOURNAIRE_SA])
+    const lyon = ranking.candidates.find((c) => c.siren === "505063438")
+    const grasse = ranking.candidates.find((c) => c.siren === "415550110")
+
+    expect(lyon?.coherent).toBe(false)
+    expect(lyon?.reasons.length).toBeGreaterThan(0)
+    expect(grasse?.coherent).toBe(true)
+  })
+
+  it("ignore un SIREN déjà au CRM pour ne pas masquer une erreur existante", () => {
+    // `rankIdentityCandidates` sert à CHOISIR : le court-circuit `crm_siren` de
+    // `resolveEntity` y serait un piège — il validerait l'entité qu'on veut réexaminer.
+    const ranking = rankIdentityCandidates(
+      { ...TOURNAIRE_ACCOUNT, knownSiren: "505063438" },
+      [TOURNAIRE_LYON, TOURNAIRE_SA],
+    )
+
+    expect(ranking.recommendedSiren).toBe("415550110")
+  })
+
+  it("expose la commune et le code NAF de chaque candidat pour l'arbitrage humain", () => {
+    const ranking = rankIdentityCandidates(TOURNAIRE_ACCOUNT, [TOURNAIRE_SA])
+    expect(ranking.candidates[0]).toMatchObject({
+      siren: "415550110",
+      name: "TOURNAIRE SA",
+      location: "06130 GRASSE",
+      nafCode: "25.92Z",
+    })
   })
 })
 

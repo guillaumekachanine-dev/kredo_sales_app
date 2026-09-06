@@ -846,6 +846,69 @@ export function normalizeRegistryResult(raw: RawRegistryResult): RegistryCandida
   }
 }
 
+// ─── Candidats présentés à un humain ────────────────────────────────────────
+
+export type IdentityCandidate = {
+  siren: string
+  name: string
+  location: string
+  nafCode: string | null
+  nafSection: string | null
+  /** Score du module, exposé pour l'ordre et pour l'explication. */
+  score: number
+  /** `false` dès qu'un signal discriminant contredit l'appariement. */
+  coherent: boolean
+  /** Ce que le module a vu, en clair, pour que l'utilisateur puisse trancher. */
+  reasons: string[]
+}
+
+export type IdentityCandidateRanking = {
+  candidates: IdentityCandidate[]
+  /**
+   * SIREN à présélectionner. `null` dès que le module ne trancherait pas lui-même :
+   * l'interface ne doit alors **rien** cocher d'avance.
+   *
+   * C'est le défaut qui a coûté le compte MMV : la liste était rendue dans l'ordre
+   * brut de l'API et le premier élément était coché par défaut. Un humain a confirmé
+   * « DEPIL TECH » pour un exploitant de résidences de montagne, en un clic.
+   */
+  recommendedSiren: string | null
+}
+
+/**
+ * Ordonne et qualifie les candidats soumis à une confirmation humaine.
+ *
+ * Le tri par score remplace l'ordre de pertinence brut du registre, qui n'a aucune
+ * connaissance du compte. Chaque candidat porte les raisons de son rang : un humain
+ * choisit mieux quand on lui montre que la commune ou l'activité ne collent pas.
+ */
+export function rankIdentityCandidates(
+  account: AccountIdentityInput,
+  candidates: RegistryCandidate[],
+): IdentityCandidateRanking {
+  const scored = candidates
+    .map((candidate) => scoreCandidate(account, candidate))
+    .sort((a, b) => b.score - a.score || a.candidate.siren.localeCompare(b.candidate.siren))
+
+  const resolution = resolveEntity({ ...account, knownSiren: null }, candidates)
+
+  return {
+    candidates: scored.map((entry) => ({
+      siren: entry.candidate.siren,
+      name: entry.candidate.legalName ?? entry.candidate.siren,
+      location: [entry.candidate.hqPostalCode, entry.candidate.hqCommune].filter(Boolean).join(" "),
+      nafCode: entry.candidate.nafCode,
+      nafSection: entry.candidate.nafSection,
+      score: entry.score,
+      coherent: entry.blockers.length === 0 && !hasStrongContradiction(entry),
+      reasons: entry.signals
+        .filter((signal) => signal.value !== 0 && signal.key !== "name")
+        .map((signal) => signal.detail),
+    })),
+    recommendedSiren: resolution.decision === "resolved" ? (resolution.chosen?.siren ?? null) : null,
+  }
+}
+
 /** Bloc `entity_resolution` déposé dans `content_json` et dans le `context_snapshot`. */
 export type EntityResolutionSnapshot = {
   decision: EntityResolutionDecision

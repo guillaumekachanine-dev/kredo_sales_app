@@ -1,7 +1,8 @@
 # Lot 1 — Résolution d'entité et arrêt de la contamination
 
 **Statut :** livré le 2026-09-07. Code, tests et assainissement de la base faits.
-**Reste à la main de Guillaume :** réimport du workflow sur le VPS, et arbitrage de 10 comptes (§5).
+**Reste à la main de Guillaume :** réimport d'`intel-010` sur le VPS (celui d'`intel-030` est fait),
+vérification par un run réel (§6), et arbitrage de 10 comptes (§5).
 **Cadrage :** `ACCOUNT-KNOWLEDGE-V4-CADRAGE.md` §18, Lot 1.
 
 ---
@@ -31,7 +32,7 @@ confiance attendaient d'écrire cette identité dans `companies`.
 
 ## 2. Le module
 
-**`src/lib/intelligence/entity-resolution.ts`** — pur, sans I/O, 29 tests
+**`src/lib/intelligence/entity-resolution.ts`** — pur, sans I/O, 34 tests
 (`entity-resolution.test.ts`). C'est la **spécification exécutable** ; le nœud n8n en est une
 transcription, jamais l'inverse.
 
@@ -102,10 +103,9 @@ Patché par `scripts/patch-intel-030-entity-resolution.py`, **sans modification 
 `intel-030-account-knowledge-v3.test.js` rejoue la régression Tournaire **sur le code exporté**,
 avec un mock de `this.helpers.httpRequest`. **90 assertions, 0 échec** (78 avant, +12).
 
-> ⚠️ **Le réimport sur le VPS est indispensable et n'est pas fait.** Rappel du cadrage §D5 : le
-> `researchDiagnostic` du run du 04/09 rend `no_safe_url` sur `https://www.tournaire.fr/`, que le
-> garde-fou du dépôt accepte — **le workflow qui tourne n'est déjà pas celui du dépôt**. La
-> réconciliation doit précéder toute mesure de terrain.
+> ✅ **Réimporté sur le VPS le 2026-09-07.** Le contrôle `npm run n8n:status` rend 66/66 nœuds —
+> mais il compare des *compteurs*, jamais du code : il ne peut pas prouver que le code déployé est
+> le code patché. Le seul contrôle décisif est un run réel (§6).
 
 ---
 
@@ -117,14 +117,85 @@ proposée appartenait démonstrativement à une autre personne morale :
 | Compte | Identité proposée | Réalité |
 |---|---|---|
 | **Tournaire** (4) | `TOURNAIRE` · SIREN 505063438 · LYON 69006 · NAF 43.99C | TOURNAIRE SA · 415550110 · Grasse · 25.92Z |
-| **MMV** (6) | `DEPIL TECH (DEPIL TECH)` · SIREN 529850455 · Nice · NAF 96.02B | exploitant de résidences de montagne. **Le SIREN proposé est celui d'un autre compte du CRM** (« Depil Tech ») |
+| **MMV** (6) | `DEPIL TECH (DEPIL TECH)` · SIREN 529850455 · Nice · NAF 96.02B | exploitant de résidences de montagne. **Le SIREN proposé est celui d'un autre compte du CRM** (« Depil Tech »). Cause distincte des deux autres : voir §4 bis |
 | **D-Orbit** (5) | `ORBIT` · SIREN 400276754 · Paris 15e · NAF 56.10C (restauration) | acteur spatial |
 
 `decision_reason` porte la trace : *« Lot 1 Account Knowledge V4 — audit de résolution d'entité du
 2026-09-07 »*. Rien n'a été supprimé ; un rejet est réversible.
 
 **Le défaut n'est pas propre à `intel-030`** : sur les 9 jeux de propositions d'identité en attente,
-**6 venaient de `intel-010-refresh`** (dont MMV et D-Orbit). Voir §6.
+**6 venaient de `intel-010-refresh`** (dont MMV et D-Orbit). Voir §4 bis.
+
+---
+
+## 4 bis. Trois causes distinctes, pas une seule
+
+L'examen des `input_snapshot` des runs a corrigé le diagnostic initial : les trois comptes
+contaminés ne relèvent **pas** du même défaut.
+
+| Compte | `selectedSiren` | Cause réelle | Corrigé par |
+|---|---|---|---|
+| **Tournaire** | `null` | résolution automatique d'`intel-030` — nom seul, `per_page=3` | §2-3 |
+| **D-Orbit** | `null` | résolution automatique d'`intel-010` — Jaccard sur le nom, bonus de localisation **jamais négatif** | §4 ter |
+| **MMV** | **`529850455`** | **un humain a confirmé ce SIREN** dans une liste rendue sans score, dont le premier élément était coché d'avance | §4 quater |
+
+Le cas MMV est le plus instructif : aucun algorithme ne s'est trompé. Le workflow a exécuté
+fidèlement un choix humain — et ce choix avait été induit par l'interface.
+
+---
+
+## 4 ter. `intel-010-refresh` — le résolveur
+
+Son nœud `Resolve Entity` scorait déjà (Jaccard sur les tokens + bonus de localisation), ce qui le
+rendait meilleur qu'`intel-030`. Quatre défauts subsistaient :
+
+- une seule requête, `per_page=5` ;
+- **le bonus de localisation vaut 0 ou +0,25, jamais une pénalité** : un candidat situé dans le
+  mauvais département n'était pas écarté, seulement moins récompensé. D-Orbit → `ORBIT` (NAF
+  56.10C, restauration, Paris) est sorti de là, sur un score de nom parfait et rien d'autre ;
+- aucun contrôle d'activité ni d'état administratif ;
+- `selectedSiren` court-circuitait **tout** contrôle, sans un mot.
+
+Patché par `scripts/patch-intel-010-entity-resolution.py`, sans modification de topologie :
+`per_page` 5 → 10, scoring remplacé par la transcription partagée, requêtes supplémentaires sur les
+variantes de raison sociale.
+
+**Le contrat de sortie est inchangé.** `needs_human_confirmation` se projette sur `ambiguous`, un
+état produit qui existe déjà et que l'interface sait traiter (`AccountScanDialog`, phase
+`information_ambiguous` → l'utilisateur choisit un SIREN et relance). Un résolveur plus strict ne
+bloque donc pas le scan : il l'oriente vers l'arbitrage humain, désormais fiable (§4 quater).
+
+**`selectedSiren` reste souverain** — un humain a tranché, et le lui refuser créerait une impasse.
+Mais une contradiction produit maintenant un avertissement explicite dans le résultat de scan :
+*« Entité confirmée manuellement (SIREN … ) malgré des signaux contradictoires : … »*.
+
+Harnais `intel-010-refresh-account-infos.test.js` porté de **10 à 23 assertions**, dont la
+régression D-Orbit, le cas MMV, et un contrôle croisé : les deux workflows portent littéralement les
+mêmes seuils (`RESOLVED_MIN_SCORE`, `RESOLVED_MIN_NAME_SCORE`, `REGISTRY_PER_PAGE`), ce qui empêche
+les deux transcriptions de diverger en silence.
+
+---
+
+## 4 quater. La liste soumise à l'humain — la cause racine de MMV
+
+`src/app/api/intelligence/account-identity/route.ts` interrogeait le registre avec
+`"<nom> <hq_location>"`, `per_page=5`, et rendait les résultats **dans l'ordre brut de l'API**,
+sans le moindre score. `AccountScanIdentityConfirm.tsx` cochait `candidates[0]` d'office.
+
+Pour MMV — ni raison sociale, ni siège au CRM — la requête se réduisait à « MMV », et le premier
+résultat était « DEPIL TECH ». **Un clic sur « Confirmer » suffisait.**
+
+Corrigé :
+
+- plusieurs requêtes (raison sociale **et** nom d'usage), dix résultats chacune ;
+- tri par le score du module, via `rankIdentityCandidates()` ;
+- chaque candidat porte sa commune, son NAF, un drapeau `coherent` et le premier signal négatif
+  **en clair** — un humain choisit mieux quand on lui montre que l'activité ne colle pas ;
+- **présélection uniquement si le module résout de lui-même.** Sinon rien n'est coché et un bandeau
+  le dit : *« Aucun candidat ne peut être retenu automatiquement : le nom seul ne suffit pas. »*
+
+Un SIREN déjà présent au CRM est délibérément ignoré pour le classement : cette route sert à
+*choisir* l'entité, et court-circuiter la comparaison masquerait une erreur existante.
 
 ---
 
@@ -167,14 +238,16 @@ Aucun faux positif : les 28 comptes cohérents passent sans bruit.
 
 ---
 
-## 6. Recommandation immédiate hors périmètre
+## 6. Ce qui reste ouvert
 
-**`intel-010-refresh` porte le même défaut et produit six fois plus de propositions
-d'identité que `intel-030`** (124 runs contre 18). Le module est écrit pour être partagé ; le
-transposer dans `intel-010-refresh-account-infos.json` est un patch du même ordre — quelques
-heures — et c'est aujourd'hui **la principale source de contamination restante**.
-
-À arbitrer avant le Lot 2.
+- **Réimport VPS d'`intel-010`** : à faire (celui d'`intel-030` est fait le 2026-09-07).
+- **Vérification de terrain** : `npm run n8n:status` compare des *compteurs de nœuds* et ne voit
+  aucune dérive interne — il ne peut donc pas confirmer que le code déployé est le code patché.
+  Le seul contrôle décisif est un run réel : un `intel-030` sur Tournaire doit désormais faire
+  apparaître `entity_resolution` dans les `qa_flags` et retenir le SIREN 415550110.
+- **Doublons sur le VPS** : `n8n:status` signale **5 copies d'`intel-030`** et **8 d'`intel-010`**
+  (1 active chacune). Tant qu'elles coexistent, un réimport peut créer une copie de plus au lieu de
+  remplacer l'active.
 
 ---
 
@@ -198,3 +271,10 @@ heures — et c'est aujourd'hui **la principale source de contamination restante
 | `n8n/workflows/intel-030-account-knowledge.json` | 4 nœuds modifiés |
 | `n8n/workflows/intel-030-account-knowledge.SETUP.md` | §2 bis — consigne de réimport |
 | `n8n/workflows/__tests__/intel-030-account-knowledge-v3.test.js` | +12 assertions (90 au total) |
+| `scripts/entity-resolution-node.js` | transcription partagée par les deux workflows |
+| `scripts/patch-intel-010-entity-resolution.py` | patch reproductible d'`intel-010` |
+| `n8n/workflows/INTEL-010 — intel-010-refresh-account-infos.json` | 2 nœuds modifiés |
+| `n8n/workflows/__tests__/intel-010-refresh-account-infos.test.js` | +13 assertions (23 au total) |
+| `src/app/api/intelligence/account-identity/route.ts` | candidats scorés, ordonnés, expliqués |
+| `src/components/accounts-contacts/scan/AccountScanIdentityConfirm.tsx` | présélection conditionnelle + motifs affichés |
+| `src/lib/n8n/types.ts` | `AccountScanResolutionCandidate` += `coherent`, `reason` (optionnels) |

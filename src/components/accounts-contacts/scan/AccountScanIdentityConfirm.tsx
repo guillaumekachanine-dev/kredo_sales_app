@@ -16,6 +16,12 @@ interface Candidate {
   name: string
   location: string
   nafCode: string | null
+  /** Score de `entity-resolution.ts` — sert l'ordre, jamais affiché brut. */
+  score?: number
+  /** `false` quand la commune ou l'activité du candidat contredisent la fiche compte. */
+  coherent?: boolean
+  /** Ce que le module a vu, en clair. */
+  reasons?: string[]
 }
 
 export function AccountScanIdentityConfirm({
@@ -31,6 +37,7 @@ export function AccountScanIdentityConfirm({
   const [selectedSiren, setSelectedSiren] = useState<string | null>(null)
   const [manualMode, setManualMode] = useState(false)
   const [manualSiren, setManualSiren] = useState("")
+  const [recommendedSiren, setRecommendedSiren] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -47,10 +54,14 @@ export function AccountScanIdentityConfirm({
         const data = await res.json()
         if (cancelled) return
         setCandidates(data.candidates || [])
-        
-        if (data.candidates && data.candidates.length > 0) {
-          setSelectedSiren(data.candidates[0].siren)
-        } else {
+        setRecommendedSiren(data.recommendedSiren ?? null)
+
+        // Ne cocher QUE l'entité que le module résout de lui-même. Présélectionner
+        // le premier candidat de la liste a suffi à faire confirmer « DEPIL TECH »
+        // pour le compte MMV : un candidat plausible n'est pas une entité résolue.
+        if (data.recommendedSiren) {
+          setSelectedSiren(data.recommendedSiren)
+        } else if (!data.candidates || data.candidates.length === 0) {
           setManualMode(true)
         }
       } catch (err) {
@@ -82,8 +93,14 @@ export function AccountScanIdentityConfirm({
       <div className="space-y-1.5 pb-2">
         <h3 className="text-xl font-extrabold text-[#1E3150] tracking-tight">Confirmer l&apos;identité légale du compte</h3>
         <p className="text-sm text-[#526074]">
-          Sélectionnez l&apos;entité juridique correspondante afin d'optimiser l'exactitude des recherches officielles.
+          Sélectionnez l&apos;entité juridique correspondante afin d&apos;optimiser l&apos;exactitude des recherches officielles.
         </p>
+        {!loading && !error && candidates.length > 0 && !recommendedSiren && (
+          <p className="mt-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs font-semibold text-warning">
+            Aucun candidat ne peut être retenu automatiquement : le nom seul ne suffit pas à
+            identifier l&apos;entreprise. V&eacute;rifiez la commune du si&egrave;ge et l&apos;activit&eacute; avant de confirmer.
+          </p>
+        )}
       </div>
 
       {loading ? (
@@ -132,6 +149,11 @@ export function AccountScanIdentityConfirm({
                         {c.nafCode && (
                           <span className="mt-1.5 inline-block rounded bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#64748B] w-fit">
                             NAF {c.nafCode}
+                          </span>
+                        )}
+                        {c.coherent === false && (
+                          <span className="mt-1.5 rounded bg-warning/10 px-2 py-1 text-[10px] font-semibold leading-snug text-warning">
+                            {c.reasons?.[0] ?? "Ce candidat ne concorde pas avec la fiche compte."}
                           </span>
                         )}
                       </div>
@@ -241,7 +263,11 @@ export function AccountScanIdentityConfirm({
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface px-5 py-4">
           <div className="space-y-0.5">
             <h3 className="text-base font-bold text-heading">Confirmer l&apos;identité</h3>
-            <p className="text-[11px] text-muted">Sélectionnez la bonne entité légale</p>
+            <p className="text-[11px] text-muted">
+              {!loading && !error && candidates.length > 0 && !recommendedSiren
+                ? "Aucun candidat retenu automatiquement — vérifiez commune et activité"
+                : "Sélectionnez la bonne entité légale"}
+            </p>
           </div>
           <button
             type="button"
@@ -290,6 +316,11 @@ export function AccountScanIdentityConfirm({
                         <p className={cn("text-sm font-bold", selectedSiren === c.siren ? "text-heading" : "text-body")}>{c.name}</p>
                         <p className="mt-1 text-xs text-muted">SIREN: {c.siren}</p>
                         <p className="text-xs text-muted">{c.location}</p>
+                        {c.coherent === false && (
+                          <p className="mt-1.5 rounded bg-warning/10 px-2 py-1 text-[11px] font-medium leading-snug text-warning">
+                            {c.reasons?.[0] ?? "Ce candidat ne concorde pas avec la fiche compte."}
+                          </p>
+                        )}
                       </div>
                     </label>
                   ))}
