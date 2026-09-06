@@ -31,6 +31,41 @@ describe("parseCorpusSelector — veille_period", () => {
       parseCorpusSelector({ kind: "veille_period", periodStart: "2026-07-31", periodEnd: "2026-07-01" }),
     ).toBeNull()
   })
+
+  it("accepte topicKeys optionnel et déduplique les clés", () => {
+    expect(
+      parseCorpusSelector({
+        kind: "veille_period",
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+        topicKeys: ["ia", "llm", "ia"],
+      }),
+    ).toEqual({
+      kind: "veille_period",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-07-31",
+      topicKeys: ["ia", "llm"],
+    })
+  })
+
+  it("refuse un topicKeys invalide (vide ou non-string)", () => {
+    expect(
+      parseCorpusSelector({
+        kind: "veille_period",
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+        topicKeys: [],
+      }),
+    ).toBeNull()
+    expect(
+      parseCorpusSelector({
+        kind: "veille_period",
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+        topicKeys: [123],
+      }),
+    ).toBeNull()
+  })
 })
 
 describe("parseCorpusSelector — delivery_period", () => {
@@ -225,5 +260,37 @@ describe("corpusSelectorKey", () => {
     expect(
       corpusSelectorKey({ kind: "account_delivery", companyId: UUID_A }),
     ).toBe(`account_delivery:${UUID_A}`)
+  })
+
+  it("varie avec topicKeys pour veille_period et utilise global par défaut", () => {
+    const keyDefault = corpusSelectorKey({
+      kind: "veille_period",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-07-31",
+    })
+    const keyExplicitGlobal = corpusSelectorKey({
+      kind: "veille_period",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-07-31",
+      topicKeys: ["global"],
+    })
+    const keyIA = corpusSelectorKey({
+      kind: "veille_period",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-07-31",
+      topicKeys: ["ia"],
+    })
+    const keyMulti = corpusSelectorKey({
+      kind: "veille_period",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-07-31",
+      topicKeys: ["llm", "ia"],
+    })
+
+    expect(keyDefault).toBe("veille_period:2026-07-01:2026-07-31:global")
+    expect(keyExplicitGlobal).toBe(keyDefault)
+    expect(keyIA).toBe("veille_period:2026-07-01:2026-07-31:ia")
+    expect(keyMulti).toBe("veille_period:2026-07-01:2026-07-31:ia,llm")
+    expect(keyIA).not.toBe(keyDefault)
   })
 })

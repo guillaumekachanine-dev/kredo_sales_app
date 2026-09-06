@@ -135,18 +135,25 @@ export function VeilleArchivesTab({ entries, onOpenEntry }: VeilleArchivesTabPro
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm text-body">{entry.dateLabel}</span>
-                        <span
-                          className={cn(
-                            "mt-0.5 block text-sm font-semibold",
-                            entry.kind === "analysis" && entry.isManualCustom
-                              ? "text-[#2554B8]"
-                              : entry.kind === "analysis"
-                                ? "text-brand-brass"
-                                : "text-primary",
-                          )}
-                        >
-                          {entry.kindLabel}
-                        </span>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "text-sm font-semibold",
+                              entry.kind === "analysis" && entry.isManualCustom
+                                ? "text-[#2554B8]"
+                                : entry.kind === "analysis"
+                                  ? "text-brand-brass"
+                                  : "text-primary",
+                            )}
+                          >
+                            {entry.kindLabel}
+                          </span>
+                          {entry.topicBadgeLabel ? (
+                            <span className="inline-flex items-center rounded border border-border bg-surface-hover px-1.5 py-0.5 text-[10px] font-bold text-heading">
+                              {entry.topicBadgeLabel}
+                            </span>
+                          ) : null}
+                        </div>
                         <span className="mt-2 block text-[15px] font-bold leading-6 text-heading">
                           {entry.title}
                         </span>

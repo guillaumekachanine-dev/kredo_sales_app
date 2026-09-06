@@ -13,7 +13,7 @@ import "server-only"
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
-import type { Database } from "@/types/database"
+import type { Database, Json } from "@/types/database"
 import { listDigestPresets, GLOBAL_DIGEST_TOPIC_KEY } from "../domain/digest-presets"
 
 export type DigestTopicOption = {
@@ -48,6 +48,53 @@ const GROUP_BY_SCOPE: Record<string, DigestCorpusOption["group"]> = {
   sector: "sectoriel",
 }
 
+const SPECIAL_CORPUS_WORDS: Record<string, string> = {
+  ai: "AI",
+  ia: "IA",
+  llm: "LLM",
+  b2b: "B2B",
+  b2c: "B2C",
+  rh: "RH",
+  crm: "CRM",
+  esn: "ESN",
+  tech: "Tech",
+}
+
+export function humanizeCorpusSlug(slug: string): string {
+  if (!slug) return slug
+  return slug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((word) => {
+      const lower = word.toLowerCase()
+      if (SPECIAL_CORPUS_WORDS[lower]) return SPECIAL_CORPUS_WORDS[lower]
+      return word.charAt(0).toUpperCase() + word.slice(1)
+    })
+    .join(" ")
+}
+
+export function extractCorpusMetadataName(metadata: Json | null | undefined): string | null {
+  if (typeof metadata === "object" && metadata !== null) {
+    const meta = (metadata as Record<string, unknown>).meta
+    if (typeof meta === "object" && meta !== null && typeof (meta as Record<string, unknown>).name === "string") {
+      const name = ((meta as Record<string, unknown>).name as string).trim()
+      if (name) return name
+    }
+    if (typeof (metadata as Record<string, unknown>).name === "string") {
+      const name = ((metadata as Record<string, unknown>).name as string).trim()
+      if (name) return name
+    }
+  }
+  return null
+}
+
+export function resolveCorpusLabel(corpus: { slug: string; metadata?: Json | null }): string {
+  const metaName = extractCorpusMetadataName(corpus.metadata)
+  if (metaName) return metaName
+  const humanized = humanizeCorpusSlug(corpus.slug)
+  return humanized || corpus.slug
+}
+
 export async function getDigestLaunchOptions(
   supabase: SupabaseClient<Database>,
   workspaceId: string,
@@ -63,7 +110,7 @@ export async function getDigestLaunchOptions(
         .order("name", { ascending: true }),
       supabase
         .from("source_corpora")
-        .select("id, slug, scope_kind, activation_state, is_current")
+        .select("id, slug, scope_kind, activation_state, is_current, metadata")
         .eq("workspace_id", workspaceId)
         .eq("is_current", true)
         .order("scope_kind", { ascending: true })
@@ -101,7 +148,7 @@ export async function getDigestLaunchOptions(
     return {
       id: corpus.id,
       slug: corpus.slug,
-      label: corpus.slug,
+      label: resolveCorpusLabel(corpus),
       group: GROUP_BY_SCOPE[corpus.scope_kind] ?? "thematique",
       scopeKind: corpus.scope_kind,
       selectable: !isDraft && sourcesCount > 0,

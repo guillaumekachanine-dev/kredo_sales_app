@@ -16,6 +16,7 @@ const DATASET: FakeDataset = {
       titre_digest: "Semaine du 7 juillet",
       resume_hebdo: "Trois mouvements notables.",
       digest_date: "2026-07-07",
+      topic_key: "global",
     },
     {
       id: "digest-hors-periode",
@@ -23,6 +24,7 @@ const DATASET: FakeDataset = {
       titre_digest: "Semaine du 1er septembre",
       resume_hebdo: "Hors période.",
       digest_date: "2026-09-01",
+      topic_key: "global",
     },
     {
       id: "digest-autre-workspace",
@@ -30,6 +32,7 @@ const DATASET: FakeDataset = {
       titre_digest: "Digest voisin",
       resume_hebdo: "Ne doit jamais sortir.",
       digest_date: "2026-07-08",
+      topic_key: "global",
     },
   ],
   veille_articles: [
@@ -168,6 +171,7 @@ describe("veillePeriodProvider", () => {
         titre_digest: `Digest ${index}`,
         resume_hebdo: "Contenu.",
         digest_date: "2026-07-07",
+        topic_key: "global",
       })),
       veille_articles: [],
     }
@@ -186,5 +190,123 @@ describe("veillePeriodProvider", () => {
     await expect(
       veillePeriodProvider.resolve({ workspaceId: WORKSPACE, supabase: fake.supabase }, SELECTOR),
     ).rejects.toThrow(/articles de veille/i)
+  })
+
+  it("filtre sur ['global'] par défaut en l'absence de topicKeys (protection élargissement silencieux)", async () => {
+    const multithemeDataset: FakeDataset = {
+      veille_digests: [
+        {
+          id: "digest-global",
+          workspace_id: WORKSPACE,
+          titre_digest: "Digest Global",
+          resume_hebdo: "Synthèse globale.",
+          digest_date: "2026-07-07",
+          topic_key: "global",
+        },
+        {
+          id: "digest-ia",
+          workspace_id: WORKSPACE,
+          titre_digest: "Digest IA",
+          resume_hebdo: "Synthèse IA.",
+          digest_date: "2026-07-07",
+          topic_key: "ia",
+        },
+      ],
+      veille_articles: [
+        {
+          id: "art-global",
+          workspace_id: WORKSPACE,
+          digest_id: "digest-global",
+          titre_fr: "Article Global",
+          resume: "Résumé global.",
+          analyse_kredo: "",
+          action_commerciale: "",
+          published_at: "2026-07-07",
+          source_name: "Source",
+        },
+        {
+          id: "art-ia",
+          workspace_id: WORKSPACE,
+          digest_id: "digest-ia",
+          titre_fr: "Article IA",
+          resume: "Résumé IA.",
+          analyse_kredo: "",
+          action_commerciale: "",
+          published_at: "2026-07-07",
+          source_name: "Source",
+        },
+      ],
+    }
+
+    const fake = createFakeSupabase(multithemeDataset)
+    const result = await veillePeriodProvider.resolve(
+      { workspaceId: WORKSPACE, supabase: fake.supabase },
+      SELECTOR, // pas de topicKeys
+    )
+
+    const ids = result.items.map((i) => i.ref.id)
+    expect(ids).toContain("digest-global")
+    expect(ids).toContain("art-global")
+    expect(ids).not.toContain("digest-ia")
+    expect(ids).not.toContain("art-ia")
+  })
+
+  it("filtre strictement sur les topicKeys demandés quand ils sont spécifiés", async () => {
+    const multithemeDataset: FakeDataset = {
+      veille_digests: [
+        {
+          id: "digest-global",
+          workspace_id: WORKSPACE,
+          titre_digest: "Digest Global",
+          resume_hebdo: "Synthèse globale.",
+          digest_date: "2026-07-07",
+          topic_key: "global",
+        },
+        {
+          id: "digest-ia",
+          workspace_id: WORKSPACE,
+          titre_digest: "Digest IA",
+          resume_hebdo: "Synthèse IA.",
+          digest_date: "2026-07-07",
+          topic_key: "ia",
+        },
+      ],
+      veille_articles: [
+        {
+          id: "art-global",
+          workspace_id: WORKSPACE,
+          digest_id: "digest-global",
+          titre_fr: "Article Global",
+          resume: "Résumé global.",
+          analyse_kredo: "",
+          action_commerciale: "",
+          published_at: "2026-07-07",
+          source_name: "Source",
+        },
+        {
+          id: "art-ia",
+          workspace_id: WORKSPACE,
+          digest_id: "digest-ia",
+          titre_fr: "Article IA",
+          resume: "Résumé IA.",
+          analyse_kredo: "",
+          action_commerciale: "",
+          published_at: "2026-07-07",
+          source_name: "Source",
+        },
+      ],
+    }
+
+    const fake = createFakeSupabase(multithemeDataset)
+    const result = await veillePeriodProvider.resolve(
+      { workspaceId: WORKSPACE, supabase: fake.supabase },
+      { ...SELECTOR, topicKeys: ["ia"] },
+    )
+
+    const ids = result.items.map((i) => i.ref.id)
+    expect(ids).not.toContain("digest-global")
+    expect(ids).not.toContain("art-global")
+    expect(ids).toContain("digest-ia")
+    expect(ids).toContain("art-ia")
   })
 })

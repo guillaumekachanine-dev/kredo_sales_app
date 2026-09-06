@@ -37,10 +37,21 @@ export function parseCorpusSelector(raw: unknown): CorpusSelector | null {
   const kind = candidate.kind
 
   if (kind === "veille_period") {
-    const { periodStart, periodEnd } = candidate
+    const { periodStart, periodEnd, topicKeys } = candidate
     if (!isIsoDate(periodStart) || !isIsoDate(periodEnd)) return null
     if (periodStart > periodEnd) return null
-    return { kind: "veille_period", periodStart, periodEnd }
+    let resolvedTopicKeys: string[] | undefined = undefined
+    if (topicKeys !== undefined) {
+      if (!Array.isArray(topicKeys) || topicKeys.length === 0) return null
+      if (!topicKeys.every((k) => typeof k === "string" && k.trim().length > 0)) return null
+      resolvedTopicKeys = Array.from(new Set(topicKeys.map((k) => (k as string).trim())))
+    }
+    return {
+      kind: "veille_period",
+      periodStart,
+      periodEnd,
+      ...(resolvedTopicKeys ? { topicKeys: resolvedTopicKeys } : {}),
+    }
   }
 
   if (kind === "intelligence_document") {
@@ -122,8 +133,12 @@ export function parseCorpusSelectors(
 /** Clé d'identité d'un sélecteur — sert à dédupliquer `base` + sélecteurs de lancement. */
 export function corpusSelectorKey(selector: CorpusSelector): string {
   switch (selector.kind) {
-    case "veille_period":
-      return `veille_period:${selector.periodStart}:${selector.periodEnd}`
+    case "veille_period": {
+      const topicPart = selector.topicKeys && selector.topicKeys.length > 0
+        ? `:${[...selector.topicKeys].sort().join(",")}`
+        : ":global"
+      return `veille_period:${selector.periodStart}:${selector.periodEnd}${topicPart}`
+    }
     case "intelligence_document":
       return `intelligence_document:${[...selector.ids].sort().join(",")}`
     case "account_context":

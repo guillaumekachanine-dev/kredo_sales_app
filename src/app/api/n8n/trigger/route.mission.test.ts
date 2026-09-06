@@ -85,6 +85,7 @@ beforeEach(() => {
         titre_digest: "Semaine du 7 juillet",
         resume_hebdo: "Consolidation du marché cyber.",
         digest_date: "2026-07-07",
+        topic_key: "global",
       },
     ],
     veille_articles: [

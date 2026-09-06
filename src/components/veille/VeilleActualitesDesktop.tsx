@@ -57,6 +57,8 @@ import {
   DEFAULT_ADVANCED_SEARCH,
   type AdvancedSearchState,
 } from "./VeilleAdvancedSearchPopover"
+import type { DigestLaunchOptions } from "@/features/veille/digest/data/get-digest-launch-options"
+import { listDigestPresets, getTopicBadgeLabel } from "@/features/veille/digest/domain/digest-presets"
 
 interface VeilleActualitesDesktopProps {
   digest: VeilleDigest | null
@@ -64,6 +66,9 @@ interface VeilleActualitesDesktopProps {
   articles: VeilleArticle[]
   allArticles?: VeilleArticle[]
   pastDigests: VeilleDigest[]
+  allPastDigests?: VeilleDigest[]
+  activeTopic?: string
+  launchOptions: DigestLaunchOptions
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
   companies: CompanyContextStats[]
@@ -1330,10 +1335,12 @@ function StrategicAnalysisSection({
 function HistorySection({
   digests,
   analyses,
+  topicOptions,
   onOpenDigest,
 }: {
   digests: VeilleDigest[]
   analyses: StrategicWatchAnalysis[]
+  topicOptions?: Array<{ topicKey: string; label: string }>
   onOpenDigest?: () => void
 }) {
   return (
@@ -1341,19 +1348,27 @@ function HistorySection({
       <section>
         <SectionHeading>Digests de veille</SectionHeading>
         <div className="mt-3 divide-y divide-border border border-border bg-surface">
-          {digests.length === 0 ? <p className="p-5 text-xs text-muted">Aucun digest disponible.</p> : digests.map((digest) => (
-            <Link
-              key={digest.id}
-              href={`/veille?digestId=${digest.id}`}
-              onClick={() => onOpenDigest?.()}
-              className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
-            >
-              <p className="text-[10px] text-muted">{formatDateFr(digest.digest_date)}</p>
-              <h3 className="mt-1 text-sm font-bold text-heading">{digest.titre_digest}</h3>
-              <p className="mt-1 line-clamp-2 text-xs leading-5 text-body">{digest.super_short_summary || digest.resume_hebdo}</p>
-              <p className="mt-2 text-[10px] text-muted">{digest.nb_sources_actives} sources · {digest.nb_candidats_evalues} candidats évalués</p>
-            </Link>
-          ))}
+          {digests.length === 0 ? <p className="p-5 text-xs text-muted">Aucun digest disponible.</p> : digests.map((digest) => {
+            const topicBadge = getTopicBadgeLabel(digest.topic_key, topicOptions)
+            return (
+              <Link
+                key={digest.id}
+                href={`/veille?digestId=${digest.id}`}
+                onClick={() => onOpenDigest?.()}
+                className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] text-muted">{formatDateFr(digest.digest_date)}</p>
+                  <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary border border-primary/20">
+                    {topicBadge}
+                  </span>
+                </div>
+                <h3 className="mt-1 text-sm font-bold text-heading">{digest.titre_digest}</h3>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-body">{digest.super_short_summary || digest.resume_hebdo}</p>
+                <p className="mt-2 text-[10px] text-muted">{digest.nb_sources_actives} sources · {digest.nb_candidats_evalues} candidats évalués</p>
+              </Link>
+            )
+          })}
         </div>
       </section>
       <section>
@@ -1408,6 +1423,9 @@ export function VeilleActualitesDesktop({
   articles: initialArticles,
   allArticles = [],
   pastDigests,
+  allPastDigests = pastDigests,
+  activeTopic = "global",
+  launchOptions,
   sectorNews,
   sectorEvents,
   companies,
@@ -1420,6 +1438,7 @@ export function VeilleActualitesDesktop({
   monthlyGeneration,
   sourceManagementSnapshot,
 }: VeilleActualitesDesktopProps) {
+  const router = useRouter()
   const [section, setSection] = useState<VeilleSection>("news")
   const [articles, setArticles] = useState(initialArticles)
   const [selectedArticle, setSelectedArticle] = useState<VeilleArticle | null>(initialArticles[0] ?? null)
@@ -1560,7 +1579,7 @@ export function VeilleActualitesDesktop({
           />
         )
       : section === "history"
-        ? <HistorySection digests={pastDigests} analyses={analysisHistory} onOpenDigest={() => setSection("news")} />
+        ? <HistorySection digests={allPastDigests} analyses={analysisHistory} topicOptions={launchOptions.topics} onOpenDigest={() => setSection("news")} />
         : selectedArticle
           ? (
               <div className="grid grid-cols-[minmax(0,1fr)_16rem] items-start gap-4">
@@ -1578,6 +1597,18 @@ export function VeilleActualitesDesktop({
               </div>
             )
           : <NewsFallback news={sectorNews} events={sectorEvents} />
+
+  const displayTopics = useMemo(() => {
+    if (launchOptions.topics && launchOptions.topics.length > 0) {
+      return launchOptions.topics
+    }
+    return listDigestPresets().map((preset) => ({
+      topicKey: preset.key,
+      label: preset.label,
+      group: "thematique" as const,
+      defaultCorpusSlug: preset.defaultCorpusSlug,
+    }))
+  }, [launchOptions.topics])
 
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
@@ -1612,8 +1643,38 @@ export function VeilleActualitesDesktop({
             initialHealth={globalWatchHealth}
             latestDigest={pastDigests[0] ?? digest}
             sourceManagementSnapshot={sourceManagementSnapshot}
+            launchOptions={launchOptions}
           />
         </header>
+
+        {section === "news" ? (
+          <div className="flex shrink-0 items-center gap-2 border-b border-border bg-surface px-6 py-2">
+            <span className="text-xs font-semibold text-muted shrink-0 mr-1">Sujet :</span>
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {displayTopics.map((t) => {
+                const isActive = activeTopic === t.topicKey
+                return (
+                  <button
+                    key={t.topicKey}
+                    type="button"
+                    onClick={() => {
+                      if (isActive) return
+                      router.push(`/veille?topic=${encodeURIComponent(t.topicKey)}`)
+                    }}
+                    className={cn(
+                      "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      isActive
+                        ? "bg-primary text-primary-fg font-bold shadow-2xs"
+                        : "border border-border bg-surface text-body hover:bg-surface-hover hover:text-heading"
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {section === "news" ? (
           <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">

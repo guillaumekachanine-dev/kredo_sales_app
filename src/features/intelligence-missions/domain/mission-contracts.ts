@@ -30,7 +30,7 @@ export type CorpusKind =
   | "hiring_period"
 
 export type CorpusSelector =
-  | { kind: "veille_period"; periodStart: string; periodEnd: string }
+  | { kind: "veille_period"; periodStart: string; periodEnd: string; topicKeys?: string[] }
   | { kind: "intelligence_document"; ids: string[] }
   | { kind: "account_context"; companyId: string }
   | { kind: "delivery_period"; periodStart: string; periodEnd: string }

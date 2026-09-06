@@ -57,6 +57,7 @@ export const veillePeriodProvider: CorpusProvider<{
   kind: "veille_period"
   periodStart: string
   periodEnd: string
+  topicKeys?: string[]
 }> = {
   kind: "veille_period",
   execution: "user_rls",
@@ -66,10 +67,15 @@ export const veillePeriodProvider: CorpusProvider<{
     const items: CorpusItem[] = []
     const exclusions: CorpusExclusion[] = []
 
+    const targetTopicKeys = selector.topicKeys && selector.topicKeys.length > 0
+      ? selector.topicKeys
+      : ["global"]
+
     const { data: digests, error: digestError } = await ctx.supabase
       .from("veille_digests")
-      .select("id, titre_digest, resume_hebdo, digest_date")
+      .select("id, titre_digest, resume_hebdo, digest_date, topic_key")
       .eq("workspace_id", ctx.workspaceId)
+      .in("topic_key", targetTopicKeys)
       .gte("digest_date", selector.periodStart)
       .lte("digest_date", selector.periodEnd)
       .order("digest_date", { ascending: false })

@@ -153,3 +153,39 @@ export function listDigestPresets(): DigestPreset[] {
   // `global` d'abord, le reste dans l'ordre de déclaration : c'est l'ordre d'affichage.
   return Object.values(DIGEST_PRESETS)
 }
+
+const BADGE_ACRONYMS: Record<string, string> = {
+  ia: "IA",
+  llm: "LLM",
+  ai: "AI",
+  b2b: "B2B",
+  esn: "ESN",
+}
+
+export function getTopicBadgeLabel(
+  topicKey: string,
+  topics?: Array<{ topicKey: string; label: string }>,
+): string {
+  const normalized = (topicKey || GLOBAL_DIGEST_TOPIC_KEY).trim()
+  if (normalized === GLOBAL_DIGEST_TOPIC_KEY) return "Veille IA & Marché"
+  if (normalized === "ia") return "IA"
+  if (normalized === "llm") return "LLM"
+
+  const found = topics?.find((t) => t.topicKey === normalized)
+  if (found && found.label) return found.label
+
+  const preset = findDigestPreset(normalized)
+  if (preset) return preset.label
+
+  // Pour les segments sans correspondance directe : humanisation du slug (ex: seg-voyage-sejours -> Voyage & Séjours)
+  const cleaned = normalized.replace(/^seg-/, "")
+  return cleaned
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((word) => {
+      const lower = word.toLowerCase()
+      if (BADGE_ACRONYMS[lower]) return BADGE_ACRONYMS[lower]
+      return word.charAt(0).toUpperCase() + word.slice(1)
+    })
+    .join(" ")
+}

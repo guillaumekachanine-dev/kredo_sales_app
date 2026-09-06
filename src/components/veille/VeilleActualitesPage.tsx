@@ -16,6 +16,7 @@ import type {
   StrategicWatchAnalysis,
 } from "./veille-desktop-contracts"
 import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
+import type { DigestLaunchOptions } from "@/features/veille/digest/data/get-digest-launch-options"
 
 interface VeilleActualitesPageProps {
   device: DashboardDevice
@@ -29,6 +30,9 @@ interface VeilleActualitesPageProps {
   /** Digest retenu côté serveur (contrat `?digestId=`) — vue mobile seule. */
   selectedDigestId: string | null
   pastDigests: VeilleDigest[]
+  allPastDigests?: VeilleDigest[]
+  activeTopic?: string
+  launchOptions?: DigestLaunchOptions
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
   companies: CompanyContextStats[]
@@ -53,6 +57,9 @@ export function VeilleActualitesPage({
   feedArticles,
   selectedDigestId,
   pastDigests,
+  allPastDigests,
+  activeTopic,
+  launchOptions,
   sectorNews,
   sectorEvents,
   companies,
@@ -67,6 +74,14 @@ export function VeilleActualitesPage({
   initialMobileTab,
   initialMobileCompanyId,
 }: VeilleActualitesPageProps) {
+  const resolvedLaunchOptions: DigestLaunchOptions = launchOptions ?? {
+    topics: [],
+    corpora: [],
+    defaultSourcesCount: 0,
+  }
+  const resolvedAllPastDigests = allPastDigests ?? pastDigests
+  const resolvedActiveTopic = activeTopic ?? "global"
+
   if (device === "mobile") {
     return (
       <VeilleActualitesMobile
@@ -74,6 +89,9 @@ export function VeilleActualitesPage({
         feedArticles={feedArticles}
         selectedDigestId={selectedDigestId}
         pastDigests={pastDigests}
+        allPastDigests={resolvedAllPastDigests}
+        activeTopic={resolvedActiveTopic}
+        launchOptions={resolvedLaunchOptions}
         companies={companies}
         watchedSignals={watchedSignals}
         analyses={analysisHistory}
@@ -92,6 +110,9 @@ export function VeilleActualitesPage({
       articles={articles}
       allArticles={allArticles}
       pastDigests={pastDigests}
+      allPastDigests={resolvedAllPastDigests}
+      activeTopic={resolvedActiveTopic}
+      launchOptions={resolvedLaunchOptions}
       sectorNews={sectorNews}
       sectorEvents={sectorEvents}
       companies={companies}

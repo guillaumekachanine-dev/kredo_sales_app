@@ -2,9 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AppDialog } from "@/components/ui/AppDialog"
-import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
-import { Button } from "@/components/ui/Button"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { SourceManagementLauncher } from "@/features/source-management/components/SourceManagementLauncher"
@@ -29,7 +26,10 @@ import {
   buildNewsRows,
   type ArchiveEntryVM,
 } from "./mobile/veille-mobile-view-models"
-import { ON_DEMAND_DIGEST_WORKFLOW_ID, type StrategicWatchAnalysis } from "./veille-desktop-contracts"
+import type { StrategicWatchAnalysis } from "./veille-desktop-contracts"
+import type { DigestLaunchOptions } from "@/features/veille/digest/data/get-digest-launch-options"
+import { DigestLaunchSheetMobile } from "@/features/veille/digest/components/DigestLaunchSheetMobile"
+import { listDigestPresets } from "@/features/veille/digest/domain/digest-presets"
 import type {
   CompanyContextStats,
   VeilleArticle,
@@ -53,6 +53,9 @@ interface VeilleActualitesMobileProps {
   feedArticles: VeilleArticle[]
   selectedDigestId: string | null
   pastDigests: VeilleDigest[]
+  allPastDigests?: VeilleDigest[]
+  activeTopic?: string
+  launchOptions: DigestLaunchOptions
   companies: CompanyContextStats[]
   watchedSignals: WatchedAccountSignal[]
   analyses: StrategicWatchAnalysis[]
@@ -66,6 +69,9 @@ export function VeilleActualitesMobile({
   feedArticles,
   selectedDigestId,
   pastDigests,
+  allPastDigests = pastDigests,
+  activeTopic = "global",
+  launchOptions,
   companies,
   watchedSignals,
   analyses,
@@ -107,40 +113,8 @@ export function VeilleActualitesMobile({
     window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
     return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
   }, [])
-  const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generateError, setGenerateError] = useState<string | null>(null)
+  const [isGenerateSheetOpen, setIsGenerateSheetOpen] = useState(false)
   const [digestRunId, setDigestRunId] = useState<string | null>(null)
-
-  const handleConfirmGenerateDigest = async () => {
-    if (isGenerating || digestRunId) return
-    setIsGenerating(true)
-    setGenerateError(null)
-    try {
-      const response = await fetch("/api/n8n/trigger", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          workflowId: ON_DEMAND_DIGEST_WORKFLOW_ID,
-          entityType: "workspace",
-          input: { schemaVersion: 1, triggerMode: "manual" },
-        }),
-      })
-      const payload = (await response.json()) as { runId?: string; error?: string }
-      if (!response.ok || !payload.runId) {
-        setGenerateError(payload.error ?? "Impossible de lancer la génération.")
-        setIsGenerating(false)
-        return
-      }
-      setDigestRunId(payload.runId)
-      setIsGenerateConfirmOpen(false)
-      showFeedback("Génération du digest lancée…")
-    } catch {
-      setGenerateError("Erreur réseau lors du déclenchement.")
-    } finally {
-      setIsGenerating(false)
-    }
-  }
 
   const activeAnalysis = useMemo(() => {
     if (analyses.length === 0) return null
@@ -196,8 +170,13 @@ export function VeilleActualitesMobile({
     for (const article of resolvedArticles) {
       articleCountByDigest.set(article.digest_id, (articleCountByDigest.get(article.digest_id) ?? 0) + 1)
     }
-    return buildArchiveEntries({ digests: pastDigests, analyses, articleCountByDigest })
-  }, [pastDigests, analyses, resolvedArticles])
+    return buildArchiveEntries({
+      digests: allPastDigests,
+      analyses,
+      articleCountByDigest,
+      topicOptions: launchOptions.topics,
+    })
+  }, [allPastDigests, analyses, resolvedArticles, launchOptions.topics])
 
   const showFeedback = useCallback((message: string) => {
     setFeedback(message)
@@ -291,12 +270,30 @@ export function VeilleActualitesMobile({
         setActiveTab("analyses")
         return
       }
+      if (entry.topicKey && entry.topicKey !== activeTopic) {
+        router.push(`/veille?digestId=${entry.id}`)
+        setActiveTab("actualites")
+        return
+      }
       const index = periods.findIndex((period) => period.digestId === entry.id)
       if (index >= 0) handleChangePeriod(index)
+      else router.push(`/veille?digestId=${entry.id}`)
       setActiveTab("actualites")
     },
-    [periods, handleChangePeriod],
+    [periods, handleChangePeriod, activeTopic, router],
   )
+
+  const displayTopics = useMemo(() => {
+    if (launchOptions.topics && launchOptions.topics.length > 0) {
+      return launchOptions.topics
+    }
+    return listDigestPresets().map((preset) => ({
+      topicKey: preset.key,
+      label: preset.label,
+      group: "thematique" as const,
+      defaultCorpusSlug: preset.defaultCorpusSlug,
+    }))
+  }, [launchOptions.topics])
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-canvas text-body">
@@ -333,6 +330,33 @@ export function VeilleActualitesMobile({
         })}
       </nav>
 
+      {activeTab === "actualites" ? (
+        <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-surface px-3 py-2 scrollbar-none touch-pan-x">
+          {displayTopics.map((t) => {
+            const isActive = activeTopic === t.topicKey
+            return (
+              <button
+                key={t.topicKey}
+                type="button"
+                onClick={() => {
+                  if (isActive) return
+                  setOpenArticleId(null)
+                  router.push(`/veille?topic=${encodeURIComponent(t.topicKey)}`)
+                }}
+                className={cn(
+                  "min-h-[44px] shrink-0 inline-flex items-center rounded-full px-4 text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  isActive
+                    ? "bg-primary text-primary-fg font-bold shadow-2xs"
+                    : "border border-border bg-surface text-body hover:bg-surface-hover hover:text-heading active:scale-95",
+                )}
+              >
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+
       <main className="min-h-0 flex-1 overflow-hidden w-full max-w-full touch-pan-y">
         {activeTab === "actualites" ? (
           openArticle ? (
@@ -350,8 +374,7 @@ export function VeilleActualitesMobile({
               rows={periodRows}
               onOpenArticle={setOpenArticleId}
               onGenerateDigest={() => {
-                setGenerateError(null)
-                setIsGenerateConfirmOpen(true)
+                setIsGenerateSheetOpen(true)
               }}
             />
           )
@@ -454,13 +477,15 @@ export function VeilleActualitesMobile({
         }}
       />
 
-      <WorkflowExecutionConfirmDialog
-        open={isGenerateConfirmOpen}
-        onOpenChange={setIsGenerateConfirmOpen}
-        actionLabel="Générer le digest"
-        runType={ON_DEMAND_DIGEST_WORKFLOW_ID}
-        onConfirm={handleConfirmGenerateDigest}
-        pending={isGenerating}
+      <DigestLaunchSheetMobile
+        open={isGenerateSheetOpen}
+        onOpenChange={setIsGenerateSheetOpen}
+        options={launchOptions}
+        onLaunched={(runId) => {
+          setDigestRunId(runId)
+          showFeedback("Génération du digest lancée…")
+        }}
+        disabled={Boolean(digestRunId)}
       />
     </div>
   )

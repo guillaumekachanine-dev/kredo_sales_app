@@ -139,9 +139,12 @@ export async function getMonthlyWatchGenerationContext(reference = new Date()): 
       .from("veille_digests")
       .select("id")
       .eq("workspace_id", workspaceId)
+      .eq("topic_key", "global")
       .gte("digest_date", period.start)
       .lte("digest_date", period.end)
-      .order("digest_date", { ascending: true }),
+      .order("digest_date", { ascending: true })
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true }),
     supabase
       .from("intelligence_documents")
       .select("id")
@@ -195,15 +198,21 @@ export async function getMonthlyWatchGenerationContext(reference = new Date()): 
   }
 }
 
-export async function getLatestVeilleDigest() {
+export async function getLatestVeilleDigest(topicKey?: string) {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from("veille_digests")
     .select("*")
     .order("digest_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(1)
-    .maybeSingle()
 
+  if (topicKey) {
+    query = query.eq("topic_key", topicKey)
+  }
+
+  const { data, error } = await query.maybeSingle()
   return { data: data as VeilleDigest | null, error }
 }
 
@@ -252,14 +261,21 @@ export async function getVeilleArticlesForDigests(digestIds: string[]) {
   return { data: (data || []) as VeilleArticle[], error }
 }
 
-export async function getPastVeilleDigests(limit = 10) {
+export async function getPastVeilleDigests(limit = 10, topicKey?: string) {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from("veille_digests")
     .select("*")
     .order("digest_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(limit)
 
+  if (topicKey) {
+    query = query.eq("topic_key", topicKey)
+  }
+
+  const { data, error } = await query
   return { data: (data || []) as VeilleDigest[], error }
 }
 

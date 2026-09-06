@@ -486,6 +486,8 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
    Onglet 4 — Archives (chronologie de la veille)
    ──────────────────────────────────────────────────────────── */
 
+import { getTopicBadgeLabel } from "@/features/veille/digest/domain/digest-presets"
+
 export type ArchiveEntryKind = "digest" | "analysis"
 
 export type ArchiveEntryVM = {
@@ -493,6 +495,8 @@ export type ArchiveEntryVM = {
   kind: ArchiveEntryKind
   kindLabel: string
   isManualCustom?: boolean
+  topicKey?: string
+  topicBadgeLabel?: string | null
   /** ISO date (YYYY-MM-DD) servant au tri et au regroupement mensuel. */
   date: string
   dateLabel: string
@@ -540,6 +544,7 @@ export function buildArchiveEntries(input: {
   digests: VeilleDigest[]
   analyses: StrategicWatchAnalysis[]
   articleCountByDigest: Map<string, number>
+  topicOptions?: Array<{ topicKey: string; label: string }>
 }): ArchiveEntryVM[] {
   const entries: ArchiveEntryVM[] = []
 
@@ -551,10 +556,14 @@ export function buildArchiveEntries(input: {
       digest.nb_sources_actives > 0 ? `${digest.nb_sources_actives} sources` : null,
     ].filter(Boolean)
 
+    const topicBadge = getTopicBadgeLabel(digest.topic_key, input.topicOptions)
+
     entries.push({
       id: digest.id,
       kind: "digest",
       kindLabel: "Briefing",
+      topicKey: digest.topic_key,
+      topicBadgeLabel: topicBadge,
       date,
       dateLabel: fullDateLabelOf(date),
       monthKey: monthKeyOf(date),
