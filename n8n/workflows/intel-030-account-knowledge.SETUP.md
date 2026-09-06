@@ -29,6 +29,42 @@ Déclenché par le bouton **« Mettre à jour l'entreprise »** de l'onglet Entr
 | 24-26 | Prepare Callback → Sign → Callback | `result_type=account_knowledge`, modèle/tokens/durée, `source_refs`, `qa_flags` |
 | 27-29 | Prepare Failure Callback → Sign → Callback (Failure) | **toute** sortie d'erreur y mène : un run n'est jamais laissé en `running` |
 
+## 2 bis. Résolution d'entité légale — Lot 1 Account Knowledge V4 (2026-09-07)
+
+> 🔴 **Réimport obligatoire.** Sans lui, la branche V3 continue de publier l'identité
+> d'une autre personne morale et d'écrire des propositions d'enrichissement fausses.
+
+**Motif.** Le run du 2026-09-04 sur le compte « Tournaire » (fabricant d'emballages, Grasse,
+NAF 25.92Z, SIREN 415550110) a publié une étude décrivant `TOURNAIRE`, **SIREN 505063438, Lyon,
+NAF 43.99C — une entreprise de travaux de construction**. Les douze contrôles qualité étaient au
+vert et quatre propositions d'enrichissement à 0,85-0,95 de confiance attendaient d'écraser la
+fiche compte. Cause : requête bâtie sur `companies.name`, score comparé à `legal_name`,
+`per_page=3` (la bonne entité arrivait en 5ᵉ position) et appariement retenu sur un simple
+`includes()`, sans aucun contrôle croisé.
+
+**Ce qui change dans le JSON.**
+
+| Nœud | Modification |
+|---|---|
+| `V3 Fetch Public Registry` | `per_page` **3 → 10** |
+| `V3 Consult & Normalize Sources` | le bloc « Registre public » devient une **résolution d'entité déterministe** : interroge le registre sur les variantes de raison sociale **et** sur le nom d'usage, score chaque candidat (nom, géographie, section NAF, effectif, état administratif), et **ne produit une preuve d'identité que si la résolution est `resolved`** |
+| `V3 Build Source Catalogue` | porte `entityResolution` jusqu'à l'aval |
+| `V3 Build Enrichment Proposals` | **garde** : aucune proposition sur `siren`, `naf_code`, `legal_name`, `hq_location`, `employee_count`, `description` sans `can_propose_canonical_writes` |
+| `V3 Prepare Callback` | `qa_flags` porte le contrôle `entity_resolution` ; `contextSnapshot.entityResolution` porte le détail, candidats écartés compris |
+
+**Source de vérité.** La logique vit dans `src/lib/intelligence/entity-resolution.ts` (29 tests
+Vitest). Le nœud n8n en est une **transcription** : toute évolution se fait d'abord dans le module
+TypeScript, puis via `python3 scripts/patch-intel-030-entity-resolution.py`. Le harnais
+`n8n/workflows/__tests__/intel-030-account-knowledge-v3.test.js` rejoue la régression Tournaire
+sur le code réellement exporté (90 assertions).
+
+**Invariant central.** Le seuil de publication (4) dépasse le poids maximal du nom (3) : un nom,
+même identique, ne résout jamais une entité à lui seul. Il faut une confirmation indépendante —
+commune du siège ou code NAF déjà connu du CRM.
+
+**Contrôle du stock.** `npx tsx --env-file=.env.local scripts/audit-entity-resolution.mts` rejoue
+le module sur les comptes qui portent déjà un SIREN et sur les propositions en attente.
+
 ## 3. Import
 
 1. n8n → **Workflows → Import from File** → `intel-030-account-knowledge.json`.

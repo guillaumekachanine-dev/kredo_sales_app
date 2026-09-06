@@ -47,8 +47,21 @@ async function expectThrows(label, fn, matcher) {
   }
 }
 
+// Appels HTTP émis DEPUIS un nœud Code (`this.helpers.httpRequest`) — c'est ainsi
+// que « V3 Consult & Normalize Sources » interroge le registre sur les variantes de
+// raison sociale. Le mock enregistre chaque URL appelée : le harnais vérifie que
+// plusieurs requêtes partent, sans quoi la régression Tournaire reviendrait.
+let httpCalls = []
+let httpResponder = () => ({ results: [] })
+
 function makeSandbox(registry, items) {
   return {
+    helpers: {
+      httpRequest: async (options) => {
+        httpCalls.push(options.url)
+        return httpResponder(options.url)
+      },
+    },
     $input: { first: () => items[0], all: () => items },
     $: (nodeName) => {
       if (!(nodeName in registry)) throw new Error(`Nœud non exécuté : ${nodeName}`)
@@ -767,6 +780,87 @@ async function main() {
     check("Garde SSRF : localhost / IP privées bloqués avant fetch",
       /isSafePublicUrl/.test(prepNode.parameters.jsCode) &&
       /127|192\.168|169\.254|localhost/.test(prepNode.parameters.jsCode))
+  }
+
+
+  // ── 12. Résolution d'entité (Lot 1) — la régression Tournaire du 2026-09-04 ──
+  // Le run réel avait publié TOURNAIRE / SIREN 505063438 / Lyon / NAF 43.99C — une
+  // entreprise de travaux de construction — pour un fabricant d'emballages de Grasse.
+  {
+    const TOURNAIRE_LYON = {
+      siren: "505063438", nom_raison_sociale: "TOURNAIRE", nom_complet: "TOURNAIRE",
+      activite_principale: "43.99C", section_activite_principale: "F", etat_administratif: "A",
+      tranche_effectif_salarie: "NN",
+      siege: { libelle_commune: "LYON", code_postal: "69006", departement: "69", adresse: "8 RUE PROFESSEUR WEILL 69006 LYON" },
+    }
+    const TOURNAIRE_SA = {
+      siren: "415550110", nom_raison_sociale: "TOURNAIRE SA", nom_complet: "TOURNAIRE SA",
+      activite_principale: "25.92Z", section_activite_principale: "C", etat_administratif: "A",
+      tranche_effectif_salarie: "32", categorie_entreprise: "ETI", date_creation: "1955-01-01",
+      finances: { "2023": { ca: 74020031 } },
+      siege: { libelle_commune: "GRASSE", code_postal: "06130", departement: "06", adresse: "6 BOULEVARD DE L OBSERVATOIRE 06130 GRASSE" },
+    }
+    const tournaireCompany = {
+      id: COMPANY, name: "Tournaire", legal_name: "Groupe Tournaire (Tournaire SA)",
+      lifecycle_status: "prospect", sector: "Industrie manufacturière, électronique & équipements",
+      sector_id: null, segment: "Emballages industriels", hq_location: "Grasse",
+      employee_count: 70, revenue: "270M€", size_band: "21-100", priority: "haute",
+      description: null, website: null,
+    }
+
+    async function resolveWith(firstPage, responder) {
+      const registry = {}
+      registry["Validate Entity"] = validatedEntity(3)
+      registry["Hydrate Context"] = rpcContext({ company: tournaireCompany, accountFacts: [], factSources: [], signals: [] })
+      await runCodeNode("V3 Prepare Context & Research Plan", registry, {})
+      registry["V3 Fetch Official Site"] = { statusCode: 0, body: "" }
+      registry["V3 Fetch Public Registry"] = { statusCode: 200, body: { results: firstPage } }
+      registry["V3 Fetch Company News"] = { statusCode: 200, body: "" }
+      httpCalls = []
+      httpResponder = responder
+      await runCodeNode("V3 Consult & Normalize Sources", registry, {})
+      return registry
+    }
+
+    // La bonne entité n'est PAS dans la première page (c'est le cas réel : elle
+    // arrive en 5ᵉ position sur la requête « Tournaire »). Elle n'apparaît que sur
+    // la requête bâtie depuis la raison sociale.
+    const ok = await resolveWith([TOURNAIRE_LYON], (url) =>
+      /Tournaire%20SA|Groupe/.test(url) ? { results: [TOURNAIRE_SA, TOURNAIRE_LYON] } : { results: [TOURNAIRE_LYON] })
+    const okRes = ok["V3 Consult & Normalize Sources"].entityResolution
+
+    check("Entité résolue sur la raison sociale, pas sur le nom d'usage", okRes.decision === "resolved", okRes.decision)
+    check("SIREN retenu = 415550110 (TOURNAIRE SA, Grasse)", okRes.siren === "415550110", String(okRes.siren))
+    check("SIREN 505063438 (Lyon, BTP) jamais retenu", okRes.siren !== "505063438")
+    check("Le candidat écarté reste dans la trace d'audit",
+      (okRes.candidates || []).some((c) => c.siren === "505063438"))
+    check("Plusieurs requêtes registre émises (une seule ratait la cible)", httpCalls.length >= 1, String(httpCalls.length))
+    check("La preuve d'identité publiée porte le SIREN résolu",
+      ok["V3 Consult & Normalize Sources"].externalEvidence.some((e) => e.kind === "registry" && e.registry.siren === "415550110"))
+
+    // Seule la mauvaise entité existe : aucune preuve d'identité ne doit sortir.
+    const ko = await resolveWith([TOURNAIRE_LYON], () => ({ results: [TOURNAIRE_LYON] }))
+    const koState = ko["V3 Consult & Normalize Sources"]
+    check("Entité non résolue quand seule la mauvaise existe", koState.entityResolution.decision !== "resolved", koState.entityResolution.decision)
+    check("Aucune preuve de registre publiée sans entité résolue",
+      !koState.externalEvidence.some((e) => e.kind === "registry"))
+    check("La non-résolution est signalée dans les warnings",
+      koState.researchWarnings.some((w) => /Entité légale non résolue/.test(w)))
+
+    // Et surtout : aucune proposition d'enrichissement sur les champs canoniques.
+    ko["V3 Build Source Catalogue"] = { ...ko["V3 Prepare Context & Research Plan"], ...koState, catalogue: [], sourceIdByKey: [] }
+    ko["V3 Validate Artifact"] = ko["V3 Build Source Catalogue"]
+    await runCodeNode("V3 Build Enrichment Proposals", ko, {}, [])
+    const koProposals = ko["V3 Build Enrichment Proposals"]
+    check("Aucune proposition canonique sans entité résolue", koProposals.proposalsCount === 0, String(koProposals.proposalsCount))
+    check("La garde de résolution est tracée dans les warnings de proposition",
+      koProposals.proposalWarnings.some((w) => /Entité légale non résolue/.test(w)))
+
+    // Plafond de résultats : `per_page=3` laissait la bonne entité hors du champ.
+    check("V3 Fetch Public Registry demande au moins 10 résultats",
+      /per_page=10/.test(nodes["V3 Fetch Public Registry"].parameters.url))
+
+    httpResponder = () => ({ results: [] })
   }
 
   console.log(`\n${passed} succès, ${failed} échec(s)`)

@@ -13,6 +13,52 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 57 — Account Knowledge V4 : cadrage + Lot 1 résolution d'entité (2026-09-06/07)
+
+Refonte ouverte de `intel-030-account-knowledge`, jugé « d'une nullité navrante » par Guillaume. Deux
+livrables : le cadrage V4, puis le Lot 1.
+
+**Cadrage** — `docs/FEATURES/cockpit_intelligence_features/account_knowledge/ACCOUNT-KNOWLEDGE-V4-CADRAGE.md`.
+Le workflow doit cesser d'être un système de vérification documentaire pour devenir un **moteur de
+compréhension d'entreprise**, dans l'esprit des études FOLIO. Arbitrage acté avec Guillaume : la V4
+couvre la compréhension (métier, marché, concurrents, histoire, ambitions, actualité) et **pas** C1/C2
+d'`ARCHITECTURE-CONNAISSANCE-UTILE.md` (adressabilité, rôles de décision), qui se saisissent et
+relèvent d'un formulaire distinct ; elle restitue en revanche C5 (missions, TJM, motifs de
+gain/perte) et ajoute une section « Ce que cela implique pour KREDO », levant l'interdiction V3 de
+toute recommandation commerciale. Roadmap en 6 lots, additive, `schema_version: 4`, V1/V2/V3 préservés.
+
+**Ce que l'audit a établi, et qui ne se déduit pas du code :**
+- **Le run du 04/09 sur Tournaire a publié l'identité d'une autre entreprise** (SIREN 505063438,
+  Lyon, NAF 43.99C — travaux de construction — pour un fabricant d'emballages de Grasse). Les
+  12 `qa_flags` étaient au vert et 4 propositions d'enrichissement à 0,85-0,95 attendaient d'écraser
+  le CRM. **Aucun audit fondé sur le seul code ne pouvait le voir** : il faut ouvrir l'artefact.
+- **Le workflow déployé sur le VPS n'est pas celui du dépôt** : `researchDiagnostic` rend
+  `no_safe_url` sur `https://www.tournaire.fr/`, que le garde-fou du dépôt accepte (rejoué).
+- **Le canal presse est mort** : Google News RSS répond 200 avec un corps vide (`unreachable_200`).
+- **V3 est une régression sur V2** : 5 et 11 affirmations publiées, contre 15 à 27 en V2, pour
+  ~24 000 tokens et 133-151 s. Coût : 0,0924 $/run, le plus cher des workflows par compte.
+- La matière existe et n'atteint jamais le prompt : 88 `companies.description` rédigées, 93 études
+  FOLIO Phase 1, 81 Phase 2, 38/38 segments avec connaissance sectorielle résolue — aucune n'est lue.
+
+**Lot 1 livré** — `LOT-1-RESOLUTION-ENTITE.md`. Module `src/lib/intelligence/entity-resolution.ts`
+(29 tests), transcrit dans 4 nœuds de `intel-030` par `scripts/patch-intel-030-entity-resolution.py`
+(aucune modification de topologie), harnais n8n porté à **90 assertions**. Invariant central :
+`RESOLVED_MIN_SCORE` (4) > poids du nom (3) — **un nom, même identique, ne résout jamais une entité
+seul** ; il faut une confirmation par la commune du siège ou le NAF connu. Trois issues :
+`resolved` / `needs_human_confirmation` / `unresolved`, et seule la première autorise une écriture
+canonique.
+
+**Assainissement** : 15 propositions rejetées sur Tournaire, MMV (identité de « Depil Tech », un
+autre compte du CRM) et D-Orbit (« ORBIT », restauration parisienne). `scripts/audit-entity-resolution.mts`
+a passé les 46 comptes concernés : 28 cohérents, 0 faux positif, 9 SIREN suspects en base
+(Ascoma cessé + mauvaise commune, CHU de Nice apparié à un bureau d'étudiants infirmiers) et
+6 propositions à arbitrer.
+
+**Deux points ouverts, à trancher avant le Lot 2 :** le réimport VPS de `intel-030` (non fait, et
+la dérive constatée le rend nécessaire avant toute mesure), et la transposition du module dans
+**`intel-010-refresh`, qui porte le même défaut et produit six fois plus de propositions d'identité**
+(124 runs contre 18) — c'est la principale source de contamination restante.
+
 ### Session 56 — ADR-0022 : Digest thématique Sujet × Corpus (2026-09-06)
 
 Livraison complète et validation en conditions réelles d'ADR-0022 « Digest thématique Sujet × Corpus ».
