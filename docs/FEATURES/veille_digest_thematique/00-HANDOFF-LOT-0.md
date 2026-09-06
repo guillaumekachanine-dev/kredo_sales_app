@@ -1,12 +1,9 @@
 # Digest thématique — handoff autoportant
 
 - **Date** : 2026-09-06
-- **Autorité** : `docs/adr/ADR-0022-digest-thematique-sujet-corpus.md` (**Accepté**, v1.1)
-- **État au 2026-09-06** : **H-1 fait · Lot 0 fait · Lot 1 fait côté code**.
-  5 migrations appliquées, 8 modules TypeScript, 54 tests, 2 corpus versionnés.
-  **Il reste un geste manuel** : importer les deux corpus par le wizard (§5.1) — je ne peux pas le
-  faire, la RPC exige une session authentifiée. **Puis reprendre au Lot 2.**
-- **Lire d'abord** : le §2 (« ce qu'il ne faut pas refaire ») avant toute ligne de code.
+- **Autorité** : `docs/adr/ADR-0022-digest-thematique-sujet-corpus.md` (**Accepté & Livré**, v2.0)
+- **État au 2026-09-06** : **Lot 0 ✅ · Lot 1 ✅ · Lot 2A/2B ✅ · Lot 3 ✅ · Consolidation runtime ✅ · Validé en production (runs 83554 & 83555) · Chantier CLÔTURÉ**.
+- **Lire d'abord** : le §2 (« ce qu'il ne faut pas refaire ») et le §11 (« bilan de clôture »).
 
 > **Objectif métier.** Que « Générer un digest » propose un **sujet** (Business, IA, LLM, un segment)
 > et un **corpus de sources**, les deux indépendants — pour produire aussi bien un digest
@@ -306,3 +303,25 @@ correction du `ceid` figé en `FR:fr` (à rouvrir si des sources anglophones san
 Si la session s'interrompt : l'état d'avancement se lit dans `git log` et dans
 `supabase/migrations/`. Aucun état n'est stocké ailleurs que dans le code et la base.
 Le premier geste d'une reprise est de rejouer les mesures du §1 — elles dérivent.
+
+---
+
+## 11. Clôture & Bilan de Livraison (2026-09-06)
+
+Le chantier ADR-0022 est entièrement **livré, consolidé et validé en production**.
+
+### 11.1 État d'avancement final des lots
+
+- **H-1 & Lot 0 (Contrat et Schéma Supabase)** : ✅ Livré. 5 migrations appliquées, 4 sources fantômes neutralisées, clé d'unicité `UNIQUE(workspace_id, digest_date, topic_key)`, 4 colonnes sur `veille_digests`, vue `v_corpus_news_sources`, RPC `ingest_source_corpus` durcie, registre de presets `DIGEST_PRESETS`.
+- **Lot 1 (Parseur thématique & Corpus Folio)** : ✅ Livré. Parseur `thematic-source-list-v1`, vue d'import normalisée, Wizard d'import branché, corpus Folio AI Tech et AI Business versionnés.
+- **Lot 2A & 2B (Gateway Next.js V2 & Workflow n8n)** : ✅ Livré. Branche V2 dans `/api/n8n/trigger`, `resolveDigestLaunch`, workflow `KREDO — Veille IA & Marché` (`veille-ia-marche-on-demand`) supportant V1 et V2, déduplication 21 jours scopée par `topic_key`, upsert 3 colonnes, correction DEF-1 / H-2 des métriques de collecte (post-boucle).
+- **Lot 3 (UI Desktop & Mobile, Lecture thématique)** : ✅ Livré. `VeilleHeaderActions` Desktop, `DigestLaunchSheetMobile` Mobile, lecture filtrée par chips sur `/veille`, badges sur les archives, tri déterministe, isolation du provider `veillePeriodProvider`.
+- **Consolidation runtime post-smoke test** : ✅ Livré (`9a00995a3b0ab17823eb4aef25bb29599b588f48`). Sonnet `max_tokens = 12000`, `timeout = 180000`, parser durci sans remplacement destructif des quotes avec refus de `stop_reason === "max_tokens"`, sérialisation `jsonBody` `={{ { ... } }}` dans `Créer Digest`.
+
+### 11.2 Smoke tests de production validés
+
+1. **Run 83554 (`ia` × `folio-ai-tech`)** : `succeeded` — Digest *« IA en entreprise : de l'infrastructure au terrain, la preuve par l'usage »*, 8 candidats évalués, 8 sources actives, qualité éditoriale validée.
+2. **Run 83555 (`llm` × `folio-ai-tech`)** : `succeeded` — Digest *« LLM & agents : de la démo au déploiement multicanal »*, 8 candidats évalués, 8 sources actives, 5 articles retenus, 4 URLs communes partagées sans collision de déduplication.
+
+### 11.3 Statut final
+Chantier clos au 2026-09-06.

@@ -1,7 +1,8 @@
 # ADR-0022 — Digest thématique : le Sujet et le Corpus sont deux axes indépendants
 
-- **Statut** : **Accepté** (Guillaume Kasanin, 2026-09-06 — Lot 0 implémenté dans la foulée)
-- **Version** : 1.1 — §3.2 corrigé à l'implémentation (`generation_mode` nullable)
+- **Statut** : **Accepté & Livré** (Guillaume Kasanin, 2026-09-06 — Implémentation terminée, consolidée et validée en production)
+- **Implementation status** : Done
+- **Version** : 2.0 (Version finale livrée, consolidée et validée)
 - **Date** : 2026-09-06
 - **Décideur** : Guillaume Kasanin
 - **Portée** : Veille & digest · Gestion des sources · Workflow `veille-hebdomadaire-kredo` · Missions d'intelligence (effet de bord)
@@ -347,11 +348,71 @@ sélectionne **tous** les digests de la période. Dès le premier digest thémat
 
 ## 7. Actions
 
-1. [ ] **Préalable d'hygiène** — neutraliser les 4 sources fantômes (DEF-2) ; corriger les 3 URL Folio récupérables ; ouvrir le correctif DEF-1 (métriques agrégées hors boucle).
-2. [ ] **Lot 0** — migration (colonnes + clé d'unicité + `v_corpus_news_sources` + RPC d'ingestion élargie), registre `DIGEST_PRESETS`, contrat `DigestLaunchInputV2`, `resolveDigestSources`, `assembleDigestFraming`.
-3. [ ] **Lot 1** — mini-parseur thématique, deux corpus Folio nettoyés, import en `draft` puis activation avec `enabled_for_news=false`.
-4. [ ] **Lot 2** — branche v2 dans `/api/n8n/trigger` ; workflow acceptant v1 **et** v2 ; dédup scopée ; `on_conflict` à trois colonnes. **Un seul réimport VPS.**
-5. [ ] **Lot 3** — modale Desktop, `DigestLaunchSheetMobile`, lecture par sujet, tri déterministe (DEF-4), scope de `veille_period`.
-6. [ ] Consigner dans `docs/init-projet/DECISIONS_LOG.md` et en tête de `docs/JOURNAL-SESSIONS.md`.
+1. [x] **Préalable d'hygiène** — neutraliser les 4 sources fantômes (DEF-2) ; corriger les 3 URL Folio récupérables ; ouvrir le correctif DEF-1 (métriques agrégées hors boucle).
+2. [x] **Lot 0** — migration (colonnes + clé d'unicité + `v_corpus_news_sources` + RPC d'ingestion élargie), registre `DIGEST_PRESETS`, contrat `DigestLaunchInputV2`, `resolveDigestSources`, `assembleDigestFraming`.
+3. [x] **Lot 1** — mini-parseur thématique, deux corpus Folio nettoyés, import en `draft` puis activation avec `enabled_for_news=false`.
+4. [x] **Lot 2** — branche v2 dans `/api/n8n/trigger` (Lot 2B) ; workflow acceptant v1 **et** v2, dédup scopée, `on_conflict` à trois colonnes (Lot 2A).
+5. [x] **Lot 3** — modale Desktop, `DigestLaunchSheetMobile`, lecture par sujet, tri déterministe (DEF-4), scope de `veille_period`.
+6. [x] **Consolidation runtime post-smoke test & clôture** — Sonnet timeout 180s/12k, parser durci sur `max_tokens`, sérialisation `jsonBody` `={{ {`, consignation dans `docs/init-projet/DECISIONS_LOG.md` et `docs/JOURNAL-SESSIONS.md`.
 
 Détail d'exécution : `docs/FEATURES/veille_digest_thematique/00-HANDOFF-LOT-0.md`.
+
+---
+
+## 8. Clôture & Validation en Production (2026-09-06)
+
+ADR-0022 est considéré comme **livré, consolidé et clôturé** au 2026-09-06.
+
+### 8.1 Commits de référence
+
+| Lot / Étape | Commit | Description |
+|---|---|---|
+| ADR-0022 Lot 2A | `947391e39a11fd209592b8bf61c30ce1978aefda` | n8n V1 + V2, routage de sources, dédup jointe, upsert 3 colonnes |
+| ADR-0022 Lot 2B | `151e3c625d52b38c260e8d24b7ac0084fd00bc00` | Gateway Next.js V2, `resolveDigestLaunch`, cadrage et sources résolus côté serveur |
+| ADR-0022 Lot 3 | `5f4655aa19f8584903e6fe17e341d020279ef6ac` | UI Sujet × Corpus (Desktop + Mobile), lecture thématique, chips et archives |
+| Correctif TypeScript | `76e7d3882e277e08bad5d1e8e50a30d573052aa1` | Nettoyage types post-Lot 3 |
+| Consolidation runtime | `9a00995a3b0ab17823eb4aef25bb29599b588f48` | `fix(veille): consolide le runtime du digest Sujet × Corpus` (Sonnet, Parser, Créer Digest) |
+
+### 8.2 Architecture livrée
+
+1. **Axes indépendants** : Sélection orthogonale Sujet (ce que le digest retient) × Corpus (où chercher).
+2. **Presets & Segments** : Presets serveur `global`, `ia`, `llm`, et support dynamique des slugs réels de segments (`topicKey = segment.slug`).
+3. **Corpus optionnel** : `corpusId = null` résout le socle éditorial effectif par défaut ; un corpus explicite est résolu via `v_corpus_news_sources`.
+4. **Résolution serveur** : Le serveur Next.js résout le framing et les sources ; n8n reste l'exécuteur asynchrone sans logique métier embarquée.
+5. **Workflow n8n canonique unique** : `KREDO — Veille IA & Marché` (`veille-ia-marche-on-demand`). Aucun nouveau workflow ni webhook n'a été créé.
+6. **Persistance thématique** : Ligne `veille_digests` enrichie des 4 colonnes (`topic_key`, `topic_sector_id`, `source_corpus_id`, `generation_mode`), upsert sur `(workspace_id, digest_date, topic_key)`.
+7. **Lecture et navigation** : Filtrage par chips de sujet sur `/veille`, badges sur les archives, tri déterministe (`digest_date` DESC, `created_at` DESC).
+8. **Déduplication scopée** : Fenêtre de 21 jours filtrée par `veille_digests.topic_key`.
+
+### 8.3 Smoke tests réels en production
+
+Deux exécutions réelles successives depuis l'UI KREDO ont validé l'intégralité de la chaîne opérationnelle :
+
+#### Test 1 — IA × Folio AI Tech
+- **Run n8n** : `83554` (`status = succeeded`)
+- **Contexte résolu** : `schemaVersion: 2`, `triggerMode: manual`, `topicKey: "ia"` (*Intelligence artificielle*), `topicSectorId: null`, `corpus: "folio-ai-tech"` (`scopeKind: thematic`), `source_corpus_id: "f60f6f1d-65fd-446b-865e-8a5fd7797f95"`, 8 sources (8 RSS, 0 site_search).
+- **Digest créé** : *« IA en entreprise : de l'infrastructure au terrain, la preuve par l'usage »*
+- **Métadonnées persistées conformes** : `topic_key = "ia"`, `topic_sector_id = null`, `source_corpus_id = "f60f6f1d-65fd-446b-865e-8a5fd7797f95"`, `generation_mode = "manual"`, `nb_candidats_evalues = 8`, `nb_sources_actives = 8`.
+- **Qualité éditoriale** : validée manuellement.
+
+#### Test 2 — LLM × Folio AI Tech
+- **Run n8n** : `83555` (`status = succeeded`)
+- **Contexte résolu** : `schemaVersion: 2`, `triggerMode: manual`, `topicKey: "llm"` (*LLM & modèles*), `topicSectorId: null`, `corpus: "folio-ai-tech"` (`scopeKind: thematic`), `source_corpus_id: "f60f6f1d-65fd-446b-865e-8a5fd7797f95"`, 8 sources (8 RSS, 0 site_search).
+- **Digest créé** : *« LLM & agents : de la démo au déploiement multicanal »*
+- **Métadonnées persistées conformes** : 8 candidats évalués, 8 sources actives, 5 articles retenus, 8/8 sources collectées.
+- **Vérification dédup** : 4 URLs communes entre les digests `ia` et `llm`, validant le comportement nominal de déduplication isolée par `topic_key`.
+
+### 8.4 Invariants architecturaux pérennes
+
+1. `topicKey` d'un segment = slug réel du segment (jamais la chaîne littérale `"segment"`).
+2. `corpusId = null` désigne la base éditoriale effective par défaut.
+3. Un corpus explicite est toujours résolu via `v_corpus_news_sources`.
+4. Ne jamais filtrer `v_effective_watch_sources` par `corpus_id`.
+5. Pas de multi-corpus ni de pondération de corpus en V1.
+6. Pas de table `digest_topics` : presets déclaratifs versionnés en code TypeScript.
+7. Pas de nouveau workflow n8n ni de webhook dédié.
+8. Déduplication 21 jours strictement scopée par `topic_key`.
+9. Les digests du cron hebdomadaire restent `global / corpus null / scheduled`.
+10. Les digests manuels V2 persistent systématiquement `topic_key`, `topic_sector_id`, `source_corpus_id`, `generation_mode`.
+11. Les corpus thématiques ont `enabled_for_news = false` et ne s'activent pas pour le cron global.
+12. Les secrets HMAC live restent strictement hors Git (placeholder `REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET`).

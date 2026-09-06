@@ -17,7 +17,7 @@ puis `veille_articles` (RPC `replace_veille_digest_articles`, remplacement idemp
 >
 > ⚠️ **Sécurité** : Les 3 nœuds HMAC utilisent le placeholder `REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET` dans Git et doivent recevoir la valeur réelle de `N8N_WEBHOOK_SECRET` lors de l'import live.
 >
-> ℹ️ **Statut ADR-0022** : Le smoke test Sujet × Corpus est validé. Le smoke test LLM × Folio AI Tech (sujet sectoriel) reste à finaliser avant la clôture complète d'ADR-0022.
+> ℹ️ **Statut ADR-0022** : **Validé et clôturé au 2026-09-06.** Les deux smoke tests réels (run `83554` IA × Folio AI Tech et run `83555` LLM × Folio AI Tech) ont réussi avec succès de bout en bout et qualité éditoriale validée.
 
 ## Déclenchement à la demande (webhook)
 

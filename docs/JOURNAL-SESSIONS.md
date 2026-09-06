@@ -13,6 +13,27 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 56 — ADR-0022 : Digest thématique Sujet × Corpus (2026-09-06)
+
+Livraison complète et validation en conditions réelles d'ADR-0022 « Digest thématique Sujet × Corpus ».
+
+Le digest devient le produit de deux axes orthogonaux : le Sujet (« qu'est-ce que je retiens ? », presets serveur `global`, `ia`, `llm` ou slug de segment) et le Corpus (« où chercher ? », `corpusId = null` par défaut ou résolu via `v_corpus_news_sources`). Le navigateur n'envoie que deux identifiants ; Next.js résout le framing et les sources ; n8n reste l'exécuteur asynchrone sans métier dans un workflow unique `KREDO — Veille IA & Marché`.
+
+Lots livrés :
+- **Lot 0 / H-1** : Migrations Supabase (`corpus_scope_kind` enrichi de `thematic`, `veille_digests` avec `UNIQUE(workspace_id, digest_date, topic_key)`, 4 colonnes `topic_key`, `topic_sector_id`, `source_corpus_id`, `generation_mode`, vue `v_corpus_news_sources`, RPC `ingest_source_corpus` durcie, neutralisation des 4 sources fantômes).
+- **Lot 1** : Parseur `thematic-source-list-v1`, vue d'import normalisée, Wizard d'import supportant le format thématique, 2 corpus Folio AI Tech et Folio AI Business versionnés.
+- **Lot 2A / 2B** : Gateway Next.js V2 (`resolveDigestLaunch`), workflow n8n V1 + V2 rétrocompatible, déduplication 21 jours scopée par `topic_key`, upsert 3 colonnes, correction DEF-1 / H-2 des métriques de collecte (post-boucle).
+- **Lot 3** : Interface de lancement Sujet × Corpus (Desktop `VeilleHeaderActions`, Mobile `DigestLaunchSheetMobile`), lecture thématique (`/veille`, chips, badges archives), tri déterministe (`digest_date` DESC, `created_at` DESC), isolation du sélecteur `veille_period`.
+
+Validation réelle et consolidation runtime post-smoke test :
+- Smoke test réel n°1 : run n8n `83554` sur `ia` × `folio-ai-tech` → `succeeded`, digest créé avec 8 candidats / 8 sources actives, qualité éditoriale validée.
+- Smoke test réel n°2 : run n8n `83555` sur `llm` × `folio-ai-tech` → `succeeded`, digest créé avec 8 candidats / 8 sources actives / 5 articles retenus. Déduplication par sujet validée (4 URLs communes partagées sans blocage).
+- Consolidation runtime commit `9a00995a3b0ab17823eb4aef25bb29599b588f48` (`fix(veille): consolide le runtime du digest Sujet × Corpus`) : Sonnet `max_tokens = 12000`, `timeout = 180000`, parser durci refusant `stop_reason === "max_tokens"` avec conservation des quotes typographiques, expression n8n `={{ { ... } }}` dans `Créer Digest`.
+- Validations passées : `scripts/patch-veille-on-demand.py --check` (OK), `veille-hebdomadaire-kredo.test.js` (151 ok), `veille-ia-marche-on-demand.test.js` (66 ok), zéro secret commité.
+- **ADR-0022 clôturé et validé.**
+
+---
+
 ### Session 55 — Erreurs persistantes de build sur les routes protégées (2026-09-05)
 
 Le build de référence réussissait mais journalisait quatre erreurs `Dynamic server usage` sur

@@ -25,6 +25,7 @@ Un ADR documente **une décision structurelle** : son contexte, les options envi
 | [0019](ADR-0019-profondeur-de-compte-et-ingestion-cartographie.md) | Profondeur de compte et ingestion des cartographies concurrentielles | Accepté |
 | [0020](ADR-0020-missions-intelligence.md) | Missions d'intelligence : moteur déclaratif transverse | Accepté |
 | [0021](ADR-0021-master-study-ingestion-projections-distribution.md) | Master Study : ingestion canonique, projections et distribution | Accepté (v2.0) |
+| [0022](ADR-0022-digest-thematique-sujet-corpus.md) | Digest thématique : le Sujet et le Corpus sont deux axes indépendants | Accepté (Livré) |
 
 > Règle : un ADR accepté ne se modifie pas. Si la décision change, on crée un nouvel ADR qui *remplace* (Superseded) l'ancien.
 > Un ADR **Proposé** reste amendable jusqu'à son acceptation — c'est à ce titre que l'ADR-0021 a été réécrit en v2.0.
