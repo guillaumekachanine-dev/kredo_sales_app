@@ -1,31 +1,62 @@
 # Veille IA & Marché — SETUP
 
 **Workflow n8n :** `KREDO — Veille IA & Marché` (ex-`KREDO — Veille Hebdomadaire IA & Marché`)
-**Fichier :** `n8n/workflows/veille-hebdomadaire-kredo.json` (51 nœuds — nom de fichier conservé)
+**Fichier :** `n8n/workflows/veille-hebdomadaire-kredo.json` (52 nœuds — nom de fichier conservé)
 **Déclencheurs :** deux, convergeant vers **un seul** pipeline métier :
-1. `scheduleTrigger` — cron `0 6 * * 1`, lundi 6 h Europe/Paris (`run_type` : `veille-hebdomadaire-kredo`)
+1. `scheduleTrigger` — cron `0 6 * * 1`, lundi 6 h Europe/Paris (`run_type` : `veille-hebdomadaire-kredo`, topicKey: 'global', generationMode: 'scheduled')
 2. `webhook` POST `/webhook/veille-ia-marche-on-demand` — génération à la demande depuis
    l'UI Veille (Desktop + Mobile), `run_type` : `veille-ia-marche-on-demand`
-**Écrit dans :** `veille_digests` (1 ligne, upsert `on_conflict=workspace_id,digest_date`)
+   - **Contrat V1** : `{ schemaVersion: 1, triggerMode: "manual" }` (topicKey: 'global', generationMode: 'manual', sources effectives)
+   - **Contrat V2** : `{ schemaVersion: 2, triggerMode: "manual", topicKey, topicSectorId, corpusId, framing, sources, stats }` (sources pré-résolues, framing serveur)
+**Écrit dans :** `veille_digests` (1 ligne, upsert `on_conflict=workspace_id,digest_date,topic_key` avec `topic_key`, `topic_sector_id`, `source_corpus_id`, `generation_mode`)
 puis `veille_articles` (RPC `replace_veille_digest_articles`, remplacement idempotent)
 
 > ⚠️ **Dérive repo ↔ VPS non résolue.** Le fichier repo porte des évolutions jamais
 > réimportées : lecture de `v_effective_watch_sources` (Lot 2, 2026-08-15), sous-pipeline
 > « convergences comptes » (non décrit dans le diagramme ci-dessous), et **le double
-> déclencheur webhook ci-dessus**. Le VPS tourne encore une version antérieure, cron-seul.
+> déclencheur webhook ci-dessus avec support V2 Sujet × Corpus**. Le VPS tourne encore une version antérieure, cron-seul.
 > **Avant tout import : exporter le workflow live, diffuser ses correctifs runtime dans le
 > repo, PUIS rejouer `python3 scripts/patch-veille-on-demand.py`** (idempotent, structurel).
 
 ## Déclenchement à la demande (webhook)
 
-Ajouté par `scripts/patch-veille-on-demand.py`. Contrat = gateway KREDO standard
-(cf. `src/lib/n8n/trigger-run.ts`), le navigateur n'envoie que
-`input: { schemaVersion: 1, triggerMode: "manual" }` — **aucun `settings`** : le
-cadrage métier est résolu côté serveur.
+Ajouté et mis à niveau par `scripts/patch-veille-on-demand.py`. Contrat = gateway KREDO standard
+(cf. `src/lib/n8n/trigger-run.ts`).
+
+- **V1 (existant)** : `input: { schemaVersion: 1, triggerMode: "manual" }`
+- **V2 (ADR-0022)** :
+  ```json
+  {
+    "schemaVersion": 2,
+    "triggerMode": "manual",
+    "topicKey": "ia",
+    "topicSectorId": null,
+    "corpusId": "uuid-du-corpus",
+    "framing": "# CONTEXTE — Veille...",
+    "sources": [
+      {
+        "sourceId": "uuid",
+        "sourceKey": "key",
+        "sourceName": "Nom",
+        "publisher": "Editeur",
+        "domain": "domaine.com",
+        "searchDomain": "domaine.com",
+        "collectionUrl": "https://...",
+        "collectionMode": "rss",
+        "family": null,
+        "kredoCategory": "frontier",
+        "origin": "corpus",
+        "corpusId": "uuid"
+      }
+    ],
+    "stats": { "sourcesCount": 1, "rssCount": 1, "siteSearchCount": 0 }
+  }
+  ```
+Le cadrage et les sources sont résolus côté serveur Next.js. n8n n'embarque aucun preset ni logique de sélection.
 
 ```
 Webhook Veille On-Demand → Vérifier Signature (HMAC SHA-256 sur rawBody)
-  → Valider Signature & Payload  (rejet si X-KREDO-Signature ≠ ; champs requis)
+  → Valider Signature & Payload  (rejet si X-KREDO-Signature ≠ ; validation V1 et V2)
   → Résoudre Contexte Déclenchement ─┬─→ Récupérer Secteurs Actifs … (pipeline commun)
                                      └─→ Router Run Manuel → Marquer Run Running (PATCH status=running)
 
@@ -33,10 +64,8 @@ Lundi 6h Europe Paris → Contexte Déclenchement Programmé → Résoudre Conte
 ```
 
 - **`Résoudre Contexte Déclenchement`** = source de vérité unique de `workspaceId` /
-  `runId` / `callbackUrl` / `digestDate` pour tout l'aval. Le **mode manuel prend
-  `workspaceId` DANS LE PAYLOAD** (session authentifiée Next) ; seule la branche cron
-  utilise la constante mono-tenant `98dcd39d-…`. `Build Contexte KREDO` ne code plus
-  le workspace en dur — il lit ce nœud.
+  `runId` / `callbackUrl` / `digestDate` / `topicKey` / `topicSectorId` / `sourceCorpusId` / `generationMode`
+  pour tout l'aval.
 - **Cycle de vie du run** : `queued` (créé par Next avant l'appel webhook) → `running`
   (`Marquer Run Running`) → `succeeded` / `failed` via callback signé.
 - **Callback succès** (après `Remplacer Articles Digest (RPC)`, si `triggerMode=manual`) :
@@ -55,23 +84,29 @@ Lundi 6h Europe Paris → Contexte Déclenchement Programmé → Résoudre Conte
 ## Chaîne
 
 ```
-cron → Récupérer Secteurs Actifs → Build Contexte KREDO
-     → Charger Sources Effectives (Supabase) → Vérifier et Normaliser Sources   ← v_effective_watch_sources, usage_scope=news
-     → Explode Sources → Loop Over Items — 1 Source
-                            ├─ Construire Requête Collecte → Router Mode Collecte
-                            │     ├─ rss         → Lire Flux RSS ────────────────────┐
-                            │     └─ site_search → Récupérer Flux Google News        │
-                            │                    → Parser Flux Google News ──────────┤
-                            │                                                        ▼
-                            │                                       Enrichir avec Métadonnées Source
-                            └─ (erreur, l'une ou l'autre branche) → Ignorer Source En Erreur
-                                                                        (retour boucle)
-     → [fin de boucle] → Récupérer Hash Articles Vus
-                       → Dédup + Filtre Récence + Préfiltre Qualité   ← plafond 40, clé source_id
-                       → Construire Prompt Classement → Haiku → Parser Top 5
-                       → Construire Prompt Analyse    → Sonnet → Parser Digest Final
-                       → Créer Digest (upsert)  → Préparer Lignes Articles → Remplacer Articles Digest (RPC)
-                       → [si triggerMode=manual] Router Callback Digest → Préparer/Signer/Envoyer Callback Digest
+cron / webhook → Résoudre Contexte Déclenchement
+      → Récupérer Secteurs Actifs → Build Contexte KREDO (framing V2 ou cadrage global préservé)
+      → Router Résolution Sources (IF schemaVersion === 2)
+            ├─ [V1 / cron (false)] → Charger Sources Effectives (Supabase) ─┐
+            │                        (v_effective_watch_sources, news)      │
+            └─ [V2 (true)] ─────────────────────────────────────────────────┴─→ Vérifier et Normaliser Sources
+      → Explode Sources → Loop Over Items — 1 Source
+                             ├─ Construire Requête Collecte → Router Mode Collecte
+                             │     ├─ rss         → Lire Flux RSS ────────────────────┐
+                             │     └─ site_search → Récupérer Flux Google News        │
+                             │                    → Parser Flux Google News ──────────┤
+                             │                                                        ▼
+                             │                                       Enrichir avec Métadonnées Source
+                             └─ (erreur, l'une ou l'autre branche) → Ignorer Source En Erreur
+                                                                         (retour boucle)
+      → [fin de boucle (sortie 0)]
+            ├─→ Préparer Métriques Sources (dataflow post-boucle, H-2 DEF-1) → Écrire Métriques Sources
+            ├─→ Récupérer Hash Articles Vus (jointe veille_digests.topic_key = topicKey du run, fenêtre 21 j)
+            └─→ Dédup + Filtre Récence + Préfiltre Qualité   ← plafond 40, clé source_id
+                        → Construire Prompt Classement → Haiku → Parser Top 5
+                        → Construire Prompt Analyse    → Sonnet → Parser Digest Final
+                        → Créer Digest (upsert 3 colonnes) → Préparer Lignes Articles → Remplacer Articles Digest (RPC)
+                        → [si triggerMode=manual] Router Callback Digest → Préparer/Signer/Envoyer Callback Digest
 ```
 
 Modèles : classement `claude-haiku-4-5-20251001`, analyse `claude-sonnet-5`.

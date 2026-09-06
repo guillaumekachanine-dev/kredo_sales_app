@@ -59,7 +59,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst secteurs = items.map(i => i.json.name).filter(Boolean);\nconst secteursActifs = secteurs.length ? secteurs.join(', ') : 'transverse';\n\nconst blocContexteKredo = `# CONTEXTE — Veille commerciale KREDO\n\nTu opères au sein de KREDO, une plateforme de CRM et d'intelligence commerciale\ndestinée aux fonctions commerciales d'une ESN (Entreprise de Services du Numérique).\n\n## Ton lecteur\nUn commercial / avant-vente d'ESN, profil \"pont commerce-technique\" : il n'est pas\ningénieur, mais il doit paraître crédible et pertinent face à un DSI ou un décideur\nmétier. Il vend des prestations intellectuelles (conseil, intégration, IA, data).\nIl n'a PAS besoin d'actualité pour dirigeants d'ESN (M&A, book-to-bill, salaires).\nIl a besoin de MUNITIONS COMMERCIALES.\n\n## Ses cibles (ICP)\nDSI et décideurs métiers d'ETI et de grands comptes, sur les secteurs actuellement\ncouverts par KREDO : ${secteursActifs}.\n\n## La question à laquelle toute ton analyse doit répondre\n\"En quoi cette information donne-t-elle à un commercial d'ESN une RAISON D'AGIR :\nun angle d'ouverture, un déclencheur de prise de contact, un argument de crédibilité,\nou une preuve de ROI qu'il peut réutiliser dans un pitch ?\"\n\n## Est PERTINENT\n- Un cas d'usage IA concret en entreprise, avec impact business chiffrable.\n- Une tendance qui va faire réagir un DSI (agents IA, souveraineté, coûts, sécurité).\n- Une évolution réglementaire qui crée un besoin de service (audit, mise en conformité).\n- Un signal touchant un des secteurs de ${secteursActifs} (acteur, tendance, chiffre).\n- Une annonce d'un grand acteur (OpenAI, Anthropic, Mistral...) que le prospect aura vue.\n\n## N'est PAS pertinent (à écarter ou noter faible)\n- La recherche académique pure, les détails techniques sans traduction business.\n- Le buzz sans substance, les listes d'outils, les annonces produit mineures.\n- L'actualité \"dirigeant d'ESN\" (fusions, valorisations, politique salariale).\n- Ce qui ne se transforme en AUCUN angle commercial exploitable.\n\n## Posture éditoriale\nReste factuel et neutre. Ne prends pas parti dans les rivalités entre acteurs\n(fournisseurs, éditeurs, modèles). Une veille commerciale crédible informe, elle ne\nmilite pas. N'invente aucun chiffre ni citation : si une information n'est pas dans\nle contenu fourni, ne l'ajoute pas.`;\n\nreturn [{\n  json: {\n    secteursActifs,\n    blocContexteKredo,\n    workspaceId: $('Résoudre Contexte Déclenchement').first().json.workspaceId,\n    digestDate: $('Résoudre Contexte Déclenchement').first().json.digestDate,\n  }\n}];"
+        "jsCode": "const items = $input.all();\nconst secteurs = items.map(i => i.json.name).filter(Boolean);\nconst secteursActifs = secteurs.length ? secteurs.join(', ') : 'transverse';\n\nconst blocContexteKredo = `# CONTEXTE — Veille commerciale KREDO\n\nTu opères au sein de KREDO, une plateforme de CRM et d'intelligence commerciale\ndestinée aux fonctions commerciales d'une ESN (Entreprise de Services du Numérique).\n\n## Ton lecteur\nUn commercial / avant-vente d'ESN, profil \"pont commerce-technique\" : il n'est pas\ningénieur, mais il doit paraître crédible et pertinent face à un DSI ou un décideur\nmétier. Il vend des prestations intellectuelles (conseil, intégration, IA, data).\nIl n'a PAS besoin d'actualité pour dirigeants d'ESN (M&A, book-to-bill, salaires).\nIl a besoin de MUNITIONS COMMERCIALES.\n\n## Ses cibles (ICP)\nDSI et décideurs métiers d'ETI et de grands comptes, sur les secteurs actuellement\ncouverts par KREDO : ${secteursActifs}.\n\n## La question à laquelle toute ton analyse doit répondre\n\"En quoi cette information donne-t-elle à un commercial d'ESN une RAISON D'AGIR :\nun angle d'ouverture, un déclencheur de prise de contact, un argument de crédibilité,\nou une preuve de ROI qu'il peut réutiliser dans un pitch ?\"\n\n## Est PERTINENT\n- Un cas d'usage IA concret en entreprise, avec impact business chiffrable.\n- Une tendance qui va faire réagir un DSI (agents IA, souveraineté, coûts, sécurité).\n- Une évolution réglementaire qui crée un besoin de service (audit, mise en conformité).\n- Un signal touchant un des secteurs de ${secteursActifs} (acteur, tendance, chiffre).\n- Une annonce d'un grand acteur (OpenAI, Anthropic, Mistral...) que le prospect aura vue.\n\n## N'est PAS pertinent (à écarter ou noter faible)\n- La recherche académique pure, les détails techniques sans traduction business.\n- Le buzz sans substance, les listes d'outils, les annonces produit mineures.\n- L'actualité \"dirigeant d'ESN\" (fusions, valorisations, politique salariale).\n- Ce qui ne se transforme en AUCUN angle commercial exploitable.\n\n## Posture éditoriale\nReste factuel et neutre. Ne prends pas parti dans les rivalités entre acteurs\n(fournisseurs, éditeurs, modèles). Une veille commerciale crédible informe, elle ne\nmilite pas. N'invente aucun chiffre ni citation : si une information n'est pas dans\nle contenu fourni, ne l'ajoute pas.`;\n\nlet ctx = {};\ntry {\n  ctx = $('Résoudre Contexte Déclenchement').first().json || {};\n} catch (e) {\n  ctx = {};\n}\n\nreturn [{\n  json: {\n    secteursActifs,\n    blocContexteKredo: ctx.framing || blocContexteKredo,\n    workspaceId: $('Résoudre Contexte Déclenchement').first().json.workspaceId,\n    digestDate: $('Résoudre Contexte Déclenchement').first().json.digestDate,\n  }\n}];"
       },
       "id": "189d5d24-f0d9-46fd-be2a-fb3d3f5d20e8",
       "name": "Build Contexte KREDO",
@@ -116,7 +116,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// LOT 2 — remplace le tableau `Config Sources KREDO` codé en dur.\n// Lit `v_effective_watch_sources` (usage_scope=news) et normalise le contrat interne.\n// Échec explicite si la vue ne renvoie rien : jamais de digest vide silencieux.\nconst rows = $input.all().map((i) => i.json);\n\nif (!rows.length) {\n  throw new Error(\n    \"v_effective_watch_sources (usage_scope=news) a retourné 0 ligne : run interrompu, aucun digest ne sera créé.\"\n  );\n}\n\nconst sorted = [...rows].sort((a, b) => {\n  const pa = a.priority ?? 0;\n  const pb = b.priority ?? 0;\n  if (pa !== pb) return pa - pb;\n  return (b.utility_score ?? 0) - (a.utility_score ?? 0);\n});\n\nconst sources = sorted.map((r) => ({\n  sourceId: r.source_id,\n  sourceKey: r.source_key,\n  sourceName: r.source_name,\n  publisher: r.publisher,\n  domain: r.domain,\n  searchDomain: r.search_domain,\n  collectionUrl: r.collection_url,\n  collectionMode: r.collection_mode,\n  family: r.family,\n  kredoCategory: r.kredo_category,\n  origin: r.origin,\n  corpusId: r.corpus_id,\n}));\n\nreturn [{ json: { sources } }];"
+        "jsCode": "// LOT 2 & ADR-0022 — Point de convergence des sources V1 et V2.\n// V1 / cron : consomme les lignes brutes de v_effective_watch_sources ($input.all()).\n// V2 : consomme directement les sources pré-résolues côté serveur par resolveDigestLaunch().\nlet ctx = {};\ntry {\n  ctx = $('Résoudre Contexte Déclenchement').first().json || {};\n} catch (e) {\n  ctx = {};\n}\n\nlet sources;\nif (ctx.schemaVersion === 2) {\n  sources = ctx.sources;\n  if (!Array.isArray(sources) || sources.length === 0) {\n    throw new Error(\"Payload V2 invalide : tableau de sources vide ou manquant.\");\n  }\n  for (const s of sources) {\n    if (!s || typeof s !== 'object' || Array.isArray(s)) {\n      throw new Error(\"Payload V2 invalide : source mal formée.\");\n    }\n    const sId = s.sourceId || s.source_id;\n    const sName = s.sourceName || s.source_name;\n    const sDomain = s.searchDomain || s.search_domain;\n    const sMode = s.collectionMode || s.collection_mode;\n    if (!sId || !sName || !sDomain || (sMode !== 'rss' && sMode !== 'site_search')) {\n      throw new Error(`Payload V2 invalide : source mal formée (${JSON.stringify(s)})`);\n    }\n  }\n} else {\n  const rows = $input.all().map((i) => i.json);\n\n  if (!rows.length) {\n    throw new Error(\n      \"v_effective_watch_sources (usage_scope=news) a retourné 0 ligne : run interrompu, aucun digest ne sera créé.\"\n    );\n  }\n\n  const sorted = [...rows].sort((a, b) => {\n    const pa = a.priority ?? 0;\n    const pb = b.priority ?? 0;\n    if (pa !== pb) return pa - pb;\n    return (b.utility_score ?? 0) - (a.utility_score ?? 0);\n  });\n\n  sources = sorted.map((r) => ({\n    sourceId: r.source_id,\n    sourceKey: r.source_key,\n    sourceName: r.source_name,\n    publisher: r.publisher,\n    domain: r.domain,\n    searchDomain: r.search_domain,\n    collectionUrl: r.collection_url,\n    collectionMode: r.collection_mode,\n    family: r.family,\n    kredoCategory: r.kredo_category,\n    origin: r.origin,\n    corpusId: r.corpus_id,\n  }));\n}\n\nreturn [{ json: { sources } }];"
       },
       "id": "c1a1a002-1111-4a11-8a11-000000000002",
       "name": "Vérifier et Normaliser Sources",
@@ -267,7 +267,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const source = $(\"Loop Over Items — 1 Source\").item.json;\nconst err = $input.first().json.error || $input.first().json;\nconst cible = source.collectionUrl || source.searchDomain || \"url inconnue\";\n\nconsole.log(\n  `[Veille KREDO] Flux en erreur, source ignorée : ${source.sourceName} (${cible}) — ${JSON.stringify(err).slice(0, 300)}`\n);\n\n// IMPORTANT : ne jamais retourner un tableau vide ici. n8n arrête l'exécution\n// du workflow entier quand un nœud ne produit aucun item en sortie (sauf à\n// activer 'Always Output Data' dans les Settings du nœud). On retourne donc\n// un item factice pour que la boucle B3 reçoive un signal et continue vers\n// la source suivante.\nreturn [{ json: { skipped: true, sourceName: source.sourceName, sourceUrl: cible } }];"
+        "jsCode": "const source = $(\"Loop Over Items — 1 Source\").item.json;\nconst err = $input.first().json.error || $input.first().json;\nconst cible = source.collectionUrl || source.searchDomain || \"url inconnue\";\n\nconsole.log(\n  `[Veille KREDO] Flux en erreur, source ignorée : ${source.sourceName} (${cible}) — ${JSON.stringify(err).slice(0, 300)}`\n);\n\n// IMPORTANT : ne jamais retourner un tableau vide ici. n8n arrête l'exécution\n// du workflow entier quand un nœud ne produit aucun item en sortie (sauf à\n// activer 'Always Output Data' dans les Settings du nœud). On retourne donc\n// un item factice pour que la boucle B3 reçoive un signal et continue vers\n// la source suivante.\nreturn [{ json: { skipped: true, error: true, sourceId: source.sourceId, sourceName: source.sourceName, sourceUrl: cible } }];"
       },
       "id": "b0edeb51-e740-4ebc-b544-7384cb4fd417",
       "name": "Ignorer Source En Erreur",
@@ -288,7 +288,11 @@
           "parameters": [
             {
               "name": "select",
-              "value": "url_hash"
+              "value": "url_hash,veille_digests!inner(topic_key)"
+            },
+            {
+              "name": "veille_digests.topic_key",
+              "value": "=eq.{{ $('Résoudre Contexte Déclenchement').first().json.topicKey }}"
             },
             {
               "name": "created_at",
@@ -470,7 +474,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/veille_digests?on_conflict=workspace_id,digest_date",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/veille_digests?on_conflict=workspace_id,digest_date,topic_key",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
@@ -484,7 +488,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { workspace_id: $('Build Contexte KREDO').first().json.workspaceId, digest_date: $('Build Contexte KREDO').first().json.digestDate, titre_digest: $json.titreDigest, resume_hebdo: $json.resumeHebdo, super_short_summary: $json.superShortSummary, model_classement: 'claude-haiku-4-5-20251001', model_analyse: 'claude-sonnet-5', nb_candidats_evalues: $('Dédup + Filtre Récence + Préfiltre Qualité').all().length, nb_sources_actives: $('Dédup + Filtre Récence + Préfiltre Qualité').first().json.sourcesContributrices } }}",
+        "jsonBody": "={ { workspace_id: $('Résoudre Contexte Déclenchement').first().json.workspaceId, digest_date: $('Résoudre Contexte Déclenchement').first().json.digestDate, topic_key: $('Résoudre Contexte Déclenchement').first().json.topicKey, topic_sector_id: $('Résoudre Contexte Déclenchement').first().json.topicSectorId, source_corpus_id: $('Résoudre Contexte Déclenchement').first().json.sourceCorpusId, generation_mode: $('Résoudre Contexte Déclenchement').first().json.generationMode, titre_digest: $json.titreDigest, resume_hebdo: $json.resumeHebdo, super_short_summary: $json.superShortSummary, model_classement: 'claude-haiku-4-5-20251001', model_analyse: 'claude-sonnet-5', nb_candidats_evalues: $('Dédup + Filtre Récence + Préfiltre Qualité').all().length, nb_sources_actives: $('Dédup + Filtre Récence + Préfiltre Qualité').first().json.sourcesContributrices } }",
         "options": {
           "timeout": 30000
         }
@@ -564,7 +568,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Instrumentation Lot 6 — calcul des métriques de collecte par source pour la veille hebdo.\nfunction safeNodeItems(nodeName) {\n  try {\n    return $(nodeName).all().map((i) => i.json);\n  } catch (e) {\n    return [];\n  }\n}\n\nconst loadedSources = $('Charger Sources Effectives (Supabase)').all().map((i) => i.json).filter((s) => s && s.source_id);\nconst enrichedItems = safeNodeItems('Enrichir avec Métadonnées Source').filter((it) => it && it.sourceId);\nconst errorItems = safeNodeItems('Ignorer Source En Erreur').filter((it) => it && it.sourceId && it.error);\nconst dedupCandidateItems = safeNodeItems('Dédup + Filtre Récence + Préfiltre Qualité').filter((it) => it && (it.sourceId || it.source_id));\nconst retainedArticles = safeNodeItems('Préparer Lignes Articles').filter((a) => a && (a.source_catalog_id || a.sourceId));\n\nlet workspaceId = null;\ntry {\n  workspaceId = $('Build Contexte KREDO').first().json.workspaceId || null;\n} catch (e) {}\n\nif (!workspaceId) {\n  return [];\n}\n\nconst runKey = typeof $execution !== 'undefined' && $execution && $execution.id ? $execution.id : ('run-' + Date.now());\n\nconst failedSourceIds = new Set(errorItems.map((it) => it.sourceId));\n\nconst collectedBySource = new Map();\nfor (const it of enrichedItems) {\n  if (it.placeholder) continue;\n  const sId = it.sourceId;\n  collectedBySource.set(sId, (collectedBySource.get(sId) || 0) + 1);\n}\n\nconst dedupBySource = new Map();\nfor (const it of dedupCandidateItems) {\n  const sId = it.sourceId || it.source_id;\n  if (!sId) continue;\n  dedupBySource.set(sId, (dedupBySource.get(sId) || 0) + 1);\n}\n\nconst retainedBySource = new Map();\nfor (const a of retainedArticles) {\n  const sId = a.source_catalog_id || a.sourceId;\n  if (!sId) continue;\n  retainedBySource.set(sId, (retainedBySource.get(sId) || 0) + 1);\n}\n\nconst metrics = loadedSources.map((s) => {\n  const sourceCatalogId = s.source_id;\n  const corpusId = s.corpus_id || null;\n  const isError = failedSourceIds.has(sourceCatalogId);\n  const querySucceeded = !isError;\n  const itemsCollected = querySucceeded ? (collectedBySource.get(sourceCatalogId) || 0) : 0;\n  const itemsAfterDedup = dedupBySource.get(sourceCatalogId) || 0;\n  const itemsRetained = retainedBySource.get(sourceCatalogId) || 0;\n\n  return {\n    workspace_id: workspaceId,\n    source_catalog_id: sourceCatalogId,\n    corpus_id: corpusId,\n    workflow_id: 'veille-hebdomadaire-kredo',\n    workflow_run_key: runKey,\n    usage_scope: 'news',\n    company_id: null,\n    query_succeeded: querySucceeded,\n    items_collected: itemsCollected,\n    items_after_dedup: itemsAfterDedup,\n    items_retained: itemsRetained,\n  };\n});\n\nif (metrics.length === 0) {\n  return [];\n}\n\nreturn metrics.map((m) => ({ json: m }));"
+        "jsCode": "// Instrumentation Lot 6 & Correction DEF-1 (H-2) — métriques de collecte fiables.\nfunction safeNodeItems(nodeName) {\n  try {\n    return $(nodeName).all().map((i) => i.json);\n  } catch (e) {\n    return [];\n  }\n}\n\n// 1. Sources interrogées : depuis Vérifier et Normaliser Sources (couvre V1, V2 et cron).\n// Repli sur Charger Sources Effectives pour les harnais de tests unitaires isolés.\nlet loadedSources = [];\ntry {\n  const norm = $('Vérifier et Normaliser Sources').first().json;\n  if (norm && Array.isArray(norm.sources) && norm.sources.length > 0) {\n    loadedSources = norm.sources.map((s) => ({\n      source_id: s.sourceId || s.source_id,\n      corpus_id: s.corpusId || s.corpus_id || null,\n    }));\n  }\n} catch (e) {}\n\nif (!loadedSources.length) {\n  loadedSources = safeNodeItems('Charger Sources Effectives (Supabase)').filter((s) => s && s.source_id);\n}\n\n// 2. Articles collectés : solution dataflow post-boucle.\n// $input.all() en sortie de Loop Over Items contient TOUTES les itérations de la boucle (corrige DEF-1).\n// Repli sur Enrichir avec Métadonnées Source pour les harnais qui mockent ce nœud directement.\nconst loopItems = $input.all().map((i) => i.json).filter((it) => it && (it.sourceId || it.source_id));\nconst enrichedItems = loopItems.length > 0\n  ? loopItems\n  : safeNodeItems('Enrichir avec Métadonnées Source').filter((it) => it && it.sourceId);\n\nconst errorItems = safeNodeItems('Ignorer Source En Erreur').filter((it) => it && (it.sourceId || it.source_id) && it.error);\nconst loopErrorItems = loopItems.filter((it) => it && (it.skipped || it.error));\nconst failedSourceIds = new Set([\n  ...errorItems.map((it) => it.sourceId || it.source_id),\n  ...loopErrorItems.map((it) => it.sourceId || it.source_id),\n]);\n\nconst dedupCandidateItems = safeNodeItems('Dédup + Filtre Récence + Préfiltre Qualité').filter((it) => it && (it.sourceId || it.source_id || it.sourceCatalogId));\nconst retainedArticles = safeNodeItems('Préparer Lignes Articles').flatMap((p) => {\n  if (p && Array.isArray(p.p_articles)) return p.p_articles;\n  if (p && (p.source_catalog_id || p.sourceId)) return [p];\n  return [];\n});\n\nlet workspaceId = null;\ntry {\n  workspaceId = $('Résoudre Contexte Déclenchement').first().json.workspaceId || null;\n} catch (e) {\n  try {\n    workspaceId = $('Build Contexte KREDO').first().json.workspaceId || null;\n  } catch (e2) {}\n}\n\nif (!workspaceId) {\n  return [];\n}\n\nconst runKey = typeof $execution !== 'undefined' && $execution && $execution.id ? $execution.id : ('run-' + Date.now());\n\nconst collectedBySource = new Map();\nfor (const it of enrichedItems) {\n  if (it.placeholder || it.skipped || it.error) continue;\n  const sId = it.sourceId || it.source_id;\n  if (!sId) continue;\n  collectedBySource.set(sId, (collectedBySource.get(sId) || 0) + 1);\n}\n\nconst dedupBySource = new Map();\nfor (const it of dedupCandidateItems) {\n  const sId = it.sourceId || it.source_id || it.sourceCatalogId;\n  if (!sId) continue;\n  dedupBySource.set(sId, (dedupBySource.get(sId) || 0) + 1);\n}\n\nconst retainedBySource = new Map();\nfor (const a of retainedArticles) {\n  const sId = a.source_catalog_id || a.sourceId;\n  if (!sId) continue;\n  retainedBySource.set(sId, (retainedBySource.get(sId) || 0) + 1);\n}\n\nconst metrics = loadedSources.map((s) => {\n  const sourceCatalogId = s.source_id;\n  const corpusId = s.corpus_id || null;\n  const isError = failedSourceIds.has(sourceCatalogId);\n  const querySucceeded = !isError;\n  const itemsCollected = querySucceeded ? (collectedBySource.get(sourceCatalogId) || 0) : 0;\n  const itemsAfterDedup = dedupBySource.get(sourceCatalogId) || 0;\n  const itemsRetained = retainedBySource.get(sourceCatalogId) || 0;\n\n  return {\n    workspace_id: workspaceId,\n    source_catalog_id: sourceCatalogId,\n    corpus_id: corpusId,\n    workflow_id: 'veille-hebdomadaire-kredo',\n    workflow_run_key: runKey,\n    usage_scope: 'news',\n    company_id: null,\n    query_succeeded: querySucceeded,\n    items_collected: itemsCollected,\n    items_after_dedup: itemsAfterDedup,\n    items_retained: itemsRetained,\n  };\n});\n\nif (metrics.length === 0) {\n  return [];\n}\n\nreturn metrics.map((m) => ({ json: m }));"
       },
       "id": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
       "name": "Préparer Métriques Sources",
@@ -623,7 +627,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -989,7 +994,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requete rejetee');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\nif (body.workflowId !== 'veille-ia-marche-on-demand') {\n  throw new Error(`workflowId inattendu : ${body.workflowId}`);\n}\nconst input = body.input || {};\nif (input.schemaVersion !== 1 || input.triggerMode !== 'manual') {\n  throw new Error('input doit valoir { schemaVersion: 1, triggerMode: \"manual\" }');\n}\n\nreturn [{\n  json: {\n    __trigger: 'webhook',\n    runId: body.runId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    callbackUrl: body.callbackUrl,\n    triggerMode: 'manual',\n  }\n}];"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requete rejetee');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\nif (body.workflowId !== 'veille-ia-marche-on-demand') {\n  throw new Error(`workflowId inattendu : ${body.workflowId}`);\n}\nconst input = body.input || {};\nif (input.triggerMode !== 'manual') {\n  throw new Error('triggerMode doit valoir \"manual\"');\n}\n\nif (input.schemaVersion === 1) {\n  return [{\n    json: {\n      __trigger: 'webhook',\n      runId: body.runId,\n      workspaceId: body.workspaceId,\n      userId: body.userId,\n      callbackUrl: body.callbackUrl,\n      triggerMode: 'manual',\n      schemaVersion: 1,\n      topicKey: 'global',\n      topicSectorId: null,\n      sourceCorpusId: null,\n      generationMode: 'manual',\n      framing: null,\n      sources: null,\n      stats: null,\n    }\n  }];\n}\n\nif (input.schemaVersion === 2) {\n  const topicKey = typeof input.topicKey === 'string' ? input.topicKey.trim() : '';\n  if (!topicKey) {\n    throw new Error('Payload V2 invalide : topicKey est requis');\n  }\n  if (topicKey === 'segment') {\n    throw new Error('Payload V2 invalide : topicKey ne doit jamais valoir \"segment\"');\n  }\n\n  const framing = typeof input.framing === 'string' ? input.framing.trim() : '';\n  if (!framing) {\n    throw new Error('Payload V2 invalide : framing est requis');\n  }\n\n  if (!Array.isArray(input.sources)) {\n    throw new Error('Payload V2 invalide : tableau de sources requis');\n  }\n  if (input.sources.length === 0) {\n    throw new Error('Payload V2 invalide : tableau de sources vide');\n  }\n\n  for (const s of input.sources) {\n    if (!s || typeof s !== 'object' || Array.isArray(s)) {\n      throw new Error('Payload V2 invalide : source mal formée');\n    }\n    const sourceId = s.sourceId || s.source_id;\n    const sourceName = s.sourceName || s.source_name;\n    const searchDomain = s.searchDomain || s.search_domain;\n    const collectionMode = s.collectionMode || s.collection_mode;\n    if (!sourceId || typeof sourceId !== 'string' ||\n        !sourceName || typeof sourceName !== 'string' ||\n        !searchDomain || typeof searchDomain !== 'string' ||\n        (collectionMode !== 'rss' && collectionMode !== 'site_search')) {\n      throw new Error(`Payload V2 invalide : source mal formée (${JSON.stringify(s)})`);\n    }\n  }\n\n  const topicSectorId = input.topicSectorId || input.sectorId || null;\n  const sourceCorpusId = input.corpusId || input.sourceCorpusId || null;\n\n  return [{\n    json: {\n      __trigger: 'webhook',\n      runId: body.runId,\n      workspaceId: body.workspaceId,\n      userId: body.userId,\n      callbackUrl: body.callbackUrl,\n      triggerMode: 'manual',\n      schemaVersion: 2,\n      topicKey,\n      topicSectorId,\n      sourceCorpusId,\n      generationMode: 'manual',\n      framing,\n      sources: input.sources,\n      stats: input.stats || null,\n    }\n  }];\n}\n\nthrow new Error('input doit valoir { schemaVersion: 1 | 2, triggerMode: \"manual\", ... }');"
       },
       "id": "vod-valider-signature--payload",
       "name": "Valider Signature & Payload",
@@ -1002,7 +1007,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Branche cron uniquement : aucun run KREDO a tracer, workspace mono-tenant.\n// Le mode manuel NE PASSE JAMAIS ici — il lit `workspaceId` dans le payload webhook.\nreturn [{\n  json: {\n    __trigger: 'schedule',\n    runId: null,\n    workspaceId: '98dcd39d-f87b-4f9d-add9-ce76d635953a',\n    userId: null,\n    callbackUrl: null,\n    triggerMode: 'scheduled',\n  }\n}];"
+        "jsCode": "// Branche cron uniquement : aucun run KREDO a tracer, workspace mono-tenant.\n// Le mode manuel NE PASSE JAMAIS ici — il lit `workspaceId` dans le payload webhook.\nreturn [{\n  json: {\n    __trigger: 'schedule',\n    runId: null,\n    workspaceId: '98dcd39d-f87b-4f9d-add9-ce76d635953a',\n    userId: null,\n    callbackUrl: null,\n    triggerMode: 'scheduled',\n    schemaVersion: 1,\n    topicKey: 'global',\n    topicSectorId: null,\n    sourceCorpusId: null,\n    generationMode: 'scheduled',\n    framing: null,\n    sources: null,\n    stats: null,\n  }\n}];"
       },
       "id": "vod-contexte-déclenchement-programmé",
       "name": "Contexte Déclenchement Programmé",
@@ -1015,7 +1020,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Nœud COMMUN aux deux declencheurs : source de verite unique pour tout l'aval.\n// Un seul declencheur s'execute par run, donc un seul item arrive ici.\nconst src = $input.first().json || {};\nconst isWebhook = src.__trigger === 'webhook';\n\nreturn [{\n  json: {\n    triggerMode: isWebhook ? 'manual' : 'scheduled',\n    runId: isWebhook ? (src.runId || null) : null,\n    workspaceId: src.workspaceId,\n    userId: isWebhook ? (src.userId || null) : null,\n    callbackUrl: isWebhook ? (src.callbackUrl || null) : null,\n    digestDate: new Date().toISOString().slice(0, 10),\n  }\n}];"
+        "jsCode": "// Nœud COMMUN aux deux declencheurs : source de verite unique pour tout l'aval.\n// Un seul declencheur s'execute par run, donc un seul item arrive ici.\nconst src = $input.first().json || {};\nconst isWebhook = src.__trigger === 'webhook';\nconst schemaVersion = src.schemaVersion ?? 1;\nconst triggerMode = isWebhook ? 'manual' : 'scheduled';\nconst generationMode = src.generationMode || (isWebhook ? 'manual' : 'scheduled');\n\nreturn [{\n  json: {\n    triggerMode,\n    generationMode,\n    schemaVersion,\n    runId: isWebhook ? (src.runId || null) : null,\n    workspaceId: src.workspaceId,\n    userId: isWebhook ? (src.userId || null) : null,\n    callbackUrl: isWebhook ? (src.callbackUrl || null) : null,\n    digestDate: new Date().toISOString().slice(0, 10),\n    topicKey: src.topicKey || 'global',\n    topicSectorId: src.topicSectorId || null,\n    sourceCorpusId: src.sourceCorpusId || null,\n    framing: src.framing || null,\n    sources: src.sources || null,\n    stats: src.stats || null,\n  }\n}];"
       },
       "id": "vod-résoudre-contexte-déclenchement",
       "name": "Résoudre Contexte Déclenchement",
@@ -1258,6 +1263,38 @@
         8448,
         1792
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "vod-if-sources-v2",
+              "leftValue": "={{ $('Résoudre Contexte Déclenchement').first().json.schemaVersion }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "vod-router-résolution-sources",
+      "name": "Router Résolution Sources",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4896,
+        1152
+      ]
     }
   ],
   "pinData": {},
@@ -1288,7 +1325,7 @@
       "main": [
         [
           {
-            "node": "Charger Sources Effectives (Supabase)",
+            "node": "Router Résolution Sources",
             "type": "main",
             "index": 0
           }
@@ -1843,6 +1880,24 @@
         [
           {
             "node": "Envoyer Callback Échec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Résolution Sources": {
+      "main": [
+        [
+          {
+            "node": "Vérifier et Normaliser Sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Charger Sources Effectives (Supabase)",
             "type": "main",
             "index": 0
           }

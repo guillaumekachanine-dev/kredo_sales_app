@@ -580,12 +580,18 @@ check(
   !/98dcd39d-f87b-4f9d-add9-ce76d635953a/.test(nodes["Créer Digest"].parameters.jsonBody),
 )
 
-// --- 13. Idempotence du digest --------------------------------------------------
+// --- 13. Idempotence du digest & ADR-0022 -------------------------------------
 
 const creerDigest = nodes["Créer Digest"]
 check(
-  "idempotence — l'URL du digest cible on_conflict=workspace_id,digest_date",
-  creerDigest.parameters.url.includes("on_conflict=workspace_id,digest_date"),
+  "idempotence — l'URL du digest cible on_conflict=workspace_id,digest_date,topic_key",
+  creerDigest.parameters.url.includes("on_conflict=workspace_id,digest_date,topic_key"),
+)
+check(
+  "ADR-0022 — Créer Digest écrit systématiquement les 4 champs (topic_key, topic_sector_id, source_corpus_id, generation_mode)",
+  ["topic_key", "topic_sector_id", "source_corpus_id", "generation_mode"].every((f) =>
+    creerDigest.parameters.jsonBody.includes(f),
+  ),
 )
 check(
   "idempotence — le header Prefer demande resolution=merge-duplicates",
@@ -1652,6 +1658,193 @@ check(
   ),
 )
 
+// --- ADR-0022 Lot 2A : Sujet × Corpus — Routage & Sources V2 ----------------
+
+const routerSourcesNode = nodes["Router Résolution Sources"]
+check(
+  "adr0022 — le nœud « Router Résolution Sources » existe",
+  Boolean(routerSourcesNode),
+)
+check(
+  "adr0022 — Router Résolution Sources teste schemaVersion === 2",
+  Boolean(
+    routerSourcesNode &&
+    JSON.stringify(routerSourcesNode.parameters).includes("schemaVersion") &&
+    JSON.stringify(routerSourcesNode.parameters).includes("2"),
+  ),
+)
+check(
+  "adr0022 — câblage : Build Contexte KREDO -> Router Résolution Sources",
+  workflow.connections["Build Contexte KREDO"]?.main?.[0]?.some((c) => c.node === "Router Résolution Sources"),
+)
+check(
+  "adr0022 — câblage : Build Contexte KREDO n'est PLUS directement connecté à Charger Sources Effectives",
+  !workflow.connections["Build Contexte KREDO"]?.main?.[0]?.some((c) => c.node === "Charger Sources Effectives (Supabase)"),
+)
+check(
+  "adr0022 — câblage : V2 (branche 0) court-circuite Charger Sources Effectives vers Vérifier et Normaliser Sources",
+  workflow.connections["Router Résolution Sources"]?.main?.[0]?.some((c) => c.node === "Vérifier et Normaliser Sources"),
+)
+check(
+  "adr0022 — câblage : V1 / cron (branche 1) interroge Charger Sources Effectives",
+  workflow.connections["Router Résolution Sources"]?.main?.[1]?.some((c) => c.node === "Charger Sources Effectives (Supabase)"),
+)
+check(
+  "adr0022 — câblage : Charger Sources Effectives -> Vérifier et Normaliser Sources",
+  workflow.connections["Charger Sources Effectives (Supabase)"]?.main?.[0]?.some((c) => c.node === "Vérifier et Normaliser Sources"),
+)
+
+const v2SourcesFixture = [
+  {
+    sourceId: "src-v2-openai",
+    sourceKey: "OpenAI News",
+    sourceName: "OpenAI News",
+    publisher: "OpenAI",
+    domain: "openai.com",
+    searchDomain: "openai.com",
+    collectionUrl: "https://openai.com/news/rss.xml",
+    collectionMode: "rss",
+    family: null,
+    kredoCategory: "frontier",
+    origin: "corpus",
+    corpusId: "corp-1",
+  },
+]
+
+const outVerifierV2 = runCodeNode(VERIFIER, {
+  input: [],
+  registry: {
+    "Résoudre Contexte Déclenchement": [{ schemaVersion: 2, sources: v2SourcesFixture }],
+  },
+})
+check(
+  "adr0022 — V2 : Vérifier et Normaliser Sources consomme directement ctx.sources sans relire v_effective_watch_sources",
+  outVerifierV2[0].json.sources.length === 1 && outVerifierV2[0].json.sources[0].sourceId === "src-v2-openai",
+)
+
+checkThrows(
+  "adr0022 — V2 : sources vides dans le contexte ⇒ exception levée (pas de fallback silencieux)",
+  () => runCodeNode(VERIFIER, {
+    input: [],
+    registry: {
+      "Résoudre Contexte Déclenchement": [{ schemaVersion: 2, sources: [] }],
+    },
+  }),
+)
+
+checkThrows(
+  "adr0022 — V2 : source mal formée dans le contexte ⇒ exception levée",
+  () => runCodeNode(VERIFIER, {
+    input: [],
+    registry: {
+      "Résoudre Contexte Déclenchement": [{ schemaVersion: 2, sources: [{ sourceId: "x" }] }],
+    },
+  }),
+)
+
+// --- ADR-0022 Lot 2A : Déduplication jointe sur topic_key --------------------
+
+const recupHashNode = nodes["Récupérer Hash Articles Vus"]
+check(
+  "adr0022 — Récupérer Hash Articles Vus sélectionne veille_digests!inner(topic_key)",
+  recupHashNode &&
+  recupHashNode.parameters.queryParameters.parameters.some(
+    (p) => p.name === "select" && p.value.includes("veille_digests!inner(topic_key)"),
+  ),
+)
+check(
+  "adr0022 — Récupérer Hash Articles Vus filtre sur veille_digests.topic_key du run",
+  recupHashNode &&
+  recupHashNode.parameters.queryParameters.parameters.some(
+    (p) => p.name === "veille_digests.topic_key" && p.value.includes("topicKey"),
+  ),
+)
+check(
+  "adr0022 — la fenêtre de 21 jours est conservée pour la déduplication",
+  recupHashNode &&
+  recupHashNode.parameters.queryParameters.parameters.some(
+    (p) => p.name === "created_at" && p.value.includes("minus({ days: 21 })"),
+  ),
+)
+
+// --- ADR-0022 Lot 2A : Correction DEF-1 (H-2) — Métriques agrégées -----------
+
+const multiBatchItems = [
+  // Source A : 3 articles collectés lors d'itérations précédentes de la boucle
+  { sourceId: "src-batch-a", title: "Article A1", link: "https://a.com/1" },
+  { sourceId: "src-batch-a", title: "Article A2", link: "https://a.com/2" },
+  { sourceId: "src-batch-a", title: "Article A3", link: "https://a.com/3" },
+  // Source B : 2 articles collectés
+  { sourceId: "src-batch-b", title: "Article B1", link: "https://b.com/1" },
+  { sourceId: "src-batch-b", title: "Article B2", link: "https://b.com/2" },
+  // Source C : placeholder de 0 item (Google News vide)
+  { sourceId: "src-batch-c", placeholder: true, title: "", link: "" },
+  // Source D : erreur
+  { sourceId: "src-batch-d", skipped: true, error: true, sourceName: "Source D" },
+]
+
+const sourcesDef1Fixture = [
+  { sourceId: "src-batch-a", sourceName: "Source A", corpusId: "c1" },
+  { sourceId: "src-batch-b", sourceName: "Source B", corpusId: "c1" },
+  { sourceId: "src-batch-c", sourceName: "Source C", corpusId: null },
+  { sourceId: "src-batch-d", sourceName: "Source D", corpusId: null },
+]
+
+const metricsDef1Result = runCodeNode(PREPARER_METRIQUES, {
+  input: multiBatchItems,
+  registry: {
+    "Résoudre Contexte Déclenchement": [{ workspaceId: "ws-def1" }],
+    "Vérifier et Normaliser Sources": [{ sources: sourcesDef1Fixture }],
+    "Dédup + Filtre Récence + Préfiltre Qualité": [
+      { sourceId: "src-batch-a" },
+      { sourceId: "src-batch-b" },
+    ],
+    "Préparer Lignes Articles": [{
+      p_articles: [{ source_catalog_id: "src-batch-a" }],
+    }],
+  },
+}).map((i) => i.json)
+
+check(
+  "adr0022 DEF-1 (H-2) — Préparer Métriques Sources produit 1 ligne par source interrogée",
+  metricsDef1Result.length === 4,
+  `${metricsDef1Result.length} lignes`,
+)
+
+const mBySrc = new Map(metricsDef1Result.map((m) => [m.source_catalog_id, m]))
+const ma = mBySrc.get("src-batch-a")
+const mb = mBySrc.get("src-batch-b")
+const mc = mBySrc.get("src-batch-c")
+const md = mBySrc.get("src-batch-d")
+
+check(
+  "adr0022 DEF-1 (H-2) — Source A : items_collected=3 (agrège toutes les itérations, pas seulement la dernière)",
+  Boolean(ma && ma.query_succeeded === true && ma.items_collected === 3 && ma.items_after_dedup === 1 && ma.items_retained === 1),
+  JSON.stringify(ma),
+)
+
+check(
+  "adr0022 DEF-1 (H-2) — Source B : items_collected=2 (conservée bien que collectée dans une autre itération)",
+  Boolean(mb && mb.query_succeeded === true && mb.items_collected === 2 && mb.items_after_dedup === 1 && mb.items_retained === 0),
+  JSON.stringify(mb),
+)
+
+check(
+  "adr0022 DEF-1 (H-2) — Source C (0 résultat Google News) : query_succeeded=true, items_collected=0",
+  Boolean(mc && mc.query_succeeded === true && mc.items_collected === 0 && mc.items_retained === 0),
+  JSON.stringify(mc),
+)
+
+check(
+  "adr0022 DEF-1 (H-2) — Source D (erreur) : query_succeeded=false, items_collected=0",
+  Boolean(md && md.query_succeeded === false && md.items_collected === 0 && md.items_retained === 0),
+  JSON.stringify(md),
+)
+
+check(
+  "adr0022 DEF-1 (H-2) — Écrire Métriques Sources a continueOnFail=true (non bloquant)",
+  nodes["Écrire Métriques Sources"]?.continueOnFail === true,
+)
+
 console.log(`\n${passed} ok · ${failed} échec(s)`)
 process.exit(failed === 0 ? 0 : 1)
-

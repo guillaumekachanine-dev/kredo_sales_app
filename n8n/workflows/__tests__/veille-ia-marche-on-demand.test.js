@@ -124,13 +124,16 @@ const computed = crypto.createHmac("sha256", SECRET).update(validRaw).digest("he
 const validItem = { body: validPayload, headers: { "x-kredo-signature": validSig }, computedSignature: computed }
 
 const okOut = runCodeNode("Valider Signature & Payload", { input: [validItem] })
-check("signature valide → normalise le contexte",
+check("signature valide (V1) → normalise le contexte",
   okOut[0].json.__trigger === "webhook" &&
   okOut[0].json.runId === "run-123" &&
   okOut[0].json.workspaceId === "ws-777" &&
   okOut[0].json.userId === "user-9" &&
   okOut[0].json.callbackUrl === validPayload.callbackUrl &&
-  okOut[0].json.triggerMode === "manual")
+  okOut[0].json.triggerMode === "manual" &&
+  okOut[0].json.schemaVersion === 1 &&
+  okOut[0].json.topicKey === "global" &&
+  okOut[0].json.generationMode === "manual")
 
 checkThrows("signature invalide → rejet", () =>
   runCodeNode("Valider Signature & Payload", {
@@ -154,25 +157,169 @@ checkThrows("input.triggerMode ≠ manual → rejet", () => {
   runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
 })
 
+// ─── 3bis. Payload V2 (Sujet × Corpus) ──────────────────────────────────────
+const validV2Source = {
+  sourceId: "src-openai",
+  sourceKey: "OpenAI News",
+  sourceName: "OpenAI News",
+  publisher: "OpenAI",
+  domain: "openai.com",
+  searchDomain: "openai.com",
+  collectionUrl: "https://openai.com/news/rss.xml",
+  collectionMode: "rss",
+  family: null,
+  kredoCategory: "frontier",
+  origin: "corpus",
+  corpusId: "corp-folio-tech",
+}
+
+const validV2Payload = {
+  ...validPayload,
+  input: {
+    schemaVersion: 2,
+    triggerMode: "manual",
+    topicKey: "ia",
+    topicSectorId: null,
+    corpusId: "corp-folio-tech",
+    framing: "# CONTEXTE — Veille IA",
+    sources: [validV2Source],
+    stats: { sourcesCount: 1, rssCount: 1, siteSearchCount: 0 },
+  },
+}
+const { raw: v2Raw, sig: v2Sig } = signedBody(validV2Payload)
+const v2Computed = crypto.createHmac("sha256", SECRET).update(v2Raw).digest("hex")
+const validV2Item = { body: validV2Payload, headers: { "x-kredo-signature": v2Sig }, computedSignature: v2Computed }
+
+const v2Out = runCodeNode("Valider Signature & Payload", { input: [validV2Item] })
+check("V2 valide accepté → préserve topicKey, framing, sources, sourceCorpusId",
+  v2Out[0].json.schemaVersion === 2 &&
+  v2Out[0].json.topicKey === "ia" &&
+  v2Out[0].json.sourceCorpusId === "corp-folio-tech" &&
+  v2Out[0].json.topicSectorId === null &&
+  v2Out[0].json.framing === "# CONTEXTE — Veille IA" &&
+  Array.isArray(v2Out[0].json.sources) &&
+  v2Out[0].json.sources.length === 1 &&
+  v2Out[0].json.sources[0].sourceId === "src-openai")
+
+checkThrows("V2 sans topicKey → refus", () => {
+  const body = { ...validV2Payload, input: { ...validV2Payload.input, topicKey: "" } }
+  const { sig } = signedBody(body)
+  const c = crypto.createHmac("sha256", SECRET).update(JSON.stringify(body)).digest("hex")
+  runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
+})
+
+checkThrows("V2 topicKey='segment' → refus (doit être le slug réel)", () => {
+  const body = { ...validV2Payload, input: { ...validV2Payload.input, topicKey: "segment" } }
+  const { sig } = signedBody(body)
+  const c = crypto.createHmac("sha256", SECRET).update(JSON.stringify(body)).digest("hex")
+  runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
+})
+
+checkThrows("V2 sans framing → refus", () => {
+  const body = { ...validV2Payload, input: { ...validV2Payload.input, framing: "" } }
+  const { sig } = signedBody(body)
+  const c = crypto.createHmac("sha256", SECRET).update(JSON.stringify(body)).digest("hex")
+  runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
+})
+
+checkThrows("V2 sans sources → refus", () => {
+  const inputSansSources = { ...validV2Payload.input }
+  delete inputSansSources.sources
+  const body = { ...validV2Payload, input: inputSansSources }
+  const { sig } = signedBody(body)
+  const c = crypto.createHmac("sha256", SECRET).update(JSON.stringify(body)).digest("hex")
+  runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
+})
+
+checkThrows("V2 sources=[] → refus", () => {
+  const body = { ...validV2Payload, input: { ...validV2Payload.input, sources: [] } }
+  const { sig } = signedBody(body)
+  const c = crypto.createHmac("sha256", SECRET).update(JSON.stringify(body)).digest("hex")
+  runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
+})
+
+checkThrows("V2 source mal formée (manque searchDomain) → refus", () => {
+  const malformed = { ...validV2Source, searchDomain: "" }
+  const body = { ...validV2Payload, input: { ...validV2Payload.input, sources: [malformed] } }
+  const { sig } = signedBody(body)
+  const c = crypto.createHmac("sha256", SECRET).update(JSON.stringify(body)).digest("hex")
+  runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
+})
+
+checkThrows("V2 source mal formée (collectionMode invalide) → refus", () => {
+  const malformed = { ...validV2Source, collectionMode: "ftp" }
+  const body = { ...validV2Payload, input: { ...validV2Payload.input, sources: [malformed] } }
+  const { sig } = signedBody(body)
+  const c = crypto.createHmac("sha256", SECRET).update(JSON.stringify(body)).digest("hex")
+  runCodeNode("Valider Signature & Payload", { input: [{ body, headers: { "x-kredo-signature": sig }, computedSignature: c }] })
+})
+
 // ─── 4. Contexte : manuel prend le workspace du PAYLOAD, cron la constante ──
 const cronCtx = runCodeNode("Contexte Déclenchement Programmé", { input: [{}] })
-check("branche cron : workspace = constante mono-tenant, triggerMode=scheduled",
+check("branche cron : workspace = constante mono-tenant, triggerMode=scheduled, topicKey=global, generationMode=scheduled",
   cronCtx[0].json.workspaceId === CRON_WS &&
   cronCtx[0].json.triggerMode === "scheduled" &&
+  cronCtx[0].json.generationMode === "scheduled" &&
+  cronCtx[0].json.topicKey === "global" &&
+  cronCtx[0].json.topicSectorId === null &&
+  cronCtx[0].json.sourceCorpusId === null &&
   cronCtx[0].json.runId === null)
 
 const resolvedManual = runCodeNode(CTX_NODE, { input: [okOut[0].json] })
-check("Résoudre Contexte (manuel) : workspace du payload, runId conservé, date du jour",
+check("Résoudre Contexte (manuel V1) : workspace du payload, topicKey=global, generationMode=manual",
   resolvedManual[0].json.workspaceId === "ws-777" &&
   resolvedManual[0].json.runId === "run-123" &&
   resolvedManual[0].json.triggerMode === "manual" &&
+  resolvedManual[0].json.generationMode === "manual" &&
+  resolvedManual[0].json.topicKey === "global" &&
+  resolvedManual[0].json.topicSectorId === null &&
+  resolvedManual[0].json.sourceCorpusId === null &&
   /^\d{4}-\d{2}-\d{2}$/.test(resolvedManual[0].json.digestDate))
 check("Résoudre Contexte (manuel) ≠ constante mono-tenant en dur",
   resolvedManual[0].json.workspaceId !== CRON_WS)
 
 const resolvedCron = runCodeNode(CTX_NODE, { input: [cronCtx[0].json] })
-check("Résoudre Contexte (cron) : runId null, workspace constante",
-  resolvedCron[0].json.runId === null && resolvedCron[0].json.workspaceId === CRON_WS)
+check("Résoudre Contexte (cron) : runId null, topicKey=global, generationMode=scheduled",
+  resolvedCron[0].json.runId === null &&
+  resolvedCron[0].json.workspaceId === CRON_WS &&
+  resolvedCron[0].json.triggerMode === "scheduled" &&
+  resolvedCron[0].json.generationMode === "scheduled" &&
+  resolvedCron[0].json.topicKey === "global")
+
+const resolvedV2 = runCodeNode(CTX_NODE, { input: [v2Out[0].json] })
+check("Résoudre Contexte (manuel V2) : conserve topicKey, sourceCorpusId, generationMode=manual, framing, sources",
+  resolvedV2[0].json.schemaVersion === 2 &&
+  resolvedV2[0].json.triggerMode === "manual" &&
+  resolvedV2[0].json.generationMode === "manual" &&
+  resolvedV2[0].json.topicKey === "ia" &&
+  resolvedV2[0].json.sourceCorpusId === "corp-folio-tech" &&
+  resolvedV2[0].json.framing === "# CONTEXTE — Veille IA" &&
+  Array.isArray(resolvedV2[0].json.sources) &&
+  resolvedV2[0].json.sources.length === 1)
+
+// Test secteur segment V2 : slug réel, jamais 'segment'
+const segmentV2Payload = {
+  ...validPayload,
+  input: {
+    schemaVersion: 2,
+    triggerMode: "manual",
+    topicKey: "seg-parfumerie-compositions-b2b",
+    topicSectorId: "sector-uuid-1",
+    corpusId: null,
+    framing: "# CONTEXTE — Parfumerie",
+    sources: [validV2Source],
+  },
+}
+const { raw: segRaw, sig: segSig } = signedBody(segmentV2Payload)
+const segComputed = crypto.createHmac("sha256", SECRET).update(segRaw).digest("hex")
+const segItem = { body: segmentV2Payload, headers: { "x-kredo-signature": segSig }, computedSignature: segComputed }
+const segVal = runCodeNode("Valider Signature & Payload", { input: [segItem] })
+const segCtx = runCodeNode(CTX_NODE, { input: [segVal[0].json] })
+check("Résoudre Contexte (sujet sectoriel V2) : topicKey porte le slug réel et sectorId conservé",
+  segCtx[0].json.topicKey === "seg-parfumerie-compositions-b2b" &&
+  segCtx[0].json.topicSectorId === "sector-uuid-1" &&
+  segCtx[0].json.sourceCorpusId === null &&
+  segCtx[0].json.generationMode === "manual")
 
 // ─── 5. Build Contexte KREDO : plus de workspace en dur ────────────────────
 const buildCtxCode = nodes["Build Contexte KREDO"].parameters.jsCode
@@ -266,11 +413,27 @@ check("callback échec : Préparer → Signer → Envoyer",
   edge("Préparer Callback Échec", "Signer Callback Échec") &&
   edge("Signer Callback Échec", "Envoyer Callback Échec"))
 
-// ─── 9. Idempotence du digest préservée ───────────────────────────────────
-check("Créer Digest : upsert on_conflict=workspace_id,digest_date intact",
-  nodes["Créer Digest"].parameters.url.includes("on_conflict=workspace_id,digest_date"))
+// ─── 9. Idempotence du digest & Contrat ADR-0022 ───────────────────────────
+check("Créer Digest : upsert on_conflict=workspace_id,digest_date,topic_key",
+  nodes["Créer Digest"].parameters.url.includes("on_conflict=workspace_id,digest_date,topic_key"))
+check("Créer Digest : body renseigne systématiquement topic_key, topic_sector_id, source_corpus_id, generation_mode",
+  ["topic_key", "topic_sector_id", "source_corpus_id", "generation_mode"]
+    .every((field) => nodes["Créer Digest"].parameters.jsonBody.includes(field)))
 check("remplacement d'articles via RPC replace_veille_digest_articles intact",
   nodes["Remplacer Articles Digest (RPC)"].parameters.url.includes("replace_veille_digest_articles"))
+
+// ─── 10. Câblage Routage Sources V1 / V2 ──────────────────────────────────
+check("nœud « Router Résolution Sources » présent", "Router Résolution Sources" in nodes)
+check("Build Contexte KREDO est câblé vers Router Résolution Sources",
+  edge("Build Contexte KREDO", "Router Résolution Sources"))
+check("Build Contexte KREDO n'est PLUS directement connecté à Charger Sources Effectives",
+  !edge("Build Contexte KREDO", "Charger Sources Effectives (Supabase)"))
+check("Router Résolution Sources : branche V2 (0) -> Vérifier et Normaliser Sources (court-circuite les sources globales)",
+  edge("Router Résolution Sources", "Vérifier et Normaliser Sources", 0))
+check("Router Résolution Sources : branche V1/cron (1) -> Charger Sources Effectives (Supabase)",
+  edge("Router Résolution Sources", "Charger Sources Effectives (Supabase)", 1))
+check("Charger Sources Effectives (Supabase) -> Vérifier et Normaliser Sources",
+  edge("Charger Sources Effectives (Supabase)", "Vérifier et Normaliser Sources"))
 
 // ─── Bilan ────────────────────────────────────────────────────────────────
 console.log(`\n${passed} ok · ${failed} échec(s)`)
