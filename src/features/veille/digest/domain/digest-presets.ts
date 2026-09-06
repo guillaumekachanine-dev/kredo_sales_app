@@ -163,7 +163,7 @@ const BADGE_ACRONYMS: Record<string, string> = {
 }
 
 export function getTopicBadgeLabel(
-  topicKey: string,
+  topicKey?: string | null,
   topics?: Array<{ topicKey: string; label: string }>,
 ): string {
   const normalized = (topicKey || GLOBAL_DIGEST_TOPIC_KEY).trim()

@@ -105,7 +105,7 @@ describe("Veille Reading by Topic & DEF-4 deterministic sort (ADR-0022)", () => 
           nb_sources_actives: 15,
           nb_candidats_evalues: 40,
         },
-      ]
+      ] as unknown as VeilleDigest[]
 
       const entries = buildArchiveEntries({
         digests: mockDigests,
@@ -154,7 +154,7 @@ describe("Veille Reading by Topic & DEF-4 deterministic sort (ADR-0022)", () => 
           nb_sources_actives: 8,
           nb_candidats_evalues: 18,
         },
-      ]
+      ] as unknown as VeilleDigest[]
 
       const mockArticles: VeilleArticle[] = [
         {
