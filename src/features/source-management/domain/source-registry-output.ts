@@ -18,7 +18,7 @@
  * import, pas un fichier à rejeter ici.
  */
 
-import type { SourceOrigin } from "./source-management-contracts"
+import type { KredoSourceCategory, SourceOrigin } from "./source-management-contracts"
 
 export const SOURCE_REGISTRY_VERSION = "1.1" as const
 
@@ -463,7 +463,12 @@ export type SourceCorpusItemPreview = {
   mappedSearchDomain: string
   mappedHomepageUrl: string
   mappedFamily: string | null
-  mappedKredoCategory: "vertical"
+  /**
+   * Élargi à toute la palette `source_catalog.kredo_category` (Lot 1 ADR-0022) :
+   * un corpus THÉMATIQUE n'est pas `vertical`. Le chemin E3 continue d'écrire
+   * `"vertical"` en dur à son propre site de construction.
+   */
+  mappedKredoCategory: KredoSourceCategory
   mappedCollectionUrl: string | null
   isCollectable: boolean
   newsEligible: boolean
@@ -519,15 +524,22 @@ export type IngestSourceCorpusSourceItem = {
   collection_url: string | null
   homepage_url: string
   family: string | null
-  kredo_category: "vertical"
+  kredo_category: KredoSourceCategory
   content_temporality: SourceRegistryContentTemporality
   usage_scopes: SourceRegistryUsageScope[]
   external_src_id: string
   pack: SourceRegistryPack
-  tier: string
-  primary_role: SourceRegistryPrimaryRole
-  utility_score: number
-  automation_fit: SourceRegistryAutomationFit
+  /**
+   * Les quatre champs suivants sont NULLABLES depuis le Lot 1 ADR-0022 : ce sont
+   * des notions du contrat Master Study E3 (tier de preuve, rôle probatoire, score
+   * d'utilité) qui n'ont pas d'équivalent dans un corpus THÉMATIQUE. Les rendre
+   * obligatoires y forcerait à inventer une valeur — les colonnes SQL
+   * correspondantes sont d'ailleurs nullables. Le chemin E3 les renseigne toujours.
+   */
+  tier: string | null
+  primary_role: SourceRegistryPrimaryRole | null
+  utility_score: number | null
+  automation_fit: SourceRegistryAutomationFit | null
   familles_couvertes: string[]
   atteste: string | null
   news_eligible: boolean

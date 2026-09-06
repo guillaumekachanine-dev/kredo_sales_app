@@ -13,6 +13,7 @@ import "server-only"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import type { Json } from "@/types/database"
+import { isKredoSourceCategory } from "../domain/source-management-contracts"
 import {
   CORPUS_QUALITY_VERDICT_VALUES,
   SOURCE_REGISTRY_AUTOMATION_FIT_VALUES,
@@ -30,7 +31,13 @@ export type IngestSourceCorpusResult =
 
 const SNAPSHOT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
-function isValidSourceItem(item: IngestSourceCorpusSourceItem, index: number): string | null {
+type CorpusScopeKind = "sector" | "thematic"
+
+function isValidSourceItem(
+  item: IngestSourceCorpusSourceItem,
+  index: number,
+  scopeKind: CorpusScopeKind,
+): string | null {
   const path = `sources[${index}]`
   if (!item.source_key?.trim()) return `${path}.source_key requis`
   if (!item.search_domain?.trim()) return `${path}.search_domain requis`
@@ -42,13 +49,42 @@ function isValidSourceItem(item: IngestSourceCorpusSourceItem, index: number): s
     return `${path}.usage_scopes invalide`
   }
   if (!(SOURCE_REGISTRY_PACK_VALUES as readonly string[]).includes(item.pack)) return `${path}.pack invalide`
-  if (!(SOURCE_REGISTRY_PRIMARY_ROLE_VALUES as readonly string[]).includes(item.primary_role)) return `${path}.primary_role invalide`
-  if (!(SOURCE_REGISTRY_AUTOMATION_FIT_VALUES as readonly string[]).includes(item.automation_fit)) return `${path}.automation_fit invalide`
-  if (typeof item.tier !== "string" || !item.tier.trim()) return `${path}.tier doit être une chaîne non vide`
-  if (!Number.isInteger(item.utility_score) || item.utility_score < 0 || item.utility_score > 100) {
+
+  // Les quatre champs de preuve E3 restent OBLIGATOIRES pour un corpus sectoriel,
+  // et facultatifs pour un corpus thematique, ou ils n'ont pas d'objet
+  // (ADR-0022 Lot 1). Quand ils sont fournis, ils sont valides dans les deux cas.
+  const requiresE3Fields = scopeKind === "sector"
+
+  if (item.primary_role === null || item.primary_role === undefined) {
+    if (requiresE3Fields) return `${path}.primary_role requis`
+  } else if (!(SOURCE_REGISTRY_PRIMARY_ROLE_VALUES as readonly string[]).includes(item.primary_role)) {
+    return `${path}.primary_role invalide`
+  }
+
+  if (item.automation_fit === null || item.automation_fit === undefined) {
+    if (requiresE3Fields) return `${path}.automation_fit requis`
+  } else if (!(SOURCE_REGISTRY_AUTOMATION_FIT_VALUES as readonly string[]).includes(item.automation_fit)) {
+    return `${path}.automation_fit invalide`
+  }
+
+  if (item.tier === null || item.tier === undefined) {
+    if (requiresE3Fields) return `${path}.tier requis`
+  } else if (typeof item.tier !== "string" || !item.tier.trim()) {
+    return `${path}.tier doit être une chaîne non vide`
+  }
+
+  if (item.utility_score === null || item.utility_score === undefined) {
+    if (requiresE3Fields) return `${path}.utility_score requis`
+  } else if (!Number.isInteger(item.utility_score) || item.utility_score < 0 || item.utility_score > 100) {
     return `${path}.utility_score hors bornes (0-100)`
   }
-  if (item.kredo_category !== "vertical") return `${path}.kredo_category doit être 'vertical'`
+
+  if (scopeKind === "sector") {
+    if (item.kredo_category !== "vertical") return `${path}.kredo_category doit être 'vertical'`
+  } else if (!isKredoSourceCategory(item.kredo_category)) {
+    return `${path}.kredo_category invalide`
+  }
+
   // Règle déterministe dure (E3 §8) : une source static ne peut jamais entrer dans la veille récurrente,
   // quelle que soit la décision de l'utilisateur en étape 2 — revérifié ici, pas seulement côté client.
   if (item.content_temporality === "static" && (item.is_enabled || item.news_eligible || item.account_watch_eligible)) {
@@ -57,7 +93,7 @@ function isValidSourceItem(item: IngestSourceCorpusSourceItem, index: number): s
   return null
 }
 
-function isValidPayload(payload: IngestSourceCorpusPayload): string | null {
+function isValidPayload(payload: IngestSourceCorpusPayload, scopeKind: CorpusScopeKind): string | null {
   if (!payload.slug?.trim()) return "slug requis"
   if (!payload.version?.trim()) return "version requise"
   if (!SNAPSHOT_DATE_PATTERN.test(payload.snapshot_date)) return "snapshot_date invalide (AAAA-MM-JJ attendu)"
@@ -67,7 +103,7 @@ function isValidPayload(payload: IngestSourceCorpusPayload): string | null {
   if (!Array.isArray(payload.sources) || payload.sources.length === 0) return "sources requis (au moins une entrée)"
 
   for (const [index, item] of payload.sources.entries()) {
-    const itemError = isValidSourceItem(item, index)
+    const itemError = isValidSourceItem(item, index, scopeKind)
     if (itemError) return itemError
   }
 
@@ -76,13 +112,21 @@ function isValidPayload(payload: IngestSourceCorpusPayload): string | null {
 
 export async function ingestSourceCorpusAction(
   payload: IngestSourceCorpusPayload,
-  segmentSlug: string,
+  segmentSlug: string | null,
   reason: string,
+  scopeKind: CorpusScopeKind = "sector",
 ): Promise<IngestSourceCorpusResult> {
-  const validationError = isValidPayload(payload)
+  const validationError = isValidPayload(payload, scopeKind)
   if (validationError) return { error: `Payload invalide : ${validationError}`, corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
 
-  if (!segmentSlug?.trim()) return { error: "Segment requis.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
+  // Le segment est requis pour un corpus sectoriel, et INTERDIT pour un corpus
+  // thematique — la RPC applique la meme regle, ceci n'en est que le miroir client.
+  if (scopeKind === "sector" && !segmentSlug?.trim()) {
+    return { error: "Segment requis.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
+  }
+  if (scopeKind === "thematic" && segmentSlug?.trim()) {
+    return { error: "Un corpus thématique ne vise aucun segment.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
+  }
   if (!reason?.trim()) return { error: "Motif d'import requis.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
 
   const supabase = await createClient()
@@ -97,8 +141,13 @@ export async function ingestSourceCorpusAction(
   // sur source_catalog / source_corpora / source_corpus_items depuis ce module.
   const { data, error } = await supabase.rpc("ingest_source_corpus", {
     p_payload: payload as unknown as Json,
-    p_segment_slug: segmentSlug,
+    // PostgREST type `p_segment_slug` en `string` non nullable (le parametre SQL
+    // n'a pas de DEFAULT, et lui en donner un imposerait de reordonner la
+    // signature donc un nouveau DROP/CREATE). La chaine vide et NULL sont
+    // traitees a l'identique par la RPC : `IS NOT NULL AND btrim(...) <> ''`.
+    p_segment_slug: segmentSlug ?? "",
     p_reason: reason,
+    p_scope_kind: scopeKind,
   })
 
   if (error) {

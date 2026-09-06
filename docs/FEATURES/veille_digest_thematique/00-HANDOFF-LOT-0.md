@@ -1,9 +1,11 @@
 # Digest thématique — handoff autoportant
 
 - **Date** : 2026-09-06
-- **Autorité** : `docs/adr/ADR-0022-digest-thematique-sujet-corpus.md` (Proposé)
-- **État au 2026-09-06** : **préalable d'hygiène H-1 fait · Lot 0 fait** (5 migrations appliquées,
-  5 modules TypeScript, 27 tests). **Reprendre au Lot 1.** Rien n'est commité.
+- **Autorité** : `docs/adr/ADR-0022-digest-thematique-sujet-corpus.md` (**Accepté**, v1.1)
+- **État au 2026-09-06** : **H-1 fait · Lot 0 fait · Lot 1 fait côté code**.
+  5 migrations appliquées, 8 modules TypeScript, 54 tests, 2 corpus versionnés.
+  **Il reste un geste manuel** : importer les deux corpus par le wizard (§5.1) — je ne peux pas le
+  faire, la RPC exige une session authentifiée. **Puis reprendre au Lot 2.**
 - **Lire d'abord** : le §2 (« ce qu'il ne faut pas refaire ») avant toute ligne de code.
 
 > **Objectif métier.** Que « Générer un digest » propose un **sujet** (Business, IA, LLM, un segment)
@@ -149,68 +151,79 @@ Le comportement de l'application est **strictement inchangé** — à une except
 mesurée : les 4 sources fantômes ne sont plus collectées (H-1).
 
 
-## 5. Lot 1 — Les deux corpus Folio (≈ ½ journée)
+## 5. Lot 1 — Corpus Folio — ✅ CODE FAIT le 2026-09-06 · ⏳ IMPORT À FAIRE
 
-### 5.1 Format d'entrée
+Boucle de validation passée en entier : `typecheck` ✅ · `test` **2279/2279 sur 234 fichiers** ✅ ·
+`check:server-boundary` ✅ · `lint` ✅ · `build` ✅.
 
-```json
-{
-  "format": "thematic-source-list-v1",
-  "name": "Folio AI Tech",
-  "slug": "folio-ai-tech",
-  "snapshot_date": "2026-09-06",
-  "sources": [
-    { "name": "OpenAI — News", "rssUrl": "https://openai.com/news/rss.xml",
-      "homepage": "https://openai.com/news/", "newsEligible": true },
-    { "name": "Anthropic — News", "rssUrl": null, "homepage": "https://www.anthropic.com/news",
-      "newsEligible": false, "exclusionReason": "feed-404 (sonde 2026-09-06)" }
-  ]
-}
-```
+### 5.1 Le geste qui reste — 2 minutes, par Guillaume
 
-Parseur `src/features/source-management/domain/thematic-source-list.ts` (~40 lignes), puis
-**`resolveSourceCorpusImport` inchangé** (dédoublonnage par hostname déjà écrit) puis la RPC du §4.2.
+**Je ne peux pas importer les corpus moi-même** : `ingest_source_corpus` appelle
+`private.require_authenticated_user()` puis `is_workspace_admin()`. Une connexion service-role n'a
+pas d'`auth.uid()`. L'import se fait donc par le wizard, connecté :
 
-### 5.2 Contenu à importer, corrigé par la sonde
+> Veille → Gestion des sources → Importer un corpus → déposer
+> `docs/FEATURES/veille_digest_thematique/corpora/folio-ai-tech.sources.json`, puis
+> `folio-ai-business.sources.json` → Analyser → Arbitrer → Confirmer.
+> Le corpus est créé en **brouillon** ; l'activer ensuite depuis sa fiche.
 
-**`folio-ai-tech`** — 8 `newsEligible`, 3 désactivées :
+**Le chemin d'écriture est déjà prouvé.** Un payload thématique représentatif (3 sources, dont une
+source socle réutilisée et une source écartée) a été passé à la RPC **sous l'identité d'un
+utilisateur authentifié, en transaction `ROLLBACK`** : `3 sources_upserted, 3 items_upserted`,
+puis annulation vérifiée (2 corpora, 42 sources, 0 thématique en base). Sont donc validés en
+conditions réelles : le segment vide accepté pour un corpus thématique, les `tier`/`utility_score`
+à `NULL`, le tableau `usage_scopes` vide, et la réutilisation d'une clé de source existante.
 
-| Source | URL retenue | `newsEligible` |
-|---|---|---|
-| OpenAI — News | `https://openai.com/news/rss.xml` | ✅ (déjà au socle → l'item pointera la ligne existante) |
-| Google — AI | `https://blog.google/technology/ai/rss/` | ✅ |
-| AWS — ML Blog | `https://aws.amazon.com/blogs/machine-learning/feed/` | ✅ |
-| Hugging Face | `https://huggingface.co/blog/feed.xml` | ✅ |
-| MIT News — AI | `https://news.mit.edu/rss/topic/artificial-intelligence2` | ✅ |
-| Microsoft | **`https://blogs.microsoft.com/feed/`** (l'URL Folio répond `410`) | ✅ ⚠️ périmètre élargi à tout Microsoft |
-| NVIDIA | **`.../blog/category/generative-ai/feed/`** (le flux `tag/artificial-intelligence` rend 0 item) | ✅ |
-| Google DeepMind | **`https://deepmind.google/blog/rss.xml`** | ✅ |
-| Anthropic · IBM Think · Meta AI | — | ❌ `exclusionReason` renseigné |
+### 5.2 Contenu des deux corpus, corrigé par la sonde
 
-**`folio-ai-business`** — 5 `newsEligible`, 6 désactivées :
+| Corpus | Sources | Éligibles | Écartées |
+|---|---:|---:|---:|
+| `folio-ai-tech` | 11 | **8** | 3 |
+| `folio-ai-business` | 14 | **4** | 10 |
 
-| Source | URL | `newsEligible` |
-|---|---|---|
-| Sequoia Capital | `https://www.sequoiacap.com/feed` (redirige en `308`, suivi OK) | ✅ |
-| WIRED — AI | `https://www.wired.com/feed/tag/ai/latest/rss` | ✅ |
-| One Useful Thing | `https://www.oneusefulthing.org/feed` | ✅ (déjà au socle) |
-| Finxter | `https://blog.finxter.com/feed/` | ✅ |
-| Lex Fridman | `https://lexfridman.com/feed/podcast/` | ⚠️ 502 items / 2 Mo — **arbitrer** : pertinence commerciale faible, coût de parsing élevé |
-| a16z · Superhuman · The Batch · Ben's Bites · Not A Bot · The Neuron | — | ❌ |
-| MIT Tech Review · The Information · FT | — | ❌ (`unsupported-html`, `auth-required`) |
+Trois URL ont été corrigées par rapport au référentiel Folio d'origine, sinon le corpus arrivait
+mort : Microsoft (`/ai/feed/` répond `410` → `blogs.microsoft.com/feed/`, ⚠️ périmètre élargi à tout
+Microsoft), NVIDIA (`tag/artificial-intelligence` répond 200 avec **0 item** →
+`category/generative-ai/feed/`), DeepMind (`discover/blog/rss.xml` → `blog/rss.xml`).
 
-Import en `draft` → contrôle dans `SourceCorpusDetailView` → activation avec **`enabled_for_news = false`**.
+Lex Fridman est **écarté volontairement** malgré un flux vivant : 502 items pour 2 Mo par requête,
+format podcast, faible densité d'angle commercial. Décision réversible dans le fichier.
 
-### 5.3 Corpus de presse sectorielle (facultatif, même lot)
+Toute source écartée porte un `exclusionReason` daté — le parseur **refuse** une exclusion sans
+motif, et refuse aussi un motif sur une source active. Une source non éligible ne peut pas être
+réactivée depuis le wizard : cela se fait dans le JSON, donc en revue de code.
 
-Trois sources par secteur suffisent, saisies via `ManualSourceForm` sans `collection_url`
-(collecte `site:` — validée par la sonde sur ces domaines francophones) :
+Après import, `folio-ai-tech` apporte **7 sources nouvelles** et `folio-ai-business` **3** : OpenAI
+et One Useful Thing sont déjà au socle et seront réutilisées, pas dupliquées (dédoublonnage par
+hostname, `www.` retiré).
 
-- **Électronique** : `lembarque.com` (J-1), `vipress.net` (J-1), `usinenouvelle.com` (J-0).
-- **Voyage & Séjours** : `tourmag.com` (J-1), `seto.to` (J-5), `adn-tourisme.fr` (J-12).
-- À écarter : `echotouristique.com` (0 item indexé), `filiere-electronique.fr` (J-136).
+### 5.3 Ce qui a été écrit
 
----
+| Fichier | Rôle |
+|---|---|
+| `domain/thematic-source-list.ts` | parseur `thematic-source-list-v1`, preview et payload — pur |
+| `domain/corpus-import-view.ts` | vue normalisée : les deux formats se projettent sur le même modèle d'écran |
+| `data/resolve-source-corpus-import.ts` | `resolveThematicSourceListImport()` ajouté ; l'index hostname est désormais partagé par les deux chemins |
+| `actions/ingest-source-corpus.ts` | 4ᵉ paramètre `scopeKind` (défaut `"sector"`), validations conditionnelles, `p_scope_kind` transmis |
+| `components/SourceCorpusImportWizard.tsx` | aiguillage par la clé `format`, présentation pilotée par la vue normalisée |
+| `corpora/folio-ai-*.sources.json` | les deux corpus |
+
+**Le point de convergence est le résolveur et la RPC, jamais le parseur** (ADR-0022 §3.9). Les deux
+contrats d'entrée restent étanches : aucun champ E3 n'est fabriqué pour un corpus thématique —
+`tier`, `primary_role` et `utility_score` partent à `NULL`, et les colonnes SQL sont nullables.
+
+⚠️ **Deux types partagés ont été élargis** : `SourceCorpusItemPreview.mappedKredoCategory` et
+`IngestSourceCorpusSourceItem.kredo_category` passent de `"vertical"` à `KredoSourceCategory`, et
+quatre champs du payload deviennent nullables. Le chemin E3 est inchangé : l'action exige toujours
+`kredo_category === 'vertical'` et les quatre champs de preuve **quand `scopeKind === 'sector'`**.
+
+### 5.4 Corpus de presse sectorielle — non fait, volontairement
+
+Rien n'a été saisi pour l'Électronique ni le Tourisme. Ce sont 3 sources par secteur à créer via
+`ManualSourceForm` (sans `collection_url`, collecte `site:`), et cela n'a d'intérêt qu'une fois le
+Lot 2 en place — sans quoi aucun digest ne peut les cibler. Domaines validés par la sonde :
+`lembarque.com`, `vipress.net`, `usinenouvelle.com` · `tourmag.com`, `seto.to`, `adn-tourisme.fr`.
+
 
 ## 6. Lot 2 — Lancement serveur + n8n (≈ 1 journée, **un seul réimport VPS**)
 

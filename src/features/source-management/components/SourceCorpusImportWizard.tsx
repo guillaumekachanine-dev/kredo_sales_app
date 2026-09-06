@@ -1,7 +1,14 @@
 "use client"
 
-// Lot 4 — wizard mono-session d'import d'un corpus E3 : Préparer -> Arbitrer ->
+// Lot 4 — wizard mono-session d'import de corpus : Préparer -> Arbitrer ->
 // Finaliser, calqué sur `CompetitiveMapImportWizard.tsx` (ADR-0019 Lot 5).
+//
+// Lot 1 ADR-0022 — DEUX formats d'entrée, un seul wizard :
+//   · livrable Master Study E3 (`parseSourceRegistryOutput`), rattaché à un segment
+//   · liste thématique (`parseThematicSourceList`), sans segment
+// Les deux se projettent sur `CorpusImportItemView` / `CorpusImportHeaderView` pour
+// l'affichage, et convergent plus bas sur le même résolveur et la même RPC. La
+// présentation ne connaît plus aucun des deux contrats.
 //
 // État interne du shell Source Management (`view.kind === "import"` dans
 // `SourceManagementDialogDesktop`/`SourceManagementDrawerMobile`) — jamais de
@@ -24,7 +31,27 @@ import {
   type SourceCorpusItemArbitration,
   type SourceCorpusItemPreview,
 } from "../domain/source-registry-output"
-import { resolveSourceCorpusImport, type SegmentResolution } from "../data/resolve-source-corpus-import"
+import {
+  buildIngestThematicCorpusPayload,
+  isThematicSourceListDocument,
+  parseThematicSourceList,
+  type ParsedThematicSourceList,
+  type ThematicSourceArbitration,
+  type ThematicSourceItemPreview,
+} from "../domain/thematic-source-list"
+import {
+  buildE3HeaderView,
+  buildE3ItemView,
+  buildThematicHeaderView,
+  buildThematicItemView,
+  type CorpusImportHeaderView,
+  type CorpusImportItemView,
+} from "../domain/corpus-import-view"
+import {
+  resolveSourceCorpusImport,
+  resolveThematicSourceListImport,
+  type SegmentResolution,
+} from "../data/resolve-source-corpus-import"
 import { ingestSourceCorpusAction, type IngestSourceCorpusResult } from "../actions/ingest-source-corpus"
 
 type WizardStep = "prepare" | "arbitrate" | "finalize"
@@ -93,11 +120,13 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
 
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [parsed, setParsed] = useState<ParsedSourceRegistry | null>(null)
+  const [parsedThematic, setParsedThematic] = useState<ParsedThematicSourceList | null>(null)
 
   const [resolving, setResolving] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
   const [segment, setSegment] = useState<SegmentResolution | null>(null)
   const [items, setItems] = useState<SourceCorpusItemPreview[]>([])
+  const [thematicItems, setThematicItems] = useState<ThematicSourceItemPreview[]>([])
   const [decisions, setDecisions] = useState<Record<string, ItemDecision>>({})
 
   const [submitting, setSubmitting] = useState(false)
@@ -113,10 +142,42 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
   async function handleAnalyze() {
     setParseErrors([])
     setParsed(null)
+    setParsedThematic(null)
     setResolveError(null)
     setSegment(null)
     setItems([])
+    setThematicItems([])
     setDecisions({})
+
+    // Aiguillage sur la seule clé `format` : un livrable E3 n'en porte pas.
+    if (isThematicSourceListDocument(rawText)) {
+      const thematicResult = parseThematicSourceList(rawText)
+      if (!thematicResult.ok) {
+        setParseErrors(thematicResult.errors.map((e) => `${e.path || "racine"} — ${e.message}`))
+        return
+      }
+      setParsedThematic(thematicResult.data)
+
+      setResolving(true)
+      try {
+        const res = await resolveThematicSourceListImport(thematicResult.data)
+        if (res.error) {
+          setResolveError(res.error)
+          return
+        }
+        setThematicItems(res.items)
+        setDecisions(
+          Object.fromEntries(
+            res.items.map((item) => [item.srcId, { isEnabled: item.isEnabledDefault, exclusionReason: null }]),
+          ),
+        )
+      } catch (err) {
+        setResolveError(err instanceof Error ? err.message : "Erreur de résolution du corpus thématique.")
+      } finally {
+        setResolving(false)
+      }
+      return
+    }
 
     const parseResult = parseSourceRegistryOutput(rawText)
     if (!parseResult.ok) {
@@ -147,9 +208,19 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
     }
   }
 
+  const itemViews: CorpusImportItemView[] = useMemo(
+    () => (parsedThematic ? thematicItems.map(buildThematicItemView) : items.map(buildE3ItemView)),
+    [parsedThematic, thematicItems, items],
+  )
+
+  const header: CorpusImportHeaderView | null = useMemo(
+    () => (parsedThematic ? buildThematicHeaderView(parsedThematic) : parsed ? buildE3HeaderView(parsed) : null),
+    [parsedThematic, parsed],
+  )
+
   function toggleItem(srcId: string, enabled: boolean) {
-    const item = items.find((i) => i.srcId === srcId)
-    if (item && !item.isCollectable) return
+    const view = itemViews.find((candidate) => candidate.srcId === srcId)
+    if (view && !view.isCollectable) return
     setDecisions((prev) => ({
       ...prev,
       [srcId]: {
@@ -164,54 +235,67 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
     let reused = 0
     let fresh = 0
     let active = 0
-    let newsEligible = 0
-    let accountWatchEligible = 0
-    let staticExcluded = 0
+    let excluded = 0
 
-    for (const item of items) {
+    for (const view of itemViews) {
       total += 1
-      if (item.existingMatch) reused += 1
-      else fresh += 1
+      if (view.isNewSource) fresh += 1
+      else reused += 1
 
-      const dec = decisions[item.srcId]
-      const isEnabled = dec ? dec.isEnabled : item.isEnabledDefault
+      const decision = decisions[view.srcId]
+      const isEnabled = decision ? decision.isEnabled : view.isEnabledDefault
 
-      if (isEnabled && item.isCollectable) {
-        active += 1
-        if (item.input.usageScopes.includes("news")) newsEligible += 1
-        if (item.input.usageScopes.includes("account_watch")) accountWatchEligible += 1
-      } else {
-        staticExcluded += 1
-      }
+      if (isEnabled && view.isCollectable) active += 1
+      else excluded += 1
     }
 
-    return { total, reused, fresh, active, newsEligible, accountWatchEligible, staticExcluded }
-  }, [items, decisions])
+    return { total, reused, fresh, active, excluded }
+  }, [itemViews, decisions])
 
   async function handleConfirm() {
-    if (!parsed) return
+    if (!parsed && !parsedThematic) return
     setSubmitting(true)
     setSubmitError(null)
 
     try {
       const docHash = await computeSha256Hex(rawText)
-      const arbitrations: SourceCorpusItemArbitration[] = items.map((item) => {
-        const dec = decisions[item.srcId]
-        return {
-          preview: item,
-          isEnabled: item.isCollectable ? (dec ? dec.isEnabled : item.isEnabledDefault) : false,
-          exclusionReason: dec?.exclusionReason ?? null,
-        }
-      })
+      let res: IngestSourceCorpusResult
 
-      const payload = buildIngestSourceCorpusPayload(parsed, arbitrations, {
-        sourceDocumentPath: fileName,
-        sourceDocumentHash: docHash,
-        sourceFileName: fileName,
-      })
-      const reason = `Import corpus E3 — ${parsed.meta.secteur ?? parsed.meta.segmentSlug} (v${parsed.meta.version}, ${parsed.meta.dateSnapshot})`
+      if (parsedThematic) {
+        const arbitrations: ThematicSourceArbitration[] = thematicItems.map((item) => {
+          const decision = decisions[item.srcId]
+          return {
+            preview: item,
+            isEnabled: item.newsEligible ? (decision ? decision.isEnabled : item.isEnabledDefault) : false,
+            exclusionReason: decision?.exclusionReason ?? null,
+          }
+        })
+        const payload = buildIngestThematicCorpusPayload(parsedThematic, arbitrations, {
+          sourceDocumentPath: fileName,
+          sourceDocumentHash: docHash,
+          sourceFileName: fileName,
+        })
+        const reason = `Import corpus thématique — ${parsedThematic.name} (v${parsedThematic.version}, ${parsedThematic.snapshotDate})`
+        // Aucun segment : la RPC refuse explicitement un corpus thématique qui en viserait un.
+        res = await ingestSourceCorpusAction(payload, null, reason, "thematic")
+      } else {
+        const arbitrations: SourceCorpusItemArbitration[] = items.map((item) => {
+          const decision = decisions[item.srcId]
+          return {
+            preview: item,
+            isEnabled: item.isCollectable ? (decision ? decision.isEnabled : item.isEnabledDefault) : false,
+            exclusionReason: decision?.exclusionReason ?? null,
+          }
+        })
+        const payload = buildIngestSourceCorpusPayload(parsed!, arbitrations, {
+          sourceDocumentPath: fileName,
+          sourceDocumentHash: docHash,
+          sourceFileName: fileName,
+        })
+        const reason = `Import corpus E3 — ${parsed!.meta.secteur ?? parsed!.meta.segmentSlug} (v${parsed!.meta.version}, ${parsed!.meta.dateSnapshot})`
+        res = await ingestSourceCorpusAction(payload, parsed!.meta.segmentSlug, reason, "sector")
+      }
 
-      const res = await ingestSourceCorpusAction(payload, parsed.meta.segmentSlug, reason)
       if (res.error) {
         setSubmitError(res.error)
       } else {
@@ -219,14 +303,15 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
         router.refresh()
       }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement du corpus.")
+      setSubmitError(err instanceof Error ? err.message : "Erreur lors de l'import du corpus.")
     } finally {
       setSubmitting(false)
     }
   }
 
-  const canContinueFromPrepare = Boolean(parsed) && segment?.ok === true && !resolving
-  const canConfirm = items.length > 0 && !submitting
+  const canContinueFromPrepare =
+    (parsedThematic ? thematicItems.length > 0 : Boolean(parsed) && segment?.ok === true) && !resolving
+  const canConfirm = itemViews.length > 0 && !submitting
 
   return (
     <div className="space-y-4">
@@ -321,34 +406,34 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
             <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-[10px] font-medium text-rose-300">{resolveError}</p>
           )}
 
-          {parsed && (
+          {header && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
               <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-white/70">Synthèse de l&apos;analyse E3</h4>
-                <Badge variant="neutral" size="sm" className="!rounded-md">Verdict : {parsed.meta.validationStatus}</Badge>
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-white/70">{header.analysisTitle}</h4>
+                <Badge variant="neutral" size="sm" className="!rounded-md">{header.verdictLabel}</Badge>
               </div>
 
               <div className={cn("grid gap-2 text-[10px]", isMobile ? "grid-cols-1" : "grid-cols-3")}>
                 <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/40">Segment / Secteur</p>
-                  <p className="mt-0.5 font-bold text-white">{parsed.meta.segmentSlug}</p>
-                  <p className="text-[9px] text-white/50 truncate">{parsed.meta.secteur ?? "—"}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/40">{header.targetLabel}</p>
+                  <p className="mt-0.5 font-bold text-white">{header.targetValue}</p>
+                  <p className="text-[9px] text-white/50 truncate">{header.corpusSlug}</p>
                 </div>
                 <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
                   <p className="text-[9px] font-bold uppercase tracking-wider text-white/40">Snapshot / Version</p>
-                  <p className="mt-0.5 font-bold text-white">v{parsed.meta.version}</p>
-                  <p className="text-[9px] text-white/50">{parsed.meta.dateSnapshot}</p>
+                  <p className="mt-0.5 font-bold text-white">v{header.version}</p>
+                  <p className="text-[9px] text-white/50">{header.snapshotDate}</p>
                 </div>
                 <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
                   <p className="text-[9px] font-bold uppercase tracking-wider text-white/40">Volumétrie Sources</p>
-                  <p className="mt-0.5 font-bold text-white">{parsed.sources.length} sources</p>
-                  <p className="text-[9px] text-white/50">{parsed.collectableCount} collectables · {parsed.staticCount} statiques</p>
+                  <p className="mt-0.5 font-bold text-white">{header.sourcesCount} sources</p>
+                  <p className="text-[9px] text-white/50">{header.collectableCount} collectables · {header.excludedCount} hors veille</p>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-2 text-[10px] text-white/50">
-                <span>Packs : minimal ({parsed.packMinimal.length}) · enrichi ({parsed.packEnrichi.length})</span>
-                {segment ? (
+                <span>{header.detailLine}</span>
+                {header.scopeKind === "sector" && segment ? (
                   segment.ok ? (
                     <span className="font-bold text-emerald-400">
                       ✓ Résolu : {segment.macroName ? `${segment.macroName} › ` : ""}{segment.sectorName}
@@ -356,6 +441,8 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
                   ) : (
                     <span className="font-bold text-rose-400">{segment.error}</span>
                   )
+                ) : header.scopeKind === "thematic" ? (
+                  <span className="font-bold text-emerald-400">Corpus thématique — aucun segment visé</span>
                 ) : null}
               </div>
 
@@ -374,26 +461,26 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
         <div className="space-y-3.5">
           <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-[11px] font-medium text-white">
             <span>
-              <strong>{items.length} source(s) résolue(s)</strong> — {summary.reused} réutilisée(s), {summary.fresh} nouvelle(s), {summary.staticExcluded} statique(s)
+              <strong>{itemViews.length} source(s) résolue(s)</strong> — {summary.reused} réutilisée(s), {summary.fresh} nouvelle(s), {summary.excluded} hors veille
             </span>
             <Badge variant="neutral" size="sm" className="!rounded-md">{summary.active} actives retenues</Badge>
           </div>
 
           <div className={cn(isMobile ? "space-y-2" : "overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]")}>
             {isMobile ? (
-              items.map((item) => <ArbitrationCard key={item.srcId} item={item} decision={decisions[item.srcId]} onToggle={toggleItem} />)
+              itemViews.map((item) => <ArbitrationCard key={item.srcId} item={item} decision={decisions[item.srcId]} onToggle={toggleItem} />)
             ) : (
               <table className="w-full text-left text-[11px]">
                 <thead className="bg-white/5 text-[9px] font-bold uppercase tracking-wider text-white/70 border-b border-white/5">
                   <tr>
                     <th className="px-3.5 py-2.5">Source</th>
-                    <th className="px-3.5 py-2.5">Tier / Pack</th>
-                    <th className="px-3.5 py-2.5">Temporalité / Usages</th>
+                    <th className="px-3.5 py-2.5">Qualification</th>
+                    <th className="px-3.5 py-2.5">Collecte</th>
                     <th className="px-3.5 py-2.5 text-right">Statut</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {items.map((item) => (
+                  {itemViews.map((item) => (
                     <ArbitrationRow key={item.srcId} item={item} decision={decisions[item.srcId]} onToggle={toggleItem} />
                   ))}
                 </tbody>
@@ -413,7 +500,7 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
       )}
 
       {/* ── STEP 3: FINALISER ─────────────────────────────────────── */}
-      {step === "finalize" && parsed && !result && (
+      {step === "finalize" && header && !result && (
         <div className="space-y-4">
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
@@ -424,9 +511,11 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
             <div className={cn("grid gap-2.5 text-[11px]", isMobile ? "grid-cols-1" : "grid-cols-2")}>
               <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Identifiants</p>
-                <p className="text-white">Corpus : <strong>sources-{parsed.meta.segmentSlug}</strong></p>
-                <p className="text-white">Segment : <strong>{segment?.ok ? segment.sectorName : parsed.meta.segmentSlug}</strong></p>
-                <p className="text-white">Version : <strong>{parsed.meta.version}</strong></p>
+                <p className="text-white">Corpus : <strong>{header.corpusSlug}</strong></p>
+                <p className="text-white">
+                  {header.targetLabel} : <strong>{segment?.ok ? segment.sectorName : header.targetValue}</strong>
+                </p>
+                <p className="text-white">Version : <strong>{header.version}</strong></p>
               </div>
 
               <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-1">
@@ -438,9 +527,13 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
             </div>
 
             <div className="rounded-lg border border-white/5 bg-white/[0.04] p-3 text-[11px] text-white/80 flex flex-wrap justify-between gap-2">
-              <span>Éligibles actualités : <strong>{summary.newsEligible}</strong></span>
-              <span>Éligibles veille comptes : <strong>{summary.accountWatchEligible}</strong></span>
-              <span>Statiques exclues : <strong>{summary.staticExcluded}</strong></span>
+              <span>Collectables : <strong>{header.collectableCount}</strong></span>
+              <span>Hors veille : <strong>{summary.excluded}</strong></span>
+              <span>
+                {header.scopeKind === "thematic"
+                  ? "Corpus thématique : jamais ouvert à la veille compte"
+                  : `Statiques du livrable : ${header.excludedCount}`}
+              </span>
             </div>
 
             <p className="text-[10px] text-white/50 italic">
@@ -475,29 +568,27 @@ export function SourceCorpusImportWizard({ variant, onClose }: SourceCorpusImpor
   )
 }
 
-function ArbitrationRow({ item, decision, onToggle }: { item: SourceCorpusItemPreview; decision: ItemDecision | undefined; onToggle: (srcId: string, enabled: boolean) => void }) {
+function ArbitrationRow({ item, decision, onToggle }: { item: CorpusImportItemView; decision: ItemDecision | undefined; onToggle: (srcId: string, enabled: boolean) => void }) {
   const enabled = decision?.isEnabled ?? item.isEnabledDefault
   return (
     <tr className="hover:bg-white/[0.04] transition-colors align-middle">
       <td className="px-3.5 py-2">
-        <p className="font-bold text-white text-xs">{item.mappedPublisher ?? item.srcId}</p>
-        <p className="text-[10px] text-white/50">{item.srcId} · {item.mappedSearchDomain}</p>
+        <p className="font-bold text-white text-xs">{item.title}</p>
+        <p className="text-[10px] text-white/50">{item.subtitle}</p>
       </td>
       <td className="px-3.5 py-2">
         <div className="flex gap-1">
-          <Badge variant="neutral" size="sm" className="!rounded-md">T{item.input.tier}</Badge>
-          <Badge variant="neutral" size="sm" className="!rounded-md">{item.input.pack}</Badge>
+          {item.badges.map((badge) => (
+            <Badge key={badge} variant="neutral" size="sm" className="!rounded-md">{badge}</Badge>
+          ))}
         </div>
       </td>
-      <td className="px-3.5 py-2 text-white/80 text-[11px]">
-        {item.input.contentTemporality}
-        <span className="ml-2 text-[10px] text-white/50">({item.input.usageScopes.join(", ") || "—"})</span>
-      </td>
+      <td className="px-3.5 py-2 text-white/80 text-[11px]">{item.meta}</td>
       <td className="px-3.5 py-2 text-right">
         {item.isCollectable ? (
           <div className="inline-flex items-center gap-2">
             <span className="text-[10px] font-bold text-white">{enabled ? "Actif" : "Exclu"}</span>
-            <DarkSwitch label={item.mappedPublisher ?? item.srcId} checked={enabled} onChange={(checked) => onToggle(item.srcId, checked)} />
+            <DarkSwitch label={item.title} checked={enabled} onChange={(checked) => onToggle(item.srcId, checked)} />
           </div>
         ) : (
           <StatusPill variant="neutral" label="Hors veille" className="!rounded-md" />
@@ -507,28 +598,29 @@ function ArbitrationRow({ item, decision, onToggle }: { item: SourceCorpusItemPr
   )
 }
 
-function ArbitrationCard({ item, decision, onToggle }: { item: SourceCorpusItemPreview; decision: ItemDecision | undefined; onToggle: (srcId: string, enabled: boolean) => void }) {
+function ArbitrationCard({ item, decision, onToggle }: { item: CorpusImportItemView; decision: ItemDecision | undefined; onToggle: (srcId: string, enabled: boolean) => void }) {
   const enabled = decision?.isEnabled ?? item.isEnabledDefault
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-bold text-white">{item.mappedPublisher ?? item.srcId}</p>
-          <p className="text-[10px] text-white/50">{item.srcId} · {item.mappedSearchDomain}</p>
+          <p className="truncate font-bold text-white">{item.title}</p>
+          <p className="text-[10px] text-white/50">{item.subtitle}</p>
         </div>
         {item.isCollectable ? (
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-[10px] font-bold text-white">{enabled ? "Actif" : "Exclu"}</span>
-            <DarkSwitch label={item.mappedPublisher ?? item.srcId} checked={enabled} onChange={(checked) => onToggle(item.srcId, checked)} />
+            <DarkSwitch label={item.title} checked={enabled} onChange={(checked) => onToggle(item.srcId, checked)} />
           </div>
         ) : (
           <StatusPill variant="neutral" label="Hors veille" className="!rounded-md" />
         )}
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/50">
-        <Badge variant="neutral" size="sm" className="!rounded-md">T{item.input.tier}</Badge>
-        <Badge variant="neutral" size="sm" className="!rounded-md">{item.input.pack}</Badge>
-        <span>{item.input.contentTemporality}</span>
+        {item.badges.map((badge) => (
+          <Badge key={badge} variant="neutral" size="sm" className="!rounded-md">{badge}</Badge>
+        ))}
+        <span className="truncate">{item.meta}</span>
       </div>
     </div>
   )

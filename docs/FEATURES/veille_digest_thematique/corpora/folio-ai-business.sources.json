@@ -1,0 +1,118 @@
+{
+  "format": "thematic-source-list-v1",
+  "name": "Folio AI Business",
+  "slug": "folio-ai-business",
+  "version": "1.0",
+  "snapshot_date": "2026-09-06",
+  "default_kredo_category": "strategie",
+  "sources": [
+    {
+      "name": "Sequoia Capital — Insights",
+      "rssUrl": "https://www.sequoiacap.com/feed",
+      "homepage": "https://www.sequoiacap.com",
+      "kredoCategory": "strategie",
+      "newsEligible": true
+    },
+    {
+      "name": "WIRED — Artificial Intelligence",
+      "rssUrl": "https://www.wired.com/feed/tag/ai/latest/rss",
+      "homepage": "https://www.wired.com/tag/artificial-intelligence/",
+      "kredoCategory": "strategie",
+      "newsEligible": true
+    },
+    {
+      "name": "One Useful Thing — Ethan Mollick",
+      "rssUrl": "https://www.oneusefulthing.org/feed",
+      "homepage": "https://www.oneusefulthing.org/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": true
+    },
+    {
+      "name": "Finxter — Daily AI Tips",
+      "rssUrl": "https://blog.finxter.com/feed/",
+      "homepage": "https://blog.finxter.com/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": true
+    },
+    {
+      "name": "Lex Fridman Podcast",
+      "rssUrl": null,
+      "homepage": "https://lexfridman.com/podcast/",
+      "kredoCategory": "strategie",
+      "newsEligible": false,
+      "exclusionReason": "Flux vivant mais écarté : 502 items pour 2 Mo par requête, format podcast, faible densité d'angle commercial pour un digest ESN. À réactiver dans le wizard si le besoin apparaît."
+    },
+    {
+      "name": "Andreessen Horowitz (a16z) — Insights",
+      "rssUrl": null,
+      "homepage": "https://a16z.com",
+      "kredoCategory": "strategie",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : flux 404 (/feed et /feed/) ; repli site: Google News FR = 0 item."
+    },
+    {
+      "name": "The Batch — DeepLearning.AI",
+      "rssUrl": null,
+      "homepage": "https://www.deeplearning.ai/the-batch/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : flux 404 ; repli site: Google News FR = 1 item de 2024."
+    },
+    {
+      "name": "The Neuron",
+      "rssUrl": null,
+      "homepage": "https://www.theneurondaily.com/",
+      "kredoCategory": "frontier",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : /rss.xml redirige vers une 404 HTML ; repli site: Google News FR = 0 item. Domaine distinct de la source socle « The Neuron » (theneuron.ai) : cette entrée ne la déduplique pas."
+    },
+    {
+      "name": "Superhuman AI — Zain Kahn",
+      "rssUrl": null,
+      "homepage": "https://www.superhuman.ai/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : flux 404 ; repli site: Google News FR = 0 item."
+    },
+    {
+      "name": "Ben's Bites",
+      "rssUrl": null,
+      "homepage": "https://bensbites.co/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : flux 404 ; repli site: Google News FR = 0 item."
+    },
+    {
+      "name": "Not A Bot",
+      "rssUrl": null,
+      "homepage": "https://www.notabot.tech/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : domaine injoignable (échec de connexion) ; repli site: Google News FR = 0 item."
+    },
+    {
+      "name": "MIT Technology Review — Artificial Intelligence",
+      "rssUrl": null,
+      "homepage": "https://www.technologyreview.com/topic/artificial-intelligence/",
+      "kredoCategory": "strategie",
+      "newsEligible": false,
+      "exclusionReason": "Déclarée non ingérée par le référentiel Folio : unsupported-html."
+    },
+    {
+      "name": "The Information — Subscriber Feed",
+      "rssUrl": null,
+      "homepage": "https://www.theinformation.com/",
+      "kredoCategory": "strategie",
+      "newsEligible": false,
+      "exclusionReason": "Déclarée non ingérée par le référentiel Folio : auth-required."
+    },
+    {
+      "name": "Financial Times — Artificial Intelligence",
+      "rssUrl": null,
+      "homepage": "https://www.ft.com/artificial-intelligence",
+      "kredoCategory": "strategie",
+      "newsEligible": false,
+      "exclusionReason": "Déclarée non ingérée par le référentiel Folio : unsupported-html."
+    }
+  ]
+}

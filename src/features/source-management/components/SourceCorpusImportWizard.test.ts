@@ -37,8 +37,25 @@ describe("SourceCorpusImportWizard — structure (Lot 4 §14-§17)", () => {
     expect(actionCallIndex).toBeGreaterThan(confirmIndex)
   })
 
-  it("never allows toggling a non-collectable (static) item on", () => {
-    expect(source).toContain("if (item && !item.isCollectable) return")
+  it("never allows toggling a non-collectable item on", () => {
+    // Lot 1 ADR-0022 : la garde porte desormais sur la VUE normalisee, partagee
+    // par les deux formats d'entree — l'invariant, lui, est inchange.
+    expect(source).toContain("if (view && !view.isCollectable) return")
+  })
+
+  it("aiguille les deux formats d'entree sans jamais confondre leurs contrats (Lot 1 ADR-0022)", () => {
+    expect(source).toContain("isThematicSourceListDocument(rawText)")
+    expect(source).toContain("parseThematicSourceList(")
+    expect(source).toContain("resolveThematicSourceListImport(")
+    // Un corpus thematique ne vise aucun segment : il part avec `null`.
+    expect(source).toContain('ingestSourceCorpusAction(payload, null, reason, "thematic")')
+    expect(source).toContain('reason, "sector")')
+  })
+
+  it("n'affiche plus aucun champ propre a un seul des deux contrats", () => {
+    // La presentation ne lit que la vue normalisee : plus de `parsed.meta.*` a l'ecran.
+    expect(source).not.toContain("parsed.meta.segmentSlug}</strong>")
+    expect(source).not.toContain("{parsed.meta.validationStatus}")
   })
 
   it("computes the document hash client-side via Web Crypto (no new dependency)", () => {

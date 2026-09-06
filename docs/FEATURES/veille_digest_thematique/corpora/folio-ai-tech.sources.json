@@ -1,0 +1,90 @@
+{
+  "format": "thematic-source-list-v1",
+  "name": "Folio AI Tech",
+  "slug": "folio-ai-tech",
+  "version": "1.0",
+  "snapshot_date": "2026-09-06",
+  "default_kredo_category": "frontier",
+  "sources": [
+    {
+      "name": "OpenAI — News",
+      "rssUrl": "https://openai.com/news/rss.xml",
+      "homepage": "https://openai.com/news/",
+      "kredoCategory": "frontier",
+      "newsEligible": true
+    },
+    {
+      "name": "Google — AI",
+      "rssUrl": "https://blog.google/technology/ai/rss/",
+      "homepage": "https://blog.google/technology/ai/",
+      "kredoCategory": "frontier",
+      "newsEligible": true
+    },
+    {
+      "name": "Google DeepMind — Blog",
+      "rssUrl": "https://deepmind.google/blog/rss.xml",
+      "homepage": "https://deepmind.google/blog/",
+      "kredoCategory": "frontier",
+      "newsEligible": true
+    },
+    {
+      "name": "Hugging Face — Blog",
+      "rssUrl": "https://huggingface.co/blog/feed.xml",
+      "homepage": "https://huggingface.co/blog",
+      "kredoCategory": "frontier",
+      "newsEligible": true
+    },
+    {
+      "name": "AWS — Machine Learning Blog",
+      "rssUrl": "https://aws.amazon.com/blogs/machine-learning/feed/",
+      "homepage": "https://aws.amazon.com/blogs/machine-learning/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": true
+    },
+    {
+      "name": "Microsoft — Blogs",
+      "rssUrl": "https://blogs.microsoft.com/feed/",
+      "homepage": "https://blogs.microsoft.com/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": true
+    },
+    {
+      "name": "NVIDIA — Generative AI",
+      "rssUrl": "https://developer.nvidia.com/blog/category/generative-ai/feed/",
+      "homepage": "https://developer.nvidia.com/blog/",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": true
+    },
+    {
+      "name": "MIT News — Artificial Intelligence",
+      "rssUrl": "https://news.mit.edu/rss/topic/artificial-intelligence2",
+      "homepage": "https://news.mit.edu/topic/artificial-intelligence2",
+      "kredoCategory": "frontier",
+      "newsEligible": true
+    },
+    {
+      "name": "Anthropic — News",
+      "rssUrl": null,
+      "homepage": "https://www.anthropic.com/news",
+      "kredoCategory": "frontier",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : flux 404 (y compris /rss.xml) ; repli site: Google News FR = 3 items vieux de 53 jours. Réactiver dès qu'une URL de flux valide existe."
+    },
+    {
+      "name": "IBM Think — Artificial Intelligence",
+      "rssUrl": null,
+      "homepage": "https://www.ibm.com/think/topics/artificial-intelligence",
+      "kredoCategory": "ia-appliquee",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : l'URL de flux redirige vers une page HTML (/think/topics), pas de flux exploitable."
+    },
+    {
+      "name": "Meta AI — Blog",
+      "rssUrl": null,
+      "homepage": "https://ai.meta.com/blog/",
+      "kredoCategory": "frontier",
+      "newsEligible": false,
+      "exclusionReason": "Sonde 2026-09-06 : flux 400 ; repli site: Google News FR = 3 items vieux de 157 jours."
+    }
+  ]
+}
