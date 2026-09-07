@@ -214,7 +214,7 @@ export function AppDrawer({
   const headerDescription = description ?? subtitle
   const headerDescriptionId = headerDescription ? descriptionId : undefined
   const titleContent = React.isValidElement(title) ? (
-    <div id={titleId} className="min-w-0 max-w-full overflow-hidden">
+    <div id={titleId} className="min-w-0 max-w-full flex-1 overflow-hidden">
       {title}
     </div>
   ) : (

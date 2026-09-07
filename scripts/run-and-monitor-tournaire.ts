@@ -32,7 +32,7 @@ async function main() {
 
   console.log("Suivi en temps réel de l'exécution sur Supabase...")
   const startTime = Date.now()
-  while (Date.now() - startTime < 180000) {
+  while (Date.now() - startTime < 480000) {
     await new Promise((r) => setTimeout(r, 4000))
     const { data: run } = await supabase
       .from("ai_intelligence_runs")

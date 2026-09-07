@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, type ReactNode } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { formatEuro, formatPct } from "@/lib/formatters"
 import type { MissionSummary } from "@/components/missions/mission-detail/mission-detail-types"
@@ -21,11 +22,31 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { cn } from "@/lib/utils"
+import { getPracticeByName } from "@/lib/config/practices"
 import { addMissionContact, removeMissionContact } from "@/app/(app)/missions/_actions/mission-contacts"
 import {
   MISSION_CONTACT_ROLES,
   type MissionContactRole,
 } from "./mission-contact-constants"
+
+const FEMININE_FIRST_NAMES = new Set([
+  "aicha", "alice", "amelie", "camille", "chloe", "clara", "elodie", "emma", "ines",
+  "julia", "julie", "lea", "marie", "nora", "sarah", "sofia", "sophie",
+])
+
+function collaboratorAvatarPath(fullName: string): string {
+  const firstName = fullName
+    .trim()
+    .split(/\s+/)[0]
+    ?.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("fr-FR")
+
+  if (firstName && FEMININE_FIRST_NAMES.has(firstName)) {
+    return "/avatars/collab_femme.png"
+  }
+  return "/avatars/collab_homme.png"
+}
 
 function initials(name: string): string {
   return (
@@ -33,7 +54,7 @@ function initials(name: string): string {
       .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase() ?? "")
+      .map((word) => word[0]?.toUpperCase() ?? "")
       .join("") || "?"
   )
 }
@@ -172,6 +193,8 @@ function CoordinateCopyModal({
 export function MissionDetailsRail({ detail }: { detail: EngagementMissionDetail }) {
   const router = useRouter()
   const { mission, collaborator } = detail
+  const collaboratorPractice = getPracticeByName(collaborator?.practice)
+  const collaboratorAvatar = collaborator ? collaboratorAvatarPath(collaborator.fullName) : null
 
   // Contacts state
   const [prevDetail, setPrevDetail] = useState(detail)
@@ -292,8 +315,23 @@ export function MissionDetailsRail({ detail }: { detail: EngagementMissionDetail
             {collaborator ? (
               <div>
                 <div className="flex flex-col items-center text-center">
-                  <span className="flex size-14 items-center justify-center rounded-full bg-primary/[0.09] font-heading text-lg font-bold text-primary">
-                    {initials(collaborator.fullName)}
+                  <span
+                    className="relative flex size-20 items-end justify-center overflow-hidden rounded-full"
+                    style={{
+                      backgroundColor: collaboratorPractice
+                        ? `color-mix(in srgb, ${collaboratorPractice.color} 20%, var(--color-surface))`
+                        : "color-mix(in srgb, var(--color-primary) 20%, var(--color-surface))",
+                    }}
+                  >
+                    {collaboratorAvatar ? (
+                      <Image
+                        src={collaboratorAvatar}
+                        alt=""
+                        width={160}
+                        height={160}
+                        className="size-full object-cover"
+                      />
+                    ) : null}
                   </span>
                   <p className="mt-2.5 text-sm font-bold text-heading">{collaborator.fullName}</p>
                   <p className="mt-0.5 text-xs text-body">

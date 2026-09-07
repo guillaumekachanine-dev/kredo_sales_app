@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useEffectEvent, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { Button } from '@/components/ui/Button'
@@ -68,11 +69,22 @@ function resolveFullName(data: DrawerConsultantData): string {
   return `${fn} ${ln}`.trim() || 'Consultant'
 }
 
-function getInitials(name: string): string {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+const FEMININE_FIRST_NAMES = new Set([
+  'aicha', 'alice', 'amelie', 'camille', 'chloe', 'clara', 'elodie', 'emma', 'ines',
+  'julia', 'julie', 'lea', 'marie', 'nora', 'sarah', 'sofia', 'sophie',
+])
+
+function collaboratorAvatarPath(fullName: string): string {
+  const firstName = fullName
+    .trim()
+    .split(/\s+/)[0]
+    ?.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('fr-FR')
+
+  return firstName && FEMININE_FIRST_NAMES.has(firstName)
+    ? '/avatars/collab_femme.png'
+    : '/avatars/collab_homme.png'
 }
 
 const ABSENCE_LABELS: Record<string, string> = {
@@ -737,7 +749,8 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
   }, [open, collaboratorId])
 
   const name = drawerData ? resolveFullName(drawerData) : '…'
-  const initials = getInitials(name)
+  const practiceConfig = getPracticeByName(drawerData?.practice)
+  const avatarPath = collaboratorAvatarPath(name)
   const activeMissions = drawerData?.missions.filter((mission) => mission.status === 'active') ?? []
   const reliableMission = activeMissions.length === 1 ? activeMissions[0] : null
   const consultantContextLines = drawerData
@@ -756,17 +769,23 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
         open={open}
         onOpenChange={onOpenChange}
         title={
-          <div className="flex flex-col items-center text-center pt-2 pb-1 w-full">
+          <div className="flex w-full flex-col items-center text-center pt-2 pb-1">
             {/* Grand cercle d'avatar centré */}
             <div
-              className="flex size-16 shrink-0 items-center justify-center rounded-full text-xl font-extrabold select-none border mb-2"
+              className="relative mb-2 flex size-20 shrink-0 items-end justify-center overflow-hidden rounded-full"
               style={{
-                background: 'var(--color-canvas)',
-                borderColor: 'var(--color-border)',
-                color: 'var(--color-heading)',
+                background: practiceConfig
+                  ? `color-mix(in srgb, ${practiceConfig.color} 20%, var(--color-surface))`
+                  : 'color-mix(in srgb, var(--color-primary) 20%, var(--color-surface))',
               }}
             >
-              {initials}
+              <Image
+                src={avatarPath}
+                alt=""
+                width={160}
+                height={160}
+                className="size-full object-cover"
+              />
             </div>
 
             {/* Identité centrée : Nom + Poste */}
