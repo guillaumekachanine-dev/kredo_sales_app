@@ -70,8 +70,8 @@ QA minimale :
 | Lot | Objet | Statut | Branche / note |
 |---|---|---|---|
 | **0A** | Audit complet code + DB | ✅ done | audit du 2026-09-07 |
-| **0B** | Rebaseline documentaire V2 | 🟡 in progress | `feat/shell-0018-00-rebaseline` |
-| **1.0** | Contrat client-safe de `SectionRail` | ⬜ todo | après clôture 0B |
+| **0B** | Rebaseline documentaire V2 | ✅ done | `feat/shell-0018-00-rebaseline` |
+| **1.0** | Contrat client-safe de `SectionRail` | ⬜ next | prochaine branche de code |
 | **1.1** | Primitive présentationnelle `SectionRail` | ⬜ todo | aucun métier |
 | **1.2** | Tests unitaires de la primitive | ⬜ todo | structure / accessibilité / états |
 | **2.1** | Migration Account Intelligence | ⬜ todo | Golden Master |
@@ -129,7 +129,7 @@ Knowledge Hub n'est plus exempté du châssis commun : seule sa navigation méti
 - la section Modules n'est pas ancrée en bas partout ;
 - certains headers affichent encore un titre générique plutôt que le nom exact de l'onglet actif.
 
-## 7. État du Lot 0B
+## 7. Clôture du Lot 0B
 
 Fichiers créés :
 
@@ -138,18 +138,22 @@ Fichiers créés :
 - `docs/navigation_architecture/SHELL-0018/01-ADR-0018-SHELL-NAVIGATION-V2.md`
 - `docs/navigation_architecture/SHELL-0018/02-SECONDARY-RAIL-STANDARD.md`
 - `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`
-- `docs/navigation_architecture/SHELL-0018/04-CURRENT-NAVIGATION-INVENTORY.md` à créer dans ce lot.
+- `docs/navigation_architecture/SHELL-0018/04-CURRENT-NAVIGATION-INVENTORY.md`
 
-Aucun fichier applicatif modifié.  
-Aucune migration Supabase.  
-Aucun changement n8n.
+Vérifications documentaires :
 
-## 8. Condition de clôture Lot 0B
+- les Modules du rail sont définis uniquement comme contextuels ;
+- les actions transverses sont explicitement hors rail ;
+- la règle du chapeau navy centré est présente dans README + ADR + standard ;
+- la règle du nom d'onglet dans le header principal est présente dans README + ADR + standard ;
+- le Mobile est identifié comme dépendance protégée ;
+- aucune migration Supabase n'est demandée ;
+- aucun fichier applicatif n'a été modifié.
 
-Le Lot 0B peut passer à `done` lorsque :
+**Verdict Lot 0B : `done`.**
 
-- les cinq documents canoniques sont présents ;
-- l'inventaire des surfaces est complet ;
-- aucun nouveau document ne présente d'action transverse comme module de rail ;
-- les directives chapeau/header sont présentes dans README + ADR + standard ;
-- le prochain lot est clairement identifié comme `1.0`.
+## 8. Prochain lot
+
+**Lot 1.0 — contrat client-safe de `SectionRail`.**
+
+Condition d'entrée : auditer les primitives UI communes, les conventions `cn`, les patterns de Link/button et les tests de composants existants avant de figer le contrat TypeScript.
