@@ -187,8 +187,12 @@ return [{ json: { ...data, discovery } }];'''
 
 
 FETCH = r'''// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.
+// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.
 // Helper déterministe compatible Code node sans dépendance au constructeur global new URL()
-const data = $('V4 Normalize SerpAPI Discovery').first().json;
+const rawInput = ($input.first() && $input.first().json) || {};
+let namedInput = {};
+try { namedInput = $('V4 Normalize SerpAPI Discovery').first().json || {}; } catch (_) {}
+const data = { ...namedInput, ...rawInput };
 
 function parseUrl(value) {
   if (!value || typeof value !== 'string') {
@@ -434,7 +438,10 @@ return [{ json: {
 } }];'''
 
 
-CATALOGUE = r'''const data = $('V4 Fetch Selected Pages').first().json;
+CATALOGUE = r'''const rawInput = ($input.first() && $input.first().json) || {};
+let namedInput = {};
+try { namedInput = $('V4 Fetch Selected Pages').first().json || {}; } catch (_) {}
+const data = { ...namedInput, ...rawInput };
 const now = new Date().toISOString();
 function slug(value) { return String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80); }
 function extractHost(value) {
@@ -448,16 +455,37 @@ function sourceType(url) {
   if (/\.gouv\.fr$|insee\.fr$|europa\.eu$/.test(h)) return 'regulatory_filing';
   return 'news_media';
 }
-const registryUrl = 'https://annuaire-entreprises.data.gouv.fr/entreprise/' + data.entityResolution.siren;
+const siren = (data.entityResolution && data.entityResolution.siren) || '';
+const legalName = (data.entityResolution && data.entityResolution.legal_name) || (data.canonical && data.canonical.name) || 'Entreprise';
+const registryUrl = 'https://annuaire-entreprises.data.gouv.fr/entreprise/' + siren;
+const fetchedPages = Array.isArray(data.fetchedPages) ? data.fetchedPages : [];
+const pageEvidence = fetchedPages.map((p) => ({
+  kind: 'page',
+  url: p.link,
+  label: p.title || p.link,
+  sourceType: sourceType(p.link),
+  consultedAt: p.consulted_at || now,
+  excerpt: (p.text || '').slice(0, 500),
+  text: p.text || '',
+}));
 const evidence = [{
-  kind: 'registry', url: registryUrl, label: 'Annuaire des entreprises — ' + data.entityResolution.legal_name,
-  sourceType: 'regulatory_filing', consultedAt: now,
-  excerpt: [data.entityResolution.siren, data.entityResolution.naf_code, data.entityResolution.hq_commune].filter(Boolean).join(' · '),
-}].concat(data.fetchedPages.map((p) => ({ kind: 'page', url: p.link, label: p.title || p.link, sourceType: sourceType(p.link), consultedAt: p.consulted_at, excerpt: p.text.slice(0, 500), text: p.text })));
+  kind: 'registry',
+  url: registryUrl,
+  label: 'Annuaire des entreprises — ' + legalName,
+  sourceType: 'regulatory_filing',
+  consultedAt: now,
+  excerpt: [(data.entityResolution && data.entityResolution.siren), (data.entityResolution && data.entityResolution.naf_code), (data.entityResolution && data.entityResolution.hq_commune)].filter(Boolean).join(' · '),
+}].concat(pageEvidence);
 const sourcesPayload = evidence.map((e) => ({
-  workspace_id: data.workspaceId, source_type: e.sourceType, source_name: e.label,
-  source_url: e.url, canonical_url: e.url, published_at: null, collected_at: e.consultedAt,
-  source_key: 'account_understanding:v4:' + data.companyId + ':' + slug(e.url), evidence_excerpt: e.excerpt,
+  workspace_id: data.workspaceId,
+  source_type: e.sourceType,
+  source_name: e.label,
+  source_url: e.url,
+  canonical_url: e.url,
+  published_at: null,
+  collected_at: e.consultedAt,
+  source_key: 'account_understanding:v4:' + data.companyId + ':' + slug(e.url),
+  evidence_excerpt: e.excerpt,
   reliability_score: e.sourceType === 'official_site' ? 0.8 : (e.sourceType === 'regulatory_filing' ? 0.95 : 0.7),
   collection_method: e.kind === 'registry' ? 'api' : 'scrape',
   technical_metadata: { collector: 'intel-030-account-knowledge-v4', runId: data.runId, kind: e.kind },
@@ -599,10 +627,12 @@ const allowedSources = new Set(data.sourceCatalogue.map((s) => s.id));
 const dossierLower = data.dossierText.toLowerCase();
 const figurePattern = /(?:\b\d{4,}\b|\d[\d\s.,]*\s*(?:%|€|m\s*€|md\s*€))/giu;
 const qa = [];
-if (data.selectedPages && data.selectedPages.length > 0 && (!data.fetchedPages || data.fetchedPages.length === 0)) {
-  qa.push({ check: 'external_research', passed: false, detail: 'external_research_degraded : toutes les pages sélectionnées (' + data.selectedPages.length + ') ont échoué au fetch' });
-} else if (data.fetchedPages && data.fetchedPages.length > 0) {
-  qa.push({ check: 'external_research', passed: true, detail: data.fetchedPages.length + ' page(s) externe(s) consultée(s)' });
+const fetchedPages = Array.isArray(data.fetchedPages) ? data.fetchedPages : [];
+const selectedPages = Array.isArray(data.selectedPages) ? data.selectedPages : [];
+if (selectedPages.length > 0 && fetchedPages.length === 0) {
+  qa.push({ check: 'external_research', passed: false, detail: 'external_research_degraded : toutes les pages sélectionnées (' + selectedPages.length + ') ont échoué au fetch' });
+} else if (fetchedPages.length > 0) {
+  qa.push({ check: 'external_research', passed: true, detail: fetchedPages.length + ' page(s) externe(s) consultée(s)' });
 }
 function cleanText(value) { return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''; }
 function guardFigures(text, label) {
@@ -645,7 +675,7 @@ for (const section of sections) for (const statement of section.statements) coun
 const artifact = {
   schema_version: 4, entity_resolution: data.entityResolution, sections, sources: data.sourceCatalogue,
   knowledge_gaps: Array.from(gapsByKey, ([section_key, reason]) => ({ section_key, reason })),
-  coverage: { sections_written: sections.filter((s) => s.narrative.length || s.statements.length).length, statements_by_qualification: counts, external_pages_fetched: data.fetchedPages.length },
+  coverage: { sections_written: sections.filter((s) => s.narrative.length || s.statements.length).length, statements_by_qualification: counts, external_pages_fetched: fetchedPages.length },
   generated_at: new Date().toISOString(),
 };
 return [{ json: { ...data, accountKnowledge: artifact, qaFlags: qa, llmUsage: { model: response.model || 'claude-sonnet-5', inputTokens: response.usage?.input_tokens ?? null, outputTokens: response.usage?.output_tokens ?? null } } }];'''
@@ -680,31 +710,38 @@ if (errors.length) throw new Error('Artefact V4 invalide : ' + errors.join(', ')
 return [{ json: data }];'''
 
 
-CALLBACK = r'''const data = $('V4 Validate Artifact').first().json;
-const ak = data.accountKnowledge;
+CALLBACK = r'''const rawInput = ($input.first() && $input.first().json) || {};
+let namedInput = {};
+try { namedInput = $('V4 Validate Artifact').first().json || {}; } catch (_) {}
+const data = { ...namedInput, ...rawInput };
+const ak = data.accountKnowledge || {};
 const usage = data.llmUsage || {};
 const externalIds = new Set((data.resolvedRows || []).map((r) => r.id));
-const usedIds = new Set(ak.sections.flatMap((s) => s.source_refs).filter((id) => externalIds.has(id)));
-const sourceRefs = Array.from(usedIds).map((id) => { const s = ak.sources.find((x) => x.id === id); return { entityType: 'intelligence_source', entityId: id, label: s ? s.label : 'Source' }; });
-const narrative = ak.sections.flatMap((s) => s.narrative).join('\n\n');
+const usedIds = new Set((ak.sections || []).flatMap((s) => s.source_refs || []).filter((id) => externalIds.has(id)));
+const sourceRefs = Array.from(usedIds).map((id) => { const s = (ak.sources || []).find((x) => x.id === id); return { entityType: 'intelligence_source', entityId: id, label: s ? s.label : 'Source' }; });
+const narrative = (ak.sections || []).flatMap((s) => s.narrative || []).join('\n\n');
+const fetchedPages = Array.isArray(data.fetchedPages) ? data.fetchedPages : [];
+const selectedPages = Array.isArray(data.selectedPages) ? data.selectedPages : [];
+const fetchFailures = Array.isArray(data.fetchFailures) ? data.fetchFailures : [];
+const discoveryCount = Array.isArray(data.discovery) ? data.discovery.reduce((n, s) => n + ((s && s.organic) || []).length, 0) : 0;
 const callbackBody = {
   n8nExecutionId: $execution.id, n8nWorkflowId: $workflow.id, runId: data.runId, phase: 1,
   resultType: 'account_knowledge', status: 'succeeded', contentJson: ak,
-  contentText: '# Connaissance entreprise — ' + (data.canonical.name || 'Compte') + '\n\n' + narrative,
-  title: 'Connaissance entreprise — ' + (data.canonical.name || 'Compte'), modelProvider: 'anthropic',
+  contentText: '# Connaissance entreprise — ' + ((data.canonical && data.canonical.name) || 'Compte') + '\n\n' + narrative,
+  title: 'Connaissance entreprise — ' + ((data.canonical && data.canonical.name) || 'Compte'), modelProvider: 'anthropic',
   modelUsed: usage.model || 'claude-sonnet-5', tokensInput: usage.inputTokens, tokensOutput: usage.outputTokens,
   durationMs: data.startedAtMs ? Date.now() - data.startedAtMs : null,
   contextSnapshot: {
     schemaVersion: 4, canonical: data.canonical, entityResolution: data.entityResolution,
-    researchPlan: data.researchPlan, discoveryCount: data.discovery.reduce((n, s) => n + (s.organic || []).length, 0),
-    selectedPages: data.selectedPages, fetchedPages: data.fetchedPages.map(({ text, ...rest }) => rest),
-    fetchFailures: data.fetchFailures,
+    researchPlan: data.researchPlan, discoveryCount,
+    selectedPages, fetchedPages: fetchedPages.map(({ text, ...rest }) => rest),
+    fetchFailures,
     urlSelectionDiagnostics: data.urlSelectionDiagnostics || null,
-    externalResearchStatus: data.externalResearchStatus || (data.discovery.reduce((n, s) => n + (s.organic || []).length, 0) > 0 && (!data.fetchedPages || data.fetchedPages.length === 0) ? 'external_research_degraded' : 'nominal'),
+    externalResearchStatus: data.externalResearchStatus || (discoveryCount > 0 && fetchedPages.length === 0 ? 'external_research_degraded' : 'nominal'),
     coverage: ak.coverage, dataCutoffAt: data.dataCutoffAt,
   },
   sourceRefs,
-  qaFlags: [{ check: 'entity_resolution', passed: true, detail: 'SIREN ' + data.entityResolution.siren + ' — score ' + data.entityResolution.score }, ...data.qaFlags, { check: 'single_llm_call', passed: true, detail: 'Un appel de génération V4.' }],
+  qaFlags: [{ check: 'entity_resolution', passed: true, detail: 'SIREN ' + ((data.entityResolution && data.entityResolution.siren) || '') + ' — score ' + ((data.entityResolution && data.entityResolution.score) || 0) }, ...(data.qaFlags || []), { check: 'single_llm_call', passed: true, detail: 'Un appel de génération V4.' }],
 };
 return [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];'''
 

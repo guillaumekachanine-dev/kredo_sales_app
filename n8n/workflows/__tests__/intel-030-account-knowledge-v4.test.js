@@ -654,6 +654,34 @@ async function main() {
   })
   check("Catalogue V4.1 : V4 Build Source Catalogue s'exécute avec succès sans URL global", true)
 
+  // Résilience : Catalogue avec fetchedPages undefined ne doit jamais lever d'exception
+  const degradedFetch = { ...realisticFetch, fetchedPages: undefined }
+  const degradedCatalogueRes = await runCode("V4 Build Source Catalogue", {
+    ...realistic83572Registry,
+    "V4 Fetch Selected Pages": degradedFetch,
+  })
+  check(
+    "Résilience Catalogue : fetchedPages undefined ne provoque pas d'erreur et conserve au moins la preuve registre",
+    degradedCatalogueRes[0].json.externalEvidence.length === 1 &&
+    degradedCatalogueRes[0].json.externalEvidence[0].kind === "registry"
+  )
+
+  // Résilience : Callback avec fetchedPages undefined ne doit jamais lever d'exception
+  const degradedValidate = {
+    ...realisticFetch,
+    fetchedPages: undefined,
+    externalResearchStatus: undefined,
+    accountKnowledge: llmArtifact("source-1"),
+  }
+  const degradedCallbackRes = await runCode("V4 Prepare Callback", {
+    ...realistic83572Registry,
+    "V4 Validate Artifact": degradedValidate,
+  })
+  check(
+    "Résilience Callback : fetchedPages undefined produit un callback réussi avec external_research_degraded",
+    degradedCallbackRes[0].json.rawBody.includes('"externalResearchStatus":"external_research_degraded"')
+  )
+
   const v4WithErrors = workflow.nodes.filter((n) => n.name.startsWith("V4 ") && n.onError === "continueErrorOutput")
   const missingFailure = v4WithErrors.filter((n) => !((workflow.connections[n.name] || {}).main || [])[1]?.some((c) => c.node === "Prepare Failure Callback"))
   check("Toutes les sorties d'erreur V4 rejoignent le callback d'échec", missingFailure.length === 0, missingFailure.map((n) => n.name).join(", "))
