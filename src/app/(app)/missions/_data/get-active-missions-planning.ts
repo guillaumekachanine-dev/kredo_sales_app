@@ -577,10 +577,248 @@ export async function getActiveMissionsPlanning(): Promise<MissionPlanningRow[]>
         collaborator: mapCollaborator(collaborator),
         lastQuarterRevenue: revenueByMission.get(mission.id) ?? null,
         timelineEvents,
+        engagementType: "mission_at" as const,
       }
     })
   } catch (err) {
     console.error("Unhandled error in getActiveMissionsPlanning:", err)
     return []
   }
+}
+
+export async function getActiveProjectsPlanning(): Promise<MissionPlanningRow[]> {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("projects")
+      .select(`
+        id,
+        code,
+        title,
+        status,
+        progress_pct,
+        contract_amount,
+        target_margin_pct,
+        actual_margin_pct,
+        start_date_planned,
+        end_date_planned,
+        start_date_actual,
+        end_date_actual,
+        billing_milestones,
+        deliverables,
+        metadata,
+        company_id,
+        companies (
+          id,
+          name,
+          sector,
+          hq_location
+        ),
+        project_phases (
+          id,
+          label,
+          status,
+          start_date_planned,
+          end_date_planned,
+          start_date_actual,
+          end_date_actual,
+          deliverables
+        )
+      `)
+      .eq("status", "active")
+      .order("start_date_planned", { ascending: true, nullsFirst: false })
+
+    if (error) {
+      console.error(
+        "Supabase error fetching active projects planning:",
+        error.message,
+        error.code,
+        error.details,
+        error.hint
+      )
+      return []
+    }
+
+    type RawProjectPhase = {
+      id: string
+      label: string
+      status: string
+      start_date_planned: string | null
+      end_date_planned: string | null
+      start_date_actual: string | null
+      end_date_actual: string | null
+    }
+
+    type RawBillingMilestone = {
+      label?: string
+      pct?: number
+      amount?: number
+      due_date?: string
+    }
+
+    const projects = (data ?? []) as Array<
+      Pick<
+        Tables<"projects">,
+        | "id"
+        | "code"
+        | "title"
+        | "status"
+        | "progress_pct"
+        | "contract_amount"
+        | "target_margin_pct"
+        | "actual_margin_pct"
+        | "start_date_planned"
+        | "end_date_planned"
+        | "start_date_actual"
+        | "end_date_actual"
+        | "billing_milestones"
+        | "metadata"
+        | "company_id"
+      > & {
+        companies: CompanyRecord | CompanyRecord[] | null
+        project_phases: RawProjectPhase[] | null
+      }
+    >
+
+    const companyIds = Array.from(
+      new Set(projects.map((p) => p.company_id).filter(Boolean))
+    ) as string[]
+
+    const [closuresByCompany, calendarEventsByCompany] = await Promise.all([
+      getClosuresByCompany(companyIds),
+      getCalendarEventsByCompany(companyIds),
+    ])
+
+    return projects.map((project) => {
+      const company = pickOne(project.companies)
+      const startDate = getDateOnly(project.start_date_planned ?? project.start_date_actual)
+      const endDate = getDateOnly(project.end_date_planned ?? project.end_date_actual)
+
+      const timelineEvents: MissionPlanningTimelineEvent[] = []
+
+      // 1. Jalons de facturation
+      const milestones = Array.isArray(project.billing_milestones)
+        ? (project.billing_milestones as unknown as RawBillingMilestone[])
+        : []
+      milestones.forEach((m, idx) => {
+        const dueDate = getDateOnly(m.due_date)
+        if (dueDate) {
+          const pctLabel = m.pct ? ` (${m.pct}%)` : ""
+          timelineEvents.push({
+            id: `milestone-${project.id}-${idx}`,
+            sourceId: `${project.id}-m-${idx}`,
+            sourceType: "calendar_event",
+            category: "project_milestone",
+            title: `Jalon : ${m.label ?? "Facturation"}${pctLabel}`,
+            startDate: dueDate,
+            endDate: dueDate,
+            allDay: true,
+            status: null,
+            description: m.amount ? `${m.amount} €` : null,
+            companyId: project.company_id,
+            collaboratorId: null,
+            calendarEventId: null,
+          })
+        }
+      })
+
+      // 2. Échéance de livraison prévue
+      if (project.end_date_planned) {
+        const deliveryDate = getDateOnly(project.end_date_planned)
+        if (deliveryDate) {
+          timelineEvents.push({
+            id: `delivery-${project.id}`,
+            sourceId: `${project.id}-delivery`,
+            sourceType: "calendar_event",
+            category: "project_milestone",
+            title: "Livraison prévue",
+            startDate: deliveryDate,
+            endDate: deliveryDate,
+            allDay: true,
+            status: null,
+            description: null,
+            companyId: project.company_id,
+            collaboratorId: null,
+            calendarEventId: null,
+          })
+        }
+      }
+
+      // 3. Phases de projet
+      const phases = Array.isArray(project.project_phases) ? project.project_phases : []
+      phases.forEach((phase) => {
+        const phaseStart = getDateOnly(phase.start_date_planned ?? phase.start_date_actual)
+        const phaseEnd = getDateOnly(phase.end_date_planned ?? phase.end_date_actual) ?? phaseStart
+        if (phaseStart) {
+          timelineEvents.push({
+            id: `phase-${phase.id}`,
+            sourceId: phase.id,
+            sourceType: "calendar_event",
+            category: "project_phase",
+            title: `Phase : ${phase.label}`,
+            startDate: phaseStart,
+            endDate: phaseEnd,
+            allDay: true,
+            status: phase.status,
+            description: null,
+            companyId: project.company_id,
+            collaboratorId: null,
+            calendarEventId: null,
+          })
+        }
+      })
+
+      // 4. Fermetures client & événements calendaires
+      if (project.company_id) {
+        const closures = closuresByCompany.get(project.company_id) ?? []
+        const calEvents = calendarEventsByCompany.get(project.company_id) ?? []
+        timelineEvents.push(...closures, ...calEvents)
+      }
+
+      timelineEvents.sort((left, right) => {
+        if (left.startDate === right.startDate) {
+          return left.id.localeCompare(right.id)
+        }
+        return left.startDate.localeCompare(right.startDate)
+      })
+
+      return {
+        id: project.id,
+        title: project.title,
+        status: project.status,
+        startDate,
+        endDate,
+        renewalDate: null,
+        roleTitle: project.code ? `Projet ${project.code}` : "Projet forfait",
+        practice: null,
+        seniority: null,
+        tjm: null,
+        cjm: null,
+        grossMarginPct: project.actual_margin_pct ?? project.target_margin_pct,
+        companyId: project.company_id,
+        collaboratorId: null,
+        metadata: project.metadata,
+        company: mapCompany(company),
+        collaborator: null,
+        lastQuarterRevenue: null,
+        timelineEvents,
+        engagementType: "project" as const,
+        projectCode: project.code,
+        progressPct: project.progress_pct,
+      }
+    })
+  } catch (err) {
+    console.error("Unhandled error in getActiveProjectsPlanning:", err)
+    return []
+  }
+}
+
+export async function getEngagementsPlanning(): Promise<MissionPlanningRow[]> {
+  const [missions, projects] = await Promise.all([
+    getActiveMissionsPlanning(),
+    getActiveProjectsPlanning(),
+  ])
+
+  return [...missions, ...projects]
 }

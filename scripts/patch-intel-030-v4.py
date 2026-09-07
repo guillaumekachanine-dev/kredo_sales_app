@@ -157,13 +157,23 @@ if (requests.length !== data.researchPlan.length || responses.length !== request
 }
 const discovery = requests.map((request, index) => {
   const response = responses[index] && responses[index].json ? responses[index].json : {};
-  const organic = response.organic_results || response.organic || [];
+  const organic = Array.isArray(response.organic_results)
+    ? response.organic_results
+    : (Array.isArray(response.organic) ? response.organic : []);
+  let error = null;
+  if (response.error) {
+    error = String((typeof response.error === 'object' && response.error.message) ? response.error.message : response.error);
+  } else if (response.errorMessage) {
+    error = String(response.errorMessage);
+  } else if (response.message && organic.length === 0) {
+    error = String(response.message);
+  }
   return {
     index: request.json.index, query: request.json.query,
     organic: organic.slice(0, 8).map((r) => ({
       title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null,
     })),
-    ...(response.error ? { error: String(response.error.message || response.error) } : {}),
+    ...(error ? { error } : {}),
   };
 });
 return [{ json: { ...data, discovery } }];'''
@@ -281,11 +291,90 @@ return [{ json: { error: { code: 'V4_DRAFT_TRUNCATED', message: 'La génération
 
 
 PARSE_GUARD = r'''const data = $('V4 Assemble Prompt').first().json;
-const response = $('V4 Call LLM').first().json;
-const block = (response.content || []).find((x) => x && x.type === 'text');
-if (!block || !block.text) throw new Error('Réponse LLM V4 vide');
-let rawText = String(block.text).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-let parsed; try { parsed = JSON.parse(rawText); } catch (error) { throw new Error('JSON V4 invalide : ' + error.message); }
+let response;
+try {
+  response = $input.first().json;
+} catch (_) {
+  response = $('V4 Call LLM').first().json;
+}
+if (!response || (!response.content && !response.error && !response.type)) {
+  try {
+    const upstream = $('V4 Call LLM').first().json;
+    if (upstream && (upstream.content || upstream.error || upstream.type)) response = upstream;
+  } catch (_) {}
+}
+
+function extractLlmApiError(res) {
+  if (!res || typeof res !== 'object') return null;
+  if (res.type === 'error' && res.error) {
+    const errType = res.error.type || 'api_error';
+    const errMsg = res.error.message || JSON.stringify(res.error);
+    return `${errType} — ${errMsg}`;
+  }
+  if (res.error) {
+    if (typeof res.error === 'object') {
+      if (res.error.type && res.error.message) {
+        return `${res.error.type} — ${res.error.message}`;
+      }
+      if (res.error.message) {
+        try {
+          let str = String(res.error.message);
+          if (str.includes('\\"')) str = str.replace(/\\"/g, '"');
+          const first = str.indexOf('{');
+          const last = str.lastIndexOf('}');
+          if (first !== -1 && last > first) {
+            let inner = JSON.parse(str.slice(first, last + 1));
+            if (typeof inner === 'string') inner = JSON.parse(inner);
+            if (inner && inner.error && inner.error.message) {
+              return `${inner.error.type || 'api_error'} — ${inner.error.message}`;
+            }
+            if (inner && inner.message) {
+              return inner.message;
+            }
+          }
+        } catch (_) {}
+        return res.error.message;
+      }
+      return JSON.stringify(res.error);
+    }
+    return String(res.error);
+  }
+  if (typeof res.statusCode === 'number' && res.statusCode >= 400) {
+    return `HTTP ${res.statusCode} — ${res.statusMessage || res.message || 'Error'}`;
+  }
+  if (res.status === 'error' && res.message) {
+    return String(res.message);
+  }
+  return null;
+}
+
+const apiErrorDetail = extractLlmApiError(response);
+if (apiErrorDetail) {
+  throw new Error(`Anthropic V4 error: [LLM_API_ERROR] ${apiErrorDetail}`);
+}
+
+const block = (response && Array.isArray(response.content) ? response.content : []).find((x) => x && x.type === 'text');
+if (!block || typeof block.text !== 'string' || block.text.trim().length === 0) {
+  const reason = (!response || Object.keys(response).length === 0)
+    ? 'réponse vide reçue'
+    : (!response.content || !Array.isArray(response.content) || response.content.length === 0)
+      ? 'content[] absent ou vide'
+      : 'aucun bloc text non vide dans content[]';
+  throw new Error(`Anthropic V4 error: [LLM_EMPTY_RESPONSE] Réponse LLM V4 vide (${reason})`);
+}
+
+let rawText = String(block.text).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+let parsed;
+try {
+  parsed = JSON.parse(rawText);
+} catch (error) {
+  throw new Error(`Anthropic V4 error: [LLM_INVALID_FORMAT] JSON V4 invalide : ${error.message} | extrait=${rawText.slice(0, 200)}`);
+}
+
+if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+  throw new Error('Anthropic V4 error: [LLM_INVALID_FORMAT] JSON V4 invalide : objet attendu à la racine');
+}
+
 const keys = ['synthesis','identity','business_and_offering','customers_and_market','competition_and_positioning','value_chain_and_dependencies','history_ambitions_and_news','implications_for_kredo'];
 const titles = ['Synthèse','Identité','Métier et offre','Clients et marché','Concurrence et positionnement','Chaîne de valeur et dépendances','Histoire, ambitions et actualité','Ce que cela implique pour KREDO'];
 const allowedSources = new Set(data.sourceCatalogue.map((s) => s.id));
@@ -411,7 +500,7 @@ def main() -> None:
                 {"name": "num", "value": "={{ $json.num }}"},
             ]},
             "options": {"timeout": 20000, "response": {"response": {"neverError": True, "responseFormat": "json"}}},
-        }) | {"credentials": SERPAPI_CREDENTIAL},
+        }) | {"credentials": SERPAPI_CREDENTIAL, "onError": "continueRegularOutput"},
         code_node("n030v4-03b", "V4 Normalize SerpAPI Discovery", 840, 1320, NORMALIZE_SERPAPI),
         code_node("n030v4-04", "V4 Fetch Selected Pages", 1080, 1320, FETCH),
         code_node("n030v4-05", "V4 Build Source Catalogue", 1320, 1320, CATALOGUE),
@@ -433,8 +522,10 @@ def main() -> None:
         http_node("n030v4-09", "V4 Call LLM", 2280, 1320, {
             "method": "POST", "url": "https://api.anthropic.com/v1/messages", "authentication": "predefinedCredentialType", "nodeCredentialType": "anthropicApi",
             "sendHeaders": True, "headerParameters": {"parameters": [{"name": "anthropic-version", "value": "2023-06-01"}]},
-            "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, temperature: 0.2, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}", "options": {"timeout": 240000},
-        }) | {"credentials": ANTHROPIC_CREDENTIAL},
+            "sendBody": True, "contentType": "json", "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}",
+            "options": {"timeout": 240000, "response": {"response": {"neverError": True, "responseFormat": "json"}}},
+        }) | {"credentials": ANTHROPIC_CREDENTIAL, "onError": "continueRegularOutput"},
         {"parameters": {"conditions": {"options": {"caseSensitive": True, "leftValue": ""}, "conditions": [{"id": "cond-v4-max-tokens", "leftValue": "={{ $json.stop_reason || $json.finish_reason }}", "rightValue": "max_tokens", "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "n030v4-10", "name": "V4 Truncated?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [2040, 1320]},
         code_node("n030v4-11", "V4 Prepare Truncated Error", 2280, 1120, TRUNCATED),
         code_node("n030v4-12", "V4 Parse & Guard", 2280, 1320, PARSE_GUARD),
@@ -465,7 +556,8 @@ def main() -> None:
 
     validate = by_name["Validate Entity"]["parameters"]["jsCode"]
     validate = validate.replace("Number(requestedVersion) === 2 || Number(requestedVersion) === 3", "[2, 3, 4].includes(Number(requestedVersion))")
-    validate = validate.replace("hors 2 / 3", "hors 2 / 3 / 4")
+    import re
+    validate = re.sub(r"hors 2\s*/\s*3(?:\s*/\s*4)*", "hors 2 / 3 / 4", validate)
     by_name["Validate Entity"]["parameters"]["jsCode"] = validate
 
     by_name["Hydrate Context"]["parameters"]["url"] = "={{ 'https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/rpc/' + ($('Validate Entity').first().json.accountKnowledgeSchemaVersion === 4 ? 'get_account_understanding_context' : 'get_account_knowledge_context') }}"
@@ -488,8 +580,11 @@ def main() -> None:
         del workflow["connections"][connection_name]
     sequence = ["V4 Prepare Dossier", "V4 Resolve Entity", "V4 Build SerpAPI Requests", "V4 SerpAPI Search", "V4 Normalize SerpAPI Discovery", "V4 Fetch Selected Pages", "V4 Build Source Catalogue", "V4 Upsert Sources", "V4 Resolve Source Ids", "V4 Assemble Prompt", "V4 Call LLM"]
     for current, following in zip(sequence, sequence[1:]):
-        workflow["connections"][current] = {"main": [[{"node": following, "type": "main", "index": 0}], failure]}
-    workflow["connections"]["V4 Call LLM"] = {"main": [[{"node": "V4 Truncated?", "type": "main", "index": 0}], failure]}
+        if current in ("V4 SerpAPI Search", "V4 Call LLM"):
+            workflow["connections"][current] = {"main": [[{"node": following, "type": "main", "index": 0}]]}
+        else:
+            workflow["connections"][current] = {"main": [[{"node": following, "type": "main", "index": 0}], failure]}
+    workflow["connections"]["V4 Call LLM"] = {"main": [[{"node": "V4 Truncated?", "type": "main", "index": 0}]]}
     workflow["connections"]["V4 Truncated?"] = {"main": [[{"node": "V4 Prepare Truncated Error", "type": "main", "index": 0}], [{"node": "V4 Parse & Guard", "type": "main", "index": 0}]]}
     workflow["connections"]["V4 Prepare Truncated Error"] = {"main": [failure]}
     for current, following in [("V4 Parse & Guard", "V4 Validate Artifact"), ("V4 Validate Artifact", "V4 Prepare Callback")]:

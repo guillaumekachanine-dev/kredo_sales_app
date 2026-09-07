@@ -45,6 +45,8 @@ export type MissionPlanningTimelineEventCategory =
   | "client_closure"
   | "client_follow_up"
   | "collaborator_follow_up"
+  | "project_milestone"
+  | "project_phase"
 
 export type MissionPlanningTimelineEventSource =
   | "collaborator_absence"
@@ -67,6 +69,8 @@ export type MissionPlanningTimelineEvent = {
   calendarEventId: string | null
 }
 
+export type EngagementType = "mission_at" | "project"
+
 export type MissionPlanningRow = {
   id: string
   title: string
@@ -87,4 +91,8 @@ export type MissionPlanningRow = {
   collaborator: MissionPlanningCollaborator | null
   lastQuarterRevenue: MissionPlanningQuarterlyRevenue | null
   timelineEvents: MissionPlanningTimelineEvent[]
+  engagementType?: EngagementType
+  projectCode?: string | null
+  progressPct?: number | null
 }
+

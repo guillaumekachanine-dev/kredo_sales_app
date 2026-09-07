@@ -4,36 +4,43 @@ import { useEffect, type ReactNode } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
-import { ActivityIcon, CalendarRangeIcon, ChartBarIcon, LayoutGridIcon } from "./engagement-icons"
+import {
+  ActivityIcon,
+  BriefcaseIcon,
+  CalendarRangeIcon,
+  ChartBarIcon,
+  LayoutGridIcon,
+} from "./engagement-icons"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Shell Desktop d'Engagements — chrome uniquement (thème + repli sidebar + nav
-//  secondaire verticale + header). Le contenu (Synthèse pleine largeur, ou les
-//  3 rails Missions AT, ou la pane « À venir ») est composé côté serveur et
+//  secondaire verticale + header). Le contenu (Synthèse, Missions AT, Projets,
+//  Activité & congés, ou Planning des engagements) est composé côté serveur et
 //  passé en `children`.
 //
 //  Paradigme repris fidèlement de /reports (ReportsDesktopView) : nav verticale
-//  w-[11.5rem], boîte titre, label de section, boutons border-l-2.
+//  w-[11.5rem], boîte titre, boutons border-l-2.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type EngagementsView = "synthese" | "missions-at" | "activite-conges" | "planning-at"
+export type EngagementsView =
+  | "synthese"
+  | "missions-at"
+  | "projets"
+  | "activite-conges"
+  | "planning-at"
 
-interface NavEntry {
+export interface NavEntry {
   view: EngagementsView
   label: string
   icon: ReactNode
 }
 
-const ROOT_ENTRY: NavEntry = {
-  view: "synthese",
-  label: "Synthèse",
-  icon: <LayoutGridIcon />,
-}
-
-const MISSIONS_AT_ENTRIES: NavEntry[] = [
-  { view: "missions-at", label: "En cours", icon: <ActivityIcon /> },
+export const NAV_ENTRIES: NavEntry[] = [
+  { view: "synthese", label: "Synthèse", icon: <LayoutGridIcon /> },
+  { view: "missions-at", label: "Missions AT", icon: <ActivityIcon /> },
+  { view: "projets", label: "Projets", icon: <BriefcaseIcon /> },
   { view: "activite-conges", label: "Activité & congés", icon: <ChartBarIcon /> },
-  { view: "planning-at", label: "Planning des AT", icon: <CalendarRangeIcon /> },
+  { view: "planning-at", label: "Planning des engagements", icon: <CalendarRangeIcon /> },
 ]
 
 function NavItem({ entry, active }: { entry: NavEntry; active: boolean }) {
@@ -63,10 +70,11 @@ interface EngagementsDesktopViewProps {
 }
 
 export const HEADER_TITLE_BY_VIEW: Record<EngagementsView, string> = {
-  "missions-at": "Missions en cours",
-  "activite-conges": "Activité & congés",
-  "planning-at": "Planning des missions",
   synthese: "Engagements",
+  "missions-at": "Missions en cours",
+  projets: "Projets",
+  "activite-conges": "Activité & congés",
+  "planning-at": "Planning des engagements",
 }
 
 export function EngagementsDesktopView({ activeView, children }: EngagementsDesktopViewProps) {
@@ -90,18 +98,9 @@ export function EngagementsDesktopView({ activeView, children }: EngagementsDesk
         </div>
 
         <div className="mt-5 space-y-1">
-          <NavItem entry={ROOT_ENTRY} active={activeView === ROOT_ENTRY.view} />
-        </div>
-
-        <div className="mt-5 border-t border-edito-border pt-4">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-            Missions AT
-          </p>
-          <div className="mt-2 space-y-1">
-            {MISSIONS_AT_ENTRIES.map((entry) => (
-              <NavItem key={entry.view} entry={entry} active={activeView === entry.view} />
-            ))}
-          </div>
+          {NAV_ENTRIES.map((entry) => (
+            <NavItem key={entry.view} entry={entry} active={activeView === entry.view} />
+          ))}
         </div>
       </nav>
 

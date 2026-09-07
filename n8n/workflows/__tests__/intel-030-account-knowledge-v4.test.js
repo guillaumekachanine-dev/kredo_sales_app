@@ -151,6 +151,8 @@ async function main() {
   const serpApiNode = nodes["V4 SerpAPI Search"]
   check("SerpAPI utilise le credential n8n existant, sans clé dans le JSON", serpApiNode.parameters.authentication === "predefinedCredentialType" && serpApiNode.parameters.nodeCredentialType === "serpApi" && serpApiNode.credentials.serpApi.id === "4FHmaQGaAytZHN4w" && serpApiNode.credentials.serpApi.name === "SerpAPI_KREDO" && !/api_key|SERPER_API_KEY/.test(JSON.stringify(serpApiNode)))
   check("SerpAPI appelle le bon fournisseur", serpApiNode.parameters.url === "https://serpapi.com/search.json" && serpApiNode.parameters.queryParameters.parameters.some((p) => p.name === "engine" && p.value === "google"))
+  check("SerpAPI utilise continueRegularOutput pour préserver le flux en cas d'erreur ponctuelle", serpApiNode.onError === "continueRegularOutput")
+  check("V4 SerpAPI Search a une sortie unique vers V4 Normalize SerpAPI Discovery", workflow.connections["V4 SerpAPI Search"]?.main?.length === 1 && workflow.connections["V4 SerpAPI Search"]?.main[0][0]?.node === "V4 Normalize SerpAPI Discovery")
   const supabaseNodes = workflow.nodes.filter((n) => n.parameters && n.parameters.nodeCredentialType === "supabaseApi")
   check("Tous les nœuds Supabase référencent le credential stable", supabaseNodes.length > 0 && supabaseNodes.every((n) => n.credentials?.supabaseApi?.id === "GBrm2aWU0dDf85QS" && n.credentials.supabaseApi.name === "Supabase_Service_Role_KREDO"))
   const anthropicNodes = workflow.nodes.filter((n) => n.parameters && n.parameters.nodeCredentialType === "anthropicApi")
@@ -174,6 +176,83 @@ async function main() {
   httpResponder = async () => ({ results: [WRONG] })
   await expectThrows("Entité ambiguë bloque avant recherche et tokens", () => runCode("V4 Resolve Entity", unresolvedRegistry), /Résolution entité V4 bloquante/)
 
+  // ── Validation approfondie SerpAPI Discovery : 12/12 nominal, 11+1 erreur, couplage & cardinalité ──
+  const testDiscoveryRegistry = { "V4 Resolve Entity": resolved }
+  const requests = await runCode("V4 Build SerpAPI Requests", testDiscoveryRegistry)
+  check("V4 Build SerpAPI Requests produit 12 items ordonnés", requests.length === 12 && requests.every((r, idx) => r.json.index === idx && typeof r.json.query === "string"))
+
+  // Cas nominal 12/12
+  const nominalResponses = requests.map((r, i) => ({
+    organic_results: [{ title: `Titre ${i}`, link: `https://www.tournaire.fr/page-${i}`, snippet: `Extrait ${i}` }],
+  }))
+  const nominalNormResult = await runCode("V4 Normalize SerpAPI Discovery", testDiscoveryRegistry, {}, nominalResponses)
+  const nominalDiscovery = nominalNormResult[0].json.discovery
+  check("Cas nominal 12/12 : 12 entrées discovery produites", nominalDiscovery.length === 12)
+  check(
+    "Cas nominal 12/12 : couplage exact 1-pour-1 sans décalage requête/réponse",
+    nominalDiscovery.every((item, i) =>
+      item.index === i &&
+      item.query === requests[i].json.query &&
+      item.organic.length === 1 &&
+      item.organic[0].title === `Titre ${i}` &&
+      item.organic[0].link === `https://www.tournaire.fr/page-${i}` &&
+      !item.error
+    )
+  )
+
+  // Cas 11 succès + 1 erreur SerpAPI (index 4 en erreur)
+  const partialErrorResponses = requests.map((r, i) => {
+    if (i === 4) {
+      return { error: "Google hasn't returned any results for this query." }
+    }
+    return {
+      organic_results: [{ title: `Titre ${i}`, link: `https://www.tournaire.fr/page-${i}`, snippet: `Extrait ${i}` }],
+    }
+  })
+  const partialErrorResult = await runCode("V4 Normalize SerpAPI Discovery", testDiscoveryRegistry, {}, partialErrorResponses)
+  const partialDiscovery = partialErrorResult[0].json.discovery
+  check("Cas 11 succès + 1 erreur : pipeline produit 12 entrées", partialDiscovery.length === 12)
+  check(
+    "Cas 11 succès + 1 erreur : l'élément en erreur est typé {index, query, organic:[], error}",
+    partialDiscovery[4].index === 4 &&
+    partialDiscovery[4].query === requests[4].json.query &&
+    Array.isArray(partialDiscovery[4].organic) &&
+    partialDiscovery[4].organic.length === 0 &&
+    partialDiscovery[4].error === "Google hasn't returned any results for this query."
+  )
+  check(
+    "Cas 11 succès + 1 erreur : aucun décalage requête/réponse sur les 11 autres recherches",
+    partialDiscovery.every((item, i) => {
+      if (i === 4) return true
+      return (
+        item.index === i &&
+        item.query === requests[i].json.query &&
+        item.organic.length === 1 &&
+        item.organic[0].title === `Titre ${i}` &&
+        item.organic[0].link === `https://www.tournaire.fr/page-${i}` &&
+        !item.error
+      )
+    })
+  )
+
+  // Vérification que le pipeline continue après 11 succès + 1 erreur
+  testDiscoveryRegistry["V4 Normalize SerpAPI Discovery"] = partialErrorResult[0].json
+  httpCalls = []
+  httpResponder = async () => "<html><body>Contenu page de test Tournaire Grasse. Aptar concurrent.</body></html>"
+  await runCode("V4 Fetch Selected Pages", testDiscoveryRegistry)
+  check(
+    "Cas 11 succès + 1 erreur : V4 Fetch Selected Pages continue sans planter",
+    Array.isArray(testDiscoveryRegistry["V4 Fetch Selected Pages"].selectedPages) &&
+    testDiscoveryRegistry["V4 Fetch Selected Pages"].selectedPages.length > 0
+  )
+
+  // Cas de rejet sur cardinalité incomplète (< 12 réponses transmises)
+  await expectThrows(
+    "Contrôle cardinalité SerpAPI : 11 réponses pour 12 requêtes lève une exception",
+    () => runCode("V4 Normalize SerpAPI Discovery", testDiscoveryRegistry, {}, nominalResponses.slice(0, 11)),
+    /Réponses SerpAPI incomplètes : 11\/12/
+  )
+
   const full = {}
   await throughPrompt(full)
   check("SerpAPI prépare exactement les 12 requêtes", full["V4 Build SerpAPI Requests"].length === 12 && full["V4 Normalize SerpAPI Discovery"].discovery.length === 12)
@@ -183,7 +262,81 @@ async function main() {
   check("Le prompt marque les snippets comme non-preuves", /discovery_only_not_evidence/.test(full["V4 Assemble Prompt"].userPrompt) && /ne les cite jamais/.test(full["V4 Assemble Prompt"].systemPrompt))
   check("Le dossier prompt contient FOLIO, enjeux et historique KREDO", /Entreprise familiale/.test(full["V4 Assemble Prompt"].userPrompt) && /Traçabilité/.test(full["V4 Assemble Prompt"].userPrompt) && /daily_rate/.test(full["V4 Assemble Prompt"].userPrompt))
 
+  const llmNode = nodes["V4 Call LLM"]
+  check("V4 Call LLM a contentType json", llmNode.parameters.contentType === "json")
+  check("V4 Call LLM désactive explicitement thinking pour Claude 3.7", /thinking:\s*\{\s*type:\s*['"]disabled['"]\s*\}/.test(llmNode.parameters.jsonBody))
+  check("V4 Call LLM utilise neverError pour acheminer les erreurs HTTP au parseur", llmNode.parameters.options?.response?.response?.neverError === true)
+  check("V4 Call LLM utilise continueRegularOutput", llmNode.onError === "continueRegularOutput")
+  check("V4 Call LLM a une sortie unique vers V4 Truncated?", workflow.connections["V4 Call LLM"]?.main?.length === 1 && workflow.connections["V4 Call LLM"]?.main[0][0]?.node === "V4 Truncated?")
+
   const sourceId = full["V4 Assemble Prompt"].sourceCatalogue.find((s) => s.source_type === "regulatory_filing").id
+
+  // ── Tests diagnostiques V4 Parse & Guard (cas d'erreurs et réponses anormales) ──
+  const apiErrorRegistry = { ...full }
+  apiErrorRegistry["V4 Call LLM"] = {
+    type: "error",
+    error: {
+      type: "invalid_request_error",
+      message: "temperature cannot be specified when thinking is enabled"
+    }
+  }
+  await expectThrows(
+    "Réponse API en erreur sans content : V4 Parse & Guard remonte l'erreur Anthropic explicite",
+    () => runCode("V4 Parse & Guard", apiErrorRegistry),
+    /Anthropic V4 error: \[LLM_API_ERROR\] invalid_request_error — temperature cannot be specified when thinking is enabled/
+  )
+
+  const httpErrorRegistry = { ...full }
+  httpErrorRegistry["V4 Call LLM"] = {
+    error: {
+      message: '400 - "{\\"type\\":\\"error\\",\\"error\\":{\\"type\\":\\"invalid_request_error\\",\\"message\\":\\"model claude-sonnet-5 not found\\"}}"'
+    }
+  }
+  await expectThrows(
+    "Réponse HTTP en erreur n8n : V4 Parse & Guard extrait le message API original",
+    () => runCode("V4 Parse & Guard", httpErrorRegistry),
+    /Anthropic V4 error: \[LLM_API_ERROR\] invalid_request_error — model claude-sonnet-5 not found/
+  )
+
+  const emptyRegistry = { ...full }
+  emptyRegistry["V4 Call LLM"] = {}
+  await expectThrows(
+    "Réponse réellement vide {} : V4 Parse & Guard lève LLM_EMPTY_RESPONSE",
+    () => runCode("V4 Parse & Guard", emptyRegistry),
+    /Anthropic V4 error: \[LLM_EMPTY_RESPONSE\] Réponse LLM V4 vide \(réponse vide reçue\)/
+  )
+
+  const emptyContentRegistry = { ...full }
+  emptyContentRegistry["V4 Call LLM"] = { content: [] }
+  await expectThrows(
+    "Réponse content[] vide : V4 Parse & Guard lève LLM_EMPTY_RESPONSE",
+    () => runCode("V4 Parse & Guard", emptyContentRegistry),
+    /Anthropic V4 error: \[LLM_EMPTY_RESPONSE\] Réponse LLM V4 vide \(content\[\] absent ou vide\)/
+  )
+
+  const thinkingOnlyRegistry = { ...full }
+  thinkingOnlyRegistry["V4 Call LLM"] = {
+    content: [{ type: "thinking", thinking: "Je réfléchis au problème..." }],
+    usage: { input_tokens: 100, output_tokens: 500 }
+  }
+  await expectThrows(
+    "Réponse avec thinking sans bloc text : V4 Parse & Guard lève LLM_EMPTY_RESPONSE",
+    () => runCode("V4 Parse & Guard", thinkingOnlyRegistry),
+    /Anthropic V4 error: \[LLM_EMPTY_RESPONSE\] Réponse LLM V4 vide \(aucun bloc text non vide dans content\[\]\)/
+  )
+
+  const nonJsonRegistry = { ...full }
+  nonJsonRegistry["V4 Call LLM"] = {
+    content: [{ type: "text", text: "Voici le rapport narratif sans aucun format JSON." }],
+    usage: { input_tokens: 100, output_tokens: 50 }
+  }
+  await expectThrows(
+    "Réponse texte non-JSON : V4 Parse & Guard lève LLM_INVALID_FORMAT",
+    () => runCode("V4 Parse & Guard", nonJsonRegistry),
+    /Anthropic V4 error: \[LLM_INVALID_FORMAT\] JSON V4 invalide/
+  )
+
+  // ── Cas nominal Anthropic ──
   full["V4 Call LLM"] = { content: [{ type: "text", text: JSON.stringify(llmArtifact(sourceId)) }], usage: { input_tokens: 4000, output_tokens: 2500 }, model: "claude-sonnet-5" }
   await runCode("V4 Parse & Guard", full)
   const guarded = full["V4 Parse & Guard"]

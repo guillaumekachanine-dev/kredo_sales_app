@@ -30,6 +30,8 @@ interface MissionsAnnualPlanningDesktopProps {
 const CATEGORY_BASE_TOP = {
   client_closure: 10,
   absence: 28,
+  project_phase: 28,
+  project_milestone: 46,
   client_follow_up: 46,
   collaborator_follow_up: 64,
 } as const
@@ -54,42 +56,59 @@ export function MissionsAnnualPlanningDesktop({
         isCurrent: month.isCurrent,
       }))}
       getRowId={(row) => row.id}
-      labelColumnHeader="Mission"
+      labelColumnHeader="Engagement"
       currentMarkerLeft={range.todayLeft}
       labelColumnWidth={288}
       timelineColumnMinWidth={88}
-      emptyState="Aucune mission ou aucun événement n'entre dans l'année sélectionnée."
-      renderRowLabel={(row) => (
-        <div className="flex min-h-full items-start gap-3">
-          <button
-            type="button"
-            onClick={() => onOpenMission(row)}
-            className="min-w-0 flex-1 text-left"
-          >
-            <p className="truncate text-[12px] font-semibold text-heading">
-              {row.title}
-            </p>
-            <p className="mt-0.5 truncate text-[10px] text-body">
-              {getMissionPlanningSubtitle(row)}
-            </p>
-          </button>
+      emptyState="Aucun engagement ou aucun événement n'entre dans l'année sélectionnée."
+      renderRowLabel={(row) => {
+        const isProject = row.engagementType === "project"
 
-          {onCreateEventForMission ? (
-            <IconButton
-              aria-label={`Créer un événement pour ${row.title}`}
-              variant="ghost"
-              size="sm"
-              onClick={() => onCreateEventForMission(row)}
-              className="size-8 border border-border text-muted hover:text-primary"
+        return (
+          <div className="flex min-h-full items-start gap-2.5">
+            <button
+              type="button"
+              onClick={() => onOpenMission(row)}
+              className="min-w-0 flex-1 text-left"
             >
-              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            </IconButton>
-          ) : null}
-        </div>
-      )}
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                    isProject
+                      ? "border border-primary/25 bg-primary/10 text-primary"
+                      : "border border-brand-brass/30 bg-brand-brass/15 text-brand-brass",
+                  )}
+                >
+                  {isProject ? "Projet" : "AT"}
+                </span>
+                <p className="truncate text-[12px] font-semibold text-heading">
+                  {row.title}
+                </p>
+              </div>
+              <p className="mt-0.5 truncate text-[10px] text-body">
+                {getMissionPlanningSubtitle(row)}
+              </p>
+            </button>
+
+            {onCreateEventForMission ? (
+              <IconButton
+                aria-label={`Créer un événement pour ${row.title}`}
+                variant="ghost"
+                size="sm"
+                onClick={() => onCreateEventForMission(row)}
+                className="size-8 border border-border text-muted hover:text-primary"
+              >
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </IconButton>
+            ) : null}
+          </div>
+        )
+      }}
       renderTimelineRow={(row) => {
+        const isProject = row.engagementType === "project"
         const missionPosition = getMissionWindowPosition(
           row.startDate,
           row.endDate,
@@ -176,8 +195,17 @@ export function MissionsAnnualPlanningDesktop({
               <button
                 type="button"
                 onClick={() => onOpenMission(row)}
-                aria-label={`Ouvrir la mission ${row.title}`}
-                className="absolute z-20 rounded-full bg-brand-brass text-secondary-fg transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                aria-label={
+                  isProject
+                    ? `Ouvrir le projet ${row.title}`
+                    : `Ouvrir la mission ${row.title}`
+                }
+                className={cn(
+                  "absolute z-20 rounded-full transition focus:outline-none focus:ring-2 focus:ring-primary/30",
+                  isProject
+                    ? "bg-primary text-primary-fg hover:brightness-110"
+                    : "bg-brand-brass text-secondary-fg hover:brightness-105",
+                )}
                 style={{
                   left: missionPosition.left,
                   width: missionPosition.width,
@@ -186,12 +214,18 @@ export function MissionsAnnualPlanningDesktop({
                 }}
               >
                 <span
-                  className="absolute left-0 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-brand-brass bg-surface"
+                  className={cn(
+                    "absolute left-0 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-surface",
+                    isProject ? "border-primary" : "border-brand-brass",
+                  )}
                   aria-hidden="true"
                 />
                 {row.endDate ? (
                   <span
-                    className="absolute right-0 top-1/2 h-3 w-3 translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-brand-brass bg-surface"
+                    className={cn(
+                      "absolute right-0 top-1/2 h-3 w-3 translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-surface",
+                      isProject ? "border-primary" : "border-brand-brass",
+                    )}
                     aria-hidden="true"
                   />
                 ) : (

@@ -16,6 +16,8 @@ const LEGEND_ORDER = [
   "client_closure",
   "client_follow_up",
   "collaborator_follow_up",
+  "project_milestone",
+  "project_phase",
 ] as const
 
 export function MissionAnnualPlanningLegend({
@@ -28,18 +30,32 @@ export function MissionAnnualPlanningLegend({
   )
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-body">
-      {LEGEND_ORDER.map((category) => (
-        <span key={category} className="inline-flex items-center gap-2">
-          <span
-            className={`size-2.5 rounded-sm ${EVENT_CATEGORY_TONES[category].dotClassName}`}
-            aria-hidden="true"
-          />
-          <span>
-            {EVENT_CATEGORY_LABELS[category]} ({counts[category]})
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-y border-border/60 py-2 text-[11px] text-body">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span className="font-semibold text-heading">Événements :</span>
+        {LEGEND_ORDER.map((category) => (
+          <span key={category} className="inline-flex items-center gap-1.5">
+            <span
+              className={`size-2.5 rounded-sm ${EVENT_CATEGORY_TONES[category].dotClassName}`}
+              aria-hidden="true"
+            />
+            <span>
+              {EVENT_CATEGORY_LABELS[category]} ({counts[category]})
+            </span>
           </span>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-4 text-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-4 rounded-full bg-brand-brass" aria-hidden="true" />
+          <span className="font-medium text-body">Mission AT</span>
         </span>
-      ))}
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-4 rounded-full bg-primary" aria-hidden="true" />
+          <span className="font-medium text-body">Projet forfait</span>
+        </span>
+      </div>
     </div>
   )
 }

@@ -26,6 +26,8 @@ interface MissionsAnnualPlanningMobileProps {
 const CATEGORY_BASE_TOP = {
   client_closure: 8,
   absence: 24,
+  project_phase: 24,
+  project_milestone: 40,
   client_follow_up: 40,
   collaborator_follow_up: 56,
 } as const

@@ -7,7 +7,9 @@ import { getEngagementsOverview } from "@/app/(app)/missions/_data/get-engagemen
 import { getCurrentEngagementMissions } from "@/app/(app)/missions/_data/get-current-engagement-missions"
 import { getEngagementMissionDetail } from "@/app/(app)/missions/_data/get-engagement-mission-detail"
 import { getEngagementsActivityAnalytics } from "@/app/(app)/missions/_data/get-engagements-activity-analytics"
-import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
+import { getEngagementsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
+import { getProjectsList } from "@/app/(app)/missions/_data/get-projects-list"
+import { getProjectDetail } from "@/app/(app)/missions/_data/get-project-detail"
 import {
   EngagementsDesktopView,
   type EngagementsView,
@@ -15,6 +17,9 @@ import {
 import { CurrentMissionsList } from "@/components/missions/engagements/CurrentMissionsList"
 import { MissionOverview } from "@/components/missions/engagements/MissionOverview"
 import { MissionDetailsRail } from "@/components/missions/engagements/MissionDetailsRail"
+import { CurrentProjectsList } from "@/components/missions/engagements/CurrentProjectsList"
+import { ProjectOverview } from "@/components/missions/engagements/ProjectOverview"
+import { ProjectDetailsRail } from "@/components/missions/engagements/ProjectDetailsRail"
 import { EngagementsActivityDesktop } from "@/components/missions/engagements/EngagementsActivityDesktop"
 import { EngagementsPlanningDesktop } from "@/components/missions/engagements/EngagementsPlanningDesktop"
 
@@ -23,6 +28,7 @@ type SearchParams = Record<string, string | string[] | undefined>
 const VIEWS: readonly EngagementsView[] = [
   "synthese",
   "missions-at",
+  "projets",
   "activite-conges",
   "planning-at",
 ]
@@ -33,7 +39,8 @@ function pickParam(value: string | string[] | undefined): string | undefined {
 
 function pickView(value: string | string[] | undefined): EngagementsView {
   const raw = pickParam(value)
-  return VIEWS.includes(raw as EngagementsView) ? (raw as EngagementsView) : "synthese"
+  if (raw === "planning-engagements") return "planning-at"
+  return raw && VIEWS.includes(raw as EngagementsView) ? (raw as EngagementsView) : "synthese"
 }
 
 function SynthesisError() {
@@ -119,6 +126,41 @@ export default async function MissionsPage({
     )
   }
 
+  if (view === "projets") {
+    const projects = await getProjectsList()
+    const activeProjects = projects.filter((p) => p.status === "active")
+    const listProjects = activeProjects.length > 0 ? activeProjects : projects
+    const selectedId = pickParam(resolvedSearchParams.projet) ?? listProjects[0]?.id ?? null
+    const detail = selectedId ? (await getProjectDetail(selectedId)).data : null
+
+    return (
+      <EngagementsDesktopView activeView="projets">
+        {listProjects.length === 0 ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center bg-canvas px-8 text-center">
+            <div className="max-w-sm">
+              <h2 className="font-heading text-lg font-bold text-heading">
+                Aucun projet en cours
+              </h2>
+              <p className="mt-1.5 text-xs leading-5 text-muted">
+                Les projets apparaîtront ici dès qu’un projet passe au statut actif.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid min-h-0 flex-1 grid-cols-[minmax(230px,280px)_minmax(0,1fr)_minmax(238px,300px)] overflow-hidden">
+            <CurrentProjectsList projects={listProjects} selectedProjectId={selectedId} />
+            <ProjectOverview detail={detail} />
+            {detail ? (
+              <ProjectDetailsRail detail={detail} />
+            ) : (
+              <aside className="border-l border-border bg-surface" aria-hidden />
+            )}
+          </div>
+        )}
+      </EngagementsDesktopView>
+    )
+  }
+
   if (view === "activite-conges") {
     const analytics = await getEngagementsActivityAnalytics()
 
@@ -131,8 +173,8 @@ export default async function MissionsPage({
     )
   }
 
-  // ── Planning des AT ────────────────────────────────────────────────────────
-  const planningRows = await getActiveMissionsPlanning()
+  // ── Planning des engagements ───────────────────────────────────────────────
+  const planningRows = await getEngagementsPlanning()
 
   return (
     <EngagementsDesktopView activeView="planning-at">

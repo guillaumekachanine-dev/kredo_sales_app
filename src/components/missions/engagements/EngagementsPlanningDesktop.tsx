@@ -4,24 +4,22 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { IconButton } from "@/components/ui/IconButton"
 import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
+import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { MissionAnnualPlanningLegend } from "@/components/missions/planning/MissionAnnualPlanningLegend"
 import { MissionsAnnualPlanningDesktop } from "@/components/missions/planning/MissionsAnnualPlanningDesktop"
 import type { MissionPlanningRow } from "@/components/missions/planning/mission-planning-types"
+import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Vue « Planning des AT » — Desktop, Phase 2.
+//  Vue « Planning des engagements » — Desktop, Phase 2.
 //
-//  Surface analytique transverse : vision annuelle unique de la vie temporelle
-//  des missions d'assistance technique. Aucun Gantt réécrit — réemploi direct
-//  du moteur de planning annuel existant (EntityPlanningView via
-//  MissionsAnnualPlanningDesktop + MissionAnnualPlanningLegend), alimenté par le
-//  loader getActiveMissionsPlanning (missions actives + absences + fermetures
-//  clients + suivis calendaires).
+//  Surface analytique transverse : vision annuelle unifiée des missions
+//  d'assistance technique et des projets forfait avec leurs jalons et échéances.
 //
 //  Interactions réutilisées :
-//   • clic mission  → vue « Missions AT › En cours » de la Phase 1 (?mission=)
-//   • clic événement → EventDrawer global (AppOverlayHosts)
-//  Aucun nouveau drawer, aucun nouveau calendrier.
+//   • clic mission AT → vue « Assistance technique » (?mission=)
+//   • clic projet     → tiroir de projet (useMissionsTabStore)
+//   • clic événement  → EventDrawer global (AppOverlayHosts)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -42,15 +40,38 @@ function ChevronRight() {
   )
 }
 
+type EngagementFilter = "all" | "missions-at" | "projects"
+
 export function EngagementsPlanningDesktop({ rows }: { rows: MissionPlanningRow[] }) {
   const router = useRouter()
   const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
+  const { openTab } = useMissionsTabStore()
   const [year, setYear] = useState(CURRENT_YEAR)
+  const [filter, setFilter] = useState<EngagementFilter>("all")
 
-  const openMission = (row: MissionPlanningRow) => {
-    router.push(`/missions?vue=missions-at&mission=${encodeURIComponent(row.id)}`, {
-      scroll: false,
-    })
+  const atRows = rows.filter((r) => r.engagementType !== "project")
+  const projectRows = rows.filter((r) => r.engagementType === "project")
+
+  const filteredRows =
+    filter === "missions-at"
+      ? atRows
+      : filter === "projects"
+        ? projectRows
+        : rows
+
+  const openEngagement = (row: MissionPlanningRow) => {
+    if (row.engagementType === "project") {
+      openTab({
+        entityType: "project",
+        entityId: row.id,
+        title: row.title,
+        subtitle: row.projectCode ?? "",
+      })
+    } else {
+      router.push(`/missions?vue=missions-at&mission=${encodeURIComponent(row.id)}`, {
+        scroll: false,
+      })
+    }
   }
 
   return (
@@ -58,15 +79,54 @@ export function EngagementsPlanningDesktop({ rows }: { rows: MissionPlanningRow[
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading text-xl font-black tracking-tight text-heading">
-            Planning des AT
+            Planning des engagements
           </h1>
           <p className="mt-0.5 text-[11px] text-muted">
-            {rows.length} mission{rows.length > 1 ? "s" : ""} d’assistance technique active
-            {rows.length > 1 ? "s" : ""} · fenêtres, congés, fermetures clients et suivis
+            {atRows.length} mission{atRows.length > 1 ? "s" : ""} d’assistance technique ·{" "}
+            {projectRows.length} projet{projectRows.length > 1 ? "s" : ""} · fenêtres, jalons, congés et échéances
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex rounded-lg border border-border bg-surface p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setFilter("all")}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                filter === "all"
+                  ? "bg-canvas text-heading shadow-xs"
+                  : "text-muted hover:text-body",
+              )}
+            >
+              Tous ({rows.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter("missions-at")}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                filter === "missions-at"
+                  ? "bg-canvas text-heading shadow-xs"
+                  : "text-muted hover:text-body",
+              )}
+            >
+              Assistance technique ({atRows.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter("projects")}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                filter === "projects"
+                  ? "bg-canvas text-heading shadow-xs"
+                  : "text-muted hover:text-body",
+              )}
+            >
+              Projets ({projectRows.length})
+            </button>
+          </div>
+
           {year !== CURRENT_YEAR ? (
             <button
               type="button"
@@ -76,6 +136,7 @@ export function EngagementsPlanningDesktop({ rows }: { rows: MissionPlanningRow[
               Année courante
             </button>
           ) : null}
+
           <div className="inline-flex items-center overflow-hidden rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass">
             <IconButton
               aria-label="Année précédente"
@@ -100,13 +161,13 @@ export function EngagementsPlanningDesktop({ rows }: { rows: MissionPlanningRow[
         </div>
       </header>
 
-      <MissionAnnualPlanningLegend rows={rows} year={year} />
+      <MissionAnnualPlanningLegend rows={filteredRows} year={year} />
 
       <div className="overflow-x-auto pb-1">
         <MissionsAnnualPlanningDesktop
-          rows={rows}
+          rows={filteredRows}
           year={year}
-          onOpenMission={openMission}
+          onOpenMission={openEngagement}
           onOpenEvent={openEventDrawer}
         />
       </div>

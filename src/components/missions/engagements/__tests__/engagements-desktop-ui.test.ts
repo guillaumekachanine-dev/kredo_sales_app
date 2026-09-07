@@ -1,15 +1,58 @@
 import { describe, expect, it } from "vitest"
-import { HEADER_TITLE_BY_VIEW } from "../EngagementsDesktopView"
+import { HEADER_TITLE_BY_VIEW, NAV_ENTRIES } from "../EngagementsDesktopView"
 import { groupMissionsByClient } from "../CurrentMissionsList"
+import { groupProjectsByClient } from "../CurrentProjectsList"
 import { formatPeriod } from "../MissionOverview"
+import { getMissionPlanningSubtitle } from "../../planning/mission-annual-planning-utils"
 import type { EngagementMissionListItem } from "@/app/(app)/missions/_data/get-current-engagement-missions"
+import type { MissionPlanningRow } from "../../planning/mission-planning-types"
+import type { DBProjectResult } from "@/app/(app)/missions/_data/get-projects-list"
 
-describe("EngagementsDesktopView — header dynamique", () => {
+describe("EngagementsDesktopView — header dynamique & navigation", () => {
   it("associe le bon titre à chaque vue", () => {
     expect(HEADER_TITLE_BY_VIEW["missions-at"]).toBe("Missions en cours")
+    expect(HEADER_TITLE_BY_VIEW["projets"]).toBe("Projets")
     expect(HEADER_TITLE_BY_VIEW["activite-conges"]).toBe("Activité & congés")
-    expect(HEADER_TITLE_BY_VIEW["planning-at"]).toBe("Planning des missions")
+    expect(HEADER_TITLE_BY_VIEW["planning-at"]).toBe("Planning des engagements")
     expect(HEADER_TITLE_BY_VIEW["synthese"]).toBe("Engagements")
+  })
+
+  it("présente les 5 onglets dans l'ordre attendu", () => {
+    expect(NAV_ENTRIES.map((entry) => ({ view: entry.view, label: entry.label }))).toEqual([
+      { view: "synthese", label: "Synthèse" },
+      { view: "missions-at", label: "Missions AT" },
+      { view: "projets", label: "Projets" },
+      { view: "activite-conges", label: "Activité & congés" },
+      { view: "planning-at", label: "Planning des engagements" },
+    ])
+  })
+})
+
+describe("Planning des engagements — sous-titre selon le type d'engagement", () => {
+  it("formate le sous-titre pour une mission AT (Collaborateur · Client)", () => {
+    const row: Partial<MissionPlanningRow> = {
+      engagementType: "mission_at",
+      company: { id: "c1", name: "CEGEMA", sector: "Assurance", hqLocation: "Nice" },
+      collaborator: {
+        id: "col1",
+        employeeRef: "REF-1",
+        currentTitle: "Dev",
+        practice: "Tech",
+        seniority: "Senior",
+        availability: "available",
+        person: { id: "p1", fullName: "Sophie Martin", firstName: "Sophie", lastName: "Martin" },
+      },
+    }
+    expect(getMissionPlanningSubtitle(row as MissionPlanningRow)).toBe("Sophie Martin · CEGEMA")
+  })
+
+  it("formate le sous-titre pour un projet (Client · Avancement)", () => {
+    const row: Partial<MissionPlanningRow> = {
+      engagementType: "project",
+      company: { id: "c1", name: "CEGEMA", sector: "Assurance", hqLocation: "Nice" },
+      progressPct: 65,
+    }
+    expect(getMissionPlanningSubtitle(row as MissionPlanningRow)).toBe("CEGEMA · 65% avancement")
   })
 })
 
@@ -73,6 +116,58 @@ describe("CurrentMissionsList — groupement par client", () => {
     // Deuxième groupe : Client B avec m2
     expect(groups[1].clientName).toBe("Client B")
     expect(groups[1].missions.map((m) => m.id)).toEqual(["m2"])
+  })
+})
+
+describe("CurrentProjectsList — groupement par client", () => {
+  it("regroupe les projets par client et gère l'anonymisation", () => {
+    const rawProjects: Partial<DBProjectResult>[] = [
+      {
+        id: "p1",
+        title: "Projet 1",
+        ref_visibility: "public",
+        progress_pct: 50,
+        companies: { name: "Client Alpha", website: "https://alpha.fr", metadata: null },
+      },
+      {
+        id: "p2",
+        title: "Projet 2",
+        ref_visibility: "public",
+        progress_pct: 80,
+        companies: { name: "Client Beta", website: "https://beta.fr", metadata: null },
+      },
+      {
+        id: "p3",
+        title: "Projet 3",
+        ref_visibility: "anonymized",
+        ref_anonymized_label: "Acteur Mutualiste",
+        progress_pct: 20,
+        companies: { name: "Secret Company", website: "https://secret.fr", metadata: null },
+      },
+      {
+        id: "p4",
+        title: "Projet 4",
+        ref_visibility: "public",
+        progress_pct: 100,
+        companies: { name: "Client Alpha", website: "https://alpha.fr", metadata: null },
+      },
+    ]
+
+    const groups = groupProjectsByClient(rawProjects as DBProjectResult[])
+    expect(groups).toHaveLength(3)
+
+    // Premier groupe : Client Alpha avec p1 et p4
+    expect(groups[0].clientName).toBe("Client Alpha")
+    expect(groups[0].projects.map((p) => p.id)).toEqual(["p1", "p4"])
+
+    // Deuxième groupe : Client Beta avec p2
+    expect(groups[1].clientName).toBe("Client Beta")
+    expect(groups[1].projects.map((p) => p.id)).toEqual(["p2"])
+
+    // Troisième groupe : Acteur Mutualiste (anonymisé) avec p3
+    expect(groups[2].clientName).toBe("Acteur Mutualiste")
+    expect(groups[2].clientWebsite).toBeNull()
+    expect(groups[2].projects.map((p) => p.id)).toEqual(["p3"])
   })
 })
 

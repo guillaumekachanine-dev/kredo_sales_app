@@ -46,6 +46,8 @@ export const EVENT_CATEGORY_LABELS: Record<
   client_closure: "Fermetures client",
   client_follow_up: "Suivi client",
   collaborator_follow_up: "Suivi collaborateur",
+  project_milestone: "Jalons & échéances",
+  project_phase: "Phases projet",
 }
 
 export const EVENT_CATEGORY_TONES: Record<
@@ -75,6 +77,16 @@ export const EVENT_CATEGORY_TONES: Record<
     barClassName: "bg-success/75 border border-success/25",
     dotClassName: "bg-success",
     badgeClassName: "bg-success/10 text-success border-success/20",
+  },
+  project_milestone: {
+    barClassName: "bg-brand-ember/90 border border-brand-ember/40 text-white font-bold",
+    dotClassName: "bg-brand-ember",
+    badgeClassName: "bg-brand-ember/10 text-brand-ember border-brand-ember/25",
+  },
+  project_phase: {
+    barClassName: "bg-primary/25 border border-primary/45 text-primary font-medium",
+    dotClassName: "bg-primary",
+    badgeClassName: "bg-primary/10 text-primary border-primary/25",
   },
 }
 
@@ -260,10 +272,20 @@ export function getMissionPlanningLegendCounts(
       client_closure: 0,
       client_follow_up: 0,
       collaborator_follow_up: 0,
+      project_milestone: 0,
+      project_phase: 0,
     }
   )
 }
 
 export function getMissionPlanningSubtitle(row: MissionPlanningRow) {
+  if (row.engagementType === "project") {
+    const progressText =
+      row.progressPct !== null && row.progressPct !== undefined
+        ? ` · ${row.progressPct}% avancement`
+        : ""
+    return `${row.company.name}${progressText}`
+  }
   return `${getPersonName(row)} · ${row.company.name}`
 }
+
