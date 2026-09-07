@@ -395,7 +395,7 @@ const pages = await Promise.all(selected.map(async (candidate) => {
     const body = await this.helpers.httpRequest({
       method: 'GET',
       url: candidate.link,
-      timeout: 25000,
+      timeout: 8000,
       returnFullResponse: false,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -868,6 +868,8 @@ def main() -> None:
             path = Path(temp_dir) / (node["id"] + ".js")
             path.write_text("async function __node__() {\n" + node["parameters"]["jsCode"] + "\n}\n")
             subprocess.run(["node", "--check", str(path)], check=True, capture_output=True, text=True)
+
+    workflow.setdefault("settings", {})["executionTimeout"] = 900
 
     WORKFLOW.write_text(json.dumps(workflow, ensure_ascii=False, indent=2) + "\n")
     print(f"Patched {WORKFLOW.relative_to(ROOT)} with {len(nodes)} V4 nodes")
