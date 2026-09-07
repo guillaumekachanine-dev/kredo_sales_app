@@ -26,13 +26,15 @@ import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
 import { ClientIntelligenceHomeTab } from "./ClientIntelligenceHomeTab"
 import { ClientIntelligenceSocleTab } from "./ClientIntelligenceSocleTab"
 import { ClientIntelligenceCompanyTab } from "./ClientIntelligenceCompanyTab"
-import { ClientIntelligenceSidebar } from "./ClientIntelligenceSidebar"
+import {
+  ClientIntelligenceSidebar,
+  getClientIntelligenceDesktopTabLabel,
+  type ClientIntelligenceDesktopTabKey,
+} from "./ClientIntelligenceSidebar"
 import {
   AccountIntelligenceSignatureHeaderDesktop,
-  getAccountIntelligenceTabLabel,
 } from "./header/AccountIntelligenceSignatureHeader"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
-import { type TabKey } from "./intelligence-process"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { triggerN8nWorkflow } from "@/lib/n8n/trigger-client"
 import {
@@ -41,7 +43,7 @@ import {
 } from "@/lib/intelligence/account-intelligence-contracts"
 
 export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
-  const [activeTab, setActiveTab] = useState<TabKey>("accueil")
+  const [activeTab, setActiveTab] = useState<ClientIntelligenceDesktopTabKey>("accueil")
   const [expandedViewer, setExpandedViewer] = useState(false)
   const [directoryOpen, setDirectoryOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
@@ -75,7 +77,6 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
     <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full min-h-0 overflow-hidden bg-canvas">
       <ClientIntelligenceSidebar
         activeTab={activeTab}
-        onBackToAccounts={handleBackToAccounts}
         onTabChange={setActiveTab}
         onOpenContactDirectory={() => setDirectoryOpen(true)}
         onOpenDocuments={() => setDocumentsOpen(true)}
@@ -83,12 +84,11 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {activeTab !== "accueil" ? (
-          <AccountIntelligenceSignatureHeaderDesktop
-            company={company}
-            title={getAccountIntelligenceTabLabel(activeTab)}
-          />
-        ) : null}
+        <AccountIntelligenceSignatureHeaderDesktop
+          company={company}
+          title={getClientIntelligenceDesktopTabLabel(activeTab)}
+          onBackToAccounts={handleBackToAccounts}
+        />
 
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-canvas px-6 pb-8">
           <div className="mx-auto w-full max-w-6xl">

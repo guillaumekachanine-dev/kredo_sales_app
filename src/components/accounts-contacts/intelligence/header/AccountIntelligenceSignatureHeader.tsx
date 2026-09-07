@@ -69,11 +69,35 @@ function AccountIdentity({ company, compact = false }: { company: SignatureHeade
   )
 }
 
-export function AccountIntelligenceSignatureHeaderDesktop({ company, title }: SignatureHeaderProps) {
+export function AccountIntelligenceSignatureHeaderDesktop({
+  company,
+  title,
+  onBackToAccounts,
+}: SignatureHeaderProps & { onBackToAccounts: () => void }) {
   return (
     <header className="relative h-[88px] shrink-0 overflow-hidden border-b border-edito-border">
       <HeaderPlanes />
-      <div className="absolute inset-y-0 left-[4.5%] flex items-center">
+      <button
+        type="button"
+        onClick={onBackToAccounts}
+        className="absolute inset-y-0 left-3 z-10 my-auto flex size-10 items-center justify-center text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
+        aria-label="Retour à la liste des comptes"
+        title="Liste des comptes"
+      >
+        <svg
+          className="size-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+      <div className="absolute inset-y-0 left-16 flex items-center">
         <AccountIdentity company={company} />
       </div>
       <div className="absolute inset-y-0 right-[5%] z-10 flex w-[29%] items-center justify-end text-right">

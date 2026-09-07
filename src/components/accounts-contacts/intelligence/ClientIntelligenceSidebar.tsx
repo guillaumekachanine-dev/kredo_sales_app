@@ -1,13 +1,17 @@
 "use client"
 
-import Link from "next/link"
-import { cn } from "@/lib/utils"
+import { SectionRail } from "@/components/layout/SectionRail"
+import type {
+  SectionRailEntry,
+  SectionRailProps,
+} from "@/lib/navigation/section-rail"
 import type { TabKey } from "./intelligence-process"
 
 type SidebarIconName = "home" | "socle" | "company" | "sector" | "issues" | "strategy" | "roadmap" | "contacts" | "documents" | "playbook"
+export type ClientIntelligenceDesktopTabKey = Exclude<TabKey, "actualite">
 
 export const CLIENT_INTELLIGENCE_NAV_ITEMS: ReadonlyArray<{
-  key: TabKey
+  key: ClientIntelligenceDesktopTabKey
   label: string
   icon: SidebarIconName
 }> = [
@@ -21,12 +25,17 @@ export const CLIENT_INTELLIGENCE_NAV_ITEMS: ReadonlyArray<{
 ] as const
 
 interface ClientIntelligenceSidebarProps {
-  activeTab: TabKey
-  onBackToAccounts: () => void
-  onTabChange: (tab: TabKey) => void
+  activeTab: ClientIntelligenceDesktopTabKey
+  onTabChange: (tab: ClientIntelligenceDesktopTabKey) => void
   onOpenContactDirectory?: () => void
   onOpenDocuments?: () => void
   playbookSlug?: string | null
+}
+
+export function getClientIntelligenceDesktopTabLabel(
+  tab: ClientIntelligenceDesktopTabKey,
+): string {
+  return CLIENT_INTELLIGENCE_NAV_ITEMS.find((item) => item.key === tab)?.label ?? "Accueil"
 }
 
 function SidebarIcon({ name }: { name: SidebarIconName }) {
@@ -92,125 +101,69 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
 
 export function ClientIntelligenceSidebar({
   activeTab,
-  onBackToAccounts,
   onTabChange,
   onOpenContactDirectory,
   onOpenDocuments,
   playbookSlug,
 }: ClientIntelligenceSidebarProps) {
-  const playbookHref = playbookSlug ? `/ressources/playbook/${playbookSlug}` : undefined
+  const railProps = buildClientIntelligenceRailProps({
+    activeTab,
+    onTabChange,
+    onOpenContactDirectory,
+    onOpenDocuments,
+    playbookSlug,
+  })
 
-  return (
-    <nav
-      aria-label="Navigation Account Intelligence"
-      className="flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
-    >
-      <button
-        type="button"
-        onClick={onBackToAccounts}
-        className={cn(
-          "inline-flex min-h-10 w-full items-center justify-center rounded-md border border-edito-navy px-3 text-center text-xs font-bold transition-all shadow-sm",
-          "bg-edito-navy text-white hover:bg-edito-navy/90",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30"
-        )}
-      >
-        <span>Liste des comptes</span>
-      </button>
+  return <SectionRail {...railProps} />
+}
 
-      <div className="mt-5 border-t border-edito-border pt-4">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Chapitres
-        </p>
-        <div className="mt-2 space-y-1">
-          {CLIENT_INTELLIGENCE_NAV_ITEMS.map((item) => {
-            const isActive = item.key === activeTab
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => onTabChange(item.key)}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 px-3 text-left text-xs font-semibold transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-                  isActive
-                    ? "border-l-edito-brass bg-edito-surface text-edito-navy"
-                    : "border-l-transparent text-edito-muted hover:bg-edito-surface/70 hover:text-edito-body",
-                )}
-              >
-                <span className={cn("text-edito-navy", !isActive && "opacity-75")}>
-                  <SidebarIcon name={item.icon} />
-                </span>
-                <span>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+export function buildClientIntelligenceRailProps({
+  activeTab,
+  onTabChange,
+  onOpenContactDirectory,
+  onOpenDocuments,
+  playbookSlug,
+}: ClientIntelligenceSidebarProps): SectionRailProps {
+  const contextualModules: SectionRailEntry[] = []
 
-      <div className="mt-5 border-t border-edito-border pt-4">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Modules
-        </p>
-        <div className="mt-2 space-y-1">
-          <button
-            type="button"
-            onClick={onOpenContactDirectory}
-            disabled={!onOpenContactDirectory}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-              !onOpenContactDirectory ? "cursor-default opacity-45" : "cursor-pointer"
-            )}
-          >
-            <span className="text-edito-navy opacity-75 shrink-0">
-              <SidebarIcon name="contacts" />
-            </span>
-            <span className="truncate">Répertoire</span>
-          </button>
+  if (onOpenContactDirectory) {
+    contextualModules.push({
+      key: "contacts",
+      label: "Répertoire",
+      icon: <SidebarIcon name="contacts" />,
+      onSelect: onOpenContactDirectory,
+    })
+  }
 
-          <button
-            type="button"
-            onClick={onOpenDocuments}
-            disabled={!onOpenDocuments}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-              !onOpenDocuments ? "cursor-default opacity-45" : "cursor-pointer"
-            )}
-          >
-            <span className="text-edito-navy opacity-75 shrink-0">
-              <SidebarIcon name="documents" />
-            </span>
-            <span className="truncate">Bibliothèque</span>
-          </button>
+  if (onOpenDocuments) {
+    contextualModules.push({
+      key: "documents",
+      label: "Bibliothèque",
+      icon: <SidebarIcon name="documents" />,
+      onSelect: onOpenDocuments,
+    })
+  }
 
-          {playbookHref ? (
-            <Link
-              href={playbookHref}
-              className={cn(
-                "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30 cursor-pointer"
-              )}
-            >
-              <span className="text-edito-navy opacity-75 shrink-0">
-                <SidebarIcon name="playbook" />
-              </span>
-              <span className="truncate">Playbook</span>
-            </Link>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className={cn(
-                "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted opacity-45 cursor-default"
-              )}
-            >
-              <span className="text-edito-navy opacity-75 shrink-0">
-                <SidebarIcon name="playbook" />
-              </span>
-              <span className="truncate">Playbook</span>
-            </button>
-          )}
-        </div>
-      </div>
-    </nav>
-  )
+  if (playbookSlug) {
+    contextualModules.push({
+      key: "playbook",
+      label: "Playbook",
+      icon: <SidebarIcon name="playbook" />,
+      href: `/ressources/playbook/${playbookSlug}`,
+    })
+  }
+
+  return {
+    ariaLabel: "Navigation Account Intelligence",
+    title: "Account Intelligence",
+    home: { onSelect: () => onTabChange("accueil") },
+    chapters: CLIENT_INTELLIGENCE_NAV_ITEMS.map((item) => ({
+      key: item.key,
+      label: item.label,
+      icon: <SidebarIcon name={item.icon} />,
+      active: item.key === activeTab,
+      onSelect: () => onTabChange(item.key),
+    })),
+    contextualModules,
+  }
 }
