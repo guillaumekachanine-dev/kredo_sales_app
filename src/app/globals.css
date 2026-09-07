@@ -116,6 +116,16 @@
   --color-status-info: #2E7D8C;
   --color-status-neutral: #6E7A8A;
 
+  /* ── Indicateur Workflow Actif (spectre saturé) ─────────────
+     Signal visuel d'exécution active : jaune vif -> or -> orange -> rouge vermillon.
+     Totalement opaque, sans voile blanc, contraste fort avec encre sombre. */
+  --color-workflow-yellow: #FFFE54;
+  --color-workflow-gold: #F6C443;
+  --color-workflow-orange: #EE7D31;
+  --color-workflow-red: #E83623;
+  --color-workflow-ink: #111827;
+  --color-workflow-cancelled: #526074;
+
   /* ── Secondary — Sunshine Gold ──────────────────────────────
      Couleur de personnalité. Brille sur fond cobalt (cockpit),
      interdite en encre sur fond clair (contraste ~1,7:1).
@@ -2806,11 +2816,23 @@ canvas {
   }
 }
 
+@keyframes kredo-workflow-gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .kredo-workflow-desktop-active {
   position: relative;
   overflow: hidden;
   border-radius: 0.5rem;
-  padding: 1.5px;
+  padding: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2819,22 +2841,25 @@ canvas {
 .kredo-workflow-desktop-active::before {
   content: "";
   position: absolute;
-  inset: -100%;
+  inset: -150%;
+  z-index: 0;
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    var(--color-primary) 60deg,
-    var(--color-brand-brass) 120deg,
-    transparent 180deg
+    var(--color-workflow-yellow) 30deg,
+    var(--color-workflow-gold) 75deg,
+    var(--color-workflow-orange) 125deg,
+    var(--color-workflow-red) 175deg,
+    transparent 225deg
   );
-  animation: kredo-workflow-border-spin 2.5s linear infinite;
+  animation: kredo-workflow-border-spin 1s linear infinite;
 }
 
 .kredo-workflow-mobile-active {
   position: relative;
   overflow: hidden;
   border-radius: 9999px;
-  padding: 2.5px;
+  padding: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2843,21 +2868,43 @@ canvas {
 .kredo-workflow-mobile-active::before {
   content: "";
   position: absolute;
-  inset: -100%;
+  inset: -150%;
+  z-index: 0;
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    var(--color-primary) 80deg,
-    var(--color-brand-brass) 160deg,
-    transparent 240deg
+    var(--color-workflow-yellow) 30deg,
+    var(--color-workflow-gold) 75deg,
+    var(--color-workflow-orange) 125deg,
+    var(--color-workflow-red) 175deg,
+    transparent 225deg
   );
-  animation: kredo-workflow-border-spin 2s linear infinite;
+  animation: kredo-workflow-border-spin 1s linear infinite;
+}
+
+.kredo-workflow-inner-btn {
+  background: linear-gradient(
+    100deg,
+    var(--color-workflow-yellow) 0%,
+    var(--color-workflow-gold) 28%,
+    var(--color-workflow-orange) 62%,
+    var(--color-workflow-red) 100%
+  );
+  background-size: 200% 100%;
+  animation: kredo-workflow-gradient-flow 2.2s ease-in-out infinite;
+  color: var(--color-workflow-ink);
+  font-weight: 700;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .kredo-workflow-desktop-active::before,
   .kredo-workflow-mobile-active::before {
     animation: none;
-    background: var(--color-primary);
+    background: var(--color-workflow-orange);
+  }
+
+  .kredo-workflow-inner-btn {
+    animation: none;
+    background-position: 0% 50%;
   }
 }

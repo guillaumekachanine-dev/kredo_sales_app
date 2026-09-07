@@ -355,7 +355,7 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     expect(markup).toBe("")
   })
 
-  it("Desktop : queued et running affichent 'Exécution en cours' avec le contour actif", async () => {
+  it("Desktop : queued et running affichent 'Exécution en cours' avec le contour actif et fond plein", async () => {
     const activeRun = makeRun({ status: "running" })
     mockHookState.current = {
       run: activeRun,
@@ -370,9 +370,11 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorDesktop))
     expect(markup).toContain("Exécution en cours")
     expect(markup).toContain("kredo-workflow-desktop-active")
+    expect(markup).toContain("kredo-workflow-inner-btn")
+    expect(markup).not.toContain("bg-surface")
   })
 
-  it("Desktop : succeeded affiche 'Succès exécution'", async () => {
+  it("Desktop : succeeded affiche 'Succès exécution' avec fond vert plein", async () => {
     const run = makeRun({ status: "succeeded" })
     mockHookState.current = {
       run,
@@ -387,9 +389,12 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorDesktop))
     expect(markup).toContain("Succès exécution")
     expect(markup).toContain("border-success")
+    expect(markup).toContain("bg-success")
+    expect(markup).toContain("text-white")
+    expect(markup).not.toContain("bg-success/10")
   })
 
-  it("Desktop : failed affiche 'Échec exécution'", async () => {
+  it("Desktop : failed affiche 'Échec exécution' avec fond rouge plein", async () => {
     const run = makeRun({ status: "failed" })
     mockHookState.current = {
       run,
@@ -404,9 +409,12 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorDesktop))
     expect(markup).toContain("Échec exécution")
     expect(markup).toContain("border-danger")
+    expect(markup).toContain("bg-danger")
+    expect(markup).toContain("text-white")
+    expect(markup).not.toContain("bg-danger/10")
   })
 
-  it("Desktop : cancelled affiche 'Exécution annulée'", async () => {
+  it("Desktop : cancelled affiche 'Exécution annulée' avec fond neutre plein", async () => {
     const run = makeRun({ status: "cancelled" })
     mockHookState.current = {
       run,
@@ -420,9 +428,12 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const { WorkflowExecutionIndicatorDesktop } = await import("./WorkflowExecutionIndicatorDesktop")
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorDesktop))
     expect(markup).toContain("Exécution annulée")
+    expect(markup).toContain("bg-workflow-cancelled")
+    expect(markup).toContain("text-white")
+    expect(markup).not.toContain("bg-surface")
   })
 
-  it("Mobile : queued et running affichent le FAB animé avec l'icône", async () => {
+  it("Mobile : queued et running affichent le FAB animé avec l'icône et fond plein", async () => {
     const activeRun = makeRun({ status: "queued" })
     mockHookState.current = {
       run: activeRun,
@@ -437,10 +448,12 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorMobile))
     expect(markup).toContain("aria-label=\"Exécution en cours\"")
     expect(markup).toContain("kredo-workflow-mobile-active")
+    expect(markup).toContain("kredo-workflow-inner-btn")
     expect(markup).toContain("fixed left-4")
+    expect(markup).not.toContain("bg-surface")
   })
 
-  it("Mobile : succeeded affiche le FAB succès avec check", async () => {
+  it("Mobile : succeeded affiche le FAB succès avec check et fond plein vert", async () => {
     const run = makeRun({ status: "succeeded" })
     mockHookState.current = {
       run,
@@ -455,9 +468,12 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorMobile))
     expect(markup).toContain("aria-label=\"Exécution réussie\"")
     expect(markup).toContain("border-success")
+    expect(markup).toContain("bg-success")
+    expect(markup).toContain("text-white")
+    expect(markup).not.toContain("bg-surface")
   })
 
-  it("Mobile : failed affiche le FAB échec avec erreur", async () => {
+  it("Mobile : failed affiche le FAB échec avec fond plein rouge", async () => {
     const run = makeRun({ status: "failed" })
     mockHookState.current = {
       run,
@@ -472,9 +488,12 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorMobile))
     expect(markup).toContain("aria-label=\"Échec de l&#x27;exécution\"")
     expect(markup).toContain("border-danger")
+    expect(markup).toContain("bg-danger")
+    expect(markup).toContain("text-white")
+    expect(markup).not.toContain("bg-surface")
   })
 
-  it("Mobile : cancelled affiche le FAB neutre", async () => {
+  it("Mobile : cancelled affiche le FAB neutre avec fond plein", async () => {
     const run = makeRun({ status: "cancelled" })
     mockHookState.current = {
       run,
@@ -488,6 +507,9 @@ describe("4. Rendu adaptatif Desktop & Mobile des états fonctionnels", () => {
     const { WorkflowExecutionIndicatorMobile } = await import("./WorkflowExecutionIndicatorMobile")
     const markup = renderToStaticMarkup(createElement(WorkflowExecutionIndicatorMobile))
     expect(markup).toContain("aria-label=\"Exécution annulée\"")
+    expect(markup).toContain("bg-workflow-cancelled")
+    expect(markup).toContain("text-white")
+    expect(markup).not.toContain("bg-surface")
   })
 
   it("Host : dispatche entre Desktop et Mobile selon le prop device", async () => {
