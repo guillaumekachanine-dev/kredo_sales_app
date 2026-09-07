@@ -187,7 +187,6 @@ return [{ json: { ...data, discovery } }];'''
 
 
 FETCH = r'''// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.
-// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.
 // Helper déterministe compatible Code node sans dépendance au constructeur global new URL()
 const rawInput = ($input.first() && $input.first().json) || {};
 let namedInput = {};
@@ -395,7 +394,7 @@ const pages = await Promise.all(selected.map(async (candidate) => {
     const body = await this.helpers.httpRequest({
       method: 'GET',
       url: candidate.link,
-      timeout: 8000,
+      timeout: 6000,
       returnFullResponse: false,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -792,7 +791,7 @@ def main() -> None:
             "sendHeaders": True, "headerParameters": {"parameters": [{"name": "anthropic-version", "value": "2023-06-01"}]},
             "sendBody": True, "contentType": "json", "specifyBody": "json",
             "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}",
-            "options": {"timeout": 240000, "response": {"response": {"neverError": True, "responseFormat": "json"}}},
+            "options": {"timeout": 120000, "response": {"response": {"neverError": True, "responseFormat": "json"}}},
         }) | {"credentials": ANTHROPIC_CREDENTIAL, "onError": "continueRegularOutput"},
         {"parameters": {"conditions": {"options": {"caseSensitive": True, "leftValue": ""}, "conditions": [{"id": "cond-v4-max-tokens", "leftValue": "={{ $json.stop_reason || $json.finish_reason }}", "rightValue": "max_tokens", "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "n030v4-10", "name": "V4 Truncated?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [2040, 1320]},
         code_node("n030v4-11", "V4 Prepare Truncated Error", 2280, 1120, TRUNCATED),
