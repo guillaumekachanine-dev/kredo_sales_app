@@ -239,10 +239,18 @@ la branche V2 n'est pas modifiée.
 La V4 est la version active des déclencheurs applicatifs, via
 `input.accountKnowledgeSchemaVersion: 4`. Elle hydrate la RPC
 `get_account_understanding_context`, résout l'entité légale avant toute recherche,
-lance 12 requêtes SerpAPI de découverte, consulte au plus 6 pages, puis produit les
-8 sections éditoriales avec un seul appel LLM. Les snippets SerpAPI ne sont jamais
-des sources ; seuls le registre, les pages effectivement consultées et les sources
-internes présentes dans le dossier peuvent être cités.
+lance 12 requêtes SerpAPI de découverte (dont 6 requêtes sectorielles recentrées
+sur le segment précis : `marketAnchor = canonical.segment || canonical.sector || canonical.name`),
+injecte le site officiel `canonical.website` en candidat prioritaire (score 200),
+sélectionne 3 à 6 pages externes pertinentes, les consulte réellement avec des
+headers navigateurs réalistes, puis produit les 8 sections éditoriales avec un
+seul appel LLM. Les snippets SerpAPI ne sont jamais des preuves ; seuls le
+registre, les pages effectivement consultées et les sources internes du dossier
+peuvent être cités.
+
+### 10.1 Garde qualité recherche externe
+- **Sélection vide anormale :** si `discoveryCount > 0` et qu'aucune URL n'est sélectionnable, le nœud `V4 Fetch Selected Pages` lève une exception explicite d'anomalie pipeline pour ne pas masquer une panne de filtrage.
+- **Échec global de fetch :** si des pages ont été sélectionnées mais ont toutes échoué au fetch réseau (ex: 403, 500, timeout), l'état `external_research_degraded` est consigné dans `contextSnapshot.externalResearchStatus` et le drapeau QA `external_research: passed=false` est inscrit dans `qaFlags`.
 
 Configuration additionnelle lors du réimport manuel :
 
@@ -271,11 +279,12 @@ Avant activation, rejouer :
 
 ```bash
 python3 scripts/patch-intel-030-v4.py
-node n8n/workflows/__tests__/intel-030-account-knowledge-v4.test.js
+node n8n/workflows/__tests__/intel-030-account-knowledge-v4.test.js   # 64 assertions
 npm run test:n8n
 ```
 
 Le premier test réel recommandé reste **Tournaire**. Vérifier dans le callback
 `contentJson.entity_resolution.siren === "415550110"`, le flag QA
-`entity_resolution: passed=true`, les 8 sections dans l'ordre et l'absence totale
-de `505063438` hors de la liste auditable des candidats écartés.
+`entity_resolution: passed=true`, les 8 sections dans l'ordre,
+`contextSnapshot.selectedPages.length >= 3`, `contextSnapshot.fetchedPages.length >= 3`,
+et l'absence totale de `505063438` hors de la liste auditable des candidats écartés.

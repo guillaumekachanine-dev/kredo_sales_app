@@ -352,6 +352,192 @@ async function main() {
   check("Callback annonce un seul appel LLM", callback.qaFlags.some((f) => f.check === "single_llm_call" && f.passed))
   check("sourceRefs callback ne contient que des UUID persistés", callback.sourceRefs.every((r) => /^[0-9a-f-]{36}$/i.test(r.entityId)))
 
+  // ── 7 Tests obligatoires V4 (sélection, site officiel, déduplication, SSRF, résilience, diagnostic, segment) ──
+
+  // Test 7 : les recherches sectorielles utilisent segment avant sector
+  const segmentCtx = context()
+  segmentCtx.company.segment = "Emballages industriels"
+  segmentCtx.company.sector = "Industrie manufacturière, électronique & équipements"
+  const segmentRegistry = { "Validate Entity": upstream(), "Hydrate Context": segmentCtx }
+  await runCode("V4 Prepare Dossier", segmentRegistry)
+  const segmentPlan = segmentRegistry["V4 Prepare Dossier"].researchPlan
+  check(
+    "Exigence 7 : les recherches sectorielles utilisent segment avant sector",
+    segmentPlan.slice(6, 12).every((p) => p.query.includes('"Emballages industriels"') && !p.query.includes('"Industrie manufacturière'))
+  )
+
+  // Fallback si segment absent
+  const noSegmentCtx = context()
+  noSegmentCtx.company.segment = null
+  noSegmentCtx.company.sector = "Industrie manufacturière, électronique & équipements"
+  const noSegmentReg = { "Validate Entity": upstream(), "Hydrate Context": noSegmentCtx }
+  await runCode("V4 Prepare Dossier", noSegmentReg)
+  const noSegmentPlan = noSegmentReg["V4 Prepare Dossier"].researchPlan
+  check(
+    "Exigence 7 bis : repli sectoriel sur sector si segment absent",
+    noSegmentPlan.slice(6, 12).every((p) => p.query.includes('"Industrie manufacturière, électronique & équipements"'))
+  )
+
+  // Test 1, 2, 3, 4 : 12 recherches avec résultats → au moins 3 pages, site officiel prioritaire, déduplication, SSRF bloqué
+  const richDiscovery = [
+    { index: 0, query: "q0", organic: [
+      { title: "Tournaire — Page 1", link: "https://www.tournaire.fr/solutions", snippet: "Solutions" },
+      { title: "Doublon avec hash", link: "https://www.tournaire.fr/solutions#contact", snippet: "Contact" },
+      { title: "SSRF Localhost", link: "http://localhost:3000/admin", snippet: "Admin" },
+      { title: "SSRF IP privée 10", link: "http://10.0.0.1/secret", snippet: "Secret" },
+      { title: "SSRF IP privée 192", link: "http://192.168.1.1/router", snippet: "Router" },
+      { title: "SSRF IP privée 172", link: "http://172.16.0.1/lan", snippet: "LAN" },
+    ] },
+    { index: 1, query: "q1", organic: [
+      { title: "Usine Nouvelle — Tournaire", link: "https://www.usinenouvelle.com/article/tournaire-grasse.html", snippet: "Article presse" },
+      { title: "Doublon exact", link: "https://www.usinenouvelle.com/article/tournaire-grasse.html", snippet: "Article presse bis" },
+    ] },
+    { index: 2, query: "q2", organic: [
+      { title: "Les Echos — Emballage", link: "https://www.lesechos.fr/industrie/emballage-industriel", snippet: "Eco" },
+    ] },
+    { index: 3, query: "q3", organic: [
+      { title: "Insee — Données", link: "https://www.insee.fr/fr/statistiques/12345", snippet: "Stats" },
+    ] },
+    { index: 4, query: "q4", organic: [
+      { title: "Techniques de l'Ingénieur", link: "https://www.techniques-ingenieur.fr/emballage", snippet: "Ingénierie" },
+    ] },
+    { index: 5, query: "q5", organic: [] },
+    { index: 6, query: "q6", organic: [
+      { title: "Autre page", link: "https://www.actu-environnement.com/dechets-emballages", snippet: "RSE" },
+    ] },
+    { index: 7, query: "q7", organic: [] },
+    { index: 8, query: "q8", organic: [] },
+    { index: 9, query: "q9", organic: [] },
+    { index: 10, query: "q10", organic: [] },
+    { index: 11, query: "q11", organic: [] },
+  ]
+  const suiteRegistry = {
+    ...resolved,
+    "V4 Normalize SerpAPI Discovery": {
+      ...resolved,
+      discovery: richDiscovery,
+    }
+  }
+  httpCalls = []
+  httpResponder = async () => {
+    return "<html><body>Contenu public complet de la page pour Tournaire à Grasse. Les emballages en aluminium et inox sont certifiés conformes.</body></html>"
+  }
+  await runCode("V4 Fetch Selected Pages", suiteRegistry)
+  const selectedList = suiteRegistry["V4 Fetch Selected Pages"].selectedPages
+
+  // Test 1 : 12 recherches avec résultats → au moins 3 pages sélectionnées
+  check(
+    "Exigence 1 : 12 recherches avec résultats → au moins 3 pages sélectionnées (et <= 6)",
+    selectedList.length >= 3 && selectedList.length <= 6,
+    `selectedPages count = ${selectedList.length}`
+  )
+
+  // Test 2 : site officiel connu → candidat prioritaire
+  check(
+    "Exigence 2 : site officiel connu (canonical.website) est candidat prioritaire en tête de sélection",
+    selectedList.length > 0 && selectedList[0].link.startsWith("https://www.tournaire.fr") && selectedList[0].score >= 100
+  )
+
+  // Test 3 : doublons supprimés
+  const urlsInSelected = selectedList.map((p) => p.link)
+  const uniqueUrls = new Set(urlsInSelected)
+  check(
+    "Exigence 3 : doublons d'URL (y compris avec #hash) supprimés de la sélection",
+    urlsInSelected.length === uniqueUrls.size
+  )
+
+  // Test 4 : localhost / IP privées rejetés
+  check(
+    "Exigence 4 : localhost et adresses IP privées strictement rejetés de la sélection",
+    !selectedList.some((p) => /localhost|127\.0\.0\.1|10\.|192\.168\.|172\.16\./.test(p.link))
+  )
+
+  // Test 5 : certaines pages échouent → les autres restent exploitables
+  const partialFailRegistry = {
+    ...resolved,
+    "V4 Normalize SerpAPI Discovery": {
+      ...resolved,
+      discovery: richDiscovery,
+    }
+  }
+  httpCalls = []
+  httpResponder = async (options) => {
+    if (options.url.includes("usinenouvelle") || options.url.includes("insee")) {
+      throw new Error("HTTP 503 Service Unavailable")
+    }
+    return "<html><body>Contenu public complet, valide et détaillé de la page consultée avec succès sur le site web. L'entreprise Tournaire fabrique des emballages industriels de haute performance à Grasse, notamment des bidons et fûts en aluminium et acier inoxydable pour la pharmacie et la chimie fine.</body></html>"
+  }
+  await runCode("V4 Fetch Selected Pages", partialFailRegistry)
+  const partialFetchRes = partialFailRegistry["V4 Fetch Selected Pages"]
+  check(
+    "Exigence 5 : certaines pages échouent → les autres restent exploitables dans fetchedPages et fetchFailures est renseigné",
+    partialFetchRes.fetchedPages.length > 0 &&
+    partialFetchRes.fetchFailures.length > 0 &&
+    partialFetchRes.fetchedPages.every((p) => p.fetched) &&
+    partialFetchRes.fetchFailures.every((p) => !p.fetched && p.error.includes("503"))
+  )
+
+  // Test 6 : discoveryCount > 0 + zéro page récupérée → diagnostic explicite
+  // Cas A : Toutes les pages sélectionnées échouent au fetch -> external_research_degraded
+  const allFailRegistry = {
+    ...resolved,
+    "V4 Normalize SerpAPI Discovery": {
+      ...resolved,
+      discovery: richDiscovery,
+    }
+  }
+  httpCalls = []
+  httpResponder = async () => { throw new Error("Network timeout") }
+  await runCode("V4 Fetch Selected Pages", allFailRegistry)
+  const allFailFetch = allFailRegistry["V4 Fetch Selected Pages"]
+  check(
+    "Exigence 6a : toutes les pages échouent → externalResearchStatus vaut external_research_degraded",
+    allFailFetch.externalResearchStatus === "external_research_degraded" &&
+    allFailFetch.selectedPages.length > 0 &&
+    allFailFetch.fetchedPages.length === 0
+  )
+
+  // Vérifier la trace QA dans Parse & Guard pour external_research_degraded
+  const allFailGuardRegistry = {
+    ...allFailRegistry,
+    "V4 Assemble Prompt": {
+      ...allFailFetch,
+      sourceCatalogue: [
+        { id: "reg-1", source_type: "regulatory_filing", label: "Registre" },
+      ],
+      dossierText: "tournaire grasse emballages",
+    },
+    "V4 Call LLM": {
+      content: [{ type: "text", text: JSON.stringify(llmArtifact("reg-1")) }],
+      usage: { input_tokens: 2000, output_tokens: 1000 },
+      model: "claude-sonnet-5"
+    }
+  }
+  await runCode("V4 Parse & Guard", allFailGuardRegistry)
+  const allFailQa = allFailGuardRegistry["V4 Parse & Guard"].qaFlags
+  check(
+    "Exigence 6b : external_research_degraded est tracé explicitement avec passed: false dans qaFlags",
+    allFailQa.some((f) => f.check === "external_research" && f.passed === false && f.detail.includes("external_research_degraded"))
+  )
+
+  // Cas B : discoveryCount > 0 mais 0 URLs exploitables -> lève une anomalie pipeline
+  const anomalyRegistry = {
+    "V4 Normalize SerpAPI Discovery": {
+      canonical: { name: "TestCo", website: null },
+      discovery: [
+        { index: 0, query: "q0", organic: [
+          { title: "Privé", link: "http://127.0.0.1/foo", snippet: "" },
+          { title: "Local", link: "http://localhost/bar", snippet: "" },
+        ] }
+      ]
+    }
+  }
+  await expectThrows(
+    "Exigence 6c : discoveryCount > 0 et 0 candidat sélectionné lève une anomalie pipeline explicite",
+    () => runCode("V4 Fetch Selected Pages", anomalyRegistry),
+    /Anomalie pipeline V4 : aucune URL exploitable sélectionnée malgré 2 résultats découverts/
+  )
+
   const v4WithErrors = workflow.nodes.filter((n) => n.name.startsWith("V4 ") && n.onError === "continueErrorOutput")
   const missingFailure = v4WithErrors.filter((n) => !((workflow.connections[n.name] || {}).main || [])[1]?.some((c) => c.node === "Prepare Failure Callback"))
   check("Toutes les sorties d'erreur V4 rejoignent le callback d'échec", missingFailure.length === 0, missingFailure.map((n) => n.name).join(", "))

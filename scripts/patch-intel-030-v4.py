@@ -81,14 +81,15 @@ const canonical = {
 const anchor = [canonical.legal_name || canonical.name, canonical.hq_location].filter(Boolean).join(' ');
 if (!anchor) throw new Error('Nom de compte absent : recherche V4 impossible');
 const quoted = '"' + anchor.replace(/"/g, '') + '"';
-const sector = canonical.sector || canonical.segment || canonical.name;
+const marketAnchor = canonical.segment || canonical.sector || canonical.name;
+const quotedMarket = '"' + marketAnchor.replace(/"/g, '') + '"';
 const queries = [
   quoted + ' activité offres produits clients', quoted + ' histoire dirigeants ambitions stratégie',
   quoted + ' concurrents positionnement marché', quoted + ' actualité 2025 2026',
   quoted + ' partenaires fournisseurs chaîne de valeur', quoted + ' site officiel rapport publication',
-  '"' + sector + '" taille marché croissance France', '"' + sector + '" acteurs concurrents startups France',
-  '"' + sector + '" chaîne de valeur écosystème fournisseurs', '"' + sector + '" réglementation certification France',
-  '"' + sector + '" tendances clients usages 2025 2026', '"' + sector + '" enjeux risques dépendances',
+  quotedMarket + ' taille marché croissance France', quotedMarket + ' acteurs concurrents startups France',
+  quotedMarket + ' chaîne de valeur écosystème fournisseurs', quotedMarket + ' réglementation certification France',
+  quotedMarket + ' tendances clients usages 2025 2026', quotedMarket + ' enjeux risques dépendances',
 ];
 return [{ json: {
   ...upstream, canonical, fullContext: ctx, researchPlan: queries.map((query, index) => ({ index, query })),
@@ -170,9 +171,15 @@ const discovery = requests.map((request, index) => {
   }
   return {
     index: request.json.index, query: request.json.query,
-    organic: organic.slice(0, 8).map((r) => ({
-      title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null,
-    })),
+    organic: organic.slice(0, 8).map((r) => {
+      const rawLink = typeof r === 'string' ? r : (r.link || r.url || r.redirect_link || '');
+      return {
+        title: (r && r.title) || '',
+        link: rawLink || '',
+        snippet: (r && r.snippet) || '',
+        date: (r && r.date) || null,
+      };
+    }),
     ...(error ? { error } : {}),
   };
 });
@@ -183,42 +190,132 @@ FETCH = r'''// Sélection puis consultation de 3 à 6 pages publiques. Les éche
 const data = $('V4 Normalize SerpAPI Discovery').first().json;
 function safe(value) {
   try {
-    const u = new URL(value); const h = u.hostname.toLowerCase();
+    if (!value || typeof value !== 'string') return false;
+    let v = value.trim();
+    if (!/^https?:\/\//i.test(v)) {
+      if (v.startsWith('//')) v = 'https:' + v;
+      else if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(v)) v = 'https://' + v;
+      else return false;
+    }
+    const u = new URL(v); const h = u.hostname.toLowerCase();
     if (!['http:', 'https:'].includes(u.protocol) || !h.includes('.')) return false;
     if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return false;
     if (/^(10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h)) return false;
+    if (h === '::1' || h.startsWith('fe80:')) return false;
+    if (/google\.|bing\.|yahoo\.|duckduckgo\./.test(h)) return false;
     return true;
   } catch (_) { return false; }
 }
-function host(value) { try { return new URL(value).hostname.replace(/^www\./, '').toLowerCase(); } catch (_) { return ''; } }
+function cleanUrl(value) {
+  try {
+    let v = String(value || '').trim();
+    if (!/^https?:\/\//i.test(v)) {
+      if (v.startsWith('//')) v = 'https:' + v;
+      else v = 'https://' + v;
+    }
+    const u = new URL(v);
+    u.hash = '';
+    return u.toString();
+  } catch (_) { return value; }
+}
+function host(value) { try { return new URL(cleanUrl(value)).hostname.replace(/^www\./, '').toLowerCase(); } catch (_) { return ''; } }
 const officialHost = host(data.canonical.website || '');
 const candidates = [];
 const seen = new Set();
-for (const search of data.discovery) for (const r of search.organic || []) {
-  if (!safe(r.link)) continue;
-  const clean = r.link.split('#')[0];
-  if (seen.has(clean)) continue;
-  seen.add(clean);
-  const h = host(clean);
-  let score = 0;
-  if (officialHost && (h === officialHost || h.endsWith('.' + officialHost))) score += 100;
-  if (/\.gouv\.fr$|insee\.fr$|europa\.eu$/.test(h)) score += 70;
-  if (/lesechos|usinenouvelle|latribune|bfmtv|lemonde|reuters|afp/.test(h)) score += 40;
-  score += Math.max(0, 12 - search.index);
-  candidates.push({ ...r, query: search.query, score });
+
+// Site officiel du compte comme candidat prioritaire si connu et sûr
+if (data.canonical && data.canonical.website && safe(data.canonical.website)) {
+  const officialUrl = cleanUrl(data.canonical.website);
+  seen.add(officialUrl);
+  candidates.push({
+    title: (data.canonical.name || 'Compte') + ' — Site officiel',
+    link: officialUrl,
+    snippet: data.canonical.description || 'Site officiel de l\'entreprise',
+    date: null,
+    query: 'canonical.website',
+    score: 200,
+  });
 }
+
+const discoveryCount = (data.discovery || []).reduce((n, s) => n + (s.organic || []).length, 0);
+
+for (const search of data.discovery || []) {
+  for (const r of search.organic || []) {
+    const rawLink = typeof r === 'string' ? r : (r.link || r.url || r.redirect_link || '');
+    if (!safe(rawLink)) continue;
+    const clean = cleanUrl(rawLink);
+    if (seen.has(clean)) continue;
+    seen.add(clean);
+    const h = host(clean);
+    let score = 10;
+    if (officialHost && (h === officialHost || h.endsWith('.' + officialHost))) score += 100;
+    if (/\.gouv\.fr$|insee\.fr$|europa\.eu$/.test(h)) score += 70;
+    if (/lesechos|usinenouvelle|latribune|bfmtv|lemonde|reuters|afp|challenges|lefigaro/.test(h)) score += 40;
+    if (/techniques-ingenieur|industrie-mag|actu-environnement|processalimentaire|decision-achats|journaldunet|emballagesmagazine/.test(h)) score += 30;
+    score += Math.max(0, 12 - search.index);
+    candidates.push({
+      title: r.title || clean,
+      link: clean,
+      snippet: r.snippet || '',
+      date: r.date || null,
+      query: search.query,
+      score,
+    });
+  }
+}
+
+if (discoveryCount > 0 && candidates.length === 0) {
+  throw new Error('Anomalie pipeline V4 : aucune URL exploitable sélectionnée malgré ' + discoveryCount + ' résultats découverts');
+}
+
 candidates.sort((a, b) => b.score - a.score || a.link.localeCompare(b.link));
 const selected = candidates.slice(0, 6);
+
 const pages = await Promise.all(selected.map(async (candidate) => {
   try {
-    const body = await this.helpers.httpRequest({ method: 'GET', url: candidate.link, timeout: 25000, returnFullResponse: false });
+    const body = await this.helpers.httpRequest({
+      method: 'GET',
+      url: candidate.link,
+      timeout: 25000,
+      returnFullResponse: false,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+      },
+    });
     const raw = typeof body === 'string' ? body : JSON.stringify(body);
-    const text = raw.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim().slice(0, 14000);
-    if (text.length < 120) throw new Error('corps vide ou trop court');
+    const text = raw
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 14000);
+    if (text.length < 120) throw new Error('corps vide ou trop court (' + text.length + ' car.)');
     return { ...candidate, consulted_at: new Date().toISOString(), text, fetched: true };
-  } catch (error) { return { ...candidate, fetched: false, error: String(error.message || error) }; }
+  } catch (error) {
+    return { ...candidate, fetched: false, error: String(error.message || error) };
+  }
 }));
-return [{ json: { ...data, selectedPages: selected, fetchedPages: pages.filter((p) => p.fetched), fetchFailures: pages.filter((p) => !p.fetched) } }];'''
+
+const fetchedPages = pages.filter((p) => p.fetched);
+const fetchFailures = pages.filter((p) => !p.fetched);
+const externalResearchStatus = (discoveryCount > 0 && selected.length > 0 && fetchedPages.length === 0)
+  ? 'external_research_degraded'
+  : 'nominal';
+
+return [{ json: {
+  ...data,
+  selectedPages: selected,
+  fetchedPages,
+  fetchFailures,
+  externalResearchStatus,
+} }];'''
 
 
 CATALOGUE = r'''const data = $('V4 Fetch Selected Pages').first().json;
@@ -381,6 +478,11 @@ const allowedSources = new Set(data.sourceCatalogue.map((s) => s.id));
 const dossierLower = data.dossierText.toLowerCase();
 const figurePattern = /(?:\b\d{4,}\b|\d[\d\s.,]*\s*(?:%|€|m\s*€|md\s*€))/giu;
 const qa = [];
+if (data.selectedPages && data.selectedPages.length > 0 && (!data.fetchedPages || data.fetchedPages.length === 0)) {
+  qa.push({ check: 'external_research', passed: false, detail: 'external_research_degraded : toutes les pages sélectionnées (' + data.selectedPages.length + ') ont échoué au fetch' });
+} else if (data.fetchedPages && data.fetchedPages.length > 0) {
+  qa.push({ check: 'external_research', passed: true, detail: data.fetchedPages.length + ' page(s) externe(s) consultée(s)' });
+}
 function cleanText(value) { return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''; }
 function guardFigures(text, label) {
   const matches = text.match(figurePattern) || [];
@@ -471,7 +573,14 @@ const callbackBody = {
   title: 'Connaissance entreprise — ' + (data.canonical.name || 'Compte'), modelProvider: 'anthropic',
   modelUsed: usage.model || 'claude-sonnet-5', tokensInput: usage.inputTokens, tokensOutput: usage.outputTokens,
   durationMs: data.startedAtMs ? Date.now() - data.startedAtMs : null,
-  contextSnapshot: { schemaVersion: 4, canonical: data.canonical, entityResolution: data.entityResolution, researchPlan: data.researchPlan, discoveryCount: data.discovery.reduce((n, s) => n + (s.organic || []).length, 0), selectedPages: data.selectedPages, fetchedPages: data.fetchedPages.map(({ text, ...rest }) => rest), fetchFailures: data.fetchFailures, coverage: ak.coverage, dataCutoffAt: data.dataCutoffAt },
+  contextSnapshot: {
+    schemaVersion: 4, canonical: data.canonical, entityResolution: data.entityResolution,
+    researchPlan: data.researchPlan, discoveryCount: data.discovery.reduce((n, s) => n + (s.organic || []).length, 0),
+    selectedPages: data.selectedPages, fetchedPages: data.fetchedPages.map(({ text, ...rest }) => rest),
+    fetchFailures: data.fetchFailures,
+    externalResearchStatus: data.externalResearchStatus || (data.discovery.reduce((n, s) => n + (s.organic || []).length, 0) > 0 && (!data.fetchedPages || data.fetchedPages.length === 0) ? 'external_research_degraded' : 'nominal'),
+    coverage: ak.coverage, dataCutoffAt: data.dataCutoffAt,
+  },
   sourceRefs,
   qaFlags: [{ check: 'entity_resolution', passed: true, detail: 'SIREN ' + data.entityResolution.siren + ' — score ' + data.entityResolution.score }, ...data.qaFlags, { check: 'single_llm_call', passed: true, detail: 'Un appel de génération V4.' }],
 };
