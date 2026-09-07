@@ -75,9 +75,9 @@ QA minimale :
 |---|---|---|---|
 | **0A** | Audit complet code + DB | ✅ done | audit du 2026-09-07 |
 | **0B** | Rebaseline documentaire V2 | ✅ done | baseline du 2026-09-07 |
-| **1.0** | Contrat client-safe de `SectionRail` | 🟡 implémenté, validation en cours | `src/lib/navigation/section-rail.ts` |
-| **1.1** | Primitive présentationnelle `SectionRail` | 🟡 implémentée, validation en cours | `src/components/layout/SectionRail.tsx` |
-| **1.2** | Tests unitaires de la primitive | 🟡 écrits, exécution à confirmer | `SectionRail.test.ts` |
+| **1.0** | Contrat client-safe de `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/lib/navigation/section-rail.ts` |
+| **1.1** | Primitive présentationnelle `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/components/layout/SectionRail.tsx` |
+| **1.2** | Tests unitaires de la primitive | ✅ done | `SectionRail.test.ts` — 5/5 tests passés le 2026-09-08 |
 | **2.1** | Migration Account Intelligence | ⬜ todo | Golden Master |
 | **2.2** | Migration Business Intelligence | ⬜ todo | conserver `?tab=` |
 | **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
@@ -199,11 +199,19 @@ La primitive supporte :
 
 - preview Vercel du commit `7b56a1db9cb905f360866f96ee41fd208f5bbd85` : **READY** ;
 - `next build` de cette preview : terminé avec succès ;
-- gates locales (`npm test`, `check:server-boundary`, lint ciblé) : non exécutées depuis les connecteurs de cette session ;
+- tests ciblés locaux du 2026-09-08 : **14/14 passés** sur `SectionRail.test.ts` et
+  `engagements-desktop-ui.test.ts` ;
+- `npm run check:server-boundary` du 2026-09-08 : **passé** ;
+- lint ciblé du 2026-09-08 : **passé sans erreur ni warning** sur le contrat, la primitive,
+  leurs tests et le consommateur Engagements ;
+- smoke Desktop authentifié `/missions` du 2026-09-08 : **bloqué avant rendu** ;
+  `.codex/auth-state.json` redirige vers `/login?next=%2Fmissions`. La session QA doit être
+  renouvelée, sans contournement du système d'authentification ;
 - aucune migration Supabase ;
 - aucun changement métier.
 
-Le socle compile et se déploie ; son verdict reste `partial` jusqu'à exécution des gates locales restantes.
+Le socle compile, se déploie et passe les gates locales ciblées demandées. Son verdict reste
+`partial` jusqu'au smoke Desktop authentifié.
 
 ## 9. Lot 2.6 — pilote Engagements
 
@@ -223,13 +231,15 @@ Le socle compile et se déploie ; son verdict reste `partial` jusqu'à exécutio
 - preview Vercel du commit `ee565dd7b01005c6573d8b239380f2270913a7e4` : **READY** ;
 - build Next/Turbopack : **compilation et TypeScript validés** par Vercel ;
 - smoke HTTP sur `/missions?vue=missions-at` : **200**, puis redirection vers le login faute de session authentifiée ;
-- QA visuelle authentifiée du rail : non réalisée depuis les connecteurs disponibles ;
-- gates locales (`npm test`, `check:server-boundary`, lint ciblé) : restent à exécuter ;
+- tests ciblés locaux du 2026-09-08 : **14/14 passés** sur la primitive et le contrat Desktop
+  Engagements ;
+- `npm run check:server-boundary` et lint ciblé : **passés** le 2026-09-08 ;
+- QA visuelle authentifiée du rail : bloquée car `.codex/auth-state.json` redirige vers le login ;
 - aucune migration Supabase ;
 - aucun changement n8n ;
 - aucune modification Mobile.
 
-**Verdict Lot 2.6 : `partial` jusqu'aux gates locales et à la QA visuelle authentifiée.**
+**Verdict Lot 2.6 : `partial` jusqu'à la QA visuelle authentifiée.**
 
 ## 10. Prochaine étape
 
