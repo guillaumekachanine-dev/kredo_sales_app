@@ -79,7 +79,7 @@ QA minimale :
 | **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
 | **2.4** | Migration Rapports | ⬜ todo | extraire rail inline |
 | **2.5** | Migration Automatisations | ⬜ todo | supprimer divergences visuelles |
-| **2.6** | Migration Engagements | ⬜ todo | conserver `?vue=` |
+| **2.6** | Migration Engagements | 🟡 implémentée, preview en validation | premier pilote réel |
 | **2.7** | Migration Prospection | ⬜ todo | `15rem → 11.5rem` |
 | **2.8** | Migration Knowledge Hub | ⬜ todo | conserver navigation contextuelle |
 | **3.x** | Standardisation des modules contextuels | ⬜ todo | uniquement contexte page |
@@ -117,6 +117,10 @@ Le Mobile est hors refonte visuelle mais ses dépendances partagées ne sont pas
 
 Knowledge Hub n'est plus exempté du châssis commun : seule sa navigation métier contextuelle reste spécifique.
 
+### 2026-09-07 — R-07
+
+Le premier pilote de migration est **Engagements** plutôt qu'Account Intelligence : son titre de page est non ambigu, son état `?vue=` est déjà URL-addressable et il ne possède aucun module contextuel à arbitrer. Cela permet de prouver la primitive sans modifier de logique métier.
+
 ## 6. Écarts connus avant code
 
 - plusieurs rails `11.5rem` sont encore des copies locales ;
@@ -152,7 +156,7 @@ Vérifications documentaires :
 
 **Verdict Lot 0B : `done`.**
 
-## 8. Lot 1 — état actuel
+## 8. Lot 1 — socle `SectionRail`
 
 ### Audit d'entrée effectué
 
@@ -182,16 +186,38 @@ La primitive supporte :
 - largeur fixe `11.5rem` ;
 - chapeau navy, blanc, gras et centré.
 
+### Validation du socle
+
+- preview Vercel du commit `7b56a1db9cb905f360866f96ee41fd208f5bbd85` : **READY** ;
+- `next build` de cette preview : terminé avec succès ;
+- gates locales (`npm test`, `check:server-boundary`, lint ciblé) : non exécutées depuis les connecteurs de cette session ;
+- aucune migration Supabase ;
+- aucun changement métier.
+
+Le socle compile et se déploie ; son verdict reste `partial` jusqu'à exécution des gates locales restantes.
+
+## 9. Lot 2.6 — pilote Engagements
+
+### Modifications
+
+- `EngagementsDesktopView.tsx` utilise désormais `SectionRail` ;
+- suppression du rail JSX local ;
+- chapeau = `Engagements`, navy, blanc, gras et centré via la primitive ;
+- navigation `?vue=` conservée ;
+- section `Chapitres` fournie par la primitive ;
+- aucun module affiché car aucun module contextuel n'est déclaré sur cette page ;
+- le header principal affiche désormais le **nom exact de l'onglet actif** : `Synthèse`, `Missions AT`, `Projets`, `Activité & congés`, `Planning des engagements` ;
+- tests de contrat du header mis à jour.
+
 ### Validation
 
-- Vercel : déploiement preview déclenché, statut encore `pending` au dernier contrôle ;
-- gates locales (`typecheck`, tests, server-boundary, lint ciblé) : non exécutables depuis le connecteur GitHub dans cette session ;
+- preview Vercel du commit `ee565dd7b01005c6573d8b239380f2270913a7e4` : build en cours au dernier contrôle ; compilation JavaScript déjà passée, TypeScript en cours ;
 - aucune migration Supabase ;
-- aucun changement métier ;
-- aucune page encore migrée vers la primitive.
+- aucun changement n8n ;
+- aucune modification Mobile.
 
-**Verdict lots 1.0–1.2 : `partial` tant que les gates ne sont pas confirmées.**
+**Verdict Lot 2.6 : `partial` jusqu'à fin du build et QA visuelle.**
 
-## 9. Prochaine étape
+## 10. Prochaine étape
 
-Après validation du socle : migration d'une première surface existante vers `SectionRail`, sans modification métier. Le choix du premier pilote doit respecter le contrat de chapeau et la présence du titre d'onglet dans le header principal.
+Après validation du pilote Engagements : poursuivre les migrations page par page, sans modifier leur métier et en traitant explicitement la composition des modules contextuels de chaque surface avant suppression de son rail local.
