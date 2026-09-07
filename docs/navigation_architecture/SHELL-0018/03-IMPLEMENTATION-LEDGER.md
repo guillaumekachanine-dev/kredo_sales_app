@@ -79,7 +79,7 @@ QA minimale :
 | **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
 | **2.4** | Migration Rapports | ⬜ todo | extraire rail inline |
 | **2.5** | Migration Automatisations | ⬜ todo | supprimer divergences visuelles |
-| **2.6** | Migration Engagements | 🟡 implémentée, preview en validation | premier pilote réel |
+| **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
 | **2.7** | Migration Prospection | ⬜ todo | `15rem → 11.5rem` |
 | **2.8** | Migration Knowledge Hub | ⬜ todo | conserver navigation contextuelle |
 | **3.x** | Standardisation des modules contextuels | ⬜ todo | uniquement contexte page |
@@ -211,13 +211,17 @@ Le socle compile et se déploie ; son verdict reste `partial` jusqu'à exécutio
 
 ### Validation
 
-- preview Vercel du commit `ee565dd7b01005c6573d8b239380f2270913a7e4` : build en cours au dernier contrôle ; compilation JavaScript déjà passée, TypeScript en cours ;
+- preview Vercel du commit `ee565dd7b01005c6573d8b239380f2270913a7e4` : **READY** ;
+- build Next/Turbopack : **compilation et TypeScript validés** par Vercel ;
+- smoke HTTP sur `/missions?vue=missions-at` : **200**, puis redirection vers le login faute de session authentifiée ;
+- QA visuelle authentifiée du rail : non réalisée depuis les connecteurs disponibles ;
+- gates locales (`npm test`, `check:server-boundary`, lint ciblé) : restent à exécuter ;
 - aucune migration Supabase ;
 - aucun changement n8n ;
 - aucune modification Mobile.
 
-**Verdict Lot 2.6 : `partial` jusqu'à fin du build et QA visuelle.**
+**Verdict Lot 2.6 : `partial` jusqu'aux gates locales et à la QA visuelle authentifiée.**
 
 ## 10. Prochaine étape
 
-Après validation du pilote Engagements : poursuivre les migrations page par page, sans modifier leur métier et en traitant explicitement la composition des modules contextuels de chaque surface avant suppression de son rail local.
+Poursuivre les migrations page par page après les gates du pilote, sans modifier leur métier et en traitant explicitement la composition des modules contextuels de chaque surface avant suppression de son rail local.
