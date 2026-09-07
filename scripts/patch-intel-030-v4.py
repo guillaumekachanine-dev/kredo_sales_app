@@ -119,28 +119,38 @@ if (snapshot.decision !== 'resolved') {
 return [{ json: { ...data, entityResolution: snapshot, registryQueries: urls, registryCandidates: candidates } }];'''
 
 
-DISCOVERY = r'''// Serper sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.
+BUILD_SERPER_REQUESTS = r'''// Le secret Serper est un credential n8n HTTP Header Auth, jamais une variable
+// dans le workflow ni dans le VPS. Ce nœud ne produit que les 12 requêtes publiques.
 const data = $('V4 Resolve Entity').first().json;
-// Priorité à la variable administrable depuis l'interface n8n (Settings →
-// Variables). L'environnement VPS reste un secours pour les déploiements qui
-// l'avaient déjà configuré. Aucune clé ne figure dans le workflow exporté.
-const apiKey = (typeof $vars !== 'undefined' && $vars.SERPER_API_KEY) || $env.SERPER_API_KEY;
-if (!apiKey) throw new Error('SERPER_API_KEY absente : crée Settings → Variables → SERPER_API_KEY dans n8n.');
-const searches = await Promise.all(data.researchPlan.map(async (plan) => {
-  try {
-    const response = await this.helpers.httpRequest({
-      method: 'POST', url: 'https://google.serper.dev/search', json: true, timeout: 20000,
-      headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
-      body: { q: plan.query, gl: 'fr', hl: 'fr', num: 8 },
-    });
-    return { ...plan, organic: (response.organic || []).slice(0, 8).map((r) => ({ title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null })) };
-  } catch (error) { return { ...plan, organic: [], error: String(error.message || error) }; }
-}));
-return [{ json: { ...data, discovery: searches } }];'''
+return data.researchPlan.map((plan) => ({ json: {
+  index: plan.index, query: plan.query, gl: 'fr', hl: 'fr', num: 8,
+} }));'''
+
+
+NORMALIZE_SERPER = r'''// Serper sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.
+// HTTP Request conserve l'ordre et le couplage un-pour-un de ses items. On vérifie
+// explicitement cette invariance plutôt que d'associer une réponse à une autre requête.
+const data = $('V4 Resolve Entity').first().json;
+const requests = $('V4 Build Serper Requests').all();
+const responses = $input.all();
+if (requests.length !== data.researchPlan.length || responses.length !== requests.length) {
+  throw new Error('Réponses Serper incomplètes : ' + responses.length + '/' + requests.length);
+}
+const discovery = requests.map((request, index) => {
+  const response = responses[index] && responses[index].json ? responses[index].json : {};
+  return {
+    index: request.json.index, query: request.json.query,
+    organic: (response.organic || []).slice(0, 8).map((r) => ({
+      title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null,
+    })),
+    ...(response.error ? { error: String(response.error.message || response.error) } : {}),
+  };
+});
+return [{ json: { ...data, discovery } }];'''
 
 
 FETCH = r'''// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.
-const data = $('V4 Serper Discovery').first().json;
+const data = $('V4 Normalize Serper Discovery').first().json;
 function safe(value) {
   try {
     const u = new URL(value); const h = u.hostname.toLowerCase();
@@ -368,16 +378,24 @@ def main() -> None:
     nodes = [
         code_node("n030v4-01", "V4 Prepare Dossier", -120, 1320, PREPARE),
         code_node("n030v4-02", "V4 Resolve Entity", 120, 1320, entity_helpers + "\n" + RESOLVE_TAIL),
-        code_node("n030v4-03", "V4 Serper Discovery", 360, 1320, DISCOVERY),
-        code_node("n030v4-04", "V4 Fetch Selected Pages", 600, 1320, FETCH),
-        code_node("n030v4-05", "V4 Build Source Catalogue", 840, 1320, CATALOGUE),
-        http_node("n030v4-06", "V4 Upsert Sources", 1080, 1320, {
+        code_node("n030v4-03", "V4 Build Serper Requests", 360, 1320, BUILD_SERPER_REQUESTS),
+        http_node("n030v4-03a", "V4 Serper Search", 600, 1320, {
+            "method": "POST", "url": "https://google.serper.dev/search",
+            "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth",
+            "sendBody": True, "contentType": "json", "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ q: $json.query, gl: $json.gl, hl: $json.hl, num: $json.num }) }}",
+            "options": {"timeout": 20000, "response": {"response": {"neverError": True, "responseFormat": "json"}}},
+        }),
+        code_node("n030v4-03b", "V4 Normalize Serper Discovery", 840, 1320, NORMALIZE_SERPER),
+        code_node("n030v4-04", "V4 Fetch Selected Pages", 1080, 1320, FETCH),
+        code_node("n030v4-05", "V4 Build Source Catalogue", 1320, 1320, CATALOGUE),
+        http_node("n030v4-06", "V4 Upsert Sources", 1560, 1320, {
             "method": "POST", "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/intelligence_sources?on_conflict=workspace_id,source_key",
             "authentication": "predefinedCredentialType", "nodeCredentialType": "supabaseApi", "sendHeaders": True,
             "headerParameters": {"parameters": [{"name": "Prefer", "value": "resolution=ignore-duplicates,return=representation"}]},
             "sendBody": True, "contentType": "json", "specifyBody": "json", "jsonBody": "={{ $('V4 Build Source Catalogue').first().json.sourcesPayload }}", "options": {"timeout": 30000},
         }),
-        http_node("n030v4-07", "V4 Resolve Source Ids", 1320, 1320, {
+        http_node("n030v4-07", "V4 Resolve Source Ids", 1800, 1320, {
             "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/intelligence_sources", "authentication": "predefinedCredentialType", "nodeCredentialType": "supabaseApi",
             "sendQuery": True, "queryParameters": {"parameters": [
                 {"name": "workspace_id", "value": "=eq.{{ $('V4 Build Source Catalogue').first().json.workspaceId }}"},
@@ -385,8 +403,8 @@ def main() -> None:
                 {"name": "select", "value": "id,source_key,source_type,source_name,canonical_url,source_url,published_at,reliability_score"},
             ]}, "options": {"timeout": 20000},
         }),
-        code_node("n030v4-08", "V4 Assemble Prompt", 1560, 1320, PROMPT),
-        http_node("n030v4-09", "V4 Call LLM", 1800, 1320, {
+        code_node("n030v4-08", "V4 Assemble Prompt", 2040, 1320, PROMPT),
+        http_node("n030v4-09", "V4 Call LLM", 2280, 1320, {
             "method": "POST", "url": "https://api.anthropic.com/v1/messages", "authentication": "predefinedCredentialType", "nodeCredentialType": "anthropicApi",
             "sendHeaders": True, "headerParameters": {"parameters": [{"name": "anthropic-version", "value": "2023-06-01"}]},
             "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, temperature: 0.2, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}", "options": {"timeout": 240000},
@@ -429,7 +447,7 @@ def main() -> None:
         [{"node": "V3 Prepare Context & Research Plan", "type": "main", "index": 0}],
         [{"node": "Prepare Deterministic Context", "type": "main", "index": 0}],
     ]}
-    sequence = ["V4 Prepare Dossier", "V4 Resolve Entity", "V4 Serper Discovery", "V4 Fetch Selected Pages", "V4 Build Source Catalogue", "V4 Upsert Sources", "V4 Resolve Source Ids", "V4 Assemble Prompt", "V4 Call LLM"]
+    sequence = ["V4 Prepare Dossier", "V4 Resolve Entity", "V4 Build Serper Requests", "V4 Serper Search", "V4 Normalize Serper Discovery", "V4 Fetch Selected Pages", "V4 Build Source Catalogue", "V4 Upsert Sources", "V4 Resolve Source Ids", "V4 Assemble Prompt", "V4 Call LLM"]
     for current, following in zip(sequence, sequence[1:]):
         workflow["connections"][current] = {"main": [[{"node": following, "type": "main", "index": 0}], failure]}
     workflow["connections"]["V4 Call LLM"] = {"main": [[{"node": "V4 Truncated?", "type": "main", "index": 0}], failure]}

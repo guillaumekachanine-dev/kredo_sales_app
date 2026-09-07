@@ -248,10 +248,10 @@ Configuration additionnelle lors du réimport manuel :
 - `V4 Upsert Sources`, `V4 Resolve Source Ids` et `Hydrate Context` utilisent le
   credential Supabase service role existant ;
 - `V4 Call LLM` utilise le credential Anthropic existant ;
-- `V4 Serper Discovery` lit d'abord la variable n8n `SERPER_API_KEY` (interface
-  **Settings → Variables**, sans accès VPS), puis `$env.SERPER_API_KEY` en repli
-  pour les installations qui l'avaient déjà configurée. Aucune clé ne doit être
-  copiée dans le JSON ;
+- `V4 Serper Search` utilise un credential n8n, sans variable VPS : créer un
+  credential **Header Auth**, lui donner le nom `Serper API — KREDO`, renseigner
+  le header `X-API-KEY` avec la clé Serper, puis le sélectionner dans ce nœud
+  après import. Le JSON ne contient aucune clé ;
 - `V4 Sign Callback` doit recevoir le même secret HMAC que les autres nœuds Crypto.
 
 Avant activation, rejouer :

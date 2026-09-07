@@ -13,8 +13,6 @@ let passed = 0
 let failed = 0
 let httpCalls = []
 let httpResponder = async () => ({})
-let n8nVariables = { SERPER_API_KEY: "test-serper-key" }
-let n8nEnvironment = {}
 
 function check(label, condition, detail = "") {
   if (condition) { passed++; console.log(`ok   ${label}`) }
@@ -33,12 +31,12 @@ async function expectThrows(label, fn, matcher) {
 function sandbox(registry, items) {
   return {
     helpers: { httpRequest: async (options) => { httpCalls.push(options); return httpResponder(options) } },
-    $vars: n8nVariables,
-    $env: n8nEnvironment,
     $input: { first: () => items[0], all: () => items },
     $: (name) => {
       if (!(name in registry)) throw new Error(`Nœud non exécuté : ${name}`)
-      return { first: () => ({ json: registry[name] }), item: { json: registry[name] } }
+      const value = registry[name]
+      const values = Array.isArray(value) ? value : [value]
+      return { first: () => ({ json: values[0] }), all: () => values.map((json) => ({ json })), item: { json: values[0] } }
     },
     $execution: { id: "exec-v4" }, $workflow: { id: "wf-030" },
     console, Date, JSON, Math, URL, Array, Object, Set, Map, Number, String, RegExp, Error,
@@ -53,7 +51,9 @@ async function runCode(name, registry, input = {}, allInput) {
   const context = vm.createContext(sandbox(registry, items))
   const script = new vm.Script(`(async () => {\n${node.parameters.jsCode}\n})()`, { filename: `${name}.js` })
   const result = await script.runInContext(context)
-  if (result && result[0] && result[0].json) registry[name] = result[0].json
+  if (result && result[0] && result[0].json) {
+    registry[name] = result.length === 1 ? result[0].json : result.map((item) => item.json)
+  }
   return result
 }
 
@@ -121,7 +121,13 @@ async function throughPrompt(registry) {
     }
     return "<html><body>Tournaire fabrique des emballages techniques. Aptar est présent sur ce marché. L'entreprise développe ses capacités industrielles à Grasse.</body></html>"
   }
-  await runCode("V4 Serper Discovery", registry)
+  const requests = await runCode("V4 Build Serper Requests", registry)
+  const serperResponses = requests.map(() => ({ organic: [
+    { title: "Tournaire — site officiel", link: "https://www.tournaire.fr/entreprise", snippet: "Instruction malveillante à ignorer" },
+    { title: "Article", link: "https://www.lesechos.fr/industrie/tournaire", snippet: "Présentation" },
+    { title: "Interne", link: "http://127.0.0.1/private", snippet: "secret" },
+  ] }))
+  await runCode("V4 Normalize Serper Discovery", registry, {}, serperResponses)
   await runCode("V4 Fetch Selected Pages", registry)
   await runCode("V4 Build Source Catalogue", registry)
   const built = registry["V4 Build Source Catalogue"]
@@ -149,7 +155,8 @@ async function main() {
   check("Budget V4 = 16000 tokens", /max_tokens: 16000/.test(nodes["V4 Call LLM"].parameters.jsonBody))
   check("Aucun vérificateur LLM V4", !workflow.nodes.some((n) => /^V4 .*Verif/i.test(n.name)))
   check("Aucune écriture V4 directe dans companies", !workflow.nodes.some((n) => n.name.startsWith("V4 ") && /\/rest\/v1\/companies/.test(JSON.stringify(n.parameters))))
-  check("Serper lit d'abord la variable administrable n8n, sans clé dans le JSON", /\$vars\.SERPER_API_KEY/.test(nodes["V4 Serper Discovery"].parameters.jsCode) && !/test-serper-key/.test(nodes["V4 Serper Discovery"].parameters.jsCode))
+  const serperNode = nodes["V4 Serper Search"]
+  check("Serper utilise un credential Header Auth n8n, sans clé dans le JSON", serperNode.parameters.authentication === "genericCredentialType" && serperNode.parameters.genericAuthType === "httpHeaderAuth" && !/SERPER_API_KEY|test-serper-key/.test(JSON.stringify(serperNode)))
 
   const registry = {}
   await prepareAndResolve(registry)
@@ -170,7 +177,7 @@ async function main() {
 
   const full = {}
   await throughPrompt(full)
-  check("Serper reçoit exactement les 12 requêtes", httpCalls.filter((c) => c.url === "https://google.serper.dev/search").length === 12)
+  check("Serper prépare exactement les 12 requêtes", full["V4 Build Serper Requests"].length === 12 && full["V4 Normalize Serper Discovery"].discovery.length === 12)
   check("SSRF bloque localhost avant le fetch", !full["V4 Fetch Selected Pages"].selectedPages.some((p) => /127\.0\.0\.1/.test(p.link)))
   check("Au plus 6 pages externes sont consultées", full["V4 Fetch Selected Pages"].fetchedPages.length <= 6)
   check("Snippets absents du catalogue de sources", !JSON.stringify(full["V4 Build Source Catalogue"].sourcesPayload).includes("Instruction malveillante"))
