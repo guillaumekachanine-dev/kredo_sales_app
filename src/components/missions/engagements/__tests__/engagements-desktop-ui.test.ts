@@ -9,12 +9,12 @@ import type { MissionPlanningRow } from "../../planning/mission-planning-types"
 import type { DBProjectResult } from "@/app/(app)/missions/_data/get-projects-list"
 
 describe("EngagementsDesktopView — header dynamique & navigation", () => {
-  it("associe le bon titre à chaque vue", () => {
-    expect(HEADER_TITLE_BY_VIEW["missions-at"]).toBe("Missions en cours")
+  it("affiche dans le header le nom exact de chaque onglet", () => {
+    expect(HEADER_TITLE_BY_VIEW["missions-at"]).toBe("Missions AT")
     expect(HEADER_TITLE_BY_VIEW["projets"]).toBe("Projets")
     expect(HEADER_TITLE_BY_VIEW["activite-conges"]).toBe("Activité & congés")
     expect(HEADER_TITLE_BY_VIEW["planning-at"]).toBe("Planning des engagements")
-    expect(HEADER_TITLE_BY_VIEW["synthese"]).toBe("Engagements")
+    expect(HEADER_TITLE_BY_VIEW["synthese"]).toBe("Synthèse")
   })
 
   it("présente les 5 onglets dans l'ordre attendu", () => {
@@ -195,4 +195,3 @@ describe("MissionDetailsRail — rôles de contact mission", () => {
     ])
   })
 })
-
