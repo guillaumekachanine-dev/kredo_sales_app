@@ -9,6 +9,7 @@ import { useCallback, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { ACCOUNT_KNOWLEDGE_RESULT_TYPE } from "@/lib/intelligence/account-intelligence-contracts"
+import { ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION } from "@/lib/n8n/types"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 
 export type AccountKnowledgeRunStatus = "idle" | "running" | "done" | "error"
@@ -58,7 +59,7 @@ export function useAccountKnowledgeRun(companyId: string) {
           entityType: "company",
           entityId: companyId,
           companyId,
-          input: { accountKnowledgeSchemaVersion: 3 },
+          input: { accountKnowledgeSchemaVersion: ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION },
         }),
       })
 

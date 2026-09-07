@@ -7,6 +7,7 @@ import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligen
 import { SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import { openReportGeneration } from "@/lib/reports/report-generation"
 import { triggerN8nWorkflow } from "@/lib/n8n/trigger-client"
+import { ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION } from "@/lib/n8n/types"
 import { returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
 import { cn } from "@/lib/utils"
 
@@ -153,7 +154,10 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
           entityType: "company",
           entityId: company.id,
           companyId: company.id,
-          input: { accountKnowledgeSchemaVersion: 3, includedSubjects: selectedAxes },
+          input: {
+            accountKnowledgeSchemaVersion: ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION,
+            includedSubjects: selectedAxes,
+          },
         }),
       })
       if (!response.ok) throw new Error("Le workflow n’a pas pu être lancé.")

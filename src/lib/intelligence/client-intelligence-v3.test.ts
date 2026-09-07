@@ -131,7 +131,7 @@ describe("AccountKnowledge V3 - Audit Correctif", () => {
   })
 
   describe("4. Trigger Payload (useAccountKnowledgeRun)", () => {
-    it("déclenche le workflow avec le payload strict V3", async () => {
+    it("déclenche le workflow avec le payload V4 actif", async () => {
       const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         json: async () => ({ runId: "run-456" }),
@@ -146,7 +146,7 @@ describe("AccountKnowledge V3 - Audit Correctif", () => {
       const triggerInput = body.input
 
       expect(triggerInput).toEqual({
-        accountKnowledgeSchemaVersion: 3,
+        accountKnowledgeSchemaVersion: 4,
       })
 
       fetchSpy.mockRestore()

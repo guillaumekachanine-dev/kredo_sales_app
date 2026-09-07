@@ -195,8 +195,9 @@ Déclenchement V3 explicite depuis l'application (typé par
 }
 ```
 
-Les boutons Desktop/Mobile envoient toujours `input: {}` : **V3 reste dormante par
-défaut** tant que la restitution n'existe pas (Lot 5).
+Les déclencheurs applicatifs utilisent désormais la constante partagée
+`ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION = 4`. La V3 reste disponible pour les
+rejeux explicites, mais n'est plus la version active de l'interface.
 
 ### 9.2 Nœuds V3 (résumé)
 
@@ -235,7 +236,7 @@ la branche V2 n'est pas modifiée.
 
 ## 10. Branche V4 — moteur de compréhension (Lot 3, 2026-09-07)
 
-La V4 reste dormante tant que l'appelant ne demande pas explicitement
+La V4 est la version active des déclencheurs applicatifs, via
 `input.accountKnowledgeSchemaVersion: 4`. Elle hydrate la RPC
 `get_account_understanding_context`, résout l'entité légale avant toute recherche,
 lance 12 requêtes SerpAPI de découverte, consulte au plus 6 pages, puis produit les

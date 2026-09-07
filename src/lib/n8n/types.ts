@@ -339,13 +339,11 @@ export type AccountSignalVerificationResult = {
 // discriminateur (Lot 4 : il ne lisait auparavant que la racine du body, ce qui
 // rendait la branche V3 inatteignable depuis l'application).
 //
-// Littéral `2 | 3` plutôt que `number` : une version inventée est rejetée à la
+// Littéral `2 | 3 | 4` plutôt que `number` : une version inventée est rejetée à la
 // compilation, pas seulement par le workflow (même doctrine que
 // `AccountScanTriggerInput.operation`).
-//
-// Omettre entièrement l'input reste valide et signifie V2 — c'est le
-// comportement des boutons Desktop/Mobile actuels, volontairement inchangé
-// tant que la restitution V3 n'existe pas (Lot 5).
+export const ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION = 4 as const
+
 export type AccountKnowledgeTriggerInput = {
   accountKnowledgeSchemaVersion: 2 | 3 | 4
 }
