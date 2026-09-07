@@ -18,7 +18,6 @@ import {
   computeEstimatedMonthlySalary,
   computeTotalBillableDays,
   computeYtdBillableDays,
-  getPeriodLabel,
 } from "./mission-detail-utils"
 
 function MarginBadge({ pct }: { pct: number | null }) {
@@ -57,10 +56,6 @@ export function MissionFinancialTab({ vm, onRefresh }: MissionFinancialTabProps)
   const totalBillable = computeTotalBillableDays(activityReports)
   const ytdBillable = computeYtdBillableDays(activityReports)
   const estimatedMonthlySalary = computeEstimatedMonthlySalary(mission.cjm, compensation)
-
-  const recentReports = [...activityReports]
-    .sort((a, b) => b.period_start.localeCompare(a.period_start))
-    .slice(0, 6)
 
   // ─── Edit finance dialog ─────────────────────────────────────────────────────
   const [showEditFinance, setShowEditFinance] = useState(false)
@@ -155,204 +150,90 @@ export function MissionFinancialTab({ vm, onRefresh }: MissionFinancialTabProps)
         </div>
 
         {/* TJM / CJM / Salary */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <SurfaceCard className="p-5 flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-heading">Taux & marges contractuels</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                  TJM facturation
-                </span>
-                <span className="text-xl font-bold font-mono text-heading">
-                  {formatEuro(mission.tjm)}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                  CJM (coût consultant)
-                </span>
-                <span className="text-xl font-bold font-mono text-heading">
-                  {formatEuro(mission.cjm)}
-                </span>
-                {compensation?.taci !== null && compensation?.taci !== undefined && (
-                  <p className="text-[10px] text-muted mt-0.5">
-                    TACI : {(compensation.taci * 100).toFixed(0)}%
-                  </p>
-                )}
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                  Salaire brut mensuel
-                </span>
-                {compensation?.gross_annual != null ? (
-                  <div>
-                    <span className="text-xl font-bold font-mono text-heading">
-                      {formatEuro(estimatedMonthlySalary)}
-                    </span>
-                    <p className="text-[10px] text-muted mt-0.5">Données admin</p>
-                  </div>
-                ) : (
-                  <div>
-                    <span className="text-lg font-bold font-mono text-muted">
-                      {formatEuro(estimatedMonthlySalary)}
-                    </span>
-                    <p className="text-[10px] text-muted mt-0.5">Estimation heuristique</p>
-                  </div>
-                )}
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                  Valeur contrat estimée
-                </span>
-                {estimatedContractValue !== null ? (
-                  <div>
-                    <span className="text-xl font-bold font-mono text-heading">
-                      {formatEuro(estimatedContractValue)}
-                    </span>
-                    <p className="text-[10px] text-muted mt-0.5">Estimation (5/7 jours ouvrés)</p>
-                  </div>
-                ) : (
-                  <div>
-                    <span className="text-lg font-bold font-mono text-muted">—</span>
-                    <p className="text-[10px] text-muted mt-0.5">Date de fin non renseignée</p>
-                  </div>
-                )}
-              </div>
+        <SurfaceCard className="p-5 flex flex-col gap-3">
+          <h3 className="text-sm font-bold text-heading">Taux & marges contractuels</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
+                TJM facturation
+              </span>
+              <span className="text-xl font-bold font-mono text-heading">
+                {formatEuro(mission.tjm)}
+              </span>
             </div>
-
-            {/* Dates */}
-            <div className="pt-4 border-t border-border/40 grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                  Démarrage
-                </span>
-                <span className="text-xs font-semibold text-heading">
-                  {mission.start_date ? formatDateNumeric(mission.start_date) : "—"}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                  Fin prévue
-                </span>
-                <span className="text-xs font-semibold text-heading">
-                  {mission.end_date ? formatDateNumeric(mission.end_date) : "Mission ouverte"}
-                </span>
-              </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
+                CJM (coût consultant)
+              </span>
+              <span className="text-xl font-bold font-mono text-heading">
+                {formatEuro(mission.cjm)}
+              </span>
+              {compensation?.taci !== null && compensation?.taci !== undefined && (
+                <p className="text-[10px] text-muted mt-0.5">
+                  TACI : {(compensation.taci * 100).toFixed(0)}%
+                </p>
+              )}
             </div>
-          </SurfaceCard>
-
-          <SurfaceCard className="p-5 flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-heading">Facturation</h3>
-            <div className="flex flex-col gap-3">
-              {paymentTerms ? (
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
+                Salaire brut mensuel
+              </span>
+              {compensation?.gross_annual != null ? (
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                    Conditions de paiement
+                  <span className="text-xl font-bold font-mono text-heading">
+                    {formatEuro(estimatedMonthlySalary)}
                   </span>
-                  <span className="text-xs font-semibold text-heading">{paymentTerms}</span>
+                  <p className="text-[10px] text-muted mt-0.5">Données admin</p>
                 </div>
               ) : (
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                    Conditions de paiement
+                  <span className="text-lg font-bold font-mono text-muted">
+                    {formatEuro(estimatedMonthlySalary)}
                   </span>
-                  <span className="text-xs text-muted italic">Non renseignées</span>
+                  <p className="text-[10px] text-muted mt-0.5">Estimation heuristique</p>
                 </div>
               )}
-              {mission.billing_condition && (
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
+                Valeur contrat estimée
+              </span>
+              {estimatedContractValue !== null ? (
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                    Condition de facturation contractuelle
+                  <span className="text-xl font-bold font-mono text-heading">
+                    {formatEuro(estimatedContractValue)}
                   </span>
-                  <span className="text-xs font-semibold text-heading capitalize">
-                    {mission.billing_condition}
-                  </span>
+                  <p className="text-[10px] text-muted mt-0.5">Estimation (5/7 jours ouvrés)</p>
                 </div>
-              )}
-              {nextInvoiceDate && (
+              ) : (
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                    Prochaine échéance
-                  </span>
-                  <span className="text-xs font-semibold text-heading">{nextInvoiceDate}</span>
+                  <span className="text-lg font-bold font-mono text-muted">—</span>
+                  <p className="text-[10px] text-muted mt-0.5">Date de fin non renseignée</p>
                 </div>
               )}
+            </div>
+          </div>
 
-              {/* DSO not available */}
-              <div className="mt-2 p-2.5 rounded bg-canvas border border-border/50">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
-                  DSO (délai de recouvrement)
-                </span>
-                <span className="text-xs text-muted">
-                  — Données de facturation non disponibles dans Kredo (aucune table de factures)
-                </span>
-              </div>
+          {/* Dates */}
+          <div className="pt-4 border-t border-border/40 grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
+                Démarrage
+              </span>
+              <span className="text-xs font-semibold text-heading">
+                {mission.start_date ? formatDateNumeric(mission.start_date) : "—"}
+              </span>
             </div>
-          </SurfaceCard>
-        </div>
-
-        {/* Monthly breakdown from CRA snapshots */}
-        {recentReports.length > 0 && (
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-bold text-heading">Détail mensuel — sources : CRA</h3>
-              <p className="text-xs text-muted">
-                Les valeurs réelles sont calculées à partir des snapshots TJM/CJM de chaque CRA, pas des taux courants.
-              </p>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-0.5">
+                Fin prévue
+              </span>
+              <span className="text-xs font-semibold text-heading">
+                {mission.end_date ? formatDateNumeric(mission.end_date) : "Mission ouverte"}
+              </span>
             </div>
-            <div className="overflow-x-auto -mx-5 px-5">
-              <table className="w-full min-w-[540px]">
-                <thead>
-                  <tr className="border-b border-border/60">
-                    {["Période", "Jours fact.", "TJM (snapshot)", "CJM (snapshot)", "CA réel", "Marge réelle"].map((h) => (
-                      <th key={h} className="text-[10px] font-bold uppercase tracking-wider text-muted text-right first:text-left pb-2 pr-3 last:pr-0">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentReports.map((r) => {
-                    const ca = r.billable_days * r.tjm_snapshot
-                    const cost = r.billable_days * r.cjm_snapshot
-                    const marge = ca > 0 ? ((ca - cost) / ca) * 100 : null
-                    return (
-                      <tr key={r.id} className="border-b border-border/30 last:border-0">
-                        <td className="py-2.5 pr-3 text-xs font-semibold text-heading">
-                          {getPeriodLabel(r.period_start)}
-                        </td>
-                        <td className="py-2.5 pr-3 text-xs font-mono text-right text-heading">
-                          {r.billable_days}j
-                        </td>
-                        <td className="py-2.5 pr-3 text-xs font-mono text-right text-muted">
-                          {formatEuro(r.tjm_snapshot)}
-                        </td>
-                        <td className="py-2.5 pr-3 text-xs font-mono text-right text-muted">
-                          {formatEuro(r.cjm_snapshot)}
-                        </td>
-                        <td className="py-2.5 pr-3 text-xs font-mono text-right text-heading font-semibold">
-                          {formatEuro(ca)}
-                        </td>
-                        <td className="py-2.5 text-xs font-mono text-right font-semibold">
-                          <span
-                            className={cn(
-                              marge === null ? "text-muted" :
-                              marge >= MARGIN_THRESHOLDS.GOOD ? "text-success" :
-                              marge >= MARGIN_THRESHOLDS.LOW ? "text-warning" :
-                              "text-danger"
-                            )}
-                          >
-                            {marge !== null ? `${marge.toFixed(1)}%` : "—"}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </SurfaceCard>
-        )}
+          </div>
+        </SurfaceCard>
       </div>
 
       {/* Edit Finance dialog */}
