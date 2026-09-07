@@ -1,11 +1,13 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { formatDateTime } from "@/lib/formatters"
 import type { RunJournalRow } from "@/lib/automations/automations-data"
+import { resolveWorkflowResultHref } from "@/lib/automations/resolve-workflow-result-href"
 import {
   runStatusVariant,
   runStatusLabel,
@@ -21,7 +23,31 @@ export interface RunDrillDownDialogProps {
 }
 
 export function RunDrillDownDialog({ run, open, onOpenChange }: RunDrillDownDialogProps) {
+  const isActive = run?.status === "queued" || run?.status === "running"
+  const [now, setNow] = useState(() => Date.now())
+
+  // Rafraîchir chaque seconde UNIQUEMENT lorsque la modale est ouverte et que le run est actif
+  useEffect(() => {
+    if (!open || !isActive || !run) return
+    const interval = setInterval(() => {
+      setNow(Date.now())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [open, isActive, run])
+
+  const displayedDuration = useMemo(() => {
+    if (!run) return "—"
+    if (isActive) {
+      const start = new Date(run.startedAt ?? run.createdAt).getTime()
+      const elapsedMs = Math.max(0, now - start)
+      return formatDurationMs(elapsedMs)
+    }
+    return formatDurationMs(run.durationMs)
+  }, [run, isActive, now])
+
   if (!run) return null
+
+  const resultHref = resolveWorkflowResultHref(run)
 
   const config = run.config as { n8nExecutionId?: string; n8nWorkflowId?: string } | null
   const n8nExecutionId = config?.n8nExecutionId ?? null
@@ -54,7 +80,29 @@ export function RunDrillDownDialog({ run, open, onOpenChange }: RunDrillDownDial
         </div>
       }
       footer={
-        <div className="flex w-full items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap w-full items-center gap-2">
+          {resultHref ? (
+            <Link
+              href={resultHref}
+              onClick={() => onOpenChange(false)}
+              className="flex-1 flex h-8 items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 shadow-2xs"
+            >
+              <span>Voir le livrable</span>
+              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          ) : null}
+          <Link
+            href={`/automations?run=${run.id}`}
+            onClick={() => onOpenChange(false)}
+            className="flex-1 flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-surface px-3 text-xs font-medium text-heading transition-colors hover:bg-surface-hover shadow-2xs"
+          >
+            <svg className="size-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+            <span className="truncate">Automatisations</span>
+          </Link>
           {n8nExecutionUrl ? (
             <a
               href={n8nExecutionUrl}
@@ -118,7 +166,12 @@ export function RunDrillDownDialog({ run, open, onOpenChange }: RunDrillDownDial
             </div>
             <div>
               <p className="text-xs text-muted">Durée</p>
-              <p className="text-body font-medium">{formatDurationMs(run.durationMs)}</p>
+              <p className="text-body font-medium flex items-center gap-1.5">
+                {isActive && (
+                  <span className="inline-block size-1.5 rounded-full bg-primary animate-pulse" aria-hidden />
+                )}
+                <span>{displayedDuration}</span>
+              </p>
             </div>
           </div>
         )}

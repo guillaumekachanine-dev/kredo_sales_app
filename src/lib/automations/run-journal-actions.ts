@@ -135,3 +135,59 @@ export async function fetchVeilleSimulatorBaseline(): Promise<VeilleSimulatorBas
   return getVeilleSimulatorBaseline()
 }
 
+export type CurrentWorkflowExecutionResult = {
+  run: RunJournalRow | null
+  userId: string | null
+}
+
+const TERMINAL_TTL_MS = 120_000 // 120 secondes
+
+export async function fetchCurrentWorkflowExecution(): Promise<CurrentWorkflowExecutionResult> {
+  const { supabase, user } = await requireUser()
+  if (!user) return { run: null, userId: null }
+
+  // 1. Chercher d'abord un run actif (queued ou running) de l'utilisateur déclenché depuis l'UI
+  const activeRunsRes = await supabase
+    .from("ai_intelligence_runs")
+    .select("id")
+    .eq("owner_id", user.id)
+    .eq("trigger_source", "ui")
+    .in("status", ["queued", "running"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+
+  if (activeRunsRes.data && activeRunsRes.data.length > 0) {
+    const activeRunId = activeRunsRes.data[0]?.id
+    if (activeRunId) {
+      const rows = await getRunJournalRowsByIds([activeRunId])
+      return { run: rows[0] ?? null, userId: user.id }
+    }
+  }
+
+  // 2. S'il n'y en a aucun, chercher le dernier run terminal (succeeded, failed, cancelled)
+  const terminalRunsRes = await supabase
+    .from("ai_intelligence_runs")
+    .select("id, status, completed_at, failed_at, created_at, updated_at")
+    .eq("owner_id", user.id)
+    .eq("trigger_source", "ui")
+    .in("status", ["succeeded", "failed", "cancelled"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+
+  if (terminalRunsRes.data && terminalRunsRes.data.length > 0) {
+    const termRun = terminalRunsRes.data[0]
+    if (termRun?.id) {
+      const terminalTime = termRun.completed_at ?? termRun.failed_at ?? termRun.updated_at ?? termRun.created_at
+      if (terminalTime) {
+        const elapsedMs = Date.now() - new Date(terminalTime).getTime()
+        if (elapsedMs >= 0 && elapsedMs < TERMINAL_TTL_MS) {
+          const rows = await getRunJournalRowsByIds([termRun.id])
+          return { run: rows[0] ?? null, userId: user.id }
+        }
+      }
+    }
+  }
+
+  return { run: null, userId: user.id }
+}
+

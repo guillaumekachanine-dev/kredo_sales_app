@@ -2792,3 +2792,72 @@ canvas {
   border: 2px solid transparent !important;
   animation: kredo-ready-gradient-flow 3s linear infinite;
 }
+
+/* ============================================================
+   KREDO — Indicateurs temps réel d'exécution de workflow
+   ============================================================ */
+
+@keyframes kredo-workflow-border-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.kredo-workflow-desktop-active {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  padding: 1.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kredo-workflow-desktop-active::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--color-primary) 60deg,
+    var(--color-brand-brass) 120deg,
+    transparent 180deg
+  );
+  animation: kredo-workflow-border-spin 2.5s linear infinite;
+}
+
+.kredo-workflow-mobile-active {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 2.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kredo-workflow-mobile-active::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--color-primary) 80deg,
+    var(--color-brand-brass) 160deg,
+    transparent 240deg
+  );
+  animation: kredo-workflow-border-spin 2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-workflow-desktop-active::before,
+  .kredo-workflow-mobile-active::before {
+    animation: none;
+    background: var(--color-primary);
+  }
+}

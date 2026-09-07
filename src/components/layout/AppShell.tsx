@@ -5,6 +5,8 @@ import { IntelligencePanel } from "@/components/intelligence/IntelligencePanel"
 import { IntelligenceFAB } from "@/components/intelligence/IntelligenceFAB"
 import { IntelligenceToggle } from "@/components/intelligence/IntelligenceToggle"
 import { MobileAccountQuickSearchHost } from "@/components/accounts-contacts/MobileAccountQuickSearchHost"
+import { WorkflowExecutionIndicatorDesktop } from "@/components/automations/WorkflowExecutionIndicatorDesktop"
+import { WorkflowExecutionIndicatorMobile } from "@/components/automations/WorkflowExecutionIndicatorMobile"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 
 interface AppShellProps {
@@ -25,6 +27,7 @@ export async function AppShell({ device, children }: AppShellProps) {
           {children}
         </main>
 
+        <WorkflowExecutionIndicatorMobile />
         <IntelligenceFAB />
         <MobileNav />
         <MobileAccountQuickSearchHost />
@@ -46,9 +49,10 @@ export async function AppShell({ device, children }: AppShellProps) {
             {children}
           </main>
 
-          {/* Absolute floating Intelligence toggle */}
+          {/* Absolute floating Intelligence toggle & Workflow execution indicator */}
           <div className="pointer-events-none absolute right-4 top-3 z-30">
-            <div className="pointer-events-auto">
+            <div className="pointer-events-auto flex items-center gap-2">
+              <WorkflowExecutionIndicatorDesktop />
               <IntelligenceToggle />
             </div>
           </div>
