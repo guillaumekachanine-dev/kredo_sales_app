@@ -78,7 +78,7 @@ QA minimale :
 | **1.0** | Contrat client-safe de `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/lib/navigation/section-rail.ts` |
 | **1.1** | Primitive présentationnelle `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/components/layout/SectionRail.tsx` |
 | **1.2** | Tests unitaires de la primitive | ✅ done | `SectionRail.test.ts` — 5/5 tests passés le 2026-09-08 |
-| **2.1** | Migration Account Intelligence | ⬜ todo | Golden Master |
+| **2.1** | Migration Account Intelligence | ⬜ préparé, migration non commencée | delta d'entrée § 10 |
 | **2.2** | Migration Business Intelligence | ⬜ todo | conserver `?tab=` |
 | **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
 | **2.4** | Migration Rapports | ⬜ todo | extraire rail inline |
@@ -241,6 +241,49 @@ Le socle compile, se déploie et passe les gates locales ciblées demandées. So
 
 **Verdict Lot 2.6 : `partial` jusqu'à la QA visuelle authentifiée.**
 
-## 10. Prochaine étape
+## 10. Préparation du Lot 2.1 — delta `ClientIntelligenceSidebar` / `SectionRail`
 
-Poursuivre les migrations page par page après les gates du pilote, sans modifier leur métier et en traitant explicitement la composition des modules contextuels de chaque surface avant suppression de son rail local.
+Delta établi le 2026-09-08 sur le code de `main`. Aucun fichier applicatif n'a été modifié.
+
+| Axe | `ClientIntelligenceSidebar` actuel | Contrat `SectionRail` / V2 | Traitement prévu au Lot 2.1 |
+|---|---|---|---|
+| Châssis | JSX local, largeur déjà `11.5rem` | primitive partagée `SectionRail` | remplacer le châssis local sans modifier les sept clés métier ni leur ordre |
+| Chapeau | `Liste des comptes`, avec `onBackToAccounts` | titre de page principale et retour à son état racine | utiliser `Account Intelligence` et revenir au chapitre `accueil` ; préserver l'action de retour à la liste dans le header principal, hors chapeau |
+| Chapitres | callbacks `onTabChange`, état `activeTab` local | callbacks ou liens, état actif fourni | mapper les sept entrées existantes vers `chapters` ; conserver les callbacks pendant ce lot |
+| Header principal | absent sur `accueil`, présent sur les six autres chapitres | nom exact de l'onglet actif toujours visible | rendre le header Desktop sur les sept états et afficher `Accueil` pour l'état racine |
+| Libellé partagé `accueil` | `getAccountIntelligenceTabLabel("accueil")` renvoie `Account Intelligence` et est consommé par Mobile | Desktop doit distinguer titre de page et titre d'onglet | ne pas modifier ce helper partagé ; dériver le libellé Desktop depuis la configuration des chapitres |
+| Modules | section toujours rendue ; boutons disabled si callback/slug absent | section facultative, aucun bouton mort | construire `contextualModules` conditionnellement : Répertoire et Bibliothèque seulement avec callback, Playbook seulement avec slug |
+| Position Modules | `mt-5`, directement après les chapitres | ancrage bas `mt-auto`, chapitres flexibles et scrollables | laisser `SectionRail` porter le layout canonique |
+| Styles | chapeau `shadow-sm` + `transition-all`, modules `truncate` | aucune ombre décorative ; labels jusqu'à deux lignes | supprimer les styles locaux en utilisant ceux de la primitive |
+| URL | `useState("accueil")`, non reconstructible après refresh | état URL-addressable à terme | dette V2-N7 maintenue explicitement pour la Phase 4 afin de ne pas mêler URLisation et remplacement du châssis |
+| Mobile | état et navigation propres dans `ClientIntelligenceMobileView` ; helpers partagés | Mobile protégé | ne modifier ni `ClientIntelligenceMobileView`, ni `MOBILE_NAV_ITEMS`, ni `TabKey`, ni le helper de titre partagé |
+
+### Contrat de migration minimal
+
+1. transformer `ClientIntelligenceSidebar` en adaptateur présentationnel de `SectionRail` ou
+   intégrer directement la primitive dans `ClientIntelligenceDesktopView` ;
+2. conserver les sept clés et callbacks métier existants ;
+3. déplacer visuellement l'action existante « retour à la liste des comptes » dans le header,
+   sans changer sa destination ni le store CRM appelé ;
+4. rendre le header pour `accueil` avec le libellé exact `Accueil` ;
+5. omettre tout module sans action réelle ;
+6. ne pas URLiser les chapitres dans ce lot ; inscrire cette dette dans la gate de sortie ;
+7. ne toucher à aucun composant Mobile, loader, donnée Supabase ou workflow n8n.
+
+### Baseline de préparation
+
+- test existant `ClientIntelligenceSidebar.test.ts` : **2/2 passé** le 2026-09-08 ;
+- lint ciblé du rail, de son test, de la vue Desktop et du header : **passé** ;
+- le paramètre `tab` est déjà utilisé par la liste Comptes & contacts ; la future URLisation ne
+  devra pas le réutiliser sans contrat explicite ;
+- la vue Desktop peut être montée directement sur `/prospection/accounts/[companyId]` ou dans
+  plusieurs panneaux conservés montés par `CrmTabbedShell`. La Phase 4 devra préserver ces deux
+  modes et le back/forward avant de remplacer l'état local.
+
+**Verdict de préparation :** delta établi ; Lot 2.1 non démarré. Le smoke Desktop authentifié
+du socle reste la gate d'entrée manquante avant modification applicative.
+
+## 11. Prochaine étape
+
+Renouveler `.codex/auth-state.json`, terminer le smoke Desktop `/missions`, puis démarrer le Lot
+2.1 selon le contrat ci-dessus, sans modifier son métier et en conservant la frontière Mobile.
