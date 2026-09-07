@@ -16,7 +16,39 @@ function missionHref(missionId: string) {
   return `/missions?vue=missions-at&mission=${encodeURIComponent(missionId)}`
 }
 
+interface ClientMissionGroup {
+  clientName: string
+  clientLogoPath: string | null
+  clientWebsite: string | null
+  missions: EngagementMissionListItem[]
+}
+
+export function groupMissionsByClient(missions: EngagementMissionListItem[]): ClientMissionGroup[] {
+  const groups: ClientMissionGroup[] = []
+  const map = new Map<string, ClientMissionGroup>()
+
+  for (const mission of missions) {
+    const key = (mission.clientName || "Compte non renseigné").trim()
+    let group = map.get(key)
+    if (!group) {
+      group = {
+        clientName: mission.clientName || "Compte non renseigné",
+        clientLogoPath: mission.clientLogoPath,
+        clientWebsite: mission.clientWebsite,
+        missions: [],
+      }
+      map.set(key, group)
+      groups.push(group)
+    }
+    group.missions.push(mission)
+  }
+
+  return groups
+}
+
 export function CurrentMissionsList({ missions, selectedMissionId }: CurrentMissionsListProps) {
+  const clientGroups = groupMissionsByClient(missions)
+
   return (
     <section
       className="flex min-h-0 flex-col border-r border-border bg-surface"
@@ -39,42 +71,60 @@ export function CurrentMissionsList({ missions, selectedMissionId }: CurrentMiss
             Aucune mission d’assistance technique en cours.
           </p>
         ) : (
-          missions.map((mission) => {
-            const active = mission.id === selectedMissionId
-            return (
-              <Link
-                key={mission.id}
-                href={missionHref(mission.id)}
-                scroll={false}
-                aria-current={active ? "true" : undefined}
-                className={cn(
-                  "relative block w-full border-b border-border px-4 py-3 text-left outline-none transition-colors",
-                  "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
-                  active
-                    ? "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass"
-                    : "hover:bg-surface-hover/60",
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <CompanyLogo
-                    name={mission.clientName}
-                    logoPath={mission.clientLogoPath}
-                    website={mission.clientWebsite}
-                    size="md"
-                    denseList
-                  />
-                  <div className="min-w-0 flex-1">
-                    <span className="block truncate text-[11px] font-bold leading-4 text-heading">
-                      {mission.title}
-                    </span>
-                    <span className="mt-0.5 block truncate text-[9px] leading-4 text-muted">
-                      {mission.clientName}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            )
-          })
+          clientGroups.map((group) => (
+            <div key={group.clientName} className="border-b border-border last:border-b-0">
+              <div className="sticky top-0 z-10 flex items-center gap-2.5 border-b border-border/70 bg-canvas px-4 py-2.5">
+                <CompanyLogo
+                  name={group.clientName}
+                  logoPath={group.clientLogoPath}
+                  website={group.clientWebsite}
+                  size="sm"
+                  denseList
+                />
+                <span className="min-w-0 flex-1 truncate text-xs font-bold text-heading">
+                  {group.clientName}
+                </span>
+                <span className="shrink-0 rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+                  {group.missions.length}
+                </span>
+              </div>
+
+              <div>
+                {group.missions.map((mission) => {
+                  const active = mission.id === selectedMissionId
+                  return (
+                    <Link
+                      key={mission.id}
+                      href={missionHref(mission.id)}
+                      scroll={false}
+                      aria-current={active ? "true" : undefined}
+                      className={cn(
+                        "relative block w-full border-b border-border/40 last:border-b-0 px-4 py-2.5 text-left outline-none transition-colors",
+                        "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+                        active
+                          ? "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass font-bold"
+                          : "hover:bg-surface-hover/60",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "block truncate text-[11px] leading-4",
+                          active ? "font-bold text-heading" : "font-medium text-heading",
+                        )}
+                      >
+                        {mission.title}
+                      </span>
+                      {mission.roleTitle || mission.practice ? (
+                        <span className="mt-0.5 block truncate text-[10px] leading-3 text-muted">
+                          {mission.roleTitle || mission.practice}
+                        </span>
+                      ) : null}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
     </section>

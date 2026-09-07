@@ -62,6 +62,13 @@ interface EngagementsDesktopViewProps {
   children: ReactNode
 }
 
+export const HEADER_TITLE_BY_VIEW: Record<EngagementsView, string> = {
+  "missions-at": "Missions en cours",
+  "activite-conges": "Activité & congés",
+  "planning-at": "Planning des missions",
+  synthese: "Engagements",
+}
+
 export function EngagementsDesktopView({ activeView, children }: EngagementsDesktopViewProps) {
   // Repli automatique de la sidebar principale (même pattern que /reports).
   useEffect(() => {
@@ -100,7 +107,9 @@ export function EngagementsDesktopView({ activeView, children }: EngagementsDesk
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex min-h-[76px] shrink-0 items-center justify-between gap-5 border-b border-border bg-surface px-5 py-4">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">Engagements</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
+            {HEADER_TITLE_BY_VIEW[activeView] ?? "Engagements"}
+          </h1>
         </header>
 
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>

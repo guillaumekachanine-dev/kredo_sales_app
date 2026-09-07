@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
-import { formatDateFr, formatEuro } from "@/lib/formatters"
+import { formatEuro } from "@/lib/formatters"
 import type { EngagementMissionDetail } from "@/app/(app)/missions/_data/get-engagement-mission-detail"
 import {
   BadgeCheckIcon,
@@ -9,21 +8,36 @@ import {
   BriefcaseIcon,
   CalendarRangeIcon,
   FileTextIcon,
-  MapPinIcon,
   WrenchIcon,
 } from "./engagement-icons"
 
-const MISSION_STATUS: Record<string, { label: string; variant: StatusPillVariant }> = {
-  active: { label: "En cours", variant: "success" },
-  paused: { label: "Suspendue", variant: "neutral" },
-  ended: { label: "Terminée", variant: "neutral" },
-  cancelled: { label: "Annulée", variant: "danger" },
+function parseDateParts(dateStr: string | null): { day: string; month: string; year: string } | null {
+  if (!dateStr) return null
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    return { year: match[1], month: match[2], day: match[3] }
+  }
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return null
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const year = String(date.getFullYear())
+  return { day, month, year }
 }
 
-function formatPeriod(start: string | null, end: string | null): string {
-  if (start && end) return `Du ${formatDateFr(start)} au ${formatDateFr(end)}`
-  if (start) return `Depuis le ${formatDateFr(start)} · mission ouverte`
-  if (end) return `Jusqu’au ${formatDateFr(end)}`
+export function formatPeriod(start: string | null, end: string | null): string {
+  const startParts = parseDateParts(start)
+  const endParts = parseDateParts(end)
+
+  if (startParts && endParts) {
+    return `${startParts.day}/${startParts.month} - ${endParts.day}/${endParts.month}/${endParts.year}`
+  }
+  if (startParts) {
+    return `${startParts.day}/${startParts.month}/${startParts.year} - En cours`
+  }
+  if (endParts) {
+    return `Jusqu’au ${endParts.day}/${endParts.month}/${endParts.year}`
+  }
   return "—"
 }
 
@@ -37,7 +51,7 @@ function Field({
   children: ReactNode
 }) {
   return (
-    <div className="flex gap-3 py-4">
+    <div className="flex gap-3 py-3">
       <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-primary">
         <span className="size-4">{icon}</span>
       </span>
@@ -67,45 +81,40 @@ export function MissionOverview({ detail }: { detail: EngagementMissionDetail | 
   }
 
   const { mission, company, requiredSkills } = detail
-  const status = MISSION_STATUS[mission.status] ?? { label: mission.status, variant: "neutral" as const }
   const clientName = company?.name ?? "Compte non renseigné"
+  const marketSegment = company?.segment ?? company?.sector ?? null
 
   return (
     <div className="engagements-scrollbar min-h-0 flex-1 overflow-y-auto bg-canvas">
       <div className="mx-auto w-full max-w-[820px] px-8 py-7">
-        {/* ── 9.1 Header ─────────────────────────────────────────────── */}
+        {/* ── Header ─────────────────────────────────────────────────── */}
         <header className="border-b border-border pb-6">
-          <div className="flex items-start justify-between gap-5">
-            <div className="min-w-0">
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Mission AT</p>
               <h1 className="mt-2 font-heading text-2xl font-bold leading-8 tracking-tight text-heading">
                 {mission.title}
               </h1>
+              <p className="mt-2 text-sm text-body">
+                <strong className="font-bold text-heading">{clientName}</strong>
+                {marketSegment ? ` - ${marketSegment}` : ""}
+              </p>
             </div>
-            <StatusPill label={status.label} variant={status.variant} className="mt-1 shrink-0" />
-          </div>
-          <div className="mt-4 flex items-center gap-3">
-            <CompanyLogo
-              name={clientName}
-              logoPath={company?.logoPath ?? null}
-              website={company?.website ?? null}
-              size="sm"
-              denseList
-            />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-heading">{clientName}</p>
-              {company?.segment || company?.sector ? (
-                <p className="truncate text-xs text-muted">{company.segment ?? company.sector}</p>
-              ) : null}
+            <div className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-border bg-surface p-2 shadow-2xs">
+              <CompanyLogo
+                name={clientName}
+                logoPath={company?.logoPath ?? null}
+                website={company?.website ?? null}
+                size="2xl"
+                fill
+                className="border-0 bg-transparent"
+              />
             </div>
-            {mission.externalRef ? (
-              <span className="ml-auto shrink-0 font-mono text-[11px] text-muted">{mission.externalRef}</span>
-            ) : null}
           </div>
         </header>
 
-        {/* ── Contexte de la mission (pleine largeur) ────────────────── */}
-        <section className="border-b border-border py-6">
+        {/* ── Contexte de la mission (cadre au fond légèrement contrasté) ── */}
+        <section className="my-6 rounded-[var(--radius-medium)] border border-border bg-surface p-5 shadow-2xs">
           <div className="flex items-center gap-2 text-primary">
             <span className="size-4">
               <FileTextIcon />
@@ -114,37 +123,30 @@ export function MissionOverview({ detail }: { detail: EngagementMissionDetail | 
               Contexte de la mission
             </h2>
           </div>
-          <p className="mt-3 whitespace-pre-line text-sm leading-7 text-body">
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-body">
             {mission.description?.trim() || "Aucun contexte renseigné pour cette mission."}
           </p>
         </section>
 
-        {/* ── Poste · Séniorité · Lieu · Période · TJM ───────────────── */}
-        <div className="divide-y divide-border">
-          <div className="grid gap-x-8 sm:grid-cols-2">
-            <Field icon={<BriefcaseIcon />} label="Poste / rôle demandé">
-              {mission.roleTitle || mission.practice || "—"}
-            </Field>
-            <Field icon={<BadgeCheckIcon />} label="Séniorité requise">
-              {mission.seniority || "—"}
-            </Field>
-          </div>
-          <div className="grid gap-x-8 sm:grid-cols-2">
-            <Field icon={<MapPinIcon />} label="Lieu de delivery">
-              {mission.deliveryLocation || "—"}
-            </Field>
-            <Field icon={<BadgeEuroIcon />} label="TJM">
-              <span className="font-mono font-semibold text-heading">{formatEuro(mission.tjm)}</span>
-              <span className="ml-1.5 text-xs text-muted">/ jour</span>
-            </Field>
-          </div>
+        {/* ── Poste · Séniorité · TJM · Période ───────────────────────── */}
+        <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+          <Field icon={<BriefcaseIcon />} label="Poste / rôle demandé">
+            {mission.roleTitle || mission.practice || "—"}
+          </Field>
+          <Field icon={<BadgeCheckIcon />} label="Séniorité requise">
+            {mission.seniority || "—"}
+          </Field>
+          <Field icon={<BadgeEuroIcon />} label="TJM">
+            <span className="font-mono font-semibold text-heading">{formatEuro(mission.tjm)}</span>
+            <span className="ml-1.5 text-xs text-muted">/ jour</span>
+          </Field>
           <Field icon={<CalendarRangeIcon />} label="Période">
             {formatPeriod(mission.startDate, mission.endDate)}
           </Field>
         </div>
 
         {/* ── Compétences requises ──────────────────────────────────── */}
-        <section className="border-t border-border py-6">
+        <section className="pt-6">
           <div className="flex items-center gap-2 text-primary">
             <span className="size-4">
               <WrenchIcon />

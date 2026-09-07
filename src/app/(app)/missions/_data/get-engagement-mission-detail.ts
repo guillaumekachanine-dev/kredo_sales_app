@@ -67,7 +67,17 @@ export interface EngagementMissionCollaborator {
 export interface EngagementMissionContact {
   id: string
   fullName: string
+  jobTitle: string | null
+  missionRole: string | null
   role: string | null
+  email: string | null
+  phone: string | null
+}
+
+export interface EngagementCompanyContact {
+  id: string
+  fullName: string
+  jobTitle: string | null
   email: string | null
   phone: string | null
 }
@@ -78,6 +88,8 @@ export interface EngagementMissionDetail {
   collaborator: EngagementMissionCollaborator | null
   requiredSkills: EngagementSkillTag[]
   operationalContact: EngagementMissionContact | null
+  contacts: EngagementMissionContact[]
+  companyContacts: EngagementCompanyContact[]
 }
 
 // ─── DB row shapes ───────────────────────────────────────────────────────────
@@ -115,6 +127,7 @@ interface DBCollaborator {
 
 interface DBContact {
   id: string
+  job_title: string | null
   relationship_role: string | null
   persons: DBPerson | DBPerson[] | null
 }
@@ -170,59 +183,106 @@ function readString(meta: Json, key: string): string | null {
   return typeof value === "string" && value.trim() ? value : null
 }
 
-// ─── Contact opérationnel : cascade explicite uniquement ─────────────────────
+// ─── Contacts mission : métadonnées explicites ou opportunity_contacts ────────
 
-async function resolveOperationalContact(
+interface MetaMissionContact {
+  contact_id: string
+  role?: string
+}
+
+async function resolveMissionContacts(
   supabase: Awaited<ReturnType<typeof createClient>>,
   mission: DBMissionRow
-): Promise<EngagementMissionContact | null> {
-  const contactIds = (() => {
-    const raw = mission.metadata
+): Promise<EngagementMissionContact[]> {
+  const raw = mission.metadata
+  const rawMissionContacts = (() => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return []
+    const val = (raw as Record<string, unknown>).mission_contacts
+    if (!Array.isArray(val)) return []
+    return val.filter(
+      (item): item is MetaMissionContact =>
+        Boolean(item && typeof item === "object" && typeof (item as Record<string, unknown>).contact_id === "string")
+    )
+  })()
+
+  const rawContactIds = (() => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return []
     const value = (raw as Record<string, unknown>).contact_ids
     return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : []
   })()
 
-  if (contactIds.length > 0) {
+  if (rawMissionContacts.length > 0) {
+    const roleMap = new Map(rawMissionContacts.map((mc) => [mc.contact_id, mc.role || "Manager opérationnel"]))
+    const contactIds = Array.from(roleMap.keys())
     const { data } = await supabase
       .from("contacts")
-      .select("id, relationship_role, persons(id, full_name, first_name, last_name, primary_email, phone)")
+      .select("id, job_title, relationship_role, persons(id, full_name, first_name, last_name, primary_email, phone)")
       .in("id", contactIds)
-    const row = pickOne(data as unknown as DBContact[] | null)
-    const person = row ? pickOne(row.persons) : null
-    if (row && person) {
+
+    const list = (data as unknown as DBContact[] | null) || []
+    return list.map((c) => {
+      const person = pickOne(c.persons)
       return {
-        id: row.id,
-        fullName: personName(person),
-        role: row.relationship_role,
-        email: person.primary_email,
-        phone: person.phone,
+        id: c.id,
+        fullName: person ? personName(person) : "Sans nom",
+        jobTitle: c.job_title ?? null,
+        missionRole: roleMap.get(c.id) || c.relationship_role || "Manager opérationnel",
+        role: c.relationship_role,
+        email: person?.primary_email ?? null,
+        phone: person?.phone ?? null,
       }
-    }
+    })
+  }
+
+  if (rawContactIds.length > 0) {
+    const { data } = await supabase
+      .from("contacts")
+      .select("id, job_title, relationship_role, persons(id, full_name, first_name, last_name, primary_email, phone)")
+      .in("id", rawContactIds)
+
+    const list = (data as unknown as DBContact[] | null) || []
+    return list.map((c) => {
+      const person = pickOne(c.persons)
+      return {
+        id: c.id,
+        fullName: person ? personName(person) : "Sans nom",
+        jobTitle: c.job_title ?? null,
+        missionRole: c.relationship_role || "Manager opérationnel",
+        role: c.relationship_role,
+        email: person?.primary_email ?? null,
+        phone: person?.phone ?? null,
+      }
+    })
   }
 
   if (mission.opportunity_id) {
     const { data } = await supabase
       .from("opportunity_contacts")
       .select(
-        "role, contacts(id, relationship_role, persons(id, full_name, first_name, last_name, primary_email, phone))"
+        "role, contacts(id, job_title, relationship_role, persons(id, full_name, first_name, last_name, primary_email, phone))"
       )
       .eq("opportunity_id", mission.opportunity_id)
-    const row = pickOne(data as unknown as DBOpportunityContact[] | null)
-    const contact = row ? pickOne(row.contacts) : null
-    const person = contact ? pickOne(contact.persons) : null
-    if (contact && person) {
-      return {
-        id: contact.id,
-        fullName: personName(person),
-        role: row?.role || contact.relationship_role,
-        email: person.primary_email,
-        phone: person.phone,
-      }
-    }
+
+    const list = (data as unknown as DBOpportunityContact[] | null) || []
+    return list
+      .map((row): EngagementMissionContact | null => {
+        const contact = pickOne(row.contacts)
+        const person = contact ? pickOne(contact.persons) : null
+        if (!contact || !person) return null
+        return {
+          id: contact.id,
+          fullName: personName(person),
+          jobTitle: contact.job_title ?? null,
+          missionRole: row.role || contact.relationship_role || "Manager opérationnel",
+          role: row.role || contact.relationship_role,
+          email: person.primary_email,
+          phone: person.phone,
+        }
+      })
+      .filter((c): c is EngagementMissionContact => c !== null)
   }
 
-  return null
+  return []
 }
 
 async function resolveRequiredSkills(
@@ -275,7 +335,7 @@ export async function getEngagementMissionDetail(
 
     const row = missionRow as unknown as DBMissionRow
 
-    const [companyRow, collaboratorRow, operationalContact, requiredSkills] = await Promise.all([
+    const [companyRow, collaboratorRow, contacts, requiredSkills, companyContactsRow] = await Promise.all([
       row.company_id
         ? supabase
             .from("companies")
@@ -301,8 +361,14 @@ export async function getEngagementMissionDetail(
             .eq("id", row.collaborator_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
-      resolveOperationalContact(supabase, row),
+      resolveMissionContacts(supabase, row),
       resolveRequiredSkills(supabase, row.opportunity_id),
+      row.company_id
+        ? supabase
+            .from("contacts")
+            .select("id, job_title, persons(id, full_name, first_name, last_name, primary_email, phone)")
+            .eq("company_id", row.company_id)
+        : Promise.resolve({ data: [] }),
     ])
 
     // ── Company ──
@@ -377,7 +443,33 @@ export async function getEngagementMissionDetail(
         null,
     }
 
-    return { mission, company, collaborator, requiredSkills, operationalContact }
+    const companyContacts: EngagementCompanyContact[] = (
+      (companyContactsRow.data as unknown as DBContact[] | null) || []
+    )
+      .map((c) => {
+        const person = pickOne(c.persons)
+        if (!person) return null
+        return {
+          id: c.id,
+          fullName: personName(person),
+          jobTitle: c.job_title ?? null,
+          email: person.primary_email ?? null,
+          phone: person.phone ?? null,
+        }
+      })
+      .filter((c): c is EngagementCompanyContact => c !== null)
+
+    const operationalContact = contacts[0] ?? null
+
+    return {
+      mission,
+      company,
+      collaborator,
+      requiredSkills,
+      operationalContact,
+      contacts,
+      companyContacts,
+    }
   } catch (err) {
     console.error("[getEngagementMissionDetail] unhandled", err)
     return null
