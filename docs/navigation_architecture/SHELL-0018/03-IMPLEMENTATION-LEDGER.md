@@ -78,7 +78,7 @@ QA minimale :
 | **1.0** | Contrat client-safe de `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/lib/navigation/section-rail.ts` |
 | **1.1** | Primitive présentationnelle `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/components/layout/SectionRail.tsx` |
 | **1.2** | Tests unitaires de la primitive | ✅ done | `SectionRail.test.ts` — 5/5 tests passés le 2026-09-08 |
-| **2.1** | Migration Account Intelligence | ⬜ préparé, migration non commencée | delta d'entrée § 10 |
+| **2.1** | Migration Account Intelligence | ✅ techniquement livré | commit `31163105` ; QA visuelle réservée à Guillaume |
 | **2.2** | Migration Business Intelligence | ⬜ todo | conserver `?tab=` |
 | **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
 | **2.4** | Migration Rapports | ⬜ todo | extraire rail inline |
@@ -280,10 +280,62 @@ Delta établi le 2026-09-08 sur le code de `main`. Aucun fichier applicatif n'a 
   plusieurs panneaux conservés montés par `CrmTabbedShell`. La Phase 4 devra préserver ces deux
   modes et le back/forward avant de remplacer l'état local.
 
-**Verdict de préparation :** delta établi ; Lot 2.1 non démarré. Le smoke Desktop authentifié
-du socle reste la gate d'entrée manquante avant modification applicative.
+**Verdict de préparation :** delta établi puis appliqué dans le Lot 2.1, sans URLisation et sans
+modification Mobile.
 
-## 11. Prochaine étape
+## 11. Clôture du Lot 2.1 — Account Intelligence
 
-Renouveler `.codex/auth-state.json`, terminer le smoke Desktop `/missions`, puis démarrer le Lot
-2.1 selon le contrat ci-dessus, sans modifier son métier et en conservant la frontière Mobile.
+### Fichiers modifiés
+
+- `src/components/accounts-contacts/intelligence/ClientIntelligenceSidebar.tsx` ;
+- `src/components/accounts-contacts/intelligence/ClientIntelligenceDesktopView.tsx` ;
+- `src/components/accounts-contacts/intelligence/header/AccountIntelligenceSignatureHeader.tsx` ;
+- `src/components/accounts-contacts/intelligence/ClientIntelligenceSidebar.test.ts`.
+
+### Comportement migré
+
+- `ClientIntelligenceSidebar` délègue désormais son châssis à la primitive canonique
+  `SectionRail` ;
+- le chapeau affiche `Account Intelligence` et son callback sélectionne le chapitre racine
+  `accueil` ;
+- les sept chapitres, leur ordre, leurs clés, leurs icônes et leurs callbacks métier sont
+  conservés ;
+- le header principal Desktop est rendu pour les sept chapitres et affiche le libellé exact de
+  l'onglet actif, dont `Accueil` pour l'état racine ;
+- le helper de titre partagé avec Mobile n'a pas été modifié : le libellé Desktop est dérivé de
+  la configuration Desktop ;
+- l'action existante de retour vers la liste des comptes reste disponible dans le header
+  principal, avec la même destination et le même store CRM ;
+- Répertoire, Bibliothèque et Playbook ne sont transmis à `SectionRail` que lorsque leur action
+  ou leur destination contextuelle existe ; aucun bouton module disabled ou placeholder ne
+  subsiste ;
+- `SectionRail` porte désormais la largeur `11.5rem`, l'état actif brass, le scroll des chapitres
+  et l'ancrage bas de la zone Modules.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** ;
+2. `npm test -- src/components/accounts-contacts/intelligence/ClientIntelligenceSidebar.test.ts src/components/layout/SectionRail.test.ts` : **15/15 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des quatre fichiers modifiés : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 et génération des 41 pages statiques
+   terminées avec succès.
+
+### Limites et dettes restantes
+
+- l'état `activeTab` reste local conformément au périmètre du lot ; l'URLisation complète reste
+  une dette de Phase 4 ;
+- aucune QA visuelle ou ergonomique n'est incluse dans ce verdict technique ;
+- aucune modification Mobile, Supabase, RLS, RPC, fetch métier ou workflow n8n.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Verdict Lot 2.1 : `techniquement livré`.** Toutes les gates techniques demandées passent et
+aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+## 12. Prochaine étape
+
+Faire réaliser la QA visuelle et ergonomique d'Account Intelligence par Guillaume. Aucun autre
+lot de migration n'est commencé dans cette livraison.
