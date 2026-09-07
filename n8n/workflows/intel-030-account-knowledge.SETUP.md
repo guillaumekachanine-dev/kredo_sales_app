@@ -249,7 +249,10 @@ registre, les pages effectivement consultées et les sources internes du dossier
 peuvent être cités.
 
 ### 10.1 Garde qualité recherche externe
-- **Sélection vide anormale :** si `discoveryCount > 0` et qu'aucune URL n'est sélectionnable, le nœud `V4 Fetch Selected Pages` lève une exception explicite d'anomalie pipeline pour ne pas masquer une panne de filtrage.
+- **Parsing d'URL sans global `URL` :** le runtime de sandbox n8n des nœuds Code n'expose pas le constructeur global `URL` (`typeof URL === "undefined"`). Un helper déterministe `parseUrl` extrait le protocole, le hostname (sans www), supprime les fragments et applique les gardes SSRF/sécurité sans jamais appeler `new URL()`.
+- **Diagnostic de sélection traçable :** `urlSelectionDiagnostics` consigne le nombre de résultats découverts, acceptés, ainsi que la ventilation des rejets (`missing_url`, `invalid_protocol`, `invalid_hostname`, `private_network`, `search_engine`, `duplicate`, `parser_error`). Ce diagnostic est conservé dans `contextSnapshot.urlSelectionDiagnostics`.
+- **Invariant site officiel :** `canonical.website` est validé et injecté avec un score de 200, garantissant qu'un compte avec site officiel valide ne produit jamais 0 candidat, même en cas de rejet des résultats SerpAPI.
+- **Sélection vide anormale :** si `discoveryCount > 0` et qu'aucune URL n'est sélectionnable (compte sans site et 100% de résultats invalides), le nœud `V4 Fetch Selected Pages` lève une exception explicite d'anomalie pipeline incluant le JSON de `urlSelectionDiagnostics` pour un audit immédiat.
 - **Échec global de fetch :** si des pages ont été sélectionnées mais ont toutes échoué au fetch réseau (ex: 403, 500, timeout), l'état `external_research_degraded` est consigné dans `contextSnapshot.externalResearchStatus` et le drapeau QA `external_research: passed=false` est inscrit dans `qaFlags`.
 
 Configuration additionnelle lors du réimport manuel :
@@ -279,7 +282,7 @@ Avant activation, rejouer :
 
 ```bash
 python3 scripts/patch-intel-030-v4.py
-node n8n/workflows/__tests__/intel-030-account-knowledge-v4.test.js   # 64 assertions
+node n8n/workflows/__tests__/intel-030-account-knowledge-v4.test.js   # 74 assertions
 npm run test:n8n
 ```
 

@@ -187,66 +187,179 @@ return [{ json: { ...data, discovery } }];'''
 
 
 FETCH = r'''// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.
+// Helper déterministe compatible Code node sans dépendance au constructeur global new URL()
 const data = $('V4 Normalize SerpAPI Discovery').first().json;
-function safe(value) {
-  try {
-    if (!value || typeof value !== 'string') return false;
-    let v = value.trim();
-    if (!/^https?:\/\//i.test(v)) {
-      if (v.startsWith('//')) v = 'https:' + v;
-      else if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(v)) v = 'https://' + v;
-      else return false;
+
+function parseUrl(value) {
+  if (!value || typeof value !== 'string') {
+    return { valid: false, reason: 'missing_url' };
+  }
+  let v = value.trim();
+  if (v.length === 0) {
+    return { valid: false, reason: 'missing_url' };
+  }
+
+  if (v.startsWith('//')) {
+    v = 'https:' + v;
+  } else if (!/^https?:\/\//i.test(v)) {
+    if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(v)) {
+      v = 'https://' + v;
+    } else {
+      return { valid: false, reason: 'invalid_protocol' };
     }
-    const u = new URL(v); const h = u.hostname.toLowerCase();
-    if (!['http:', 'https:'].includes(u.protocol) || !h.includes('.')) return false;
-    if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return false;
-    if (/^(10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h)) return false;
-    if (h === '::1' || h.startsWith('fe80:')) return false;
-    if (/google\.|bing\.|yahoo\.|duckduckgo\./.test(h)) return false;
-    return true;
-  } catch (_) { return false; }
-}
-function cleanUrl(value) {
-  try {
-    let v = String(value || '').trim();
-    if (!/^https?:\/\//i.test(v)) {
-      if (v.startsWith('//')) v = 'https:' + v;
-      else v = 'https://' + v;
+  }
+
+  const match = v.match(/^(https?):\/\/([^/?#:]+)(?::(\d+))?([^#]*)(?:#.*)?$/i);
+  if (!match) {
+    return { valid: false, reason: 'parser_error' };
+  }
+
+  const protocol = match[1].toLowerCase() + ':';
+  let hostname = match[2].toLowerCase();
+  const port = match[3] ? Number(match[3]) : null;
+  let pathnameAndSearch = match[4] || '/';
+  if (!pathnameAndSearch.startsWith('/')) {
+    pathnameAndSearch = '/' + pathnameAndSearch;
+  }
+
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    return { valid: false, reason: 'invalid_protocol' };
+  }
+
+  if (hostname.endsWith('.')) {
+    hostname = hostname.slice(0, -1);
+  }
+
+  if (!hostname || !hostname.includes('.')) {
+    return { valid: false, reason: 'invalid_hostname' };
+  }
+
+  if (!/^[a-z0-9.-]+$/i.test(hostname) || hostname.startsWith('.') || hostname.endsWith('.')) {
+    return { valid: false, reason: 'invalid_hostname' };
+  }
+
+  if (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.lan') ||
+    hostname.endsWith('.home') ||
+    hostname.endsWith('.invalid')
+  ) {
+    return { valid: false, reason: 'invalid_hostname' };
+  }
+
+  const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const octets = [Number(ipv4Match[1]), Number(ipv4Match[2]), Number(ipv4Match[3]), Number(ipv4Match[4])];
+    if (octets.some((o) => isNaN(o) || o < 0 || o > 255)) {
+      return { valid: false, reason: 'invalid_hostname' };
     }
-    const u = new URL(v);
-    u.hash = '';
-    return u.toString();
-  } catch (_) { return value; }
+    const [a, b] = octets;
+    if (a === 0 || a === 10 || a === 127) return { valid: false, reason: 'private_network' };
+    if (a === 169 && b === 254) return { valid: false, reason: 'private_network' };
+    if (a === 172 && b >= 16 && b <= 31) return { valid: false, reason: 'private_network' };
+    if (a === 192 && b === 168) return { valid: false, reason: 'private_network' };
+    if (a >= 224) return { valid: false, reason: 'private_network' };
+  }
+
+  if (
+    hostname === '::1' ||
+    hostname === '[::1]' ||
+    hostname.startsWith('fe80:') ||
+    hostname.startsWith('[fe80:')
+  ) {
+    return { valid: false, reason: 'private_network' };
+  }
+
+  if (/(?:^|\.)(?:google|bing|yahoo|duckduckgo|qwant|ecosia|yandex|baidu)\./i.test(hostname)) {
+    return { valid: false, reason: 'search_engine' };
+  }
+
+  const portPart = port ? ':' + port : '';
+  const clean = protocol + '//' + hostname + portPart + pathnameAndSearch;
+  const hostWithoutWww = hostname.replace(/^www\./i, '');
+
+  return {
+    valid: true,
+    clean,
+    hostname,
+    hostWithoutWww,
+    protocol,
+  };
 }
-function host(value) { try { return new URL(cleanUrl(value)).hostname.replace(/^www\./, '').toLowerCase(); } catch (_) { return ''; } }
-const officialHost = host(data.canonical.website || '');
+
+function extractHost(value) {
+  const p = parseUrl(value);
+  return p.valid ? p.hostWithoutWww : '';
+}
+
+const officialHost = extractHost((data.canonical && data.canonical.website) || '');
 const candidates = [];
 const seen = new Set();
+const discoveryCount = (data.discovery || []).reduce((n, s) => n + (s.organic || []).length, 0);
+
+const urlSelectionDiagnostics = {
+  urlGlobalType: typeof URL,
+  canonicalWebsite: (data.canonical && data.canonical.website) || null,
+  canonicalWebsiteAccepted: false,
+  discovered: discoveryCount,
+  accepted: 0,
+  rejected: {
+    missing_url: 0,
+    invalid_protocol: 0,
+    invalid_hostname: 0,
+    private_network: 0,
+    search_engine: 0,
+    parser_error: 0,
+    duplicate: 0,
+  },
+};
 
 // Site officiel du compte comme candidat prioritaire si connu et sûr
-if (data.canonical && data.canonical.website && safe(data.canonical.website)) {
-  const officialUrl = cleanUrl(data.canonical.website);
-  seen.add(officialUrl);
-  candidates.push({
-    title: (data.canonical.name || 'Compte') + ' — Site officiel',
-    link: officialUrl,
-    snippet: data.canonical.description || 'Site officiel de l\'entreprise',
-    date: null,
-    query: 'canonical.website',
-    score: 200,
-  });
+if (data.canonical && data.canonical.website) {
+  const parsedOfficial = parseUrl(data.canonical.website);
+  if (parsedOfficial.valid) {
+    seen.add(parsedOfficial.clean);
+    candidates.push({
+      title: (data.canonical.name || 'Compte') + ' — Site officiel',
+      link: parsedOfficial.clean,
+      snippet: data.canonical.description || 'Site officiel de l\'entreprise',
+      date: null,
+      query: 'canonical.website',
+      score: 200,
+    });
+    urlSelectionDiagnostics.canonicalWebsiteAccepted = true;
+  } else {
+    const reason = parsedOfficial.reason || 'parser_error';
+    if (urlSelectionDiagnostics.rejected[reason] !== undefined) {
+      urlSelectionDiagnostics.rejected[reason]++;
+    } else {
+      urlSelectionDiagnostics.rejected.parser_error++;
+    }
+  }
 }
-
-const discoveryCount = (data.discovery || []).reduce((n, s) => n + (s.organic || []).length, 0);
 
 for (const search of data.discovery || []) {
   for (const r of search.organic || []) {
     const rawLink = typeof r === 'string' ? r : (r.link || r.url || r.redirect_link || '');
-    if (!safe(rawLink)) continue;
-    const clean = cleanUrl(rawLink);
-    if (seen.has(clean)) continue;
-    seen.add(clean);
-    const h = host(clean);
+    const parsed = parseUrl(rawLink);
+    if (!parsed.valid) {
+      const reason = parsed.reason || 'parser_error';
+      if (urlSelectionDiagnostics.rejected[reason] !== undefined) {
+        urlSelectionDiagnostics.rejected[reason]++;
+      } else {
+        urlSelectionDiagnostics.rejected.parser_error++;
+      }
+      continue;
+    }
+    if (seen.has(parsed.clean)) {
+      urlSelectionDiagnostics.rejected.duplicate++;
+      continue;
+    }
+    seen.add(parsed.clean);
+    const h = parsed.hostWithoutWww;
     let score = 10;
     if (officialHost && (h === officialHost || h.endsWith('.' + officialHost))) score += 100;
     if (/\.gouv\.fr$|insee\.fr$|europa\.eu$/.test(h)) score += 70;
@@ -254,8 +367,8 @@ for (const search of data.discovery || []) {
     if (/techniques-ingenieur|industrie-mag|actu-environnement|processalimentaire|decision-achats|journaldunet|emballagesmagazine/.test(h)) score += 30;
     score += Math.max(0, 12 - search.index);
     candidates.push({
-      title: r.title || clean,
-      link: clean,
+      title: r.title || parsed.clean,
+      link: parsed.clean,
       snippet: r.snippet || '',
       date: r.date || null,
       query: search.query,
@@ -264,8 +377,10 @@ for (const search of data.discovery || []) {
   }
 }
 
+urlSelectionDiagnostics.accepted = candidates.length;
+
 if (discoveryCount > 0 && candidates.length === 0) {
-  throw new Error('Anomalie pipeline V4 : aucune URL exploitable sélectionnée malgré ' + discoveryCount + ' résultats découverts');
+  throw new Error('Anomalie pipeline V4 : aucune URL exploitable sélectionnée malgré ' + discoveryCount + ' résultats découverts — ' + JSON.stringify(urlSelectionDiagnostics));
 }
 
 candidates.sort((a, b) => b.score - a.score || a.link.localeCompare(b.link));
@@ -311,6 +426,7 @@ const externalResearchStatus = (discoveryCount > 0 && selected.length > 0 && fet
 
 return [{ json: {
   ...data,
+  urlSelectionDiagnostics,
   selectedPages: selected,
   fetchedPages,
   fetchFailures,
@@ -321,9 +437,14 @@ return [{ json: {
 CATALOGUE = r'''const data = $('V4 Fetch Selected Pages').first().json;
 const now = new Date().toISOString();
 function slug(value) { return String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80); }
+function extractHost(value) {
+  const m = String(value || '').match(/^(?:https?:)?\/\/([^/?#:]+)/i);
+  return m ? m[1].toLowerCase().replace(/^www\./i, '') : '';
+}
+const officialHost = extractHost((data.canonical && data.canonical.website) || '');
 function sourceType(url) {
-  let h = ''; try { h = new URL(url).hostname.toLowerCase(); } catch (_) {}
-  if (data.canonical.website && h && new URL(data.canonical.website).hostname.toLowerCase() === h) return 'official_site';
+  const h = extractHost(url);
+  if (officialHost && h && (h === officialHost || h.endsWith('.' + officialHost))) return 'official_site';
   if (/\.gouv\.fr$|insee\.fr$|europa\.eu$/.test(h)) return 'regulatory_filing';
   return 'news_media';
 }
@@ -578,6 +699,7 @@ const callbackBody = {
     researchPlan: data.researchPlan, discoveryCount: data.discovery.reduce((n, s) => n + (s.organic || []).length, 0),
     selectedPages: data.selectedPages, fetchedPages: data.fetchedPages.map(({ text, ...rest }) => rest),
     fetchFailures: data.fetchFailures,
+    urlSelectionDiagnostics: data.urlSelectionDiagnostics || null,
     externalResearchStatus: data.externalResearchStatus || (data.discovery.reduce((n, s) => n + (s.organic || []).length, 0) > 0 && (!data.fetchedPages || data.fetchedPages.length === 0) ? 'external_research_degraded' : 'nominal'),
     coverage: ak.coverage, dataCutoffAt: data.dataCutoffAt,
   },

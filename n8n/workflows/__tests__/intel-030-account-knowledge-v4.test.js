@@ -39,7 +39,9 @@ function sandbox(registry, items) {
       return { first: () => ({ json: values[0] }), all: () => values.map((json) => ({ json })), item: { json: values[0] } }
     },
     $execution: { id: "exec-v4" }, $workflow: { id: "wf-030" },
-    console, Date, JSON, Math, URL, Array, Object, Set, Map, Number, String, RegExp, Error,
+    // URL est intentionnellement OMIS ici pour reproduire fidèlement le runtime n8n isolé
+    // où typeof URL === "undefined". Tout le code V4 doit s'exécuter sans constructeur global URL.
+    console, Date, JSON, Math, Array, Object, Set, Map, Number, String, RegExp, Error,
     isFinite, encodeURIComponent, Boolean, parseInt, parseFloat,
   }
 }
@@ -537,6 +539,120 @@ async function main() {
     () => runCode("V4 Fetch Selected Pages", anomalyRegistry),
     /Anomalie pipeline V4 : aucune URL exploitable sélectionnée malgré 2 résultats découverts/
   )
+
+  // ── Correctif Lot V4.1 : Tests sandbox sans URL global + Invariant canonical.website + Payload 83572 ──
+
+  // Test Invariant : canonical.website valide + discoveryCount > 0 -> le site officiel est toujours sélectionnable
+  // Même si 100% des résultats SerpAPI sont rejetés (ex. moteurs de recherche ou IP privées),
+  // candidates.length ne doit jamais être zéro et le site officiel doit être retenu.
+  const invariantRegistry = {
+    "V4 Normalize SerpAPI Discovery": {
+      canonical: { name: "Tournaire", website: "https://www.tournaire.fr/" },
+      discovery: [
+        { index: 0, query: "q0", organic: [
+          { title: "Google Search", link: "https://www.google.fr/search?q=tournaire", snippet: "" },
+          { title: "IP privée", link: "http://192.168.1.1/admin", snippet: "" },
+          { title: "Localhost", link: "http://localhost:3000/", snippet: "" },
+        ] }
+      ]
+    }
+  }
+  const invariantFetchResult = await runCode("V4 Fetch Selected Pages", invariantRegistry)
+  const invariantFetch = invariantFetchResult[0].json
+  check(
+    "Invariant V4.1 : canonical.website valide garantit candidates >= 1 même si tous les résultats SerpAPI sont rejetés",
+    invariantFetch.selectedPages.length >= 1 && invariantFetch.selectedPages[0].link === "https://www.tournaire.fr/"
+  )
+  check(
+    "Invariant V4.1 : urlSelectionDiagnostics trace l'acceptation du site officiel et les rejets spécifiques",
+    invariantFetch.urlSelectionDiagnostics.canonicalWebsiteAccepted === true &&
+    invariantFetch.urlSelectionDiagnostics.rejected.search_engine === 1 &&
+    invariantFetch.urlSelectionDiagnostics.rejected.private_network === 1 &&
+    invariantFetch.urlSelectionDiagnostics.rejected.invalid_hostname === 1
+  )
+  check(
+    "Runtime n8n V4.1 : V4 Fetch Selected Pages s'exécute sans constructeur global URL (typeof URL === 'undefined')",
+    invariantFetch.urlSelectionDiagnostics.urlGlobalType === "undefined"
+  )
+
+  // Test Payload réel 83572 : 56 résultats SerpAPI découverts sur 12 requêtes
+  const realisticDiscovery = [
+    { index: 0, query: 'Tournaire Grasse', organic: [
+      { title: 'Tournaire : Equipements et emballages', link: 'https://www.tournaire.fr/', snippet: 'Site officiel' },
+      { title: 'Histoire Tournaire', link: 'https://www.tournaire.fr/notre-histoire', snippet: 'Fondé en 1833' },
+      { title: 'Google Résultat', link: 'https://www.google.com/search?q=tournaire', snippet: '' },
+      { title: 'Wikipédia Emballage', link: 'https://fr.wikipedia.org/wiki/Emballage', snippet: 'Encyclopédie' },
+      { title: 'Économie Gouv', link: 'https://www.economie.gouv.fr/entreprises/tournaire', snippet: 'Fiche entreprise' },
+    ] },
+    { index: 1, query: 'Tournaire SA Grasse', organic: [
+      { title: 'Tournaire SA Solutions', link: 'https://www.tournaire.fr/solutions-emballage', snippet: 'Solutions alu' },
+      { title: 'Usine Nouvelle Tournaire', link: 'https://www.usinenouvelle.com/article/tournaire-investit-grasse.N12345', snippet: 'Investissement usine' },
+      { title: 'Les Échos Tournaire', link: 'https://lesechos.fr/industrie/tournaire-packaging', snippet: 'Croissance' },
+      { title: 'Local Router', link: 'http://192.168.1.1/config', snippet: 'LAN' },
+      { title: 'Societe.com Tournaire', link: 'https://www.societe.com/societe/tournaire-sa-035650044.html', snippet: 'Informations légales' },
+    ] },
+    { index: 2, query: 'Groupe Tournaire Grasse', organic: [
+      { title: 'Tournaire RSE', link: 'https://www.tournaire.fr/rse-engagement', snippet: 'Index 89/100' },
+      { title: 'Bfmtv Tournaire', link: 'https://www.bfmtv.com/economie/entreprises/tournaire-grasse_AN-2024.html', snippet: 'Reportage' },
+      { title: 'DuckDuckGo Search', link: 'https://duckduckgo.com/?q=tournaire', snippet: '' },
+      { title: 'Techniques Ingénieur Tournaire', link: 'https://www.techniques-ingenieur.fr/actualite/articles/tournaire-emballage-12345/', snippet: 'Procédés industriels' },
+      { title: 'Infogreffe Tournaire', link: 'https://www.infogreffe.fr/entreprise/tournaire/035650044', snippet: 'Greffe' },
+    ] },
+    // 9 requêtes supplémentaires complétant le total à 56 résultats (comme l'exécution 83572)
+    ...Array.from({ length: 9 }, (_, qIdx) => ({
+      index: qIdx + 3,
+      query: `Requête sectorielle ${qIdx + 3}`,
+      organic: Array.from({ length: qIdx < 5 ? 5 : 4 }, (__, rIdx) => ({
+        title: `Résultat Q${qIdx + 3}-${rIdx}`,
+        link: `https://revue-emballages-${qIdx + 3}.fr/article-${rIdx}`,
+        snippet: `Extrait article emballages industriels ${qIdx + 3}-${rIdx}`,
+        date: '2026-08-15',
+      }))
+    }))
+  ]
+
+  const totalDiscoveryCount = realisticDiscovery.reduce((n, s) => n + s.organic.length, 0)
+  check("Payload 83572 : contient exactement 56 résultats découverts", totalDiscoveryCount === 56)
+
+  const realistic83572Registry = {
+    ...resolved,
+    "V4 Normalize SerpAPI Discovery": {
+      ...resolved,
+      canonical: {
+        id: "cde3d719-f1ef-4bd5-a55d-1f37c7642637",
+        name: "Tournaire",
+        website: "https://www.tournaire.fr/",
+        segment: "Emballages industriels",
+        sector: "Industrie manufacturière, électronique & équipements",
+      },
+      discovery: realisticDiscovery,
+    }
+  }
+
+  httpCalls = []
+  httpResponder = async () => {
+    return "<html><body>Contenu public complet de la page pour Tournaire à Grasse. Les emballages en aluminium et inox sont certifiés conformes. Activité industrielle de pointe.</body></html>"
+  }
+
+  const realistic83572FetchResult = await runCode("V4 Fetch Selected Pages", realistic83572Registry)
+  const realisticFetch = realistic83572FetchResult[0].json
+  check("Payload 83572 : découverte 56 résultats → sélection de 3 à 6 pages", realisticFetch.selectedPages.length >= 3 && realisticFetch.selectedPages.length <= 6)
+  check("Payload 83572 : site officiel https://www.tournaire.fr/ sélectionné en priorité (score 200)", realisticFetch.selectedPages[0].link === "https://www.tournaire.fr/" && realisticFetch.selectedPages[0].score === 200)
+  check("Payload 83572 : au moins 3 pages externes récupérées avec succès", realisticFetch.fetchedPages.length >= 3)
+  check("Payload 83572 : externalResearchStatus vaut nominal", realisticFetch.externalResearchStatus === "nominal")
+  check("Payload 83572 : urlSelectionDiagnostics trace les 56 découverts et les rejets filtrés",
+    realisticFetch.urlSelectionDiagnostics.discovered === 56 &&
+    realisticFetch.urlSelectionDiagnostics.accepted >= 3 &&
+    realisticFetch.urlSelectionDiagnostics.rejected.search_engine === 2 &&
+    realisticFetch.urlSelectionDiagnostics.rejected.private_network === 1
+  )
+
+  // Vérifier que le Catalogue de sources s'exécute sans URL global
+  await runCode("V4 Build Source Catalogue", {
+    ...realistic83572Registry,
+    "V4 Fetch Selected Pages": realisticFetch,
+  })
+  check("Catalogue V4.1 : V4 Build Source Catalogue s'exécute avec succès sans URL global", true)
 
   const v4WithErrors = workflow.nodes.filter((n) => n.name.startsWith("V4 ") && n.onError === "continueErrorOutput")
   const missingFailure = v4WithErrors.filter((n) => !((workflow.connections[n.name] || {}).main || [])[1]?.some((c) => c.node === "Prepare Failure Callback"))
