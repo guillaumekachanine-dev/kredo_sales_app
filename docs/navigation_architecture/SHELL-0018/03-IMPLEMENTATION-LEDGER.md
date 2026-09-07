@@ -2,7 +2,7 @@
 
 > **Statut global : en cours**  
 > **Baseline : 2026-09-07**  
-> **Branche active : `feat/shell-0018-01-section-rail`**  
+> **Branche de travail unique : `main`**
 > **SHA de départ du chantier V2 : `d9c7fc9edb9d35cc6d2fc889d9e251ad0fa311a1`**
 
 Ce ledger est la source de vérité de l'avancement opérationnel du chantier V2.
@@ -11,11 +11,15 @@ Ce ledger est la source de vérité de l'avancement opérationnel du chantier V2
 
 Avant tout lot :
 
-1. lire `README.md` ;
-2. lire l'ADR V2 ;
-3. lire le standard du rail ;
-4. vérifier l'état réel du code concerné ;
-5. consigner tout écart ici avant modification.
+1. se placer sur `main` et synchroniser avec `origin/main` sans écraser les changements récents ;
+2. lire `README.md` ;
+3. lire l'ADR V2 ;
+4. lire le standard du rail ;
+5. vérifier l'état réel du code concerné ;
+6. consigner tout écart ici avant modification.
+
+Tous les commits du chantier sont réalisés directement sur `main`. Aucune branche dédiée
+SHELL-0018 ne doit être créée.
 
 À la sortie de chaque lot :
 
@@ -67,10 +71,10 @@ QA minimale :
 
 ## 4. Lots
 
-| Lot | Objet | Statut | Branche / note |
+| Lot | Objet | Statut | Référence / note |
 |---|---|---|---|
 | **0A** | Audit complet code + DB | ✅ done | audit du 2026-09-07 |
-| **0B** | Rebaseline documentaire V2 | ✅ done | `feat/shell-0018-00-rebaseline` |
+| **0B** | Rebaseline documentaire V2 | ✅ done | baseline du 2026-09-07 |
 | **1.0** | Contrat client-safe de `SectionRail` | 🟡 implémenté, validation en cours | `src/lib/navigation/section-rail.ts` |
 | **1.1** | Primitive présentationnelle `SectionRail` | 🟡 implémentée, validation en cours | `src/components/layout/SectionRail.tsx` |
 | **1.2** | Tests unitaires de la primitive | 🟡 écrits, exécution à confirmer | `SectionRail.test.ts` |
@@ -120,6 +124,11 @@ Knowledge Hub n'est plus exempté du châssis commun : seule sa navigation méti
 ### 2026-09-07 — R-07
 
 Le premier pilote de migration est **Engagements** plutôt qu'Account Intelligence : son titre de page est non ambigu, son état `?vue=` est déjà URL-addressable et il ne possède aucun module contextuel à arbitrer. Cela permet de prouver la primitive sans modifier de logique métier.
+
+### 2026-09-08 — R-08
+
+`main` est la seule branche de travail du chantier SHELL-0018. Chaque lot est synchronisé,
+validé et committé directement sur `main` ; aucune branche dédiée n'est créée.
 
 ## 6. Écarts connus avant code
 

@@ -2,10 +2,13 @@
 
 > **Statut : actif**  
 > **Baseline : 2026-09-07**  
-> **Branche de rebaseline : `feat/shell-0018-00-rebaseline`**  
+> **Branche de travail unique : `main`**
 > **Point de départ Git : `d9c7fc9edb9d35cc6d2fc889d9e251ad0fa311a1`**
 
 Ce dossier est désormais le **point d'entrée obligatoire** de tout agent intervenant sur SHELL-0018 et sur la standardisation de la navigation secondaire Desktop.
+
+Tout lot SHELL-0018 est préparé, validé et committé directement sur `main`, après
+synchronisation avec `origin/main`. Aucune branche dédiée au chantier ne doit être créée.
 
 Les anciens documents SHELL-0018 datés d'août 2026 restent dans le dépôt à titre historique. Ils **ne doivent plus être utilisés comme cible d'implémentation** sans vérification contre ce dossier et le code réel.
 
