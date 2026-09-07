@@ -2,8 +2,8 @@
 
 > **Statut global : en cours**  
 > **Baseline : 2026-09-07**  
-> **Branche active : `feat/shell-0018-00-rebaseline`**  
-> **SHA de départ : `d9c7fc9edb9d35cc6d2fc889d9e251ad0fa311a1`**
+> **Branche active : `feat/shell-0018-01-section-rail`**  
+> **SHA de départ du chantier V2 : `d9c7fc9edb9d35cc6d2fc889d9e251ad0fa311a1`**
 
 Ce ledger est la source de vérité de l'avancement opérationnel du chantier V2.
 
@@ -71,9 +71,9 @@ QA minimale :
 |---|---|---|---|
 | **0A** | Audit complet code + DB | ✅ done | audit du 2026-09-07 |
 | **0B** | Rebaseline documentaire V2 | ✅ done | `feat/shell-0018-00-rebaseline` |
-| **1.0** | Contrat client-safe de `SectionRail` | ⬜ next | prochaine branche de code |
-| **1.1** | Primitive présentationnelle `SectionRail` | ⬜ todo | aucun métier |
-| **1.2** | Tests unitaires de la primitive | ⬜ todo | structure / accessibilité / états |
+| **1.0** | Contrat client-safe de `SectionRail` | 🟡 implémenté, validation en cours | `src/lib/navigation/section-rail.ts` |
+| **1.1** | Primitive présentationnelle `SectionRail` | 🟡 implémentée, validation en cours | `src/components/layout/SectionRail.tsx` |
+| **1.2** | Tests unitaires de la primitive | 🟡 écrits, exécution à confirmer | `SectionRail.test.ts` |
 | **2.1** | Migration Account Intelligence | ⬜ todo | Golden Master |
 | **2.2** | Migration Business Intelligence | ⬜ todo | conserver `?tab=` |
 | **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
@@ -148,12 +148,50 @@ Vérifications documentaires :
 - la règle du nom d'onglet dans le header principal est présente dans README + ADR + standard ;
 - le Mobile est identifié comme dépendance protégée ;
 - aucune migration Supabase n'est demandée ;
-- aucun fichier applicatif n'a été modifié.
+- aucun fichier applicatif n'a été modifié dans ce lot.
 
 **Verdict Lot 0B : `done`.**
 
-## 8. Prochain lot
+## 8. Lot 1 — état actuel
 
-**Lot 1.0 — contrat client-safe de `SectionRail`.**
+### Audit d'entrée effectué
 
-Condition d'entrée : auditer les primitives UI communes, les conventions `cn`, les patterns de Link/button et les tests de composants existants avant de figer le contrat TypeScript.
+- pattern de classes vérifié dans les rails existants ;
+- helper `cn` vérifié comme client-safe ;
+- pattern de tests par `renderToStaticMarkup` vérifié dans le dépôt ;
+- usage de `line-clamp-2` vérifié dans plusieurs composants existants ;
+- aucune dépendance Supabase / n8n / `server-only` introduite.
+
+### Fichiers créés
+
+- `src/lib/navigation/section-rail.ts`
+- `src/components/layout/SectionRail.tsx`
+- `src/components/layout/SectionRail.test.ts`
+
+### Contrat implémenté
+
+La primitive supporte :
+
+- chapeau via `href` ou callback ;
+- chapitres via `href` ou callback ;
+- état actif ;
+- icône optionnelle ;
+- labels jusqu'à deux lignes ;
+- modules contextuels facultatifs ;
+- section Modules ancrée en bas ;
+- largeur fixe `11.5rem` ;
+- chapeau navy, blanc, gras et centré.
+
+### Validation
+
+- Vercel : déploiement preview déclenché, statut encore `pending` au dernier contrôle ;
+- gates locales (`typecheck`, tests, server-boundary, lint ciblé) : non exécutables depuis le connecteur GitHub dans cette session ;
+- aucune migration Supabase ;
+- aucun changement métier ;
+- aucune page encore migrée vers la primitive.
+
+**Verdict lots 1.0–1.2 : `partial` tant que les gates ne sont pas confirmées.**
+
+## 9. Prochaine étape
+
+Après validation du socle : migration d'une première surface existante vers `SectionRail`, sans modification métier. Le choix du premier pilote doit respecter le contrat de chapeau et la présence du titre d'onglet dans le header principal.
