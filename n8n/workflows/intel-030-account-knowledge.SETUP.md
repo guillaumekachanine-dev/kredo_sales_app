@@ -248,8 +248,10 @@ Configuration additionnelle lors du réimport manuel :
 - `V4 Upsert Sources`, `V4 Resolve Source Ids` et `Hydrate Context` utilisent le
   credential Supabase service role existant ;
 - `V4 Call LLM` utilise le credential Anthropic existant ;
-- `V4 Serper Discovery` lit `$env.SERPER_API_KEY` déjà utilisé par les workflows
-  FOLIO legacy — aucune clé ne doit être copiée dans le JSON ;
+- `V4 Serper Discovery` lit d'abord la variable n8n `SERPER_API_KEY` (interface
+  **Settings → Variables**, sans accès VPS), puis `$env.SERPER_API_KEY` en repli
+  pour les installations qui l'avaient déjà configurée. Aucune clé ne doit être
+  copiée dans le JSON ;
 - `V4 Sign Callback` doit recevoir le même secret HMAC que les autres nœuds Crypto.
 
 Avant activation, rejouer :

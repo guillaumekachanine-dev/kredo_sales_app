@@ -121,8 +121,11 @@ return [{ json: { ...data, entityResolution: snapshot, registryQueries: urls, re
 
 DISCOVERY = r'''// Serper sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.
 const data = $('V4 Resolve Entity').first().json;
-const apiKey = $env.SERPER_API_KEY;
-if (!apiKey) throw new Error('SERPER_API_KEY absente');
+// Priorité à la variable administrable depuis l'interface n8n (Settings →
+// Variables). L'environnement VPS reste un secours pour les déploiements qui
+// l'avaient déjà configuré. Aucune clé ne figure dans le workflow exporté.
+const apiKey = (typeof $vars !== 'undefined' && $vars.SERPER_API_KEY) || $env.SERPER_API_KEY;
+if (!apiKey) throw new Error('SERPER_API_KEY absente : crée Settings → Variables → SERPER_API_KEY dans n8n.');
 const searches = await Promise.all(data.researchPlan.map(async (plan) => {
   try {
     const response = await this.helpers.httpRequest({

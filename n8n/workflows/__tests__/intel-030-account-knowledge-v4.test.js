@@ -13,6 +13,8 @@ let passed = 0
 let failed = 0
 let httpCalls = []
 let httpResponder = async () => ({})
+let n8nVariables = { SERPER_API_KEY: "test-serper-key" }
+let n8nEnvironment = {}
 
 function check(label, condition, detail = "") {
   if (condition) { passed++; console.log(`ok   ${label}`) }
@@ -31,7 +33,8 @@ async function expectThrows(label, fn, matcher) {
 function sandbox(registry, items) {
   return {
     helpers: { httpRequest: async (options) => { httpCalls.push(options); return httpResponder(options) } },
-    $env: { SERPER_API_KEY: "test-serper-key" },
+    $vars: n8nVariables,
+    $env: n8nEnvironment,
     $input: { first: () => items[0], all: () => items },
     $: (name) => {
       if (!(name in registry)) throw new Error(`Nœud non exécuté : ${name}`)
@@ -146,6 +149,7 @@ async function main() {
   check("Budget V4 = 16000 tokens", /max_tokens: 16000/.test(nodes["V4 Call LLM"].parameters.jsonBody))
   check("Aucun vérificateur LLM V4", !workflow.nodes.some((n) => /^V4 .*Verif/i.test(n.name)))
   check("Aucune écriture V4 directe dans companies", !workflow.nodes.some((n) => n.name.startsWith("V4 ") && /\/rest\/v1\/companies/.test(JSON.stringify(n.parameters))))
+  check("Serper lit d'abord la variable administrable n8n, sans clé dans le JSON", /\$vars\.SERPER_API_KEY/.test(nodes["V4 Serper Discovery"].parameters.jsCode) && !/test-serper-key/.test(nodes["V4 Serper Discovery"].parameters.jsCode))
 
   const registry = {}
   await prepareAndResolve(registry)
