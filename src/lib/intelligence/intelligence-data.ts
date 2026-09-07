@@ -18,6 +18,7 @@ import {
   deriveAccountKnowledgeFields,
   type AccountKnowledgeRenderableState,
   type AccountKnowledgeV3State,
+  type AccountKnowledgeV4State,
 } from "@/lib/intelligence/account-knowledge-state"
 import {
   collectAccountKnowledgeV2SourceIds,
@@ -27,6 +28,7 @@ export type {
   AccountKnowledgeState,
   AccountKnowledgeRenderableState,
   AccountKnowledgeV3State,
+  AccountKnowledgeV4State,
 } from "@/lib/intelligence/account-knowledge-state"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 import { isAccountDepthLevel, type AccountDepthLevel } from "@/features/account-lifecycle/domain/depth-level"
@@ -367,6 +369,8 @@ export type ClientIntelligenceData = {
   // sa présence ne modifie donc rien à l'écran, elle rend seulement possible la
   // restitution du Lot 5 sans nouvelle requête.
   accountKnowledgeV3: AccountKnowledgeV3State | null
+  // Lot 2 : V4 est chargé et typé mais ne modifie aucun rendu avant le Lot 4.
+  accountKnowledgeV4: AccountKnowledgeV4State | null
   // Date de l'artefact account_knowledge COURANT, quelle que soit sa version
   // (V1, V2 ou V3). Distinct de `accountKnowledge?.createdAt` : ce dernier est
   // `null` dès que V3 est l'artefact courant, ce qui ferait conclure à tort
@@ -1107,6 +1111,7 @@ export async function getClientIntelligence(
   const {
     accountKnowledge,
     accountKnowledgeV3,
+    accountKnowledgeV4,
     accountKnowledgeLastUpdatedAt,
     unreadable: unreadableAccountKnowledge,
   } = deriveAccountKnowledgeFields(results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE))
@@ -1534,6 +1539,7 @@ export async function getClientIntelligence(
       client,
       accountKnowledge,
       accountKnowledgeV3,
+      accountKnowledgeV4,
       accountKnowledgeLastUpdatedAt,
       accountKnowledgeSources,
       accountKnowledgeV3Sources,

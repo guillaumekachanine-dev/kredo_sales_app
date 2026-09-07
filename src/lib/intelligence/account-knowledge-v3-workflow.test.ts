@@ -120,8 +120,8 @@ describe("intel-030 V3 — structure du workflow", () => {
   it("reste inactif et n'expose que le secret placeholder (jamais un vrai secret)", () => {
     expect(workflow.active).toBe(false)
     const matches = workflowText.match(/REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET/g) || []
-    // 3 crypto V2 + 1 crypto V3.
-    expect(matches.length).toBe(4)
+    // 3 crypto V2 + 1 crypto V3 + 1 crypto V4.
+    expect(matches.length).toBe(5)
     expect(workflowText).not.toMatch(/sk-ant-[A-Za-z0-9]{8}/)
     expect(workflowText).not.toMatch(/eyJ[A-Za-z0-9_-]{20}/)
   })
@@ -132,16 +132,18 @@ describe("intel-030 V3 — structure du workflow", () => {
     }
   })
 
-  it("route vers V3 uniquement sur le discriminateur explicite", () => {
+  it("route explicitement vers V4, V3 ou V2 selon le discriminateur", () => {
     const router = nodesByName.get("Route Account Knowledge Version")
     expect(router).toBeDefined()
-    const cond = (router!.parameters as { conditions: { conditions: Array<{ leftValue: string; rightValue: number; operator: { operation: string } }> } }).conditions.conditions[0]
+    const rules = (router!.parameters as { rules: { values: Array<{ conditions: { conditions: Array<{ leftValue: string; rightValue: number; operator: { operation: string } }> } }> } }).rules.values
+    const cond = rules[1].conditions.conditions[0]
     expect(String(cond.leftValue)).toContain("accountKnowledgeSchemaVersion")
     expect(cond.rightValue).toBe(3)
     expect(cond.operator.operation).toBe("equals")
     const routes = workflow.connections["Route Account Knowledge Version"].main
-    expect(routes[0][0].node).toBe("V3 Prepare Context & Research Plan") // TRUE = V3
-    expect(routes[1][0].node).toBe("Prepare Deterministic Context") // FALSE = V2
+    expect(routes[0][0].node).toBe("V4 Prepare Dossier")
+    expect(routes[1][0].node).toBe("V3 Prepare Context & Research Plan")
+    expect(routes[2][0].node).toBe("Prepare Deterministic Context")
   })
 
   it("lit le discriminateur là où CORE-001 le dépose réellement (body.input)", () => {

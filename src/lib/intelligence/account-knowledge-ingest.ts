@@ -27,6 +27,9 @@
 //   8. chaque `significant_signal_ids` doit désigner un `account_signals`
 //      existant, du workspace du run ET rattaché au compte du run. Un signal
 //      d'un autre compte afficherait l'actualité du voisin sur la fiche.
+// Lot 3 — V4 conserve la même frontière tenant : tous les identifiants UUID de
+// son inventaire de sources sont rechargés dans le workspace. Les identifiants
+// internes (`internal:…`) restent locaux à l'artefact et ne sont pas interrogés.
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
@@ -40,6 +43,7 @@ import {
   type AccountKnowledgeContent,
   type AccountKnowledgeContentV2,
   type AccountKnowledgeContentV3,
+  type AccountKnowledgeContentV4,
 } from "./account-intelligence-contracts"
 import {
   parseAccountKnowledgeArtifact,
@@ -53,6 +57,7 @@ export type AccountKnowledgeIngestResult =
   | { ok: true; version: 1; content: AccountKnowledgeContent }
   | { ok: true; version: 2; content: AccountKnowledgeContentV2 }
   | { ok: true; version: 3; content: AccountKnowledgeContentV3 }
+  | { ok: true; version: 4; content: AccountKnowledgeContentV4 }
   | { ok: false; error: string; issues: ValidationIssue[] }
 
 /**
@@ -150,6 +155,15 @@ export function collectAccountKnowledgeV3SourceIds(
   for (const ref of content.identity.dynamic?.source_refs ?? []) ids.add(ref)
 
   return [...ids]
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/** UUID externes présents dans l'inventaire V4, cités ou non. */
+export function collectAccountKnowledgeV4ExternalSourceIds(
+  content: AccountKnowledgeContentV4,
+): string[] {
+  return [...new Set(content.sources.map((source) => source.id).filter((id) => UUID_PATTERN.test(id)))]
 }
 
 /**
@@ -285,6 +299,34 @@ export async function ingestAccountKnowledgeArtifact(
     return ingestV3(supabase, { workspaceId, companyId, content: parsed.content })
   }
 
+  // V4 a son inventaire de sources à l'intérieur de l'artefact : les références
+  // peuvent être des identifiants internes (`internal:…`) autant que des UUID de
+  // intelligence_sources. Le validateur bloque les références orphelines dans
+  // l'inventaire ; ce second contrôle empêche en plus toute fuite cross-tenant.
+  if (parsed.version === 4) {
+    const sourceIds = collectAccountKnowledgeV4ExternalSourceIds(parsed.content)
+    const sourceCheck = await findUnknownSourceIds(supabase, workspaceId, sourceIds)
+    if ("error" in sourceCheck) {
+      return {
+        ok: false,
+        error: `Vérification des sources impossible : ${sourceCheck.error}`,
+        issues: [],
+      }
+    }
+    if (sourceCheck.unknown.length > 0) {
+      return {
+        ok: false,
+        error: "Sources citées inconnues du workspace",
+        issues: sourceCheck.unknown.map((id) => ({
+          path: "$.sources",
+          message: `Source ${id} inexistante ou hors workspace.`,
+        })),
+      }
+    }
+    return { ok: true, version: 4, content: parsed.content }
+  }
+
+  // La seule branche restante est V2.
   const content = parsed.content
 
   const sourceIds = collectAccountKnowledgeV2SourceIds(content)

@@ -7,11 +7,13 @@ import {
 import {
   isAccountKnowledgeV2,
   isAccountKnowledgeV3,
+  isAccountKnowledgeV4,
   parseAccountKnowledgeArtifact,
   validateAccountKnowledgeClaimV3,
   validateAccountKnowledgeV1,
   validateAccountKnowledgeV2,
   validateAccountKnowledgeV3,
+  validateAccountKnowledgeV4,
   validateAccountKnowledgeVerificationResultV3,
   validateClaim,
   validateDeterministicIndicator,
@@ -21,6 +23,7 @@ import {
 } from "./intelligence-validators"
 import {
   ACCOUNT_KNOWLEDGE_V3_SECTION_ORDER,
+  ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER,
   collectAccountKnowledgeV3Claims,
   type AccountKnowledgeClaimV3,
   type AccountKnowledgeContentV3,
@@ -1053,5 +1056,136 @@ describe("parseAccountKnowledgeArtifact — V3", () => {
     const parsed = parseAccountKnowledgeArtifact(truncated)
     expect(parsed.version).toBeNull()
     expect(parsed.content).toBeNull()
+  })
+})
+
+// ─── Account Knowledge V4 — prose + qualification épistémique ─────────────
+
+function entityResolutionV4() {
+  return {
+    decision: "resolved",
+    method: "registry_match",
+    siren: "415550110",
+    legal_name: "TOURNAIRE SA",
+    naf_code: "25.92Z",
+    naf_section: "C",
+    hq_commune: "GRASSE",
+    hq_postal_code: "06130",
+    score: 6.68,
+    margin: 2.08,
+    reasons: ["Appariement net."],
+    blockers: [],
+    signals: [{ key: "name", value: 1, detail: "Raison sociale concordante." }],
+    candidates: [{ siren: "415550110", legal_name: "TOURNAIRE SA", commune: "GRASSE", naf_code: "25.92Z", score: 6.68 }],
+    needs_human_confirmation: false,
+    can_propose_canonical_writes: true,
+  }
+}
+
+function accountKnowledgeV4Dense() {
+  return {
+    schema_version: 4,
+    entity_resolution: entityResolutionV4(),
+    sections: ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER.map((key) => ({
+      key,
+      title: key,
+      narrative: [`Lecture analytique de ${key}.`],
+      statements: [{
+        text: key === "implications_for_kredo"
+          ? "Une approche progressive semble cohérente avec le contexte connu."
+          : `Élément établi pour ${key}.`,
+        qualification: key === "implications_for_kredo" ? "hypothesis" : "established",
+        source_refs: key === "implications_for_kredo" ? [] : ["crm:company"],
+        confidence: 0.8,
+      }],
+      source_refs: key === "implications_for_kredo" ? [] : ["crm:company"],
+    })),
+    sources: [{
+      id: "crm:company",
+      label: "Fiche CRM Tournaire",
+      source_type: "internal_crm",
+      url: null,
+      consulted_at: null,
+    }],
+    knowledge_gaps: [],
+    coverage: {
+      sections_written: 8,
+      statements_by_qualification: { established: 7, declared: 0, inferred: 0, hypothesis: 1 },
+      external_pages_fetched: 0,
+    },
+    generated_at: "2026-09-07T00:00:00.000Z",
+  }
+}
+
+function accountKnowledgeV4Partial() {
+  return {
+    schema_version: 4,
+    entity_resolution: entityResolutionV4(),
+    sections: ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER.map((key) => ({
+      key,
+      title: key,
+      narrative: [],
+      statements: [],
+      source_refs: [],
+    })),
+    sources: [],
+    knowledge_gaps: ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER.map((section_key) => ({
+      section_key,
+      reason: "Aucune matière suffisamment spécifique au compte dans le dossier.",
+    })),
+    coverage: {
+      sections_written: 0,
+      statements_by_qualification: { established: 0, declared: 0, inferred: 0, hypothesis: 0 },
+      external_pages_fetched: 0,
+    },
+    generated_at: "2026-09-07T00:00:00.000Z",
+  }
+}
+
+describe("AccountKnowledge V4", () => {
+  it("accepte un artefact dense : prose, structure et quatre niveaux coexistent", () => {
+    const result = validateAccountKnowledgeV4(accountKnowledgeV4Dense())
+    expect(result.valid).toBe(true)
+    if (result.valid) {
+      expect(result.value.sections).toHaveLength(8)
+      expect(result.value.coverage.statements_by_qualification.hypothesis).toBe(1)
+    }
+  })
+
+  it("accepte un artefact honnêtement partiel lorsque chaque section vide a sa lacune", () => {
+    expect(validateAccountKnowledgeV4(accountKnowledgeV4Partial()).valid).toBe(true)
+  })
+
+  it("rejette une hypothèse chiffrée", () => {
+    const artifact = accountKnowledgeV4Dense()
+    artifact.sections[7].statements[0].text = "Une hausse de 20 % semble plausible."
+    const result = validateAccountKnowledgeV4(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.path.endsWith(".text") && issue.message.includes("hypothèse"))).toBe(true)
+  })
+
+  it("rejette une assertion établie sans source", () => {
+    const artifact = accountKnowledgeV4Dense()
+    artifact.sections[0].statements[0].source_refs = []
+    const result = validateAccountKnowledgeV4(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.path.endsWith("source_refs") && issue.message.includes("doit citer"))).toBe(true)
+  })
+
+  it("rejette une section vide sans knowledge_gap", () => {
+    const artifact = accountKnowledgeV4Partial()
+    artifact.knowledge_gaps = artifact.knowledge_gaps.slice(1)
+    const result = validateAccountKnowledgeV4(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.message.includes("section vide exige"))).toBe(true)
+  })
+
+  it("parse explicitement V4 sans promouvoir un artefact antérieur", () => {
+    const parsed = parseAccountKnowledgeArtifact(accountKnowledgeV4Dense())
+    expect(parsed.version).toBe(4)
+    if (parsed.version === 4) {
+      expect(isAccountKnowledgeV4(parsed.content)).toBe(true)
+      expect(isAccountKnowledgeV3(parsed.content)).toBe(false)
+    }
   })
 })

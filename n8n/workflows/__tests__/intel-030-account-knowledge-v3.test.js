@@ -312,6 +312,8 @@ async function main() {
     check("Aucun champ input du tout → V2 historique", (await versionOf({})) === 2)
     check("input.accountKnowledgeSchemaVersion = 3 → V3",
       (await versionOf({ input: { accountKnowledgeSchemaVersion: 3 } })) === 3)
+    check("input.accountKnowledgeSchemaVersion = 4 → V4",
+      (await versionOf({ input: { accountKnowledgeSchemaVersion: 4 } })) === 4)
     check("input.accountKnowledgeSchemaVersion = 2 → V2",
       (await versionOf({ input: { accountKnowledgeSchemaVersion: 2 } })) === 2)
     check("Compatibilité temporaire : valeur à la racine encore acceptée",
@@ -320,7 +322,7 @@ async function main() {
       (await versionOf({ accountKnowledgeSchemaVersion: 2, input: { accountKnowledgeSchemaVersion: 3 } })) === 3)
     await expectThrows(
       "Version explicite inconnue → rejet (jamais un repli silencieux sur V2)",
-      () => versionOf({ input: { accountKnowledgeSchemaVersion: 4 } }),
+      () => versionOf({ input: { accountKnowledgeSchemaVersion: 5 } }),
       /Version AccountKnowledge non supportée/,
     )
     await expectThrows(
@@ -738,16 +740,19 @@ async function main() {
   {
     // Discriminateur explicite.
     const router = nodes["Route Account Knowledge Version"]
-    const routerCond = router.parameters.conditions.conditions[0]
+    const routerRules = router.parameters.rules.values
+    const routerCond = routerRules[1].conditions.conditions[0]
     check("Router branche sur accountKnowledgeSchemaVersion === 3",
+      router.type === "n8n-nodes-base.switch" &&
       String(routerCond.leftValue).includes("accountKnowledgeSchemaVersion") &&
       routerCond.rightValue === 3 &&
       routerCond.operator.operation === "equals")
-    // TRUE (index 0) → V3, FALSE (index 1) → V2.
+    // Sorties explicites : V4 (0), V3 (1), V2 (2).
     const routes = workflow.connections["Route Account Knowledge Version"].main
-    check("Router TRUE → V3 Prepare Context, FALSE → V2 Prepare Deterministic Context",
-      routes[0][0].node === "V3 Prepare Context & Research Plan" &&
-      routes[1][0].node === "Prepare Deterministic Context")
+    check("Router V4 / V3 / V2 mène à la branche attendue",
+      routes[0][0].node === "V4 Prepare Dossier" &&
+      routes[1][0].node === "V3 Prepare Context & Research Plan" &&
+      routes[2][0].node === "Prepare Deterministic Context")
 
     // Aucune écriture directe dans companies.
     const companyWrites = workflow.nodes.filter((n) =>

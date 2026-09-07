@@ -1,5 +1,6 @@
 import type { Database } from "@/types/database"
 import type { Claim, DeterministicIndicator, QualitySummary } from "./intelligence-common-contracts"
+import type { EntityResolutionSnapshot } from "./entity-resolution"
 
 // ─── ADR-0012 — Contrats de la chaîne de décision commerciale ───────────────
 // Lot 1 : types des artefacts générés par les 5 étapes + enum de provenance
@@ -315,11 +316,91 @@ export interface AccountKnowledgeContentV3 {
   generated_at: string
 }
 
+// ─── account_knowledge V4 — moteur de compréhension d'entreprise ───────────
+//
+// V4 préserve la structure machine des statements mais fait de la prose le
+// livrable principal. Les qualifications expriment ce que KREDO sait, déclare,
+// déduit ou suppose ; elles ne sont pas un verdict de vérification V3.
+
+export const ACCOUNT_KNOWLEDGE_V4_SCHEMA_VERSION = 4 as const
+
+export const ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER = [
+  "synthesis",
+  "identity",
+  "business_and_offering",
+  "customers_and_market",
+  "competition_and_positioning",
+  "value_chain_and_dependencies",
+  "history_ambitions_and_news",
+  "implications_for_kredo",
+] as const
+
+export type AccountKnowledgeV4SectionKey =
+  (typeof ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER)[number]
+
+export type AccountKnowledgeQualificationV4 =
+  | "established"
+  | "declared"
+  | "inferred"
+  | "hypothesis"
+
+export type AccountKnowledgeStatementEntityV4 = {
+  kind: string
+  name: string
+}
+
+export type AccountKnowledgeStatementV4 = {
+  text: string
+  qualification: AccountKnowledgeQualificationV4
+  source_refs: string[]
+  confidence: number
+  entity?: AccountKnowledgeStatementEntityV4
+}
+
+/** Une source effectivement mobilisée, interne ou externe. */
+export type AccountKnowledgeSourceV4 = {
+  id: string
+  label: string
+  source_type: string
+  url: string | null
+  consulted_at: string | null
+}
+
+export type AccountKnowledgeSectionV4 = {
+  key: AccountKnowledgeV4SectionKey
+  title: string
+  narrative: string[]
+  statements: AccountKnowledgeStatementV4[]
+  source_refs: string[]
+}
+
+export type AccountKnowledgeGapV4 = {
+  section_key: AccountKnowledgeV4SectionKey
+  reason: string
+}
+
+export type AccountKnowledgeCoverageV4 = {
+  sections_written: number
+  statements_by_qualification: Record<AccountKnowledgeQualificationV4, number>
+  external_pages_fetched: number
+}
+
+export interface AccountKnowledgeContentV4 {
+  schema_version: 4
+  entity_resolution: EntityResolutionSnapshot
+  sections: AccountKnowledgeSectionV4[]
+  sources: AccountKnowledgeSourceV4[]
+  knowledge_gaps: AccountKnowledgeGapV4[]
+  coverage: AccountKnowledgeCoverageV4
+  generated_at: string
+}
+
 /** Union de lecture — toujours discriminée par `schema_version`. */
 export type AccountKnowledgeArtifact =
   | AccountKnowledgeContent
   | AccountKnowledgeContentV2
   | AccountKnowledgeContentV3
+  | AccountKnowledgeContentV4
 
 // ─── Chemins canoniques V3 ──────────────────────────────────────────────────
 // Ordre de parcours = ACCOUNT_KNOWLEDGE_V3_SECTION_ORDER puis ordre déclaratif

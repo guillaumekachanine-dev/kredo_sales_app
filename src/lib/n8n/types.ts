@@ -347,7 +347,7 @@ export type AccountSignalVerificationResult = {
 // comportement des boutons Desktop/Mobile actuels, volontairement inchangé
 // tant que la restitution V3 n'existe pas (Lot 5).
 export type AccountKnowledgeTriggerInput = {
-  accountKnowledgeSchemaVersion: 2 | 3
+  accountKnowledgeSchemaVersion: 2 | 3 | 4
 }
 
 // ─── Scan rapide d'un compte (V1) ───────────────────────────────────────────

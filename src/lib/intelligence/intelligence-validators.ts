@@ -26,6 +26,9 @@ import {
   type AccountKnowledgeContent,
   type AccountKnowledgeContentV2,
   type AccountKnowledgeContentV3,
+  type AccountKnowledgeContentV4,
+  type AccountKnowledgeQualificationV4,
+  type AccountKnowledgeV4SectionKey,
   type AccountKnowledgeVerificationResultV3,
   type AccountKnowledgeVerificationVerdictV3,
 } from "./account-intelligence-contracts"
@@ -984,12 +987,348 @@ export function validateAccountKnowledgeV3(
   return issues.length > 0 ? fail(issues) : ok(raw as unknown as AccountKnowledgeContentV3)
 }
 
+// ─── AccountKnowledge V4 — compréhension éditoriale qualifiée ──────────────
+
+const V4_SECTION_KEYS = [
+  "synthesis",
+  "identity",
+  "business_and_offering",
+  "customers_and_market",
+  "competition_and_positioning",
+  "value_chain_and_dependencies",
+  "history_ambitions_and_news",
+  "implications_for_kredo",
+] as const satisfies readonly AccountKnowledgeV4SectionKey[]
+
+const V4_SECTION_KEY_SET = new Set<string>(V4_SECTION_KEYS)
+const V4_QUALIFICATIONS = new Set<AccountKnowledgeQualificationV4>([
+  "established",
+  "declared",
+  "inferred",
+  "hypothesis",
+])
+const V4_ROOT_KEYS = new Set([
+  "schema_version",
+  "entity_resolution",
+  "sections",
+  "sources",
+  "knowledge_gaps",
+  "coverage",
+  "generated_at",
+])
+const V4_SECTION_KEYS_ALLOWED = new Set(["key", "title", "narrative", "statements", "source_refs"])
+const V4_STATEMENT_KEYS = new Set(["text", "qualification", "source_refs", "confidence", "entity"])
+const V4_SOURCE_KEYS = new Set(["id", "label", "source_type", "url", "consulted_at"])
+const V4_GAP_KEYS = new Set(["section_key", "reason"])
+const V4_COVERAGE_KEYS = new Set([
+  "sections_written",
+  "statements_by_qualification",
+  "external_pages_fetched",
+])
+const V4_ENTITY_RESOLUTION_KEYS = new Set([
+  "decision",
+  "method",
+  "siren",
+  "legal_name",
+  "naf_code",
+  "naf_section",
+  "hq_commune",
+  "hq_postal_code",
+  "score",
+  "margin",
+  "reasons",
+  "blockers",
+  "signals",
+  "candidates",
+  "needs_human_confirmation",
+  "can_propose_canonical_writes",
+])
+
+function validateText(raw: unknown, path: string): ValidationIssue[] {
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return [{ path, message: "Texte requis et non vide." }]
+  }
+  if (isPlaceholderText(raw)) {
+    return [{ path, message: `Marqueur d'absence interdit (\"${raw.trim()}\").` }]
+  }
+  return []
+}
+
+function validateV4SourceRefs(raw: unknown, path: string, sourceIds: Set<string>): ValidationIssue[] {
+  if (!Array.isArray(raw) || raw.some((ref) => typeof ref !== "string" || ref.trim().length === 0)) {
+    return [{ path, message: "Tableau de références de source non vides requis." }]
+  }
+  const issues: ValidationIssue[] = []
+  const seen = new Set<string>()
+  raw.forEach((ref, index) => {
+    if (seen.has(ref)) {
+      issues.push({ path: `${path}[${index}]`, message: "Référence de source en double." })
+    } else {
+      seen.add(ref)
+    }
+    if (!sourceIds.has(ref)) {
+      issues.push({ path: `${path}[${index}]`, message: `Source inconnue dans l'artefact : ${ref}.` })
+    }
+  })
+  return issues
+}
+
+function isHypothesisFigure(text: string): boolean {
+  // Une hypothèse peut être narrative, jamais chiffrée : les pourcentages,
+  // montants et années/nombres longs doivent venir du dossier déterministe.
+  return /(?:\b\d{4,}\b|\d[\d\s.,]*\s*(?:%|€|m\s*€|md\s*€))/iu.test(text)
+}
+
+function validateEntityResolutionSnapshotV4(raw: unknown): ValidationIssue[] {
+  if (!isRecord(raw)) return [{ path: "$.entity_resolution", message: "Bloc de résolution requis." }]
+
+  const issues = checkAllowedKeys(raw, V4_ENTITY_RESOLUTION_KEYS, "$.entity_resolution")
+  if (!["resolved", "needs_human_confirmation", "unresolved"].includes(String(raw.decision))) {
+    issues.push({ path: "$.entity_resolution.decision", message: "Décision de résolution invalide." })
+  }
+  if (!["crm_siren", "registry_match", "none"].includes(String(raw.method))) {
+    issues.push({ path: "$.entity_resolution.method", message: "Méthode de résolution invalide." })
+  }
+  for (const key of ["siren", "legal_name", "naf_code", "naf_section", "hq_commune", "hq_postal_code"] as const) {
+    if (raw[key] !== null && (typeof raw[key] !== "string" || raw[key].trim().length === 0)) {
+      issues.push({ path: `$.entity_resolution.${key}`, message: "Chaîne non vide ou null attendu." })
+    }
+  }
+  if (typeof raw.score !== "number" || !Number.isFinite(raw.score)) {
+    issues.push({ path: "$.entity_resolution.score", message: "Score numérique requis." })
+  }
+  if (raw.margin !== null && (typeof raw.margin !== "number" || !Number.isFinite(raw.margin))) {
+    issues.push({ path: "$.entity_resolution.margin", message: "Marge numérique ou null attendue." })
+  }
+  for (const key of ["reasons", "blockers"] as const) {
+    if (!Array.isArray(raw[key]) || raw[key].some((item) => typeof item !== "string")) {
+      issues.push({ path: `$.entity_resolution.${key}`, message: "Tableau de chaînes requis." })
+    }
+  }
+  if (!Array.isArray(raw.signals)) {
+    issues.push({ path: "$.entity_resolution.signals", message: "Tableau de signaux requis." })
+  } else {
+    raw.signals.forEach((signal, index) => {
+      const path = `$.entity_resolution.signals[${index}]`
+      if (!isRecord(signal) || typeof signal.key !== "string" || typeof signal.detail !== "string" ||
+        typeof signal.value !== "number" || !Number.isFinite(signal.value)) {
+        issues.push({ path, message: "Signal de résolution invalide." })
+      }
+    })
+  }
+  if (!Array.isArray(raw.candidates)) {
+    issues.push({ path: "$.entity_resolution.candidates", message: "Tableau de candidats requis." })
+  } else {
+    raw.candidates.forEach((candidate, index) => {
+      const path = `$.entity_resolution.candidates[${index}]`
+      if (!isRecord(candidate) || typeof candidate.siren !== "string" || candidate.siren.trim().length === 0 ||
+        (candidate.legal_name !== null && typeof candidate.legal_name !== "string") ||
+        (candidate.commune !== null && typeof candidate.commune !== "string") ||
+        (candidate.naf_code !== null && typeof candidate.naf_code !== "string") ||
+        typeof candidate.score !== "number" || !Number.isFinite(candidate.score)) {
+        issues.push({ path, message: "Candidat de résolution invalide." })
+      }
+    })
+  }
+  for (const key of ["needs_human_confirmation", "can_propose_canonical_writes"] as const) {
+    if (typeof raw[key] !== "boolean") {
+      issues.push({ path: `$.entity_resolution.${key}`, message: "Booléen requis." })
+    }
+  }
+  if (typeof raw.decision === "string" && typeof raw.needs_human_confirmation === "boolean" &&
+    raw.needs_human_confirmation !== (raw.decision === "needs_human_confirmation")) {
+    issues.push({ path: "$.entity_resolution.needs_human_confirmation", message: "Incohérent avec la décision." })
+  }
+  if (typeof raw.decision === "string" && typeof raw.can_propose_canonical_writes === "boolean" &&
+    raw.can_propose_canonical_writes !== (raw.decision === "resolved")) {
+    issues.push({ path: "$.entity_resolution.can_propose_canonical_writes", message: "Incohérent avec la décision." })
+  }
+  return issues
+}
+
+export function validateAccountKnowledgeV4(
+  raw: unknown,
+): ValidationResult<AccountKnowledgeContentV4> {
+  if (!isRecord(raw)) return fail([{ path: "$", message: "Objet requis." }])
+  if (raw.schema_version !== 4) {
+    return fail([{ path: "$.schema_version", message: "schema_version attendu : 4." }])
+  }
+
+  const issues: ValidationIssue[] = [...checkAllowedKeys(raw, V4_ROOT_KEYS, "$")]
+  issues.push(...validateEntityResolutionSnapshotV4(raw.entity_resolution))
+
+  const sourceIds = new Set<string>()
+  if (!Array.isArray(raw.sources)) {
+    issues.push({ path: "$.sources", message: "Tableau de sources requis." })
+  } else {
+    raw.sources.forEach((source, index) => {
+      const path = `$.sources[${index}]`
+      if (!isRecord(source)) {
+        issues.push({ path, message: "Source objet requise." })
+        return
+      }
+      issues.push(...checkAllowedKeys(source, V4_SOURCE_KEYS, path))
+      issues.push(...validateText(source.id, `${path}.id`))
+      issues.push(...validateText(source.label, `${path}.label`))
+      issues.push(...validateText(source.source_type, `${path}.source_type`))
+      if (source.url !== null && (typeof source.url !== "string" || source.url.trim().length === 0)) {
+        issues.push({ path: `${path}.url`, message: "URL non vide ou null attendue." })
+      }
+      if (source.consulted_at !== null && !isIsoDateString(source.consulted_at)) {
+        issues.push({ path: `${path}.consulted_at`, message: "Date ISO ou null attendue." })
+      }
+      if (typeof source.id === "string") {
+        if (sourceIds.has(source.id)) issues.push({ path: `${path}.id`, message: "Identifiant de source en double." })
+        sourceIds.add(source.id)
+      }
+    })
+  }
+
+  const emptySections = new Set<AccountKnowledgeV4SectionKey>()
+  const statementCounts: Record<AccountKnowledgeQualificationV4, number> = {
+    established: 0,
+    declared: 0,
+    inferred: 0,
+    hypothesis: 0,
+  }
+  let sectionsWritten = 0
+  if (!Array.isArray(raw.sections)) {
+    issues.push({ path: "$.sections", message: "Huit sections canoniques requises." })
+  } else {
+    if (raw.sections.length !== V4_SECTION_KEYS.length) {
+      issues.push({ path: "$.sections", message: "Les huit sections canoniques sont requises." })
+    }
+    raw.sections.forEach((section, index) => {
+      const path = `$.sections[${index}]`
+      if (!isRecord(section)) {
+        issues.push({ path, message: "Section objet requise." })
+        return
+      }
+      issues.push(...checkAllowedKeys(section, V4_SECTION_KEYS_ALLOWED, path))
+      if (section.key !== V4_SECTION_KEYS[index]) {
+        issues.push({ path: `${path}.key`, message: "Ordre ou clé de section canonique invalide." })
+      }
+      issues.push(...validateText(section.title, `${path}.title`))
+      if (!Array.isArray(section.narrative)) {
+        issues.push({ path: `${path}.narrative`, message: "Tableau de paragraphes requis." })
+      } else {
+        if (section.narrative.length > 6) {
+          issues.push({ path: `${path}.narrative`, message: "Au maximum six paragraphes par section." })
+        }
+        section.narrative.forEach((paragraph, paragraphIndex) => {
+          issues.push(...validateText(paragraph, `${path}.narrative[${paragraphIndex}]`))
+        })
+      }
+      issues.push(...validateV4SourceRefs(section.source_refs, `${path}.source_refs`, sourceIds))
+      if (!Array.isArray(section.statements)) {
+        issues.push({ path: `${path}.statements`, message: "Tableau de statements requis." })
+      } else {
+        section.statements.forEach((statement, statementIndex) => {
+          const statementPath = `${path}.statements[${statementIndex}]`
+          if (!isRecord(statement)) {
+            issues.push({ path: statementPath, message: "Statement objet requis." })
+            return
+          }
+          issues.push(...checkAllowedKeys(statement, V4_STATEMENT_KEYS, statementPath))
+          issues.push(...validateText(statement.text, `${statementPath}.text`))
+          if (!V4_QUALIFICATIONS.has(statement.qualification as AccountKnowledgeQualificationV4)) {
+            issues.push({ path: `${statementPath}.qualification`, message: "Qualification V4 invalide." })
+          } else {
+            statementCounts[statement.qualification as AccountKnowledgeQualificationV4] += 1
+          }
+          issues.push(...validateV4SourceRefs(statement.source_refs, `${statementPath}.source_refs`, sourceIds))
+          if (statement.qualification !== "hypothesis" && Array.isArray(statement.source_refs) && statement.source_refs.length === 0) {
+            issues.push({ path: `${statementPath}.source_refs`, message: "Une assertion établie, déclarée ou déduite doit citer ses sources." })
+          }
+          if (statement.qualification === "hypothesis" && typeof statement.text === "string" && isHypothesisFigure(statement.text)) {
+            issues.push({ path: `${statementPath}.text`, message: "Une hypothèse ne peut pas porter de chiffre." })
+          }
+          if (typeof statement.confidence !== "number" || !Number.isFinite(statement.confidence) || statement.confidence < 0 || statement.confidence > 1) {
+            issues.push({ path: `${statementPath}.confidence`, message: "Confiance attendue dans [0, 1]." })
+          }
+          if (statement.entity !== undefined) {
+            if (!isRecord(statement.entity) || typeof statement.entity.kind !== "string" || statement.entity.kind.trim().length === 0 ||
+              typeof statement.entity.name !== "string" || statement.entity.name.trim().length === 0) {
+              issues.push({ path: `${statementPath}.entity`, message: "Entité nommée invalide." })
+            }
+          }
+        })
+      }
+      if (section.key && V4_SECTION_KEY_SET.has(section.key as string) &&
+        Array.isArray(section.narrative) && Array.isArray(section.statements)) {
+        if (section.narrative.length === 0 && section.statements.length === 0) {
+          emptySections.add(section.key as AccountKnowledgeV4SectionKey)
+        } else {
+          sectionsWritten += 1
+        }
+      }
+    })
+  }
+
+  const gapSections = new Set<AccountKnowledgeV4SectionKey>()
+  if (!Array.isArray(raw.knowledge_gaps)) {
+    issues.push({ path: "$.knowledge_gaps", message: "Tableau de lacunes requis." })
+  } else {
+    raw.knowledge_gaps.forEach((gap, index) => {
+      const path = `$.knowledge_gaps[${index}]`
+      if (!isRecord(gap)) {
+        issues.push({ path, message: "Lacune objet requise." })
+        return
+      }
+      issues.push(...checkAllowedKeys(gap, V4_GAP_KEYS, path))
+      if (!V4_SECTION_KEY_SET.has(gap.section_key as string)) {
+        issues.push({ path: `${path}.section_key`, message: "Clé de section inconnue." })
+      } else if (gapSections.has(gap.section_key as AccountKnowledgeV4SectionKey)) {
+        issues.push({ path: `${path}.section_key`, message: "Une seule lacune par section est admise." })
+      } else {
+        gapSections.add(gap.section_key as AccountKnowledgeV4SectionKey)
+      }
+      issues.push(...validateText(gap.reason, `${path}.reason`))
+    })
+  }
+  emptySections.forEach((sectionKey) => {
+    if (!gapSections.has(sectionKey)) {
+      issues.push({ path: "$.knowledge_gaps", message: `Une section vide exige une lacune : ${sectionKey}.` })
+    }
+  })
+
+  if (!isRecord(raw.coverage)) {
+    issues.push({ path: "$.coverage", message: "Couverture V4 requise." })
+  } else {
+    issues.push(...checkAllowedKeys(raw.coverage, V4_COVERAGE_KEYS, "$.coverage"))
+    if (raw.coverage.sections_written !== sectionsWritten) {
+      issues.push({ path: "$.coverage.sections_written", message: "Compteur incohérent avec les sections rédigées." })
+    }
+    if (!isRecord(raw.coverage.statements_by_qualification)) {
+      issues.push({ path: "$.coverage.statements_by_qualification", message: "Compteurs de qualification requis." })
+    } else {
+      for (const qualification of V4_QUALIFICATIONS) {
+        const value = raw.coverage.statements_by_qualification[qualification]
+        if (!Number.isInteger(value) || typeof value !== "number" || value < 0) {
+          issues.push({ path: `$.coverage.statements_by_qualification.${qualification}`, message: "Entier positif ou nul requis." })
+        } else if (value !== statementCounts[qualification]) {
+          issues.push({ path: `$.coverage.statements_by_qualification.${qualification}`, message: "Compteur incohérent avec les statements." })
+        }
+      }
+    }
+    if (!Number.isInteger(raw.coverage.external_pages_fetched) || typeof raw.coverage.external_pages_fetched !== "number" || raw.coverage.external_pages_fetched < 0) {
+      issues.push({ path: "$.coverage.external_pages_fetched", message: "Entier positif ou nul requis." })
+    }
+  }
+  if (!isIsoDateString(raw.generated_at)) {
+    issues.push({ path: "$.generated_at", message: "Date ISO requise." })
+  }
+
+  return issues.length > 0 ? fail(issues) : ok(raw as unknown as AccountKnowledgeContentV4)
+}
+
 // ─── Parseur versionné ──────────────────────────────────────────────────────
 
 export type AccountKnowledgeParseResult =
   | { version: 1; content: AccountKnowledgeContent }
   | { version: 2; content: AccountKnowledgeContentV2 }
   | { version: 3; content: AccountKnowledgeContentV3 }
+  | { version: 4; content: AccountKnowledgeContentV4 }
   | { version: null; content: null; issues: ValidationIssue[] }
 
 /**
@@ -1006,6 +1345,13 @@ export function parseAccountKnowledgeArtifact(raw: unknown): AccountKnowledgePar
     const result = validateAccountKnowledgeV3(raw)
     return result.valid
       ? { version: 3, content: result.value }
+      : { version: null, content: null, issues: result.issues }
+  }
+
+  if (raw.schema_version === 4) {
+    const result = validateAccountKnowledgeV4(raw)
+    return result.valid
+      ? { version: 4, content: result.value }
       : { version: null, content: null, issues: result.issues }
   }
 
@@ -1046,6 +1392,12 @@ export function isAccountKnowledgeV3(
   artifact: AccountKnowledgeArtifact,
 ): artifact is AccountKnowledgeContentV3 {
   return artifact.schema_version === 3
+}
+
+export function isAccountKnowledgeV4(
+  artifact: AccountKnowledgeArtifact,
+): artifact is AccountKnowledgeContentV4 {
+  return artifact.schema_version === 4
 }
 
 // ─── SectorIntelligence V1 ──────────────────────────────────────────────────

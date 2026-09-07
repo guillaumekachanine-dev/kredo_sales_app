@@ -1,4 +1,4 @@
-# intel-030-account-knowledge — import & configuration VPS (V2, Lot 1)
+# intel-030-account-knowledge — import & configuration VPS (V2 / V3 / V4)
 
 ## 1. Rôle
 
@@ -7,7 +7,7 @@
 `src/lib/intelligence/account-intelligence-contracts.ts`), dont **toute affirmation est sourcée** :
 chaque `Claim` cite un ou plusieurs `intelligence_sources.id` réels du workspace.
 
-**30 nœuds.** Un seul workflow — aucun workflow sectoriel n'est appelé, aucun second workflow créé.
+**82 nœuds.** Un seul workflow — aucun workflow sectoriel n'est appelé, aucun second workflow créé.
 
 Déclenché par le bouton **« Mettre à jour l'entreprise »** de l'onglet Entreprise
 (`ClientIntelligenceCompanyTab.tsx` en desktop, `ClientIntelligenceMobileView.tsx` en mobile) via
@@ -178,7 +178,7 @@ La branche V3 ne s'emprunte **que** si l'appelant demande explicitement la versi
 2. `body.accountKnowledgeSchemaVersion` — compatibilité temporaire (appels
    manuels, rejeu de payloads existants).
 
-Résolution : valeur absente → **2** (comportement historique) · `2` → V2 · `3` → V3 ·
+Résolution : valeur absente → **2** (comportement historique) · `2` → V2 · `3` → V3 · `4` → V4 ·
 toute autre valeur explicite → **rejet** (`Version AccountKnowledge non supportée`),
 jamais un repli silencieux sur V2.
 
@@ -232,3 +232,35 @@ npx vitest run src/lib/intelligence/account-knowledge-v3-workflow.test.ts  # str
 
 Le harnais Node V2 (`intel-030-account-knowledge.test.js`, 76 assertions) doit **rester vert** :
 la branche V2 n'est pas modifiée.
+
+## 10. Branche V4 — moteur de compréhension (Lot 3, 2026-09-07)
+
+La V4 reste dormante tant que l'appelant ne demande pas explicitement
+`input.accountKnowledgeSchemaVersion: 4`. Elle hydrate la RPC
+`get_account_understanding_context`, résout l'entité légale avant toute recherche,
+lance 12 requêtes Serper de découverte, consulte au plus 6 pages, puis produit les
+8 sections éditoriales avec un seul appel LLM. Les snippets Serper ne sont jamais
+des sources ; seuls le registre, les pages effectivement consultées et les sources
+internes présentes dans le dossier peuvent être cités.
+
+Configuration additionnelle lors du réimport manuel :
+
+- `V4 Upsert Sources`, `V4 Resolve Source Ids` et `Hydrate Context` utilisent le
+  credential Supabase service role existant ;
+- `V4 Call LLM` utilise le credential Anthropic existant ;
+- `V4 Serper Discovery` lit `$env.SERPER_API_KEY` déjà utilisé par les workflows
+  FOLIO legacy — aucune clé ne doit être copiée dans le JSON ;
+- `V4 Sign Callback` doit recevoir le même secret HMAC que les autres nœuds Crypto.
+
+Avant activation, rejouer :
+
+```bash
+python3 scripts/patch-intel-030-v4.py
+node n8n/workflows/__tests__/intel-030-account-knowledge-v4.test.js
+npm run test:n8n
+```
+
+Le premier test réel recommandé reste **Tournaire**. Vérifier dans le callback
+`contentJson.entity_resolution.siren === "415550110"`, le flag QA
+`entity_resolution: passed=true`, les 8 sections dans l'ordre et l'absence totale
+de `505063438` hors de la liste auditable des candidats écartés.

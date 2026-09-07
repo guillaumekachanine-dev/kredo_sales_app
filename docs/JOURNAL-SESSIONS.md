@@ -13,6 +13,43 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 59 — Account Knowledge V4 : Lot 3 workflow de compréhension (2026-09-07)
+
+- `intel-030-account-knowledge` porte désormais une branche **V4 additive**, sélectionnée uniquement par `input.accountKnowledgeSchemaVersion: 4` ; V2 reste le défaut et V3 continue de fonctionner en parallèle. Le routeur IF devient un Switch explicite V4/V3/V2 et `Hydrate Context` choisit la RPC V4 `get_account_understanding_context` sans dupliquer la chaîne d'entrée.
+- Chaîne V4 : dossier interne complet → résolution d'entité déterministe → 12 recherches Serper de découverte → sélection/fetch de 3 à 6 pages publiques → catalogue et persistance des sources → **un seul appel LLM** (`max_tokens: 16000`) → garde-fous déterministes → validation stricte → callback signé. Une identité ambiguë ou non résolue arrête le run avant Serper et avant consommation de tokens.
+- Le prompt reçoit descriptions, faits quel que soit leur niveau de preuve, signaux y compris archivés, enjeux, documents, connaissance sectorielle résolue via le segment, carte concurrentielle, chaîne de valeur, historique KREDO et FOLIO complet. Les snippets Serper restent explicitement `discovery_only_not_evidence` et ne sont jamais versés au catalogue de sources.
+- Garde-fous de publication : les chiffres absents du dossier sont neutralisés et tracés (`unsourced_figure`), les déductions sans source deviennent des hypothèses, les concurrents absents du dossier sont rétrogradés (`competitor_domain_mismatch`), et une hypothèse ne conserve jamais de chiffre. Le bloc `entity_resolution` est imposé depuis le calcul déterministe, jamais accepté du modèle.
+- Reproductibilité : `scripts/patch-intel-030-v4.py` remplace les 16 nœuds V4 par nom, réinjecte la transcription partagée de résolution d'entité et exécute `node --check` sur tous les nœuds Code avant de réécrire le JSON.
+- Tests : nouveau harnais `intel-030-account-knowledge-v4.test.js` (**28 assertions**) exécutant les vrais nœuds Code, dont la régression Tournaire (`415550110` retenu, `505063438` écarté), le blocage avant recherche, les 12 requêtes, la garde SSRF, l'absence de snippets dans les sources et les gardes post-LLM. Harnais V3 adapté au routeur 3 voies et toujours vert (**91 assertions**).
+- Déploiement : migration RPC déjà appliquée et vérifiée en live (security invoker, `search_path=''`, EXECUTE service_role seul). Le run V3 Tournaire post-Lot 1 a aussi été relu en base : `entityResolution=resolved`, SIREN `415550110`, NAF `25.92Z`, Grasse, avec `qa_flags.entity_resolution.passed=true`. Le workflow V4 n'est **pas** importé/activé sur le VPS : opération manuelle Guillaume après validation locale complète.
+
+### Session 58 — Account Knowledge V4 : Lot 2 contexte unifié + contrat (2026-09-07)
+
+Lot 2 implémenté, sans toucher à `get_account_knowledge_context` ni à la branche V3.
+
+- Migration additive `20260906230502_account_understanding_context_v4.sql` : nouvelle RPC
+  `get_account_understanding_context(workspace, company)`, `SECURITY INVOKER`, `search_path = ''`,
+  exécutable seulement par `service_role`. Elle expose les identifiants SIREN/NAF, tous les faits
+  courants et tous les signaux avec statuts/dates, l'historique KREDO (dont TJM, gains/pertes),
+  enjeux, métadonnées documentaires, connaissance sectorielle par `companies.segment_id`,
+  cartographie concurrentielle/chaîne de valeur et FOLIO complet. Les corps des documents sont
+  volontairement exclus : jusqu'à 10,6 kB par document, souvent générés, ils épuiseraient le budget
+  de contexte et ne constituent pas une preuve primaire.
+- Contrat additif `AccountKnowledgeContentV4` : huit sections canoniques avec prose (`narrative`),
+  statements et qualification à quatre niveaux, inventaire de sources, lacunes explicites,
+  couverture et `EntityResolutionSnapshot` en tête. Le validateur accepte un artefact dense ou
+  honnêtement partiel ; il bloque notamment une hypothèse chiffrée, une assertion non sourcée,
+  une référence orpheline et une section vide sans lacune. Le parseur, l'ingestion et l'état de
+  lecture discriminent V4 sans exposer de rendu avant le Lot 4 ; le trigger accepte `2 | 3 | 4`.
+- Le run Tournaire post-patch a bien résolu `415550110 / 25.92Z / Grasse` dans
+  `context_snapshot.entityResolution` et porte `qa_flags.entity_resolution.passed=true` : le Lot 1
+  est donc exercé en conditions réelles et son contrôle de déploiement est clos.
+
+Validation initiale : `typecheck`, 2 398 tests, frontière serveur/client et lint ciblé verts. La
+migration a ensuite été appliquée : la RPC live a été testée sur Tournaire et Voyage Privé, avec
+les corpus sectoriels, signaux, enjeux et documents attendus. Le linter DB remonte uniquement quatre
+fonctions historiques hors Lot 2.
+
 ### Session 57 — Account Knowledge V4 : cadrage + Lot 1 résolution d'entité (2026-09-06/07)
 
 Refonte ouverte de `intel-030-account-knowledge`, jugé « d'une nullité navrante » par Guillaume. Deux

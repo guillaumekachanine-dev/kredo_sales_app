@@ -6,13 +6,16 @@ import {
   collectAccountKnowledgeV2Claims,
   collectAccountKnowledgeV2SourceIds,
   collectAccountKnowledgeV3SourceIds,
+  collectAccountKnowledgeV4ExternalSourceIds,
   ingestAccountKnowledgeArtifact,
 } from "./account-knowledge-ingest"
 import type {
   AccountKnowledgeContent,
   AccountKnowledgeContentV2,
   AccountKnowledgeContentV3,
+  AccountKnowledgeContentV4,
 } from "./account-intelligence-contracts"
+import { ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER } from "./account-intelligence-contracts"
 import { ACCOUNT_DYNAMIC_METHOD_VERSION } from "./account-dynamic"
 
 const WORKSPACE = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
@@ -205,6 +208,30 @@ function artifactV1(): AccountKnowledgeContent {
     frictions_and_signals: [],
     open_questions: [],
     generated_at: "2026-07-07T10:00:00.000Z",
+  }
+}
+
+function artifactV4(sourceId = "internal:company:" + COMPANY): AccountKnowledgeContentV4 {
+  return {
+    schema_version: 4,
+    entity_resolution: {
+      decision: "resolved", method: "registry_match", siren: "415550110",
+      legal_name: "TOURNAIRE SA", naf_code: "25.92Z", naf_section: "C",
+      hq_commune: "GRASSE", hq_postal_code: "06130", score: 6.68, margin: 2,
+      reasons: ["Appariement net."], blockers: [],
+      signals: [{ key: "name", value: 1, detail: "Nom concordant." }],
+      candidates: [{ siren: "415550110", legal_name: "TOURNAIRE SA", commune: "GRASSE", naf_code: "25.92Z", score: 6.68 }],
+      needs_human_confirmation: false, can_propose_canonical_writes: true,
+    },
+    sections: ACCOUNT_KNOWLEDGE_V4_SECTION_ORDER.map((key) => ({
+      key, title: key, narrative: [`Analyse ${key}.`],
+      statements: [{ text: `Fait ${key}.`, qualification: "established" as const, source_refs: [sourceId], confidence: 0.8 }],
+      source_refs: [sourceId],
+    })),
+    sources: [{ id: sourceId, label: "Source V4", source_type: sourceId.startsWith("internal:") ? "internal_crm" : "regulatory_filing", url: null, consulted_at: null }],
+    knowledge_gaps: [],
+    coverage: { sections_written: 8, statements_by_qualification: { established: 8, declared: 0, inferred: 0, hypothesis: 0 }, external_pages_fetched: 0 },
+    generated_at: "2026-09-07T10:00:00.000Z",
   }
 }
 
@@ -421,6 +448,41 @@ describe("ingestAccountKnowledgeArtifact", () => {
     // 0/0 est « couvert » par convention : il n'y a rien à sourcer.
     expect(result.content.source_coverage.coverage_rate).toBe(1)
     expect(result.content.identity.dynamic?.score).toBeNull()
+  })
+})
+
+describe("ingestAccountKnowledgeArtifact — V4", () => {
+  it("accepte les références internes sans requête UUID en base", async () => {
+    const checkedSourceIds: string[][] = []
+    const result = await ingestAccountKnowledgeArtifact(fakeClient({ checkedSourceIds }), {
+      workspaceId: WORKSPACE, companyId: COMPANY, contentJson: artifactV4(),
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.ok && result.version).toBe(4)
+    expect(checkedSourceIds).toEqual([])
+  })
+
+  it("revalide dans le workspace tous les UUID de l'inventaire V4", async () => {
+    const checkedSourceIds: string[][] = []
+    const result = await ingestAccountKnowledgeArtifact(fakeClient({ checkedSourceIds }), {
+      workspaceId: WORKSPACE, companyId: COMPANY, contentJson: artifactV4(SOURCE_A),
+    })
+
+    expect(result.ok).toBe(true)
+    expect(checkedSourceIds).toEqual([[SOURCE_A]])
+    expect(collectAccountKnowledgeV4ExternalSourceIds(artifactV4(SOURCE_A))).toEqual([SOURCE_A])
+  })
+
+  it("refuse un UUID V4 appartenant à un autre workspace", async () => {
+    const result = await ingestAccountKnowledgeArtifact(fakeClient({}), {
+      workspaceId: WORKSPACE, companyId: COMPANY, contentJson: artifactV4(FOREIGN_SOURCE),
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain("Sources citées inconnues")
+    expect(result.issues[0]?.message).toContain(FOREIGN_SOURCE)
   })
 })
 

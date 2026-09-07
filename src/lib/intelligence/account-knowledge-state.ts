@@ -15,6 +15,7 @@ import type {
   AccountKnowledgeContent,
   AccountKnowledgeContentV2,
   AccountKnowledgeContentV3,
+  AccountKnowledgeContentV4,
 } from "./account-intelligence-contracts"
 import { parseAccountKnowledgeArtifact, type ValidationIssue } from "./intelligence-validators"
 
@@ -28,6 +29,7 @@ export type AccountKnowledgeState =
   | { version: 1; data: AccountKnowledgeContent; resultId: string; createdAt: string }
   | { version: 2; data: AccountKnowledgeContentV2; resultId: string; createdAt: string }
   | { version: 3; data: AccountKnowledgeContentV3; resultId: string; createdAt: string }
+  | { version: 4; data: AccountKnowledgeContentV4; resultId: string; createdAt: string }
 
 /**
  * Sous-ensemble que la couche de restitution actuelle sait afficher. Les
@@ -42,6 +44,9 @@ export type AccountKnowledgeRenderableState = Extract<
 
 /** État V3 isolé — chargé et typé au Lot 4, restitué au Lot 5. */
 export type AccountKnowledgeV3State = Extract<AccountKnowledgeState, { version: 3 }>
+
+/** État V4 typé, sans l'exposer aux lecteurs V1/V2/V3 avant le Lot 4. */
+export type AccountKnowledgeV4State = Extract<AccountKnowledgeState, { version: 4 }>
 
 export type AccountKnowledgeResultRow = {
   id: string
@@ -110,6 +115,12 @@ export function resolveAccountKnowledge(
         unreadable,
       }
     }
+    if (parsed.version === 4) {
+      return {
+        state: { version: 4, data: parsed.content, resultId: row.id, createdAt: row.created_at },
+        unreadable,
+      }
+    }
     if (!firstV1) {
       // Lot 2 : neutralisation des signaux FOLIO legacy dans les résultats historiques V1.
       // frictions_and_signals ne doit plus présenter de faits de provenance 'folio_legacy'.
@@ -144,6 +155,7 @@ export function resolveAccountKnowledge(
 export type AccountKnowledgeDerivedFields = {
   accountKnowledge: AccountKnowledgeRenderableState | null
   accountKnowledgeV3: AccountKnowledgeV3State | null
+  accountKnowledgeV4: AccountKnowledgeV4State | null
   /**
    * Date de création de l'artefact COURANT (V1, V2 ou V3 — peu importe),
    * `null` seulement si aucun artefact n'existe. Ne jamais la dériver de
@@ -160,8 +172,9 @@ export function deriveAccountKnowledgeFields(
   const { state, unreadable } = resolveAccountKnowledge(rows)
 
   return {
-    accountKnowledge: state && state.version !== 3 ? state : null,
+    accountKnowledge: state && state.version !== 3 && state.version !== 4 ? state : null,
     accountKnowledgeV3: state?.version === 3 ? state : null,
+    accountKnowledgeV4: state?.version === 4 ? state : null,
     accountKnowledgeLastUpdatedAt: state?.createdAt ?? null,
     unreadable,
   }
