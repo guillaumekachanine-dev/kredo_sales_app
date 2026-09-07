@@ -41,7 +41,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Lot 1 — validation d'entrée. Toute incohérence d'entité ou de workspace est\n// rejetée immédiatement, avant la moindre écriture ou le moindre token.\nconst item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'entityId', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nif (body.entityType !== 'company') {\n  throw new Error('intel-030-account-knowledge requiert entityType=\"company\"');\n}\n\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nfor (const field of ['runId', 'entityId', 'workspaceId']) {\n  if (!UUID.test(String(body[field]))) throw new Error(`UUID invalide pour ${field}`);\n}\n\n// companyId, s'il est envoyé séparément, doit désigner la même entité.\nif (body.companyId && body.companyId !== body.entityId) {\n  throw new Error('Incohérence d\\'entité : companyId différent de entityId');\n}\n\n// Discriminateur de version AccountKnowledge (Lot 3, corrige Lot 4).\n// CORE-001 (triggerN8nRun) transporte les parametres metier sous `body.input` :\n// ne lire que la racine rendait la branche V3 inatteignable depuis l'application.\n// On lit donc `body.input` en priorite, la racine restant acceptee en\n// compatibilite temporaire (appels manuels, rejeu de payloads existants).\n// Absence de valeur => V2 historique. Toute valeur explicite hors 2 / 3 / 4 / 4 / 4 / 4 / 4 est\n// rejetee plutot que silencieusement ramenee a V2 : une version inconnue est\n// une erreur d'appelant, pas une raison de produire un artefact d'une autre\n// version que celle demandee.\nconst requestedVersion =\n  body.input?.accountKnowledgeSchemaVersion ??\n  body.accountKnowledgeSchemaVersion;\n\nlet accountKnowledgeSchemaVersion;\n\nif (requestedVersion == null) {\n  accountKnowledgeSchemaVersion = 2;\n} else if ([2, 3, 4].includes(Number(requestedVersion))) {\n  accountKnowledgeSchemaVersion = Number(requestedVersion);\n} else {\n  throw new Error('Version AccountKnowledge non supportée');\n}\n\n// Lot correctif V3 (remediation volume) — sujets inclus demandes par l'UI\n// (AccountAnalysisHub.tsx / INTELLIGENCE_SUMMARY_AXES). Un tableau vide ou\n// absent signifie « etude complete » (comportement historique inchange).\nconst rawIncludedSubjects = body.input?.includedSubjects;\nconst includedSubjects = Array.isArray(rawIncludedSubjects) && rawIncludedSubjects.length > 0\n  ? rawIncludedSubjects.filter((s) => typeof s === 'string')\n  : null;\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workflowId: body.workflowId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    companyId: body.entityId,\n    callbackUrl: body.callbackUrl,\n    startedAtMs: Date.now(),\n    accountKnowledgeSchemaVersion,\n    includedSubjects,\n  }\n}];"
+        "jsCode": "// Lot 1 — validation d'entrée. Toute incohérence d'entité ou de workspace est\n// rejetée immédiatement, avant la moindre écriture ou le moindre token.\nconst item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'entityId', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nif (body.entityType !== 'company') {\n  throw new Error('intel-030-account-knowledge requiert entityType=\"company\"');\n}\n\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nfor (const field of ['runId', 'entityId', 'workspaceId']) {\n  if (!UUID.test(String(body[field]))) throw new Error(`UUID invalide pour ${field}`);\n}\n\n// companyId, s'il est envoyé séparément, doit désigner la même entité.\nif (body.companyId && body.companyId !== body.entityId) {\n  throw new Error('Incohérence d\\'entité : companyId différent de entityId');\n}\n\n// Discriminateur de version AccountKnowledge (Lot 3, corrige Lot 4).\n// CORE-001 (triggerN8nRun) transporte les parametres metier sous `body.input` :\n// ne lire que la racine rendait la branche V3 inatteignable depuis l'application.\n// On lit donc `body.input` en priorite, la racine restant acceptee en\n// compatibilite temporaire (appels manuels, rejeu de payloads existants).\n// Absence de valeur => V2 historique. Toute valeur explicite hors 2 / 3 / 4 / 4 / 4 / 4 / 4 / 4 est\n// rejetee plutot que silencieusement ramenee a V2 : une version inconnue est\n// une erreur d'appelant, pas une raison de produire un artefact d'une autre\n// version que celle demandee.\nconst requestedVersion =\n  body.input?.accountKnowledgeSchemaVersion ??\n  body.accountKnowledgeSchemaVersion;\n\nlet accountKnowledgeSchemaVersion;\n\nif (requestedVersion == null) {\n  accountKnowledgeSchemaVersion = 2;\n} else if ([2, 3, 4].includes(Number(requestedVersion))) {\n  accountKnowledgeSchemaVersion = Number(requestedVersion);\n} else {\n  throw new Error('Version AccountKnowledge non supportée');\n}\n\n// Lot correctif V3 (remediation volume) — sujets inclus demandes par l'UI\n// (AccountAnalysisHub.tsx / INTELLIGENCE_SUMMARY_AXES). Un tableau vide ou\n// absent signifie « etude complete » (comportement historique inchange).\nconst rawIncludedSubjects = body.input?.includedSubjects;\nconst includedSubjects = Array.isArray(rawIncludedSubjects) && rawIncludedSubjects.length > 0\n  ? rawIncludedSubjects.filter((s) => typeof s === 'string')\n  : null;\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workflowId: body.workflowId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    companyId: body.entityId,\n    callbackUrl: body.callbackUrl,\n    startedAtMs: Date.now(),\n    accountKnowledgeSchemaVersion,\n    includedSubjects,\n  }\n}];"
       },
       "id": "n030-02",
       "name": "Validate Entity",
@@ -85,7 +85,13 @@
         300
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -119,7 +125,13 @@
         300
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -303,7 +315,13 @@
         300
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -340,7 +358,13 @@
         300
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -389,7 +413,13 @@
         300
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "MERo2FsyLlNgDQXh",
+          "name": "Anthropic API (KREDO)"
+        }
+      }
     },
     {
       "parameters": {
@@ -464,7 +494,13 @@
         300
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -522,7 +558,13 @@
         300
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -589,7 +631,13 @@
         200
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -993,7 +1041,13 @@
         900
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -1030,7 +1084,13 @@
         900
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -1109,7 +1169,13 @@
         900
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "MERo2FsyLlNgDQXh",
+          "name": "Anthropic API (KREDO)"
+        }
+      }
     },
     {
       "parameters": {
@@ -1199,7 +1265,13 @@
         900
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -1257,7 +1329,13 @@
         900
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -1324,7 +1402,13 @@
         800
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -1740,21 +1824,6 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Serper sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.\nconst data = $('V4 Resolve Entity').first().json;\n// Priorité à la variable administrable depuis l'interface n8n (Settings →\n// Variables). L'environnement VPS reste un secours pour les déploiements qui\n// l'avaient déjà configuré. Aucune clé ne figure dans le workflow exporté.\nconst apiKey = (typeof $vars !== 'undefined' && $vars.SERPER_API_KEY) || $env.SERPER_API_KEY;\nif (!apiKey) throw new Error('SERPER_API_KEY absente : crée Settings → Variables → SERPER_API_KEY dans n8n.');\nconst searches = await Promise.all(data.researchPlan.map(async (plan) => {\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST', url: 'https://google.serper.dev/search', json: true, timeout: 20000,\n      headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },\n      body: { q: plan.query, gl: 'fr', hl: 'fr', num: 8 },\n    });\n    return { ...plan, organic: (response.organic || []).slice(0, 8).map((r) => ({ title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null })) };\n  } catch (error) { return { ...plan, organic: [], error: String(error.message || error) }; }\n}));\nreturn [{ json: { ...data, discovery: searches } }];"
-      },
-      "id": "n030v4-03",
-      "name": "V4 Serper Discovery",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        360,
-        1320
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// V4 — dossier interne complet et plan de recherche déterministe.\nconst upstream = $('Validate Entity').first().json;\nconst raw = $('Hydrate Context').first().json;\nconst ctx = raw && raw.company ? raw : (Array.isArray(raw) ? raw[0] : (raw && raw.data) || {});\nif (!ctx.company || !ctx.company.id) throw new Error('Contexte V4 introuvable');\nif (ctx.company.id !== upstream.companyId) throw new Error(\"Incohérence d'entité dans le contexte V4\");\n\nfunction text(v) { return v == null ? null : (String(v).replace(/\\s+/g, ' ').trim() || null); }\nconst c = ctx.company;\nconst canonical = {\n  id: c.id, name: text(c.name), legal_name: text(c.legal_name), siren: text(c.siren),\n  naf_code: text(c.naf_code), hq_location: text(c.hq_location), website: text(c.website),\n  sector: text(c.sector), segment: text(c.segment), description: text(c.description),\n  employee_count: typeof c.employee_count === 'number' ? c.employee_count : null,\n  revenue: text(c.revenue), lifecycle_status: text(c.lifecycle_status),\n};\nconst anchor = [canonical.legal_name || canonical.name, canonical.hq_location].filter(Boolean).join(' ');\nif (!anchor) throw new Error('Nom de compte absent : recherche V4 impossible');\nconst quoted = '\"' + anchor.replace(/\"/g, '') + '\"';\nconst sector = canonical.sector || canonical.segment || canonical.name;\nconst queries = [\n  quoted + ' activité offres produits clients', quoted + ' histoire dirigeants ambitions stratégie',\n  quoted + ' concurrents positionnement marché', quoted + ' actualité 2025 2026',\n  quoted + ' partenaires fournisseurs chaîne de valeur', quoted + ' site officiel rapport publication',\n  '\"' + sector + '\" taille marché croissance France', '\"' + sector + '\" acteurs concurrents startups France',\n  '\"' + sector + '\" chaîne de valeur écosystème fournisseurs', '\"' + sector + '\" réglementation certification France',\n  '\"' + sector + '\" tendances clients usages 2025 2026', '\"' + sector + '\" enjeux risques dépendances',\n];\nreturn [{ json: {\n  ...upstream, canonical, fullContext: ctx, researchPlan: queries.map((query, index) => ({ index, query })),\n  dataCutoffAt: ctx.dataCutoffAt || new Date().toISOString(),\n} }];"
       },
       "id": "n030v4-01",
@@ -1785,10 +1854,10 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Le secret Serper est un credential n8n HTTP Header Auth, jamais une variable\n// dans le workflow ni dans le VPS. Ce nœud ne produit que les 12 requêtes publiques.\nconst data = $('V4 Resolve Entity').first().json;\nreturn data.researchPlan.map((plan) => ({ json: {\n  index: plan.index, query: plan.query, gl: 'fr', hl: 'fr', num: 8,\n} }));"
+        "jsCode": "// Le secret est fourni par le credential n8n SerpAPI_KREDO.\n// Ce nœud ne produit que les 12 requêtes publiques, jamais la clé API.\nconst data = $('V4 Resolve Entity').first().json;\nreturn data.researchPlan.map((plan) => ({ json: {\n  index: plan.index, query: plan.query, gl: 'fr', hl: 'fr', num: 8,\n} }));"
       },
       "id": "n030v4-03",
-      "name": "V4 Build Serper Requests",
+      "name": "V4 Build SerpAPI Requests",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -1799,14 +1868,35 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://google.serper.dev/search",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ q: $json.query, gl: $json.gl, hl: $json.hl, num: $json.num }) }}",
+        "method": "GET",
+        "url": "https://serpapi.com/search.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "serpApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "gl",
+              "value": "={{ $json.gl }}"
+            },
+            {
+              "name": "hl",
+              "value": "={{ $json.hl }}"
+            },
+            {
+              "name": "num",
+              "value": "={{ $json.num }}"
+            }
+          ]
+        },
         "options": {
           "timeout": 20000,
           "response": {
@@ -1818,7 +1908,7 @@
         }
       },
       "id": "n030v4-03a",
-      "name": "V4 Serper Search",
+      "name": "V4 SerpAPI Search",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -1826,15 +1916,21 @@
         1320
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "serpApi": {
+          "id": "4FHmaQGaAytZHN4w",
+          "name": "SerpAPI_KREDO"
+        }
+      }
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Serper sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.\n// HTTP Request conserve l'ordre et le couplage un-pour-un de ses items. On vérifie\n// explicitement cette invariance plutôt que d'associer une réponse à une autre requête.\nconst data = $('V4 Resolve Entity').first().json;\nconst requests = $('V4 Build Serper Requests').all();\nconst responses = $input.all();\nif (requests.length !== data.researchPlan.length || responses.length !== requests.length) {\n  throw new Error('Réponses Serper incomplètes : ' + responses.length + '/' + requests.length);\n}\nconst discovery = requests.map((request, index) => {\n  const response = responses[index] && responses[index].json ? responses[index].json : {};\n  return {\n    index: request.json.index, query: request.json.query,\n    organic: (response.organic || []).slice(0, 8).map((r) => ({\n      title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null,\n    })),\n    ...(response.error ? { error: String(response.error.message || response.error) } : {}),\n  };\n});\nreturn [{ json: { ...data, discovery } }];"
+        "jsCode": "// SerpAPI sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.\n// HTTP Request conserve l'ordre et le couplage un-pour-un de ses items. On vérifie\n// explicitement cette invariance plutôt que d'associer une réponse à une autre requête.\nconst data = $('V4 Resolve Entity').first().json;\nconst requests = $('V4 Build SerpAPI Requests').all();\nconst responses = $input.all();\nif (requests.length !== data.researchPlan.length || responses.length !== requests.length) {\n  throw new Error('Réponses SerpAPI incomplètes : ' + responses.length + '/' + requests.length);\n}\nconst discovery = requests.map((request, index) => {\n  const response = responses[index] && responses[index].json ? responses[index].json : {};\n  const organic = response.organic_results || response.organic || [];\n  return {\n    index: request.json.index, query: request.json.query,\n    organic: organic.slice(0, 8).map((r) => ({\n      title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null,\n    })),\n    ...(response.error ? { error: String(response.error.message || response.error) } : {}),\n  };\n});\nreturn [{ json: { ...data, discovery } }];"
       },
       "id": "n030v4-03b",
-      "name": "V4 Normalize Serper Discovery",
+      "name": "V4 Normalize SerpAPI Discovery",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -1846,7 +1942,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.\nconst data = $('V4 Normalize Serper Discovery').first().json;\nfunction safe(value) {\n  try {\n    const u = new URL(value); const h = u.hostname.toLowerCase();\n    if (!['http:', 'https:'].includes(u.protocol) || !h.includes('.')) return false;\n    if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return false;\n    if (/^(10\\.|127\\.|0\\.|169\\.254\\.|192\\.168\\.|172\\.(1[6-9]|2\\d|3[01])\\.)/.test(h)) return false;\n    return true;\n  } catch (_) { return false; }\n}\nfunction host(value) { try { return new URL(value).hostname.replace(/^www\\./, '').toLowerCase(); } catch (_) { return ''; } }\nconst officialHost = host(data.canonical.website || '');\nconst candidates = [];\nconst seen = new Set();\nfor (const search of data.discovery) for (const r of search.organic || []) {\n  if (!safe(r.link)) continue;\n  const clean = r.link.split('#')[0];\n  if (seen.has(clean)) continue;\n  seen.add(clean);\n  const h = host(clean);\n  let score = 0;\n  if (officialHost && (h === officialHost || h.endsWith('.' + officialHost))) score += 100;\n  if (/\\.gouv\\.fr$|insee\\.fr$|europa\\.eu$/.test(h)) score += 70;\n  if (/lesechos|usinenouvelle|latribune|bfmtv|lemonde|reuters|afp/.test(h)) score += 40;\n  score += Math.max(0, 12 - search.index);\n  candidates.push({ ...r, query: search.query, score });\n}\ncandidates.sort((a, b) => b.score - a.score || a.link.localeCompare(b.link));\nconst selected = candidates.slice(0, 6);\nconst pages = await Promise.all(selected.map(async (candidate) => {\n  try {\n    const body = await this.helpers.httpRequest({ method: 'GET', url: candidate.link, timeout: 25000, returnFullResponse: false });\n    const raw = typeof body === 'string' ? body : JSON.stringify(body);\n    const text = raw.replace(/<script[\\s\\S]*?<\\/script>/gi, ' ').replace(/<style[\\s\\S]*?<\\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\\s+/g, ' ').trim().slice(0, 14000);\n    if (text.length < 120) throw new Error('corps vide ou trop court');\n    return { ...candidate, consulted_at: new Date().toISOString(), text, fetched: true };\n  } catch (error) { return { ...candidate, fetched: false, error: String(error.message || error) }; }\n}));\nreturn [{ json: { ...data, selectedPages: selected, fetchedPages: pages.filter((p) => p.fetched), fetchFailures: pages.filter((p) => !p.fetched) } }];"
+        "jsCode": "// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.\nconst data = $('V4 Normalize SerpAPI Discovery').first().json;\nfunction safe(value) {\n  try {\n    const u = new URL(value); const h = u.hostname.toLowerCase();\n    if (!['http:', 'https:'].includes(u.protocol) || !h.includes('.')) return false;\n    if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return false;\n    if (/^(10\\.|127\\.|0\\.|169\\.254\\.|192\\.168\\.|172\\.(1[6-9]|2\\d|3[01])\\.)/.test(h)) return false;\n    return true;\n  } catch (_) { return false; }\n}\nfunction host(value) { try { return new URL(value).hostname.replace(/^www\\./, '').toLowerCase(); } catch (_) { return ''; } }\nconst officialHost = host(data.canonical.website || '');\nconst candidates = [];\nconst seen = new Set();\nfor (const search of data.discovery) for (const r of search.organic || []) {\n  if (!safe(r.link)) continue;\n  const clean = r.link.split('#')[0];\n  if (seen.has(clean)) continue;\n  seen.add(clean);\n  const h = host(clean);\n  let score = 0;\n  if (officialHost && (h === officialHost || h.endsWith('.' + officialHost))) score += 100;\n  if (/\\.gouv\\.fr$|insee\\.fr$|europa\\.eu$/.test(h)) score += 70;\n  if (/lesechos|usinenouvelle|latribune|bfmtv|lemonde|reuters|afp/.test(h)) score += 40;\n  score += Math.max(0, 12 - search.index);\n  candidates.push({ ...r, query: search.query, score });\n}\ncandidates.sort((a, b) => b.score - a.score || a.link.localeCompare(b.link));\nconst selected = candidates.slice(0, 6);\nconst pages = await Promise.all(selected.map(async (candidate) => {\n  try {\n    const body = await this.helpers.httpRequest({ method: 'GET', url: candidate.link, timeout: 25000, returnFullResponse: false });\n    const raw = typeof body === 'string' ? body : JSON.stringify(body);\n    const text = raw.replace(/<script[\\s\\S]*?<\\/script>/gi, ' ').replace(/<style[\\s\\S]*?<\\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\\s+/g, ' ').trim().slice(0, 14000);\n    if (text.length < 120) throw new Error('corps vide ou trop court');\n    return { ...candidate, consulted_at: new Date().toISOString(), text, fetched: true };\n  } catch (error) { return { ...candidate, fetched: false, error: String(error.message || error) }; }\n}));\nreturn [{ json: { ...data, selectedPages: selected, fetchedPages: pages.filter((p) => p.fetched), fetchFailures: pages.filter((p) => !p.fetched) } }];"
       },
       "id": "n030v4-04",
       "name": "V4 Fetch Selected Pages",
@@ -1905,7 +2001,13 @@
         1320
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -1942,7 +2044,13 @@
         1320
       ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
     },
     {
       "parameters": {
@@ -3181,7 +3289,7 @@
       "main": [
         [
           {
-            "node": "V4 Build Serper Requests",
+            "node": "V4 Build SerpAPI Requests",
             "type": "main",
             "index": 0
           }
@@ -3195,7 +3303,43 @@
         ]
       ]
     },
-    "V4 Serper Discovery": {
+    "V4 Build SerpAPI Requests": {
+      "main": [
+        [
+          {
+            "node": "V4 SerpAPI Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "V4 SerpAPI Search": {
+      "main": [
+        [
+          {
+            "node": "V4 Normalize SerpAPI Discovery",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "V4 Normalize SerpAPI Discovery": {
       "main": [
         [
           {
@@ -3418,60 +3562,6 @@
     "V4 Callback": {
       "main": [
         []
-      ]
-    },
-    "V4 Build Serper Requests": {
-      "main": [
-        [
-          {
-            "node": "V4 Serper Search",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prepare Failure Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "V4 Serper Search": {
-      "main": [
-        [
-          {
-            "node": "V4 Normalize Serper Discovery",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prepare Failure Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "V4 Normalize Serper Discovery": {
-      "main": [
-        [
-          {
-            "node": "V4 Fetch Selected Pages",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prepare Failure Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
       ]
     }
   },

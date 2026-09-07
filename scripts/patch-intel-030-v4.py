@@ -17,6 +17,25 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / "n8n/workflows/intel-030-account-knowledge.json"
 ENTITY_HELPERS = ROOT / "scripts/entity-resolution-node.js"
 
+SUPABASE_CREDENTIAL = {
+    "supabaseApi": {
+        "id": "GBrm2aWU0dDf85QS",
+        "name": "Supabase_Service_Role_KREDO",
+    }
+}
+ANTHROPIC_CREDENTIAL = {
+    "anthropicApi": {
+        "id": "MERo2FsyLlNgDQXh",
+        "name": "Anthropic API (KREDO)",
+    }
+}
+SERPAPI_CREDENTIAL = {
+    "serpApi": {
+        "id": "4FHmaQGaAytZHN4w",
+        "name": "SerpAPI_KREDO",
+    }
+}
+
 
 def code_node(node_id: str, name: str, x: int, y: int, js_code: str) -> dict:
     return {
@@ -119,28 +138,29 @@ if (snapshot.decision !== 'resolved') {
 return [{ json: { ...data, entityResolution: snapshot, registryQueries: urls, registryCandidates: candidates } }];'''
 
 
-BUILD_SERPER_REQUESTS = r'''// Le secret Serper est un credential n8n HTTP Header Auth, jamais une variable
-// dans le workflow ni dans le VPS. Ce nœud ne produit que les 12 requêtes publiques.
+BUILD_SERPAPI_REQUESTS = r'''// Le secret est fourni par le credential n8n SerpAPI_KREDO.
+// Ce nœud ne produit que les 12 requêtes publiques, jamais la clé API.
 const data = $('V4 Resolve Entity').first().json;
 return data.researchPlan.map((plan) => ({ json: {
   index: plan.index, query: plan.query, gl: 'fr', hl: 'fr', num: 8,
 } }));'''
 
 
-NORMALIZE_SERPER = r'''// Serper sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.
+NORMALIZE_SERPAPI = r'''// SerpAPI sert uniquement à découvrir des pages : ses snippets ne sont jamais des preuves.
 // HTTP Request conserve l'ordre et le couplage un-pour-un de ses items. On vérifie
 // explicitement cette invariance plutôt que d'associer une réponse à une autre requête.
 const data = $('V4 Resolve Entity').first().json;
-const requests = $('V4 Build Serper Requests').all();
+const requests = $('V4 Build SerpAPI Requests').all();
 const responses = $input.all();
 if (requests.length !== data.researchPlan.length || responses.length !== requests.length) {
-  throw new Error('Réponses Serper incomplètes : ' + responses.length + '/' + requests.length);
+  throw new Error('Réponses SerpAPI incomplètes : ' + responses.length + '/' + requests.length);
 }
 const discovery = requests.map((request, index) => {
   const response = responses[index] && responses[index].json ? responses[index].json : {};
+  const organic = response.organic_results || response.organic || [];
   return {
     index: request.json.index, query: request.json.query,
-    organic: (response.organic || []).slice(0, 8).map((r) => ({
+    organic: organic.slice(0, 8).map((r) => ({
       title: r.title || '', link: r.link || '', snippet: r.snippet || '', date: r.date || null,
     })),
     ...(response.error ? { error: String(response.error.message || response.error) } : {}),
@@ -150,7 +170,7 @@ return [{ json: { ...data, discovery } }];'''
 
 
 FETCH = r'''// Sélection puis consultation de 3 à 6 pages publiques. Les échecs restent auditables.
-const data = $('V4 Normalize Serper Discovery').first().json;
+const data = $('V4 Normalize SerpAPI Discovery').first().json;
 function safe(value) {
   try {
     const u = new URL(value); const h = u.hostname.toLowerCase();
@@ -378,15 +398,21 @@ def main() -> None:
     nodes = [
         code_node("n030v4-01", "V4 Prepare Dossier", -120, 1320, PREPARE),
         code_node("n030v4-02", "V4 Resolve Entity", 120, 1320, entity_helpers + "\n" + RESOLVE_TAIL),
-        code_node("n030v4-03", "V4 Build Serper Requests", 360, 1320, BUILD_SERPER_REQUESTS),
-        http_node("n030v4-03a", "V4 Serper Search", 600, 1320, {
-            "method": "POST", "url": "https://google.serper.dev/search",
-            "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth",
-            "sendBody": True, "contentType": "json", "specifyBody": "json",
-            "jsonBody": "={{ JSON.stringify({ q: $json.query, gl: $json.gl, hl: $json.hl, num: $json.num }) }}",
+        code_node("n030v4-03", "V4 Build SerpAPI Requests", 360, 1320, BUILD_SERPAPI_REQUESTS),
+        http_node("n030v4-03a", "V4 SerpAPI Search", 600, 1320, {
+            "method": "GET", "url": "https://serpapi.com/search.json",
+            "authentication": "predefinedCredentialType", "nodeCredentialType": "serpApi",
+            "sendQuery": True,
+            "queryParameters": {"parameters": [
+                {"name": "engine", "value": "google"},
+                {"name": "q", "value": "={{ $json.query }}"},
+                {"name": "gl", "value": "={{ $json.gl }}"},
+                {"name": "hl", "value": "={{ $json.hl }}"},
+                {"name": "num", "value": "={{ $json.num }}"},
+            ]},
             "options": {"timeout": 20000, "response": {"response": {"neverError": True, "responseFormat": "json"}}},
-        }),
-        code_node("n030v4-03b", "V4 Normalize Serper Discovery", 840, 1320, NORMALIZE_SERPER),
+        }) | {"credentials": SERPAPI_CREDENTIAL},
+        code_node("n030v4-03b", "V4 Normalize SerpAPI Discovery", 840, 1320, NORMALIZE_SERPAPI),
         code_node("n030v4-04", "V4 Fetch Selected Pages", 1080, 1320, FETCH),
         code_node("n030v4-05", "V4 Build Source Catalogue", 1320, 1320, CATALOGUE),
         http_node("n030v4-06", "V4 Upsert Sources", 1560, 1320, {
@@ -408,7 +434,7 @@ def main() -> None:
             "method": "POST", "url": "https://api.anthropic.com/v1/messages", "authentication": "predefinedCredentialType", "nodeCredentialType": "anthropicApi",
             "sendHeaders": True, "headerParameters": {"parameters": [{"name": "anthropic-version", "value": "2023-06-01"}]},
             "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, temperature: 0.2, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}", "options": {"timeout": 240000},
-        }) | {"credentials": {"anthropicApi": {"id": "MERo2FsyLlNgDQXh", "name": "Anthropic API (KREDO)"}}},
+        }) | {"credentials": ANTHROPIC_CREDENTIAL},
         {"parameters": {"conditions": {"options": {"caseSensitive": True, "leftValue": ""}, "conditions": [{"id": "cond-v4-max-tokens", "leftValue": "={{ $json.stop_reason || $json.finish_reason }}", "rightValue": "max_tokens", "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "n030v4-10", "name": "V4 Truncated?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [2040, 1320]},
         code_node("n030v4-11", "V4 Prepare Truncated Error", 2280, 1120, TRUNCATED),
         code_node("n030v4-12", "V4 Parse & Guard", 2280, 1320, PARSE_GUARD),
@@ -422,9 +448,20 @@ def main() -> None:
     for terminal_name in ("V4 Prepare Truncated Error", "V4 Callback"):
         next(node for node in nodes if node["name"] == terminal_name).pop("onError", None)
 
-    names = {node["name"] for node in nodes}
-    workflow["nodes"] = [node for node in workflow["nodes"] if node["name"] not in names] + nodes
+    # Rejouable même après un renommage : supprimer toute ancienne incarnation V4
+    # par identifiant, notamment le premier nœud Serper.dev resté orphelin.
+    workflow["nodes"] = [node for node in workflow["nodes"] if not str(node.get("id", "")).startswith("n030v4-")] + nodes
     by_name = {node["name"]: node for node in workflow["nodes"]}
+
+    # Les IDs sont ceux de l'instance KREDO et restent stables entre réimports.
+    # Tout nœud HTTP qui déclare un type connu reçoit sa référence : aucune
+    # resélection manuelle des credentials Supabase ou Anthropic après import.
+    for node in workflow["nodes"]:
+        credential_type = node.get("parameters", {}).get("nodeCredentialType")
+        if credential_type == "supabaseApi":
+            node["credentials"] = SUPABASE_CREDENTIAL
+        elif credential_type == "anthropicApi":
+            node["credentials"] = ANTHROPIC_CREDENTIAL
 
     validate = by_name["Validate Entity"]["parameters"]["jsCode"]
     validate = validate.replace("Number(requestedVersion) === 2 || Number(requestedVersion) === 3", "[2, 3, 4].includes(Number(requestedVersion))")
@@ -447,7 +484,9 @@ def main() -> None:
         [{"node": "V3 Prepare Context & Research Plan", "type": "main", "index": 0}],
         [{"node": "Prepare Deterministic Context", "type": "main", "index": 0}],
     ]}
-    sequence = ["V4 Prepare Dossier", "V4 Resolve Entity", "V4 Build Serper Requests", "V4 Serper Search", "V4 Normalize Serper Discovery", "V4 Fetch Selected Pages", "V4 Build Source Catalogue", "V4 Upsert Sources", "V4 Resolve Source Ids", "V4 Assemble Prompt", "V4 Call LLM"]
+    for connection_name in [name for name in workflow["connections"] if name.startswith("V4 ")]:
+        del workflow["connections"][connection_name]
+    sequence = ["V4 Prepare Dossier", "V4 Resolve Entity", "V4 Build SerpAPI Requests", "V4 SerpAPI Search", "V4 Normalize SerpAPI Discovery", "V4 Fetch Selected Pages", "V4 Build Source Catalogue", "V4 Upsert Sources", "V4 Resolve Source Ids", "V4 Assemble Prompt", "V4 Call LLM"]
     for current, following in zip(sequence, sequence[1:]):
         workflow["connections"][current] = {"main": [[{"node": following, "type": "main", "index": 0}], failure]}
     workflow["connections"]["V4 Call LLM"] = {"main": [[{"node": "V4 Truncated?", "type": "main", "index": 0}], failure]}

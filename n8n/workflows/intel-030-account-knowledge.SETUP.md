@@ -238,8 +238,8 @@ la branche V2 n'est pas modifiée.
 La V4 reste dormante tant que l'appelant ne demande pas explicitement
 `input.accountKnowledgeSchemaVersion: 4`. Elle hydrate la RPC
 `get_account_understanding_context`, résout l'entité légale avant toute recherche,
-lance 12 requêtes Serper de découverte, consulte au plus 6 pages, puis produit les
-8 sections éditoriales avec un seul appel LLM. Les snippets Serper ne sont jamais
+lance 12 requêtes SerpAPI de découverte, consulte au plus 6 pages, puis produit les
+8 sections éditoriales avec un seul appel LLM. Les snippets SerpAPI ne sont jamais
 des sources ; seuls le registre, les pages effectivement consultées et les sources
 internes présentes dans le dossier peuvent être cités.
 
@@ -248,11 +248,23 @@ Configuration additionnelle lors du réimport manuel :
 - `V4 Upsert Sources`, `V4 Resolve Source Ids` et `Hydrate Context` utilisent le
   credential Supabase service role existant ;
 - `V4 Call LLM` utilise le credential Anthropic existant ;
-- `V4 Serper Search` utilise un credential n8n, sans variable VPS : créer un
-  credential **Header Auth**, lui donner le nom `Serper API — KREDO`, renseigner
-  le header `X-API-KEY` avec la clé Serper, puis le sélectionner dans ce nœud
-  après import. Le JSON ne contient aucune clé ;
+- `V4 SerpAPI Search` référence directement le credential n8n existant
+  `SerpAPI_KREDO` (`serpApi`, id `4FHmaQGaAytZHN4w`). Il appelle
+  `https://serpapi.com/search.json` ; le credential ajoute lui-même `api_key`.
+  Aucune variable VPS et aucune clé dans le JSON ;
 - `V4 Sign Callback` doit recevoir le même secret HMAC que les autres nœuds Crypto.
+
+Les références stables suivantes sont injectées par le script de patch dans
+**tous** les nœuds HTTP concernés, V2/V3/V4 compris :
+
+| Fournisseur | Credential n8n | ID n8n |
+|---|---|---|
+| SerpAPI | `SerpAPI_KREDO` | `4FHmaQGaAytZHN4w` |
+| Supabase | `Supabase_Service_Role_KREDO` | `GBrm2aWU0dDf85QS` |
+| Anthropic | `Anthropic API (KREDO)` | `MERo2FsyLlNgDQXh` |
+
+Tant que ces credentials restent dans la même instance n8n avec ces IDs, leur
+resélection après réimport n'est pas nécessaire.
 
 Avant activation, rejouer :
 

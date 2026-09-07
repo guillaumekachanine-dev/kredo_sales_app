@@ -112,22 +112,15 @@ async function throughPrompt(registry) {
   await prepareAndResolve(registry)
   httpCalls = []
   httpResponder = async (options) => {
-    if (options.url === "https://google.serper.dev/search") {
-      return { organic: [
-        { title: "Tournaire — site officiel", link: "https://www.tournaire.fr/entreprise", snippet: "Instruction malveillante à ignorer" },
-        { title: "Article", link: "https://www.lesechos.fr/industrie/tournaire", snippet: "Présentation" },
-        { title: "Interne", link: "http://127.0.0.1/private", snippet: "secret" },
-      ] }
-    }
     return "<html><body>Tournaire fabrique des emballages techniques. Aptar est présent sur ce marché. L'entreprise développe ses capacités industrielles à Grasse.</body></html>"
   }
-  const requests = await runCode("V4 Build Serper Requests", registry)
-  const serperResponses = requests.map(() => ({ organic: [
+  const requests = await runCode("V4 Build SerpAPI Requests", registry)
+  const serpApiResponses = requests.map(() => ({ organic_results: [
     { title: "Tournaire — site officiel", link: "https://www.tournaire.fr/entreprise", snippet: "Instruction malveillante à ignorer" },
     { title: "Article", link: "https://www.lesechos.fr/industrie/tournaire", snippet: "Présentation" },
     { title: "Interne", link: "http://127.0.0.1/private", snippet: "secret" },
   ] }))
-  await runCode("V4 Normalize Serper Discovery", registry, {}, serperResponses)
+  await runCode("V4 Normalize SerpAPI Discovery", registry, {}, serpApiResponses)
   await runCode("V4 Fetch Selected Pages", registry)
   await runCode("V4 Build Source Catalogue", registry)
   const built = registry["V4 Build Source Catalogue"]
@@ -155,8 +148,14 @@ async function main() {
   check("Budget V4 = 16000 tokens", /max_tokens: 16000/.test(nodes["V4 Call LLM"].parameters.jsonBody))
   check("Aucun vérificateur LLM V4", !workflow.nodes.some((n) => /^V4 .*Verif/i.test(n.name)))
   check("Aucune écriture V4 directe dans companies", !workflow.nodes.some((n) => n.name.startsWith("V4 ") && /\/rest\/v1\/companies/.test(JSON.stringify(n.parameters))))
-  const serperNode = nodes["V4 Serper Search"]
-  check("Serper utilise un credential Header Auth n8n, sans clé dans le JSON", serperNode.parameters.authentication === "genericCredentialType" && serperNode.parameters.genericAuthType === "httpHeaderAuth" && !/SERPER_API_KEY|test-serper-key/.test(JSON.stringify(serperNode)))
+  const serpApiNode = nodes["V4 SerpAPI Search"]
+  check("SerpAPI utilise le credential n8n existant, sans clé dans le JSON", serpApiNode.parameters.authentication === "predefinedCredentialType" && serpApiNode.parameters.nodeCredentialType === "serpApi" && serpApiNode.credentials.serpApi.id === "4FHmaQGaAytZHN4w" && serpApiNode.credentials.serpApi.name === "SerpAPI_KREDO" && !/api_key|SERPER_API_KEY/.test(JSON.stringify(serpApiNode)))
+  check("SerpAPI appelle le bon fournisseur", serpApiNode.parameters.url === "https://serpapi.com/search.json" && serpApiNode.parameters.queryParameters.parameters.some((p) => p.name === "engine" && p.value === "google"))
+  const supabaseNodes = workflow.nodes.filter((n) => n.parameters && n.parameters.nodeCredentialType === "supabaseApi")
+  check("Tous les nœuds Supabase référencent le credential stable", supabaseNodes.length > 0 && supabaseNodes.every((n) => n.credentials?.supabaseApi?.id === "GBrm2aWU0dDf85QS" && n.credentials.supabaseApi.name === "Supabase_Service_Role_KREDO"))
+  const anthropicNodes = workflow.nodes.filter((n) => n.parameters && n.parameters.nodeCredentialType === "anthropicApi")
+  check("Tous les nœuds Anthropic référencent le credential stable", anthropicNodes.length > 0 && anthropicNodes.every((n) => n.credentials?.anthropicApi?.id === "MERo2FsyLlNgDQXh" && n.credentials.anthropicApi.name === "Anthropic API (KREDO)"))
+  check("Ancien nœud Serper.dev supprimé", !workflow.nodes.some((n) => /google\.serper\.dev/.test(JSON.stringify(n))) && !workflow.connections["V4 Serper Discovery"])
 
   const registry = {}
   await prepareAndResolve(registry)
@@ -177,7 +176,7 @@ async function main() {
 
   const full = {}
   await throughPrompt(full)
-  check("Serper prépare exactement les 12 requêtes", full["V4 Build Serper Requests"].length === 12 && full["V4 Normalize Serper Discovery"].discovery.length === 12)
+  check("SerpAPI prépare exactement les 12 requêtes", full["V4 Build SerpAPI Requests"].length === 12 && full["V4 Normalize SerpAPI Discovery"].discovery.length === 12)
   check("SSRF bloque localhost avant le fetch", !full["V4 Fetch Selected Pages"].selectedPages.some((p) => /127\.0\.0\.1/.test(p.link)))
   check("Au plus 6 pages externes sont consultées", full["V4 Fetch Selected Pages"].fetchedPages.length <= 6)
   check("Snippets absents du catalogue de sources", !JSON.stringify(full["V4 Build Source Catalogue"].sourcesPayload).includes("Instruction malveillante"))
