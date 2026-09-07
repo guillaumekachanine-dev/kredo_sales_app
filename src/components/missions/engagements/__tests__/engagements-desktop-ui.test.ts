@@ -73,6 +73,7 @@ describe("CurrentMissionsList — groupement par client", () => {
         clientName: "Client A",
         clientWebsite: "https://a.com",
         clientLogoPath: "/logos/a.png",
+        collaboratorName: "Alice Martin",
       },
       {
         id: "m2",
@@ -88,6 +89,7 @@ describe("CurrentMissionsList — groupement par client", () => {
         clientName: "Client B",
         clientWebsite: "https://b.com",
         clientLogoPath: "/logos/b.png",
+        collaboratorName: "Bob Durand",
       },
       {
         id: "m3",
@@ -103,6 +105,7 @@ describe("CurrentMissionsList — groupement par client", () => {
         clientName: "Client A",
         clientWebsite: "https://a.com",
         clientLogoPath: "/logos/a.png",
+        collaboratorName: "Carla Nguyen",
       },
     ]
 

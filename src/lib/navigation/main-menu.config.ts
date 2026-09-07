@@ -136,6 +136,17 @@ export function getMobileTabsForPath(pathname: string): SectionTab[] {
     ]
   }
 
+  // Engagements sur Mobile : le shell unique vit sur /missions et pilote ses
+  // vues par `?vue=` (les routes (tabbed) /missions/actives · /projets sont
+  // redirigées vers ce shell sur Mobile — cf. ADR-0006).
+  if (pathname === "/missions" || pathname.startsWith("/missions/actives") || pathname.startsWith("/missions/projets")) {
+    return [
+      { label: "Synthèse", shortLabel: "Synthèse", href: "/missions" },
+      { label: "Missions", shortLabel: "Missions", href: "/missions?vue=missions-at" },
+      { label: "Projets", shortLabel: "Projets", href: "/missions?vue=projets" },
+    ]
+  }
+
   if (pathname.startsWith("/reports") || pathname.startsWith("/veille")) {
     return [
       { label: "Rapports & Rédaction", shortLabel: "Rapports", href: "/reports" },

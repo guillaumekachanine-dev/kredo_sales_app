@@ -26,6 +26,24 @@ export function isValidTabId(value: string): value is MissionDetailTabId {
   return MISSION_DETAIL_TABS.some((tab) => tab.id === value)
 }
 
+// ─── Mobile — configuration d'onglets dédiée (ADR-0006) ───────────────────────
+// Le Desktop conserve MISSION_DETAIL_TABS (5 onglets). Le Mobile en expose 3 :
+// - "synthesis"    = Synthèse + données financières
+// - "collaborator" = profil + activité réelle + CRA
+// - "planning"     = planning inchangé
+export type MissionMobileTabId = "synthesis" | "collaborator" | "planning"
+
+export interface MissionMobileTab {
+  id: MissionMobileTabId
+  label: string
+}
+
+export const MISSION_MOBILE_TABS: MissionMobileTab[] = [
+  { id: "synthesis", label: "Synthèse" },
+  { id: "collaborator", label: "Collaborateur" },
+  { id: "planning", label: "Planning" },
+]
+
 // ─── Mission core ─────────────────────────────────────────────────────────────
 
 export interface MissionSummary {

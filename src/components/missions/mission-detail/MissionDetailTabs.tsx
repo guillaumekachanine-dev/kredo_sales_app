@@ -1,38 +1,46 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { MISSION_DETAIL_TABS } from "./mission-detail-types"
-import type { MissionDetailTabId } from "./mission-detail-types"
+import { MISSION_MOBILE_TABS } from "./mission-detail-types"
+import type { MissionMobileTabId } from "./mission-detail-types"
+
+// Onglets Mobile de la fiche mission — langage visuel repris de ReportsMobileView
+// (nav pleine largeur, grid-cols-3, min-h-12, onglet actif souligné brand-brass).
+// Le Desktop n'utilise pas ce composant (MissionOverviewDesktop porte sa propre
+// navigation par étapes).
 
 interface MissionDetailTabsProps {
-  activeTab: MissionDetailTabId
-  onTabChange: (tab: MissionDetailTabId) => void
+  activeTab: MissionMobileTabId
+  onTabChange: (tab: MissionMobileTabId) => void
   className?: string
 }
 
 export function MissionDetailTabs({ activeTab, onTabChange, className }: MissionDetailTabsProps) {
   return (
     <nav
-      className={cn("flex items-center border-b border-border/60 overflow-x-auto scrollbar-none", className)}
+      className={cn("grid grid-cols-3 border-y border-border bg-surface", className)}
       aria-label="Onglets de la mission"
     >
-      {MISSION_DETAIL_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={activeTab === tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={cn(
-            "px-4 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 -mb-[2px] transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            activeTab === tab.id
-              ? "border-primary text-primary"
-              : "border-transparent text-muted hover:text-body"
-          )}
-        >
-          {tab.label}
-        </button>
-      ))}
+      {MISSION_MOBILE_TABS.map((tab) => {
+        const active = activeTab === tab.id
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onTabChange(tab.id)}
+            className={cn(
+              "relative min-h-12 px-2 text-sm font-semibold text-heading outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+              active
+                ? "bg-primary/[0.04] after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-brand-brass"
+                : "hover:bg-surface-hover/60",
+            )}
+          >
+            {tab.label}
+          </button>
+        )
+      })}
     </nav>
   )
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { SectionTab } from "@/lib/navigation/main-menu.config"
 import { cn } from "@/lib/utils"
@@ -27,6 +28,26 @@ interface MobileSectionRailProps {
 
 export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: MobileSectionRailProps) {
   const railRef = useRef<HTMLDivElement>(null)
+  const searchParams = useSearchParams()
+
+  // Certains modules (Engagements) distinguent leurs vues par query string sur un
+  // pathname partagé (`/missions?vue=…`). Quand au moins un onglet porte une query,
+  // l'onglet actif est résolu en tenant compte du paramètre `vue`.
+  const tabsUseQuery = tabs.some((tab) => tab.href.includes("?"))
+  const currentVue = searchParams.get("vue")
+
+  function isTabActive(href: string): boolean {
+    const [hrefPath, hrefQuery] = href.split("?")
+    if (pathname !== hrefPath && !pathname.startsWith(hrefPath + "/")) {
+      // Un onglet query peut rester actif depuis une route redirigée
+      // (ex. /missions/actives → /missions?vue=missions-at).
+      return false
+    }
+    if (!tabsUseQuery) return true
+    const hrefVue = hrefQuery ? new URLSearchParams(hrefQuery).get("vue") : null
+    if (hrefVue) return currentVue === hrefVue
+    return !currentVue || currentVue === "synthese"
+  }
 
   // Tap extérieur → ferme le rail. Le setTimeout(0) évite que le tap d'ouverture
   // (sur la bottom nav) soit immédiatement capté comme un tap extérieur.
@@ -53,7 +74,7 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
     >
       <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-none px-3 h-11">
         {tabs.map((tab) => {
-          const isActive = pathname === tab.href.split("?")[0]
+          const isActive = isTabActive(tab.href)
           const isUnavailable = tab.disabled || tab.comingSoon
 
           if (isUnavailable) {

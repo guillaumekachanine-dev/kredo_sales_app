@@ -1156,6 +1156,49 @@ dialog.kredo-drawer-bottom {
   animation: kredo-rail-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* ── Engagements Mobile — glissement liste → détail ─────────────────
+ *  Transition courte et discrète, sans dépendance externe. La classe est
+ *  posée au mount React (shell Engagements mobile).
+ * ──────────────────────────────────────────────────────────────────── */
+@keyframes kredo-engagements-detail-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes kredo-engagements-list-in {
+  from {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.kredo-engagements-detail-in {
+  animation: kredo-engagements-detail-in var(--motion-duration-base) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.kredo-engagements-list-in {
+  animation: kredo-engagements-list-in var(--motion-duration-fast) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-engagements-detail-in,
+  .kredo-engagements-list-in {
+    animation: none;
+  }
+}
+
 /* ── Intelligence Panel — slide-in depuis la droite ──────────────────
  *  Le panel est un <aside> persistant (pas un <dialog>). L'animation
  *  est déclenchée par la classe ajoutée au mount React.

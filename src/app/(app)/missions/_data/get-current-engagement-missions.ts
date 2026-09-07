@@ -26,12 +26,23 @@ export interface EngagementMissionListItem {
   clientName: string
   clientWebsite: string | null
   clientLogoPath: string | null
+  collaboratorName: string | null
 }
 
 interface DBCompany {
   name: string | null
   website: string | null
   meta_logo_path: string | null
+}
+
+interface DBPerson {
+  full_name: string | null
+  first_name: string | null
+  last_name: string | null
+}
+
+interface DBCollaborator {
+  persons: DBPerson | DBPerson[] | null
 }
 
 interface DBRow {
@@ -46,11 +57,20 @@ interface DBRow {
   tjm: number | null
   gross_margin_pct: number | null
   companies: DBCompany | DBCompany[] | null
+  collaborators: DBCollaborator | DBCollaborator[] | null
 }
 
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
   return Array.isArray(value) ? value[0] ?? null : value
+}
+
+function resolveCollaboratorName(value: DBCollaborator | DBCollaborator[] | null): string | null {
+  const collaborator = pickOne(value)
+  const person = pickOne(collaborator?.persons)
+  if (!person) return null
+  const composed = person.full_name || `${person.first_name ?? ""} ${person.last_name ?? ""}`.trim()
+  return composed || null
 }
 
 export async function getCurrentEngagementMissions(): Promise<EngagementMissionListItem[]> {
@@ -75,6 +95,13 @@ export async function getCurrentEngagementMissions(): Promise<EngagementMissionL
           name,
           website,
           meta_logo_path
+        ),
+        collaborators (
+          persons (
+            full_name,
+            first_name,
+            last_name
+          )
         )
       `
       )
@@ -102,6 +129,7 @@ export async function getCurrentEngagementMissions(): Promise<EngagementMissionL
         clientName: company?.name ?? "Compte non renseigné",
         clientWebsite: company?.website ?? null,
         clientLogoPath: company?.meta_logo_path ?? null,
+        collaboratorName: resolveCollaboratorName(row.collaborators),
       }
     })
   } catch (err) {

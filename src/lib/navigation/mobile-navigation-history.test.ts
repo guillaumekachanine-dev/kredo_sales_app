@@ -236,10 +236,12 @@ describe("mobile-navigation-history (moteur pur et intégration)", () => {
     expect(besoinsItem?.tabs?.map((t) => t.href)).toContain("/recruitment")
 
     const engagementsItem = mainItems.find((item) => item.id === "engagements")
+    // Sur Mobile, le shell Engagements est unifié sur /missions et pilote ses
+    // vues par `?vue=` (routes (tabbed) redirigées — ADR-0006).
     expect(engagementsItem?.tabs?.map((t) => t.href)).toEqual([
       "/missions",
-      "/missions/actives",
-      "/missions/projets",
+      "/missions?vue=missions-at",
+      "/missions?vue=projets",
     ])
 
     expect(mainItems.find((item) => item.id === "prospection")?.href).toBe(

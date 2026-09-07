@@ -1,7 +1,8 @@
-import { Suspense } from "react"
-import { MissionsDashboardSection } from "@/components/missions/dashboard/MissionsDashboardSection"
-import { EngagementsOverviewSkeleton } from "@/components/missions/dashboard/EngagementsOverviewSkeleton"
 import { EngagementsOverviewDesktop } from "@/components/missions/dashboard/EngagementsOverviewDesktop"
+import {
+  EngagementsMobileShell,
+  type EngagementsMobileView,
+} from "@/components/missions/engagements/mobile/EngagementsMobileShell"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getEngagementsOverview } from "@/app/(app)/missions/_data/get-engagements-overview"
 import { getCurrentEngagementMissions } from "@/app/(app)/missions/_data/get-current-engagement-missions"
@@ -62,19 +63,40 @@ export default async function MissionsPage({
   searchParams: Promise<SearchParams>
 }) {
   const device = await getDashboardDevice()
+  const resolvedSearchParams = await searchParams
+  const view = pickView(resolvedSearchParams.vue)
 
-  // ── Mobile : comportement existant strictement inchangé ─────────────────────
+  // ── Mobile : shell unifié Engagements (paradigme /reports) ─────────────────
+  //  Synthèse + Missions AT livrés ; Projets réutilise ProjectsContent tel quel.
+  //  Les vues Activité & congés / Planning ne sont pas exposées sur Mobile.
   if (device === "mobile") {
+    const mobileView: EngagementsMobileView =
+      view === "missions-at" || view === "projets" ? view : "synthese"
+
+    const [overview, missions, projects] = await Promise.all([
+      mobileView === "synthese"
+        ? getEngagementsOverview().catch((error) => {
+            console.error("[MissionsPage] mobile synthese overview", error)
+            return null
+          })
+        : Promise.resolve(null),
+      mobileView === "missions-at" ? getCurrentEngagementMissions() : Promise.resolve([]),
+      mobileView === "projets" ? getProjectsList() : Promise.resolve([]),
+    ])
+
     return (
-      <Suspense fallback={<EngagementsOverviewSkeleton />}>
-        <MissionsDashboardSection />
-      </Suspense>
+      <div data-theme="edito-bright-engagements" className="h-full min-h-0 bg-canvas text-body">
+        <EngagementsMobileShell
+          view={mobileView}
+          overview={overview}
+          missions={missions}
+          projects={projects}
+        />
+      </div>
     )
   }
 
   // ── Desktop : nouveau shell (paradigme /reports) ───────────────────────────
-  const resolvedSearchParams = await searchParams
-  const view = pickView(resolvedSearchParams.vue)
 
   if (view === "synthese") {
     let overview: Awaited<ReturnType<typeof getEngagementsOverview>> | null = null
