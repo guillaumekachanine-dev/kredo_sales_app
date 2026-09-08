@@ -1,0 +1,37 @@
+{
+  "asset": "kredo-home-mobile-v2-hero-final.png",
+  "purpose": "Final mobile homepage Hero illustration",
+  "dimensions": {
+    "width": 1200,
+    "height": 900,
+    "ratio": "4:3"
+  },
+  "format": "PNG",
+  "colorMode": "RGBA",
+  "transparentBackground": true,
+  "sha256": "e5a2f3a628ad24c06fdd533f9ee489a53c26fdbfc0f44369f3e556317009ba3b",
+  "visualBoundingBox": {
+    "x": 397,
+    "y": 130,
+    "width": 792,
+    "height": 691
+  },
+  "slot": {
+    "heroHeightCssPx": 258,
+    "surfaceStartCssPx": 198,
+    "overlapCssPx": 60,
+    "prototypeRenderedWidthCssPx": 316,
+    "prototypeRenderedHeightCssPx": 237
+  },
+  "references": [
+    "docs/DESIGN/design-systems/global_design/design_propositions/kredo_home_sreen/kredo-home-reference.png",
+    "docs/DESIGN/design-assets/palette_couleurs/kredo_palette_couleurs_secondaires.png",
+    "public/logo_app.png",
+    "public/images/design-lab/kredo-home-mobile-v2-hero-final.png"
+  ],
+  "notes": [
+    "The logo remains a separate UI asset and is intentionally not embedded.",
+    "No readable text or third-party branding is present.",
+    "The primary visual mass is right-weighted and all essential content remains above the overlap zone."
+  ]
+}
