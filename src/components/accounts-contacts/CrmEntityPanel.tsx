@@ -6,6 +6,7 @@ import type { SectionTab } from "@/lib/tabs/tab-types"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import type { AccountIntelligencePanelData } from "@/lib/intelligence/account-panel-types"
 import { RegisterIntelligenceContext } from "@/components/intelligence/RegisterIntelligenceContext"
+import type { ClientIntelligenceDesktopTabKey } from "./intelligence/account-intelligence-desktop-navigation"
 
 // Code-split par device : les deux vues cockpit (desktop ≈1570 lignes, mobile)
 // sont lourdes et mutuellement exclusives. En import statique, les DEUX étaient
@@ -61,14 +62,25 @@ interface CrmEntityPanelProps {
   // Intelligence global, sinon un onglet inactif écraserait le contexte
   // de l'onglet actif dès que son propre fetch se termine.
   isActive?: boolean
+  desktopNavigation?: {
+    section: ClientIntelligenceDesktopTabKey
+    onSectionChange: (section: ClientIntelligenceDesktopTabKey) => void
+  }
 }
 
-export function CrmEntityPanel({ tab, isMobile = false, isActive = true }: CrmEntityPanelProps) {
+export function CrmEntityPanel({
+  tab,
+  isMobile = false,
+  isActive = true,
+  desktopNavigation,
+}: CrmEntityPanelProps) {
   const [data, setData] = useState<ClientIntelligenceData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [panelData, setPanelData] = useState<AccountIntelligencePanelData | null>(null)
 
   useEffect(() => {
+    // This reset is intentional when an existing panel is rebound to another entity.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setData(null)
     setError(null)
     setPanelData(null)
@@ -112,7 +124,10 @@ export function CrmEntityPanel({ tab, isMobile = false, isActive = true }: CrmEn
       {isMobile ? (
         <ClientIntelligenceMobileView data={data} />
       ) : (
-        <ClientIntelligenceDesktopView data={data} />
+        <ClientIntelligenceDesktopView
+          data={data}
+          embeddedNavigation={desktopNavigation}
+        />
       )}
     </>
   )

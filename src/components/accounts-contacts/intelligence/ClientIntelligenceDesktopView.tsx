@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
@@ -29,8 +29,12 @@ import { ClientIntelligenceCompanyTab } from "./ClientIntelligenceCompanyTab"
 import {
   ClientIntelligenceSidebar,
   getClientIntelligenceDesktopTabLabel,
-  type ClientIntelligenceDesktopTabKey,
 } from "./ClientIntelligenceSidebar"
+import {
+  buildAccountIntelligenceHref,
+  parseAccountIntelligenceSection,
+  type ClientIntelligenceDesktopTabKey,
+} from "./account-intelligence-desktop-navigation"
 import {
   AccountIntelligenceSignatureHeaderDesktop,
 } from "./header/AccountIntelligenceSignatureHeader"
@@ -42,8 +46,19 @@ import {
   COMMERCIAL_STRATEGY_RESULT_TYPE,
 } from "@/lib/intelligence/account-intelligence-contracts"
 
-export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
-  const [activeTab, setActiveTab] = useState<ClientIntelligenceDesktopTabKey>("accueil")
+interface EmbeddedAccountIntelligenceNavigation {
+  section: ClientIntelligenceDesktopTabKey
+  onSectionChange: (section: ClientIntelligenceDesktopTabKey) => void
+}
+
+export function ClientIntelligenceDesktopView({
+  data,
+  embeddedNavigation,
+}: {
+  data: ClientIntelligenceData
+  financialReference?: FinancialReference | null
+  embeddedNavigation?: EmbeddedAccountIntelligenceNavigation
+}) {
   const [expandedViewer, setExpandedViewer] = useState(false)
   const [directoryOpen, setDirectoryOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
@@ -52,6 +67,9 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const activeTab = embeddedNavigation?.section
+    ?? parseAccountIntelligenceSection(searchParams.get("aiSection"))
   const setCrmActiveTab = useCrmTabStore((state) => state.setActiveTab)
   const { company } = data
   const { diagnosticPdfUrl } = data
@@ -73,11 +91,20 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
     }
   }
 
+  const navigateSection = (section: ClientIntelligenceDesktopTabKey) => {
+    if (embeddedNavigation) {
+      embeddedNavigation.onSectionChange(section)
+      return
+    }
+
+    router.push(buildAccountIntelligenceHref(pathname, searchParams, section))
+  }
+
   return (
     <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full min-h-0 overflow-hidden bg-canvas">
       <ClientIntelligenceSidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={navigateSection}
         onOpenContactDirectory={() => setDirectoryOpen(true)}
         onOpenDocuments={() => setDocumentsOpen(true)}
         playbookSlug={playbookSlug}
@@ -95,7 +122,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
             {activeTab === "accueil" && (
               <ClientIntelligenceHomeTab
                 data={data}
-                onOpenTab={setActiveTab}
+                onOpenTab={navigateSection}
                 onOpenContactDirectory={() => setDirectoryOpen(true)}
                 onOpenDocuments={() => setDocumentsOpen(true)}
               />

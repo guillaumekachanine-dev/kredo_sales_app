@@ -1,13 +1,22 @@
 "use client"
 
-import { useEffect } from "react"
-import { usePathname } from "next/navigation"
+import { useEffect, useReducer } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { CrmSectionTabBar } from "./CrmSectionTabBar"
 import { CrmEntityPanel } from "./CrmEntityPanel"
 import { CrmMobileAccountTabs } from "./CrmMobileAccountTabs"
+import {
+  buildAccountIntelligenceHref,
+  createEmbeddedAccountIntelligenceNavigationState,
+  embeddedAccountIntelligenceNavigationReducer,
+  getDisplayedAccountIntelligenceSection,
+  getRememberedAccountIntelligenceSection,
+  parseAccountIntelligenceSection,
+  type ClientIntelligenceDesktopTabKey,
+} from "./intelligence/account-intelligence-desktop-navigation"
 
 const ACCOUNTS_PREFIX = "/prospection/accounts"
 
@@ -18,7 +27,14 @@ interface CrmTabbedShellProps {
 
 export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { tabs, activeTabId } = useCrmTabStore()
+  const urlSection = parseAccountIntelligenceSection(searchParams.get("aiSection"))
+  const [embeddedNavigation, dispatchEmbeddedNavigation] = useReducer(
+    embeddedAccountIntelligenceNavigationReducer,
+    createEmbeddedAccountIntelligenceNavigationState(activeTabId, urlSection),
+  )
   const isAccountsSection = pathname === ACCOUNTS_PREFIX || pathname.startsWith(ACCOUNTS_PREFIX + "/")
   const isDirectCockpit = pathname.startsWith(ACCOUNTS_PREFIX + "/")
   const isCockpitActive = isAccountsSection && (isDirectCockpit || activeTabId !== "home")
@@ -33,6 +49,64 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
     useSidebarCollapse.getState().requestCollapse()
     return () => useSidebarCollapse.getState().requestRestore()
   }, [isCockpitActive, isMobile])
+
+  useEffect(() => {
+    if (isMobile) return
+
+    if (embeddedNavigation.activePanelId === activeTabId) {
+      if (activeTabId !== "home") {
+        dispatchEmbeddedNavigation({
+          type: "urlChanged",
+          panelId: activeTabId,
+          section: urlSection,
+        })
+      }
+      return
+    }
+
+    const rememberedSection = getRememberedAccountIntelligenceSection(
+      embeddedNavigation,
+      activeTabId,
+    )
+
+    dispatchEmbeddedNavigation({
+      type: "activate",
+      panelId: activeTabId,
+      section: rememberedSection,
+    })
+
+    if (activeTabId === "home") return
+
+    const restoredHref = buildAccountIntelligenceHref(
+      pathname,
+      searchParams,
+      rememberedSection,
+    )
+    const currentQuery = searchParams.toString()
+    const currentHref = currentQuery ? `${pathname}?${currentQuery}` : pathname
+
+    if (restoredHref !== currentHref) {
+      router.replace(restoredHref)
+    }
+  }, [
+    activeTabId,
+    embeddedNavigation,
+    isMobile,
+    pathname,
+    router,
+    searchParams,
+    urlSection,
+  ])
+
+  const navigateEmbeddedSection = (
+    panelId: string,
+    section: ClientIntelligenceDesktopTabKey,
+  ) => {
+    if (panelId !== activeTabId) return
+
+    dispatchEmbeddedNavigation({ type: "navigate", panelId, section })
+    router.push(buildAccountIntelligenceHref(pathname, searchParams, section))
+  }
 
   // Vue mobile : si onglet entité actif sur accounts, afficher le panel + bouton retour
   if (isMobile) {
@@ -82,7 +156,19 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
             tab.id !== activeTabId && "hidden"
           )}
         >
-          <CrmEntityPanel tab={tab} isActive={tab.id === activeTabId} />
+          <CrmEntityPanel
+            tab={tab}
+            isActive={tab.id === activeTabId}
+            desktopNavigation={{
+              section: getDisplayedAccountIntelligenceSection(
+                embeddedNavigation,
+                tab.id,
+                activeTabId,
+                urlSection,
+              ),
+              onSectionChange: (section) => navigateEmbeddedSection(tab.id, section),
+            }}
+          />
         </div>
       ))}
     </div>
