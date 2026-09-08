@@ -13,6 +13,26 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 61 — SHELL-0018 Lot 3.1 : modules contextuels Desktop (2026-09-08)
+
+- Audit code réel des neuf rails Desktop `SectionRail` : Account Intelligence, Business
+  Intelligence, Veille, Rapports, Automatisations, Engagements, Prospection, Knowledge Hub et
+  Finance. Matrice canonique créée dans
+  `docs/navigation_architecture/SHELL-0018/05-CONTEXTUAL-MODULES-MATRIX.md`.
+- Modules conservés avec leur contexte réel : Répertoire, Bibliothèque et Playbook du compte ;
+  Études sectorielles et Playbooks du segment BI ; Gestion des sources de Veille ; Ateliers du
+  Knowledge Hub. Les deux modules BI sont désormais gardés par la couverture effective de la
+  ressource, en plus de leur callback.
+- `Interroger` retiré du rail Knowledge Hub : sa modale reste un placeholder « Bientôt
+  disponible » avec bouton `Envoyer` désactivé. Aucun changement du composant métier ni du
+  Cockpit Intelligence.
+- Les builders Account Intelligence, Business Intelligence et Veille renvoient désormais
+  `contextualModules: undefined` quand aucune entrée n'est disponible. Aucun registre global,
+  aucune modification Mobile, Finance URL, Supabase, n8n ou Cockpit Intelligence.
+- Validation : `typecheck` ✓ · 13 fichiers / 113 tests ciblés ✓ · frontière serveur/client ✓ ·
+  lint ciblé sans warning ✓ · build Next.js 16.2.7 et 41 pages statiques ✓. QA visuelle réservée
+  à Guillaume.
+
 ### Session 60 — Refonte Mobile Engagements (`/missions`) façon `/reports` (2026-09-07)
 
 Refonte **Mobile uniquement** — Desktop `/missions` strictement inchangé (vérifié : `next build` OK, aucune modification de la branche Desktop de `page.tsx` ni des vues `EngagementsDesktopView`).

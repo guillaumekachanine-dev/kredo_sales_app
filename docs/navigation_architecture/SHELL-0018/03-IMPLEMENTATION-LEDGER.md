@@ -86,7 +86,7 @@ QA minimale :
 | **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
 | **2.7** | Migration Prospection | ✅ techniquement livré | commit `9b13d84d` ; 15rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
-| **3.x** | Standardisation des modules contextuels | ⬜ todo | uniquement contexte page |
+| **3.1** | Standardisation des modules contextuels | ✅ techniquement livré | matrice exhaustive `05-CONTEXTUAL-MODULES-MATRIX.md` ; QA visuelle réservée à Guillaume |
 | **4.x** | URLisation des navigations client-state restantes | ⬜ todo | après stabilisation du rail |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
@@ -750,7 +750,86 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Lot 5.1 techniquement livré.**
 
-## 21. Prochaine étape
+## 21. Lot 3.1 — Standardisation des modules contextuels
+
+### Rails audités
+
+- Account Intelligence ;
+- Business Intelligence ;
+- Veille & actualités ;
+- Rapports & rédaction ;
+- Automatisations ;
+- Engagements ;
+- Prospection ;
+- Knowledge Hub ;
+- Finance ;
+- tous les consommateurs réels de `SectionRail` et de `contextualModules` retrouvés dans le code
+  au HEAD `4c8ca03b`.
+
+La matrice de décision complète vit dans
+`docs/navigation_architecture/SHELL-0018/05-CONTEXTUAL-MODULES-MATRIX.md`.
+
+### Modules conservés
+
+- Account Intelligence : `Répertoire`, `Bibliothèque`, `Playbook`, chacun sous sa garde de
+  contexte et d'action existante ;
+- Business Intelligence : `Études sectorielles` et `Playbooks`, désormais sous double garde du
+  callback et de `workspace.coverage` pour le segment actif ;
+- Veille & actualités : `Gestion des sources`, uniquement avec son callback réel ;
+- Knowledge Hub : `Ateliers`, avec son callback et son état actif existants.
+
+### Module retiré
+
+- Knowledge Hub : `Interroger` a été retiré du rail. L'ouverture locale existe, mais la capacité
+  affiche « Bientôt disponible » et son bouton `Envoyer` est durablement désactivé. La modale
+  métier n'est ni supprimée ni reconstruite, et aucun déplacement vers Cockpit Intelligence
+  n'est effectué dans ce lot.
+
+### Pages sans Modules
+
+Rapports & rédaction, Automatisations, Engagements, Prospection et Finance restent sans section
+`Modules`. Aucun module n'est créé pour remplir artificiellement la zone.
+
+Les builders conditionnels Account Intelligence, Business Intelligence et Veille renvoient
+désormais `contextualModules: undefined` lorsque leur tableau d'entrées disponibles est vide.
+Knowledge Hub respectait déjà ce contrat sans callback. La primitive `SectionRail` n'a pas été
+modifiée.
+
+### Factorisation
+
+Aucune factorisation transverse n'est introduite. Les capacités homonymes n'ont pas toutes le
+même contexte ni le même mécanisme d'ouverture ; chaque page conserve donc son adaptateur local.
+Le contrat TypeScript existant de `SectionRailEntry` garantit déjà qu'une entrée possède soit un
+`href`, soit un `onSelect`, sans permettre une entrée sans action.
+
+### Tests et gates
+
+Exécutés dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** ;
+2. tests ciblés des neuf rails Desktop, de `SectionRail` et des contrats Business Intelligence :
+   **13 fichiers / 113 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des neuf fichiers applicatifs et de test modifiés : **passé sans erreur ni
+   warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7, TypeScript et génération des 41
+   pages statiques terminées avec succès.
+
+Les assertions ajoutées couvrent `contextualModules === undefined`, les gardes de disponibilité
+BI, le déclenchement des callbacks, la conservation des clés/libellés et l'absence de section
+`Modules` ou de bouton disabled lorsque la capacité n'est pas disponible.
+
+### Périmètre protégé et dette
+
+- aucun chapitre, libellé, ordre, clé ou mécanisme de navigation modifié ;
+- URLisation Finance préservée ;
+- aucun fichier Mobile, Cockpit Intelligence, Supabase, n8n, loader ou donnée métier modifié ;
+- aucune dette technique nouvelle dans le périmètre ;
+- QA visuelle non exécutée conformément à la consigne du lot, validation réservée à Guillaume.
+
+**Verdict Lot 3.1 : `techniquement livré`.**
+
+## 22. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
