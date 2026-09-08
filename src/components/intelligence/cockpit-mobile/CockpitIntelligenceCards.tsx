@@ -26,6 +26,9 @@ export type CockpitMobileModuleIcon =
   | "playbooks"
   | "revenue_modeling"
   | "agenda_light"
+  | "knowledge_management"
+  | "bibliotheque"
+  | "recruitment_activity"
   | "write_pitch"
   | "report_summary"
 
@@ -108,6 +111,9 @@ const NAVIGATION_ICON_BY_MODULE_ICON: Record<CockpitMobileModuleIcon, string> = 
   playbooks: "bi",
   revenue_modeling: "reports",
   agenda_light: "calendar",
+  knowledge_management: "knowledge",
+  bibliotheque: "reports",
+  recruitment_activity: "recrutement",
   write_pitch: "reports",
   report_summary: "reports",
 }

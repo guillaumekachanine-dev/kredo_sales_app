@@ -44,6 +44,21 @@ const CadenceSimulatorModule = dynamic(
   { ssr: false },
 )
 
+const CompanyLibraryModule = dynamic(
+  () => import("@/components/intelligence/modules/CompanyLibraryModule").then((module) => module.CompanyLibraryModule),
+  { ssr: false },
+)
+
+const KnowledgeManagementModule = dynamic(
+  () => import("@/components/intelligence/modules/KnowledgeManagementModule").then((module) => module.KnowledgeManagementModule),
+  { ssr: false },
+)
+
+const ActivityMetricsModule = dynamic(
+  () => import("@/components/intelligence/modules/ActivityMetricsModule").then((module) => module.ActivityMetricsModule),
+  { ssr: false },
+)
+
 const AgendaLightModule = dynamic(
   () => import("@/components/intelligence/modules/AgendaLightModule").then((module) => module.AgendaLightModule),
   { ssr: false },
@@ -66,6 +81,11 @@ export const MODULE_LAUNCHERS: Record<string, (props: ModuleLauncherProps) => Re
   source_management: ({ onClose }) => <SourceManagementModule onClose={onClose} />,
   cadence_simulator: ({ onClose }) => <CadenceSimulatorModule onClose={onClose} />,
   agenda_light: ({ onClose }) => <AgendaLightModule onClose={onClose} />,
+  bibliotheque: ({ onClose }) => <CompanyLibraryModule onClose={onClose} />,
+  knowledge_management: ({ onClose }) => <KnowledgeManagementModule onClose={onClose} />,
+  // Même composant, deux périmètres — voir le commentaire des modules dans le registre.
+  commercial_activity: ({ onClose }) => <ActivityMetricsModule onClose={onClose} initialNature="commercial" />,
+  recruitment_activity: ({ onClose }) => <ActivityMetricsModule onClose={onClose} initialNature="recruitment" />,
 }
 
 const COMMON_MOBILE_ACTIONS = [

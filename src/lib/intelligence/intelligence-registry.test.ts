@@ -27,6 +27,7 @@ describe("Cockpit Intelligence registry", () => {
     ])
     expect(veille.modules).toEqual([
       expect.objectContaining({ id: "source_management", status: "active", kind: "launcher" }),
+      expect.objectContaining({ id: "knowledge_management", status: "active", kind: "launcher" }),
     ])
     expect(veille).not.toHaveProperty("commonActions")
   })
@@ -143,6 +144,27 @@ describe("Cockpit Intelligence route resolution", () => {
     expect(resolvePageCockpitConfig("/prospection/accounts").label).toBe("Comptes & contacts")
     expect(resolvePageCockpitConfig("/prospection/accounts/company-123").label).toBe("Fiche compte")
     expect(resolvePageCockpitConfig("/prospection/accounts/company-123/contacts").label).toBe("Fiche compte")
+  })
+
+  // Les 7 missions du catalogue ont été validées par un run réel (décision du
+  // 08/09/2026). Toute action mappée sur un composeur de mission doit donc être
+  // ouvrable : une mission validée qui resterait `coming_soon` serait une
+  // capacité livrée puis cachée.
+  it("exposes every validated mission action as active", () => {
+    const missionActionIds = Object.keys(MISSION_COMPOSER_ACTION_CONFIGS)
+    const seen = new Set<string>()
+
+    for (const config of PAGE_COCKPIT_CONFIGS) {
+      for (const action of resolvePageCockpitConfig(config.pattern.replace(/:[^/]+/g, "sample")).actions) {
+        if (!missionActionIds.includes(action.id)) continue
+        seen.add(action.id)
+        expect(action.status, `${action.id} est une mission validée restée coming_soon`).toBe("active")
+      }
+    }
+
+    // Garde-fou de couverture : une mission du catalogue qu'aucune page
+    // n'expose est une capacité livrée que personne ne peut atteindre.
+    expect([...seen].sort()).toEqual(missionActionIds.sort())
   })
 
   it("gives Automatisations its full action set", () => {

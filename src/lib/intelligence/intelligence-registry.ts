@@ -33,6 +33,9 @@ export type CockpitModuleIconKey =
   | "playbooks"
   | "revenue_modeling"
   | "agenda_light"
+  | "knowledge_management"
+  | "bibliotheque"
+  | "recruitment_activity"
 
 /**
  * Comment un module s'ouvre. Déclaratif : le rendu mobile ne connaît plus d'id
@@ -157,26 +160,24 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     icon: "create_campaign",
     status: "coming_soon",
   },
+  // Porte d'entrée unique de la mission `activation-portefeuille`. Le libellé
+  // ne porte pas le mot « Mission » : IntelligenceActionCard le préfixe déjà
+  // pour toute action de composeur. L'ancien doublon inerte
+  // `mission_activation_portefeuille` (même description, aucun handler) a été
+  // supprimé au profit de cet id, le seul mappé dans MISSION_COMPOSER_ACTION_CONFIGS.
   prioritize_accounts: {
     id: "prioritize_accounts",
-    label: "Prioriser les comptes",
-    description: "Identifier les comptes prioritaires à relancer d'après les signaux d'achat et la fraîcheur relationnelle.",
-    icon: "prioritize",
-    status: "coming_soon",
-  },
-  mission_activation_portefeuille: {
-    id: "mission_activation_portefeuille",
-    label: "Intelligence Mission — Activation portefeuille",
+    label: "Activation portefeuille",
     description: "Identifier les comptes prioritaires à relancer selon les signaux d'achat et la fraîcheur relationnelle.",
     icon: "prioritize",
-    status: "coming_soon",
+    status: "active",
   },
   review_account: {
     id: "review_account",
     label: "Revue de compte client",
     description: "Croiser relation commerciale, intelligence compte et rentabilité de la delivery pour un compte donné.",
     icon: "report",
-    status: "coming_soon",
+    status: "active",
   },
   activity_report: {
     id: "activity_report",
@@ -211,7 +212,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Post-mortem commercial",
     description: "Analyser les affaires gagnées et perdues du trimestre pour identifier les motifs récurrents de succès et d'échec.",
     icon: "report",
-    status: "coming_soon",
+    status: "active",
   },
   detect_risks: {
     id: "detect_risks",
@@ -309,7 +310,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     label: "Funnel & Délais Recrutement",
     description: "Analyser où le funnel de recrutement perd des candidats et repérer les délais anormaux entre étapes.",
     icon: "report",
-    status: "coming_soon",
+    status: "active",
   },
   // ── Adaptateurs Lot C : point d'entrée contextualisé vers une capacité
   //    transverse existante (INTEL-020 rédaction, manual_custom V2). Aucun
@@ -501,20 +502,19 @@ const MODULES: Record<string, CockpitModule> = {
     status: "active",
   },
 
-  // ── Déclarés mais pas ouvrables : la surface existe, son chargeur non ───
+  // ── Modules métier autoportants ────────────────────────────────────────
   //
-  //  Ces quatre modules sont montés aujourd'hui DANS leur page, qui leur passe
-  //  un snapshot chargé côté serveur (`snapshot`, `baseline`, `overview`). Le
-  //  panneau Cockpit est un composant client sans ces données : les brancher
-  //  demande d'écrire le chargeur autoportant correspondant, pas de recâbler
-  //  le panneau. Ils restent honnêtement `coming_soon` d'ici là.
+  //  Chacun charge ses propres données depuis le client. Seul l'Atlas reste
+  //  `coming_soon` : son dialog est desktop-only et exige un
+  //  `EngagementsPortfolioViewModel` en prop — il lui faut une vue mobile,
+  //  pas un chargeur.
   commercial_activity: {
     id: "commercial_activity",
     label: "Métriques activité",
     description: "Rythme & résultats commerciaux",
     icon: "commercial_activity",
     kind: "launcher",
-    status: "coming_soon",
+    status: "active",
   },
   source_management: {
     id: "source_management",
@@ -542,6 +542,38 @@ const MODULES: Record<string, CockpitModule> = {
     kind: "launcher",
     href: "/missions",
     status: "coming_soon",
+  },
+
+  bibliotheque: {
+    id: "bibliotheque",
+    label: "Bibliothèque",
+    description: "Contenus produits & échangés",
+    icon: "bibliotheque",
+    kind: "launcher",
+    status: "active",
+  },
+  knowledge_management: {
+    id: "knowledge_management",
+    label: "Gestion de la connaissance",
+    description: "Listes, corpus & documents",
+    icon: "knowledge_management",
+    kind: "launcher",
+    status: "active",
+  },
+
+  // ── Point 4 : deux instances du même moteur d'activité, deux périmètres.
+  //    `commercial_activity` ouvre la vue « commercial » (prospection + client
+  //    actif + recrutement) ; `recruitment_activity` ouvre la MÊME modale
+  //    pré-filtrée sur la seule nature recrutement. Un moteur, deux cadrages —
+  //    sans le pré-filtre, la page Recrutement afficherait majoritairement de
+  //    l'activité hors sujet.
+  recruitment_activity: {
+    id: "recruitment_activity",
+    label: "Métriques activité",
+    description: "Rythme & résultats recrutement",
+    icon: "recruitment_activity",
+    kind: "launcher",
+    status: "active",
   },
 
   // ── Capacité métier absente — chantiers dédiés, pas un défaut de câblage ─
@@ -584,7 +616,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
   {
     pattern: "/cockpit",
     label: "Cockpit",
-    actionIds: ["action_priorities", "weekly_brief", "pipeline_insights", "mission_activation_portefeuille"],
+    actionIds: ["action_priorities", "weekly_brief", "pipeline_insights", "prioritize_accounts"],
     moduleIds: ["financial_modeling", "activity_leave"],
   },
   {
@@ -611,13 +643,13 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
     pattern: "/intelligence",
     label: "Business Intelligence",
     actionIds: ["manual_analysis"],
-    moduleIds: ["playbooks"],
+    moduleIds: ["bibliotheque", "playbooks"],
   },
   {
     pattern: "/veille",
     label: "Veille & Actualités",
     actionIds: [MONTHLY_WATCH_MISSION_ACTION_ID, "cross_analysis"],
-    moduleIds: ["source_management"],
+    moduleIds: ["source_management", "knowledge_management"],
   },
   {
     pattern: "/prospection-intelligence",
@@ -629,7 +661,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
     pattern: "/reports",
     label: "Rapports & Rédaction",
     actionIds: ["common_report", "cross_analysis"],
-    moduleIds: [],
+    moduleIds: ["knowledge_management"],
   },
 
   // ── Besoins, Staffing et Engagements ─────────────────────────────────
@@ -657,7 +689,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
     pattern: "/recruitment",
     label: "Recrutement",
     actionIds: ["analyze_hiring_delays", "skills_vs_needs", "candidate_communication", "match_profiles", "analyze_funnel"],
-    moduleIds: ["agenda_light"],
+    moduleIds: ["recruitment_activity", "agenda_light"],
   },
 
   // ── Finance ───────────────────────────────────────────────────────────

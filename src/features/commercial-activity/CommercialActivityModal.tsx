@@ -94,10 +94,20 @@ export function CommercialActivityModal({
   open,
   onClose,
   displayMode = "desktop",
+  initialNature = "commercial",
 }: {
   open: boolean;
   onClose: () => void;
   displayMode?: CommercialActivityDisplayMode;
+  /**
+   * Nature d'activité sélectionnée à l'ouverture. Reste modifiable par
+   * l'utilisateur via le filtre de la modale — c'est un point de départ, pas
+   * un verrou. Ouvre le même moteur sur un périmètre différent selon la page
+   * d'appel : "commercial" depuis l'Agenda (vue transverse), "recruitment"
+   * depuis le Cockpit de la page Recrutement, où la vue commerciale complète
+   * afficherait majoritairement de l'activité hors sujet.
+   */
+  initialNature?: CommercialActivityFilterNature;
 }) {
   const [desktopSection, setDesktopSection] =
     useState<CommercialActivitySection>("overview");
@@ -105,7 +115,7 @@ export function CommercialActivityModal({
     useState<CommercialActivityMobileSection>("summary");
   const [preset, setPreset] = useState<CommercialActivityPeriodPreset>("12w");
   const [nature, setNature] =
-    useState<CommercialActivityFilterNature>("commercial");
+    useState<CommercialActivityFilterNature>(initialNature);
   const initialRange = useMemo(() => presetRange("12w"), []);
   const [customRange, setCustomRange] = useState<CommercialActivityCustomRange>(
     { from: toDateInput(initialRange.from), to: toDateInput(initialRange.to) },
