@@ -11,6 +11,7 @@ import { updateCandidateStatus } from "@/app/(app)/recruitment/_actions/update-c
 import { Select } from "@/components/ui/Select"
 import type { StructuredListColumn } from "@/components/ui/StructuredList"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { getCandidateLifecycleLabel } from "@/lib/recruitment/candidate-lifecycle"
 
 interface RecruitmentListViewProps {
   rows: RecruitmentWorkspaceRow[]
@@ -23,19 +24,6 @@ const HIRING_STEP_LABELS: Record<string, string> = {
   proposition: "Proposition",
   signature: "Signature",
   integration: "Intégration",
-}
-
-const CANDIDATE_STATUS_LABELS: Record<string, string> = {
-  nouveau: "Nouveau",
-  qualifie: "Qualifié",
-  vivier: "Vivier",
-  propose: "Proposé",
-  en_process: "En process",
-  recrute: "Recruté",
-  refuse: "Refusé",
-  ko_manager: "KO manager",
-  indisponible: "Indisponible",
-  archive: "Archivé",
 }
 
 // Options proposées dans le dropdown (sans "nouveau", "recrute", "propose")
@@ -80,7 +68,7 @@ function CandidateStatusDropdown({
     })
   }
 
-  const label = CANDIDATE_STATUS_LABELS[optimisticStatus] ?? optimisticStatus
+  const label = getCandidateLifecycleLabel(optimisticStatus)
 
   return (
     <div onClick={(e) => e.stopPropagation()} className="w-36 select-none">
@@ -94,7 +82,7 @@ function CandidateStatusDropdown({
       >
         {CANDIDATE_STATUS_OPTIONS.map((s) => (
           <option key={s} value={s}>
-            {CANDIDATE_STATUS_LABELS[s]}
+            {getCandidateLifecycleLabel(s)}
           </option>
         ))}
       </Select>

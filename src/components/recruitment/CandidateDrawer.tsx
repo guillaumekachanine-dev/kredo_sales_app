@@ -11,6 +11,7 @@ import {
   findActiveProcess,
   type HiringProcess,
 } from '@/components/recruitment/HiringProcessStepper'
+import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from '@/components/agenda/AgendaEventDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import type { CandidateReferenceProfileData } from '@/types/candidate-reference-profile'
@@ -84,6 +85,8 @@ export function CandidateDrawer({
   const [editing, setEditing] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [agendaOpen, setAgendaOpen] = useState(false)
+  const [agendaInitialValues, setAgendaInitialValues] = useState<AgendaEventDrawerInitialValues>()
 
   const loadDrawerData = useCallback(async (nextCandidateId: string) => {
     setLoading(true)
@@ -204,143 +207,170 @@ export function CandidateDrawer({
   }
 
   return (
-    <AppDrawer
-      open={open}
-      onOpenChange={onOpenChange}
-      onRequestClose={requestClose}
-      dirty={editing && dirty}
-      title={name}
-      subtitle={editing ? 'Modification du dossier candidat' : subtitle}
-      eyebrow="Dossier candidat"
-      className="max-w-[620px]"
-      headerActions={
-        !editing && drawerData && activeTab === 'profil' ? (
-          <div className="flex items-center gap-2">
-            <ContextualCommunicationButton
-              intent="candidate_contact"
-              origin="opportunity"
-              label="Contacter"
-              candidateId={candidateId}
-              candidateName={name}
-              primaryEntity={candidateId ? { type: 'candidate', id: candidateId } : undefined}
-              mustInclude={[
-                `Candidat: ${name}`,
-                subtitle ? `Profil: ${subtitle}` : null,
-                hiringProcess?.job_profile?.title ? `Processus actif: ${hiringProcess.job_profile.title}` : null,
-              ].filter(Boolean).join('\n')}
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<EditIcon />}
-              onClick={() => setEditing(true)}
-            >
-              Modifier
-            </Button>
-          </div>
-        ) : null
-      }
-    >
-      {!loading && drawerData && !editing && (
-        <div
-          className="-mt-4 mb-4 flex items-center gap-0 border-b"
-          style={{ borderColor: 'var(--color-border)' }}
-          role="tablist"
-        >
-          {tabs.map(({ id, label }) => {
-            const isActive = activeTab === id
-            return (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setActiveTab(id)}
-                className="cursor-pointer px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline-none"
-                style={{
-                  color: isActive
-                    ? 'var(--color-primary)'
-                    : 'var(--color-muted)',
-                  borderBottom: isActive
-                    ? '2px solid var(--color-primary)'
-                    : '2px solid transparent',
-                  marginBottom: '-1px',
-                  background: 'transparent',
+    <>
+      <AppDrawer
+        open={open}
+        onOpenChange={onOpenChange}
+        onRequestClose={requestClose}
+        dirty={editing && dirty}
+        title={name}
+        subtitle={editing ? 'Modification du dossier candidat' : subtitle}
+        eyebrow="Dossier candidat"
+        className="max-w-[620px]"
+        headerActions={
+          !editing && drawerData && activeTab === 'profil' ? (
+            <div className="flex items-center gap-2">
+              <ContextualCommunicationButton
+                intent="candidate_contact"
+                origin="opportunity"
+                label="Contacter"
+                candidateId={candidateId}
+                candidateName={name}
+                primaryEntity={candidateId ? { type: 'candidate', id: candidateId } : undefined}
+                mustInclude={[
+                  `Candidat: ${name}`,
+                  subtitle ? `Profil: ${subtitle}` : null,
+                  hiringProcess?.job_profile?.title ? `Processus actif: ${hiringProcess.job_profile.title}` : null,
+                ].filter(Boolean).join('\n')}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setAgendaInitialValues({
+                    title: `Entretien · ${name}`,
+                    event_type: 'entretien_candidat',
+                    candidate_id: candidateId ?? undefined,
+                  })
+                  setAgendaOpen(true)
                 }}
               >
-                {label}
+                Planifier
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<EditIcon />}
+                onClick={() => setEditing(true)}
+              >
+                Modifier
+              </Button>
+            </div>
+          ) : null
+        }
+      >
+        {!loading && drawerData && !editing && (
+          <div
+            className="-mt-4 mb-4 flex items-center gap-0 border-b"
+            style={{ borderColor: 'var(--color-border)' }}
+            role="tablist"
+          >
+            {tabs.map(({ id, label }) => {
+              const isActive = activeTab === id
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(id)}
+                  className="cursor-pointer px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline-none"
+                  style={{
+                    color: isActive
+                      ? 'var(--color-primary)'
+                      : 'var(--color-muted)',
+                    borderBottom: isActive
+                      ? '2px solid var(--color-primary)'
+                      : '2px solid transparent',
+                    marginBottom: '-1px',
+                    background: 'transparent',
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+            {activeTab === 'profil' && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="ml-auto inline-flex min-h-11 items-center gap-1.5 px-3 text-[11px] font-bold text-primary sm:hidden"
+              >
+                <span className="size-3.5" aria-hidden="true">
+                  <EditIcon />
+                </span>
+                Modifier
               </button>
-            )
-          })}
-          {activeTab === 'profil' && (
+            )}
+          </div>
+        )}
+
+        {loading && <DrawerSkeleton />}
+
+        {fetchError && !loading && (
+          <div
+            className="flex flex-col items-center justify-center gap-2 rounded-[var(--radius-large)] border border-dashed py-12 text-center"
+            style={{
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-muted)',
+            }}
+          >
+            <p className="text-sm font-semibold text-heading">Erreur de chargement</p>
+            <p className="text-xs">{fetchError}</p>
             <button
               type="button"
-              onClick={() => setEditing(true)}
-              className="ml-auto inline-flex min-h-11 items-center gap-1.5 px-3 text-[11px] font-bold text-primary sm:hidden"
+              onClick={() => setReloadKey((current) => current + 1)}
+              className="mt-1 cursor-pointer text-xs text-primary underline underline-offset-2"
             >
-              <span className="size-3.5" aria-hidden="true">
-                <EditIcon />
-              </span>
-              Modifier
+              Réessayer
             </button>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {loading && <DrawerSkeleton />}
-
-      {fetchError && !loading && (
-        <div
-          className="flex flex-col items-center justify-center gap-2 rounded-[var(--radius-large)] border border-dashed py-12 text-center"
-          style={{
-            borderColor: 'var(--color-border)',
-            color: 'var(--color-muted)',
-          }}
-        >
-          <p className="text-sm font-semibold text-heading">Erreur de chargement</p>
-          <p className="text-xs">{fetchError}</p>
-          <button
-            type="button"
-            onClick={() => setReloadKey((current) => current + 1)}
-            className="mt-1 cursor-pointer text-xs text-primary underline underline-offset-2"
-          >
-            Réessayer
-          </button>
-        </div>
-      )}
-
-      {!loading && !fetchError && drawerData && (
-        <div role="tabpanel" className="pb-6">
-          {editing ? (
-            <CandidateProfileEditor
-              data={drawerData}
-              practices={practices}
-              skillOptions={skillOptions}
-              onCancel={() => {
-                if (!dirty || requestClose()) {
+        {!loading && !fetchError && drawerData && (
+          <div role="tabpanel" className="pb-6">
+            {editing ? (
+              <CandidateProfileEditor
+                data={drawerData}
+                practices={practices}
+                skillOptions={skillOptions}
+                onCancel={() => {
+                  if (!dirty || requestClose()) {
+                    setEditing(false)
+                    setDirty(false)
+                  }
+                }}
+                onSaved={() => {
                   setEditing(false)
                   setDirty(false)
-                }
-              }}
-              onSaved={() => {
-                setEditing(false)
-                setDirty(false)
-                setReloadKey((current) => current + 1)
-              }}
-              onDirtyChange={setDirty}
-            />
-          ) : (
-            <>
-              {activeTab === 'profil' && (
-                <CandidateReferenceProfile data={drawerData} />
-              )}
-              {activeTab === 'recrutement' && hiringProcess && (
-                <HiringProcessStepper process={hiringProcess} />
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </AppDrawer>
+                  setReloadKey((current) => current + 1)
+                }}
+                onDirtyChange={setDirty}
+              />
+            ) : (
+              <>
+                {activeTab === 'profil' && (
+                  <CandidateReferenceProfile data={drawerData} />
+                )}
+                {activeTab === 'recrutement' && hiringProcess && (
+                  <HiringProcessStepper process={hiringProcess} />
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </AppDrawer>
+
+      <AgendaEventDrawer
+        open={agendaOpen}
+        onOpenChange={setAgendaOpen}
+        event={null}
+        onSaved={() => {
+          setAgendaOpen(false)
+          setReloadKey((current) => current + 1)
+        }}
+        initialValues={agendaInitialValues}
+      />
+    </>
   )
 }

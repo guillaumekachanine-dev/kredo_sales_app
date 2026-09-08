@@ -24,20 +24,9 @@ interface CandidateProfileEditorProps {
   onDirtyChange?: (dirty: boolean) => void
 }
 
-type SkillGroup = "technical" | "langue" | "certification" | "secteur"
+import { CANDIDATE_LIFECYCLE_STATUSES } from "@/lib/recruitment/candidate-lifecycle"
 
-const STATUS_OPTIONS = [
-  ["nouveau", "Nouveau"],
-  ["qualifie", "Qualifié"],
-  ["vivier", "Vivier"],
-  ["propose", "Proposé"],
-  ["en_process", "En process"],
-  ["recrute", "Recruté"],
-  ["refuse", "Refusé"],
-  ["indisponible", "Indisponible"],
-  ["archive", "Archivé"],
-  ["ko_manager", "KO manager"],
-] as const
+type SkillGroup = "technical" | "langue" | "certification" | "secteur"
 
 const SENIORITY_OPTIONS = ["", "Junior", "Confirmé", "Senior", "Lead", "Expert"]
 
@@ -464,6 +453,7 @@ export function CandidateProfileEditor({
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(startingForm)
   }, [startingForm])
 
@@ -666,8 +656,8 @@ export function CandidateProfileEditor({
               fullWidth
               aria-label="Statut candidat"
             >
-              {STATUS_OPTIONS.map(([value, label]) => (
-                <option key={value} value={value}>
+              {CANDIDATE_LIFECYCLE_STATUSES.map(({ key, label }) => (
+                <option key={key} value={key}>
                   {label}
                 </option>
               ))}

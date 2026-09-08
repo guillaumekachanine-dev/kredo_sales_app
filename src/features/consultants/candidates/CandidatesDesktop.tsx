@@ -11,6 +11,8 @@ import { StructuredList, type StructuredListColumn } from "@/components/ui/Struc
 import { CandidateDrawer } from "@/components/recruitment/CandidateDrawer"
 import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
 import { CandidateInlineControls } from "@/features/consultants/candidates/CandidateInlineControls"
+import { CandidatesKanbanDesktop } from "@/features/consultants/candidates/CandidatesKanbanDesktop"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import {
   AVAILABILITY_BUCKET_META,
   PIPELINE_STATE_META,
@@ -79,6 +81,7 @@ export function CandidatesDesktop({ vm }: Props) {
   const [pipeline, setPipeline] = useState<PipelineFilter>("all")
   const [practice, setPractice] = useState("all")
   const [availability, setAvailability] = useState<AvailabilityFilter>("all")
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table")
   const [newOpen, setNewOpen] = useState(false)
   const { open: drawerOpen, selectedId, openDrawer, setOpen: setDrawerOpen } = useDrawerState()
 
@@ -285,22 +288,66 @@ export function CandidatesDesktop({ vm }: Props) {
               <option value="unknown">{AVAILABILITY_BUCKET_META.unknown.label}</option>
             </Select>
 
+            <div className="inline-flex rounded-[var(--radius-medium)] border border-border bg-canvas p-0.5 select-none">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "cursor-pointer px-2.5 py-1 text-xs font-semibold rounded-[calc(var(--radius-medium)-2px)] transition-colors",
+                  viewMode === "table"
+                    ? "bg-surface text-heading shadow-xs"
+                    : "text-muted hover:text-body",
+                )}
+              >
+                Tableau
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("kanban")}
+                className={cn(
+                  "cursor-pointer px-2.5 py-1 text-xs font-semibold rounded-[calc(var(--radius-medium)-2px)] transition-colors",
+                  viewMode === "kanban"
+                    ? "bg-surface text-heading shadow-xs"
+                    : "text-muted hover:text-body",
+                )}
+              >
+                Kanban
+              </button>
+            </div>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                openReportGeneration({
+                  origin: "recruitment",
+                  reportType: "activity_recruitment",
+                })
+              }
+            >
+              Nouveau rapport
+            </Button>
+
             <Button variant="primary" size="sm" onClick={() => setNewOpen(true)}>
               + Nouveau candidat
             </Button>
           </div>
         </div>
 
-        <StructuredList
-          density="default"
-          items={filtered}
-          getItemId={(row) => row.candidateId}
-          onItemClick={(row) => openDrawer(row.candidateId)}
-          selectedItemId={drawerOpen && selectedId ? selectedId : undefined}
-          ariaLabel="Vivier candidats"
-          emptyState="Aucun candidat ne correspond aux filtres sélectionnés."
-          columns={columns}
-        />
+        {viewMode === "table" ? (
+          <StructuredList
+            density="default"
+            items={filtered}
+            getItemId={(row) => row.candidateId}
+            onItemClick={(row) => openDrawer(row.candidateId)}
+            selectedItemId={drawerOpen && selectedId ? selectedId : undefined}
+            ariaLabel="Vivier candidats"
+            emptyState="Aucun candidat ne correspond aux filtres sélectionnés."
+            columns={columns}
+          />
+        ) : (
+          <CandidatesKanbanDesktop rows={filtered} onOpenDrawer={openDrawer} />
+        )}
 
         {vm.dataNotes.length > 0 && (
           <details className="text-[11px] text-muted">

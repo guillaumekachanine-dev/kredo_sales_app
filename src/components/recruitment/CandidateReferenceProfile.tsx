@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import { StatusPill } from "@/components/ui/StatusPill"
+import { getCandidateLifecycleLabel } from "@/lib/recruitment/candidate-lifecycle"
 import type {
   CandidateReferenceProfileData,
   CandidateReferenceSkill,
@@ -37,19 +38,6 @@ const OFFER_LABELS: Record<string, string> = {
   offer_accepted: "Offre acceptée",
   offer_declined: "Offre déclinée",
   other: "Autre situation",
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  nouveau: "Nouveau",
-  qualifie: "Qualifié",
-  vivier: "Vivier",
-  propose: "Proposé",
-  en_process: "En process",
-  recrute: "Recruté",
-  refuse: "Refusé",
-  indisponible: "Indisponible",
-  archive: "Archivé",
-  ko_manager: "KO manager",
 }
 
 function statusVariant(status: string) {
@@ -227,7 +215,7 @@ export function CandidateReferenceProfile({
           </p>
         </div>
         <StatusPill
-          label={STATUS_LABELS[data.status] ?? data.status.replace(/_/g, " ")}
+          label={getCandidateLifecycleLabel(data.status)}
           variant={statusVariant(data.status)}
           dot={data.status === "en_process"}
           className="!rounded-[4px] shrink-0"
