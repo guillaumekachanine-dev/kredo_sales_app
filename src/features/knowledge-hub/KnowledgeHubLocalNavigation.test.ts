@@ -319,4 +319,16 @@ describe("KnowledgeHubLocalNavigation", () => {
     expect(navigationSource).toContain('from "./knowledge-hub.types"')
     expect(desktopSource).toContain('from "./knowledge-hub.types"')
   })
+
+  it("vérifie le contrat d'URLisation de KnowledgeHubDesktop", () => {
+    expect(desktopSource).not.toContain("useState<KnowledgeView>")
+    expect(desktopSource).toContain("useSearchParams()")
+    expect(desktopSource).toContain("parseKnowledgeHubView")
+    expect(desktopSource).toContain("buildKnowledgeHubViewHref")
+    expect(desktopSource).toContain("router.push")
+    expect(desktopSource).toContain("onChangeView={navigateView}")
+    expect(desktopSource).toContain("handleSelectDomain")
+    expect(desktopSource).toContain("navigateView({ type: \"domain\", domainId, sectionId: defaultSection })")
+    expect(desktopSource).toContain('useState<"workshop" | "ask" | null>(null)')
+  })
 })

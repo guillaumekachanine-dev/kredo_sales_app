@@ -2,16 +2,19 @@
 
 import dynamic from "next/dynamic"
 import { useState, useEffect } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { KnowledgeLibraryModeDesktop } from "./KnowledgeLibraryMode"
 import { KredoExpertiseSnapshot } from "./expertise/kredo-expertise.types"
 import { KredoExpertiseDesktop } from "./expertise/KredoExpertiseDesktop"
 import { TalentKnowledgeDesktop } from "./talents/TalentKnowledgeDesktop"
 import { TalentKnowledgeSnapshot } from "./talents/talent-knowledge.types"
+import { KnowledgeHubLocalNavigation } from "./KnowledgeHubLocalNavigation"
 import {
-  KnowledgeHubLocalNavigation,
+  buildKnowledgeHubViewHref,
   getKnowledgeHubActiveLabel,
   getKnowledgeHubDefaultSection,
-} from "./KnowledgeHubLocalNavigation"
+  parseKnowledgeHubView,
+} from "./knowledge-hub-desktop-navigation"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { ExpertiseTab } from "./expertise/KredoExpertiseNavigation"
 import { TalentTab } from "./talents/talent-knowledge.types"
@@ -30,7 +33,15 @@ interface KnowledgeHubDesktopProps {
 }
 
 export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDesktopProps) {
-  const [activeView, setActiveView] = useState<KnowledgeView>({ type: "categories" })
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const activeView = parseKnowledgeHubView(
+    searchParams.get("domain"),
+    searchParams.get("section"),
+  )
+
   const [activeModal, setActiveModal] = useState<"workshop" | "ask" | null>(null)
 
   const { requestCollapse, requestRestore } = useSidebarCollapse()
@@ -40,9 +51,15 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
     return () => requestRestore()
   }, [requestCollapse, requestRestore])
 
+  const navigateView = (nextView: KnowledgeView) => {
+    router.push(buildKnowledgeHubViewHref(pathname, searchParams, nextView), {
+      scroll: false,
+    })
+  }
+
   const handleSelectDomain = (domainId: string) => {
     const defaultSection = getKnowledgeHubDefaultSection(domainId)
-    setActiveView({ type: "domain", domainId, sectionId: defaultSection })
+    navigateView({ type: "domain", domainId, sectionId: defaultSection })
   }
 
   const handleOpenModal = (modal: "workshop" | "ask") => {
@@ -54,9 +71,9 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
   return (
     <div className="flex h-full min-h-screen bg-edito-canvas text-edito-body font-sans">
       {/* Menu secondaire contextuel */}
-      <KnowledgeHubLocalNavigation 
-        activeView={activeView} 
-        onChangeView={setActiveView} 
+      <KnowledgeHubLocalNavigation
+        activeView={activeView}
+        onChangeView={navigateView}
         onOpenModal={handleOpenModal}
         activeModal={activeModal}
       />
@@ -110,4 +127,3 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
     </div>
   )
 }
-

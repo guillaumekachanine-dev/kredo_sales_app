@@ -5,70 +5,22 @@ import type { SectionRailEntry, SectionRailProps } from "@/lib/navigation/sectio
 import { domains } from "./knowledge-hub-shell-data"
 import type { KnowledgeView } from "./knowledge-hub.types"
 import { KnowledgeHubCategoryIcon } from "./KnowledgeHubCategoryIcon"
+import {
+  EXPERTISE_CHAPTERS,
+  TALENTS_CHAPTERS,
+  getKnowledgeHubActiveLabel,
+  getKnowledgeHubDefaultSection,
+  getKnowledgeHubDomainChapters,
+  type KnowledgeHubSectionChapter,
+} from "./knowledge-hub-desktop-navigation"
 
-export interface KnowledgeHubSectionChapter {
-  id: string
-  label: string
-}
-
-export const EXPERTISE_CHAPTERS: readonly KnowledgeHubSectionChapter[] = [
-  { id: "practices", label: "Practices" },
-  { id: "jobs", label: "Métiers" },
-  { id: "skills", label: "Compétences" },
-  { id: "techs", label: "Technologies" },
-] as const
-
-export const TALENTS_CHAPTERS: readonly KnowledgeHubSectionChapter[] = [
-  { id: "team", label: "Équipe" },
-  { id: "alumni", label: "Alumni" },
-  { id: "candidates", label: "Vivier candidats" },
-  { id: "skills", label: "Cartographie" },
-] as const
-
-export function getKnowledgeHubDefaultSection(domainId: string): string | undefined {
-  if (domainId === "expertise-kredo") {
-    return "practices"
-  }
-  if (domainId === "talents") {
-    return "team"
-  }
-  return undefined
-}
-
-export function getKnowledgeHubDomainChapters(domainId: string): readonly KnowledgeHubSectionChapter[] {
-  if (domainId === "expertise-kredo") {
-    return EXPERTISE_CHAPTERS
-  }
-  if (domainId === "talents") {
-    return TALENTS_CHAPTERS
-  }
-  const domain = domains.find((d) => d.id === domainId)
-  if (!domain) {
-    return []
-  }
-  return domain.subItems.map((item, index) => ({
-    id: `section-${index}`,
-    label: item,
-  }))
-}
-
-export function getKnowledgeHubActiveLabel(activeView: KnowledgeView): string {
-  if (activeView.type === "categories") {
-    return "Catégories"
-  }
-
-  const domain = domains.find((d) => d.id === activeView.domainId)
-
-  if (activeView.sectionId) {
-    const chapters = getKnowledgeHubDomainChapters(activeView.domainId)
-    const matchingChapter = chapters.find((c) => c.id === activeView.sectionId)
-    if (matchingChapter) {
-      return matchingChapter.label
-    }
-    return activeView.sectionId
-  }
-
-  return domain?.title ?? activeView.domainId
+export type { KnowledgeHubSectionChapter }
+export {
+  EXPERTISE_CHAPTERS,
+  TALENTS_CHAPTERS,
+  getKnowledgeHubDefaultSection,
+  getKnowledgeHubDomainChapters,
+  getKnowledgeHubActiveLabel,
 }
 
 export interface KnowledgeHubLocalNavigationProps {
