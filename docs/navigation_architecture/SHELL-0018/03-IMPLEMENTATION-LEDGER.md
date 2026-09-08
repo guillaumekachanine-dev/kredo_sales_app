@@ -82,7 +82,7 @@ QA minimale :
 | **2.2** | Migration Business Intelligence | ✅ techniquement livré | châssis `SectionRail` ; `?segment=` + `?tab=` conservés ; QA visuelle réservée à Guillaume |
 | **2.3** | Migration Veille | ✅ techniquement livré | commit `df160aab` ; QA visuelle réservée à Guillaume |
 | **2.4** | Migration Rapports | ✅ techniquement livré | commit `d22ad5ca` ; QA visuelle réservée à Guillaume |
-| **2.5** | Migration Automatisations | ⬜ todo | supprimer divergences visuelles |
+| **2.5** | Migration Automatisations | ✅ techniquement livré | commit `c20f33fd` ; QA visuelle réservée à Guillaume |
 | **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
 | **2.7** | Migration Prospection | ⬜ todo | `15rem → 11.5rem` |
 | **2.8** | Migration Knowledge Hub | ⬜ todo | conserver navigation contextuelle |
@@ -530,7 +530,53 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Lot 2.4 techniquement livré.**
 
-## 17. Prochaine étape
+## 17. Clôture du Lot 2.5 — Automatisations
+
+### Fichiers modifiés et créés
+
+- `src/components/automations/AutomationsLocalNavigation.tsx` (adaptateur refactorisé) ;
+- `src/components/automations/AutomationsDesktopDashboard.tsx` ;
+- `src/components/automations/AutomationsLocalNavigation.test.ts` (nouveaux tests unitaires et de contrat) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`.
+
+### Architecture retenue
+
+- `AutomationsLocalNavigation` est désormais un adaptateur Desktop léger autour de la primitive canonique `SectionRail` ;
+- Le chapeau canonique affiche `Automatisations` (navy, texte blanc, gras, centré horizontalement et verticalement, largeur 11.5rem / 184px) et déclenche la sélection du chapitre racine `journal` via `home.onSelect`, sans modifier inutilement d'autres états métier ;
+- La configuration Desktop unique `AUTOMATIONS_DESKTOP_CHAPTERS` sert de source de vérité pour les trois chapitres : `journal` (« Journal d'exécution »), `sante` (« Santé des workflows ») et `couts` (« Coûts »), en conservant exactement leurs identifiants, leur ordre, leurs libellés et leurs icônes fines SVG ;
+- Le header principal Desktop applique l'invariant SHELL-0018 en affichant le titre exact du chapitre actif (`Journal d'exécution`, `Santé des workflows` ou `Coûts`), dérivé dynamiquement de la configuration via `getAutomationsDesktopChapterLabel(activeTab)` ;
+- L'indicateur secondaire `Live Telemetry` est conservé et s'affiche à côté du titre actif sans le masquer ni le remplacer ;
+- Les sémantiques locales devenues redondantes (`role="tab"`, `aria-selected`, `shadow-xs`) ont été supprimées au profit du contrat canonique de `SectionRail` (`aria-current="page"`) ;
+- Toutes les fonctionnalités métier sensibles (suivi temps réel `useRunJournalRealtime`, statuts live, drill-down dialog, modal d'exécutions, KPIs, simulation de cadence, filtres du journal et de coûts, calculs et cartes) restent strictement protégées et inchangées ;
+- Le support du deep-link `initialRunId` (`/automations?run=<id>`) est strictement préservé sans régression.
+
+### Modules contextuels
+
+- La page Automatisations ne contient pas de véritable module contextuel ;
+- `contextualModules` est explicitement défini à `undefined`, évitant tout module artificiel ou bouton mort ;
+- La section Modules n'est donc pas rendue dans le rail.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** sans erreur ;
+2. `npm test -- src/components/automations/AutomationsLocalNavigation.test.ts src/components/layout/SectionRail.test.ts` : **14/14 tests passés** (et **38/38 tests passés** sur l'ensemble de `src/components/automations/`) ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des fichiers créés et modifiés : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès.
+
+### Limites et dettes restantes
+
+- L'état de navigation `activeTab` reste un état local dans ce lot ; l'URLisation des chapitres Automatisations reste une dette de Phase 4 conformément au cadrage ;
+- Aucune modification Mobile, Supabase, RLS, RPC, fetch métier ou workflow n8n ;
+- Aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Lot 2.5 techniquement livré.**
+
+## 18. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
