@@ -374,15 +374,6 @@ export function PoolCompetencesMap({
 
   return (
     <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-4 py-5 sm:px-6">
-      <header className="border-b border-border pb-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
-          Équipe / Pool de compétences
-        </p>
-        <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-heading">
-          Expertises & savoir-faire
-        </h1>
-      </header>
-
       <main className="flex flex-col gap-5">
         <section className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface">
           <div className="relative px-4 py-4 sm:pl-14 sm:pr-5">

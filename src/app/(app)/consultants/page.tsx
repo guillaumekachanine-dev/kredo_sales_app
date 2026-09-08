@@ -12,6 +12,8 @@ import { SyntheseMobile } from "@/features/consultants/mobile/synthese/SyntheseM
 import { CollaboratorsDesktop } from "@/features/consultants/collaborators/CollaboratorsDesktop"
 import { CollaboratorsMobile } from "@/features/consultants/collaborators/CollaboratorsMobile"
 import { ActivityDashboard } from "@/features/consultants/activity/ActivityDashboard"
+import { getConsultantsSkills } from "@/features/consultants/data/get-consultants-skills"
+import { PoolCompetencesMap } from "@/features/consultants/skills/PoolCompetencesMap"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Consultants Workspace — orchestrateur de la route `/consultants`
@@ -21,9 +23,9 @@ import { ActivityDashboard } from "@/features/consultants/activity/ActivityDashb
 //  La navigation inter-chapitres passe par `?section=`. Chaque section ne charge
 //  que ses propres données (ADR-0006).
 //
-//  Sections internalisées : `synthese` (racine), `collaborateurs`, `activite-conges`.
-//  `candidats` (Lot 8) et `pool-competences` (Lot 6) restent des liens directs
-//  (cf. `CONSULTANTS_SECTIONS`).
+//  Sections internalisées : `synthese` (racine), `collaborateurs`,
+//  `activite-conges`, `pool-competences`. `candidats` (Lot 8) reste un lien
+//  direct (cf. `CONSULTANTS_SECTIONS`).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SearchParams = Record<string, string | string[] | undefined>
@@ -64,6 +66,23 @@ export default async function ConsultantsPage({
     const content = (
       <div className="min-h-0 flex-1 overflow-auto bg-canvas">
         <ActivityDashboard data={data} />
+      </div>
+    )
+    return isMobile ? (
+      <ConsultantsMobileShell activeSection={activeSection}>{content}</ConsultantsMobileShell>
+    ) : (
+      <ConsultantsDesktopShell activeSection={activeSection}>{content}</ConsultantsDesktopShell>
+    )
+  }
+
+  if (activeSection === "pool-competences") {
+    // Cartographie practices ↔ compétences ↔ demande : scène large unique,
+    // servie aux deux devices (pas de branche Mobile dédiée — dette SKILLS-1).
+    // Le contenu défile dans son propre conteneur.
+    const { dataset, collaborators } = await getConsultantsSkills()
+    const content = (
+      <div className="min-h-0 flex-1 overflow-auto bg-canvas">
+        <PoolCompetencesMap dataset={dataset} collaborators={collaborators} />
       </div>
     )
     return isMobile ? (

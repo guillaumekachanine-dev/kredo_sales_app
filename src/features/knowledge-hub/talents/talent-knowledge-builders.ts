@@ -1,6 +1,6 @@
 import { getPracticeByName } from "@/lib/config/practices"
 import { getRecruitmentStatusLabel } from "@/lib/recruitment/recruitment-stages"
-import { practiceIcons } from "@/components/consultants/pool-competences/pool-competences-shared"
+import { practiceIcons } from "@/features/consultants/skills/pool-competences-shared"
 import type {
   TalentCandidate,
   TalentCollaborator,

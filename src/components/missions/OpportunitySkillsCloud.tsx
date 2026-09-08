@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { SkillDescriptionTooltip, getSkillTooltipId } from "@/components/consultants/pool-competences/SkillDescriptionTooltip"
-import type { SkillTooltipState } from "@/components/consultants/pool-competences/types"
+import { SkillDescriptionTooltip, getSkillTooltipId } from "@/features/consultants/skills/SkillDescriptionTooltip"
+import type { SkillTooltipState } from "@/features/consultants/skills/types"
 
 const CLOUD_PADDING = {
   top: 18,

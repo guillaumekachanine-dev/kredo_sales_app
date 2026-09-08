@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 5 — Migration Activités & congés
+Dernier lot livré        : Lot 6 — Migration Pool de compétences
 Lot courant              : —
-Prochain lot             : Lot 6 — Migration Pool de compétences
-Dernier SHA connu origin/main : e88500b654dcf6e38b561617e9f3954cecc9ac50   (2026-09-08, après commit Lot 5)
+Prochain lot             : Lot 7 — Data Contract Candidats
+Dernier SHA connu origin/main : <SHA Lot 6 doc-commit>   (2026-09-08, après commit Lot 6)
 ```
 
 ## Table des lots
@@ -28,7 +28,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 3 | Synthèse Desktop + Mobile | ✅ techniquement livré + **déployé prod** | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. Gates verts ; **build de prod Vercel `READY`** (`7724d800` = déploiement courant `kredo-green.vercel.app`). |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ✅ techniquement livré | `3296d8ea` | `src/features/consultants/collaborators/` : `CollaboratorsDesktop`/`Mobile` + `collaborators.types` + 4 tests. C-23 / **LEGACY-4 résolu** (statut ⇐ `collaborators.status`) ; loader filtre `sorti`. `components/consultants/synthese/` supprimé. Gates verts (build → Vercel). |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ✅ techniquement livré | `e88500b6` | `src/features/consultants/activity/` (`ActivityDashboard` + types + loader) + 8 tests. C-24 : `<h1>` retiré, route legacy → `permanentRedirect`, pas de Mobile dédié (dette PRODUCT-4). Gates verts (build → Vercel). |
-| 6 | Migration Pool de compétences (`?section=pool-competences`) | ⬜ todo | — | REUSE `PoolCompetencesMap`. Redirection route legacy. |
+| 6 | Migration Pool de compétences (`?section=pool-competences`) | ✅ techniquement livré | `<SHA Lot 6>` | `git mv` → `src/features/consultants/skills/` + loader `data/get-consultants-skills.ts` + `<header>` retiré + route legacy → `permanentRedirect`. C-25. **NAV-2 résolu.** 3 consommateurs externes repointés. Gates verts (build → Vercel). |
 | 7 | Data Contract Candidats (candidate-centric) | ⬜ todo | — | Résoudre DATA-4/6, PRODUCT-2/3. Backfill → sous-lot 7.x. |
 | 8 | Page Candidats (Desktop + Mobile, inline edit) | ⬜ todo | — | Réutiliser server actions recrutement (jamais dupliquer). |
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ⬜ todo | — | Rapport de parité au ledger. Confirmer LEGACY-2. |
@@ -67,6 +67,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-22 | Dataviz Desktop = SVG maison, Mobile = barres HTML+Tailwind ; palette practice = `offer_practices.color_hex` (fallback `var(--color-muted)`) | 3 |
 | C-23 | Chapitre Collaborateurs = `src/features/consultants/collaborators/` ; statut lu sur `collaborators.status` (`isCollaboratorStaffed`) ; `getConsultantsTeam` filtre `sorti` ; `components/consultants/synthese/` supprimé | 4 |
 | C-24 | Chapitre Activités & congés internalisé (`?section=activite-conges`) ; `ActivityDashboard` + `activity.types` + `get-consultants-activity` dans `src/features/consultants/activity/` ; `<h1>` retiré ; route legacy → `permanentRedirect` ; pas de branche Mobile (dette PRODUCT-4) | 5 |
+| C-25 | Chapitre Pool de compétences internalisé (`?section=pool-competences`) ; `git mv components/consultants/pool-competences/` → `src/features/consultants/skills/` (7 fichiers) ; loader → `data/get-consultants-skills.ts` (convention `data/`, pas `skills/`) ; `buildPoolCompetencesDataset` inchangé ; `<header>` interne retiré ; route legacy → `permanentRedirect` ; pas de branche Mobile (dette SKILLS-1) ; suppression fichiers route `(tabbed)` + layout reportée au Lot 15 | 6 |
 
 ## Questions ouvertes en cours
 
@@ -86,7 +87,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | PRODUCT-3 | Valeurs métier du sélecteur lifecycle candidat en UI | 7-8 | ouverte |
 | PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ouverte |
 | NAV-1 | `?section=` confirmé vs pathname après audit code réel Lot 1 | 1 | ✅ résolue (Lot 1) |
-| NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ⚠️ partielle — `activite-conges` = `permanentRedirect` (C-24) ; reste `pool-competences` (Lot 6) + suppression fichiers (Lot 15) |
+| NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ✅ résolue — `activite-conges` (C-24) + `pool-competences` (C-25) = `permanentRedirect` ; suppression des fichiers de route + `(tabbed)/layout.tsx` + `SectionNavBarSlot` = Lot 15 |
 | NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ouverte |
 | NAV-4 | Consultants sous `CRM` ou `Ressources` dans SHELL-0018 Phase 6 | 14 | ouverte |
 | LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; global = Phase 6) |
@@ -139,14 +140,51 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `collaborators.practice_id` absent | Practice collaborateur résolue par heuristique sur texte libre (C-17) ; 1 valeur (`Mobile`) non mappée ; FK + backfill = amélioration future non planifiée | futur |
 | Positionnements non traçables | 3/3 intercontrat live sans fiche candidat miroir → colonne « — » (C-18) ; lien direct `opp↔collab` = sous-question ouverte | futur |
 | `activite-conges` sans vue Mobile dédiée | Lot 5 : vue analytique dense unique servie aux deux devices (contenu large `overflow-auto`). Une vraie vue Mobile activité chevauche le module Production & Congés → **PRODUCT-4** | 12 |
+| **SKILLS-1** — `pool-competences` sans vue Mobile dédiée | Lot 6 : `PoolCompetencesMap` (cartographie SVG large) servie aux deux devices en `overflow-auto`. Une vraie synthèse compétences Mobile (cartes / jauges) n'est pas cadrée | futur |
 | ~~`SectionNavBarSlot` sur `/consultants/layout.tsx`~~ | Résolu Lot 1 (descendu dans `(tabbed)/layout.tsx`). Suppression globale `SectionNavBar*` = SHELL-0018 Phase 6 | 14 |
-| Routes `(tabbed)` consultants | `activite-conges` : redirige (Lot 5). `pool-competences` : Lot 6. Fichiers de route + `(tabbed)/layout.tsx` supprimés au Lot 15. | 6 / 15 |
+| Routes `(tabbed)` consultants | Lot 6 : `activite-conges` **et** `pool-competences` redirigent (`permanentRedirect`). Fichiers de route + `(tabbed)/layout.tsx` + `SectionNavBarSlot` supprimés au **Lot 15** (aucune route `(tabbed)` réelle ne subsiste). | 15 |
 | ~~`synthese` ≈ `collaborateurs`~~ | Résolu Lot 3 (C-21) : `synthese` a son tableau de bord dédié, `collaborateurs` garde le tableau | — |
-| Dual-paradigme desktop | Lot 5 : `activite-conges` internalisé, barre horizontale legacy plus atteignable directement (redirect). Reste `pool-competences` jusqu'au Lot 6. | 6 |
-| `<header>`/`<h1>` internes des composants legacy | Lot 5 : `<h1>` retiré de `ActivityDashboard`. Reste `PoolCompetencesMap` self-header (Lot 6). | 6 |
+| ~~Dual-paradigme desktop~~ | Résolu Lot 6 : `activite-conges` + `pool-competences` internalisés, la barre horizontale legacy n'est plus atteignable (redirect). Retrait du code mort = Lot 15. | — |
+| ~~`<header>`/`<h1>` internes des composants legacy~~ | Résolu : `<h1>` retiré de `ActivityDashboard` (Lot 5) et `<header>` retiré de `PoolCompetencesMap` (Lot 6). | — |
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 6 — Migration Pool de compétences — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `55d637ee` (`main` local, en avance d'un commit non poussé sur `origin/main` `642ad3f9` — `55d637ee feat(cockpit): integrate mobile home v2`, fait par Guillaume à 20:47). **Écart doc/réalité consigné** : le handoff annonçait `origin/main = 642ad3f9` et le travail cockpit/veille comme *non commité*. Guillaume a confirmé (question posée) : **pousser cockpit + Lot 6 ensemble**. Le commit `55d637ee` a par ailleurs résorbé l'échec `veille-desktop-contracts.test.ts` (page + test modifiés de concert) → `npm test` complet repasse **vert**.
+- **Objectif** : absorber `(tabbed)/pool-competences/` dans `?section=pool-competences`, sans refonte métier.
+- **Fichiers déplacés (`git mv`)** :
+  - `src/components/consultants/pool-competences/` → `src/features/consultants/skills/` — 7 fichiers : `PoolCompetencesMap.tsx`, `PoolCompetencesPracticeRow.tsx`, `PoolCompetencesSkillCardsRow.tsx`, `PoolCompetencesConnections.tsx`, `SkillDescriptionTooltip.tsx`, `pool-competences-shared.ts`, `types.ts`. Imports relatifs (`./…`) inchangés ; le dossier source est vide et supprimé.
+- **Fichiers modifiés** :
+  - `src/features/consultants/skills/PoolCompetencesMap.tsx` — `<header>` interne retiré (`<p>` « Équipe / Pool de compétences » + `<h1>` « Expertises & savoir-faire »). `<main>` et l'early-return `!selectedPractice` conservés.
+  - `src/features/consultants/navigation/consultants-sections.ts` — `pool-competences` : `external: false`, `href: "/consultants?section=pool-competences"`, ajouté à `CONSULTANTS_IN_SHELL_SECTIONS` (= 4). Commentaire d'en-tête mis à jour.
+  - `src/features/consultants/navigation/consultants-sections.test.ts` — `pool-competences` internalisé (parse + href + render header) ; `render()` accepte `"pool-competences"`. **Assertion « le layout (tabbed) conserve SectionNavBarSlot » laissée intacte** (retrait du layout = Lot 15).
+  - `src/app/(app)/consultants/page.tsx` — branche `pool-competences` : `getConsultantsSkills()` → `PoolCompetencesMap` dans `<div className="min-h-0 flex-1 overflow-auto bg-canvas">`, servie aux deux devices (pas de branche Mobile). Commentaire d'en-tête mis à jour.
+  - `src/app/(app)/consultants/(tabbed)/pool-competences/page.tsx` — **remplacé par** `permanentRedirect("/consultants?section=pool-competences")` (patron Lot 5, ~10 lignes).
+  - 3 consommateurs externes des primitives déplacées repointés vers `@/features/consultants/skills/…` :
+    `src/features/knowledge-hub/expertise/KredoJobsView.tsx` (`SkillDescriptionTooltip`, `types`),
+    `src/features/knowledge-hub/talents/talent-knowledge-builders.ts` (`pool-competences-shared`),
+    `src/components/missions/OpportunitySkillsCloud.tsx` (`SkillDescriptionTooltip`, `types`).
+- **Fichiers créés** :
+  - `src/features/consultants/data/get-consultants-skills.ts` — loader `import "server-only"`, extrait à l'identique de la page legacy (4 référentiels cachés `getOfferPracticesCatalog`/`getOffersCatalog`/`getSkillsCatalog`/`getJobProfilesCatalog` + `collaborators` + `person_skills` + `opportunity_skills`), construit les 2 `Map` puis appelle `buildPoolCompetencesDataset`. Retourne `{ dataset, collaborators }`.
+- **Inchangé** : `src/lib/consultants/pool-competences-data.ts` (`buildPoolCompetencesDataset` + types de lignes). Aucune migration, aucun n8n, aucun menu. `main-menu.config.ts`, `intelligence-registry.ts`, `KredoSkillsView.tsx` continuent de pointer `/consultants/pool-competences` → **le `permanentRedirect` les couvre** (identique au traitement `activite-conges` du Lot 5) ; repointage vers `?section=` = Lot 14/15.
+- **Décision** : **C-25**. **NAV-2 résolu.** Écart de nommage assumé : le loader va dans `data/` (convention Lots 2/5 : `get-consultants-{team,synthese,activity}`), pas dans `skills/` comme le suggérait le handoff.
+- **Décision de périmètre** : le `(tabbed)/layout.tsx` + `SectionNavBarSlot` + les 2 fichiers de route redirect **ne sont pas supprimés ici**. Après Lot 6 il n'existe plus aucune route `(tabbed)` réelle → c'est exactement le périmètre déjà cadré du **Lot 15** (« routes `(tabbed)` consultants »). Scinder évite de casser un test d'invariant hors sujet dans un lot de déménagement.
+- **Parité** : loader = mêmes 7 lectures (4 caches + 3 requêtes, colonnes identiques) ; `PoolCompetencesMap` identique hors `<header>` ; `buildPoolCompetencesDataset` bit-identique.
+- **Mobile** : pas de branche dédiée — dette **SKILLS-1**.
+- **Gates exécutées** :
+  - `rm -rf .next && npm run typecheck` → **PASS**
+  - `npx vitest run src/features/consultants` → **PASS** (5 fichiers / 44 tests)
+  - `npm test` (**suite complète**) → **PASS** (261 fichiers / 2633 tests) — plus aucun échec hors périmètre (veille résorbé par `55d637ee`)
+  - `npm run check:server-boundary` → **PASS**
+  - `npx eslint` (fichiers touchés : `skills/`, `data/get-consultants-skills.ts`, `page.tsx`, redirect, `consultants-sections{,.test}.ts`, 3 consommateurs) → **PASS**
+  - `npm run build` (local) → **non joué** (`next dev` concurrent). **Build de prod Vercel = gate.**
+- **⚠️ Travail parallèle** : le commit contient aussi `55d637ee` (cockpit mobile v2 + veille + `design-qa.md`) — décision explicite de Guillaume de le pousser avec le Lot 6. Le WIP restant non suivi (`design-lab/*`) n'est **pas** stagé.
+- **QA visuelle** : réservée à Guillaume.
+- **Commit** : `<SHA Lot 6>` — `refactor(consultants): chapitre Pool de compétences internalisé (Lot 6)`.
+- **SHA final** : `<SHA Lot 6>`.
+- **NEXT LOT** : Lot 7 — Data Contract Candidats.
 
 ### Lot 5 — Migration Activités & congés — ✅ techniquement livré (2026-09-08)
 

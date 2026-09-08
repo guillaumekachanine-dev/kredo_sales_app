@@ -3,8 +3,8 @@
 
 import { useState, useRef, useEffect } from "react"
 import { JobItem, PracticeItem, SkillItem } from "./kredo-expertise.types"
-import { SkillDescriptionTooltip } from "@/components/consultants/pool-competences/SkillDescriptionTooltip"
-import type { SkillTooltipState } from "@/components/consultants/pool-competences/types"
+import { SkillDescriptionTooltip } from "@/features/consultants/skills/SkillDescriptionTooltip"
+import type { SkillTooltipState } from "@/features/consultants/skills/types"
 
 interface JobsViewProps {
   jobs: JobItem[]
