@@ -673,6 +673,8 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-18** | **Positionnement actif d'un collaborateur = `opportunity_candidates` via `person_id`** (opp. + statut non terminaux). `match_scores` jamais utilisé. Compte `null` (« — ») quand pas de fiche `candidates` miroir. | Éviter un faux zéro. Lien direct `opportunity ↔ collaborator` = sous-question ouverte, pas de migration au Lot 2. | Actée (Lot 2) |
 | **C-19** | **Rémunération intercontrat via `collaborator_compensation`** (`effective_to IS NULL`) ; `grossAnnual`/`cjm` nullables ; `compensationVisible` dérivé de `profiles.role ∈ {owner, admin}`. Rôle non habilité → `null` + `dataNote`. UI masque (Lot 3). | RLS confidentielle owner/admin ; la RLS fait le filtrage, le view-model porte le signal UX. | Actée (Lot 2) |
 | **C-20** | **View-model Synthèse = builder pur `buildConsultantsSynthese` (testé) + loader mince `getConsultantsSynthese`.** Aucun recalcul côté composant (Lot 3). | Patron KREDO (`buildPoolCompetencesDataset`) ; toute la logique métier testable sans DB. | Actée (Lot 2) |
+| **C-21** | **Section `synthese` = tableau de bord dédié** (`SyntheseDesktop`/`SyntheseMobile`, `getConsultantsSynthese()`) ; **`collaborateurs` garde le tableau legacy** (`ConsultantsSyntheseDesktop`/`Mobile`). `page.tsx` charge par section. | Résorbe la duplication transitoire C-14 ; ADR-0006 (ne charger que les données de la vue rendue). | Actée (Lot 3) |
+| **C-22** | **Dataviz Desktop = SVG maison** (`PracticeBreakdownChart` client pour le toggle, `RecruitmentPipelineChart` pur) ; **Mobile = barres HTML+Tailwind** (`div` width %). Palette practice = `offer_practices.color_hex` (donnée, cohérent avec `practiceBadgeStyle`), fallback `var(--color-muted)`. | Règle dataviz KREDO ; zéro bibliothèque ; les couleurs practice sont une palette catégorielle pilotée par la donnée, pas des HEX arbitraires en dur. | Actée (Lot 3) |
 
 ---
 
@@ -840,23 +842,26 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Hors périmètre tenu** : aucun rendu UI (Lot 3).
 - **NEXT LOT** : Lot 3 — Synthèse Desktop + Mobile.
 
-### Lot 3 — Synthèse Desktop + Mobile
+### Lot 3 — Synthèse Desktop + Mobile — ✅ techniquement livré (2026-09-08)
 
-- **Objectif** : construire la page Synthèse. **La section `synthese` du shell rend encore le tableau collaborateurs (Lot 1) — Lot 3 la bascule sur `getConsultantsSynthese()` / `ConsultantsSyntheseViewModel`.**
-- **Prérequis** : Lot 2 (livré : `getConsultantsSynthese()`, `buildConsultantsSynthese`, `ConsultantsSyntheseViewModel`).
-- **Data** : consomme le view-model du Lot 2, aucune requête nouvelle. Câbler la section `synthese` de `src/app/(app)/consultants/page.tsx` sur `getConsultantsSynthese()`. Afficher les `dataNotes` discrètement.
-- **Desktop** : KPI (3 cartes) · Graphique 1 practice (SVG maison + sélecteur Collaborateurs/Candidats, `practiceBreakdown` avec `colorHex`) · Graphique 2 recrutement par étape (SVG maison, `recruitmentPipeline.byStep`) · tableau `upcomingMissionEnds` · tableau `interContractCollaborators` (`DataTable<T>` maison ; masquer `grossAnnual`/`cjm` si `compensationVisible === false` ; « — » si `activePositionings === null`).
-- **Mobile** : 3 KPI · prochaines fins de mission (cards) · intercontrats (cards) · synthèse pipeline recrutement · actions rapides. Barres HTML+Tailwind, zéro librairie.
-- **Fichiers probables** : `src/features/consultants/desktop/synthese/*`, `src/features/consultants/mobile/synthese/*`.
-- **Hors périmètre** : autres chapitres.
-- **Critères d'acceptation** : les deux branches rendues côté serveur (pas de CSS `hidden`) ; aucune bibliothèque graphique ; pas de HEX en dur ; header = `Synthèse`.
-- **Gates** : suite complète (`typecheck` → `test` → `check:server-boundary` → `eslint` → `build`).
-- **Documentation** : ledger ; § 5 (Mobile) affiné.
-- **Conditions de sortie** : gates vertes, commit poussé, `NEXT LOT = Lot 4`.
+**Réalisé.** Détail dans le ledger § « Lot 3 ».
+
+- **Objectif** : construire la page Synthèse, câblée sur `getConsultantsSynthese()` (Lot 2).
+- **Livré** :
+  - `src/features/consultants/desktop/synthese/PracticeBreakdownChart.tsx` — **client** (sélecteur Collaborateurs/Candidats), barres horizontales SVG maison, couleur `offer_practices.color_hex`.
+  - `src/features/consultants/desktop/synthese/RecruitmentPipelineChart.tsx` — SVG maison (barres verticales, 6 étapes), ligne de stats.
+  - `src/features/consultants/desktop/synthese/SyntheseDesktop.tsx` — **client** : 3 KPI + 2 graphiques + 2 tableaux `StructuredList` (`upcomingMissionEnds`, `interContractCollaborators` — colonnes rémunération masquées si `compensationVisible === false`, « — » si `activePositionings === null`) + `dataNotes`.
+  - `src/features/consultants/mobile/synthese/SyntheseMobile.tsx` — **client** : 3 KPI · barres HTML+Tailwind (`div` width %) · cartes fins de mission / intercontrat · pipeline · raccourcis.
+  - `src/features/consultants/desktop/synthese/synthese-render.test.ts` — 6 tests de rendu (KPI, practices, masquage rémunération, `dataNotes`).
+- **Modifié** : `src/app/(app)/consultants/page.tsx` — branche par section : `synthese` charge `getConsultantsSynthese()` uniquement, `collaborateurs` charge `getConsultantsTeam()` uniquement (ADR-0006 : chaque section ne charge que ses données).
+- **Décisions** : C-21 (`synthese` = tableau de bord dédié, `collaborateurs` garde le tableau legacy — dette C-14 résorbée), C-22 (dataviz Desktop = SVG maison, Mobile = barres HTML+Tailwind ; palette practice = `offer_practices.color_hex`, fallback `var(--color-muted)`).
+- **Critères tenus** : branches Desktop/Mobile distribuées côté serveur (`getDashboardDevice()`) ; aucune bibliothèque graphique ; header shell = `Synthèse`.
+- **Gates** : `typecheck` ✅ · `npm test` complet ✅ · `check:server-boundary` ✅ · `eslint` ✅ · `build` ⚠️ **non joué en session** (`next build` bloqué par le `next dev` concurrent de Guillaume + doublons iCloud `.next/* 2`) — à rejouer par Guillaume avec sa QA ; server-boundary vérifié statiquement + par inspection (aucun import `server-only` dans les composants client). QA visuelle : réservée à Guillaume.
+- **NEXT LOT** : Lot 4 — Migration Collaborateurs.
 
 ### Lot 4 — Migration Collaborateurs
 
-- **État après Lot 1** : `?section=collaborateurs` existe déjà et rend le tableau actuel (`ConsultantsSyntheseDesktop`, loader `get-consultants-team.ts`) — **identique à `synthese`**. Lot 4 = en faire le foyer canonique (contenu propre, header "Collaborateurs"), retirer la duplication avec `synthese` une fois le Lot 3 livré, brancher le contrat de statut du Lot 2.
+- **État après Lot 3** : `?section=collaborateurs` rend `ConsultantsSyntheseDesktop`/`Mobile` (loader `get-consultants-team.ts`) — **plus de duplication avec `synthese`** (qui a désormais son tableau de bord dédié, C-21). Lot 4 = déplacer les composants dans `src/features/consultants/collaborators/`, aligner le calcul « en mission » sur C-16 (LEGACY-4), header « Collaborateurs », préserver drawer/tri/filtres.
 - **Objectif** : déplacer / réutiliser le tableau collaborateurs existant vers `?section=collaborateurs`, capacités préservées (drawer profil, tri, filtres, colonnes).
 - **Prérequis** : Lot 1 (Lot 3 recommandé pour cohérence visuelle).
 - **Data** : loader `collaborators` + `missions` existant — extrait vers `src/features/consultants/data/`, aligné sur le contrat de statut du Lot 2.

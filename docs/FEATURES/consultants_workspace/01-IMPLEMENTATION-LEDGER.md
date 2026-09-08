@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 2 — Data Contract Synthèse
+Dernier lot livré        : Lot 3 — Synthèse Desktop + Mobile
 Lot courant              : —
-Prochain lot             : Lot 3 — Synthèse Desktop + Mobile
-Dernier SHA connu origin/main : 61bbab042a32b286053bc83dc336ac312c61545b   (2026-09-08, après commit Lot 2)
+Prochain lot             : Lot 4 — Migration Collaborateurs
+Dernier SHA connu origin/main : 61bbab04   (2026-09-08 ; SHA Lot 3 renseigné après push)
 ```
 
 ## Table des lots
@@ -25,7 +25,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
 | 2 | Data Contract Synthèse | ✅ techniquement livré | `61bbab04` | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
-| 3 | Synthèse Desktop + Mobile | ⬜ todo | — | SVG maison, zéro librairie graphique. |
+| 3 | Synthèse Desktop + Mobile | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. `typecheck`+`test` complet+`server-boundary`+`eslint` verts ; **`npm run build` non joué** (dev server concurrent) → Guillaume. |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ⬜ todo | — | REUSE `PoolCompetencesMap`. Redirection route legacy. |
@@ -63,6 +63,8 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-18 | Positionnement collaborateur = `opportunity_candidates` via `person_id` (non terminal) ; `null` sans fiche candidat miroir ; `match_scores` jamais utilisé | 2 |
 | C-19 | Rémunération intercontrat via `collaborator_compensation` ; `grossAnnual`/`cjm` nullables ; `compensationVisible` = `profiles.role ∈ {owner,admin}` | 2 |
 | C-20 | View-model Synthèse = builder pur testé + loader mince ; aucun recalcul côté composant | 2 |
+| C-21 | Section `synthese` = tableau de bord dédié ; `collaborateurs` garde le tableau legacy ; `page.tsx` charge par section | 3 |
+| C-22 | Dataviz Desktop = SVG maison, Mobile = barres HTML+Tailwind ; palette practice = `offer_practices.color_hex` (fallback `var(--color-muted)`) | 3 |
 
 ## Questions ouvertes en cours
 
@@ -137,12 +139,39 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `activite-conges` sans branche Mobile serveur | Pas de `getDashboardDevice()` sur la page | 5 |
 | ~~`SectionNavBarSlot` sur `/consultants/layout.tsx`~~ | Résolu Lot 1 (descendu dans `(tabbed)/layout.tsx`). Suppression globale `SectionNavBar*` = SHELL-0018 Phase 6 | 14 |
 | Routes `(tabbed)` consultants | À rediriger puis supprimer | 5-6 / 15 |
-| `synthese` ≈ `collaborateurs` (Lot 1) | Les deux chapitres in-shell rendent la même vue jusqu'aux Lots 3 + 4 | 3 / 4 |
+| ~~`synthese` ≈ `collaborateurs`~~ | Résolu Lot 3 (C-21) : `synthese` a son tableau de bord dédié, `collaborateurs` garde le tableau | — |
 | Dual-paradigme desktop (Lot 1) | `/consultants` (rail vertical) vs `/consultants/activite-conges` (barre horizontale legacy) — identique à la dette `missions/(tabbed)` | 5-6 |
 | `<header>`/`<h1>` internes des composants legacy | `ConsultantsActivityDashboard` + `PoolCompetencesMap` self-headers → double-titre si mis en slot | 5 / 6 |
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 3 — Synthèse Desktop + Mobile — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `61bbab04` (`main` = `origin/main`, rien à intégrer).
+- **Objectif** : construire la page Synthèse, câblée sur `getConsultantsSynthese()` (Lot 2).
+- **Fichiers créés** :
+  - `src/features/consultants/desktop/synthese/PracticeBreakdownChart.tsx` — **client**, barres SVG horizontales + sélecteur Collaborateurs/Candidats, couleur `offer_practices.color_hex`.
+  - `src/features/consultants/desktop/synthese/RecruitmentPipelineChart.tsx` — SVG barres verticales (6 étapes), ligne de stats (`totalActive` / `hiresYearToDate` / `closedNotHiredYearToDate`).
+  - `src/features/consultants/desktop/synthese/SyntheseDesktop.tsx` — **client**, 3 KPI + 2 graphiques + 2 `StructuredList` + `dataNotes`.
+  - `src/features/consultants/mobile/synthese/SyntheseMobile.tsx` — **client**, KPI + barres HTML+Tailwind + cartes + raccourcis.
+  - `src/features/consultants/desktop/synthese/synthese-render.test.ts` — 6 tests.
+- **Fichiers modifiés** :
+  - `src/app/(app)/consultants/page.tsx` — branche par section : `synthese` → `getConsultantsSynthese()` seul ; `collaborateurs` → `getConsultantsTeam()` seul (ADR-0006).
+- **Aucune migration, aucun n8n, aucun changement de route/menu.**
+- **Décisions** : C-21 (répartition `synthese` / `collaborateurs`, chargement par section — dette C-14 résorbée), C-22 (dataviz Desktop SVG / Mobile HTML, palette `offer_practices.color_hex`).
+- **Invariants protégés** : distribution Desktop/Mobile côté serveur (`getDashboardDevice()`, pas de CSS `hidden`) ; aucune bibliothèque graphique ; `SectionRail` / navigation / Mobile inchangés ; `main-menu.config` intact ; réutilise `StructuredList`, `formatEuro`, `MobilePageHeader`, `getConsultantsSynthese` (Lot 2) — aucun doublon.
+- **Gates exécutées** :
+  - `npm run typecheck` → PASS (deux fois, dont une après purge `.next`)
+  - `npx vitest run src/features/consultants` → PASS (37 tests : 18 nav + 13 builder + 6 rendu) puis `npm test` (**suite complète**) → PASS (258 fichiers)
+  - `npm run check:server-boundary` → PASS
+  - `npx eslint src/features/consultants src/app/(app)/consultants/page.tsx` → PASS
+  - `npm run build` → ⚠️ **NON JOUÉ EN SESSION.** `next build` reste bloqué à 0 % CPU tant que le serveur `next dev` de Guillaume tourne sur le même projet (Next 16 ne tolère pas de build concurrent) ; le poste crée en plus des doublons `.next/* 2` (iCloud). Le contrôle statique équivalent `check:server-boundary` passe, et l'inspection confirme qu'aucun composant client de Lot 3 (`SyntheseDesktop`, `SyntheseMobile`, `PracticeBreakdownChart`) n'importe de module `server-only` — seulement `StructuredList`/`MobilePageHeader` (clients), `formatEuro` (pur), `next/link`, et des imports `type`. **À rejouer par Guillaume (`npm run build`), naturellement avec sa passe de QA.**
+- **QA visuelle** : non réalisée — réservée à Guillaume.
+- **Limites** : `npm run build` non joué (voir Gates) ; la vue `collaborateurs` reste sur le composant legacy (déplacement + alignement C-16 = Lot 4).
+- **Commit** : _(SHA après push)_ — `feat(consultants): page Synthèse Desktop + Mobile (Lot 3)`.
+- **SHA final** : _(à renseigner après push)_.
+- **NEXT LOT** : Lot 4 — Migration Collaborateurs.
 
 ### Lot 2 — Data Contract Synthèse — ✅ techniquement livré (2026-09-08)
 
