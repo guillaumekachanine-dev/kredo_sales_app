@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-6 livrés)**
+> **Statut global : en cours (Lots 0-7 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,7 +51,7 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 7 — Data Contract Candidats** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 7).
+➡️ **Lot 8 — Page Candidats** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 8).
 
 - Lot 1 : shell `/consultants` sur `SectionRail` V2, navigation `?section=`, `SectionNavBarSlot` descendu.
 - Lot 2 : view-model unique `getConsultantsSynthese()` — DATA-1/2/3/7 résolus (C-16→C-20).
@@ -59,5 +59,6 @@ par l'absence de QA visuelle.
 - Lot 4 : chapitre Collaborateurs — statut ⇐ `collaborators.status` (C-23 / LEGACY-4).
 - Lot 5 : chapitre Activités & congés internalisé (`?section=activite-conges`) — `src/features/consultants/activity/`, `<h1>` retiré, route legacy → `permanentRedirect` (C-24).
 - Lot 6 : chapitre Pool de compétences internalisé (`?section=pool-competences`) — `git mv` → `src/features/consultants/skills/`, loader `data/get-consultants-skills.ts`, `<header>` retiré, route legacy → `permanentRedirect` (C-25). **NAV-2 résolu.**
+- Lot 7 : contrat de données Candidats candidate-centric — `src/features/consultants/candidates/data/` (builder pur + loader + tests) + `src/lib/recruitment/candidate-lifecycle.ts` (C-26). **DATA-4/6 + PRODUCT-2/3 résolus.** Aucune UI.
 
 > ⚠️ Travail parallèle non commité dans l'arbre (cockpit mobile, veille, `design-lab/`) : stager les chemins consultants explicitement, ne jamais `git add -A`.

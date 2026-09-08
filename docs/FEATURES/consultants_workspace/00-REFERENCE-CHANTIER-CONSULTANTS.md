@@ -517,6 +517,20 @@ Le Lot 7 doit trancher : (a) n'afficher « Prochaine action » que pour les cand
 (b) dériver une action depuis le dernier milestone ; (c) introduire un porteur dédié (migration,
 dette Data). **Ne créer aucune colonne arbitraire avant le Lot 7.**
 
+> ✅ **Tranché au Lot 7 (C-26) — option (a).** `nextAction` = `next_action` du positionnement
+> actif le plus récent, `null` sinon. Aucune dérivation, aucune colonne. Porteur dédié = dette CAND-2.
+
+### 14.6 Résolutions du Lot 7 (C-26)
+
+| Sujet | Décision |
+|---|---|
+| Population | Tous les `candidates` du workspace ; `pipelineState` (`pool`/`in_process`/`closed`) dérivé, filtrage à l'affichage (Lot 8). |
+| Qualification YTD (DATA-4) | Jalon `candidate_hiring_milestones` `step='prequalification'` + `result='valide'` + `completed_at` année civile. Backfill anciens = dette CAND-1. |
+| Disponibilité (DATA-6) | `available_from` (date) + `notice_period_days` (peuplés 43/43) = source structurée ; `availability` texte conservé en libellé, jamais parsé. |
+| Prochaine action (PRODUCT-2) | Option (a) — voir 14.5. |
+| Lifecycle (PRODUCT-3) | Whitelist canonique `src/lib/recruitment/candidate-lifecycle.ts` (10 statuts, libellés FR, flag `terminal`). |
+| Practice | `candidates.practice_id → offer_practices.slug` (C-17), repli `job_profile_id`. |
+
 ---
 
 ## 15. Cible fonctionnelle — Chapitre Pool de compétences
@@ -678,6 +692,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-23** | **Chapitre Collaborateurs = `src/features/consultants/collaborators/`** (`CollaboratorsDesktop`/`Mobile` + `collaborators.types.ts`). Le statut « en mission / intercontrat » se lit sur **`collaborators.status`** (`isCollaboratorStaffed`), pas sur la présence d'une mission active. `getConsultantsTeam` filtre `status <> 'sorti'`. `components/consultants/synthese/` supprimé. | LEGACY-4 : le champ `status` est l'autorité (C-16) ; alignement des KPI, du filtre et du pill. Colonnes mission restent dérivées de la mission active (données de mission, pas de statut). | Actée (Lot 4) |
 | **C-24** | **Chapitre Activités & congés internalisé** (`?section=activite-conges`) : loader `get-consultants-activity.ts` (6 lectures extraites), composant `ActivityDashboard` déplacé dans `src/features/consultants/activity/` (types séparés), `<h1>` interne retiré. Route legacy `/consultants/activite-conges` → `permanentRedirect`. **Pas de branche Mobile dédiée** — vue analytique dense unique, contenu large en `overflow-auto`. | Le shell porte le titre ; parité stricte (loader + composant identiques hors `<h1>`) ; une vraie vue Mobile activité chevauche le module Production & Congés (Lot 12) → dette PRODUCT-4. | Actée (Lot 5) |
 | **C-25** | **Chapitre Pool de compétences internalisé** (`?section=pool-competences`) : `git mv src/components/consultants/pool-competences/` → `src/features/consultants/skills/` (7 fichiers, imports relatifs préservés) ; 3 consommateurs externes des primitives (`SkillDescriptionTooltip`, `types`, `pool-competences-shared`) repointés. Loader extrait → `src/features/consultants/data/get-consultants-skills.ts` (**pas** dans `skills/` — les loaders vivent dans `data/`, convention Lots 2/5). `buildPoolCompetencesDataset` (`src/lib/consultants/`) inchangé. `<header>`/`<h1>` interne de `PoolCompetencesMap` retiré. Route legacy → `permanentRedirect`. **Pas de branche Mobile dédiée.** **Suppression des fichiers de route `(tabbed)` + `(tabbed)/layout.tsx` + `SectionNavBarSlot` : reportée au Lot 15** (déjà son périmètre), la barre horizontale n'étant plus atteignable (redirect). | Parité stricte ; le shell porte le titre ; cohérence avec la convention loader `data/` du chantier ; scinder le déménagement (Lot 6) du nettoyage legacy (Lot 15) évite de toucher un test d'invariant hors sujet. | Actée (Lot 6) |
+| **C-26** | **Contrat de données Candidats candidate-centric** (`src/features/consultants/candidates/data/`) : builder pur `buildConsultantsCandidates` + loader mince `getConsultantsCandidates` (server-only) + types + tests (C-20 réappliqué). **Population** = *tous* les `candidates` du workspace (aucune exclusion au chargement) ; le view-model porte `pipelineState` dérivé (`pool` / `in_process` / `closed`), le filtrage est un choix d'affichage (Lot 8). **DATA-4** : `qualifiedThisYear` = jalon `candidate_hiring_milestones` `step='prequalification'` + `result='valide'` + `completed_at` dans l'année civile de référence (28/43 live) ; `candidates.created_at` jamais assimilé à une qualification ; candidats anciens sans ce jalon → `false` + dette **CAND-1** (backfill = sous-lot 7.x). **DATA-6** : `available_from` (date) + `notice_period_days` (int) sont peuplés 43/43 → source structurée ; `availability` (texte libre) conservé tel quel comme `availabilityLabel`, jamais parsé ; `availabilityBucket` (`immediate`/`scheduled`/`unknown`) dérivé de `available_from`. Aucune migration, aucune normalisation. **PRODUCT-2** (option a) : `nextAction` = `opportunity_candidates.next_action` du positionnement actif le plus récent ; `null` sans positionnement actif ; aucune dérivation ni colonne nouvelle (porteur dédié = dette CAND-2). **PRODUCT-3** : whitelist canonique unique `src/lib/recruitment/candidate-lifecycle.ts` (10 statuts = `VALID_STATUSES` de `update-candidate-status.ts`, libellés FR + flag `terminal`) ; les 3 copies legacy (`CandidateProfileEditor`, `CandidateReferenceProfile`, `RecruitmentListView`) convergent au Lot 8 (dette CAND-3). **Practice** = `candidates.practice_id → offer_practices.slug` (C-17), repli `job_profile_id`. | Le vivier complet doit être visible (13/43 sans positionnement) ; définitions figées et testées ; aucune colonne DB arbitraire ; une seule source de vérité du lifecycle. | Actée (Lot 7) |
 
 ---
 
@@ -693,9 +708,9 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | ~~**DATA-1**~~ | ✅ **RÉSOLU (Lot 2, C-16)** — effectif actif = `collaborators.status <> 'sorti'` (`status='sorti'` ⟺ `exit_date IS NOT NULL` live). | 2 |
 | ~~**DATA-2**~~ | ✅ **RÉSOLU (Lot 2, C-17)** — clé canonique `offer_practices.slug` ; candidats → `practice_id`, collaborateurs → cascade `job_profile → nom exact → heuristique → null`. Aucune migration ; `collaborators.practice_id` FK = dette future. | 2 |
 | ~~**DATA-3**~~ | ⚠️ **PARTIELLEMENT RÉSOLU (Lot 2, C-18)** — source = `opportunity_candidates` via `person_id` ; `null` (« — ») sans fiche candidat miroir. `match_scores` jamais utilisé. Sous-question ouverte : lien direct `opportunity ↔ collaborator`. | 2 / futur |
-| **DATA-4** | Définition exacte de « candidat qualifié durant l'année en cours » : `candidate_hiring_milestones` (`step=prequalification`, `result=valide`, `completed_at` YTD) ? Mécanisme de fallback/backfill pour les candidats anciens sans ce milestone ? | 7 (backfill → 7.x) |
+| ~~**DATA-4**~~ | ✅ **RÉSOLU (Lot 7, C-26)** — `qualifiedThisYear` = jalon `candidate_hiring_milestones` `step='prequalification'` + `result='valide'` + `completed_at` dans l'année civile (28/43 live). Fallback/backfill des candidats anciens = dette **CAND-1** (sous-lot 7.x). | 7 (backfill → 7.x) |
 | **DATA-5** | Le **planning journalier de production** n'existe pas en base (agrégats mensuels seulement). Modèle relationnel minimal à créer (table dédiée vs dérivation calendaire) ? | 11 |
-| **DATA-6** | `candidates.availability` est un **texte libre** (~20 formes). Faut-il une normalisation / un mapping vers `available_from` pour le tri et le filtrage du tableau Candidats ? | 7 |
+| ~~**DATA-6**~~ | ✅ **RÉSOLU (Lot 7, C-26)** — `available_from` (date) + `notice_period_days` (int) sont **peuplés 43/43** → source structurée du tri/filtre. `availability` (texte libre) conservé tel quel en libellé, jamais parsé ; `availabilityBucket` dérivé de `available_from`. Aucune migration, aucune normalisation. | 7 |
 | ~~**DATA-7**~~ | ✅ **RÉSOLU (Lot 2, C-19)** — `grossAnnual`/`cjm` nullables ; `compensationVisible` dérivé de `profiles.role`. Rôle non habilité → valeurs `null` + `dataNote` ; l'UI (Lot 3) masque les colonnes, la page reste accessible. | 2 |
 
 ### PRODUCT
@@ -703,8 +718,8 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | ID | Question | Lot cible |
 |---|---|---|
 | **PRODUCT-1** | Intention du module **Matching profil** : `Profil → besoins` et/ou `Besoin → profils` ? (Moteur actuel = besoin-centrique.) | 13 (décision avant impl.) |
-| **PRODUCT-2** | « **Prochaine action** » pour un candidat sans opportunité active : ne l'afficher que pour les positionnés / la dériver du dernier milestone / introduire un porteur dédié ? Aucune colonne arbitraire avant tranchage. | 7 |
-| **PRODUCT-3** | Valeurs métier exactes du sélecteur **lifecycle candidat** en UI (`Vivier actif`, `NoGo`, `Ne plus contacter`, `Indisponible`, `Recruté`…) et mapping vers `candidates.status` (`VALID_STATUSES`). | 7-8 |
+| ~~**PRODUCT-2**~~ | ✅ **RÉSOLU (Lot 7, C-26 — option a)** — `nextAction` = `opportunity_candidates.next_action` du positionnement actif le plus récent ; `null` sinon. Aucune dérivation depuis un milestone, aucune colonne nouvelle. Porteur dédié = dette **CAND-2**. | 7 |
+| ~~**PRODUCT-3**~~ | ✅ **RÉSOLU (Lot 7, C-26)** — whitelist canonique `src/lib/recruitment/candidate-lifecycle.ts` : 10 statuts (= `VALID_STATUSES`), libellés FR, flag `terminal` (`recrute`/`refuse`/`ko_manager`/`archive`). Les 3 copies legacy convergent au Lot 8 (dette **CAND-3**). | 7-8 |
 | **PRODUCT-4** | La Synthèse Mobile et le module Production & Congés partagent-ils une vue « planning » ? Périmètre de chevauchement à trancher. | 3 / 12 |
 
 ### NAVIGATION
@@ -918,18 +933,22 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Gates** : `typecheck` ✅ · `npx vitest run src/features/consultants` ✅ (44 tests, 5 fichiers) · `npm test` complet ✅ (**261 fichiers / 2633 tests** — l'échec veille pré-existant du Lot 5 a été résorbé par le commit `55d637ee` de Guillaume) · `check:server-boundary` ✅ · `eslint` (fichiers touchés) ✅ · `build` → Vercel prod (gate).
 - **NEXT LOT** : Lot 7 — Data Contract Candidats.
 
-### Lot 7 — Data Contract Candidats
+### Lot 7 — Data Contract Candidats — ✅ techniquement livré (2026-09-08)
 
-- **Objectif** : transformer le modèle de lecture d'**opportunity-centric** à **candidate-centric**.
-- **Prérequis** : Lot 1. Résoudre DATA-4, DATA-6, PRODUCT-2, PRODUCT-3 (ou OPEN + comportement défini).
-- **Data** : loader partant de `candidates`, enrichi de `persons`, `job_profiles`/`practice_id`, `candidate_hiring_processes`, `candidate_hiring_milestones`, `opportunity_candidates`, `opportunities`, `calendar_events`. Définir : population du vivier · qualification YTD · status/process · prochaine action · disponibilité · practice · profil. Backfill éventuel → sous-lot `7.x`.
-- **Desktop / Mobile** : aucun rendu majeur — view-model typé + tests.
-- **Fichiers probables** : `src/features/consultants/candidates/data/*`, `__tests__/*`.
-- **Hors périmètre** : UI (Lot 8).
-- **Critères d'acceptation** : le view-model liste le vivier complet pertinent (candidats sans positionnement inclus) ; définitions figées et documentées ; aucune colonne DB arbitraire.
-- **Gates** : `typecheck` → `test` (ciblé) → `check:server-boundary` → `eslint` → `build`.
-- **Documentation** : DECISION LOG ; § 14-15 mis à jour.
-- **Conditions de sortie** : commit poussé, `NEXT LOT = Lot 8`.
+**Réalisé.** Détail dans le ledger § « Lot 7 ».
+
+- **Objectif** : passer le modèle de lecture d'**opportunity-centric** à **candidate-centric**.
+- **Livré** (`src/features/consultants/candidates/data/`) :
+  - `consultants-candidates.types.ts` — lignes brutes + `ConsultantsCandidatesViewModel` (rows + counts + dataNotes).
+  - `build-consultants-candidates.ts` — **builder pur** : practice (C-17), `pipelineState`, `qualifiedThisYear` (DATA-4), `availabilityBucket` (DATA-6), `nextAction` (PRODUCT-2), lifecycle, compteurs, `dataNotes`.
+  - `get-consultants-candidates.ts` — loader `server-only` : part de `candidates` (43 live), + `candidate_hiring_processes`, jalons `prequalification/valide` (filtre SQL), `opportunity_candidates` (+ `opportunities.stage`), référentiels practices/job_profiles en cache.
+  - `__tests__/build-consultants-candidates.test.ts` — 11 tests.
+  - `src/lib/recruitment/candidate-lifecycle.ts` (+ `.test.ts`, 4 tests) — whitelist canonique (PRODUCT-3).
+- **Décision** : **C-26**. **DATA-4 / DATA-6 / PRODUCT-2 / PRODUCT-3 résolus.** Dettes **CAND-1** (backfill qualification), **CAND-2** (porteur « prochaine action »), **CAND-3** (3 copies legacy de labels lifecycle).
+- **Hors périmètre (confirmé)** : `calendar_events` (RDV/entretiens) non consommés au Lot 7 — la « prochaine action » vient de `opportunity_candidates.next_action` (PRODUCT-2 option a), le planning des entretiens est un sujet Lot 9. Aucune UI (Lot 8). Aucune migration.
+- **Cross-check live** : 43 candidats · `pipelineState` = 19 pool / 10 in_process / 14 closed · 28 `qualifiedThisYear` · 13 sans positionnement (exactement les invisibles du loader legacy).
+- **Gates** : `typecheck` ✅ · `npx vitest run src/features/consultants src/lib/recruitment/candidate-lifecycle.test.ts` ✅ (7 fichiers / 59 tests) · `npm test` complet ✅ (263 fichiers / 2648 tests) · `check:server-boundary` ✅ · `eslint` ✅ · `build` → Vercel prod (gate).
+- **NEXT LOT** : Lot 8 — Page Candidats.
 
 ### Lot 8 — Page Candidats
 
