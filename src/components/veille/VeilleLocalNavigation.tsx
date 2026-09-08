@@ -1,15 +1,19 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import { SectionRail } from "@/components/layout/SectionRail"
+import type { SectionRailEntry, SectionRailProps } from "@/lib/navigation/section-rail"
 import type { VeilleSection } from "./veille-desktop-contracts"
-import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 
-const SECTIONS: Array<{ id: VeilleSection; label: string }> = [
-  { id: "news", label: "Actualités" },
-  { id: "watched-accounts", label: "Veille ciblée" },
-  { id: "strategic-analysis", label: "Analyses" },
-  { id: "history", label: "Archives" },
-]
+export const VEILLE_DESKTOP_CHAPTERS = [
+  { key: "news", label: "Actualités" },
+  { key: "watched-accounts", label: "Veille ciblée" },
+  { key: "strategic-analysis", label: "Analyses" },
+  { key: "history", label: "Archives" },
+] as const satisfies ReadonlyArray<{ key: VeilleSection; label: string }>
+
+export function getVeilleDesktopChapterLabel(section: VeilleSection): string {
+  return VEILLE_DESKTOP_CHAPTERS.find((chapter) => chapter.key === section)?.label ?? "Actualités"
+}
 
 function VeilleSidebarIcon({ name }: { name: VeilleSection }) {
   const commonProps = {
@@ -55,116 +59,58 @@ function VeilleSidebarIcon({ name }: { name: VeilleSection }) {
   )
 }
 
-interface VeilleLocalNavigationProps {
+export interface VeilleLocalNavigationProps {
   active: VeilleSection
   onChange: (section: VeilleSection) => void
   onOpenSourceManagement?: () => void
 }
 
-export function VeilleLocalNavigation({
+export function buildVeilleRailProps({
   active,
   onChange,
   onOpenSourceManagement,
-}: VeilleLocalNavigationProps) {
-  return (
-    <nav
-      aria-label="Navigation locale Veille & actualités"
-      className="flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
-    >
-      {/* Title box positioned exactly like 'Retour aux comptes' button */}
-      <div className="flex min-h-10 w-full items-center gap-2 rounded-md border border-edito-border bg-edito-surface px-3 text-left text-xs font-bold text-edito-navy select-none">
-        <span>Veille & actualités</span>
-      </div>
+}: VeilleLocalNavigationProps): SectionRailProps {
+  const contextualModules: SectionRailEntry[] = []
 
-      <div className="mt-5 border-t border-edito-border pt-4">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Chapitres
-        </p>
-        <div className="mt-2 space-y-1">
-          {SECTIONS.map((section) => {
-            const isActive = active === section.id
-            return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => onChange(section.id)}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 px-3 text-left text-xs font-semibold transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-                  isActive
-                    ? "border-l-edito-brass bg-edito-surface text-edito-navy"
-                    : "border-l-transparent text-edito-muted hover:bg-edito-surface/70 hover:text-edito-body",
-                )}
-              >
-                <span className={cn("text-edito-navy", !isActive && "opacity-75")}>
-                  <VeilleSidebarIcon name={section.id} />
-                </span>
-                <span className="truncate">{section.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+  if (onOpenSourceManagement) {
+    contextualModules.push({
+      key: "source-management",
+      label: "Gestion des sources",
+      icon: (
+        <svg
+          className="size-4 shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+      ),
+      onSelect: onOpenSourceManagement,
+    })
+  }
 
-      <div className="mt-5 border-t border-edito-border pt-4">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Modules
-        </p>
-        <div className="mt-2 space-y-1">
-          <button
-            type="button"
-            onClick={onOpenSourceManagement}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-            )}
-          >
-            <span className="text-edito-navy opacity-75">
-              <svg
-                className="size-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <ellipse cx="12" cy="5" rx="9" ry="3" />
-                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-              </svg>
-            </span>
-            <span className="truncate">Gestion des sources</span>
-          </button>
+  return {
+    ariaLabel: "Navigation locale Veille & actualités",
+    title: "Veille & actualités",
+    home: { onSelect: () => onChange("news") },
+    chapters: VEILLE_DESKTOP_CHAPTERS.map((chapter) => ({
+      key: chapter.key,
+      label: chapter.label,
+      icon: <VeilleSidebarIcon name={chapter.key} />,
+      active: active === chapter.key,
+      onSelect: () => onChange(chapter.key),
+    })),
+    contextualModules,
+  }
+}
 
-          <button
-            type="button"
-            onClick={() => useCrmAccountLauncherStore.getState().open()}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-            )}
-          >
-            <span className="text-edito-navy opacity-75">
-              <svg
-                className="size-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3.75 21h16.5M4.5 3h15A1.5 1.5 0 0 1 21 4.5V21H3V4.5A1.5 1.5 0 0 1 4.5 3zM8.25 7.5h.008v.008H8.25V7.5zm0 3.75h.008v.008H8.25v-.008zm0 3.75h.008v.008H8.25V15zm3.742-7.5H12v.008h-.008V7.5zm0 3.75H12v.008h-.008v-.008zm0 3.75H12v.008h-.008V15zm3.75-7.5h.008v.008h-.008V7.5zm0 3.75h.008v.008h-.008v-.008zm0 3.75h.008v.008h-.008V15z" />
-              </svg>
-            </span>
-            <span className="truncate">CRM Launcher</span>
-          </button>
-        </div>
-      </div>
-    </nav>
-  )
+export function VeilleLocalNavigation(props: VeilleLocalNavigationProps) {
+  return <SectionRail {...buildVeilleRailProps(props)} />
 }

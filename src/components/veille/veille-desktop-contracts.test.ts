@@ -1,16 +1,38 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { describe, expect, it } from "vitest"
+import React from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { describe, expect, it, vi } from "vitest"
 import {
   getSecondaryItems,
   healthFromRun,
   parseGlobalWatchSettings,
   parseMonthlyWatchAnalysisOutput,
   previousCalendarMonth,
+  type VeilleSection,
   validateGlobalWatchSettings,
 } from "./veille-desktop-contracts"
+import {
+  buildVeilleRailProps,
+  getVeilleDesktopChapterLabel,
+  VEILLE_DESKTOP_CHAPTERS,
+  VeilleLocalNavigation,
+} from "./VeilleLocalNavigation"
 
 const root = process.cwd()
+
+function renderNavigation(options?: {
+  active?: VeilleSection
+  withSourceManagement?: boolean
+}) {
+  return renderToStaticMarkup(
+    React.createElement(VeilleLocalNavigation, {
+      active: options?.active ?? "news",
+      onChange: () => {},
+      onOpenSourceManagement: options?.withSourceManagement ? () => {} : undefined,
+    }),
+  )
+}
 
 describe("veille Desktop contracts", () => {
   it.each([
@@ -97,11 +119,81 @@ describe("veille Desktop UI source contract", () => {
     "utf8",
   )
 
-  it("uses the four requested local sections and modules section", () => {
-    for (const label of ["Actualités", "Veille ciblée", "Analyses", "Archives"]) expect(navigation).toContain(label)
-    expect(navigation).toContain("Modules")
-    expect(navigation).toContain("Gestion des sources")
-    expect(navigation).toContain('aria-current={isActive ? "page" : undefined}')
+  it("utilise le SectionRail canonique avec le chapeau Veille & actualités", () => {
+    const html = renderNavigation()
+
+    expect(navigation).toContain("<SectionRail")
+    expect(html).toContain('aria-label="Navigation locale Veille &amp; actualités"')
+    expect(html).toContain("w-[11.5rem]")
+    expect(html).toContain("bg-edito-navy")
+    expect(html).toContain("Veille &amp; actualités")
+    expect(html).toContain(">Chapitres<")
+  })
+
+  it("préserve les quatre identifiants, libellés et leur ordre", () => {
+    expect(VEILLE_DESKTOP_CHAPTERS.map(({ key, label }) => ({ key, label }))).toEqual([
+      { key: "news", label: "Actualités" },
+      { key: "watched-accounts", label: "Veille ciblée" },
+      { key: "strategic-analysis", label: "Analyses" },
+      { key: "history", label: "Archives" },
+    ])
+
+    const model = buildVeilleRailProps({ active: "news", onChange: () => {} })
+    expect(model.chapters.map(({ key, label }) => ({ key, label }))).toEqual(
+      VEILLE_DESKTOP_CHAPTERS.map(({ key, label }) => ({ key, label })),
+    )
+    expect(model.chapters.every((chapter) => chapter.icon)).toBe(true)
+  })
+
+  it("mappe VeilleSection vers l'unique chapitre actif", () => {
+    const model = buildVeilleRailProps({
+      active: "strategic-analysis",
+      onChange: () => {},
+    })
+
+    expect(model.chapters.filter((chapter) => chapter.active).map((chapter) => chapter.key)).toEqual([
+      "strategic-analysis",
+    ])
+    expect(renderNavigation({ active: "strategic-analysis" })).toMatch(
+      /aria-current="page"[^>]*><span[^>]*>.*?<\/span><span[^>]*>Analyses<\/span>/,
+    )
+  })
+
+  it("ramène le chapeau à la section racine news", () => {
+    const onChange = vi.fn()
+    const model = buildVeilleRailProps({ active: "history", onChange })
+
+    model.home.onSelect?.()
+
+    expect(onChange).toHaveBeenCalledOnce()
+    expect(onChange).toHaveBeenCalledWith("news")
+  })
+
+  it("dérive le titre principal exact depuis la configuration des chapitres", () => {
+    expect(
+      VEILLE_DESKTOP_CHAPTERS.map((chapter) => getVeilleDesktopChapterLabel(chapter.key)),
+    ).toEqual(["Actualités", "Veille ciblée", "Analyses", "Archives"])
+    expect(desktop).toContain("const activeChapterTitle = getVeilleDesktopChapterLabel(section)")
+    expect(desktop).toContain("{activeChapterTitle}")
+  })
+
+  it("omet Modules sans callback et ne conserve que la gestion des sources contextuelle", () => {
+    const withoutModule = buildVeilleRailProps({ active: "news", onChange: () => {} })
+    const withoutModuleHtml = renderNavigation()
+    const withModule = buildVeilleRailProps({
+      active: "news",
+      onChange: () => {},
+      onOpenSourceManagement: () => {},
+    })
+    const withModuleHtml = renderNavigation({ withSourceManagement: true })
+
+    expect(withoutModule.contextualModules).toEqual([])
+    expect(withoutModuleHtml).not.toContain(">Modules<")
+    expect(withModule.contextualModules?.map((module) => module.key)).toEqual(["source-management"])
+    expect(withModuleHtml).toContain(">Modules<")
+    expect(withModuleHtml).toContain("Gestion des sources")
+    expect(withModuleHtml).not.toContain("CRM Launcher")
+    expect(withModuleHtml).not.toContain("disabled")
   })
 
   it("has the exact header actions and no page subtitle", () => {

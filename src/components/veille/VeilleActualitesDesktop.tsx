@@ -35,7 +35,10 @@ import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-laun
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { SourceManagementDialogDesktop } from "@/features/source-management/components/SourceManagementDialogDesktop"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
-import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
+import {
+  getVeilleDesktopChapterLabel,
+  VeilleLocalNavigation,
+} from "./VeilleLocalNavigation"
 import { extractMatchedCompany, resolveOriginalSourceName } from "./veille-utils"
 import {
   type GlobalWatchSettings,
@@ -1610,6 +1613,8 @@ export function VeilleActualitesDesktop({
     }))
   }, [launchOptions.topics])
 
+  const activeChapterTitle = getVeilleDesktopChapterLabel(section)
+
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
       <VeilleLocalNavigation
@@ -1622,19 +1627,13 @@ export function VeilleActualitesDesktop({
         <header className="z-20 flex min-h-[76px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6 py-4">
           <div className="min-w-0 flex-1">
             <h1 className="truncate whitespace-nowrap font-heading text-2xl font-bold tracking-[-0.02em] text-heading">
-              {section === "news"
-                ? digest
-                  ? `Sélection du ${formatDateNumeric(digest.digest_date)}`
-                  : "Sélection du JJ/MM/AAAA"
-                : section === "watched-accounts"
-                  ? "Veille des comptes"
-                  : section === "strategic-analysis"
-                    ? "Analyses stratégiques"
-                    : "Historique de la veille"}
+              {activeChapterTitle}
             </h1>
-            {section === "news" && digest ? (
+            {section === "news" ? (
               <p className="mt-1 truncate whitespace-nowrap text-xs font-medium text-muted">
-                {filteredArticles.length} article{filteredArticles.length > 1 ? "s" : ""} · {digest.nb_sources_actives ?? 15} sources consultées
+                {digest
+                  ? `Sélection du ${formatDateNumeric(digest.digest_date)} · ${filteredArticles.length} article${filteredArticles.length > 1 ? "s" : ""} · ${digest.nb_sources_actives ?? 15} sources consultées`
+                  : "Sélection du JJ/MM/AAAA"}
               </p>
             ) : null}
           </div>
