@@ -124,10 +124,10 @@ export function buildClientIntelligenceRailProps({
   onOpenDocuments,
   playbookSlug,
 }: ClientIntelligenceSidebarProps): SectionRailProps {
-  const contextualModules: SectionRailEntry[] = []
+  const availableContextualModules: SectionRailEntry[] = []
 
   if (onOpenContactDirectory) {
-    contextualModules.push({
+    availableContextualModules.push({
       key: "contacts",
       label: "Répertoire",
       icon: <SidebarIcon name="contacts" />,
@@ -136,7 +136,7 @@ export function buildClientIntelligenceRailProps({
   }
 
   if (onOpenDocuments) {
-    contextualModules.push({
+    availableContextualModules.push({
       key: "documents",
       label: "Bibliothèque",
       icon: <SidebarIcon name="documents" />,
@@ -145,13 +145,17 @@ export function buildClientIntelligenceRailProps({
   }
 
   if (playbookSlug) {
-    contextualModules.push({
+    availableContextualModules.push({
       key: "playbook",
       label: "Playbook",
       icon: <SidebarIcon name="playbook" />,
       href: `/ressources/playbook/${playbookSlug}`,
     })
   }
+
+  const contextualModules = availableContextualModules.length > 0
+    ? availableContextualModules
+    : undefined
 
   return {
     ariaLabel: "Navigation Account Intelligence",

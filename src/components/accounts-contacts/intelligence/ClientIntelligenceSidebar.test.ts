@@ -110,8 +110,13 @@ describe("ClientIntelligenceSidebar", () => {
   })
 
   it("ne rend ni section Modules ni bouton mort lorsque les actions sont absentes", () => {
+    const model = buildClientIntelligenceRailProps({
+      activeTab: "accueil",
+      onTabChange: () => {},
+    })
     const html = renderSidebar()
 
+    expect(model.contextualModules).toBeUndefined()
     expect(html).not.toContain(">Modules<")
     expect(html).not.toContain("Répertoire")
     expect(html).not.toContain("Bibliothèque")
@@ -130,12 +135,15 @@ describe("ClientIntelligenceSidebar", () => {
   })
 
   it("n'inclut que chaque module dont l'action contextuelle existe", () => {
+    const onOpenDocuments = vi.fn()
     const model = buildClientIntelligenceRailProps({
       activeTab: "accueil",
       onTabChange: () => {},
-      onOpenDocuments: () => {},
+      onOpenDocuments,
     })
 
     expect(model.contextualModules?.map((module) => module.key)).toEqual(["documents"])
+    model.contextualModules?.[0]?.onSelect?.()
+    expect(onOpenDocuments).toHaveBeenCalledOnce()
   })
 })

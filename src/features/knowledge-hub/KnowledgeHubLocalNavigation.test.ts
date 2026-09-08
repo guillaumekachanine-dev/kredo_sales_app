@@ -276,7 +276,7 @@ describe("KnowledgeHubLocalNavigation", () => {
     expect(htmlWithoutModal).not.toContain("Ateliers")
     expect(htmlWithoutModal).not.toContain("Interroger")
 
-    // Avec onOpenModal : 2 modules contextuels présents
+    // Avec onOpenModal : seul le module réellement disponible est présent
     const onOpenModal = vi.fn()
     const modelWithModal = buildKnowledgeHubRailProps({
       activeView: { type: "categories" },
@@ -285,31 +285,26 @@ describe("KnowledgeHubLocalNavigation", () => {
       activeModal: "workshop",
     })
 
-    expect(modelWithModal.contextualModules).toHaveLength(2)
+    expect(modelWithModal.contextualModules).toHaveLength(1)
     expect(modelWithModal.contextualModules?.map((m) => ({ key: m.key, label: m.label }))).toEqual([
       { key: "workshop", label: "Ateliers" },
-      { key: "ask", label: "Interroger" },
     ])
 
     // Vérification de l'état actif conforme à activeModal
     expect(modelWithModal.contextualModules?.find((m) => m.key === "workshop")?.active).toBe(true)
-    expect(modelWithModal.contextualModules?.find((m) => m.key === "ask")?.active).toBe(false)
 
     modelWithModal.contextualModules?.find((m) => m.key === "workshop")?.onSelect?.()
     expect(onOpenModal).toHaveBeenCalledWith("workshop")
 
-    modelWithModal.contextualModules?.find((m) => m.key === "ask")?.onSelect?.()
-    expect(onOpenModal).toHaveBeenCalledWith("ask")
-
     const htmlWithModal = renderNavigation({
       activeView: { type: "categories" },
       onOpenModal,
-      activeModal: "ask",
+      activeModal: "workshop",
     })
     expect(htmlWithModal).toContain(">Modules<")
     expect(htmlWithModal).toContain("Ateliers")
-    expect(htmlWithModal).toContain("Interroger")
-    expect(htmlWithModal).toMatch(/aria-current="page"[^>]*><span[^>]*>.*?<\/span><span[^>]*>Interroger<\/span>/)
+    expect(htmlWithModal).not.toContain("Interroger")
+    expect(htmlWithModal).toMatch(/aria-current="page"[^>]*><span[^>]*>.*?<\/span><span[^>]*>Ateliers<\/span>/)
   })
 
   it("helpers purs : getKnowledgeHubDefaultSection gère tous les cas", () => {

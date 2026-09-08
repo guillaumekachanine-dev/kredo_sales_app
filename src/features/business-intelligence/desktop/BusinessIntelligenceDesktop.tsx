@@ -92,6 +92,8 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
       <BusinessIntelligenceLocalNavigation
         active={activeChapter}
         onChange={navigateChapter}
+        studiesAvailable={workspace.coverage.study.available}
+        playbooksAvailable={workspace.coverage.playbook.available}
         onStudiesClick={() => setIsStudiesOpen(true)}
         onPlaybooksClick={() => setIsPlaybooksOpen(true)}
       />

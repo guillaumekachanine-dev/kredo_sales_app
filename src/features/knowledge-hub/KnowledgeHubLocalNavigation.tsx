@@ -141,27 +141,6 @@ export function buildKnowledgeHubRailProps({
           active: activeModal === "workshop",
           onSelect: () => onOpenModal("workshop"),
         },
-        {
-          key: "ask",
-          label: "Interroger",
-          icon: (
-            <svg
-              className="size-4 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-          ),
-          active: activeModal === "ask",
-          onSelect: () => onOpenModal("ask"),
-        },
       ]
     : undefined
 
@@ -179,4 +158,3 @@ export function buildKnowledgeHubRailProps({
 export function KnowledgeHubLocalNavigation(props: KnowledgeHubLocalNavigationProps) {
   return <SectionRail {...buildKnowledgeHubRailProps(props)} />
 }
-

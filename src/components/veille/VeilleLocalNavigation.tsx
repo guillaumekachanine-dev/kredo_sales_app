@@ -70,10 +70,10 @@ export function buildVeilleRailProps({
   onChange,
   onOpenSourceManagement,
 }: VeilleLocalNavigationProps): SectionRailProps {
-  const contextualModules: SectionRailEntry[] = []
+  const availableContextualModules: SectionRailEntry[] = []
 
   if (onOpenSourceManagement) {
-    contextualModules.push({
+    availableContextualModules.push({
       key: "source-management",
       label: "Gestion des sources",
       icon: (
@@ -95,6 +95,10 @@ export function buildVeilleRailProps({
       onSelect: onOpenSourceManagement,
     })
   }
+
+  const contextualModules = availableContextualModules.length > 0
+    ? availableContextualModules
+    : undefined
 
   return {
     ariaLabel: "Navigation locale Veille & actualités",

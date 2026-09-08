@@ -99,6 +99,8 @@ function PlaybooksIcon() {
 export interface BusinessIntelligenceLocalNavigationProps {
   active: BiTabKey
   onChange: (tab: BiTabKey) => void
+  studiesAvailable: boolean
+  playbooksAvailable: boolean
   onStudiesClick?: () => void
   onPlaybooksClick?: () => void
 }
@@ -106,13 +108,15 @@ export interface BusinessIntelligenceLocalNavigationProps {
 export function buildBusinessIntelligenceRailProps({
   active,
   onChange,
+  studiesAvailable,
+  playbooksAvailable,
   onStudiesClick,
   onPlaybooksClick,
 }: BusinessIntelligenceLocalNavigationProps): SectionRailProps {
-  const contextualModules: SectionRailEntry[] = []
+  const availableContextualModules: SectionRailEntry[] = []
 
-  if (onStudiesClick) {
-    contextualModules.push({
+  if (studiesAvailable && onStudiesClick) {
+    availableContextualModules.push({
       key: "studies",
       label: "Études sectorielles",
       icon: <StudiesIcon />,
@@ -120,14 +124,18 @@ export function buildBusinessIntelligenceRailProps({
     })
   }
 
-  if (onPlaybooksClick) {
-    contextualModules.push({
+  if (playbooksAvailable && onPlaybooksClick) {
+    availableContextualModules.push({
       key: "playbooks",
       label: "Playbooks",
       icon: <PlaybooksIcon />,
       onSelect: onPlaybooksClick,
     })
   }
+
+  const contextualModules = availableContextualModules.length > 0
+    ? availableContextualModules
+    : undefined
 
   return {
     ariaLabel: "Navigation locale Business Intelligence",
@@ -147,8 +155,21 @@ export function buildBusinessIntelligenceRailProps({
 export function BusinessIntelligenceLocalNavigation({
   active,
   onChange,
+  studiesAvailable,
+  playbooksAvailable,
   onStudiesClick,
   onPlaybooksClick,
 }: BusinessIntelligenceLocalNavigationProps) {
-  return <SectionRail {...buildBusinessIntelligenceRailProps({ active, onChange, onStudiesClick, onPlaybooksClick })} />
+  return (
+    <SectionRail
+      {...buildBusinessIntelligenceRailProps({
+        active,
+        onChange,
+        studiesAvailable,
+        playbooksAvailable,
+        onStudiesClick,
+        onPlaybooksClick,
+      })}
+    />
+  )
 }

@@ -178,22 +178,25 @@ describe("veille Desktop UI source contract", () => {
   })
 
   it("omet Modules sans callback et ne conserve que la gestion des sources contextuelle", () => {
+    const onOpenSourceManagement = vi.fn()
     const withoutModule = buildVeilleRailProps({ active: "news", onChange: () => {} })
     const withoutModuleHtml = renderNavigation()
     const withModule = buildVeilleRailProps({
       active: "news",
       onChange: () => {},
-      onOpenSourceManagement: () => {},
+      onOpenSourceManagement,
     })
     const withModuleHtml = renderNavigation({ withSourceManagement: true })
 
-    expect(withoutModule.contextualModules).toEqual([])
+    expect(withoutModule.contextualModules).toBeUndefined()
     expect(withoutModuleHtml).not.toContain(">Modules<")
     expect(withModule.contextualModules?.map((module) => module.key)).toEqual(["source-management"])
     expect(withModuleHtml).toContain(">Modules<")
     expect(withModuleHtml).toContain("Gestion des sources")
     expect(withModuleHtml).not.toContain("CRM Launcher")
     expect(withModuleHtml).not.toContain("disabled")
+    withModule.contextualModules?.[0]?.onSelect?.()
+    expect(onOpenSourceManagement).toHaveBeenCalledOnce()
   })
 
   it("has the exact header actions and no page subtitle", () => {

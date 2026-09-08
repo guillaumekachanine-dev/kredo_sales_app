@@ -25,6 +25,8 @@ function renderNavigation(options?: {
     React.createElement(BusinessIntelligenceLocalNavigation, {
       active: options?.active ?? "home",
       onChange: () => {},
+      studiesAvailable: options?.withStudies ?? false,
+      playbooksAvailable: options?.withPlaybooks ?? false,
       onStudiesClick: options?.withStudies ? () => {} : undefined,
       onPlaybooksClick: options?.withPlaybooks ? () => {} : undefined,
     }),
@@ -46,6 +48,8 @@ describe("BusinessIntelligenceLocalNavigation", () => {
     const model = buildBusinessIntelligenceRailProps({
       active: "home",
       onChange: () => {},
+      studiesAvailable: false,
+      playbooksAvailable: false,
     })
 
     expect(model.chapters.map(({ key, label }) => ({ key, label }))).toEqual(
@@ -57,6 +61,8 @@ describe("BusinessIntelligenceLocalNavigation", () => {
     const model = buildBusinessIntelligenceRailProps({
       active: "competitive-environment",
       onChange: () => {},
+      studiesAvailable: false,
+      playbooksAvailable: false,
     })
 
     expect(model.chapters.filter((chapter) => chapter.active).map((chapter) => chapter.key)).toEqual([
@@ -72,6 +78,8 @@ describe("BusinessIntelligenceLocalNavigation", () => {
     const model = buildBusinessIntelligenceRailProps({
       active: "sector-analysis",
       onChange,
+      studiesAvailable: false,
+      playbooksAvailable: false,
     })
 
     model.home.onSelect?.()
@@ -123,10 +131,15 @@ describe("BusinessIntelligenceLocalNavigation", () => {
   })
 
   it("omet la section Modules lorsqu'aucune action contextuelle n'existe", () => {
-    const model = buildBusinessIntelligenceRailProps({ active: "home", onChange: () => {} })
+    const model = buildBusinessIntelligenceRailProps({
+      active: "home",
+      onChange: () => {},
+      studiesAvailable: false,
+      playbooksAvailable: false,
+    })
     const html = renderNavigation()
 
-    expect(model.contextualModules).toEqual([])
+    expect(model.contextualModules).toBeUndefined()
     expect(html).not.toContain(">Modules<")
     expect(html).not.toContain("disabled")
   })
@@ -135,6 +148,8 @@ describe("BusinessIntelligenceLocalNavigation", () => {
     const studiesOnly = buildBusinessIntelligenceRailProps({
       active: "home",
       onChange: () => {},
+      studiesAvailable: true,
+      playbooksAvailable: false,
       onStudiesClick: () => {},
     })
     const allModulesHtml = renderNavigation({ withStudies: true, withPlaybooks: true })
@@ -148,9 +163,47 @@ describe("BusinessIntelligenceLocalNavigation", () => {
       buildBusinessIntelligenceRailProps({
         active: "home",
         onChange: () => {},
+        studiesAvailable: true,
+        playbooksAvailable: true,
         onStudiesClick: () => {},
         onPlaybooksClick: () => {},
       }).contextualModules?.map((module) => module.key),
     ).toEqual(["studies", "playbooks"])
+  })
+
+  it("omet une capacité dont la ressource du segment est indisponible, même avec un callback", () => {
+    const onStudiesClick = vi.fn()
+    const onPlaybooksClick = vi.fn()
+    const model = buildBusinessIntelligenceRailProps({
+      active: "home",
+      onChange: () => {},
+      studiesAvailable: false,
+      playbooksAvailable: false,
+      onStudiesClick,
+      onPlaybooksClick,
+    })
+
+    expect(model.contextualModules).toBeUndefined()
+    expect(onStudiesClick).not.toHaveBeenCalled()
+    expect(onPlaybooksClick).not.toHaveBeenCalled()
+  })
+
+  it("déclenche les actions locales des modules disponibles", () => {
+    const onStudiesClick = vi.fn()
+    const onPlaybooksClick = vi.fn()
+    const model = buildBusinessIntelligenceRailProps({
+      active: "home",
+      onChange: () => {},
+      studiesAvailable: true,
+      playbooksAvailable: true,
+      onStudiesClick,
+      onPlaybooksClick,
+    })
+
+    model.contextualModules?.find((module) => module.key === "studies")?.onSelect?.()
+    model.contextualModules?.find((module) => module.key === "playbooks")?.onSelect?.()
+
+    expect(onStudiesClick).toHaveBeenCalledOnce()
+    expect(onPlaybooksClick).toHaveBeenCalledOnce()
   })
 })
