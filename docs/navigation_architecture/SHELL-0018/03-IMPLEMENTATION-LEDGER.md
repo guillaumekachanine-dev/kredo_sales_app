@@ -88,7 +88,8 @@ QA minimale :
 | **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **3.1** | Standardisation des modules contextuels | ✅ techniquement livré | matrice exhaustive `05-CONTEXTUAL-MODULES-MATRIX.md` ; QA visuelle réservée à Guillaume |
 | **4.1** | URLisation Veille | ✅ techniquement livré | `?section=` Desktop ; état racine `news` sans paramètre ; commit `001a9e29` ; QA réelle réservée à Guillaume |
-| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | après stabilisation du rail |
+| **4.2** | URLisation Account Intelligence | ✅ techniquement livré | `?aiSection=` Desktop ; accueil canonique sans paramètre ; commit `844777ea` ; QA réelle réservée à Guillaume |
+| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Account Intelligence |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
 | **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
@@ -892,7 +893,114 @@ validation réservée à Guillaume.**
 
 **Verdict Lot 4.1 : `techniquement livré`.**
 
-## 23. Prochaine étape
+## 23. Lot 4.2 — URLisation Account Intelligence
+
+### Contrat URL Desktop
+
+- le paramètre retenu est `aiSection`. `tab` n'est pas utilisé car ce nom appartient déjà aux
+  contrats de tabs du périmètre CRM ; cette séparation empêche toute collision avec le shell et
+  ses onglets entité ;
+- le mapping conserve strictement les sept chapitres, leur ordre, leurs clés, leurs icônes et
+  leurs contenus :
+  - absence de `aiSection` ou `aiSection=accueil` → `accueil` → `Accueil` ;
+  - `aiSection=socle` → `socle` → `Socle` ;
+  - `aiSection=connaissance` → `connaissance` → `Entreprise` ;
+  - `aiSection=secteur` → `secteur` → `Secteur` ;
+  - `aiSection=enjeux` → `enjeux` → `Enjeux` ;
+  - `aiSection=strategie` → `strategie` → `Stratégie` ;
+  - `aiSection=roadmap` → `roadmap` → `Roadmap` ;
+- une valeur inconnue retombe de manière déterministe sur `accueil` ;
+- `accueil` est l'état canonique sans paramètre : une navigation normale vers ce chapitre
+  supprime `aiSection` et ne génère pas `?aiSection=accueil` ;
+- `buildAccountIntelligenceHref()` clone toujours la query via
+  `new URLSearchParams(searchParams.toString())` et ne modifie que `aiSection`. Les paramètres
+  existants ou futurs sont conservés.
+
+La configuration canonique `CLIENT_INTELLIGENCE_NAV_ITEMS`, son type Desktop, le parser, le
+builder URL et le contrôleur pur du mode embedded sont regroupés dans la frontière client-safe
+`account-intelligence-desktop-navigation.ts`. Aucune seconde liste de chapitres n'a été créée.
+
+### Route directe
+
+Sur `/prospection/accounts/[companyId]`, `ClientIntelligenceDesktopView` dérive directement le
+chapitre actif de `useSearchParams()` avec `parseAccountIntelligenceSection()`. Il ne possède plus
+de `useState` pour la position de navigation et aucune boucle `useEffect` URL ↔ état n'a été
+introduite.
+
+Le rail et `ClientIntelligenceHomeTab` reçoivent exactement le même contrôleur
+`navigateSection()`. Chaque changement de chapitre appelle `router.push()` avec le builder URL :
+deep-link, refresh, Back, Forward et partage de lien reposent donc sur l'historique et l'URL. Le
+header continue à appeler `getClientIntelligenceDesktopTabLabel(activeTab)` et reste synchronisé
+avec la section résolue.
+
+La page serveur `[companyId]/page.tsx`, ses chargements parallèles et la distribution par
+`ClientIntelligenceView` sont restés intacts.
+
+### Shell CRM embedded et préservation multi-comptes
+
+`CrmTabbedShell` conserve son invariant existant : tous les `CrmEntityPanel` Desktop restent
+montés et les panneaux inactifs sont seulement masqués. La liste des onglets et `activeTabId`
+restent gérés et persistés par le `CrmTabStore` existant ; ils ne sont pas URLisés dans ce lot.
+
+Le shell porte un réducteur local dédié aux seules sections Account Intelligence embedded :
+
+- une mémoire de chapitre distincte est indexée par identifiant de panneau ;
+- le panneau actif dérive son chapitre de `aiSection` lorsque l'URL est stabilisée ;
+- un panneau inactif reçoit sa propre valeur mémorisée et ne suit jamais l'URL du panneau actif ;
+- seul le callback du panneau actif peut appeler `router.push()` ; tout appel d'un panneau
+  inactif est ignoré ;
+- lors d'une réactivation de panneau, sa valeur mémorisée est restaurée dans l'URL avec
+  `router.replace()`, sans créer une entrée d'historique pour un changement de tab CRM qui reste
+  volontairement hors URL ;
+- un état de transition explicite évite qu'une ancienne URL écrase la mémoire du nouveau panneau
+  pendant cette restauration ;
+- Back/Forward sur le panneau actif met à jour uniquement sa mémoire et son rendu.
+
+Le test de contrat bloquant couvre `compte A → Secteur`, `compte B → Enjeux`, puis retour sur A :
+`Secteur` reste actif pour A et `Enjeux` reste mémorisé pour B. Un second test vérifie qu'un
+événement URL appliqué à un panneau inactif est ignoré.
+
+Cette mémoire des panneaux inactifs est volontairement locale à l'instance du shell : aucune
+nouvelle persistance n'est ajoutée au `CrmTabStore`, conformément au périmètre. Le chapitre du
+panneau visible reste, lui, reconstructible après refresh depuis `aiSection`.
+
+### Périmètres protégés
+
+- les règles du Lot 3.1 sont inchangées : Répertoire uniquement avec callback, Bibliothèque
+  uniquement avec callback, Playbook uniquement avec slug, et `contextualModules === undefined`
+  lorsqu'aucun module n'est disponible ;
+- `SectionRail`, `AccountIntelligenceSignatureHeaderDesktop`, la navigation Mobile,
+  `MOBILE_NAV_ITEMS`, `TabKey`, `getAccountIntelligenceTabLabel` et le branchement adaptatif ne
+  sont pas modifiés ;
+- `handleBackToAccounts()`, `useCrmTabStore().setActiveTab("home")` et le retour vers
+  `/prospection/accounts` conservent exactement leur comportement ;
+- aucun loader, fetch métier, donnée Supabase, RLS, RPC, référence financière, pgvector,
+  workflow n8n ou suivi de run n'a été modifié.
+
+### Tests et gates
+
+Les tests ciblés couvrent le parsing des valeurs absentes, valides et inconnues ; le mapping des
+sept chapitres ; l'accueil canonique ; l'ajout et la suppression de `aiSection` ; la préservation
+des query params tiers ; le pilotage du rail et du Home par le même contrôleur ; la synchronisation
+du header ; l'absence de `useState` de navigation directe ; l'usage de `router.push()` ; le maintien
+simultané des panneaux embedded ; l'isolation d'un panneau inactif ; Back/Forward sur le panneau
+actif ; et le scénario multi-comptes A → B → A.
+
+Gates exécutées dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** ;
+2. `npm test -- src/components/accounts-contacts/intelligence/account-intelligence-desktop-navigation.test.ts src/components/accounts-contacts/intelligence/ClientIntelligenceSidebar.test.ts src/components/layout/SectionRail.test.ts` : **3 fichiers / 33 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des six fichiers applicatifs et de test du lot : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7, TypeScript et génération des 41
+   pages statiques terminées avec succès.
+
+**QA visuelle et test manuel Back/Forward : non exécutés conformément à la consigne du lot ;
+validation réservée à Guillaume.**
+
+**Verdict Lot 4.2 : `techniquement livré`.**
+
+## 24. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
