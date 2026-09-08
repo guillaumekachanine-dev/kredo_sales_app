@@ -34,6 +34,20 @@ function formatMeetingTime(startsAt: string, allDay: boolean) {
   }).format(new Date(startsAt))
 }
 
+function formatHeroDate(generatedAt: string | undefined) {
+  if (!generatedAt) return null
+
+  const formattedDate = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: AGENDA_V1_TIMEZONE,
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(generatedAt))
+
+  return `${formattedDate.charAt(0).toUpperCase()}${formattedDate.slice(1)}`
+}
+
 function HomeRail({ children, label }: { children: ReactNode; label: string }) {
   return <div className="cockpit-home__rail" aria-label={label}>{children}</div>
 }
@@ -107,6 +121,7 @@ export function CockpitMobileHome({ snapshot, onOpenModule, onQuickActionsOpen }
   ]
   const meetings = snapshot?.meetings.todayItems ?? []
   const newsItems = snapshot?.news.items ?? []
+  const heroDate = formatHeroDate(snapshot?.generatedAt)
 
   return (
     <section className="cockpit-home">
@@ -130,6 +145,11 @@ export function CockpitMobileHome({ snapshot, onOpenModule, onQuickActionsOpen }
           sizes="316px"
           priority
         />
+        {heroDate && snapshot?.generatedAt ? (
+          <time className="cockpit-home__hero-date" dateTime={snapshot.generatedAt}>
+            {heroDate}
+          </time>
+        ) : null}
         <button type="button" className="cockpit-home__quick-action" onClick={onQuickActionsOpen} aria-label="Créer nouveau">
           <span aria-hidden="true">+</span>
         </button>

@@ -44,6 +44,8 @@
   --color-cockpit-cobalt: var(--color-brand-primary);
   --color-cockpit-cobalt-deep: var(--color-brand-primary-deep);
   --color-cockpit-cobalt-soft: #EAF0FB;
+  --color-cockpit-home-petrol: #1A417C;
+  --color-cockpit-home-petrol-shape: #3F6288;
   --color-cockpit-intelligence: #173D89;
   --color-cockpit-intelligence-border: #4567A1;
   --color-cockpit-action-border: #AFC1DC;
@@ -237,6 +239,8 @@
 
 
 :root {
+  --color-cockpit-home-petrol: #1A417C;
+  --color-cockpit-home-petrol-shape: #3F6288;
   --color-case-need: #FFC107;
   --color-case-need-fg: #3A2A02;
   --color-case-need-muted: #6C5300;

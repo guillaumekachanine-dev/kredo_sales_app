@@ -108,7 +108,7 @@
   min-height: 100dvh;
   margin-top: calc(-1 * var(--space-3));
   overflow-x: clip;
-  background: var(--color-cockpit-cobalt);
+  background: var(--color-cockpit-home-petrol);
   color: var(--color-heading);
 }
 
@@ -116,7 +116,20 @@
   position: relative;
   height: 258px;
   overflow: hidden;
-  background: var(--color-cockpit-cobalt);
+  background: var(--color-cockpit-home-petrol);
+}
+
+.cockpit-home__hero::before {
+  position: absolute;
+  top: 29px;
+  right: -11px;
+  z-index: 0;
+  width: 260px;
+  height: 219px;
+  border-radius: 44% 23% 41% 48% / 34% 24% 69% 64%;
+  background: var(--color-cockpit-home-petrol-shape);
+  content: "";
+  transform: rotate(-7deg);
 }
 
 .cockpit-home__logo {
@@ -131,10 +144,24 @@
 .cockpit-home__hero-illustration {
   position: absolute;
   top: -20px;
-  right: -8px;
+  right: 8px;
+  z-index: 1;
   width: 316px;
   height: 237px;
   object-fit: contain;
+}
+
+.cockpit-home__hero-date {
+  position: absolute;
+  bottom: 64px;
+  left: 19px;
+  z-index: 2;
+  color: color-mix(in srgb, var(--color-primary-fg) 92%, transparent);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
 .cockpit-home__quick-action {
@@ -147,10 +174,10 @@
   height: 44px;
   align-items: center;
   justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--color-primary-fg) 74%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary-fg) 42%, transparent);
   border-radius: var(--radius-round);
-  background: color-mix(in srgb, var(--color-cockpit-cobalt-deep) 72%, transparent);
-  color: var(--color-primary-fg);
+  background: color-mix(in srgb, var(--color-primary-fg) 45%, transparent);
+  color: var(--color-cockpit-home-petrol);
   font-family: var(--font-heading);
   font-size: 28px;
   font-weight: 500;
