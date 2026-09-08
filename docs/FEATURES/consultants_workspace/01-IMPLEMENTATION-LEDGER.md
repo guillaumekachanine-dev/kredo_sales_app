@@ -12,7 +12,7 @@ Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 1 — Socle Consultants Workspace
 Lot courant              : —
 Prochain lot             : Lot 2 — Data Contract Synthèse
-Dernier SHA connu origin/main : 3f522358   (2026-09-08, après commit Lot 0 ; SHA Lot 1 renseigné plus bas après push)
+Dernier SHA connu origin/main : 8e191c8b39c3b207d13146b41c45a63ff49f5190   (2026-09-08, après commit Lot 1)
 ```
 
 ## Table des lots
@@ -23,7 +23,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | Lot | Objet | Statut | Commit | Notes |
 |---|---|---|---|---|
 | 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
-| 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
+| 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
 | 2 | Data Contract Synthèse | ⬜ todo | — | Résoudre DATA-1/2/3/7. Migration éventuelle → sous-lot 2.x. |
 | 3 | Synthèse Desktop + Mobile | ⬜ todo | — | SVG maison, zéro librairie graphique. |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
@@ -163,8 +163,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm run build` → PASS (routes `/consultants`, `/consultants/activite-conges`, `/consultants/pool-competences` compilées)
 - **QA visuelle** : non réalisée — réservée à Guillaume.
 - **Limites / transitoire** : `synthese` et `collaborateurs` rendent la même vue (résorbé Lots 3-4) ; dual-paradigme desktop `/consultants` vs `/consultants/(tabbed)` (résorbé Lots 5-6). Voir « Dettes connues ».
-- **Commit** : _(SHA après push)_ — `feat(consultants): shell /consultants sur SectionRail V2 (Lot 1)`.
-- **SHA final** : _(à renseigner après push)_.
+- **Commit** : `8e191c8b` — `feat(consultants): shell /consultants sur SectionRail V2 (Lot 1)`.
+- **SHA final** : `8e191c8b39c3b207d13146b41c45a63ff49f5190`.
 - **NEXT LOT** : Lot 2 — Data Contract Synthèse.
 
 ### Lot 0 — Cadrage documentaire — ✅ techniquement livré (2026-09-08)
