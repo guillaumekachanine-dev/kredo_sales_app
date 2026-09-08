@@ -9,7 +9,7 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 12 — Module Production & Congés — UI Desktop + Mobile
+Dernier lot livré        : Sous-lot 12.1 — Harmonisation IntelligenceSplitModalShell (Production & Congés)
 Lot courant              : —
 Prochain lot             : Lot 13 — Module Matching profil (UI vers moteur existant)
 Dernier SHA connu origin/main : 9d715c3e   (2026-09-08)
@@ -35,6 +35,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ✅ techniquement livré | `b900b0f4` | `permanentRedirect("/consultants?section=candidats")`. C-13 résolue (contrat mobile `getMobileTabsForPath` repointé). NAV-3 volet dépréciation résolu. Call-sites actifs repointés (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`). Code métier legacy préservé (Lot 15). |
 | 11 | Module Production & Congés — Data | ✅ techniquement livré | `ab637998` | Granularité mensuelle `1 collab × 1 mois` (C-30, DATA-5 résolu). 22 tests + sentinelles. Loader server-only, RLS respectée. Zéro migration, zéro UI. |
 | 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `149eb699` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
+| 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `94de39cd` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
 | 13 | Module Matching profil (UI vers moteur existant) | ⬜ todo | — | Résoudre PRODUCT-1. Aucun second moteur (C-09). |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
@@ -159,6 +160,56 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Sous-lot 12.1 — Harmonisation IntelligenceSplitModalShell — ✅ techniquement livré (2026-09-09)
+
+- **Baseline** : `149eb699` (`main` = `origin/main`).
+- **Objectif** : Remplacer le shell modal custom du module Desktop Production & Congés (`ProductionLeaveDesktop`) par le composant canonique partagé `IntelligenceSplitModalShell`, sans modifier le contenu fonctionnel ni le Data Contract, et harmoniser la présentation de tous les sous-composants avec la grammaire visuelle sombre analytique canonique (`INTELLIGENCE-SPLIT-MODAL-REFERENCE-CHARTER.md`).
+- **Fichiers modifiés** :
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveDesktop.tsx` :
+    - Remplacement du wrapper modal custom par `<IntelligenceSplitModalShell open title="Production & Congés" subtitle="Analyse mensuelle de l’activité réalisée et des absences" onClose={handleClose} headerRightActions={monthSelector} leftPane={collaboratorNavigation} rightPane={collaboratorAnalysis} />`.
+    - Suppression intégrale des responsabilités locales : `role="dialog"`, backdrop custom (`Link`), cadre fixed inset, bouton de fermeture custom, écouteur global `Escape`, gestion locale du scroll.
+    - Fermeture propre via `router.push()` (retrait de `module=production-conges`, maintien de `?section=`).
+    - Harmonisation de la carte d'identité collaborateur droite avec le thème sombre (accent laiton doré `brand-brass`, typographie blanche et `tabular-nums`).
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveCollaboratorList.tsx` :
+    - Suppression du double cadre/bordure rigide ; intégration transparente dans l'aside du shell.
+    - Contrôles de recherche et sélection stylisés en dark analytique (`bg-white/[0.04]`, bordures `border-white/10`, focus brass).
+    - Items de la liste avec séparateurs subtils `divide-white/5`, actif avec bordure gauche `brand-brass` et fond `bg-brand-brass/10`, taux et écarts en `tabular-nums`.
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveMonthlySummary.tsx` :
+    - Surfaces translucides `bg-white/[0.02]` et `border-white/5`.
+    - Cartes KPI denses `bg-white/[0.03]` avec chiffres forts en `tabular-nums` et labels compacts en uppercase tracking.
+    - Barre de composition visuelle harmonisée (piste `bg-white/10`, segments et pastilles de légende contrastés).
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveHistoryChart.tsx` :
+    - Conteneur harmonisé avec le fond sombre `#0f122c`.
+    - Courbe SVG maison : ligne réelle dorée (`#C89A2B`), cible en pointillés dorés clairs (`#F59E0B`), grille discrète (`rgba(255,255,255,0.08)`), labels d'axes clairs (`rgba(255,255,255,0.40)`).
+    - Tooltip flottant contrasté sur fond sombre (`bg-[#0f122c] border-white/10`).
+    - Ruban chronologique 12 mois adapté aux surfaces sombres.
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveAbsenceDetail.tsx` :
+    - Tableau de ventilation des absences et liste déroulante des absences datées adaptés au thème sombre (`divide-white/5`, bordures `border-white/5`, fond subtil `bg-white/[0.02]`).
+    - Vocabulaire métier « Manque à produire théorique » strictement conservé.
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveFinancialSummary.tsx` :
+    - Cartes KPI financières translucides sombres avec chiffres en `tabular-nums`.
+    - Masquage conforme RLS en cas de `null` (aucun faux 0 € affiché).
+  - `src/features/consultants/modules/production-leave/desktop/__tests__/production-leave-desktop.test.ts` :
+    - Tests de rendu mis à jour pour valider la structure de `IntelligenceSplitModalShell` (titre, sous-titre, libellé accessibilité de fermeture, actions d'en-tête).
+    - Ajout d'un test sentinelle structurel interdisant la réintroduction dans `ProductionLeaveDesktop` de `role="dialog"`, `fixed inset-0`, `window.addEventListener`, `max-w-[1500px]`, `max-h-[92vh]`.
+  - `docs/FEATURES/consultants_workspace/01-IMPLEMENTATION-LEDGER.md` : mise à jour du journal.
+- **Invariants protégés** :
+  - **Zéro modification du Data Contract** : ni les types, ni le loader `get-production-leave.ts`, ni le builder `build-production-leave.ts` n'ont été touchés.
+  - **Zéro modification de la vue Mobile** : `ProductionLeaveMobile` reste intacte sur `?section=activite-conges`.
+  - **Zéro modification du composant partagé** : `IntelligenceSplitModalShell.tsx` n'a pas été modifié.
+  - Aucune dépendance externe ajoutée (SVG maison et barres HTML préservés).
+- **Gates exécutées** :
+  - `npm run check:server-boundary` → **PASS**
+  - `rm -rf .next && npm run typecheck` → **PASS** (0 erreurs)
+  - `npm test` (**suite complète**) → **PASS** (270 fichiers / 2705 tests)
+  - `npx eslint src/features/consultants/modules/production-leave/desktop/` → **PASS** (0 erreur, 0 avertissement)
+  - `npm run build` → **PASS** (Turbopack, exit code 0, 42 routes compilées sans erreur)
+  - `git diff --check` → **PASS** (0 whitespace/syntax issue)
+- **QA visuelle** : réservée à Guillaume (aucun navigateur automatisé ni Playwright exécuté).
+- **Commit** : `94de39cd` — `refactor(consultants): align production leave module with split modal shell`
+- **SHA final** : `94de39cd94f0f98c2fa4c872698f60e1f56b2eee`
+- **NEXT LOT** : Lot 13 — Module Matching profil (UI vers moteur existant).
 
 ### Lot 12 — Module Production & Congés / UI Desktop + Mobile — ✅ techniquement livré (2026-09-09)
 

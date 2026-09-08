@@ -42,17 +42,17 @@ export function ProductionLeaveFinancialSummary({
   // Si aucune donnée financière accessible
   if (!hasRevenueData && !hasCostData && !hasMarginData) {
     return (
-      <div className="rounded-[var(--radius-medium)] border border-border/80 bg-surface/80 p-4">
-        <div className="flex items-center justify-between text-xs text-muted">
-          <span className="font-semibold uppercase tracking-wider text-[11px]">
+      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-xs text-white/50">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold uppercase tracking-[0.1em] text-[10px] text-white/45">
             Données économiques · {monthLabel}
           </span>
-          <span className="text-[11px] italic">
+          <span className="text-[11px] italic text-white/40">
             Données financières confidentielles ou non configurées
           </span>
         </div>
         {dataNotes && dataNotes.length > 0 ? (
-          <p className="mt-1 text-[11px] text-muted">
+          <p className="mt-1 text-[11px] text-white/40">
             {dataNotes[0]}
           </p>
         ) : null}
@@ -61,13 +61,13 @@ export function ProductionLeaveFinancialSummary({
   }
 
   return (
-    <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-5 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
         <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
             Impact économique observable · {monthLabel}
           </h3>
-          <p className="text-[11px] text-body mt-0.5">
+          <p className="text-[11px] text-white/45 mt-0.5">
             Valorisation sur les bases tarifaires et coûts réels
           </p>
         </div>
@@ -76,19 +76,19 @@ export function ProductionLeaveFinancialSummary({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {/* Chiffre d'affaires */}
         {hasRevenueData ? (
-          <div className="rounded-[var(--radius-small)] border border-border/80 bg-canvas/40 p-3">
-            <div className="text-[11px] font-medium text-muted">Chiffre d&apos;affaires produit</div>
-            <div className="mt-1 text-xl font-bold tracking-tight text-heading font-mono">
+          <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Chiffre d&apos;affaires produit</div>
+            <div className="mt-1 text-xl font-bold tracking-tight text-white font-mono tabular-nums">
               {formatCurrency(revenue)}
             </div>
             {targetRevenue !== null ? (
-              <div className="mt-1 flex items-center justify-between text-[11px] text-body">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-white/45">
                 <span>Cible : {formatCurrency(targetRevenue)}</span>
                 {revenueGap !== null ? (
                   <span
                     className={cn(
-                      "font-semibold font-mono",
-                      revenueGap >= 0 ? "text-success" : "text-amber-700",
+                      "font-semibold font-mono tabular-nums",
+                      revenueGap >= 0 ? "text-brand-brass" : "text-amber-400",
                     )}
                   >
                     {revenueGap > 0 ? `+${formatCurrency(revenueGap)}` : formatCurrency(revenueGap)}
@@ -101,12 +101,12 @@ export function ProductionLeaveFinancialSummary({
 
         {/* Coût structurel employeur */}
         {hasCostData ? (
-          <div className="rounded-[var(--radius-small)] border border-border/80 bg-canvas/40 p-3">
-            <div className="text-[11px] font-medium text-muted">Coût structurel de la période</div>
-            <div className="mt-1 text-xl font-bold tracking-tight text-heading font-mono">
+          <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Coût structurel de la période</div>
+            <div className="mt-1 text-xl font-bold tracking-tight text-white font-mono tabular-nums">
               {formatCurrency(structuralCost)}
             </div>
-            <div className="mt-1 text-[11px] text-muted">
+            <div className="mt-1 text-[11px] text-white/45">
               Coût employeur brut hors marge TACI
             </div>
           </div>
@@ -114,24 +114,24 @@ export function ProductionLeaveFinancialSummary({
 
         {/* Marge brute */}
         {hasMarginData ? (
-          <div className="rounded-[var(--radius-small)] border border-border/80 bg-canvas/40 p-3">
-            <div className="text-[11px] font-medium text-muted">Marge opérationnelle</div>
+          <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Marge opérationnelle</div>
             <div
               className={cn(
-                "mt-1 text-xl font-bold tracking-tight font-mono",
-                margin >= 0 ? "text-heading" : "text-amber-700",
+                "mt-1 text-xl font-bold tracking-tight font-mono tabular-nums",
+                margin >= 0 ? "text-white" : "text-amber-400",
               )}
             >
               {formatCurrency(margin)}
             </div>
             {targetMargin !== null ? (
-              <div className="mt-1 flex items-center justify-between text-[11px] text-body">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-white/45">
                 <span>Cible : {formatCurrency(targetMargin)}</span>
                 {marginGap !== null ? (
                   <span
                     className={cn(
-                      "font-semibold font-mono",
-                      marginGap >= 0 ? "text-success" : "text-amber-700",
+                      "font-semibold font-mono tabular-nums",
+                      marginGap >= 0 ? "text-brand-brass" : "text-amber-400",
                     )}
                   >
                     {marginGap > 0 ? `+${formatCurrency(marginGap)}` : formatCurrency(marginGap)}

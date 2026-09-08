@@ -1,4 +1,6 @@
 import React from "react"
+import fs from "node:fs"
+import path from "node:path"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { ProductionLeaveDesktop } from "../ProductionLeaveDesktop"
@@ -186,7 +188,7 @@ const mockVm: ProductionLeaveViewModel = {
 }
 
 describe("ProductionLeaveDesktop", () => {
-  it("rend le modal avec le titre et les contrôles", () => {
+  it("rend le modal avec IntelligenceSplitModalShell, le titre, sous-titre et contrôles", () => {
     const markup = renderToStaticMarkup(
       React.createElement(ProductionLeaveDesktop, {
         vm: mockVm,
@@ -195,10 +197,12 @@ describe("ProductionLeaveDesktop", () => {
     )
 
     expect(markup).toContain("Production &amp; Congés")
+    expect(markup).toContain("Analyse mensuelle de l’activité réalisée et des absences")
+    expect(markup).toContain("Fermer la modale")
+    expect(markup).toContain("production-month-select")
     expect(markup).toContain("Guillaume Martin")
     expect(markup).toContain("Data Engineer")
     expect(markup).toContain("Data &amp; AI")
-    expect(markup).toContain('href="/consultants"')
   })
 
   it("affiche les indicateurs de productivité et de jours produits", () => {
@@ -264,5 +268,22 @@ describe("ProductionLeaveDesktop", () => {
 
     expect(markup).not.toContain("calendrier-journalier")
     expect(markup).not.toContain("planning-journalier")
+  })
+
+  it("sentinelle structurelle : n'a aucun dialog/backdrop/escape custom et délègue à IntelligenceSplitModalShell", () => {
+    const filePath = path.resolve(__dirname, "../ProductionLeaveDesktop.tsx")
+    const sourceCode = fs.readFileSync(filePath, "utf-8")
+
+    // Vérifie l'import et l'utilisation de IntelligenceSplitModalShell
+    expect(sourceCode).toContain('import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"')
+    expect(sourceCode).toContain("<IntelligenceSplitModalShell")
+
+    // Interdit la réintroduction de primitives modales dupliquées
+    expect(sourceCode).not.toContain('role="dialog"')
+    expect(sourceCode).not.toContain("fixed inset-0")
+    expect(sourceCode).not.toContain("window.addEventListener")
+    expect(sourceCode).not.toContain("window.removeEventListener")
+    expect(sourceCode).not.toContain("max-w-[1500px]")
+    expect(sourceCode).not.toContain("max-h-[92vh]")
   })
 })
