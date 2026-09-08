@@ -81,7 +81,7 @@ QA minimale :
 | **2.1** | Migration Account Intelligence | ✅ techniquement livré | commit `31163105` ; QA visuelle réservée à Guillaume |
 | **2.2** | Migration Business Intelligence | ✅ techniquement livré | châssis `SectionRail` ; `?segment=` + `?tab=` conservés ; QA visuelle réservée à Guillaume |
 | **2.3** | Migration Veille | ✅ techniquement livré | commit `df160aab` ; QA visuelle réservée à Guillaume |
-| **2.4** | Migration Rapports | ⬜ todo | extraire rail inline |
+| **2.4** | Migration Rapports | ✅ techniquement livré | commit `d22ad5ca` ; QA visuelle réservée à Guillaume |
 | **2.5** | Migration Automatisations | ⬜ todo | supprimer divergences visuelles |
 | **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
 | **2.7** | Migration Prospection | ⬜ todo | `15rem → 11.5rem` |
@@ -485,7 +485,52 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Lot 2.3 techniquement livré.**
 
-## 16. Prochaine étape
+## 16. Clôture du Lot 2.4 — Rapports & rédaction
+
+### Fichiers modifiés et créés
+
+- `src/components/reports/ReportsLocalNavigation.tsx` (nouveau composant adaptateur) ;
+- `src/components/reports/ReportsDesktopView.tsx` ;
+- `src/components/reports/ReportsLocalNavigation.test.ts` (nouveaux tests unitaires et de contrat) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`.
+
+### Architecture retenue
+
+- Le rail secondaire Desktop inline a été extrait dans l'adaptateur Desktop léger `ReportsLocalNavigation`, qui délègue la présentation à la primitive canonique `SectionRail` ;
+- Le chapeau canonique affiche `Rapports & rédaction` (navy, texte blanc, gras, centré horizontalement et verticalement, largeur 11.5rem / 184px) et déclenche la sélection de la section racine `documents` via `home.onSelect`, sans modifier les autres états métier de la page ;
+- La configuration Desktop unique `REPORTS_DESKTOP_CHAPTERS` sert de source de vérité pour les trois chapitres : `documents` (« Bibliothèque »), `knowledge` (« Connaissances ») et `generation` (« Génération »), conservant exactement leurs identifiants, leur ordre, leurs libellés et leurs icônes ;
+- Le header principal Desktop applique l'invariant SHELL-0018 en affichant le titre exact du chapitre actif (`Bibliothèque`, `Connaissances` ou `Génération`), dérivé dynamiquement de la configuration via `getReportsDesktopChapterLabel(activeSection)` ;
+- Toutes les fonctionnalités métier de consultation documentaire, d'édition, de filtrage, de duplication, de favoris, d'archivage, de génération, de Knowledge Space et d'analyses restent strictement protégées et inchangées ;
+- L'import inutilisé `useCrmAccountLauncherStore` a été supprimé de `ReportsDesktopView.tsx`.
+
+### Modules contextuels
+
+- Aucun module contextuel réel distinct des trois chapitres n'est présent sur cette page ;
+- `contextualModules` est omis (`undefined`), ce qui empêche le rendu de la section Modules dans le rail ;
+- Les actions non contextuelles recopiées dans l'ancien rail inline ont été retirées du rail ;
+- Aucun bouton mort, placeholder trompeur ou action disabled n'est affiché.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** sans erreur ;
+2. `npm test -- src/components/reports/ReportsLocalNavigation.test.ts src/components/layout/SectionRail.test.ts` : **11/11 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des fichiers créés et modifiés : **passé sans erreur** ; le warning `setShowFilters` préexistant dans `ReportsDesktopView.tsx` reste inchangé ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès.
+
+### Limites et dettes restantes
+
+- L'état de navigation `activeSection` reste un état local dans ce lot ; l'URLisation de la page Rapports reste une dette de Phase 4 conformément au cadrage ;
+- Aucune modification Mobile, Supabase, RLS, RPC, fetch métier ou workflow n8n ;
+- Aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Lot 2.4 techniquement livré.**
+
+## 17. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
