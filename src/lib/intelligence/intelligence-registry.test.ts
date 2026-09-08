@@ -5,7 +5,7 @@ import {
   MONTHLY_WATCH_MISSION_ACTION_ID,
 } from "@/features/intelligence-missions/components/mission-composer-model"
 import { isDeterministicIntelligenceAction } from "@/components/intelligence/action-results/IntelligenceActionResultContent"
-import { MODULE_LAUNCHERS } from "@/components/intelligence/cockpit-mobile/CockpitIntelligenceMobileContent"
+import { MODULE_COMMANDS, MODULE_LAUNCHERS } from "@/components/intelligence/cockpit-mobile/CockpitIntelligenceMobileContent"
 import {
   PAGE_COCKPIT_CONFIGS,
   doesCockpitPatternMatch,
@@ -50,7 +50,7 @@ describe("Cockpit Intelligence registry", () => {
       "detect_anomalies",
     ])
     expect(finance.modules).toEqual([
-      expect.objectContaining({ id: "portfolio_atlas", status: "coming_soon", kind: "launcher" }),
+      expect.objectContaining({ id: "portfolio_atlas", status: "active", kind: "launcher" }),
       expect.objectContaining({
         id: "activity_leave",
         status: "active",
@@ -108,6 +108,13 @@ describe("Cockpit Intelligence registry", () => {
           continue
         }
         if (entry.status !== "active") continue
+        if (entry.kind === "command") {
+          expect(
+            entry.id in MODULE_COMMANDS,
+            `${entry.id} est une commande active sans implémentation`,
+          ).toBe(true)
+          continue
+        }
         expect(
           entry.id in MODULE_LAUNCHERS,
           `${entry.id} est un launcher actif sans implémentation`,

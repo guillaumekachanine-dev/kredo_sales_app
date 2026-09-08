@@ -29,6 +29,7 @@ export type CockpitMobileModuleIcon =
   | "knowledge_management"
   | "bibliotheque"
   | "recruitment_activity"
+  | "report_generation"
   | "write_pitch"
   | "report_summary"
 
@@ -114,6 +115,7 @@ const NAVIGATION_ICON_BY_MODULE_ICON: Record<CockpitMobileModuleIcon, string> = 
   knowledge_management: "knowledge",
   bibliotheque: "reports",
   recruitment_activity: "recrutement",
+  report_generation: "reports",
   write_pitch: "reports",
   report_summary: "reports",
 }

@@ -6,11 +6,12 @@ import type { ResolvedPageCockpitConfig } from "@/lib/intelligence/intelligence-
 import { doesCockpitPatternMatch } from "@/lib/intelligence/intelligence-registry"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import type { CockpitModule } from "@/lib/intelligence/intelligence-registry"
 import { IntelligenceActionCard } from "../IntelligenceActionCard"
 import { MissionComposerMobile } from "@/features/intelligence-missions/components/MissionComposerMobile"
 import { MATCHING_COMPOSER_ACTION_ID } from "@/lib/intelligence/matching-composer-action"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
-import { CockpitActionCard, CockpitModuleCard } from "./CockpitIntelligenceCards"
+import { CockpitActionCard, CockpitModuleCard, type CockpitModuleCardState } from "./CockpitIntelligenceCards"
 import { CockpitIntelligenceShell, CockpitSectionHeader } from "./CockpitIntelligenceShell"
 import { cockpitActionIcons } from "../cockpit-action-icons"
 
@@ -59,6 +60,11 @@ const ActivityMetricsModule = dynamic(
   { ssr: false },
 )
 
+const PortfolioAtlasModule = dynamic(
+  () => import("@/components/intelligence/modules/PortfolioAtlasModule").then((module) => module.PortfolioAtlasModule),
+  { ssr: false },
+)
+
 const AgendaLightModule = dynamic(
   () => import("@/components/intelligence/modules/AgendaLightModule").then((module) => module.AgendaLightModule),
   { ssr: false },
@@ -86,6 +92,26 @@ export const MODULE_LAUNCHERS: Record<string, (props: ModuleLauncherProps) => Re
   // Même composant, deux périmètres — voir le commentaire des modules dans le registre.
   commercial_activity: ({ onClose }) => <ActivityMetricsModule onClose={onClose} initialNature="commercial" />,
   recruitment_activity: ({ onClose }) => <ActivityMetricsModule onClose={onClose} initialNature="recruitment" />,
+  portfolio_atlas: ({ onClose }) => <PortfolioAtlasModule onClose={onClose} />,
+}
+
+/**
+ * Modules `kind: "command"` : un effet, aucun montage. L'hôte visé vit déjà
+ * dans `AppOverlayHosts`, il suffit de le réveiller.
+ */
+export const MODULE_COMMANDS: Record<string, () => void> = {
+  report_generation: () => openReportGeneration({ origin: "agenda" }),
+}
+
+/**
+ * Un module sans implémentation ne peut pas se prétendre actif : la carte
+ * retombe sur « à venir » plutôt que d'offrir un clic sans effet. L'invariant
+ * est testé, ceci en est le filet.
+ */
+function resolveModuleState(module: CockpitModule): CockpitModuleCardState {
+  if (module.kind === "launcher" && !(module.id in MODULE_LAUNCHERS)) return "coming_soon"
+  if (module.kind === "command" && !(module.id in MODULE_COMMANDS)) return "coming_soon"
+  return module.status
 }
 
 const COMMON_MOBILE_ACTIONS = [
@@ -181,21 +207,16 @@ export function CockpitIntelligenceMobileContent({
               description={module.description}
               icon={module.icon}
               href={module.kind === "route" ? module.href : undefined}
-              // Un module `launcher` sans implémentation ne peut pas se prétendre
-              // actif : la carte retombe sur « à venir » plutôt que d'offrir un
-              // clic sans effet. L'invariant est testé, ceci en est le filet.
-              state={
-                module.kind === "launcher" && !(module.id in MODULE_LAUNCHERS)
-                  ? "coming_soon"
-                  : module.status
-              }
+              state={resolveModuleState(module)}
               // « Page courante » ne vaut que pour une navigation : un launcher
               // s'ouvre par-dessus la page, y compris sa page d'origine.
               current={module.kind === "route" && !!module.href && doesCockpitPatternMatch(pathname, module.href)}
               onClick={
                 module.kind === "launcher" && module.id in MODULE_LAUNCHERS
                   ? () => setOpenLauncherId(module.id)
-                  : undefined
+                  : module.kind === "command"
+                    ? MODULE_COMMANDS[module.id]
+                    : undefined
               }
             />
           ))}

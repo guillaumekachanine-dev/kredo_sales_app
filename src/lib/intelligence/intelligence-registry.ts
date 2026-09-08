@@ -36,6 +36,7 @@ export type CockpitModuleIconKey =
   | "knowledge_management"
   | "bibliotheque"
   | "recruitment_activity"
+  | "report_generation"
 
 /**
  * Comment un module s'ouvre. Déclaratif : le rendu mobile ne connaît plus d'id
@@ -44,13 +45,17 @@ export type CockpitModuleIconKey =
  *  - `route`    : navigation vers `href`.
  *  - `launcher` : monte un flow client, chargé à l'ouverture via `next/dynamic`.
  *                 `href` reste facultatif et purement informatif (page d'origine).
+ *  - `command`  : déclenche un effet et ne monte rien — typiquement l'ouverture
+ *                 d'un hôte global déjà présent dans le shell. Un `launcher` qui
+ *                 monterait un composant fantôme pour émettre un événement puis
+ *                 se fermer serait un détour ; ce kind rend l'intention lisible.
  *
  * Un module `launcher` doit être AUTOPORTANT : il charge ses propres données
  * (server action appelée depuis le client). Un composant qui exige un snapshot
  * en prop ne peut pas être monté depuis le panneau — il reste `coming_soon`
  * tant que son chargeur n'existe pas.
  */
-export type CockpitModuleKind = "route" | "launcher"
+export type CockpitModuleKind = "route" | "launcher" | "command"
 
 export type CockpitModule = {
   id: string
@@ -504,10 +509,7 @@ const MODULES: Record<string, CockpitModule> = {
 
   // ── Modules métier autoportants ────────────────────────────────────────
   //
-  //  Chacun charge ses propres données depuis le client. Seul l'Atlas reste
-  //  `coming_soon` : son dialog est desktop-only et exige un
-  //  `EngagementsPortfolioViewModel` en prop — il lui faut une vue mobile,
-  //  pas un chargeur.
+  //  Chacun charge ses propres données depuis le client.
   commercial_activity: {
     id: "commercial_activity",
     label: "Métriques activité",
@@ -541,9 +543,21 @@ const MODULES: Record<string, CockpitModule> = {
     icon: "portfolio_atlas",
     kind: "launcher",
     href: "/missions",
-    status: "coming_soon",
+    status: "active",
   },
 
+  // « Rapports » n'est pas un raccourci vers /reports : c'est le drawer de
+  // GÉNÉRATION (`ReportGenerationHost`, monté globalement dans AppOverlayHosts),
+  // qui propose les 6 familles de rapports disponibles. D'où le kind `command` —
+  // il n'y a rien à monter, seulement un hôte existant à réveiller.
+  report_generation: {
+    id: "report_generation",
+    label: "Rapports",
+    description: "Générer un rapport",
+    icon: "report_generation",
+    kind: "command",
+    status: "active",
+  },
   bibliotheque: {
     id: "bibliotheque",
     label: "Bibliothèque",
@@ -623,7 +637,7 @@ export const PAGE_COCKPIT_CONFIGS: PageCockpitConfig[] = [
     pattern: "/agenda",
     label: "Agenda",
     actionIds: ["prepare_day", "prepare_meeting", "upcoming_deadlines", "action_priorities", "weekly_brief"],
-    moduleIds: ["commercial_activity"],
+    moduleIds: ["commercial_activity", "report_generation"],
   },
 
   // ── CRM & Prospection ─────────────────────────────────────────────────

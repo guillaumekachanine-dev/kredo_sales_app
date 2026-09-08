@@ -22,7 +22,6 @@ import { PitchMailDrawerContent, SummaryDrawerContent } from "@/components/accou
 import {
   IntelligenceActionResultContent,
   isDeterministicIntelligenceAction,
-  type DeterministicIntelligenceActionId,
 } from "./action-results/IntelligenceActionResultContent"
 import {
   applyCommunicationEntryPoint,
