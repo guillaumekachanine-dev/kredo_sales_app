@@ -558,29 +558,25 @@ Traitement : `MOVE` + `REUSE` — **livré (Lot 6, C-25)**. Redirection `/consul
 ## 16. Module contextuel — Production & Congés
 
 Nouveau module contextuel (rail `Modules`). Objectif : pour chaque collaborateur, afficher
-**niveau de productivité · planning des jours de production · congés · absences**.
+**suivi mensuel de la production, productivité, congés, absences et impact économique**.
 
-### Sources existantes à auditer (Lot 11)
+### Sources existantes auditées (Lot 11)
 
 | Source | Contenu utile |
 |---|---|
-| `mission_activity_reports` | CRA par période — `business_days`, `billable_days`, `pto_days`, `sick_days`, `non_billable_days`, `activity_rate_percent` (généré) |
-| `collaborator_absences` | absences datées (`start_date`, `end_date`, `duration_days`, `absence_type`) |
-| `v_collaborator_activity_summary` | 1 ligne / collaborateur × mois — activité + finance |
-| `v_collaborator_ytd_activity` | taux YTD pondéré, `taci_target`, `gap_vs_target` |
+| `mission_activity_reports` | CRA par période — `business_days`, `billable_days`, `pto_days`, `sick_days`, `non_billable_days`, `activity_rate_percent` (généré) — 227 lignes, 11 mois |
+| `collaborator_absences` | absences datées (`start_date`, `end_date`, `duration_days`, `absence_type`) — 88 lignes |
+| `v_collaborator_activity_summary` | 1 ligne / collaborateur × mois — activité + finance (`revenue`, `employer_cost`, `real_margin`) — 227 lignes |
+| `v_collaborator_ytd_activity` | taux YTD pondéré, `taci_target`, `gap_vs_target` — 30 lignes |
 
-### `OPEN QUESTION DATA-5` — agrégat mensuel vs planning journalier
+### `RÉSOLUTION DATA-5 & DÉCISION C-30` — granularité mensuelle fondée sur les CRA
 
-`mission_activity_reports` et les vues fournissent des **agrégats mensuels**. Le module demande
-un **planning journalier réel** (jour par jour : production / congé / absence).
+L'orientation initiale prévoyant un planning journalier de production a été **abandonnée**. Le module fonctionne à une **granularité mensuelle stricte** (`1 collaborateur × 1 mois`), en parfaite adéquation avec les données réelles des CRA.
 
-- `collaborator_absences` porte des dates → le planning **des congés / absences** est faisable.
-- Le planning **des jours de production** jour par jour n'existe pas en base (seuls des totaux mensuels).
-
-**Le Lot 11 doit** : documenter précisément le gap · proposer le modèle relationnel minimal
-(ex. table `collaborator_daily_activity` ou dérivation calendaire depuis missions + absences +
-`client_closures`) · placer la migration dans un lot Data dédié · **ne jamais fabriquer un faux
-calendrier journalier à partir d'agrégats mensuels** (C-08).
+- **Aucun planning journalier de production n'est créé ou reconstruit** à partir d'agrégats mensuels (**C-08**, **C-30**). Aucune table `collaborator_daily_activity`.
+- `collaborator_absences` conserve son détail daté pour expliquer et ventiler les causes d'absence dans le mois.
+- L'analyse économique distingue rigoureusement le CA réalisé, le CA cible, le manque à produire théorique par absence (`estimatedRevenueImpact = days × tjm`) et le coût structurel de période (`businessDays × baseDailyCost`), sans jamais appliquer deux fois le TACI et sans inventer de coût comptable RH par type d'absence.
+- Les données confidentielles de rémunération respectent les règles RLS (les coûts et marges deviennent `null` si non autorisé).
 
 ---
 
@@ -680,7 +676,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-05** | **Navigation URL-driven** via `?section=` : `synthese` (racine) · `collaborateurs` · `activite-conges` · `candidats` · `pool-competences`. | Homogène avec Veille/Reports/Automations/Prospection/Finance. Deep-link, refresh, back/forward. | Actée (Lot 0), contrat révisable si conflit code réel |
 | **C-06** | Le **recrutement futur est candidate-centric** : le loader part de `candidates`, pas de `opportunity_candidates`. | Le vivier complet doit être visible même sans positionnement actif. | Actée (Lot 0) |
 | **C-07** | **Process de recrutement ≠ lifecycle candidat ≠ positionnement commercial** : trois vocabulaires distincts (`candidate_hiring_processes.current_step` / `candidates.status` / `opportunity_candidates.status`). L'édition inline écrit dans le bon modèle via les actions existantes. | Éviter les mappings implicites destructeurs. | Actée (Lot 0) |
-| **C-08** | Le module **Production & Congés ne déduit jamais un planning journalier depuis des agrégats mensuels**. Le planning jour par jour de production nécessite un modèle Data dédié (lot 11). | Pas de faux calendrier. | Actée (Lot 0) |
+| **C-08** | Le module **Production & Congés ne déduit jamais un planning journalier depuis des agrégats mensuels**. C-30 confirme l'abandon du planning journalier au profit du suivi mensuel. | Pas de faux calendrier. | Actée (Lot 0, confirmée Lot 11) |
 | **C-09** | Le module **Matching profil réutilise le moteur unique existant** (`src/lib/staffing-matching/`). Aucun second moteur. | Un seul moteur déterministe, une seule vérité `match_scores`. | Actée (Lot 0) |
 | **C-10** | L'**intégration au menu principal `CRM`** est **reportée à SHELL-0018 Phase 6** (Lot 6.2). Traitée au Lot 14 de ce chantier, jamais en avance de phase. | Séparer refactor technique (rail) et décision produit (taxonomie du menu principal). | Actée (Lot 0) |
 | **C-11** | Emplacement du code : **feature verticale `src/features/consultants/`** (convention KREDO récente), migration progressive sans big-bang. | Cohérence avec `business-intelligence`, `knowledge-hub`, etc. | Actée (Lot 0) |
@@ -702,6 +698,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-27** | **Chapitre Candidats internalisé** (`?section=candidats`, `external: false`, 5/5 sections in-shell) : `src/features/consultants/candidates/` = `CandidatesDesktop` (`StructuredList` maison, patron `CollaboratorsDesktop` — pas `EntityListView` ni `DataTable`), `CandidatesMobile` (`MobileDataList`/`MobileEntitySummary`, cartes), `CandidateInlineControls` (client), `candidates-view.ts` (helpers purs). Distribution Desktop/Mobile **serveur** (`page.tsx`, ADR-0006). **Drawers réutilisés tels quels** : `CandidateDrawer` (déjà candidate-centric — prend `candidateId`, charge ses données), `NewCandidateDrawer`. **Édition inline (§ 14.4)** : `candidates.status` (`updateCandidateStatus`, toujours) + `candidate_hiring_processes.current_step` (`updateHiringStep`, si process actif). Le **positionnement commercial `opportunity_candidates.status` n'est PAS édité inline** — le view-model candidate-centric n'en porte pas l'identifiant ; reste au drawer / audit Lot 9 (dette **CAND-4**). Les 5 Server Actions recrutement gagnent un `revalidatePath("/consultants")` (C-12, refactor). **Route `/recruitment` + `getMobileTabsForPath` + `main-menu.config` intacts** (C-13 ; dépréciation = Lot 10). | Cohérence visuelle et technique avec les chapitres livrés (Lot 4) plutôt qu'un nouveau paradigme ; `CandidateDrawer` est déjà autoportant ; l'édition inline se limite aux dimensions dont la ligne porte la clé ; `edito_bright_design` explicitement hors périmètre (écran opérationnel de saisie rapide). | Actée (Lot 8) |
 | **C-28** | **Parité fonctionnelle Recruitment & absorption candidate-centric** : (1) **Positionnement commercial (CAND-4)** : Option 1 confirmée — `opportunity_candidates.status` reste dans le flux Staffing (`StaffingDrawer`) ; l'audit prouve que le legacy `/recruitment` ne l'éditait pas en inline non plus (`updateRecruitmentStatus` était une Server Action orpheline). (2) **Kanban recrutement** : ADAPT — vue Kanban candidate-centric `CandidatesKanbanDesktop` intégrée dans `CandidatesDesktop` avec sélecteur Tableau/Kanban, opérant sur `candidate_hiring_processes.current_step` via `HIRING_KANBAN_STAGES` et `updateHiringStep`. Mobile couvert par le segment d'action « En process ». (3) **Planning recrutement** : DEPRECATE — rejeté sur preuve de données non fiables (dates d'identification/démarrage fabriquées, matching regex fragile sur `calendar_events`, violation de C-08 / Single Source of Truth). Les jalons réels datés sont portés par `CandidateDrawer` (`HiringProcessStepper`). (4) **Génération de rapport** : ADAPT — bouton « Nouveau rapport » (`openReportGeneration({ origin: "recruitment", reportType: "activity_recruitment" })`) intégré dans `CandidatesDesktop`. (5) **Agenda / Planification** : ADAPT — bouton « Planifier » et `AgendaEventDrawer` intégrés dans `CandidateDrawer` (`event_type: "entretien_candidat"`). (6) **Labels lifecycle (CAND-3)** : RÉSOLU — `CandidateProfileEditor`, `CandidateReferenceProfile` et `RecruitmentListView` unifiés sur `candidate-lifecycle.ts`. (7) **LEGACY-2** : CONFIRMÉ — `dashboard/*` sont des orphelins stricts (0 import externe) ; suppression programmée Lot 15. | Parité complète prouvée avec l'existant sans dégrader l'architecture candidate-centric ; aucun artifice de données non fiables ; suppression de /recruitment débloquée pour le Lot 10. | Actée (Lot 9) |
 | **C-29** | **Dépréciation de `/recruitment` & redirection canonique** : `src/app/(app)/recruitment/page.tsx` applique un `permanentRedirect("/consultants?section=candidats")` direct sans aucun loader ni composant monté. Le contrat mobile `getMobileTabsForPath()` (C-13) et l'entrée « Recrutement » de `mainMenuItems` sous Ressources sont repointés vers `/consultants?section=candidats` pour éviter une redirection intermédiaire morte. Les call-sites actifs UI (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`) sont repointés. Le code métier legacy (`RecruitmentWorkspace`, `_actions/`, `_data/`, dashboards orphelins) est conservé intact pour le Lot 15. C-13 résolue ; NAV-3 résolue sur le volet dépréciation (retrait global du menu principal reporté au Lot 14 coord. SHELL-0018 Phase 6). | Respect de la convention KREDO (patron prospection) ; élimination des navigations mortes ; étanchéité stricte entre dépréciation de route (Lot 10), restructuration Shell (Lot 14) et suppression physique du legacy (Lot 15). | Actée (Lot 10) |
+| **C-30** | **Production & Congés adopte une granularité mensuelle fondée sur les CRA réels** (`mission_activity_reports` et `v_collaborator_activity_summary`). Aucun planning journalier de production n'est créé ou reconstruit. Les absences conservent leur détail daté lorsqu'il existe dans `collaborator_absences`. L'analyse économique distingue la production, le manque à produire théorique et le coût structurel sans inventer de coût RH par type d'absence. | Résolution DATA-5 ; Single Source of Truth respectée ; aucune migration Supabase requise. | Actée (Lot 11) |
 
 ---
 
@@ -718,7 +715,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | ~~**DATA-2**~~ | ✅ **RÉSOLU (Lot 2, C-17)** — clé canonique `offer_practices.slug` ; candidats → `practice_id`, collaborateurs → cascade `job_profile → nom exact → heuristique → null`. Aucune migration ; `collaborators.practice_id` FK = dette future. | 2 |
 | ~~**DATA-3**~~ | ⚠️ **PARTIELLEMENT RÉSOLU (Lot 2, C-18)** — source = `opportunity_candidates` via `person_id` ; `null` (« — ») sans fiche candidat miroir. `match_scores` jamais utilisé. Sous-question ouverte : lien direct `opportunity ↔ collaborator`. | 2 / futur |
 | ~~**DATA-4**~~ | ✅ **RÉSOLU (Lot 7, C-26)** — `qualifiedThisYear` = jalon `candidate_hiring_milestones` `step='prequalification'` + `result='valide'` + `completed_at` dans l'année civile (28/43 live). Fallback/backfill des candidats anciens = dette **CAND-1** (sous-lot 7.x). | 7 (backfill → 7.x) |
-| **DATA-5** | Le **planning journalier de production** n'existe pas en base (agrégats mensuels seulement). Modèle relationnel minimal à créer (table dédiée vs dérivation calendaire) ? | 11 |
+| ~~**DATA-5**~~ | ✅ **RÉSOLU (Lot 11, C-30)** — Abandon du planning journalier fictif ; projection mensuelle déterministe fondée sur les CRA réels (`v_collaborator_activity_summary` et `v_collaborator_ytd_activity`) + ventilation des absences datées ; aucune table journalière ni migration. | 11 |
 | ~~**DATA-6**~~ | ✅ **RÉSOLU (Lot 7, C-26)** — `available_from` (date) + `notice_period_days` (int) sont **peuplés 43/43** → source structurée du tri/filtre. `availability` (texte libre) conservé tel quel en libellé, jamais parsé ; `availabilityBucket` dérivé de `available_from`. Aucune migration, aucune normalisation. | 7 |
 | ~~**DATA-7**~~ | ✅ **RÉSOLU (Lot 2, C-19)** — `grossAnnual`/`cjm` nullables ; `compensationVisible` dérivé de `profiles.role`. Rôle non habilité → valeurs `null` + `dataNote` ; l'UI (Lot 3) masque les colonnes, la page reste accessible. | 2 |
 
@@ -775,7 +772,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | Matching (moteur) | oui | `src/lib/staffing-matching/*` | module **Matching profil** (UI seulement) | KEEP + REUSE |
 | Production / activity (agrégats) | oui | `mission_activity_reports`, `v_collaborator_activity_summary`, `v_collaborator_ytd_activity` | module **Production & Congés** | REUSE |
 | Absences | oui | `collaborator_absences` | module **Production & Congés** | REUSE |
-| Planning journalier de production | **non** | — | module **Production & Congés** | NEW (Data, Lot 11) |
+| Suivi mensuel production, congés & impact éco | oui | `mission_activity_reports`, `collaborator_absences`, `v_collaborator_*` | module **Production & Congés** | LIVRÉ (Data, Lot 11) |
 | Recruitment dashboard (desktop/mobile) | oui, orphelin | `components/recruitment/dashboard/*` | — | DEPRECATE → REMOVE AFTER PARITY |
 | Rail horizontal legacy Consultants | oui | `src/app/(app)/consultants/layout.tsx` + `SectionNavBarSlot` | supprimé (rail V2) | REMOVE AFTER PARITY (Lot 1 local / Lot 14 global) |
 | Route `/recruitment` | oui | `src/app/(app)/recruitment/` | redirect `/consultants?section=candidats` | LIVRÉ (Lot 10, permanentRedirect) |
@@ -1004,11 +1001,11 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 ### Lot 11 — Module Production & Congés / Data
 
-- **Objectif** : auditer les sources d'activité/absences ; si nécessaire, créer le **modèle journalier minimal** distinguant production / congés / absences jour par jour. **Aucun calcul fictif** (C-08).
-- **Prérequis** : Lot 4. Résoudre DATA-5.
-- **Data** : `mission_activity_reports`, `collaborator_absences`, `v_collaborator_*`, `client_closures`, `missions`. Migration éventuelle → fichier dédié, `db:types`, `CLAUDE.md`.
-- **Desktop / Mobile** : aucun rendu — view-model + tests.
-- **Critères d'acceptation** : gap agrégat/journalier documenté ; modèle proposé et (si retenu) migré ; view-model testé.
+- **Objectif** : auditer les sources réelles (227 CRA, 88 absences, vues existantes) ; adopter la granularité mensuelle (C-30) sans table journalière ; builder pur déterministe et testé (22 tests + sentinelles C-08/TACI) ; loader Supabase `server-only` avec gestion de la confidentialité RLS.
+- **Prérequis** : Lot 4. Résoudre DATA-5 (C-30).
+- **Data** : `src/features/consultants/modules/production-leave/data/` (`production-leave.types.ts`, `build-production-leave.ts`, `get-production-leave.ts`). Aucune migration nécessaire.
+- **Desktop / Mobile** : aucun rendu — view-model pur + tests.
+- **Critères d'acceptation** : granularité mensuelle `1 collaborateur × 1 mois` établie ; CRA source du réalisé ; ventilation déterministe des absences sans planning journalier fictif ; TACI non double-compté ; RLS financière respectée (null si non autorisé) ; suite de 22 tests unitaire et sentinelles verte.
 - **Gates** : `typecheck` → `test` → `check:server-boundary` → `eslint` → `build`.
 - **Conditions de sortie** : commit poussé, `NEXT LOT = Lot 12`.
 

@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-10 livrés)**
+> **Statut global : en cours (Lots 0-11 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,7 +51,7 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 11 — Module Production & Congés / Data** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 11).
+➡️ **Lot 12 — Module Production & Congés / UI** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 12).
 
 - Lot 1 : shell `/consultants` sur `SectionRail` V2, navigation `?section=`, `SectionNavBarSlot` descendu.
 - Lot 2 : view-model unique `getConsultantsSynthese()` — DATA-1/2/3/7 résolus (C-16→C-20).
@@ -63,5 +63,6 @@ par l'absence de QA visuelle.
 - Lot 8 : chapitre Candidats in-shell (`?section=candidats`) — `CandidatesDesktop` (`StructuredList`), `CandidatesMobile` (cartes), édition inline lifecycle + étape process, drawers réutilisés (C-27). **5/5 chapitres in-shell.** `/recruitment` intact.
 - Lot 9 : absorption fonctionnelle Recruitment — parité prouvée, Kanban candidate-centric Desktop (`CandidatesKanbanDesktop`, sélecteur Tableau/Kanban), bouton « Nouveau rapport », bouton « Planifier » (`AgendaEventDrawer` dans `CandidateDrawer`), CAND-3 résolu (labels lifecycle canoniques), CAND-4 tranché (Option 1 : positioning dans `StaffingDrawer`), LEGACY-2 confirmé orphelins (C-28). `/recruitment` intact.
 - Lot 10 : dépréciation de la route legacy `/recruitment` via `permanentRedirect("/consultants?section=candidats")`, suppression de tout loader et rendu legacy de cette route, repointage du contrat mobile `getMobileTabsForPath()` (C-13 résolue), de l'entrée `mainMenuItems` sous Ressources et des call-sites UI actifs (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`), tests d'invariants (C-29). Aucun nettoyage prématuré du code métier legacy (réservé Lot 15). NAV-3 partiellement résolue (retrait complet du menu réservé Lot 14).
+- Lot 11 : contrat de données Production & Congés — granularité mensuelle `1 collaborateur × 1 mois` (C-30, DATA-5 résolu), CRA source du réalisé, ventilation absences datées sans planning journalier fictif (C-08), TACI non double-compté, RLS financière respectée, builder pur testé (22 tests + sentinelles) + loader `server-only` (`src/features/consultants/modules/production-leave/data/`). Aucune UI.
 
 > ⚠️ Travail parallèle non commité dans l'arbre (cockpit mobile, veille, `design-lab/`) : stager les chemins consultants explicitement, ne jamais `git add -A`.

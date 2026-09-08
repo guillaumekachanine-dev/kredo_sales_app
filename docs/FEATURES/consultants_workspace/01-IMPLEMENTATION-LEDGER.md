@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 10 — Dépréciation /recruitment
+Dernier lot livré        : Lot 11 — Module Production & Congés — Data Contract mensuel
 Lot courant              : —
-Prochain lot             : Lot 11 — Module Production & Congés — Data
-Dernier SHA connu origin/main : 8e8583ba   (2026-09-08)
+Prochain lot             : Lot 12 — Module Production & Congés — UI
+Dernier SHA connu origin/main : 9d715c3e   (2026-09-08)
 ```
 
 ## Table des lots
@@ -33,7 +33,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 8 | Page Candidats (Desktop + Mobile, inline edit) | ✅ techniquement livré | `84c7d8f1` | `src/features/consultants/candidates/` : `CandidatesDesktop` (`StructuredList` 7 col.) + `CandidatesMobile` (cartes) + `CandidateInlineControls` + `candidates-view` (+6 tests). C-27. **5/5 chapitres in-shell.** Drawers `CandidateDrawer`/`NewCandidateDrawer` réutilisés. `revalidatePath("/consultants")` sur 5 actions. Dette CAND-4 (positionnement inline). `/recruitment` intact. Gates verts (build → Vercel). |
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ✅ techniquement livré | `16596041` | Matrice parité 17/17. CAND-3 résolu (labels unifiés). CAND-4 tranché (C-28 option 1). LEGACY-2 confirmé orphelin. CandidatesKanbanDesktop (EntityKanbanView). Rapports + Agenda intégrés. Planning déprécié (heuristiques illégitimes C-08). |
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ✅ techniquement livré | `b900b0f4` | `permanentRedirect("/consultants?section=candidats")`. C-13 résolue (contrat mobile `getMobileTabsForPath` repointé). NAV-3 volet dépréciation résolu. Call-sites actifs repointés (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`). Code métier legacy préservé (Lot 15). |
-| 11 | Module Production & Congés — Data | ⬜ todo | — | Résoudre DATA-5. Aucun calendrier fictif (C-08). |
+| 11 | Module Production & Congés — Data | ✅ techniquement livré | [commit] | Granularité mensuelle `1 collab × 1 mois` (C-30, DATA-5 résolu). 22 tests + sentinelles. Loader server-only, RLS respectée. Zéro migration, zéro UI. |
 | 12 | Module Production & Congés — UI | ⬜ todo | — | Déclare le module dans `contextualModules`. |
 | 13 | Module Matching profil (UI vers moteur existant) | ⬜ todo | — | Résoudre PRODUCT-1. Aucun second moteur (C-09). |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
@@ -72,6 +72,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-27 | Chapitre Candidats internalisé (`?section=candidats`, 5/5 sections in-shell) : `CandidatesDesktop` (`StructuredList` maison, patron Lot 4 — pas `DataTable`/`EntityListView`), `CandidatesMobile` (cartes), `CandidateInlineControls`, `candidates-view.ts`. Distribution serveur (`page.tsx`). Drawers `CandidateDrawer` (déjà candidate-centric) + `NewCandidateDrawer` réutilisés tels quels. Édition inline = lifecycle (`updateCandidateStatus`) + étape process si actif (`updateHiringStep`) ; positionnement `opportunity_candidates` NON inline (dette CAND-4). `revalidatePath("/consultants")` ajouté aux 5 actions recrutement (C-12). `/recruitment` + `getMobileTabsForPath` + `main-menu.config` intacts (C-13). | 8 |
 | C-28 | Parité Recruitment : Kanban candidate-centric (`CandidatesKanbanDesktop` via `EntityKanbanView` + `HIRING_KANBAN_STAGES`), planning déprécié (heuristiques illégitimes C-08, zéro migration), CAND-3 résolu (`src/lib/recruitment/candidate-lifecycle.ts`), CAND-4 Option 1 confirmée (`opportunity_candidates.status` maintenu au staffing/drawer), LEGACY-2 confirmé orphelin (suppression Lot 15), « Nouveau rapport » + Agenda (« Planifier ») intégrés. | 9 |
 | C-29 | Dépréciation /recruitment & redirection canonique : permanentRedirect("/consultants?section=candidats") direct sans loader ni composant. C-13 résolue (getMobileTabsForPath repointé). Call-sites actifs repointés (SyntheseMobile, TalentProfileDetail, entity-links, mainMenuItems). Code métier legacy préservé (Lot 15). | 10 |
+| C-30 | Production & Congés adopte une granularité mensuelle fondée sur les CRA réels (v_collaborator_activity_summary, ytd, absences) ; aucun planning journalier de production fictif ; TACI non double-compté ; RLS salaires respectée (coûts/marges null si non habilité). | 11 |
 
 ## Questions ouvertes en cours
 
@@ -83,7 +84,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | DATA-2 | Source canonique de la Practice (collaborateurs + candidats) | 2 | ✅ résolue (C-17) |
 | DATA-3 | Preuve canonique d'un positionnement actif d'un collaborateur | 2 | ⚠️ partiellement résolue (C-18) — sous-question lien direct `opp↔collab` ouverte |
 | DATA-4 | Définition « candidat qualifié durant l'année en cours » | 7 | ✅ résolue (C-26) — jalon `prequalification/valide` daté année civile ; backfill = dette CAND-1 |
-| DATA-5 | Planning journalier de production inexistant en base | 11 | ouverte |
+| DATA-5 | Planning journalier de production inexistant en base | 11 | ✅ résolue (C-30) — abandon du planning journalier fictif au profit du contrat mensuel CRA |
 | DATA-6 | `candidates.availability` texte libre — normalisation ? | 7 | ✅ résolue (C-26) — `available_from`+`notice_period_days` (43/43) = source structurée ; texte jamais parsé |
 | DATA-7 | Salaire/CJM intercontrat sous RLS confidentielle — comportement rôle non habilité | 2 | ✅ résolue (C-19) |
 | PRODUCT-1 | Intention module Matching : profil→besoins et/ou besoin→profils | 13 | ouverte |
@@ -157,6 +158,46 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 11 — Module Production & Congés / Data Contract mensuel — ✅ techniquement livré (2026-09-09)
+
+- **Baseline** : `9d715c3e` (`main` = `origin/main`).
+- **Objectif** : Construire le Data Contract du futur module Production & Congés à une granularité mensuelle stricte (`1 collaborateur × 1 mois`) fondée sur les données réellement disponibles dans les CRA, résoudre DATA-5, acter la décision C-30 (abandon de tout calendrier de production fictif), fournir un builder pur testé avec sentinelles et un loader Supabase `server-only` respectant la confidentialité RLS. Aucune UI (réservée Lot 12).
+- **Audit préalable du schéma réel et des données live** :
+  - `mission_activity_reports` : 227 CRA couvrant 11 mois (2026-01 à 2026-11) ; 227/227 lignes respectent `billable_days + pto_days + sick_days + non_billable_days == business_days` ; snapshots TJM et CJM disponibles sur 100 % des lignes.
+  - `collaborator_absences` : 88 absences réelles réparties en `conge_paye` (60), `maladie` (21), `rtt` (4), `formation` (2), `autre` (1). Les 3 absences traversant une fin de mois s'alignent exactement sur les jours ouvrés réels de chaque mois.
+  - `v_collaborator_activity_summary` : projection mensuelle existante (227 lignes) avec activité et métriques financières (`revenue`, `employer_cost`, `real_margin`).
+  - `v_collaborator_ytd_activity` : 30 lignes avec `ytd_activity_rate`, `taci_target`, `gap_vs_target`.
+  - `collaborator_compensation` : 29 lignes actives, protégées par RLS `is_workspace_admin()`.
+  - **Migration Supabase** : 0 migration nécessaire (schéma live complet et suffisant).
+- **Fichiers créés** :
+  - `src/features/consultants/modules/production-leave/data/production-leave.types.ts` : view-model canonique (`ProductionLeaveViewModel`, `ProductionLeaveCollaborator`, `CollaboratorMonthlyProduction`, `MonthlyAbsenceBreakdownItem`, `MonthlyAbsenceItem`, `YtdProductivity`) et types bruts.
+  - `src/features/consultants/modules/production-leave/data/build-production-leave.ts` : builder pur, 0 dépendance DB, historique borné à 12 mois, calcul déterministe de la productivité, ventilation prorata jours ouvrés des absences, impact CA théorique (`days × tjm`), modélisation financière sans double comptage du TACI, et respect RLS (coûts/marges `null` + `dataNote` si non habilité).
+  - `src/features/consultants/modules/production-leave/data/get-production-leave.ts` : loader `server-only` avec lectures parallèles Supabase sous RLS utilisateur, résolution Practice C-17.
+  - `src/features/consultants/modules/production-leave/data/__tests__/build-production-leave.test.ts` : suite de 22 tests unitaires couvrant l'agrégation mensuelle, la productivité, les absences et les finances, ainsi que 4 tests sentinelles stricts (aucun tableau de jours journalier généré, aucun billable_days réparti artificiellement, pas d'assimilation de businessDays - productionDays à de l'absence, TACI non double-compté).
+- **Fichiers modifiés** :
+  - `docs/FEATURES/consultants_workspace/README.md` : statut mis à jour (Lots 0-11 livrés), prochain lot = Lot 12.
+  - `docs/FEATURES/consultants_workspace/00-REFERENCE-CHANTIER-CONSULTANTS.md` : Section 16 réalignée, C-08 mis à jour, C-30 enregistré, DATA-5 résolu, tableau d'inventaire et fiche Lot 11 mis à jour.
+  - `docs/FEATURES/consultants_workspace/01-IMPLEMENTATION-LEDGER.md` : ce fichier.
+- **Décisions & Résolutions** :
+  - **C-30** : Granularité mensuelle stricte fondée sur les CRA réels. Zéro calendrier journalier de production fictif. Absences datées ventilées. Séparation production, manque à produire théorique et coût structurel.
+  - **DATA-5** : Résolue sans migration par réutilisation des projections SQL existantes et builder pur.
+- **Sentinelles d'invariants** :
+  - Aucun calendrier journalier de production fictif (C-08).
+  - Zéro dérive vers un planning journalier.
+  - `businessDays - productionDays` n'est pas confondu avec l'absence.
+  - Le TACI n'est jamais double-compté au coût salarial.
+  - Confidentialité RLS respectée : les rôles non habilités reçoivent des coûts et marges `null`.
+- **Gates exécutées** :
+  - `rm -rf .next && npm run typecheck` → **PASS**
+  - `npm test` (**suite complète**) → **PASS** (10 fichiers / 90 tests consultants, suite globale verte)
+  - `npm run check:server-boundary` → **PASS**
+  - `npx eslint` (fichiers créés) → **PASS** (0 erreur, 0 avertissement)
+  - `npm run build` → **PASS**
+- **QA visuelle** : non applicable (lot Data sans UI) — réservée à Guillaume pour le Lot 12.
+- **Commit** : `feat(consultants): add monthly production data contract (Lot 11)`
+- **SHA final** : [inséré après commit]
+- **NEXT LOT** : Lot 12 — Module Production & Congés / UI.
 
 ### Lot 10 — Dépréciation `/recruitment` — ✅ techniquement livré (2026-09-08)
 
