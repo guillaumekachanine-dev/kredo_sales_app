@@ -7,19 +7,22 @@ import { KredoExpertiseSnapshot } from "./expertise/kredo-expertise.types"
 import { KredoExpertiseDesktop } from "./expertise/KredoExpertiseDesktop"
 import { TalentKnowledgeDesktop } from "./talents/TalentKnowledgeDesktop"
 import { TalentKnowledgeSnapshot } from "./talents/talent-knowledge.types"
-import { KnowledgeHubLocalNavigation } from "./KnowledgeHubLocalNavigation"
+import {
+  KnowledgeHubLocalNavigation,
+  getKnowledgeHubActiveLabel,
+  getKnowledgeHubDefaultSection,
+} from "./KnowledgeHubLocalNavigation"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { ExpertiseTab } from "./expertise/KredoExpertiseNavigation"
 import { TalentTab } from "./talents/talent-knowledge.types"
+import type { KnowledgeView } from "./knowledge-hub.types"
+
+export type { KnowledgeView }
 
 const KnowledgeHubModuleModal = dynamic(
   () => import("./KnowledgeHubModuleModal").then((module) => module.KnowledgeHubModuleModal),
   { ssr: false, loading: () => null },
 )
-
-export type KnowledgeView =
-  | { type: "categories" }
-  | { type: "domain"; domainId: string; sectionId?: string }
 
 interface KnowledgeHubDesktopProps {
   snapshot: KredoExpertiseSnapshot
@@ -38,18 +41,15 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
   }, [requestCollapse, requestRestore])
 
   const handleSelectDomain = (domainId: string) => {
-    if (domainId === "expertise-kredo") {
-      setActiveView({ type: "domain", domainId, sectionId: "practices" })
-    } else if (domainId === "talents") {
-      setActiveView({ type: "domain", domainId, sectionId: "team" })
-    } else {
-      setActiveView({ type: "domain", domainId })
-    }
+    const defaultSection = getKnowledgeHubDefaultSection(domainId)
+    setActiveView({ type: "domain", domainId, sectionId: defaultSection })
   }
 
   const handleOpenModal = (modal: "workshop" | "ask") => {
     setActiveModal(modal)
   }
+
+  const activeChapterTitle = getKnowledgeHubActiveLabel(activeView)
 
   return (
     <div className="flex h-full min-h-screen bg-edito-canvas text-edito-body font-sans">
@@ -61,37 +61,45 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
         activeModal={activeModal}
       />
 
-      {/* Main Page Layout */}
-      <main className="flex-1 min-w-0 mx-auto max-w-5xl px-4 py-6">
-        <div className="space-y-6">
-          {activeView.type === "categories" && (
-            <KnowledgeLibraryModeDesktop
-              selectedDomain={null}
-              onSelectDomain={(d) => d && handleSelectDomain(d.id)}
-            />
-          )}
+      {/* Zone principale avec header de chapitre actif */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex min-h-16 shrink-0 items-center justify-between border-b border-edito-border bg-edito-surface px-6 py-4">
+          <h1 className="text-xl font-bold tracking-tight text-edito-navy">
+            {activeChapterTitle}
+          </h1>
+        </header>
 
-          {activeView.type === "domain" && activeView.domainId === "expertise-kredo" && (
-            <KredoExpertiseDesktop
-              snapshot={snapshot}
-              activeSection={activeView.sectionId as ExpertiseTab | undefined}
-            />
-          )}
+        <main className="flex-1 min-w-0 overflow-y-auto px-4 py-6">
+          <div className="mx-auto max-w-5xl space-y-6">
+            {activeView.type === "categories" && (
+              <KnowledgeLibraryModeDesktop
+                selectedDomain={null}
+                onSelectDomain={(d) => d && handleSelectDomain(d.id)}
+              />
+            )}
 
-          {activeView.type === "domain" && activeView.domainId === "talents" && (
-            <TalentKnowledgeDesktop
-              snapshot={talentSnapshot}
-              activeSection={activeView.sectionId as TalentTab | undefined}
-            />
-          )}
+            {activeView.type === "domain" && activeView.domainId === "expertise-kredo" && (
+              <KredoExpertiseDesktop
+                snapshot={snapshot}
+                activeSection={activeView.sectionId as ExpertiseTab | undefined}
+              />
+            )}
 
-          {activeView.type === "domain" && activeView.domainId !== "expertise-kredo" && activeView.domainId !== "talents" && (
-             <div className="rounded-lg border border-edito-border bg-edito-surface px-4 py-10 text-center text-xs text-edito-muted">
-               Contenu de la catégorie {activeView.domainId} à venir.
-             </div>
-          )}
-        </div>
-      </main>
+            {activeView.type === "domain" && activeView.domainId === "talents" && (
+              <TalentKnowledgeDesktop
+                snapshot={talentSnapshot}
+                activeSection={activeView.sectionId as TalentTab | undefined}
+              />
+            )}
+
+            {activeView.type === "domain" && activeView.domainId !== "expertise-kredo" && activeView.domainId !== "talents" && (
+              <div className="rounded-lg border border-edito-border bg-edito-surface px-4 py-10 text-center text-xs text-edito-muted">
+                Contenu de la catégorie {activeView.domainId} à venir.
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
 
       {activeModal ? (
         <KnowledgeHubModuleModal
@@ -102,3 +110,4 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
     </div>
   )
 }
+
