@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-1 livrés)**
+> **Statut global : en cours (Lots 0-2 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,6 +51,7 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 2 — Data Contract Synthèse** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 2).
+➡️ **Lot 3 — Synthèse Desktop + Mobile** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 3).
 
-Lot 1 livré : shell `/consultants` sur `SectionRail` V2, navigation `?section=` (`synthese` + `collaborateurs` in-shell), `SectionNavBarSlot` descendu dans `(tabbed)/layout.tsx`.
+- Lot 1 : shell `/consultants` sur `SectionRail` V2, navigation `?section=`, `SectionNavBarSlot` descendu.
+- Lot 2 : view-model unique `getConsultantsSynthese()` / `buildConsultantsSynthese` (`src/features/consultants/data/`) — DATA-1/2/3/7 résolus (C-16→C-20), aucune migration.

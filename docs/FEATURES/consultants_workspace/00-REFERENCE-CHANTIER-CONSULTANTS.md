@@ -249,13 +249,16 @@ src/features/consultants/
 
 ## 7. Cible fonctionnelle — Synthèse
 
-### 7.1 KPI (3)
+### 7.1 KPI (3) — **contrats figés au Lot 2**
 
-| KPI | Définition cible | Source à confirmer au Lot 2 |
+| KPI | Définition **figée** | Source |
 |---|---|---|
-| **Collaborateurs** | Effectif interne actif (hors sortis) | `collaborators` — exclure `status='sorti'` **et/ou** `exit_date <= today`. Contrat de statut à figer au Lot 2 (voir §7.3). |
-| **Vivier candidats** | Nombre de candidats du vivier pertinent | `candidates` — population à définir au Lot 7 (voir §14-15). Baseline naïve : `status='vivier'`. |
-| **Recrutements réalisés (année en cours)** | Recrutements aboutis sur l'année civile courante | `candidate_hiring_processes` — `status='hired' AND closed_at` dans l'année civile courante. **Vérifié live 2026-09-08 : 11 process `hired`, tous avec `closed_at` en 2026.** |
+| **Collaborateurs** | Effectif interne actif = `collaborators.status <> 'sorti'` (C-16). Live 2026-09-08 : **29**. | `collaborators` |
+| **Vivier candidats** | `candidates.status = 'vivier'` — **définition provisoire** (C-16), arrêtée au Lot 7 (DATA-4). Une `dataNote` le signale dans le view-model. Live : **11**. | `candidates` |
+| **Recrutements réalisés (année en cours)** | `candidate_hiring_processes.status = 'hired' AND closed_at` dans l'année civile courante. Live : **11**. | `candidate_hiring_processes` |
+
+Le view-model unique est produit par `buildConsultantsSynthese` (pur, testé) et chargé par
+`getConsultantsSynthese()` — voir `src/features/consultants/data/`.
 
 ### 7.2 Chiffres live constatés (2026-09-08 — indicatifs, à revérifier en base)
 
@@ -269,16 +272,17 @@ src/features/consultants/
 > ⚠️ `CLAUDE.md` annonce 23 collaborateurs / 38 candidats / 18 `match_scores` — **périmé**. Toujours
 > recompter en base avant de s'appuyer sur un chiffre.
 
-### 7.3 Contrat de statut collaborateur (`OPEN QUESTION DATA-1`)
+### 7.3 Contrat de statut collaborateur — ✅ **résolu (Lot 2, DATA-1 → C-16)**
 
 Valeurs `collaborators.status` en base : `en_mission`, `intercontrat`, `sorti`.
-Aucun contrat applicatif figé aujourd'hui (`ConsultantsSyntheseDesktop` calcule « en mission »
-depuis `missions.status='active'`, pas depuis `collaborators.status`). Le Lot 2 doit :
-1. trancher la source d'autorité de l'« effectif actif » (statut vs `exit_date` vs présence de mission active) ;
-2. figer la liste des statuts « sortis » à exclure ;
-3. enregistrer ce contrat dans `src/features/consultants/data/` et ce document.
+**Vérifié live 2026-09-08 : `status = 'sorti'` ⟺ `exit_date IS NOT NULL`** (1 ligne, accord parfait).
 
-**Ne hardcoder aucune valeur avant cet audit.**
+**Contrat figé :** effectif actif = **`collaborators.status <> 'sorti'`**. `status` est le champ
+sémantique d'autorité ; `exit_date` en est une projection cohérente. La présence d'une mission
+active n'entre **pas** dans la définition de l'effectif (un intercontrat reste un actif).
+
+Dette LEGACY-4 restante : `ConsultantsSyntheseDesktop` (vue actuelle, chapitre Collaborateurs)
+calcule encore « en mission » depuis `missions.status` — à réconcilier au Lot 4.
 
 ---
 
@@ -288,27 +292,31 @@ depuis `missions.status='active'`, pas depuis `collaborators.status`). Le Lot 2 
 - Répartition des personnes par **Practice de rattachement**.
 - **SVG maison Desktop / barres HTML+Tailwind Mobile.** Aucune bibliothèque.
 
-### Source canonique de la Practice (`OPEN QUESTION DATA-2`)
+### Source canonique de la Practice — ✅ **résolu (Lot 2, DATA-2 → C-17)**
 
-État réel du schéma (vérifié live 2026-09-08) :
+État réel du schéma (vérifié live 2026-09-08), avec **couverture** :
 
-| Entité | Colonnes de rattachement | Nature |
+| Entité | Rattachement practice | Couverture |
 |---|---|---|
-| `collaborators` | `practice` (**text libre**), `job_profile_id` (FK `job_profiles`) | **pas de `practice_id`** |
-| `candidates` | `practice_id` (FK), `job_profile_id` (FK `job_profiles`) | relationnel |
-| `job_profiles` | 65 lignes, référentiel profils recrutement | pivot commun potentiel |
-| `offer_practices` | 8 lignes, slugs canoniques | référentiel practices |
+| `collaborators` | `practice` (**text libre**, 29/29), `job_profile_id → job_profiles.practice_id` (**10/29**) | pas de `practice_id` |
+| `candidates` | `practice_id` (FK `offer_practices`, **43/43**) | relationnel complet |
+| `job_profiles` | `practice_id` (FK `offer_practices`, 65/65) | pivot |
+| `offer_practices` | 8 lignes — **clé canonique = `slug`** | référentiel |
 
-Valeurs `collaborators.practice` en base : `Digital`, `Data & AI`, `Data`, `Digital Business Solutions`,
-`Cybersecurity`, `Cloud`, `Mobile`, `Design`, `QA`, `Product Management`, `Project Management`,
-`Project & Agile Delivery`, `Quality Engineering & Testing` — **texte non normalisé, non aligné sur
-`offer_practices.slug`**. Voir la note projet « double vocabulaire des practices » : `offer_practices.slug`
-(base) ≠ `PracticeSlug` (front), un seul des 8 coïncide.
+**Aucune source relationnelle unique ne couvre les deux populations.** Contrat figé :
 
-**À trancher au Lot 2 :** la relation qui devient la source canonique de la Practice pour ce graphique
-(candidat probable : résolution via `job_profile_id → job_profiles`, avec une projection Practice
-partagée collaborateurs+candidats). **Ne pas créer une nouvelle taxonomie de Practices.** Si la
-résolution fiable n'est pas possible sans normalisation, isoler la normalisation dans un sous-lot `2.x`.
+- **Clé de bucket canonique = `offer_practices.slug`** (+ bucket `null` = « Autre / non rattaché »).
+- **Candidats** → `candidates.practice_id` (relationnel, complet).
+- **Collaborateurs** → cascade déterministe dans `build-consultants-synthese.ts` :
+  1. `job_profile_id → job_profiles.practice_id → offer_practices.slug` (autoritaire) ;
+  2. sinon rapprochement **exact** du texte libre sur `offer_practices.name` (normalisé sans casse/accents — 5/13 valeurs live sont verbatim) ;
+  3. sinon heuristique par mots-clés (`getPracticeByName` de `src/lib/config/practices.ts`) ;
+  4. sinon `null`.
+
+**Aucune migration.** Sur les données live, seule la valeur `Mobile` (~1 collaborateur) tombe en
+« Autre » ; une `dataNote` du view-model le signale. **Dette future** (hors périmètre, non
+bloquante) : ajouter `collaborators.practice_id` (FK) + backfill pour supprimer l'heuristique —
+candidat à un sous-lot dédié si le besoin de précision augmente.
 
 ---
 
@@ -327,35 +335,31 @@ résolution fiable n'est pas possible sans normalisation, isoler la normalisatio
 Colonnes cible : **Nom / prénom · Intitulé du profil · Practice · Dernière mission réalisée ·
 Salaire annuel · CJM · Positionnements missions en cours**.
 
-### Sources à auditer (Lot 2)
+### Sources — **figées au Lot 2** (view-model `InterContractCollaborator`)
 
-| Donnée | Source probable |
+| Donnée | Source figée |
 |---|---|
-| Identité | `collaborators` → `persons` |
-| Intitulé profil | `collaborators.current_title` / `job_profiles` |
-| Practice | cf. §8 (OPEN QUESTION DATA-2) |
-| Dernière mission réalisée | `missions` (status `ended`, tri `end_date DESC`) |
-| Salaire annuel | `collaborator_compensation.gross_annual` **ou** `v_collaborator_activity_summary.gross_annual` — **RLS confidentielle owner/admin**, à ne charger que côté serveur et à ne pas exposer aux rôles non habilités |
-| CJM | `collaborator_compensation.cjm` (généré) / `v_collaborator_*` `cjm_snapshot` / `daily_employer_cost` |
-| Positionnements missions en cours | **cf. OPEN QUESTION DATA-3 ci-dessous** |
+| Identité | `collaborators.person_id → persons.full_name` |
+| Intitulé profil | `collaborators.current_title` |
+| Practice | cascade §8 (C-17) |
+| Dernière mission | `missions` où `collaborator_id = c.id`, `end_date` max |
+| Salaire annuel / CJM | `collaborator_compensation` (`effective_to IS NULL`) — **RLS owner/admin**. `grossAnnual`/`cjm` nullables ; `compensationVisible` dérivé de `profiles.role ∈ {owner, admin}` (DATA-7 → C-19). Rôle non habilité → `null` + `dataNote`. |
+| Positionnements en cours | `opportunity_candidates` via `person_id` (DATA-3 → C-18, ci-dessous) |
 
-### `OPEN QUESTION DATA-3` — Preuve canonique d'un positionnement actif
+### `DATA-3` — Preuve d'un positionnement actif — ⚠️ **partiellement résolu (Lot 2, C-18)**
 
-Ne pas confondre :
-- **matching potentiel** — `match_scores` (`opportunity_id`, `person_id`, `overall_score`, …) :
-  644 lignes, résultat d'un calcul de compatibilité. **Ce n'est pas un positionnement.**
-- **positionnement commercial réellement actif** — un collaborateur réellement présenté / retenu
-  sur un besoin ouvert.
-
-Piste : `opportunity_candidates` joint `candidate → person → collaborators` + `opportunities.stage`
-non terminal, filtré sur les statuts non terminaux (`RECRUITMENT_TERMINAL_STATUSES`). Mais le lien
-collaborateur ↔ `opportunity_candidates` passe par une chaîne indirecte (party model) et n'est pas
-garanti peuplé pour tous les collaborateurs.
-
-**Le Lot 2 doit** : (a) identifier la source réelle du positionnement en cours d'un collaborateur ;
-(b) si le schéma ne le permet pas de façon fiable, marquer la question **OPEN**, proposer la
-meilleure architecture relationnelle (ex. vue `v_collaborator_active_positionings`), et **ne rien
-inventer** — la colonne affiche alors un état « non déterminé » plutôt qu'un chiffre faux.
+- **`match_scores` n'est JAMAIS utilisé** (matching potentiel, pas positionnement).
+- **Source figée** : `opportunity_candidates` dont `candidate.person_id` = `collaborator.person_id`,
+  avec `opportunities.stage` non terminal (`gagne` / `perdu` / `abandonne` exclus) **et**
+  `opportunity_candidates.status` non terminal (`RECRUITMENT_TERMINAL_STATUSES` réutilisé de
+  `recruitment-stages.ts`).
+- **Garde anti-faux-zéro** : si le collaborateur n'a **pas** de fiche `candidates` miroir (party
+  model), le compte est `null` (« non traçable »), pas `0` — l'UI affiche « — ». Sur les données
+  live 2026-09-08, les **3** collaborateurs en intercontrat sont dans ce cas (aucun n'est mirroré
+  en candidat) → colonne « — » pour tous, `dataNote` explicite.
+- **Sous-question restante** (hors périmètre) : un lien direct `opportunity ↔ collaborator`
+  (ou `opportunity_candidates.person_id`) supprimerait la dépendance au party model. À trancher si
+  le besoin de fiabilité augmente — pas de migration au Lot 2.
 
 ---
 
@@ -378,6 +382,13 @@ inventer** — la colonne affiche alors un état « non déterminé » plutôt q
 Trois vocabulaires coexistent : **process** (`candidate_hiring_processes`), **lifecycle candidat**
 (`candidates.status`), **positionnement commercial** (`opportunity_candidates.status`). Ne jamais
 les fusionner ni les mapper implicitement.
+
+**Contrat figé au Lot 2** (view-model `RecruitmentPipeline`) : le graphique affiche les process
+**actifs** (`status = 'active'`) répartis sur les **6 étapes canoniques** (`HIRING_KANBAN_STAGES`,
+étapes à 0 incluses pour l'entonnoir), plus `totalActive`, `hiresYearToDate` et
+`closedNotHiredYearToDate` (process clos `rejected`/`cancelled`/`withdrawn` sur l'année civile).
+Les étapes terminales ne polluent pas l'entonnoir. Live 2026-09-08 : `tests_techniques` 3 ·
+`proposition` 3 · `signature` 2 · `entretien_manager` 1 · `prequalification` 1 (= 10 actifs).
 
 ---
 
@@ -657,6 +668,11 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-13** | Le **contrat Mobile `getMobileTabsForPath()`** (groupe `/missions/opps` + `/recruitment`) est une dépendance protégée jusqu'à la migration Mobile explicite (Lots 9-10). | Règle SHELL-0018 D2-10 : Mobile protégé. | Actée (Lot 0) |
 | **C-14** | **Lot 1 — internalisation progressive** : seuls `synthese` et `collaborateurs` sont rendus dans le shell via `?section=` ; `activite-conges` / `candidats` / `pool-competences` restent des **liens directs** vers leur route existante (`external: true`) jusqu'à leur lot d'internalisation (5 / 8 / 6). | Les pages existantes portent leur propre `<h1>` (double-titre en slot) ; l'internalisation prématurée est le périmètre des Lots 5-8. Le socle de navigation est livrable sans réécriture métier. | Actée (Lot 1) |
 | **C-15** | **`SectionNavBarSlot` descendu** de `consultants/layout.tsx` vers `consultants/(tabbed)/layout.tsx` (patron `missions`). `main-menu.config.ts` et le Mobile restent intacts. | Éviter le doublon rail vertical + barre horizontale sur `/consultants` sans casser les sous-routes historiques ni le Mobile. Suppression globale de `SectionNavBar*` = SHELL-0018 Phase 6. | Actée (Lot 1) |
+| **C-16** | **Effectif actif = `collaborators.status <> 'sorti'`** (DATA-1). KPI vivier = `candidates.status = 'vivier'` **provisoire** (arrêt Lot 7, DATA-4). KPI recrutements = `candidate_hiring_processes.status = 'hired'` + `closed_at` année civile. | Live : `status='sorti'` ⟺ `exit_date IS NOT NULL` (accord parfait). `status` = champ sémantique d'autorité. | Actée (Lot 2) |
+| **C-17** | **Practice canonique = `offer_practices.slug`** (+ bucket `null`). Candidats → `practice_id`. Collaborateurs → cascade `job_profile → nom exact → heuristique mots-clés → null`. **Aucune migration.** | Aucune source relationnelle ne couvre les deux populations (`collaborators` : `job_profile_id` 10/29, `practice` texte 29/29 ; `candidates.practice_id` 43/43). `collaborators.practice_id` FK = dette future non bloquante. | Actée (Lot 2) |
+| **C-18** | **Positionnement actif d'un collaborateur = `opportunity_candidates` via `person_id`** (opp. + statut non terminaux). `match_scores` jamais utilisé. Compte `null` (« — ») quand pas de fiche `candidates` miroir. | Éviter un faux zéro. Lien direct `opportunity ↔ collaborator` = sous-question ouverte, pas de migration au Lot 2. | Actée (Lot 2) |
+| **C-19** | **Rémunération intercontrat via `collaborator_compensation`** (`effective_to IS NULL`) ; `grossAnnual`/`cjm` nullables ; `compensationVisible` dérivé de `profiles.role ∈ {owner, admin}`. Rôle non habilité → `null` + `dataNote`. UI masque (Lot 3). | RLS confidentielle owner/admin ; la RLS fait le filtrage, le view-model porte le signal UX. | Actée (Lot 2) |
+| **C-20** | **View-model Synthèse = builder pur `buildConsultantsSynthese` (testé) + loader mince `getConsultantsSynthese`.** Aucun recalcul côté composant (Lot 3). | Patron KREDO (`buildPoolCompetencesDataset`) ; toute la logique métier testable sans DB. | Actée (Lot 2) |
 
 ---
 
@@ -669,13 +685,13 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 
 | ID | Question | Lot cible |
 |---|---|---|
-| **DATA-1** | Source d'autorité de « l'effectif collaborateur actif » : `collaborators.status` (`sorti`) vs `exit_date` vs présence d'une mission active ? Liste des statuts « sortis » à exclure ? | 2 |
-| **DATA-2** | Quelle relation devient la **source canonique de la Practice** partagée collaborateurs + candidats (`collaborators.practice` texte libre vs `candidates.practice_id` FK vs résolution par `job_profile_id`) ? Sans créer de nouvelle taxonomie. | 2 (norm. → 2.x) |
-| **DATA-3** | Quelle table constitue la **preuve canonique d'un positionnement actif d'un collaborateur sur une mission** ? (`match_scores` = matching potentiel, PAS positionnement.) Si impossible de façon fiable : proposer une vue relationnelle, ne rien inventer. | 2 |
+| ~~**DATA-1**~~ | ✅ **RÉSOLU (Lot 2, C-16)** — effectif actif = `collaborators.status <> 'sorti'` (`status='sorti'` ⟺ `exit_date IS NOT NULL` live). | 2 |
+| ~~**DATA-2**~~ | ✅ **RÉSOLU (Lot 2, C-17)** — clé canonique `offer_practices.slug` ; candidats → `practice_id`, collaborateurs → cascade `job_profile → nom exact → heuristique → null`. Aucune migration ; `collaborators.practice_id` FK = dette future. | 2 |
+| ~~**DATA-3**~~ | ⚠️ **PARTIELLEMENT RÉSOLU (Lot 2, C-18)** — source = `opportunity_candidates` via `person_id` ; `null` (« — ») sans fiche candidat miroir. `match_scores` jamais utilisé. Sous-question ouverte : lien direct `opportunity ↔ collaborator`. | 2 / futur |
 | **DATA-4** | Définition exacte de « candidat qualifié durant l'année en cours » : `candidate_hiring_milestones` (`step=prequalification`, `result=valide`, `completed_at` YTD) ? Mécanisme de fallback/backfill pour les candidats anciens sans ce milestone ? | 7 (backfill → 7.x) |
 | **DATA-5** | Le **planning journalier de production** n'existe pas en base (agrégats mensuels seulement). Modèle relationnel minimal à créer (table dédiée vs dérivation calendaire) ? | 11 |
 | **DATA-6** | `candidates.availability` est un **texte libre** (~20 formes). Faut-il une normalisation / un mapping vers `available_from` pour le tri et le filtrage du tableau Candidats ? | 7 |
-| **DATA-7** | Salaire annuel / CJM en intercontrat : `collaborator_compensation` est en **RLS confidentielle owner/admin**. Comment le tableau intercontrat se comporte-t-il pour un rôle non habilité (masquage colonne vs page entière réservée) ? | 2 |
+| ~~**DATA-7**~~ | ✅ **RÉSOLU (Lot 2, C-19)** — `grossAnnual`/`cjm` nullables ; `compensationVisible` dérivé de `profiles.role`. Rôle non habilité → valeurs `null` + `dataNote` ; l'UI (Lot 3) masque les colonnes, la page reste accessible. | 2 |
 
 ### PRODUCT
 
@@ -749,7 +765,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | **0** | Cadrage documentaire (ce lot) | doc | — |
 | **1** | Socle Consultants Workspace (rail V2, `?section=`, header, 5 chapitres) | code Front | 0 |
 | **2** | Data Contract Synthèse (KPI, practice, fins de mission, intercontrats, pipeline recrutement) | code Data/Front | 1 |
-| **2.x** | (conditionnel) Migration DB de normalisation Practice / vue positionnements | code Data | 2 |
+| ~~**2.x**~~ | **Non déclenché** — Lot 2 a résolu practice (heuristique acceptable) et positionnements (`opportunity_candidates`) sans migration. `collaborators.practice_id` FK reste une dette future non planifiée. | — | — |
 | **3** | Synthèse Desktop + Mobile | code Front | 2 |
 | **4** | Migration Collaborateurs (`?section=collaborateurs`) | code Front | 1 |
 | **5** | Migration Activités & congés (`?section=activite-conges`) | code Front | 1 |
@@ -807,25 +823,29 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Gates exécutées** : `typecheck` ✅ · `npm test` **complet** ✅ (257 fichiers / 2605 tests) · `check:server-boundary` ✅ · `eslint` fichiers touchés ✅ · `build` ✅. QA visuelle : réservée à Guillaume.
 - **NEXT LOT** : Lot 2 — Data Contract Synthèse.
 
-### Lot 2 — Data Contract Synthèse
+### Lot 2 — Data Contract Synthèse — ✅ techniquement livré (2026-09-08)
+
+**Réalisé.** Détail d'exécution dans le ledger § « Lot 2 ».
 
 - **Objectif** : un loader / view-model **unique** server-only pour la Synthèse : 3 KPI, répartition par practice (collaborateurs/candidats), 5 prochaines fins de mission, collaborateurs en intercontrat, pipeline recrutement par étape.
-- **Prérequis** : Lot 1. Résoudre DATA-1, DATA-2, DATA-3, DATA-7 (ou les maintenir OPEN avec un comportement défini — jamais un chiffre faux).
-- **Data** : `collaborators`, `missions`, `companies`, `persons`, `candidates`, `candidate_hiring_processes`, `job_profiles`, `collaborator_compensation` (RLS admin — serveur uniquement), `v_collaborator_*`. Toute migration réellement nécessaire → sous-lot `2.x` isolé (une migration = un fichier, alignée sur le timestamp réellement enregistré, `db:types`, mise à jour de `CLAUDE.md`).
-- **Desktop / Mobile** : aucun rendu — view-model typé + tests unitaires du view-model.
-- **Fichiers probables** : `src/features/consultants/data/*.ts`, `__tests__/*`.
-- **Hors périmètre** : UI (Lot 3).
-- **Critères d'acceptation** : view-model typé, testé ; chaque ambiguïté Data soit résolue et documentée, soit marquée OPEN avec fallback explicite ; aucune valeur inventée pour DATA-3.
-- **Gates** : `typecheck` → `test` (ciblé) → `check:server-boundary` → `eslint` → `build`. `+ test:n8n` seulement si un `n8n/workflows/*` est touché (ne devrait pas).
-- **Documentation** : DECISION LOG (C-14+ : contrat de statut, source Practice, source positionnement) ; § 7-10 de ce document mis à jour ; OPEN QUESTIONS DATA rebasculées.
-- **Conditions de sortie** : gates vertes, commit poussé, `NEXT LOT = Lot 3`.
+- **Livré** :
+  - `src/features/consultants/data/consultants-synthese.types.ts` — view-model `ConsultantsSyntheseViewModel` + types de lignes brutes.
+  - `src/features/consultants/data/build-consultants-synthese.ts` — **builder pur** (résolution practice en cascade, garde anti-faux-zéro positionnements, réserves méthodo `dataNotes`).
+  - `src/features/consultants/data/get-consultants-synthese.ts` — loader serveur (8 lectures parallèles, RLS utilisateur, `compensationReadable` via `profiles.role`).
+  - `src/features/consultants/data/__tests__/build-consultants-synthese.test.ts` — 13 tests.
+- **DATA résolus** : C-16 (DATA-1), C-17 (DATA-2), C-18 (DATA-3 partiel), C-19 (DATA-7). C-20 (architecture builder pur + loader).
+- **Aucune migration** — l'heuristique practice est acceptable (voir §8) ; `collaborators.practice_id` FK = dette future non bloquante, **pas de sous-lot 2.x**.
+- **Cross-check live 2026-09-08** : 29 collaborateurs actifs · 11 vivier · 11 recrutements YTD · 10 process actifs · 3 intercontrat (positionnements « — » pour les 3).
+- **Gates** : `typecheck` ✅ · `npm test` **complet** ✅ (258 fichiers / 2618 tests) · `check:server-boundary` ✅ · `eslint` ✅ · `build` ✅. QA visuelle : réservée à Guillaume.
+- **Hors périmètre tenu** : aucun rendu UI (Lot 3).
+- **NEXT LOT** : Lot 3 — Synthèse Desktop + Mobile.
 
 ### Lot 3 — Synthèse Desktop + Mobile
 
-- **Objectif** : construire la page Synthèse.
-- **Prérequis** : Lot 2.
-- **Data** : consomme le view-model du Lot 2, aucune requête nouvelle.
-- **Desktop** : KPI (3 cartes) · Graphique 1 practice (SVG maison + sélecteur Collaborateurs/Candidats) · Graphique 2 recrutement par étape (SVG maison) · tableau 5 prochaines fins de mission · tableau intercontrats (`DataTable<T>` maison).
+- **Objectif** : construire la page Synthèse. **La section `synthese` du shell rend encore le tableau collaborateurs (Lot 1) — Lot 3 la bascule sur `getConsultantsSynthese()` / `ConsultantsSyntheseViewModel`.**
+- **Prérequis** : Lot 2 (livré : `getConsultantsSynthese()`, `buildConsultantsSynthese`, `ConsultantsSyntheseViewModel`).
+- **Data** : consomme le view-model du Lot 2, aucune requête nouvelle. Câbler la section `synthese` de `src/app/(app)/consultants/page.tsx` sur `getConsultantsSynthese()`. Afficher les `dataNotes` discrètement.
+- **Desktop** : KPI (3 cartes) · Graphique 1 practice (SVG maison + sélecteur Collaborateurs/Candidats, `practiceBreakdown` avec `colorHex`) · Graphique 2 recrutement par étape (SVG maison, `recruitmentPipeline.byStep`) · tableau `upcomingMissionEnds` · tableau `interContractCollaborators` (`DataTable<T>` maison ; masquer `grossAnnual`/`cjm` si `compensationVisible === false` ; « — » si `activePositionings === null`).
 - **Mobile** : 3 KPI · prochaines fins de mission (cards) · intercontrats (cards) · synthèse pipeline recrutement · actions rapides. Barres HTML+Tailwind, zéro librairie.
 - **Fichiers probables** : `src/features/consultants/desktop/synthese/*`, `src/features/consultants/mobile/synthese/*`.
 - **Hors périmètre** : autres chapitres.

@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 1 — Socle Consultants Workspace
+Dernier lot livré        : Lot 2 — Data Contract Synthèse
 Lot courant              : —
-Prochain lot             : Lot 2 — Data Contract Synthèse
-Dernier SHA connu origin/main : 8e191c8b39c3b207d13146b41c45a63ff49f5190   (2026-09-08, après commit Lot 1)
+Prochain lot             : Lot 3 — Synthèse Desktop + Mobile
+Dernier SHA connu origin/main : 8e191c8b   (2026-09-08 ; SHA Lot 2 renseigné après push)
 ```
 
 ## Table des lots
@@ -24,7 +24,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 |---|---|---|---|---|
 | 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
-| 2 | Data Contract Synthèse | ⬜ todo | — | Résoudre DATA-1/2/3/7. Migration éventuelle → sous-lot 2.x. |
+| 2 | Data Contract Synthèse | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
 | 3 | Synthèse Desktop + Mobile | ⬜ todo | — | SVG maison, zéro librairie graphique. |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
@@ -58,6 +58,11 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-13 | Contrat Mobile `getMobileTabsForPath()` protégé jusqu'à migration Mobile (Lots 9-10) | 0 |
 | C-14 | Lot 1 : seuls `synthese` + `collaborateurs` rendus in-shell (`?section=`) ; `activite-conges`/`candidats`/`pool-competences` = liens directs jusqu'aux Lots 5/8/6 | 1 |
 | C-15 | `SectionNavBarSlot` descendu de `consultants/layout.tsx` → `consultants/(tabbed)/layout.tsx` (patron `missions`) ; `main-menu.config` + Mobile intacts | 1 |
+| C-16 | Effectif actif = `collaborators.status <> 'sorti'` ; vivier = `status='vivier'` (provisoire, Lot 7) ; recrutements YTD = `hired` + `closed_at` année civile | 2 |
+| C-17 | Practice canonique = `offer_practices.slug` ; candidats → `practice_id`, collaborateurs → cascade `job_profile → nom exact → heuristique → null` ; aucune migration | 2 |
+| C-18 | Positionnement collaborateur = `opportunity_candidates` via `person_id` (non terminal) ; `null` sans fiche candidat miroir ; `match_scores` jamais utilisé | 2 |
+| C-19 | Rémunération intercontrat via `collaborator_compensation` ; `grossAnnual`/`cjm` nullables ; `compensationVisible` = `profiles.role ∈ {owner,admin}` | 2 |
+| C-20 | View-model Synthèse = builder pur testé + loader mince ; aucun recalcul côté composant | 2 |
 
 ## Questions ouvertes en cours
 
@@ -65,13 +70,13 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 
 | ID | Résumé | Lot cible | Statut |
 |---|---|---|---|
-| DATA-1 | Source d'autorité « effectif collaborateur actif » | 2 | ouverte |
-| DATA-2 | Source canonique de la Practice (collaborateurs + candidats) | 2 | ouverte |
-| DATA-3 | Preuve canonique d'un positionnement actif d'un collaborateur | 2 | ouverte |
+| DATA-1 | Source d'autorité « effectif collaborateur actif » | 2 | ✅ résolue (C-16) |
+| DATA-2 | Source canonique de la Practice (collaborateurs + candidats) | 2 | ✅ résolue (C-17) |
+| DATA-3 | Preuve canonique d'un positionnement actif d'un collaborateur | 2 | ⚠️ partiellement résolue (C-18) — sous-question lien direct `opp↔collab` ouverte |
 | DATA-4 | Définition « candidat qualifié durant l'année en cours » | 7 | ouverte |
 | DATA-5 | Planning journalier de production inexistant en base | 11 | ouverte |
 | DATA-6 | `candidates.availability` texte libre — normalisation ? | 7 | ouverte |
-| DATA-7 | Salaire/CJM intercontrat sous RLS confidentielle — comportement rôle non habilité | 2 | ouverte |
+| DATA-7 | Salaire/CJM intercontrat sous RLS confidentielle — comportement rôle non habilité | 2 | ✅ résolue (C-19) |
 | PRODUCT-1 | Intention module Matching : profil→besoins et/ou besoin→profils | 13 | ouverte |
 | PRODUCT-2 | « Prochaine action » pour un candidat sans opportunité active | 7 | ouverte |
 | PRODUCT-3 | Valeurs métier du sélecteur lifecycle candidat en UI | 7-8 | ouverte |
@@ -126,7 +131,9 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `dashboard/RecruitmentDesktopDashboard` / `RecruitmentMobileDashboard` | Orphelins probables | 9 / 15 |
 | `collaborators.practice` non normalisé | Text libre, non aligné `offer_practices.slug` | 2 / 2.x |
 | Planning journalier de production | Absent en base (agrégats mensuels seulement) | 11 |
-| Divergence statut collaborateur | `ConsultantsSyntheseDesktop` ignore `collaborators.status` | 2 |
+| Divergence statut collaborateur | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — à réconcilier avec C-16 | 4 |
+| `collaborators.practice_id` absent | Practice collaborateur résolue par heuristique sur texte libre (C-17) ; 1 valeur (`Mobile`) non mappée ; FK + backfill = amélioration future non planifiée | futur |
+| Positionnements non traçables | 3/3 intercontrat live sans fiche candidat miroir → colonne « — » (C-18) ; lien direct `opp↔collab` = sous-question ouverte | futur |
 | `activite-conges` sans branche Mobile serveur | Pas de `getDashboardDevice()` sur la page | 5 |
 | ~~`SectionNavBarSlot` sur `/consultants/layout.tsx`~~ | Résolu Lot 1 (descendu dans `(tabbed)/layout.tsx`). Suppression globale `SectionNavBar*` = SHELL-0018 Phase 6 | 14 |
 | Routes `(tabbed)` consultants | À rediriger puis supprimer | 5-6 / 15 |
@@ -136,6 +143,36 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 2 — Data Contract Synthèse — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `8e191c8b` (`main` = `origin/main`, rien à intégrer).
+- **Objectif** : loader / view-model **unique** server-only pour la Synthèse (3 KPI, practice, prochaines fins de mission, intercontrats, pipeline recrutement).
+- **Fichiers créés** :
+  - `src/features/consultants/data/consultants-synthese.types.ts` — `ConsultantsSyntheseViewModel` + types de lignes brutes.
+  - `src/features/consultants/data/build-consultants-synthese.ts` — builder **pur** (aucune dépendance Supabase).
+  - `src/features/consultants/data/get-consultants-synthese.ts` — loader serveur (`import "server-only"`).
+  - `src/features/consultants/data/__tests__/build-consultants-synthese.test.ts` — 13 tests.
+- **Aucun fichier applicatif existant modifié.** Aucune migration Supabase (2.x non déclenché). Aucun n8n. Aucune route. Aucun menu.
+- **Investigation schéma (live 2026-09-08, via MCP `execute_sql`)** :
+  - DATA-1 : `collaborators.status='sorti'` ⟺ `exit_date IS NOT NULL` (1 ligne, accord parfait) → effectif actif = `status <> 'sorti'` (**C-16**).
+  - DATA-2 : `collaborators.job_profile_id` peuplé 10/29, `practice` texte 29/29 ; `candidates.practice_id` 43/43 ; `job_profiles.practice_id` 65/65. Aucune source relationnelle commune → cascade `job_profile → nom exact (`offer_practices.name`) → heuristique `getPracticeByName` → null` ; clé canonique `offer_practices.slug` (**C-17**). Seule `Mobile` (~1) tombe en « Autre ».
+  - DATA-3 : `match_scores` keyé `person_id` sans statut (matching pur). `opportunity_candidates` n'a pas de lien collaborateur direct ; via `candidate.person_id = collaborator.person_id`. Les **3** intercontrat live ne sont **pas** mirrorés en candidats → compte `null` (« — »), pas `0` (**C-18**).
+  - DATA-7 : RLS `collaborator_compensation` owner/admin ; `compensationReadable` dérivé de `profiles.role` (**C-19**).
+- **Décisions** : C-16 → C-20 (voir DECISION LOG). **Aucune migration nécessaire.**
+- **Cross-check builder ↔ SQL live** : 29 actifs · 11 vivier · 11 hires YTD · 10 process actifs (`tests_techniques` 3 / `proposition` 3 / `signature` 2 / `entretien_manager` 1 / `prequalification` 1) · 3 intercontrat.
+- **Invariants protégés** : aucune UI touchée ; loader server-only ; RLS de l'utilisateur (la rémunération confidentielle ne fuit pas) ; réutilise `getPracticeByName`, `PRACTICE_SLUG_TO_OFFER_PRACTICE`, `HIRING_KANBAN_STAGES`, `RECRUITMENT_TERMINAL_STATUSES`, `getOfferPracticesCatalog`, `getJobProfilesCatalog` — aucun doublon.
+- **Gates exécutées** :
+  - `npm run typecheck` → PASS (après purge `.next` — faux `TS6200`/`TS2300` documentés dans CLAUDE.md)
+  - `npm test` (**suite complète**) → PASS (258 fichiers / 2618 tests)
+  - `npm run check:server-boundary` → PASS
+  - `npx eslint src/features/consultants` → PASS
+  - `npm run build` → PASS
+- **QA visuelle** : non réalisée — réservée à Guillaume.
+- **Limites** : DATA-3 partiel (sous-question lien direct `opp↔collab`) ; heuristique practice pour collaborateurs sans `job_profile_id`. Voir « Dettes connues ».
+- **Commit** : _(SHA après push)_ — `feat(consultants): data contract Synthèse — view-model + loader (Lot 2)`.
+- **SHA final** : _(à renseigner après push)_.
+- **NEXT LOT** : Lot 3 — Synthèse Desktop + Mobile.
 
 ### Lot 1 — Socle Consultants Workspace — ✅ techniquement livré (2026-09-08)
 
