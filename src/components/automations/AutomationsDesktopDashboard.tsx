@@ -25,7 +25,11 @@ import {
   formatRelativeTime,
 } from "./automations-status"
 import { RunDrillDownDialog } from "./RunDrillDownDialog"
-import { AutomationsLocalNavigation, type AutomationsTabKey } from "./AutomationsLocalNavigation"
+import {
+  AutomationsLocalNavigation,
+  getAutomationsDesktopChapterLabel,
+  type AutomationsTabKey,
+} from "./AutomationsLocalNavigation"
 import { CostTimelineChart } from "./CostTimelineChart"
 import { VeilleSimulatorModal } from "./VeilleSimulatorModal"
 import { AutomationsDataErrorBanner } from "./AutomationsDataErrorBanner"
@@ -431,9 +435,11 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
 
   const { costs } = data
 
+  const activeChapterTitle = getAutomationsDesktopChapterLabel(activeTab)
+
   const headerTitle = (
     <div className="flex items-center gap-2">
-      <span>Monitoring automatisations</span>
+      <span>{activeChapterTitle}</span>
       <span className="flex items-center gap-1.5 text-xs text-muted font-normal ml-3">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
