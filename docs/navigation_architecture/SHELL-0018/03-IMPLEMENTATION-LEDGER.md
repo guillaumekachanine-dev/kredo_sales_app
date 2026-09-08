@@ -89,7 +89,8 @@ QA minimale :
 | **3.1** | Standardisation des modules contextuels | ✅ techniquement livré | matrice exhaustive `05-CONTEXTUAL-MODULES-MATRIX.md` ; QA visuelle réservée à Guillaume |
 | **4.1** | URLisation Veille | ✅ techniquement livré | `?section=` Desktop ; état racine `news` sans paramètre ; commit `001a9e29` ; QA réelle réservée à Guillaume |
 | **4.3** | URLisation Rapports & rédaction | ✅ techniquement livré | `?section=` Desktop ; `documents` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
-| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Rapports & rédaction |
+| **4.4** | URLisation Automatisations | ✅ techniquement livré | `?section=` Desktop ; `journal` canonique sans paramètre ; suppression de `useState` Desktop ; préservation intégrale de `?run=` ; QA visuelle réservée à Guillaume |
+| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Automatisations |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
 | **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
@@ -1043,6 +1044,62 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Verdict Lot 4.3 : `techniquement livré`.**
 
-## 26. Prochaine étape
+## 26. Clôture du Lot 4.4 — URLisation Automatisations
+
+### Fichiers modifiés et créés
+
+- `src/components/automations/automations-desktop-navigation.ts` (nouveaux helpers client-safe `parseAutomationsSection` et `buildAutomationsSectionHref`) ;
+- `src/components/automations/automations-desktop-navigation.test.ts` (nouveaux tests unitaires purs de parsing et de construction URL) ;
+- `src/components/automations/AutomationsDesktopDashboard.tsx` (suppression du `useState` local, URL comme source de vérité) ;
+- `src/components/automations/AutomationsLocalNavigation.tsx` (réexport du type client-safe `AutomationsTabKey`) ;
+- `src/components/automations/AutomationsLocalNavigation.test.ts` (contrats de navigation URL et assertions d'isolation) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`.
+
+### Architecture retenue et contrat URL
+
+- L'état local `const [activeTab, setActiveTab] = useState<AutomationsTabKey>("journal")` a été intégralement supprimé de `AutomationsDesktopDashboard.tsx` ;
+- Le chapitre actif `activeTab` est désormais dérivé de manière déterministe depuis l'URL via `parseAutomationsSection(searchParams.get("section"))` ;
+- Contrat canonique de navigation :
+  - `/automations` → `journal` (« Journal d'exécution ») ;
+  - `/automations?section=sante` → `sante` (« Santé des workflows ») ;
+  - `/automations?section=couts` → `couts` (« Coûts ») ;
+- `journal` est l'état racine canonique sans paramètre : la navigation vers `journal` supprime `section` de l'URL ;
+- `parseAutomationsSection` accepte néanmoins `?section=journal` et le résout vers `journal`, tout comme `null`, `undefined` ou toute valeur inconnue ;
+- `buildAutomationsSectionHref()` part de `new URLSearchParams(searchParams.toString())` et modifie uniquement `section` ;
+- Les changements de chapitre utilisent `router.push()` avec `{ scroll: false }`, créant une véritable étape dans l'historique de navigation (Back, Forward, refresh, deep-link, lien partagé).
+
+### Préservation intégrale et orthogonalité de ?run=
+
+- La route `/automations?run=<id>` continue de fonctionner à l'identique : `initialRunId` extrait par `page.tsx` et transmis au Desktop initialise `selectedRunId` et `dialogOpen` pour ouvrir directement `RunDrillDownDialog` ;
+- `section` et `run` sont totalement orthogonaux :
+  - `/automations?run=abc` résout `section` par défaut sur `journal` et ouvre la modale du run `abc` ;
+  - un changement de chapitre depuis `/automations?run=abc` vers Santé produit `/automations?run=abc&section=sante` ;
+  - un retour vers le Journal produit `/automations?run=abc` (en supprimant `section` et en conservant `run`) ;
+- Aucun reset ni suppression automatique du paramètre `run` n'a été introduit lors de la navigation dans le rail.
+
+### Composants et états métier préservés
+
+- Le header principal Desktop continue d'afficher le titre du chapitre actif (`Journal d'exécution`, `Santé des workflows` ou `Coûts`) via `getAutomationsDesktopChapterLabel(activeTab)` accompagné de l'indicateur `Live Telemetry` ;
+- Le chapeau canonique `Automatisations` ramène au chapitre racine `journal` tout en préservant les query params existants ;
+- Tous les états React locaux (`selectedRunId`, `dialogOpen`, `metricsOpen`, `simulatorModalOpen`, `selectedWorkflowForModal`, `sort`, `periodFilter`, `statusFilter`, `companyFilter`, `showAllJournalRows`, `costPeriod`, `showAllCostWorkflows`) sont intégralement conservés ;
+- Le hook temps réel `useRunJournalRealtime`, le cycle de vie realtime et les statuts live restent strictement inchangés ;
+- `AutomationsMobileDashboard.tsx` ne subit aucune modification et reste totalement indépendant du contrôleur URL Desktop ;
+- `contextualModules` reste `undefined`.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** sans erreur ;
+2. `npm test -- src/components/automations/ src/components/layout/SectionRail.test.ts` : **52/52 tests passés** (et **2560/2560 tests passés** sur la suite complète `npm test`) ;
+3. `npm run check:server-boundary` : **passé** ;
+4. `npx eslint` sur les fichiers modifiés/créés : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès en production.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Verdict Lot 4.4 : `techniquement livré`.**
+
+## 27. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant n'est commencé dans cette livraison.
