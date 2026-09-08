@@ -34,7 +34,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ✅ techniquement livré | `16596041` | Matrice parité 17/17. CAND-3 résolu (labels unifiés). CAND-4 tranché (C-28 option 1). LEGACY-2 confirmé orphelin. CandidatesKanbanDesktop (EntityKanbanView). Rapports + Agenda intégrés. Planning déprécié (heuristiques illégitimes C-08). |
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ✅ techniquement livré | `b900b0f4` | `permanentRedirect("/consultants?section=candidats")`. C-13 résolue (contrat mobile `getMobileTabsForPath` repointé). NAV-3 volet dépréciation résolu. Call-sites actifs repointés (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`). Code métier legacy préservé (Lot 15). |
 | 11 | Module Production & Congés — Data | ✅ techniquement livré | `ab637998` | Granularité mensuelle `1 collab × 1 mois` (C-30, DATA-5 résolu). 22 tests + sentinelles. Loader server-only, RLS respectée. Zéro migration, zéro UI. |
-| 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `cde68af5` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
+| 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `149eb699` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
 | 13 | Module Matching profil (UI vers moteur existant) | ⬜ todo | — | Résoudre PRODUCT-1. Aucun second moteur (C-09). |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
@@ -230,8 +230,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm run build` → **PASS** (Turbopack, exit code 0, 42 routes compilées sans erreur)
   - `git diff --check` → **PASS** (0 whitespace/syntax issue)
 - **QA visuelle** : réservée à Guillaume (aucun navigateur automatisé ni Playwright exécuté).
-- **Commit** : `cde68af5` — `feat(consultants): add production and leave module UI (Lot 12)`
-- **SHA final** : `cde68af5acb20aefd8571efc5eb4e432fa8e9fcd`
+- **Commit** : `149eb699` — `feat(consultants): add production and leave module UI (Lot 12)`
+- **SHA final** : `149eb69994c6532d1f4ad030589a199723528b86`
 - **NEXT LOT** : Lot 13 — Module Matching profil (UI vers moteur existant).
 
 ### Lot 11 — Module Production & Congés / Data Contract mensuel — ✅ techniquement livré (2026-09-09)
