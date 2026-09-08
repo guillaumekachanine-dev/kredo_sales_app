@@ -15,6 +15,39 @@ export const ON_DEMAND_DIGEST_WORKFLOW_ID = "veille-ia-marche-on-demand" as cons
 
 export type VeilleSection = "news" | "watched-accounts" | "strategic-analysis" | "history"
 
+interface SearchParamsSnapshot {
+  toString(): string
+}
+
+export function parseVeilleSection(value: string | null | undefined): VeilleSection {
+  if (
+    value === "watched-accounts" ||
+    value === "strategic-analysis" ||
+    value === "history"
+  ) {
+    return value
+  }
+
+  return "news"
+}
+
+export function buildVeilleSectionHref(
+  pathname: string,
+  searchParams: SearchParamsSnapshot,
+  section: VeilleSection,
+): string {
+  const nextSearchParams = new URLSearchParams(searchParams.toString())
+
+  if (section === "news") {
+    nextSearchParams.delete("section")
+  } else {
+    nextSearchParams.set("section", section)
+  }
+
+  const query = nextSearchParams.toString()
+  return query ? `${pathname}?${query}` : pathname
+}
+
 export type GlobalWatchCadence = "weekly"
 
 export type GlobalWatchSettings = {

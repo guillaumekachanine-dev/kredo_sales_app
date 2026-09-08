@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useRef, useState} from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { AccountSignalDetailDrawer } from "@/components/accounts-contacts/intelligence/AccountSignalDetailDrawer"
 import { AccountWatchHeaderActions } from "@/components/accounts-contacts/intelligence/AccountWatchHeaderActions"
@@ -41,9 +41,11 @@ import {
 } from "./VeilleLocalNavigation"
 import { extractMatchedCompany, resolveOriginalSourceName } from "./veille-utils"
 import {
+  buildVeilleSectionHref,
   type GlobalWatchSettings,
   type GlobalWatchWorkflowHealth,
   type MonthlyWatchGenerationContext,
+  parseVeilleSection,
   type StrategicWatchAnalysis,
   type VeilleSection,
 } from "./veille-desktop-contracts"
@@ -1339,12 +1341,10 @@ function HistorySection({
   digests,
   analyses,
   topicOptions,
-  onOpenDigest,
 }: {
   digests: VeilleDigest[]
   analyses: StrategicWatchAnalysis[]
   topicOptions?: Array<{ topicKey: string; label: string }>
-  onOpenDigest?: () => void
 }) {
   return (
     <div className="grid grid-cols-2 gap-6">
@@ -1357,7 +1357,6 @@ function HistorySection({
               <Link
                 key={digest.id}
                 href={`/veille?digestId=${digest.id}`}
-                onClick={() => onOpenDigest?.()}
                 className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -1442,7 +1441,9 @@ export function VeilleActualitesDesktop({
   sourceManagementSnapshot,
 }: VeilleActualitesDesktopProps) {
   const router = useRouter()
-  const [section, setSection] = useState<VeilleSection>("news")
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const section = parseVeilleSection(searchParams.get("section"))
   const [articles, setArticles] = useState(initialArticles)
   const [selectedArticle, setSelectedArticle] = useState<VeilleArticle | null>(initialArticles[0] ?? null)
   const [search, setSearch] = useState("")
@@ -1566,6 +1567,10 @@ export function VeilleActualitesDesktop({
     else setMessage("Aucun compte n’est détecté pour ce signal. Qualifiez-le avant cette action.")
   }
 
+  const navigateSection = (nextSection: VeilleSection) => {
+    router.push(buildVeilleSectionHref(pathname, searchParams, nextSection))
+  }
+
   const content = section === "watched-accounts"
     ? <WatchedAccountsSection signals={watchedSignals} />
     : section === "strategic-analysis"
@@ -1582,7 +1587,7 @@ export function VeilleActualitesDesktop({
           />
         )
       : section === "history"
-        ? <HistorySection digests={allPastDigests} analyses={analysisHistory} topicOptions={launchOptions.topics} onOpenDigest={() => setSection("news")} />
+        ? <HistorySection digests={allPastDigests} analyses={analysisHistory} topicOptions={launchOptions.topics} />
         : selectedArticle
           ? (
               <div className="grid grid-cols-[minmax(0,1fr)_16rem] items-start gap-4">
@@ -1619,7 +1624,7 @@ export function VeilleActualitesDesktop({
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
       <VeilleLocalNavigation
         active={section}
-        onChange={setSection}
+        onChange={navigateSection}
         onOpenSourceManagement={() => setSourceManagementOpen(true)}
       />
 

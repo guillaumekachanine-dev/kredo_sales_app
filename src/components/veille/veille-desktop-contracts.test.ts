@@ -4,10 +4,12 @@ import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 import {
+  buildVeilleSectionHref,
   getSecondaryItems,
   healthFromRun,
   parseGlobalWatchSettings,
   parseMonthlyWatchAnalysisOutput,
+  parseVeilleSection,
   previousCalendarMonth,
   type VeilleSection,
   validateGlobalWatchSettings,
@@ -35,6 +37,42 @@ function renderNavigation(options?: {
 }
 
 describe("veille Desktop contracts", () => {
+  it.each([
+    [undefined, "news"],
+    [null, "news"],
+    ["news", "news"],
+    ["watched-accounts", "watched-accounts"],
+    ["strategic-analysis", "strategic-analysis"],
+    ["history", "history"],
+    ["unknown", "news"],
+  ] as const)("parses the section query value %s as %s", (value, expected) => {
+    expect(parseVeilleSection(value)).toBe(expected)
+  })
+
+  it("removes section for news while preserving every other query parameter", () => {
+    const searchParams = new URLSearchParams(
+      "topic=ia&digestId=abc&tab=veille&companyId=company-1&section=history",
+    )
+
+    expect(buildVeilleSectionHref("/veille", searchParams, "news")).toBe(
+      "/veille?topic=ia&digestId=abc&tab=veille&companyId=company-1",
+    )
+  })
+
+  it("adds a non-root section while preserving every other query parameter", () => {
+    const searchParams = new URLSearchParams("topic=ia&digestId=abc")
+
+    expect(buildVeilleSectionHref("/veille", searchParams, "strategic-analysis")).toBe(
+      "/veille?topic=ia&digestId=abc&section=strategic-analysis",
+    )
+  })
+
+  it("returns the pathname alone for the canonical empty news query", () => {
+    expect(buildVeilleSectionHref("/veille", new URLSearchParams("section=news"), "news")).toBe(
+      "/veille",
+    )
+  })
+
   it.each([
     ["queued", "En cours", "queued"],
     ["running", "En cours", "running"],
@@ -226,9 +264,23 @@ describe("veille Desktop UI source contract", () => {
     expect(distributor.slice(mobileBranch, desktopBranch)).not.toContain("globalWatchHealth=")
   })
 
-  it("resets desktop reader on digest change and switches to news section on history digest click", () => {
+  it("keeps URL navigation structural and lets history digest links return naturally to news", () => {
     expect(distributor).toContain('key={digest?.id ?? "veille-no-digest"}')
-    expect(desktop).toContain('onOpenDigest={() => setSection("news")}')
-    expect(desktop).toContain("onClick={() => onOpenDigest?.()}")
+    expect(desktop).toContain("const searchParams = useSearchParams()")
+    expect(desktop).toContain('const section = parseVeilleSection(searchParams.get("section"))')
+    expect(desktop).toContain("router.push(buildVeilleSectionHref(pathname, searchParams, nextSection))")
+    expect(desktop).not.toContain("useState<VeilleSection>")
+    expect(desktop).not.toContain("setSection")
+    expect(desktop).not.toContain("onOpenDigest")
+    expect(desktop).toContain('href={`/veille?digestId=${digest.id}`}')
+  })
+
+  it("keeps the Mobile tab contract and contextual module contract unchanged", () => {
+    const page = readFileSync(resolve(root, "src/app/(app)/veille/page.tsx"), "utf8")
+
+    expect(page).toContain('resolvedParams.tab === "veille" ? "veille" : undefined')
+    expect(page).toContain("initialMobileTab={initialTab}")
+    expect(desktop).toContain("onOpenSourceManagement={() => setSourceManagementOpen(true)}")
+    expect(navigation).toContain("contextualModules,")
   })
 })
