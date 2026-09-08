@@ -184,9 +184,9 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm test` (**suite complète**) → **PASS** (264 fichiers / 2653 tests)
   - `npm run check:server-boundary` → **PASS**
   - `npx eslint` (fichiers touchés : `candidates/`, `navigation/`, `page.tsx`, `_actions/`) → **PASS**
-  - `npm run build` (local) → **non joué** (`next dev` concurrent). Build de prod Vercel = gate.
+  - `npm run build` (local) → **non joué** (`next dev` concurrent). **Build de prod Vercel = gate** : commit `78e750e7` → `dpl_3TTn1i5TqD2yCTG9V3kgkqnKmmjr`, target `production`, **`READY`**, aliasé `kredo-green.vercel.app` (~140 s). Les composants client + imports de Server Actions passent `next build`.
 - **QA visuelle** : réservée à Guillaume.
-- **Commit** : `84c7d8f1` — `feat(consultants): chapitre Candidats in-shell — table + cartes + édition inline (Lot 8)`.
+- **Commit** : `84c7d8f1` — `feat(consultants): chapitre Candidats in-shell — table + cartes + édition inline (Lot 8)` ; doc-commit `78e750e7`.
 - **SHA final** : `84c7d8f1`.
 - **NEXT LOT** : Lot 9 — Absorption fonctionnelle Recruitment (audit de parité `/recruitment` ↔ chapitre Candidats ; trancher CAND-3, CAND-4 ; confirmer LEGACY-2).
 
