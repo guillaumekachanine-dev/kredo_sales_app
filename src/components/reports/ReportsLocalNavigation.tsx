@@ -1,7 +1,7 @@
 "use client"
 
 import { SectionRail } from "@/components/layout/SectionRail"
-import type { SectionRailProps } from "@/lib/navigation/section-rail"
+import type { SectionRailEntry, SectionRailProps } from "@/lib/navigation/section-rail"
 
 export type ReportsSection = "documents" | "knowledge" | "generation"
 
@@ -20,7 +20,11 @@ export function getReportsDesktopChapterLabel(section: ReportsSection): string {
   return REPORTS_DESKTOP_CHAPTERS.find((chapter) => chapter.key === section)?.label ?? "Bibliothèque"
 }
 
-function ReportsSidebarIcon({ name }: { name: ReportsSection }) {
+function ReportsSidebarIcon({
+  name,
+}: {
+  name: ReportsSection | "knowledge-management"
+}) {
   const commonProps = {
     className: "size-4 shrink-0",
     viewBox: "0 0 24 24",
@@ -47,6 +51,18 @@ function ReportsSidebarIcon({ name }: { name: ReportsSection }) {
       </svg>
     )
   }
+  if (name === "knowledge-management") {
+    return (
+      <svg {...commonProps}>
+        <line x1="8" y1="6" x2="21" y2="6" />
+        <line x1="8" y1="12" x2="21" y2="12" />
+        <line x1="8" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="3.01" y2="6" />
+        <line x1="3" y1="12" x2="3.01" y2="12" />
+        <line x1="3" y1="18" x2="3.01" y2="18" />
+      </svg>
+    )
+  }
   return (
     <svg {...commonProps}>
       <rect x="3" y="4" width="18" height="4" rx="1" />
@@ -59,12 +75,25 @@ function ReportsSidebarIcon({ name }: { name: ReportsSection }) {
 export interface ReportsLocalNavigationProps {
   active: ReportsSection
   onChange: (section: ReportsSection) => void
+  onOpenKnowledgeManagement?: () => void
 }
 
 export function buildReportsRailProps({
   active,
   onChange,
+  onOpenKnowledgeManagement,
 }: ReportsLocalNavigationProps): SectionRailProps {
+  const contextualModules: SectionRailEntry[] | undefined = onOpenKnowledgeManagement
+    ? [
+        {
+          key: "knowledge-management",
+          label: "Gestion de la connaissance",
+          icon: <ReportsSidebarIcon name="knowledge-management" />,
+          onSelect: onOpenKnowledgeManagement,
+        },
+      ]
+    : undefined
+
   return {
     ariaLabel: "Navigation locale Rapports & rédaction",
     title: "Rapports & rédaction",
@@ -76,7 +105,7 @@ export function buildReportsRailProps({
       active: active === chapter.key,
       onSelect: () => onChange(chapter.key),
     })),
-    contextualModules: undefined,
+    contextualModules,
   }
 }
 

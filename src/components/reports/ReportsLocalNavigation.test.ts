@@ -17,11 +17,13 @@ const root = process.cwd()
 
 function renderNavigation(options?: {
   active?: ReportsSection
+  onOpenKnowledgeManagement?: () => void
 }) {
   return renderToStaticMarkup(
     React.createElement(ReportsLocalNavigation, {
       active: options?.active ?? "documents",
       onChange: () => {},
+      onOpenKnowledgeManagement: options?.onOpenKnowledgeManagement,
     }),
   )
 }
@@ -156,7 +158,7 @@ describe("ReportsLocalNavigation & URLisation", () => {
       expect(desktopSource).toContain("{activeChapterTitle}")
     })
 
-    it("omet la section Modules et ne contient aucune action non contextuelle", () => {
+    it("omet la section Modules et ne contient aucune action non contextuelle par défaut", () => {
       const model = buildReportsRailProps({ active: "documents", onChange: () => {} })
       const html = renderNavigation()
 
@@ -166,6 +168,31 @@ describe("ReportsLocalNavigation & URLisation", () => {
       expect(navigationSource).not.toContain("CRM Launcher")
       expect(navigationSource).not.toContain("useCrmAccountLauncherStore")
       expect(desktopSource).not.toContain("useCrmAccountLauncherStore")
+    })
+
+    it("alimente la section Modules avec Gestion de la connaissance quand onOpenKnowledgeManagement est fourni", () => {
+      const onOpenKnowledgeManagement = vi.fn()
+      const model = buildReportsRailProps({
+        active: "documents",
+        onChange: () => {},
+        onOpenKnowledgeManagement,
+      })
+
+      expect(model.contextualModules).toHaveLength(1)
+      expect(model.contextualModules?.[0]?.key).toBe("knowledge-management")
+      expect(model.contextualModules?.[0]?.label).toBe("Gestion de la connaissance")
+      expect(model.contextualModules?.[0]?.icon).toBeDefined()
+
+      model.contextualModules?.[0]?.onSelect?.()
+      expect(onOpenKnowledgeManagement).toHaveBeenCalledOnce()
+
+      const html = renderNavigation({ onOpenKnowledgeManagement })
+      expect(html).toContain(">Modules<")
+      expect(html).toContain("Gestion de la connaissance")
+    })
+
+    it("connecte onOpenKnowledgeManagement à setManageListsOpen dans ReportsDesktopView", () => {
+      expect(desktopSource).toContain("onOpenKnowledgeManagement={() => setManageListsOpen(true)}")
     })
 
     it("ne contient aucun useState<ReportsSection> dans ReportsDesktopView", () => {

@@ -319,7 +319,11 @@ export function ReportsDesktopView({
   return (
     <>
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas">
-      <ReportsLocalNavigation active={activeSection} onChange={navigateSection} />
+      <ReportsLocalNavigation
+        active={activeSection}
+        onChange={navigateSection}
+        onOpenKnowledgeManagement={() => setManageListsOpen(true)}
+      />
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex min-h-[76px] shrink-0 items-center justify-between gap-5 border-b border-border bg-surface px-5 py-4">
