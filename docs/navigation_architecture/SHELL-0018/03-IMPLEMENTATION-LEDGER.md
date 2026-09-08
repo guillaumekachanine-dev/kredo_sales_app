@@ -80,7 +80,7 @@ QA minimale :
 | **1.2** | Tests unitaires de la primitive | ✅ done | `SectionRail.test.ts` — 5/5 tests passés le 2026-09-08 |
 | **2.1** | Migration Account Intelligence | ✅ techniquement livré | commit `31163105` ; QA visuelle réservée à Guillaume |
 | **2.2** | Migration Business Intelligence | ✅ techniquement livré | châssis `SectionRail` ; `?segment=` + `?tab=` conservés ; QA visuelle réservée à Guillaume |
-| **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
+| **2.3** | Migration Veille | ✅ techniquement livré | commit `df160aab` ; QA visuelle réservée à Guillaume |
 | **2.4** | Migration Rapports | ⬜ todo | extraire rail inline |
 | **2.5** | Migration Automatisations | ⬜ todo | supprimer divergences visuelles |
 | **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
@@ -408,7 +408,84 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Lot 2.2 techniquement livré.**
 
-## 14. Prochaine étape
+## 14. Préparation du Lot 2.3 — delta Veille / `SectionRail`
+
+Delta établi le 2026-09-08 sur le code de `main`, avant modification applicative :
+
+| Axe | État actuel | Cible du Lot 2.3 |
+|---|---|---|
+| Châssis | `VeilleLocalNavigation` duplique le rail en JSX et en classes locales | conserver le composant comme adaptateur Desktop léger de `SectionRail` |
+| Chapeau | bloc clair statique sans action | chapeau canonique `Veille & actualités`, ramenant à la section racine `news` via le callback existant |
+| Chapitres | quatre entrées locales pilotées par `VeilleSection` | conserver les quatre clés, leur ordre, leurs libellés et leurs icônes dans une configuration Desktop typée unique |
+| Header principal | titres dérivés du contenu (`Sélection…`, `Veille des comptes`, `Analyses stratégiques`, `Historique de la veille`) | afficher le libellé exact du chapitre actif depuis la même configuration Desktop |
+| Modules | `Gestion des sources` est toujours rendue, même sans callback ; une action transverse est également présente | transmettre uniquement `Gestion des sources`, et seulement lorsque son callback réel existe |
+| Routage | état client local `VeilleSection` | conserver ce mécanisme dans ce lot ; dette V2-N7 maintenue pour la Phase 4 |
+| Mobile | branche et composants distincts | ne modifier aucun contrat ni composant Mobile |
+
+Le lot reste un refactor de châssis : aucune donnée, aucun fetch, aucun workflow, aucune logique
+métier de veille et aucun contenu des quatre sections ne sont modifiés.
+
+## 15. Clôture du Lot 2.3 — Veille & actualités
+
+### Fichiers modifiés
+
+- `src/components/veille/VeilleLocalNavigation.tsx` ;
+- `src/components/veille/VeilleActualitesDesktop.tsx` ;
+- `src/components/veille/veille-desktop-contracts.test.ts` ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`.
+
+### Architecture retenue
+
+- `VeilleLocalNavigation` reste un adaptateur Desktop léger autour de la primitive canonique
+  `SectionRail` ;
+- le chapeau affiche `Veille & actualités` et sélectionne la section racine `news` via le callback
+  `onChange` existant ;
+- `VEILLE_DESKTOP_CHAPTERS` devient la source de vérité Desktop typée des quatre chapitres :
+  `news`, `watched-accounts`, `strategic-analysis`, `history`, dans leur ordre existant, avec leurs
+  libellés et leurs icônes conservés ;
+- le titre du header principal est dérivé de cette même configuration et affiche exactement
+  `Actualités`, `Veille ciblée`, `Analyses` ou `Archives` selon l'état client courant ;
+- la date et les métriques du digest courant restent disponibles comme information secondaire
+  du header `Actualités` ;
+- l'état local `VeilleSection`, les callbacks, les contenus et les interactions métier des quatre
+  sections restent inchangés.
+
+### Modules contextuels
+
+- `Gestion des sources` reste le seul module contextuel du rail Veille ;
+- il n'est transmis à `contextualModules` que lorsque son callback réel est fourni ;
+- les éléments non contextuels ont été retirés du rail sans création d'un nouvel emplacement ;
+- `SectionRail` porte l'ancrage bas de `Modules` et la section entière est omise sans action réelle ;
+- aucun bouton mort, disabled permanent ou placeholder n'est rendu.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** après mise à l'écart d'un cache `.next` périmé contenant deux
+   fichiers de déclarations générées dupliqués ;
+2. `npm test -- src/components/veille/veille-desktop-contracts.test.ts src/components/layout/SectionRail.test.ts` : **25/25 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des trois fichiers applicatifs et de test modifiés : **passé sans erreur** ; un
+   warning `react-hooks/exhaustive-deps` préexistant à la ligne 471 de
+   `VeilleActualitesDesktop.tsx`, hors des zones modifiées et de ce refactor de châssis, reste
+   inchangé ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7, TypeScript et génération des 41 pages
+   statiques terminées avec succès.
+
+### Limites et dettes restantes
+
+- l'URLisation des sections Veille n'est pas traitée : la dette V2-N7 reste volontairement
+  reportée à la Phase 4 ;
+- aucune modification Mobile, Supabase, RLS, RPC, fetch métier, workflow n8n ou Cockpit
+  Intelligence ;
+- aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Lot 2.3 techniquement livré.**
+
+## 16. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
