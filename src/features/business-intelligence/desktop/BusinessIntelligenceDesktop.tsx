@@ -19,7 +19,7 @@ import { BusinessIntelligenceChapterState } from "../chapters/BusinessIntelligen
 import { SectorAnalysisChapterDesktop } from "../chapters/SectorAnalysisChapterDesktop"
 import { RegulatoryCalendarChapterDesktop } from "../chapters/RegulatoryCalendarChapterDesktop"
 import { SectorNewsChapterDesktop } from "../chapters/SectorNewsChapter"
-import { buildBusinessIntelligenceHref, resolveBiChapter, replaceBiChapterInHref, type BiChapter } from "../navigation/business-intelligence-chapters"
+import { buildBusinessIntelligenceHref, getBiChapterLabel, resolveBiChapter, replaceBiChapterInHref, type BiChapter } from "../navigation/business-intelligence-chapters"
 
 const SectorPlaybooksModal = dynamic(() => import("../playbooks/SectorPlaybooksModal").then((mod) => mod.SectorPlaybooksModal), { ssr: false })
 const SectorStudiesModal = dynamic(() => import("../studies/SectorStudiesModal").then((mod) => mod.SectorStudiesModal), { ssr: false })
@@ -27,15 +27,6 @@ const BusinessIntelligenceSectorMapDesktop = dynamic(() => import("@/features/se
 const CompetitiveEnvironmentWorkspace = dynamic(() => import("@/features/competitive-map/components/CompetitiveEnvironmentWorkspace").then((mod) => mod.CompetitiveEnvironmentWorkspace), { loading: () => <div className="min-h-[32rem] animate-pulse bg-edito-surface" aria-label="Chargement de l’environnement concurrentiel" /> })
 
 type LoadedWorkspace = Extract<BusinessIntelligenceSegmentWorkspace, { state: "ready" | "empty" }>
-
-const CHAPTER_TITLES: Record<BiChapter, string> = {
-  home: "Business Intelligence",
-  "sector-analysis": "Analyse sectorielle",
-  "competitive-environment": "Environnement concurrentiel",
-  "regulatory-calendar": "Calendrier réglementaire",
-  "value-chain": "Chaîne de valeur",
-  "sector-news": "Actualités sectorielles",
-}
 
 interface BusinessIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
@@ -54,6 +45,7 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeChapter = resolveBiChapter(searchParams.get("tab") ?? initialTab)
+  const activeChapterTitle = getBiChapterLabel(activeChapter)
   const [isPlaybooksOpen, setIsPlaybooksOpen] = useState(false)
   const [isStudiesOpen, setIsStudiesOpen] = useState(false)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
@@ -106,14 +98,14 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <BusinessIntelligenceSignatureHeader
           activeChapter={activeChapter}
-          title={CHAPTER_TITLES[activeChapter]}
+          title={activeChapterTitle}
           segmentName={workspace.segment.name}
           macroName={workspace.segment.macro?.name ?? null}
           availability={signatureAvailability}
           onNavigate={navigateChapter}
         />
         <BusinessIntelligenceHeader
-          title={CHAPTER_TITLES[activeChapter]}
+          title={activeChapterTitle}
           minimal={activeChapter === "competitive-environment"}
           segmentName={workspace.segment.name}
           macroName={workspace.segment.macro?.name ?? null}

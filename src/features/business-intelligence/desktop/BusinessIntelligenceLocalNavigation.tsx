@@ -1,7 +1,7 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
+import { SectionRail } from "@/components/layout/SectionRail"
+import type { SectionRailEntry, SectionRailProps } from "@/lib/navigation/section-rail"
 import { BI_CHAPTERS, type BiChapter } from "../navigation/business-intelligence-chapters"
 
 export type BiTabKey = BiChapter
@@ -61,11 +61,87 @@ function BiSidebarIcon({ name }: { name: BiChapter }) {
   )
 }
 
-interface BusinessIntelligenceLocalNavigationProps {
+function StudiesIcon() {
+  return (
+    <svg
+      className="size-4 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  )
+}
+
+function PlaybooksIcon() {
+  return (
+    <svg
+      className="size-4 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+    </svg>
+  )
+}
+
+export interface BusinessIntelligenceLocalNavigationProps {
   active: BiTabKey
   onChange: (tab: BiTabKey) => void
   onStudiesClick?: () => void
   onPlaybooksClick?: () => void
+}
+
+export function buildBusinessIntelligenceRailProps({
+  active,
+  onChange,
+  onStudiesClick,
+  onPlaybooksClick,
+}: BusinessIntelligenceLocalNavigationProps): SectionRailProps {
+  const contextualModules: SectionRailEntry[] = []
+
+  if (onStudiesClick) {
+    contextualModules.push({
+      key: "studies",
+      label: "Études sectorielles",
+      icon: <StudiesIcon />,
+      onSelect: onStudiesClick,
+    })
+  }
+
+  if (onPlaybooksClick) {
+    contextualModules.push({
+      key: "playbooks",
+      label: "Playbooks",
+      icon: <PlaybooksIcon />,
+      onSelect: onPlaybooksClick,
+    })
+  }
+
+  return {
+    ariaLabel: "Navigation locale Business Intelligence",
+    title: "Business Intelligence",
+    home: { onSelect: () => onChange("home") },
+    chapters: BI_CHAPTERS.map((chapter) => ({
+      key: chapter.id,
+      label: chapter.label,
+      icon: <BiSidebarIcon name={chapter.id} />,
+      active: active === chapter.id,
+      onSelect: () => onChange(chapter.id),
+    })),
+    contextualModules,
+  }
 }
 
 export function BusinessIntelligenceLocalNavigation({
@@ -74,129 +150,5 @@ export function BusinessIntelligenceLocalNavigation({
   onStudiesClick,
   onPlaybooksClick,
 }: BusinessIntelligenceLocalNavigationProps) {
-  return (
-    <nav
-      aria-label="Navigation locale Business Intelligence"
-      className="flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
-    >
-      {/* Title box positioned exactly like 'Retour aux comptes' button */}
-      <div className="flex min-h-10 w-full items-center gap-2 rounded-md border border-edito-border bg-edito-surface px-3 text-left text-xs font-bold text-edito-navy select-none">
-        <span>Business Intelligence</span>
-      </div>
-
-      <div className="mt-5 border-t border-edito-border pt-4">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Chapitres
-        </p>
-        <div className="mt-2 space-y-1">
-          {BI_CHAPTERS.map((section) => {
-            const isActive = active === section.id
-            return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => onChange(section.id)}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 px-3 py-1.5 text-left text-xs font-semibold transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-                  isActive
-                    ? "border-l-edito-brass bg-edito-surface text-edito-navy"
-                    : "border-l-transparent text-edito-muted hover:bg-edito-surface/70 hover:text-edito-body",
-                )}
-              >
-                <span className={cn("text-edito-navy shrink-0", !isActive && "opacity-75")}>
-                  <BiSidebarIcon name={section.id} />
-                </span>
-                <span className="leading-[1.15] break-words">{section.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="mt-5 border-t border-edito-border pt-4">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Modules
-        </p>
-        <div className="mt-2 space-y-1">
-          <button
-            type="button"
-            onClick={onStudiesClick}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-            )}
-          >
-            <span className="text-edito-navy opacity-75">
-              <svg
-                className="size-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-            </span>
-            <span className="truncate">Études sectorielles</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onPlaybooksClick}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-            )}
-          >
-            <span className="text-edito-navy opacity-75">
-              <svg
-                className="size-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-              </svg>
-            </span>
-            <span className="truncate">Playbooks</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => useCrmAccountLauncherStore.getState().open()}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-            )}
-          >
-            <span className="text-edito-navy opacity-75">
-              <svg
-                className="size-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3.75 21h16.5M4.5 3h15A1.5 1.5 0 0 1 21 4.5V21H3V4.5A1.5 1.5 0 0 1 4.5 3zM8.25 7.5h.008v.008H8.25V7.5zm0 3.75h.008v.008H8.25v-.008zm0 3.75h.008v.008H8.25V15zm3.742-7.5H12v.008h-.008V7.5zm0 3.75H12v.008h-.008v-.008zm0 3.75H12v.008h-.008V15zm3.75-7.5h.008v.008h-.008V7.5zm0 3.75h.008v.008h-.008v-.008zm0 3.75h.008v.008h-.008V15z" />
-              </svg>
-            </span>
-            <span className="truncate">CRM Launcher</span>
-          </button>
-        </div>
-      </div>
-    </nav>
-  )
+  return <SectionRail {...buildBusinessIntelligenceRailProps({ active, onChange, onStudiesClick, onPlaybooksClick })} />
 }

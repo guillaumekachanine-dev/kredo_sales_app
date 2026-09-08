@@ -24,6 +24,10 @@ export const BI_CHAPTERS: readonly BiChapterDefinition[] = [
   { id: "sector-news", label: "Actualités sectorielles", mobileLabel: "Actualités", resource: "news" },
 ] as const
 
+const BI_CHAPTER_LABELS = new Map<BiChapter, string>(
+  BI_CHAPTERS.map((chapter) => [chapter.id, chapter.label]),
+)
+
 const CANONICAL_CHAPTERS = new Set<BiChapter>(BI_CHAPTERS.map((chapter) => chapter.id))
 
 const LEGACY_CHAPTERS: Record<string, BiChapter> = {
@@ -38,6 +42,12 @@ export function resolveBiChapter(value: string | null | undefined): BiChapter {
   if (value && CANONICAL_CHAPTERS.has(value as BiChapter)) return value as BiChapter
   if (value && LEGACY_CHAPTERS[value]) return LEGACY_CHAPTERS[value]
   return "home"
+}
+
+export function getBiChapterLabel(chapter: BiChapter): string {
+  const label = BI_CHAPTER_LABELS.get(chapter)
+  if (!label) throw new Error(`Unknown Business Intelligence chapter: ${chapter}`)
+  return label
 }
 
 export function isCanonicalBiChapter(value: string | null | undefined): value is BiChapter {
