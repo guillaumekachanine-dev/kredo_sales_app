@@ -53,6 +53,10 @@ import {
   ReportsLocalNavigation,
   type ReportsSection,
 } from "./ReportsLocalNavigation"
+import {
+  buildReportsSectionHref,
+  parseReportsSection,
+} from "./reports-desktop-navigation"
 
 type ReportsDesktopViewProps = {
   reportsData: ReportsListData
@@ -167,8 +171,15 @@ export function ReportsDesktopView({
   const searchParams = useSearchParams()
   const viewerRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
-  const [activeSection, setActiveSection] = useState<ReportsSection>("documents")
+  const activeSection = parseReportsSection(searchParams.get("section"))
   const [showFilters, setShowFilters] = useState(false)
+
+  const navigateSection = (nextSection: ReportsSection) => {
+    router.push(
+      buildReportsSectionHref(pathname, searchParams, nextSection),
+      { scroll: false },
+    )
+  }
   const [isEditing, setIsEditing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -308,7 +319,7 @@ export function ReportsDesktopView({
   return (
     <>
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas">
-      <ReportsLocalNavigation active={activeSection} onChange={setActiveSection} />
+      <ReportsLocalNavigation active={activeSection} onChange={navigateSection} />
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex min-h-[76px] shrink-0 items-center justify-between gap-5 border-b border-border bg-surface px-5 py-4">

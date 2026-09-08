@@ -5,6 +5,11 @@ import type { SectionRailProps } from "@/lib/navigation/section-rail"
 
 export type ReportsSection = "documents" | "knowledge" | "generation"
 
+export {
+  buildReportsSectionHref,
+  parseReportsSection,
+} from "./reports-desktop-navigation"
+
 export const REPORTS_DESKTOP_CHAPTERS = [
   { key: "documents", label: "Bibliothèque" },
   { key: "knowledge", label: "Connaissances" },
