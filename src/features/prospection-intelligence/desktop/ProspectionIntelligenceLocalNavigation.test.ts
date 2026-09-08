@@ -158,4 +158,11 @@ describe("ProspectionIntelligenceLocalNavigation", () => {
     expect(desktopSource).toContain("<AccountAttackPanel")
     expect(desktopSource).toContain("<PriorityAccountsModal")
   })
+
+  it("vérifie l'absence de useState pour la navigation et la dérivation depuis useSearchParams", () => {
+    expect(desktopSource).not.toContain("useState<PiTabKey>")
+    expect(desktopSource).toContain("const activeTab = parseProspectionSection(searchParams.get(\"section\"))")
+    expect(desktopSource).toContain("router.push(")
+    expect(desktopSource).toContain("buildProspectionSectionHref(pathname, searchParams, next)")
+  })
 })

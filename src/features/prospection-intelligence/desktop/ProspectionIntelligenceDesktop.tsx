@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { BusinessIntelligenceDesktopViewModel } from "@/features/business-intelligence/presenters/build-business-intelligence-desktop-model"
 import { BusinessIntelligenceSnapshot } from "@/features/business-intelligence/data/business-intelligence-types"
@@ -16,6 +17,10 @@ import {
   getProspectionDesktopChapterLabel,
   type PiTabKey,
 } from "./ProspectionIntelligenceLocalNavigation"
+import {
+  parseProspectionSection,
+  buildProspectionSectionHref,
+} from "./prospection-intelligence-desktop-navigation"
 
 interface ProspectionIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
@@ -38,7 +43,18 @@ export function ProspectionIntelligenceDesktop(props: ProspectionIntelligenceDes
 }
 
 function ProspectionIntelligenceDesktopReady({ viewModel, snapshot }: ProspectionIntelligenceDesktopProps) {
-  const [activeTab, setActiveTab] = useState<PiTabKey>("strategy")
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const activeTab = parseProspectionSection(searchParams.get("section"))
+
+  const navigateSection = (next: PiTabKey) => {
+    router.push(
+      buildProspectionSectionHref(pathname, searchParams, next),
+      { scroll: false },
+    )
+  }
 
   // Filters
   const [period, setPeriod] = useState<30 | 90 | 180>(30)
@@ -103,7 +119,7 @@ function ProspectionIntelligenceDesktopReady({ viewModel, snapshot }: Prospectio
 
   return (
     <div className="flex h-screen min-h-0 overflow-hidden bg-canvas">
-      <ProspectionIntelligenceLocalNavigation active={activeTab} onChange={setActiveTab} />
+      <ProspectionIntelligenceLocalNavigation active={activeTab} onChange={navigateSection} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <ProspectionIntelligenceHeader title={activeChapterTitle} />

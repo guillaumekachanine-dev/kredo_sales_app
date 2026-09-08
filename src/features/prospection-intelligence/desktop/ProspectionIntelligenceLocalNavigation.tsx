@@ -3,8 +3,9 @@
 import type { ReactNode } from "react"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailProps } from "@/lib/navigation/section-rail"
+import type { PiTabKey } from "./prospection-intelligence-desktop-navigation"
 
-export type PiTabKey = "strategy" | "chapter_1" | "chapter_2" | "chapter_3"
+export type { PiTabKey }
 
 export interface ProspectionDesktopChapter {
   key: PiTabKey
