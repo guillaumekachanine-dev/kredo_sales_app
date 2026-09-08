@@ -88,8 +88,8 @@ QA minimale :
 | **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **3.1** | Standardisation des modules contextuels | ✅ techniquement livré | matrice exhaustive `05-CONTEXTUAL-MODULES-MATRIX.md` ; QA visuelle réservée à Guillaume |
 | **4.1** | URLisation Veille | ✅ techniquement livré | `?section=` Desktop ; état racine `news` sans paramètre ; commit `001a9e29` ; QA réelle réservée à Guillaume |
-| **4.2** | URLisation Account Intelligence | ✅ techniquement livré | `?aiSection=` Desktop ; accueil canonique sans paramètre ; commit `844777ea` ; QA réelle réservée à Guillaume |
-| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Account Intelligence |
+| **4.3** | URLisation Rapports & rédaction | ✅ techniquement livré | `?section=` Desktop ; `documents` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
+| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Rapports & rédaction |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
 | **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
@@ -1000,7 +1000,49 @@ validation réservée à Guillaume.**
 
 **Verdict Lot 4.2 : `techniquement livré`.**
 
-## 24. Prochaine étape
+## 25. Lot 4.3 — URLisation Rapports & rédaction
 
-Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
-n'est commencé dans cette livraison.
+### Contrat URL Desktop
+
+- L'état local `const [activeSection, setActiveSection] = useState<ReportsSection>("documents")` a été intégralement supprimé de `ReportsDesktopView.tsx` ;
+- Le chapitre actif `activeSection` est désormais dérivé de manière déterministe depuis l'URL via `parseReportsSection(searchParams.get("section"))` ;
+- Contrat canonique de navigation :
+  - `/reports` → `documents` (« Bibliothèque ») ;
+  - `/reports?section=knowledge` → `knowledge` (« Connaissances ») ;
+  - `/reports?section=generation` → `generation` (« Génération ») ;
+- `documents` est l'état racine canonique sans paramètre : la navigation vers `documents` supprime `section` de l'URL ;
+- `parseReportsSection` accepte néanmoins `?section=documents` et le résout vers `documents`, tout comme `null`, `undefined` ou toute valeur inconnue ;
+- `buildReportsSectionHref()` part de `new URLSearchParams(searchParams.toString())` et modifie uniquement `section`.
+
+### Préservation des query params et comportements existants
+
+- Tous les query params métier de la page Rapports (`search`, `documentType`, `status`, `entityType`, `entityId`, `ownerId`, `favoritesOnly`, `periodFrom`, `periodTo`, `page`, `doc`) sont strictly conservés lors des changements de chapitre ;
+- La distinction entre navigations est respectée :
+  - Changement de chapitre → `router.push()` via `buildReportsSectionHref()` (création d'entrée dans l'historique pour Back/Forward/refresh) ;
+  - Mutations de filtres, pagination et sélection documentaire → `router.replace()` via `applyUrlMutation()` ;
+- `handleReset()` réinitialise les filtres métier sans supprimer `section` (un reset des filtres conserve le chapitre courant) ;
+- La sélection documentaire (`?doc=`) est préservée lors du changement de chapitre, permettant de restaurer le contexte Bibliothèque intact au retour ;
+- Le header principal affiche dynamiquement le nom du chapitre actif via `getReportsDesktopChapterLabel(activeSection)` ;
+- Le chapeau `Rapports & rédaction` déclenche une navigation URL vers l'état racine canonique sans paramètre ;
+- L'action « Générer une analyse » et la modale `WatchAnalysisComposerDesktop` restent indépendantes du chapitre de navigation URL ;
+- `ReportsMobileView` conserve son propre état local `useState<ReportsSection>("documents")` sans modification ;
+- Le branchement adaptatif serveur `getDashboardDevice()` et les loaders dans `src/app/(app)/reports/page.tsx` restent inchangés ;
+- `contextualModules` reste `undefined`.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** ;
+2. `npm test` : **2551/2551 tests passés** (dont 22/22 sur `ReportsLocalNavigation.test.ts` et `SectionRail.test.ts`) ;
+3. `npm run check:server-boundary` : **passé** ;
+4. `npx eslint` sur les fichiers modifiés/créés : **passé sans erreur** (1 warning préexistant `setShowFilters` inchangé) ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès.
+
+**QA visuelle et test manuel Back/Forward : non exécutés conformément à la consigne du lot ; validation réservée à Guillaume.**
+
+**Verdict Lot 4.3 : `techniquement livré`.**
+
+## 26. Prochaine étape
+
+Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant n'est commencé dans cette livraison.
