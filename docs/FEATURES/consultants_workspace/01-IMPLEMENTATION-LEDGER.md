@@ -12,7 +12,7 @@ Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 8 — Page Candidats
 Lot courant              : —
 Prochain lot             : Lot 9 — Absorption fonctionnelle Recruitment
-Dernier SHA connu origin/main : <SHA Lot 8>   (2026-09-08, commit feat Lot 8)
+Dernier SHA connu origin/main : 84c7d8f1ec952c0667f3cdbe9819b26d6bb8c1e7   (2026-09-08, commit feat Lot 8)
 ```
 
 ## Table des lots
@@ -30,7 +30,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ✅ techniquement livré | `e88500b6` | `src/features/consultants/activity/` (`ActivityDashboard` + types + loader) + 8 tests. C-24 : `<h1>` retiré, route legacy → `permanentRedirect`, pas de Mobile dédié (dette PRODUCT-4). Gates verts (build → Vercel). |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ✅ techniquement livré | `2eb96035` | `git mv` → `src/features/consultants/skills/` + loader `data/get-consultants-skills.ts` + `<header>` retiré + route legacy → `permanentRedirect`. C-25. **NAV-2 résolu.** 3 consommateurs externes repointés. Gates verts (build → Vercel). |
 | 7 | Data Contract Candidats (candidate-centric) | ✅ techniquement livré | `767e6696` | `src/features/consultants/candidates/data/` : builder pur + loader + types + 11 tests ; `src/lib/recruitment/candidate-lifecycle.ts` (+ 4 tests). C-26. **DATA-4/6 + PRODUCT-2/3 résolus.** Dettes CAND-1/2/3. Aucune migration, aucune UI. Gates verts (build → Vercel). |
-| 8 | Page Candidats (Desktop + Mobile, inline edit) | ✅ techniquement livré | `<SHA Lot 8>` | `src/features/consultants/candidates/` : `CandidatesDesktop` (`StructuredList` 7 col.) + `CandidatesMobile` (cartes) + `CandidateInlineControls` + `candidates-view` (+6 tests). C-27. **5/5 chapitres in-shell.** Drawers `CandidateDrawer`/`NewCandidateDrawer` réutilisés. `revalidatePath("/consultants")` sur 5 actions. Dette CAND-4 (positionnement inline). `/recruitment` intact. Gates verts (build → Vercel). |
+| 8 | Page Candidats (Desktop + Mobile, inline edit) | ✅ techniquement livré | `84c7d8f1` | `src/features/consultants/candidates/` : `CandidatesDesktop` (`StructuredList` 7 col.) + `CandidatesMobile` (cartes) + `CandidateInlineControls` + `candidates-view` (+6 tests). C-27. **5/5 chapitres in-shell.** Drawers `CandidateDrawer`/`NewCandidateDrawer` réutilisés. `revalidatePath("/consultants")` sur 5 actions. Dette CAND-4 (positionnement inline). `/recruitment` intact. Gates verts (build → Vercel). |
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ⬜ todo | — | Rapport de parité au ledger. Confirmer LEGACY-2. |
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ⬜ todo | — | Après parité Lot 9. Patron `prospection/page.tsx`. |
 | 11 | Module Production & Congés — Data | ⬜ todo | — | Résoudre DATA-5. Aucun calendrier fictif (C-08). |
@@ -186,8 +186,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npx eslint` (fichiers touchés : `candidates/`, `navigation/`, `page.tsx`, `_actions/`) → **PASS**
   - `npm run build` (local) → **non joué** (`next dev` concurrent). Build de prod Vercel = gate.
 - **QA visuelle** : réservée à Guillaume.
-- **Commit** : `<SHA Lot 8>` — `feat(consultants): chapitre Candidats in-shell — table + cartes + édition inline (Lot 8)`.
-- **SHA final** : `<SHA Lot 8>`.
+- **Commit** : `84c7d8f1` — `feat(consultants): chapitre Candidats in-shell — table + cartes + édition inline (Lot 8)`.
+- **SHA final** : `84c7d8f1`.
 - **NEXT LOT** : Lot 9 — Absorption fonctionnelle Recruitment (audit de parité `/recruitment` ↔ chapitre Candidats ; trancher CAND-3, CAND-4 ; confirmer LEGACY-2).
 
 ### Lot 7 — Data Contract Candidats — ✅ techniquement livré (2026-09-08)
