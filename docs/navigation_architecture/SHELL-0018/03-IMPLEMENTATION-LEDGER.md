@@ -84,7 +84,7 @@ QA minimale :
 | **2.4** | Migration Rapports | ✅ techniquement livré | commit `d22ad5ca` ; QA visuelle réservée à Guillaume |
 | **2.5** | Migration Automatisations | ✅ techniquement livré | commit `c20f33fd` ; QA visuelle réservée à Guillaume |
 | **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
-| **2.7** | Migration Prospection | ⬜ todo | `15rem → 11.5rem` |
+| **2.7** | Migration Prospection | ✅ techniquement livré | commit `9b13d84d` ; 15rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **2.8** | Migration Knowledge Hub | ⬜ todo | conserver navigation contextuelle |
 | **3.x** | Standardisation des modules contextuels | ⬜ todo | uniquement contexte page |
 | **4.x** | URLisation des navigations client-state restantes | ⬜ todo | après stabilisation du rail |
@@ -576,7 +576,56 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Lot 2.5 techniquement livré.**
 
-## 18. Prochaine étape
+## 18. Clôture du Lot 2.7 — Prospection Intelligence
+
+### Fichiers modifiés et créés
+
+- `src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.tsx` (adaptateur refactorisé) ;
+- `src/features/prospection-intelligence/desktop/ProspectionIntelligenceHeader.tsx` ;
+- `src/features/prospection-intelligence/desktop/ProspectionIntelligenceDesktop.tsx` ;
+- `src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.test.ts` (nouveaux tests unitaires et de contrat) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`.
+
+### Architecture retenue
+
+- `ProspectionIntelligenceLocalNavigation` délègue intégralement son châssis à la primitive canonique `SectionRail` ;
+- La largeur locale historique `15rem` est normalisée à la largeur standard `11.5rem` (`184px`) sans débordement horizontal ;
+- Le chapeau canonique affiche `Prospection` (navy, texte blanc, gras, centré horizontalement et verticalement, largeur 11.5rem / 184px) et son action `home.onSelect` ramène au chapitre racine `strategy` sans modifier inutilement d'autres états métier ;
+- La configuration Desktop unique `PROSPECTION_DESKTOP_CHAPTERS` sert de source de vérité pour les quatre chapitres : `strategy` (« Brief »), `chapter_1` (« Fenêtres d'opportunités »), `chapter_2` (« Approches commerciales ») et `chapter_3` (« Playbooks »), en conservant exactement leurs identifiants, leur ordre, leurs libellés et leurs icônes fines SVG ;
+- Le chapitre `Playbooks` reste un chapitre métier et n'est pas transformé en module ;
+- Le header principal Desktop applique l'invariant SHELL-0018 en affichant le titre exact du chapitre actif (`Brief`, `Fenêtres d'opportunités`, `Approches commerciales` ou `Playbooks`), dérivé dynamiquement de la configuration via `getProspectionDesktopChapterLabel(activeTab)` ;
+- Les divergences locales (`Sections`, classes custom, boutons redondants) ont été supprimées au profit du contrat canonique de `SectionRail` (`aria-current="page"`) ;
+- L'action transverse « CRM Launcher » et son hook `useCrmAccountLauncherStore` ont été retirés du rail sans déplacement artificiel ;
+- Toutes les fonctionnalités et états métier (filtres de période 30/90/180, filtre secteur, recherche compte, `selectedAccountId`, modale de priorisation, composants analytiques `StrategicBrief`, `IntelligenceKpiStrip`, `AccountPriorityBoard`, `PotentialReachMatrix`, `AccountAttackPanel`) restent strictement protégés et inchangés.
+
+### Modules contextuels
+
+- La page Prospection Intelligence ne contient pas de véritable module contextuel distinct de ses quatre chapitres ;
+- `contextualModules` est explicitement défini à `undefined`, évitant tout module artificiel ou bouton mort ;
+- La section Modules n'est donc pas rendue dans le rail.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** sans erreur ;
+2. `npm test -- src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.test.ts src/components/layout/SectionRail.test.ts` : **14/14 tests passés** (et **5/5 tests passés** sur `business-intelligence-layout-contracts.test.ts`) ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des fichiers créés et modifiés : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès.
+
+### Limites et dettes restantes
+
+- L'état de navigation `activeTab` reste un état local dans ce lot ; l'URLisation de la page Prospection reste une dette de Phase 4 conformément au cadrage ;
+- La redirection de la route historique `/prospection` vers `/intelligence` n'est pas modifiée ;
+- Aucune modification Mobile, Supabase, RLS, RPC, fetch métier ou workflow n8n ;
+- Aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Lot 2.7 techniquement livré.**
+
+## 19. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
