@@ -137,6 +137,7 @@ export async function updateCandidateProfile(
   }
 
   revalidatePath("/recruitment")
+  revalidatePath("/consultants")
   revalidatePath("/missions/opps")
 
   return { success: true, candidateId: data }

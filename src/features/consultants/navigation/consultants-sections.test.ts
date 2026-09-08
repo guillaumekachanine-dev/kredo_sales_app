@@ -36,12 +36,13 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(parseConsultantsSection("collaborateurs")).toBe("collaborateurs")
       expect(parseConsultantsSection(["collaborateurs", "x"])).toBe("collaborateurs")
       expect(parseConsultantsSection("activite-conges")).toBe("activite-conges")
+      expect(parseConsultantsSection("candidats")).toBe("candidats")
       expect(parseConsultantsSection("pool-competences")).toBe("pool-competences")
     })
 
-    it("résout une section non encore internalisée ou inconnue vers synthese", () => {
-      expect(parseConsultantsSection("candidats")).toBe("synthese")
+    it("résout une section inconnue vers synthese", () => {
       expect(parseConsultantsSection("invalide")).toBe("synthese")
+      expect(parseConsultantsSection("recrutement")).toBe("synthese")
     })
   })
 
@@ -57,6 +58,9 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(buildConsultantsSectionHref("activite-conges")).toBe(
         "/consultants?section=activite-conges",
       )
+      expect(buildConsultantsSectionHref("candidats")).toBe(
+        "/consultants?section=candidats",
+      )
       expect(buildConsultantsSectionHref("pool-competences")).toBe(
         "/consultants?section=pool-competences",
       )
@@ -68,26 +72,22 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(CONSULTANTS_SECTIONS.map((entry) => entry.key)).toEqual(ALL_SECTIONS)
     })
 
-    it("internalise synthese, collaborateurs, activite-conges et pool-competences", () => {
+    it("internalise les 5 chapitres dans le shell (aucune section externe)", () => {
       const inShell = CONSULTANTS_SECTIONS.filter((entry) => !entry.external).map(
         (entry) => entry.key,
       )
       expect(inShell).toEqual([...CONSULTANTS_IN_SHELL_SECTIONS])
-      expect(inShell).toEqual([
-        "synthese",
-        "collaborateurs",
-        "activite-conges",
-        "pool-competences",
-      ])
+      expect(inShell).toEqual([...ALL_SECTIONS])
+      expect(CONSULTANTS_SECTIONS.every((entry) => !entry.external)).toBe(true)
     })
 
-    it("route les chapitres internalisés en ?section= et les externes vers leur route", () => {
+    it("route tous les chapitres internalisés en ?section=", () => {
       const byKey = Object.fromEntries(
         CONSULTANTS_SECTIONS.map((entry) => [entry.key, entry.href]),
       )
       expect(byKey["activite-conges"]).toBe("/consultants?section=activite-conges")
       expect(byKey["pool-competences"]).toBe("/consultants?section=pool-competences")
-      expect(byKey["candidats"]).toBe("/recruitment")
+      expect(byKey["candidats"]).toBe("/consultants?section=candidats")
     })
 
     it("expose un libellé de header pour chaque section", () => {
@@ -104,7 +104,12 @@ describe("consultants-sections — contrat de navigation", () => {
 
 describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
   function render(
-    active: "synthese" | "collaborateurs" | "activite-conges" | "pool-competences",
+    active:
+      | "synthese"
+      | "collaborateurs"
+      | "activite-conges"
+      | "candidats"
+      | "pool-competences",
   ) {
     return renderToStaticMarkup(
       React.createElement(
@@ -127,15 +132,17 @@ describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
     expect(render("synthese")).toContain("Synthèse")
     expect(render("collaborateurs")).toContain("Collaborateurs")
     expect(render("activite-conges")).toContain("Activités &amp; congés")
+    expect(render("candidats")).toContain("Candidats")
     expect(render("pool-competences")).toContain("Pool de compétences")
   })
 
-  it("rend les 5 chapitres avec leurs href", () => {
+  it("rend les 5 chapitres avec leurs href ?section=", () => {
     const markup = render("collaborateurs")
     expect(markup).toContain('href="/consultants?section=collaborateurs"')
     expect(markup).toContain('href="/consultants?section=activite-conges"')
+    expect(markup).toContain('href="/consultants?section=candidats"')
     expect(markup).toContain('href="/consultants?section=pool-competences"')
-    expect(markup).toContain('href="/recruitment"')
+    expect(markup).not.toContain('href="/recruitment"')
   })
 
   it("marque le chapitre actif avec aria-current=page", () => {

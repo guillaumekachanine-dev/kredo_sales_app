@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 7 — Data Contract Candidats
+Dernier lot livré        : Lot 8 — Page Candidats
 Lot courant              : —
-Prochain lot             : Lot 8 — Page Candidats
-Dernier SHA connu origin/main : 767e66962c7dab7a7d3d1385f1a2311d7ae1f6b3   (2026-09-08, commit refactor Lot 7)
+Prochain lot             : Lot 9 — Absorption fonctionnelle Recruitment
+Dernier SHA connu origin/main : <SHA Lot 8>   (2026-09-08, commit feat Lot 8)
 ```
 
 ## Table des lots
@@ -30,7 +30,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ✅ techniquement livré | `e88500b6` | `src/features/consultants/activity/` (`ActivityDashboard` + types + loader) + 8 tests. C-24 : `<h1>` retiré, route legacy → `permanentRedirect`, pas de Mobile dédié (dette PRODUCT-4). Gates verts (build → Vercel). |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ✅ techniquement livré | `2eb96035` | `git mv` → `src/features/consultants/skills/` + loader `data/get-consultants-skills.ts` + `<header>` retiré + route legacy → `permanentRedirect`. C-25. **NAV-2 résolu.** 3 consommateurs externes repointés. Gates verts (build → Vercel). |
 | 7 | Data Contract Candidats (candidate-centric) | ✅ techniquement livré | `767e6696` | `src/features/consultants/candidates/data/` : builder pur + loader + types + 11 tests ; `src/lib/recruitment/candidate-lifecycle.ts` (+ 4 tests). C-26. **DATA-4/6 + PRODUCT-2/3 résolus.** Dettes CAND-1/2/3. Aucune migration, aucune UI. Gates verts (build → Vercel). |
-| 8 | Page Candidats (Desktop + Mobile, inline edit) | ⬜ todo | — | Réutiliser server actions recrutement (jamais dupliquer). |
+| 8 | Page Candidats (Desktop + Mobile, inline edit) | ✅ techniquement livré | `<SHA Lot 8>` | `src/features/consultants/candidates/` : `CandidatesDesktop` (`StructuredList` 7 col.) + `CandidatesMobile` (cartes) + `CandidateInlineControls` + `candidates-view` (+6 tests). C-27. **5/5 chapitres in-shell.** Drawers `CandidateDrawer`/`NewCandidateDrawer` réutilisés. `revalidatePath("/consultants")` sur 5 actions. Dette CAND-4 (positionnement inline). `/recruitment` intact. Gates verts (build → Vercel). |
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ⬜ todo | — | Rapport de parité au ledger. Confirmer LEGACY-2. |
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ⬜ todo | — | Après parité Lot 9. Patron `prospection/page.tsx`. |
 | 11 | Module Production & Congés — Data | ⬜ todo | — | Résoudre DATA-5. Aucun calendrier fictif (C-08). |
@@ -69,6 +69,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-24 | Chapitre Activités & congés internalisé (`?section=activite-conges`) ; `ActivityDashboard` + `activity.types` + `get-consultants-activity` dans `src/features/consultants/activity/` ; `<h1>` retiré ; route legacy → `permanentRedirect` ; pas de branche Mobile (dette PRODUCT-4) | 5 |
 | C-25 | Chapitre Pool de compétences internalisé (`?section=pool-competences`) ; `git mv components/consultants/pool-competences/` → `src/features/consultants/skills/` (7 fichiers) ; loader → `data/get-consultants-skills.ts` (convention `data/`, pas `skills/`) ; `buildPoolCompetencesDataset` inchangé ; `<header>` interne retiré ; route legacy → `permanentRedirect` ; pas de branche Mobile (dette SKILLS-1) ; suppression fichiers route `(tabbed)` + layout reportée au Lot 15 | 6 |
 | C-26 | Contrat Candidats candidate-centric (`src/features/consultants/candidates/data/`) : builder pur + loader `server-only` + types + tests. Population = tous les `candidates` (filtrage à l'affichage via `pipelineState`). DATA-4 : `qualifiedThisYear` = jalon `prequalification/valide` daté année civile. DATA-6 : `available_from`+`notice_period_days` (43/43) = source structurée, texte `availability` jamais parsé. PRODUCT-2 : `nextAction` = positionnement actif le + récent, `null` sinon (option a). PRODUCT-3 : whitelist canonique `src/lib/recruitment/candidate-lifecycle.ts`. Practice = `practice_id → slug` (C-17), repli `job_profile_id`. Dettes CAND-1/2/3 | 7 |
+| C-27 | Chapitre Candidats internalisé (`?section=candidats`, 5/5 sections in-shell) : `CandidatesDesktop` (`StructuredList` maison, patron Lot 4 — pas `DataTable`/`EntityListView`), `CandidatesMobile` (cartes), `CandidateInlineControls`, `candidates-view.ts`. Distribution serveur (`page.tsx`). Drawers `CandidateDrawer` (déjà candidate-centric) + `NewCandidateDrawer` réutilisés tels quels. Édition inline = lifecycle (`updateCandidateStatus`) + étape process si actif (`updateHiringStep`) ; positionnement `opportunity_candidates` NON inline (dette CAND-4). `revalidatePath("/consultants")` ajouté aux 5 actions recrutement (C-12). `/recruitment` + `getMobileTabsForPath` + `main-menu.config` intacts (C-13). | 8 |
 
 ## Questions ouvertes en cours
 
@@ -135,8 +136,9 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | ~~Loader recrutement opportunity-centric~~ | Résolu Lot 7 (C-26) côté **lecture** : `getConsultantsCandidates` part de `candidates` (vivier complet, 13/43 sans positionnement inclus). L'ancien `getRecruitmentWorkspace` reste en place jusqu'à la page Lot 8 / dépréciation Lot 10. | 7 |
 | **CAND-1** — backfill qualification | Lot 7 : `qualifiedThisYear` faux pour les candidats sans jalon `prequalification/valide` daté cette année (15/43 live). Mécanisme de fallback / backfill à définir. | 7.x |
 | **CAND-2** — porteur « prochaine action » | Lot 7 : un candidat du vivier sans positionnement actif n'a aucun porteur de « prochaine action » (PRODUCT-2 option a). Colonne / table dédiée = migration éventuelle. | futur |
-| **CAND-3** — 3 copies legacy des labels lifecycle | `CandidateProfileEditor`, `CandidateReferenceProfile`, `RecruitmentListView` dupliquent le mapping statut→libellé. Converger vers `src/lib/recruitment/candidate-lifecycle.ts` (créé Lot 7). | 8 |
-| `RecruitmentWorkspace` non adaptive-split | Desktop + Mobile dans un même arbre client, sous-vues importées statiquement | 8 |
+| **CAND-3** — 3 copies legacy des labels lifecycle | `CandidateProfileEditor`, `CandidateReferenceProfile`, `RecruitmentListView` dupliquent le mapping statut→libellé. Le Lot 8 crée `candidates-view.ts` qui dérive tout de `candidate-lifecycle.ts` ; la convergence des 3 fichiers legacy est reportée au Lot 9 (audit parité). | 9 |
+| **CAND-4** — positionnement commercial non éditable inline | Lot 8 : la table candidate-centric n'agrège pas d'`opportunity_candidates.id` → `updateRecruitmentStatus` reste piloté depuis le drawer. À trancher au Lot 9 (parité) : porter l'id du positionnement actif dans le view-model, ou garder l'édition au drawer. | 9 |
+| ~~`RecruitmentWorkspace` non adaptive-split~~ | Lot 8 : le **chapitre Candidats** est nativement adaptive-split serveur (`CandidatesDesktop` / `CandidatesMobile`). `RecruitmentWorkspace` lui-même (un seul arbre client) reste jusqu'à la dépréciation `/recruitment` (Lot 10). | 8 / 10 |
 | `dashboard/RecruitmentDesktopDashboard` / `RecruitmentMobileDashboard` | Orphelins probables | 9 / 15 |
 | `collaborators.practice` non normalisé | Text libre, non aligné `offer_practices.slug` | 2 / 2.x |
 | Planning journalier de production | Absent en base (agrégats mensuels seulement) | 11 |
@@ -153,6 +155,40 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 8 — Page Candidats — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `4c15f519` (`main` = `origin/main`). Travail parallèle Guillaume dans l'arbre (cockpit/veille/design-lab) — **non stagé**.
+- **Objectif** : rendre le chapitre Candidats in-shell (`?section=candidats`), câblé sur le view-model candidate-centric du Lot 7 ; table Desktop, cartes Mobile, édition inline, ouverture détail.
+- **Audit code réel préalable** :
+  - `CandidateDrawer` est **déjà candidate-centric** (`candidateId` en prop, charge ses propres données client-side) → réutilisable tel quel, pas d'adaptation.
+  - `RecruitmentListView` (legacy) utilise `EntityListView` + `updateCandidateStatus` avec `useOptimistic` + `router.refresh()` → patron repris.
+  - `CollaboratorsDesktop`/`Mobile` (Lot 4) = patron canonique du chantier (`StructuredList`, `useDrawerState`, `StatCard`, `MobileDataList`) → suivi.
+  - `updateRecruitmentStatus` opère sur `opportunity_candidates.id` — **absent du view-model Lot 7** (agrégé) → édition du positionnement laissée au drawer (CAND-4).
+- **Fichiers créés** :
+  - `src/features/consultants/candidates/CandidatesDesktop.tsx` — client ; 3 `StatCard` (qualifiés / vivier / en process) + filtres pipeline·practice·disponibilité + `StructuredList` 7 colonnes (§ 14.3) + `<details>` notes méthodo + `CandidateDrawer` + `NewCandidateDrawer`.
+  - `src/features/consultants/candidates/CandidatesMobile.tsx` — client ; `MobilePageHeader` + `MobileHeroInsight` + 3 segments (Prioritaires / En process / Vivier) + `MobileDataList` de `MobileEntitySummary`.
+  - `src/features/consultants/candidates/CandidateInlineControls.tsx` — client ; `Select` lifecycle (`updateCandidateStatus`) + `Select` étape (`updateHiringStep`) si `latestHiringProcess.status === 'active'` ; `useOptimistic` + `useTransition` + `router.refresh()`.
+  - `src/features/consultants/candidates/candidates-view.ts` (+ `.test.ts`, 6 tests) — `PIPELINE_STATE_META`, `AVAILABILITY_BUCKET_META`, `HIRING_STEP_LABEL`, `LIFECYCLE_*`, `candidateInitials`, `candidateAvatarTone`, `formatSalaryK`.
+- **Fichiers modifiés** :
+  - `src/features/consultants/navigation/consultants-sections.ts` — `candidats` → `external: false`, `href` `?section=candidats`, ajouté à `CONSULTANTS_IN_SHELL_SECTIONS` (**5/5**).
+  - `src/features/consultants/navigation/consultants-sections.test.ts` — assertions (parse `candidats`, 5/5 in-shell, plus de `href="/recruitment"` dans le rail).
+  - `src/app/(app)/consultants/page.tsx` — branche `candidats` → `getConsultantsCandidates()` → Desktop/Mobile serveur.
+  - `src/app/(app)/recruitment/_actions/{update-candidate-status,update-hiring-step,update-recruitment-status,update-candidate-profile,create-candidate}.ts` — `+ revalidatePath("/consultants")` (refactor C-12, 1 ligne chacun ; aucune autre modification).
+- **Non modifiés** : `getRecruitmentWorkspace`, `RecruitmentWorkspace`, `RecruitmentListView`, `src/lib/navigation/main-menu.config.ts`, `getMobileTabsForPath`, route `/recruitment`. Aucune migration, aucun n8n.
+- **Décision** : **C-27**. Écarts assumés : `StructuredList` (patron Lot 4) au lieu de `DataTable`/`EntityListView` — c'est LE composant table maison des chapitres du chantier ; édition inline = 2 dimensions sur 3 (positionnement → CAND-4). `edito_bright_design` explicitement **hors périmètre** (son propre document exclut « tableaux CRM opérationnels » et « écrans de saisie rapide »).
+- **Invariants protégés** : distribution Desktop/Mobile serveur (`getDashboardDevice`, pas de CSS `hidden`) ; zéro bibliothèque ; tokens `var(--color-*)` (aucun HEX en dur) ; `SectionRail` / Mobile nav / `main-menu.config` intacts ; Server Actions réutilisées (C-12).
+- **Gates exécutées** :
+  - `rm -rf .next && npm run typecheck` → **PASS**
+  - `npx vitest run src/features/consultants` → **PASS** (6 fichiers / 55 tests + 16 `candidates-view`)
+  - `npm test` (**suite complète**) → **PASS** (264 fichiers / 2653 tests)
+  - `npm run check:server-boundary` → **PASS**
+  - `npx eslint` (fichiers touchés : `candidates/`, `navigation/`, `page.tsx`, `_actions/`) → **PASS**
+  - `npm run build` (local) → **non joué** (`next dev` concurrent). Build de prod Vercel = gate.
+- **QA visuelle** : réservée à Guillaume.
+- **Commit** : `<SHA Lot 8>` — `feat(consultants): chapitre Candidats in-shell — table + cartes + édition inline (Lot 8)`.
+- **SHA final** : `<SHA Lot 8>`.
+- **NEXT LOT** : Lot 9 — Absorption fonctionnelle Recruitment (audit de parité `/recruitment` ↔ chapitre Candidats ; trancher CAND-3, CAND-4 ; confirmer LEGACY-2).
 
 ### Lot 7 — Data Contract Candidats — ✅ techniquement livré (2026-09-08)
 

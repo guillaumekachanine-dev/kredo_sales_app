@@ -36,5 +36,6 @@ export async function updateCandidateStatus(candidateId: string, status: string)
   }
 
   revalidatePath("/recruitment")
+  revalidatePath("/consultants")
   return { success: true }
 }

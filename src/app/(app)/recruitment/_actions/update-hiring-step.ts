@@ -32,5 +32,6 @@ export async function updateHiringStep(processId: string, step: string) {
   }
 
   revalidatePath("/recruitment")
+  revalidatePath("/consultants")
   return { success: true }
 }

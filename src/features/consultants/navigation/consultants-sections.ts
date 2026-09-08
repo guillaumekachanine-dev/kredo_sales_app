@@ -12,8 +12,8 @@
 //    /consultants?section=pool-competences     (Lot 6)
 //
 //  Internalisation progressive (`external: false`) : `synthese` + `collaborateurs`
-//  (Lot 1), `activite-conges` (Lot 5), `pool-competences` (Lot 6). `candidats`
-//  (Lot 8) pointe encore vers sa route actuelle (`/recruitment`).
+//  (Lot 1), `activite-conges` (Lot 5), `pool-competences` (Lot 6), `candidats`
+//  (Lot 8). La route `/recruitment` reste vivante jusqu'à sa dépréciation (Lot 10).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type ConsultantsSection =
@@ -31,6 +31,7 @@ export const CONSULTANTS_IN_SHELL_SECTIONS = [
   "synthese",
   "collaborateurs",
   "activite-conges",
+  "candidats",
   "pool-competences",
 ] as const
 export type ConsultantsInShellSection = (typeof CONSULTANTS_IN_SHELL_SECTIONS)[number]
@@ -85,8 +86,8 @@ export const CONSULTANTS_SECTIONS: readonly ConsultantsSectionEntry[] = [
   {
     key: "candidats",
     label: "Candidats",
-    href: "/recruitment",
-    external: true,
+    href: "/consultants?section=candidats",
+    external: false,
     internalizedAtLot: 8,
   },
   {

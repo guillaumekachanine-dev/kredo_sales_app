@@ -78,6 +78,7 @@ export async function updateRecruitmentStatus({
   }
 
   revalidatePath("/recruitment")
+  revalidatePath("/consultants")
   revalidatePath("/staffing")
   revalidatePath("/missions/opps")
 

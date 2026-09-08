@@ -14,6 +14,9 @@ import { CollaboratorsMobile } from "@/features/consultants/collaborators/Collab
 import { ActivityDashboard } from "@/features/consultants/activity/ActivityDashboard"
 import { getConsultantsSkills } from "@/features/consultants/data/get-consultants-skills"
 import { PoolCompetencesMap } from "@/features/consultants/skills/PoolCompetencesMap"
+import { getConsultantsCandidates } from "@/features/consultants/candidates/data/get-consultants-candidates"
+import { CandidatesDesktop } from "@/features/consultants/candidates/CandidatesDesktop"
+import { CandidatesMobile } from "@/features/consultants/candidates/CandidatesMobile"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Consultants Workspace — orchestrateur de la route `/consultants`
@@ -24,8 +27,7 @@ import { PoolCompetencesMap } from "@/features/consultants/skills/PoolCompetence
 //  que ses propres données (ADR-0006).
 //
 //  Sections internalisées : `synthese` (racine), `collaborateurs`,
-//  `activite-conges`, `pool-competences`. `candidats` (Lot 8) reste un lien
-//  direct (cf. `CONSULTANTS_SECTIONS`).
+//  `activite-conges`, `candidats`, `pool-competences`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SearchParams = Record<string, string | string[] | undefined>
@@ -89,6 +91,23 @@ export default async function ConsultantsPage({
       <ConsultantsMobileShell activeSection={activeSection}>{content}</ConsultantsMobileShell>
     ) : (
       <ConsultantsDesktopShell activeSection={activeSection}>{content}</ConsultantsDesktopShell>
+    )
+  }
+
+  if (activeSection === "candidats") {
+    // Chapitre Candidats candidate-centric (Lot 8). Distribution Desktop/Mobile
+    // côté serveur (ADR-0006) : la vue non rendue n'est pas chargée.
+    const vm = await getConsultantsCandidates()
+    return isMobile ? (
+      <ConsultantsMobileShell activeSection={activeSection}>
+        <CandidatesMobile vm={vm} />
+      </ConsultantsMobileShell>
+    ) : (
+      <ConsultantsDesktopShell activeSection={activeSection}>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
+          <CandidatesDesktop vm={vm} />
+        </div>
+      </ConsultantsDesktopShell>
     )
   }
 

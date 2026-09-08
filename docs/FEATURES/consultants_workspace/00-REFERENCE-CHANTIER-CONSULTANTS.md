@@ -509,6 +509,12 @@ Un seul sélecteur éditorial en UI, **mais qui écrit dans le bon modèle** sel
 **Réutiliser / refactorer ces mutations, jamais les dupliquer.** Autres actions existantes :
 `create-candidate.ts`, `update-candidate-profile.ts`.
 
+> ✅ **Lot 8 (C-27)** : l'édition inline de la table Candidats couvre **process** (si actif) et
+> **lifecycle** — les deux dimensions dont la ligne candidate-centric porte la clé. Le
+> **positionnement commercial** reste édité dans le drawer (dette **CAND-4**), la ligne
+> n'agrégeant pas d'`opportunity_candidates.id`. Les 5 actions ci-dessus portent désormais
+> aussi `revalidatePath("/consultants")`.
+
 ### 14.5 « Prochaine action » (`OPEN QUESTION PRODUCT-2`)
 
 `opportunity_candidates.next_action` (text) n'existe que s'il y a un positionnement. Pour un
@@ -693,6 +699,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-24** | **Chapitre Activités & congés internalisé** (`?section=activite-conges`) : loader `get-consultants-activity.ts` (6 lectures extraites), composant `ActivityDashboard` déplacé dans `src/features/consultants/activity/` (types séparés), `<h1>` interne retiré. Route legacy `/consultants/activite-conges` → `permanentRedirect`. **Pas de branche Mobile dédiée** — vue analytique dense unique, contenu large en `overflow-auto`. | Le shell porte le titre ; parité stricte (loader + composant identiques hors `<h1>`) ; une vraie vue Mobile activité chevauche le module Production & Congés (Lot 12) → dette PRODUCT-4. | Actée (Lot 5) |
 | **C-25** | **Chapitre Pool de compétences internalisé** (`?section=pool-competences`) : `git mv src/components/consultants/pool-competences/` → `src/features/consultants/skills/` (7 fichiers, imports relatifs préservés) ; 3 consommateurs externes des primitives (`SkillDescriptionTooltip`, `types`, `pool-competences-shared`) repointés. Loader extrait → `src/features/consultants/data/get-consultants-skills.ts` (**pas** dans `skills/` — les loaders vivent dans `data/`, convention Lots 2/5). `buildPoolCompetencesDataset` (`src/lib/consultants/`) inchangé. `<header>`/`<h1>` interne de `PoolCompetencesMap` retiré. Route legacy → `permanentRedirect`. **Pas de branche Mobile dédiée.** **Suppression des fichiers de route `(tabbed)` + `(tabbed)/layout.tsx` + `SectionNavBarSlot` : reportée au Lot 15** (déjà son périmètre), la barre horizontale n'étant plus atteignable (redirect). | Parité stricte ; le shell porte le titre ; cohérence avec la convention loader `data/` du chantier ; scinder le déménagement (Lot 6) du nettoyage legacy (Lot 15) évite de toucher un test d'invariant hors sujet. | Actée (Lot 6) |
 | **C-26** | **Contrat de données Candidats candidate-centric** (`src/features/consultants/candidates/data/`) : builder pur `buildConsultantsCandidates` + loader mince `getConsultantsCandidates` (server-only) + types + tests (C-20 réappliqué). **Population** = *tous* les `candidates` du workspace (aucune exclusion au chargement) ; le view-model porte `pipelineState` dérivé (`pool` / `in_process` / `closed`), le filtrage est un choix d'affichage (Lot 8). **DATA-4** : `qualifiedThisYear` = jalon `candidate_hiring_milestones` `step='prequalification'` + `result='valide'` + `completed_at` dans l'année civile de référence (28/43 live) ; `candidates.created_at` jamais assimilé à une qualification ; candidats anciens sans ce jalon → `false` + dette **CAND-1** (backfill = sous-lot 7.x). **DATA-6** : `available_from` (date) + `notice_period_days` (int) sont peuplés 43/43 → source structurée ; `availability` (texte libre) conservé tel quel comme `availabilityLabel`, jamais parsé ; `availabilityBucket` (`immediate`/`scheduled`/`unknown`) dérivé de `available_from`. Aucune migration, aucune normalisation. **PRODUCT-2** (option a) : `nextAction` = `opportunity_candidates.next_action` du positionnement actif le plus récent ; `null` sans positionnement actif ; aucune dérivation ni colonne nouvelle (porteur dédié = dette CAND-2). **PRODUCT-3** : whitelist canonique unique `src/lib/recruitment/candidate-lifecycle.ts` (10 statuts = `VALID_STATUSES` de `update-candidate-status.ts`, libellés FR + flag `terminal`) ; les 3 copies legacy (`CandidateProfileEditor`, `CandidateReferenceProfile`, `RecruitmentListView`) convergent au Lot 8 (dette CAND-3). **Practice** = `candidates.practice_id → offer_practices.slug` (C-17), repli `job_profile_id`. | Le vivier complet doit être visible (13/43 sans positionnement) ; définitions figées et testées ; aucune colonne DB arbitraire ; une seule source de vérité du lifecycle. | Actée (Lot 7) |
+| **C-27** | **Chapitre Candidats internalisé** (`?section=candidats`, `external: false`, 5/5 sections in-shell) : `src/features/consultants/candidates/` = `CandidatesDesktop` (`StructuredList` maison, patron `CollaboratorsDesktop` — pas `EntityListView` ni `DataTable`), `CandidatesMobile` (`MobileDataList`/`MobileEntitySummary`, cartes), `CandidateInlineControls` (client), `candidates-view.ts` (helpers purs). Distribution Desktop/Mobile **serveur** (`page.tsx`, ADR-0006). **Drawers réutilisés tels quels** : `CandidateDrawer` (déjà candidate-centric — prend `candidateId`, charge ses données), `NewCandidateDrawer`. **Édition inline (§ 14.4)** : `candidates.status` (`updateCandidateStatus`, toujours) + `candidate_hiring_processes.current_step` (`updateHiringStep`, si process actif). Le **positionnement commercial `opportunity_candidates.status` n'est PAS édité inline** — le view-model candidate-centric n'en porte pas l'identifiant ; reste au drawer / audit Lot 9 (dette **CAND-4**). Les 5 Server Actions recrutement gagnent un `revalidatePath("/consultants")` (C-12, refactor). **Route `/recruitment` + `getMobileTabsForPath` + `main-menu.config` intacts** (C-13 ; dépréciation = Lot 10). | Cohérence visuelle et technique avec les chapitres livrés (Lot 4) plutôt qu'un nouveau paradigme ; `CandidateDrawer` est déjà autoportant ; l'édition inline se limite aux dimensions dont la ligne porte la clé ; `edito_bright_design` explicitement hors périmètre (écran opérationnel de saisie rapide). | Actée (Lot 8) |
 
 ---
 
@@ -950,20 +957,24 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Gates** : `typecheck` ✅ · `npx vitest run src/features/consultants src/lib/recruitment/candidate-lifecycle.test.ts` ✅ (7 fichiers / 59 tests) · `npm test` complet ✅ (263 fichiers / 2648 tests) · `check:server-boundary` ✅ · `eslint` ✅ · `build` → Vercel prod (gate).
 - **NEXT LOT** : Lot 8 — Page Candidats.
 
-### Lot 8 — Page Candidats
+### Lot 8 — Page Candidats — ✅ techniquement livré (2026-09-08)
 
-- **État après Lot 1** : chapitre `candidats` = **lien direct** (`external: true`) vers `/recruitment` (module inchangé). Lot 8 = `external: false`, contrat `?section=candidats`, rendu in-shell candidate-centric (view-model Lot 7).
-- **Objectif** : construire le chapitre Candidats — tableau Desktop, cartes Mobile, filtres, édition inline process/statut, prochaine action, ouverture détail candidat.
-- **Prérequis** : Lot 7.
-- **Data** : view-model du Lot 7.
-- **Desktop** : `DataTable<T>` maison, colonnes § 14.3, sélecteur inline § 14.4 (écrit via `update-hiring-step` / `update-candidate-status` / `update-recruitment-status`), drawers réutilisés (`CandidateDrawer`, `CandidateProfileEditor`, `NewCandidateDrawer`, `HiringProcessStepper`).
-- **Mobile** : cartes orientées action, touch targets ≥ 44px, jamais de `DataTable`.
-- **Adaptive** : distribution serveur (`getDashboardDevice()`) — corriger la dette « Desktop+Mobile dans un même arbre client » de `RecruitmentWorkspace`.
-- **Fichiers probables** : `src/features/consultants/candidates/**`, composants recrutement déplacés.
-- **Hors périmètre** : suppression de `/recruitment` (Lot 10), kanban/planning legacy si non requis en parité (Lot 9).
-- **Critères d'acceptation** : vivier complet visible ; édition inline écrit dans le bon modèle ; détail candidat ouvre ; header = `Candidats` ; branches Desktop/Mobile serveur.
-- **Gates** : suite complète.
-- **Conditions de sortie** : commit poussé, `NEXT LOT = Lot 9`.
+**Réalisé.** Détail dans le ledger § « Lot 8 ».
+
+- **Objectif** : chapitre Candidats in-shell (`?section=candidats`) — table Desktop, cartes Mobile, filtres, édition inline, ouverture détail.
+- **Livré** (`src/features/consultants/candidates/`) :
+  - `CandidatesDesktop.tsx` (client) — 3 `StatCard` + filtres (pipeline / practice / disponibilité) + `StructuredList` maison (7 colonnes § 14.3) + `<details>` notes méthodo + drawers.
+  - `CandidatesMobile.tsx` (client) — `MobilePageHeader` + `MobileHeroInsight` + segments (Prioritaires / En process / Vivier) + `MobileDataList` de cartes `MobileEntitySummary`.
+  - `CandidateInlineControls.tsx` (client) — `Select` lifecycle (`updateCandidateStatus`) + `Select` étape process si actif (`updateHiringStep`), `useOptimistic` + `router.refresh()`.
+  - `candidates-view.ts` (+ `.test.ts`, 6 tests) — libellés, buckets, initiales, `formatSalaryK`.
+- **Réutilisé sans modification** : `CandidateDrawer` (déjà candidate-centric), `NewCandidateDrawer`, `StructuredList`, `StatusPill`, `MobileDataList`, `HIRING_KANBAN_STAGES`.
+- **Server Actions** : `revalidatePath("/consultants")` ajouté aux 5 actions recrutement (`update-candidate-status`, `update-hiring-step`, `update-recruitment-status`, `update-candidate-profile`, `create-candidate`) — refactor C-12, aucune duplication.
+- **Décision** : **C-27**. Écart assumé : `StructuredList` (patron Lot 4) plutôt que `DataTable`/`EntityListView` ; édition inline limitée au lifecycle + étape process (le positionnement `opportunity_candidates` reste au drawer → dette **CAND-4**).
+- **Navigation** : `candidats` → `external: false` ; **5/5 chapitres in-shell**. `/recruitment`, `getMobileTabsForPath`, `main-menu.config` **intacts** (C-13). Dépréciation `/recruitment` = Lot 10.
+- **Adaptive** : `page.tsx` branche `candidats` → `getConsultantsCandidates()` → `CandidatesDesktop` / `CandidatesMobile` selon `getDashboardDevice()` (la vue non rendue n'est pas chargée).
+- **Critères tenus** : vivier complet visible (43, filtrable) ; édition inline écrit dans le bon modèle ; `CandidateDrawer` ouvre sur clic ligne ; header shell = `Candidats` ; branches serveur.
+- **Gates** : `typecheck` ✅ · `npx vitest run src/features/consultants` ✅ (6 fichiers / 55 tests + 16 candidates) · `npm test` complet ✅ (264 fichiers / 2653 tests) · `check:server-boundary` ✅ · `eslint` ✅ · `build` → Vercel prod (gate).
+- **NEXT LOT** : Lot 9 — Absorption fonctionnelle Recruitment.
 
 ### Lot 9 — Absorption fonctionnelle Recruitment
 
