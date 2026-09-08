@@ -11,7 +11,11 @@ import { PotentialReachMatrix } from "@/features/business-intelligence/desktop/P
 import { AccountAttackPanel } from "@/features/business-intelligence/desktop/AccountAttackPanel"
 import { PriorityAccountsModal } from "@/features/business-intelligence/desktop/BusinessIntelligenceLedgerModals"
 import { ProspectionIntelligenceHeader } from "./ProspectionIntelligenceHeader"
-import { ProspectionIntelligenceLocalNavigation, PiTabKey } from "./ProspectionIntelligenceLocalNavigation"
+import {
+  ProspectionIntelligenceLocalNavigation,
+  getProspectionDesktopChapterLabel,
+  type PiTabKey,
+} from "./ProspectionIntelligenceLocalNavigation"
 
 interface ProspectionIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
@@ -95,12 +99,14 @@ function ProspectionIntelligenceDesktopReady({ viewModel, snapshot }: Prospectio
 
   const selectedAttackData = activeSelectedId ? periodData.attackPanelData[activeSelectedId] ?? null : null
 
+  const activeChapterTitle = getProspectionDesktopChapterLabel(activeTab)
+
   return (
     <div className="flex h-screen min-h-0 overflow-hidden bg-canvas">
       <ProspectionIntelligenceLocalNavigation active={activeTab} onChange={setActiveTab} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <ProspectionIntelligenceHeader />
+        <ProspectionIntelligenceHeader title={activeChapterTitle} />
 
         <div className="flex-1 overflow-y-auto">
           {activeTab === "strategy" && (

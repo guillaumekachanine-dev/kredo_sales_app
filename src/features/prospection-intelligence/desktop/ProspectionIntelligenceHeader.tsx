@@ -1,7 +1,21 @@
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
+import {
+  getProspectionDesktopChapterLabel,
+  type PiTabKey,
+} from "./ProspectionIntelligenceLocalNavigation"
 
-export function ProspectionIntelligenceHeader() {
+export interface ProspectionIntelligenceHeaderProps {
+  title?: string
+  activeTab?: PiTabKey
+}
+
+export function ProspectionIntelligenceHeader({
+  title,
+  activeTab,
+}: ProspectionIntelligenceHeaderProps = {}) {
   const isCollapsed = useSidebarCollapse((s) => s.isCollapsed)
+  const displayTitle =
+    title ?? (activeTab ? getProspectionDesktopChapterLabel(activeTab) : "Brief")
 
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-border/40 bg-surface/80 px-4 backdrop-blur-md lg:px-8">
@@ -25,7 +39,7 @@ export function ProspectionIntelligenceHeader() {
             </svg>
           </span>
           <h1 className="font-heading text-lg font-bold tracking-tight text-heading">
-            Prospection
+            {displayTitle}
           </h1>
         </div>
       </div>
