@@ -12,7 +12,7 @@ Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 3 — Synthèse Desktop + Mobile
 Lot courant              : —
 Prochain lot             : Lot 4 — Migration Collaborateurs
-Dernier SHA connu origin/main : 61bbab04   (2026-09-08 ; SHA Lot 3 renseigné après push)
+Dernier SHA connu origin/main : f4b66b3e4be9293c127bd4056a9e345cee89b4e2   (2026-09-08, après commit Lot 3)
 ```
 
 ## Table des lots
@@ -25,7 +25,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
 | 2 | Data Contract Synthèse | ✅ techniquement livré | `61bbab04` | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
-| 3 | Synthèse Desktop + Mobile | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. `typecheck`+`test` complet+`server-boundary`+`eslint` verts ; **`npm run build` non joué** (dev server concurrent) → Guillaume. |
+| 3 | Synthèse Desktop + Mobile | ✅ techniquement livré | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. `typecheck`+`test` complet+`server-boundary`+`eslint` verts ; **`npm run build` non joué** (dev server concurrent) → Guillaume. |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ⬜ todo | — | REUSE `PoolCompetencesMap`. Redirection route legacy. |
@@ -169,8 +169,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm run build` → ⚠️ **NON JOUÉ EN SESSION.** `next build` reste bloqué à 0 % CPU tant que le serveur `next dev` de Guillaume tourne sur le même projet (Next 16 ne tolère pas de build concurrent) ; le poste crée en plus des doublons `.next/* 2` (iCloud). Le contrôle statique équivalent `check:server-boundary` passe, et l'inspection confirme qu'aucun composant client de Lot 3 (`SyntheseDesktop`, `SyntheseMobile`, `PracticeBreakdownChart`) n'importe de module `server-only` — seulement `StructuredList`/`MobilePageHeader` (clients), `formatEuro` (pur), `next/link`, et des imports `type`. **À rejouer par Guillaume (`npm run build`), naturellement avec sa passe de QA.**
 - **QA visuelle** : non réalisée — réservée à Guillaume.
 - **Limites** : `npm run build` non joué (voir Gates) ; la vue `collaborateurs` reste sur le composant legacy (déplacement + alignement C-16 = Lot 4).
-- **Commit** : _(SHA après push)_ — `feat(consultants): page Synthèse Desktop + Mobile (Lot 3)`.
-- **SHA final** : _(à renseigner après push)_.
+- **Commit** : `f4b66b3e` — `feat(consultants): page Synthèse Desktop + Mobile (Lot 3)`.
+- **SHA final** : `f4b66b3e4be9293c127bd4056a9e345cee89b4e2`.
 - **NEXT LOT** : Lot 4 — Migration Collaborateurs.
 
 ### Lot 2 — Data Contract Synthèse — ✅ techniquement livré (2026-09-08)
