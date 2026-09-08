@@ -36,7 +36,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 11 | Module Production & Congés — Data | ✅ techniquement livré | `ab637998` | Granularité mensuelle `1 collab × 1 mois` (C-30, DATA-5 résolu). 22 tests + sentinelles. Loader server-only, RLS respectée. Zéro migration, zéro UI. |
 | 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `149eb699` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
 | 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `d50c77e2` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
-| 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `f223a9a0` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
+| 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `d91a49c8` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
 
@@ -215,7 +215,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm run build` → **PASS**
   - `git diff --check` → **PASS**
 - **QA visuelle** : réservée à Guillaume (aucun navigateur automatisé ni Playwright exécuté).
-- **Commit** : à renseigner.
+- **Commit** : `d91a49c8` — `feat(consultants): add profile matching module (Lot 13)`.
 - **NEXT LOT** : Lot 14 — Intégration Shell global / CRM.
 
 ### Sous-lot 12.1 — Harmonisation IntelligenceSplitModalShell — ✅ techniquement livré (2026-09-09)
