@@ -12,7 +12,7 @@ Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 2 — Data Contract Synthèse
 Lot courant              : —
 Prochain lot             : Lot 3 — Synthèse Desktop + Mobile
-Dernier SHA connu origin/main : 8e191c8b   (2026-09-08 ; SHA Lot 2 renseigné après push)
+Dernier SHA connu origin/main : 61bbab042a32b286053bc83dc336ac312c61545b   (2026-09-08, après commit Lot 2)
 ```
 
 ## Table des lots
@@ -24,7 +24,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 |---|---|---|---|---|
 | 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
-| 2 | Data Contract Synthèse | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
+| 2 | Data Contract Synthèse | ✅ techniquement livré | `61bbab04` | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
 | 3 | Synthèse Desktop + Mobile | ⬜ todo | — | SVG maison, zéro librairie graphique. |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
@@ -170,8 +170,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm run build` → PASS
 - **QA visuelle** : non réalisée — réservée à Guillaume.
 - **Limites** : DATA-3 partiel (sous-question lien direct `opp↔collab`) ; heuristique practice pour collaborateurs sans `job_profile_id`. Voir « Dettes connues ».
-- **Commit** : _(SHA après push)_ — `feat(consultants): data contract Synthèse — view-model + loader (Lot 2)`.
-- **SHA final** : _(à renseigner après push)_.
+- **Commit** : `61bbab04` — `feat(consultants): data contract Synthèse — view-model + loader (Lot 2)`.
+- **SHA final** : `61bbab042a32b286053bc83dc336ac312c61545b`.
 - **NEXT LOT** : Lot 3 — Synthèse Desktop + Mobile.
 
 ### Lot 1 — Socle Consultants Workspace — ✅ techniquement livré (2026-09-08)
