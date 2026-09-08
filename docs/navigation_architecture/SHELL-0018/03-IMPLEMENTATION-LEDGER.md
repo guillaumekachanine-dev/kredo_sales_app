@@ -92,7 +92,8 @@ QA minimale :
 | **4.3** | URLisation Rapports & rédaction | ✅ techniquement livré | `?section=` Desktop ; `documents` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
 | **4.4** | URLisation Automatisations | ✅ techniquement livré | `?section=` Desktop ; `journal` canonique sans paramètre ; suppression de `useState` Desktop ; préservation intégrale de `?run=` ; QA visuelle réservée à Guillaume |
 | **4.5** | URLisation Prospection Intelligence | ✅ techniquement livré | `?section=` Desktop ; `strategy` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
-| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Prospection Intelligence |
+| **4.6** | URLisation Knowledge Hub | ✅ techniquement livré | `?domain=` + `?section=` Desktop ; racine `/knowledge` ; QA visuelle réservée à Guillaume |
+| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Knowledge Hub |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
 | **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
@@ -1151,6 +1152,43 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Verdict Lot 4.5 : `techniquement livré`.**
 
-## 28. Prochaine étape
+## 28. Lot 4.6 — URLisation Knowledge Hub
 
-Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant n'est commencé dans cette livraison.
+### Architecture & modifications apportées
+
+- Suppression intégrale de `useState<KnowledgeView>` dans `KnowledgeHubDesktop.tsx` ;
+- Création d'une frontière pure client-safe `src/features/knowledge-hub/knowledge-hub-desktop-navigation.ts` contenant :
+  - `parseKnowledgeHubView(domainRaw, sectionRaw)` : dérive `KnowledgeView` depuis l'URL de manière déterministe ;
+  - `buildKnowledgeHubViewHref(pathname, searchParams, nextView)` : construit les URLs canoniques en conservant les query params tiers ;
+  - helpers purs de domaines/sections (`KnowledgeHubSectionChapter`, `EXPERTISE_CHAPTERS`, `TALENTS_CHAPTERS`, `getKnowledgeHubDefaultSection`, `getKnowledgeHubDomainChapters`, `getKnowledgeHubActiveLabel`) ;
+- Re-export de ces helpers depuis `KnowledgeHubLocalNavigation.tsx` pour préserver le contrat existant sans duplication ;
+- `KnowledgeHubDesktop.tsx` dérive `activeView` via `useSearchParams()` et contrôle les navigations via `router.push(buildKnowledgeHubViewHref(...), { scroll: false })` ;
+- `handleSelectDomain` (cartes de la racine) et `onChangeView` (rail) utilisent le même contrôleur unique ;
+- Navigation hiérarchique :
+  - Racine canonique `/knowledge` -> `{ type: "categories" }` ;
+  - Domaines avec section par défaut (`expertise-kredo` -> `practices`, `talents` -> `team`) ;
+  - Domaines génériques sans section par défaut (`clients-markets`, etc.) ;
+  - Validation stricte du domaine et de la section avec fallbacks déterministes (domaine inconnu -> `categories`, section invalide -> section par défaut ou domaine sans section) ;
+- Le header principal reste synchronisé avec `getKnowledgeHubActiveLabel(activeView)` ;
+- `activeModal` reste un état local (`useState<"workshop" | "ask" | null>(null)`) pour la modale Ateliers ;
+- Vue Mobile inchangée (`KnowledgeHubMobile`) ;
+- Aucune modification Data, Supabase, RLS, RPC, snapshot ni n8n.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** ;
+2. `npm test -- src/features/knowledge-hub/ src/components/layout/SectionRail.test.ts` : **37/37 tests passés** (et **2587/2587 tests passés** sur la suite complète `npm test`) ;
+3. `npm run check:server-boundary` : **passé** ;
+4. `npx eslint` sur les fichiers modifiés/créés : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Verdict Lot 4.6 : `techniquement livré`.**
+
+## 29. Prochaine étape
+
+Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. L'audit d'une clôture exhaustive de la Phase 4 fera l'objet d'un lot séparé.
+
