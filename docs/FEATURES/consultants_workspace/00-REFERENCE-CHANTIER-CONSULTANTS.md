@@ -676,6 +676,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-21** | **Section `synthese` = tableau de bord dédié** (`SyntheseDesktop`/`SyntheseMobile`, `getConsultantsSynthese()`) ; **`collaborateurs` garde le tableau legacy** (`ConsultantsSyntheseDesktop`/`Mobile`). `page.tsx` charge par section. | Résorbe la duplication transitoire C-14 ; ADR-0006 (ne charger que les données de la vue rendue). | Actée (Lot 3) |
 | **C-22** | **Dataviz Desktop = SVG maison** (`PracticeBreakdownChart` client pour le toggle, `RecruitmentPipelineChart` pur) ; **Mobile = barres HTML+Tailwind** (`div` width %). Palette practice = `offer_practices.color_hex` (donnée, cohérent avec `practiceBadgeStyle`), fallback `var(--color-muted)`. | Règle dataviz KREDO ; zéro bibliothèque ; les couleurs practice sont une palette catégorielle pilotée par la donnée, pas des HEX arbitraires en dur. | Actée (Lot 3) |
 | **C-23** | **Chapitre Collaborateurs = `src/features/consultants/collaborators/`** (`CollaboratorsDesktop`/`Mobile` + `collaborators.types.ts`). Le statut « en mission / intercontrat » se lit sur **`collaborators.status`** (`isCollaboratorStaffed`), pas sur la présence d'une mission active. `getConsultantsTeam` filtre `status <> 'sorti'`. `components/consultants/synthese/` supprimé. | LEGACY-4 : le champ `status` est l'autorité (C-16) ; alignement des KPI, du filtre et du pill. Colonnes mission restent dérivées de la mission active (données de mission, pas de statut). | Actée (Lot 4) |
+| **C-24** | **Chapitre Activités & congés internalisé** (`?section=activite-conges`) : loader `get-consultants-activity.ts` (6 lectures extraites), composant `ActivityDashboard` déplacé dans `src/features/consultants/activity/` (types séparés), `<h1>` interne retiré. Route legacy `/consultants/activite-conges` → `permanentRedirect`. **Pas de branche Mobile dédiée** — vue analytique dense unique, contenu large en `overflow-auto`. | Le shell porte le titre ; parité stricte (loader + composant identiques hors `<h1>`) ; une vraie vue Mobile activité chevauche le module Production & Congés (Lot 12) → dette PRODUCT-4. | Actée (Lot 5) |
 
 ---
 
@@ -710,7 +711,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | ID | Question | Lot cible |
 |---|---|---|
 | ~~**NAV-1**~~ | ✅ **RÉSOLU (Lot 1)** — `?section=` confirmé comme contrat (patron Engagements `?vue=` transposé, aucun conflit dans le code réel). | 1 |
-| **NAV-2** | Redirections des routes historiques `/consultants/activite-conges` et `/consultants/pool-competences` : `redirect` serveur permanent vs temporaire, quand supprimer ? | 5-6 / 15 |
+| **NAV-2** | ⚠️ **partiel** — `activite-conges` : `permanentRedirect` (Lot 5, C-24). `pool-competences` : Lot 6. Fichiers de route supprimés au Lot 15. | 5-6 / 15 |
 | **NAV-3** | `/recruitment` : à quel moment exact la redirection permanente est-elle posée (parité prouvée Lot 9) et quand le module `main-menu` « Recrutement » disparaît-il (Lot 14, coord. SHELL-0018 Phase 6) ? | 10 / 14 |
 | **NAV-4** | Le module Consultants doit-il rejoindre le groupe `CRM` ou rester `Ressources` dans la taxonomie du menu principal SHELL-0018 Phase 6 ? | 14 |
 
@@ -880,19 +881,23 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Gates** : `typecheck` ✅ · `npm test` complet ✅ (260 fichiers / 2628) · `check:server-boundary` ✅ · `eslint` ✅ · `build` local non joué (`next dev` concurrent) → build de prod Vercel.
 - **NEXT LOT** : Lot 5 — Migration Activités & congés.
 
-### Lot 5 — Migration Activités & congés
+### Lot 5 — Migration Activités & congés — ✅ techniquement livré (2026-09-08)
 
-- **État après Lot 1** : le chapitre `activite-conges` est un **lien direct** (`external: true`) vers `/consultants/activite-conges`, qui garde sa barre horizontale via `(tabbed)/layout.tsx`. Lot 5 = passer `external: false`, contrat `?section=activite-conges`, extraire le loader, traiter le `<header>` interne du composant (double-titre), rediriger la route legacy.
-- **Objectif** : absorber `src/app/(app)/consultants/(tabbed)/activite-conges/` dans `?section=activite-conges`, contenu fonctionnel conservé.
-- **Prérequis** : Lot 1.
-- **Data** : extraire le loader inline (6 lectures) vers `src/features/consultants/data/`.
-- **Desktop / Mobile** : `ConsultantsActivityDashboard` réutilisé — **retirer son `<header>`/`<h1>` interne** (le shell fournit le header). Auditer le besoin d'une vraie branche Mobile (aujourd'hui pas de `getDashboardDevice()` sur cette page).
-- **Navigation** : redirection `/consultants/activite-conges` → `/consultants?section=activite-conges` (NAV-2).
-- **Fichiers probables** : `src/features/consultants/activity/**`, `src/app/(app)/consultants/(tabbed)/activite-conges/page.tsx` (→ redirect ou suppression différée Lot 15).
-- **Hors périmètre** : recalcul métier, module Production & Congés.
-- **Critères d'acceptation** : parité ; ancien chemin redirige ; header = `Activités & congés`.
-- **Gates** : suite ciblée + `build`.
-- **Conditions de sortie** : commit poussé, `NEXT LOT = Lot 6`.
+**Réalisé.** Détail dans le ledger § « Lot 5 ».
+
+- **Objectif** : absorber `(tabbed)/activite-conges/` dans `?section=activite-conges`, contenu conservé.
+- **Livré** :
+  - `src/features/consultants/activity/activity.types.ts` — 7 types de lignes + `ActivityDashboardData` (extraits du composant).
+  - `src/features/consultants/activity/ActivityDashboard.tsx` — déplacé (`git mv`) de `components/consultants/activite-conges/ConsultantsActivityDashboard`, renommé, `<h1>` interne retiré (le bandeau/hero et ses 3 stats sont conservés). Server component, aucun recalcul métier.
+  - `src/features/consultants/activity/activity.test.ts` — 4 tests (pas de `<h1>`, sources partielles, redirect legacy).
+  - `src/features/consultants/data/get-consultants-activity.ts` — loader extrait (6 lectures parallèles, `safeRead` dégradant, `sourceIssues`).
+  - `src/features/consultants/navigation/consultants-sections.ts` — `activite-conges` → `external: false`, `CONSULTANTS_IN_SHELL_SECTIONS` = 3, `parseConsultantsSection` data-driven.
+- **Modifié** : `src/app/(app)/consultants/page.tsx` — branche `activite-conges` (contenu `overflow-auto` pour le contenu large) ; `(tabbed)/activite-conges/page.tsx` → `permanentRedirect("/consultants?section=activite-conges")`.
+- **Décision** : C-24. **NAV-2 partiellement résolu** (`activite-conges` redirige ; `pool-competences` = Lot 6 ; fichiers de route supprimés au Lot 15).
+- **Mobile** : **pas de branche Mobile dédiée** — la vue reste la dense analytique unique (contenu large scrollable). Dette **PRODUCT-4** (chevauchement avec le module Production & Congés du Lot 12).
+- **Critères tenus** : parité (loader identique, composant identique hors `<h1>`) ; ancien chemin redirige ; header shell = `Activités & congés`.
+- **Gates** : `typecheck` ✅ · `npx vitest run src/features/consultants` ✅ (44 tests) · `check:server-boundary` ✅ · `eslint` ✅ · `build` → Vercel. ⚠️ `npm test` complet : **1 échec pré-existant hors périmètre** (`veille-desktop-contracts.test.ts`, cassé par du WIP non commité de Guillaume sur `veille/page.tsx` — vérifié : la version `HEAD` passe).
+- **NEXT LOT** : Lot 6 — Migration Pool de compétences.
 
 ### Lot 6 — Migration Pool de compétences
 

@@ -3,6 +3,7 @@ import "server-only"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getConsultantsTeam } from "@/features/consultants/data/get-consultants-team"
 import { getConsultantsSynthese } from "@/features/consultants/data/get-consultants-synthese"
+import { getConsultantsActivity } from "@/features/consultants/data/get-consultants-activity"
 import { parseConsultantsSection } from "@/features/consultants/navigation/consultants-sections"
 import { ConsultantsDesktopShell } from "@/features/consultants/desktop/ConsultantsDesktopShell"
 import { ConsultantsMobileShell } from "@/features/consultants/mobile/ConsultantsMobileShell"
@@ -10,6 +11,7 @@ import { SyntheseDesktop } from "@/features/consultants/desktop/synthese/Synthes
 import { SyntheseMobile } from "@/features/consultants/mobile/synthese/SyntheseMobile"
 import { CollaboratorsDesktop } from "@/features/consultants/collaborators/CollaboratorsDesktop"
 import { CollaboratorsMobile } from "@/features/consultants/collaborators/CollaboratorsMobile"
+import { ActivityDashboard } from "@/features/consultants/activity/ActivityDashboard"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Consultants Workspace — orchestrateur de la route `/consultants`
@@ -19,10 +21,9 @@ import { CollaboratorsMobile } from "@/features/consultants/collaborators/Collab
 //  La navigation inter-chapitres passe par `?section=`. Chaque section ne charge
 //  que ses propres données (ADR-0006).
 //
-//  Lot 3 : `synthese` (racine) rend le tableau de bord dédié
-//  (`getConsultantsSynthese`) ; `collaborateurs` garde le tableau collaborateurs
-//  actuel (Lot 4 le formalise). Les chapitres `activite-conges` / `candidats` /
-//  `pool-competences` restent des liens directs (cf. `CONSULTANTS_SECTIONS`).
+//  Sections internalisées : `synthese` (racine), `collaborateurs`, `activite-conges`.
+//  `candidats` (Lot 8) et `pool-competences` (Lot 6) restent des liens directs
+//  (cf. `CONSULTANTS_SECTIONS`).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SearchParams = Record<string, string | string[] | undefined>
@@ -38,17 +39,15 @@ export default async function ConsultantsPage({
   ])
 
   const activeSection = parseConsultantsSection(resolvedSearchParams.section)
+  const isMobile = device === "mobile"
 
   if (activeSection === "synthese") {
     const vm = await getConsultantsSynthese()
-    if (device === "mobile") {
-      return (
-        <ConsultantsMobileShell activeSection={activeSection}>
-          <SyntheseMobile vm={vm} />
-        </ConsultantsMobileShell>
-      )
-    }
-    return (
+    return isMobile ? (
+      <ConsultantsMobileShell activeSection={activeSection}>
+        <SyntheseMobile vm={vm} />
+      </ConsultantsMobileShell>
+    ) : (
       <ConsultantsDesktopShell activeSection={activeSection}>
         <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <SyntheseDesktop vm={vm} />
@@ -57,16 +56,30 @@ export default async function ConsultantsPage({
     )
   }
 
-  // ── section=collaborateurs — effectif consultant actif (Lot 4) ──
-  const team = await getConsultantsTeam()
-  if (device === "mobile") {
-    return (
-      <ConsultantsMobileShell activeSection={activeSection}>
-        <CollaboratorsMobile data={team} />
-      </ConsultantsMobileShell>
+  if (activeSection === "activite-conges") {
+    // Vue analytique dense unique (pas de branche Mobile dédiée — dette PRODUCT-4,
+    // chevauchement avec le module Production & Congés du Lot 12). Le contenu
+    // large défile horizontalement dans son propre conteneur.
+    const data = await getConsultantsActivity()
+    const content = (
+      <div className="min-h-0 flex-1 overflow-auto bg-canvas">
+        <ActivityDashboard data={data} />
+      </div>
+    )
+    return isMobile ? (
+      <ConsultantsMobileShell activeSection={activeSection}>{content}</ConsultantsMobileShell>
+    ) : (
+      <ConsultantsDesktopShell activeSection={activeSection}>{content}</ConsultantsDesktopShell>
     )
   }
-  return (
+
+  // ── section=collaborateurs — effectif consultant actif (Lot 4) ──
+  const team = await getConsultantsTeam()
+  return isMobile ? (
+    <ConsultantsMobileShell activeSection={activeSection}>
+      <CollaboratorsMobile data={team} />
+    </ConsultantsMobileShell>
+  ) : (
     <ConsultantsDesktopShell activeSection={activeSection}>
       <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
         <CollaboratorsDesktop data={team} />

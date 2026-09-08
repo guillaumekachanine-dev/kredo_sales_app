@@ -32,13 +32,13 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(parseConsultantsSection("")).toBe("synthese")
     })
 
-    it("résout collaborateurs", () => {
+    it("résout les sections internalisées", () => {
       expect(parseConsultantsSection("collaborateurs")).toBe("collaborateurs")
       expect(parseConsultantsSection(["collaborateurs", "x"])).toBe("collaborateurs")
+      expect(parseConsultantsSection("activite-conges")).toBe("activite-conges")
     })
 
-    it("résout une section non encore internalisée vers synthese", () => {
-      expect(parseConsultantsSection("activite-conges")).toBe("synthese")
+    it("résout une section non encore internalisée ou inconnue vers synthese", () => {
       expect(parseConsultantsSection("candidats")).toBe("synthese")
       expect(parseConsultantsSection("pool-competences")).toBe("synthese")
       expect(parseConsultantsSection("invalide")).toBe("synthese")
@@ -50,9 +50,12 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(buildConsultantsSectionHref("synthese")).toBe("/consultants")
     })
 
-    it("ajoute ?section= pour collaborateurs", () => {
+    it("ajoute ?section= pour les autres chapitres internalisés", () => {
       expect(buildConsultantsSectionHref("collaborateurs")).toBe(
         "/consultants?section=collaborateurs",
+      )
+      expect(buildConsultantsSectionHref("activite-conges")).toBe(
+        "/consultants?section=activite-conges",
       )
     })
   })
@@ -62,18 +65,19 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(CONSULTANTS_SECTIONS.map((entry) => entry.key)).toEqual(ALL_SECTIONS)
     })
 
-    it("n'internalise dans le shell que synthese et collaborateurs", () => {
+    it("internalise synthese, collaborateurs et activite-conges", () => {
       const inShell = CONSULTANTS_SECTIONS.filter((entry) => !entry.external).map(
         (entry) => entry.key,
       )
       expect(inShell).toEqual([...CONSULTANTS_IN_SHELL_SECTIONS])
+      expect(inShell).toEqual(["synthese", "collaborateurs", "activite-conges"])
     })
 
-    it("route les chapitres externes vers leur emplacement actuel", () => {
+    it("route les chapitres internalisés en ?section= et les externes vers leur route", () => {
       const byKey = Object.fromEntries(
         CONSULTANTS_SECTIONS.map((entry) => [entry.key, entry.href]),
       )
-      expect(byKey["activite-conges"]).toBe("/consultants/activite-conges")
+      expect(byKey["activite-conges"]).toBe("/consultants?section=activite-conges")
       expect(byKey["pool-competences"]).toBe("/consultants/pool-competences")
       expect(byKey["candidats"]).toBe("/recruitment")
     })
@@ -91,7 +95,7 @@ describe("consultants-sections — contrat de navigation", () => {
 })
 
 describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
-  function render(active: "synthese" | "collaborateurs") {
+  function render(active: "synthese" | "collaborateurs" | "activite-conges") {
     return renderToStaticMarkup(
       React.createElement(
         ConsultantsDesktopShell,
@@ -112,12 +116,13 @@ describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
   it("affiche dans le header le libellé exact du chapitre actif", () => {
     expect(render("synthese")).toContain("Synthèse")
     expect(render("collaborateurs")).toContain("Collaborateurs")
+    expect(render("activite-conges")).toContain("Activités &amp; congés")
   })
 
   it("rend les 5 chapitres avec leurs href", () => {
     const markup = render("collaborateurs")
     expect(markup).toContain('href="/consultants?section=collaborateurs"')
-    expect(markup).toContain('href="/consultants/activite-conges"')
+    expect(markup).toContain('href="/consultants?section=activite-conges"')
     expect(markup).toContain('href="/consultants/pool-competences"')
     expect(markup).toContain('href="/recruitment"')
   })

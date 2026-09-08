@@ -11,9 +11,9 @@
 //    /consultants?section=candidats            (Lot 8)
 //    /consultants?section=pool-competences     (Lot 6)
 //
-//  Lot 1 : seuls `synthese` et `collaborateurs` sont rendus dans le shell via
-//  `?section=`. Les trois autres chapitres pointent vers leur emplacement actuel
-//  (`external: true`) et migreront vers `?section=` dans leur lot dédié.
+//  Internalisation progressive (`external: false`) : `synthese` + `collaborateurs`
+//  (Lot 1), `activite-conges` (Lot 5). `candidats` (Lot 8) et `pool-competences`
+//  (Lot 6) pointent encore vers leur route actuelle.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type ConsultantsSection =
@@ -26,9 +26,15 @@ export type ConsultantsSection =
 /** État racine canonique (rendu sans paramètre `section`). */
 export const CONSULTANTS_ROOT_SECTION = "synthese" as const
 
-/** Sections réellement rendues par le shell `/consultants` (Lot 1). */
-export const CONSULTANTS_IN_SHELL_SECTIONS = ["synthese", "collaborateurs"] as const
+/** Sections réellement rendues par le shell `/consultants` via `?section=`. */
+export const CONSULTANTS_IN_SHELL_SECTIONS = [
+  "synthese",
+  "collaborateurs",
+  "activite-conges",
+] as const
 export type ConsultantsInShellSection = (typeof CONSULTANTS_IN_SHELL_SECTIONS)[number]
+
+const IN_SHELL_SECTION_SET = new Set<string>(CONSULTANTS_IN_SHELL_SECTIONS)
 
 /** Libellé affiché dans le header de la zone principale (jamais dans le chapeau). */
 export const HEADER_TITLE_BY_SECTION: Record<ConsultantsSection, string> = {
@@ -71,8 +77,8 @@ export const CONSULTANTS_SECTIONS: readonly ConsultantsSectionEntry[] = [
   {
     key: "activite-conges",
     label: "Activités & congés",
-    href: "/consultants/activite-conges",
-    external: true,
+    href: "/consultants?section=activite-conges",
+    external: false,
     internalizedAtLot: 5,
   },
   {
@@ -100,7 +106,9 @@ export function parseConsultantsSection(
   raw: string | string[] | null | undefined,
 ): ConsultantsInShellSection {
   const value = Array.isArray(raw) ? raw[0] : raw
-  return value === "collaborateurs" ? "collaborateurs" : CONSULTANTS_ROOT_SECTION
+  return value && IN_SHELL_SECTION_SET.has(value)
+    ? (value as ConsultantsInShellSection)
+    : CONSULTANTS_ROOT_SECTION
 }
 
 /** Construit le href canonique d'une section rendue dans le shell. */

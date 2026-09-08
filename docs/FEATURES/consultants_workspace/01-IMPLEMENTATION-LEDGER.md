@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 4 — Migration Collaborateurs
+Dernier lot livré        : Lot 5 — Migration Activités & congés
 Lot courant              : —
-Prochain lot             : Lot 5 — Migration Activités & congés
-Dernier SHA connu origin/main : 3296d8ea72bbed4e305f8f2eba5e5e4bf1345919   (2026-09-08, après commit Lot 4)
+Prochain lot             : Lot 6 — Migration Pool de compétences
+Dernier SHA connu origin/main : 0cfa4ddc   (2026-09-08 ; SHA Lot 5 renseigné après push)
 ```
 
 ## Table des lots
@@ -27,7 +27,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 2 | Data Contract Synthèse | ✅ techniquement livré | `61bbab04` | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
 | 3 | Synthèse Desktop + Mobile | ✅ techniquement livré + **déployé prod** | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. Gates verts ; **build de prod Vercel `READY`** (`7724d800` = déploiement courant `kredo-green.vercel.app`). |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ✅ techniquement livré | `3296d8ea` | `src/features/consultants/collaborators/` : `CollaboratorsDesktop`/`Mobile` + `collaborators.types` + 4 tests. C-23 / **LEGACY-4 résolu** (statut ⇐ `collaborators.status`) ; loader filtre `sorti`. `components/consultants/synthese/` supprimé. Gates verts (build → Vercel). |
-| 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
+| 5 | Migration Activités & congés (`?section=activite-conges`) | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/activity/` (`ActivityDashboard` + types + loader) + 8 tests. C-24 : `<h1>` retiré, route legacy → `permanentRedirect`, pas de Mobile dédié (dette PRODUCT-4). Gates verts (build → Vercel). |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ⬜ todo | — | REUSE `PoolCompetencesMap`. Redirection route legacy. |
 | 7 | Data Contract Candidats (candidate-centric) | ⬜ todo | — | Résoudre DATA-4/6, PRODUCT-2/3. Backfill → sous-lot 7.x. |
 | 8 | Page Candidats (Desktop + Mobile, inline edit) | ⬜ todo | — | Réutiliser server actions recrutement (jamais dupliquer). |
@@ -66,6 +66,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-21 | Section `synthese` = tableau de bord dédié ; `collaborateurs` garde le tableau legacy ; `page.tsx` charge par section | 3 |
 | C-22 | Dataviz Desktop = SVG maison, Mobile = barres HTML+Tailwind ; palette practice = `offer_practices.color_hex` (fallback `var(--color-muted)`) | 3 |
 | C-23 | Chapitre Collaborateurs = `src/features/consultants/collaborators/` ; statut lu sur `collaborators.status` (`isCollaboratorStaffed`) ; `getConsultantsTeam` filtre `sorti` ; `components/consultants/synthese/` supprimé | 4 |
+| C-24 | Chapitre Activités & congés internalisé (`?section=activite-conges`) ; `ActivityDashboard` + `activity.types` + `get-consultants-activity` dans `src/features/consultants/activity/` ; `<h1>` retiré ; route legacy → `permanentRedirect` ; pas de branche Mobile (dette PRODUCT-4) | 5 |
 
 ## Questions ouvertes en cours
 
@@ -85,7 +86,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | PRODUCT-3 | Valeurs métier du sélecteur lifecycle candidat en UI | 7-8 | ouverte |
 | PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ouverte |
 | NAV-1 | `?section=` confirmé vs pathname après audit code réel Lot 1 | 1 | ✅ résolue (Lot 1) |
-| NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ouverte |
+| NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ⚠️ partielle — `activite-conges` = `permanentRedirect` (C-24) ; reste `pool-competences` (Lot 6) + suppression fichiers (Lot 15) |
 | NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ouverte |
 | NAV-4 | Consultants sous `CRM` ou `Ressources` dans SHELL-0018 Phase 6 | 14 | ouverte |
 | LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; global = Phase 6) |
@@ -137,15 +138,46 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | ~~Divergence statut collaborateur~~ | Résolu Lot 4 (C-23) : `CollaboratorsDesktop`/`Mobile` lisent `collaborators.status` | — |
 | `collaborators.practice_id` absent | Practice collaborateur résolue par heuristique sur texte libre (C-17) ; 1 valeur (`Mobile`) non mappée ; FK + backfill = amélioration future non planifiée | futur |
 | Positionnements non traçables | 3/3 intercontrat live sans fiche candidat miroir → colonne « — » (C-18) ; lien direct `opp↔collab` = sous-question ouverte | futur |
-| `activite-conges` sans branche Mobile serveur | Pas de `getDashboardDevice()` sur la page | 5 |
+| `activite-conges` sans vue Mobile dédiée | Lot 5 : vue analytique dense unique servie aux deux devices (contenu large `overflow-auto`). Une vraie vue Mobile activité chevauche le module Production & Congés → **PRODUCT-4** | 12 |
 | ~~`SectionNavBarSlot` sur `/consultants/layout.tsx`~~ | Résolu Lot 1 (descendu dans `(tabbed)/layout.tsx`). Suppression globale `SectionNavBar*` = SHELL-0018 Phase 6 | 14 |
-| Routes `(tabbed)` consultants | À rediriger puis supprimer | 5-6 / 15 |
+| Routes `(tabbed)` consultants | `activite-conges` : redirige (Lot 5). `pool-competences` : Lot 6. Fichiers de route + `(tabbed)/layout.tsx` supprimés au Lot 15. | 6 / 15 |
 | ~~`synthese` ≈ `collaborateurs`~~ | Résolu Lot 3 (C-21) : `synthese` a son tableau de bord dédié, `collaborateurs` garde le tableau | — |
-| Dual-paradigme desktop (Lot 1) | `/consultants` (rail vertical) vs `/consultants/activite-conges` (barre horizontale legacy) — identique à la dette `missions/(tabbed)` | 5-6 |
-| `<header>`/`<h1>` internes des composants legacy | `ConsultantsActivityDashboard` + `PoolCompetencesMap` self-headers → double-titre si mis en slot | 5 / 6 |
+| Dual-paradigme desktop | Lot 5 : `activite-conges` internalisé, barre horizontale legacy plus atteignable directement (redirect). Reste `pool-competences` jusqu'au Lot 6. | 6 |
+| `<header>`/`<h1>` internes des composants legacy | Lot 5 : `<h1>` retiré de `ActivityDashboard`. Reste `PoolCompetencesMap` self-header (Lot 6). | 6 |
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 5 — Migration Activités & congés — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `0cfa4ddc` (`main` = `origin/main`).
+- **Objectif** : absorber `(tabbed)/activite-conges/` dans `?section=activite-conges`, contenu conservé.
+- **Fichiers créés** :
+  - `src/features/consultants/activity/activity.types.ts` — 7 types + `ActivityDashboardData` (extraits du composant).
+  - `src/features/consultants/activity/activity.test.ts` — 4 tests.
+  - `src/features/consultants/data/get-consultants-activity.ts` — loader (6 lectures parallèles, `safeRead` dégradant).
+- **Fichiers déplacés / modifiés** :
+  - `git mv components/consultants/activite-conges/ConsultantsActivityDashboard.tsx → features/consultants/activity/ActivityDashboard.tsx` — renommé `ActivityDashboard`, types externalisés, `<h1>Activite & conges` **retiré** (hero + 3 stats conservés).
+  - `src/features/consultants/navigation/consultants-sections.ts` — `activite-conges` `external:false` ; `CONSULTANTS_IN_SHELL_SECTIONS` = 3 ; `parseConsultantsSection` data-driven (Set).
+  - `src/features/consultants/navigation/consultants-sections.test.ts` — assertions mises à jour.
+  - `src/app/(app)/consultants/page.tsx` — branche `activite-conges` (contenu `overflow-auto`).
+  - `src/app/(app)/consultants/(tabbed)/activite-conges/page.tsx` — **remplacé par `permanentRedirect("/consultants?section=activite-conges")`** (~8 lignes).
+- **Dossier supprimé** : `src/components/consultants/activite-conges/`. Aucun autre consommateur (grep).
+- **Aucune migration, aucun n8n, aucun menu.** `main-menu.config` intact ; `getMobileTabsForPath` intact (la barre `SectionNavBar` de `pool-competences` liste encore l'onglet Activité → il redirige, transitoire jusqu'au Lot 6).
+- **Décision** : C-24. NAV-2 partiel. PRODUCT-4 (Mobile activité) documenté.
+- **Parité** : loader identique (mêmes 6 requêtes), composant identique hors `<h1>`.
+- **Gates exécutées** :
+  - `npm run typecheck` → PASS (après purge `.next`)
+  - `npx vitest run src/features/consultants` → PASS (5 fichiers / 44 tests).
+  - `npm run check:server-boundary` → PASS
+  - `npx eslint src/features/consultants src/app/(app)/consultants/**` → PASS
+  - `npm test` (**suite complète**) → **260 fichiers PASS, 1 FAIL hors périmètre** : `src/components/veille/veille-desktop-contracts.test.ts` — cassé par du **WIP non commité de Guillaume** sur `src/app/(app)/veille/page.tsx` (vérifié : `git show HEAD:…/veille/page.tsx` contient la chaîne assertée ; la version working-tree ne la contient plus). **Aucun rapport avec Lot 5** ; ne sera pas dans le commit ni sur `origin/main`.
+  - `npm run build` (local) → non joué (`next dev` concurrent) — build de prod Vercel = gate.
+- **⚠️ Travail parallèle non commité dans l'arbre** (à ne PAS committer) : refonte cockpit mobile (`src/components/cockpit/mobile/*`, `src/lib/cockpit/mobile/*`) + retouches veille (`veille/page.tsx`, `VeilleActualites{Mobile,Page}.tsx`) + `design-lab/*` non suivis. Toujours stager les chemins `src/features/consultants` / `src/app/(app)/consultants` / `docs/FEATURES/consultants_workspace` explicitement.
+- **QA visuelle** : réservée à Guillaume.
+- **Commit** : _(SHA après push)_ — `refactor(consultants): chapitre Activités & congés internalisé (Lot 5)`.
+- **SHA final** : _(à renseigner après push)_.
+- **NEXT LOT** : Lot 6 — Migration Pool de compétences.
 
 ### Lot 4 — Migration Collaborateurs — ✅ techniquement livré (2026-09-08)
 

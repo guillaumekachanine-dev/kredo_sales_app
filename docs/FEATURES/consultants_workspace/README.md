@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-4 livrés)**
+> **Statut global : en cours (Lots 0-5 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,9 +51,12 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 5 — Migration Activités & congés** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 5).
+➡️ **Lot 6 — Migration Pool de compétences** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 6).
 
 - Lot 1 : shell `/consultants` sur `SectionRail` V2, navigation `?section=`, `SectionNavBarSlot` descendu.
-- Lot 2 : view-model unique `getConsultantsSynthese()` / `buildConsultantsSynthese` — DATA-1/2/3/7 résolus (C-16→C-20).
-- Lot 3 : page Synthèse Desktop + Mobile — KPI, graphiques SVG/HTML maison, tableaux ; `page.tsx` charge par section (C-21/C-22).
-- Lot 4 : chapitre Collaborateurs dans `src/features/consultants/collaborators/` ; statut ⇐ `collaborators.status` (C-23 / LEGACY-4) ; effectif actif (29, hors `sorti`).
+- Lot 2 : view-model unique `getConsultantsSynthese()` — DATA-1/2/3/7 résolus (C-16→C-20).
+- Lot 3 : page Synthèse Desktop + Mobile — KPI, graphiques SVG/HTML maison (C-21/C-22).
+- Lot 4 : chapitre Collaborateurs — statut ⇐ `collaborators.status` (C-23 / LEGACY-4).
+- Lot 5 : chapitre Activités & congés internalisé (`?section=activite-conges`) — `src/features/consultants/activity/`, `<h1>` retiré, route legacy → `permanentRedirect` (C-24).
+
+> ⚠️ Travail parallèle non commité dans l'arbre (cockpit mobile, veille, `design-lab/`) : stager les chemins consultants explicitement, ne jamais `git add -A`.

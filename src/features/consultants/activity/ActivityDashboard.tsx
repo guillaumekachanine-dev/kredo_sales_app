@@ -1,127 +1,20 @@
 import { cn } from "@/lib/utils"
+import type {
+  AbsenceRow,
+  AbsenceType,
+  ActivityDashboardData,
+  ActivitySummaryRow,
+  CompensationRow,
+  ProfitabilityAlertRow,
+} from "./activity.types"
 
-export type ActivitySummaryRow = {
-  collaborator_id: string
-  full_name: string | null
-  entry_date: string | null
-  collab_status: string | null
-  period_start: string
-  business_days: number | null
-  billable_days: number | null
-  pto_days: number | null
-  sick_days: number | null
-  non_billable_days: number | null
-  activity_rate_percent: number | null
-  cra_status: string | null
-  tjm_snapshot: number | null
-  cjm_snapshot: number | null
-  revenue: number | null
-  employer_cost: number | null
-  real_margin: number | null
-  real_margin_pct: number | null
-  theoretical_margin_pct: number | null
-  daily_employer_cost: number | null
-  gross_annual: number | null
-}
-
-export type YtdActivityRow = {
-  collaborator_id: string
-  full_name: string | null
-  entry_date: string | null
-  year: number | null
-  months_covered: number | null
-  total_business_days: number | null
-  total_billable_days: number | null
-  total_pto_days: number | null
-  total_sick_days: number | null
-  total_non_billable_days: number | null
-  ytd_activity_rate: number | null
-  taci_target: number | null
-  gap_vs_target: number | null
-  ytd_revenue: number | null
-  ytd_employer_cost: number | null
-  ytd_real_margin: number | null
-}
-
-export type ProfitabilityAlertRow = {
-  collaborator_id: string
-  full_name: string | null
-  period_start: string
-  activity_rate_percent: number | null
-  real_margin_pct: number | null
-  cra_status: string | null
-  alert_low_activity: boolean | null
-  alert_low_margin: boolean | null
-  alert_negative_margin: boolean | null
-  alert_high_sick_days: boolean | null
-  alert_cra_not_validated: boolean | null
-}
-
-export type AbsenceType =
-  | "conge_paye"
-  | "rtt"
-  | "maladie"
-  | "sans_solde"
-  | "contrainte_perso"
-  | "formation"
-  | "fermeture_client"
-  | "autre"
-
-export type AbsenceRow = {
-  id: string
-  collaborator_id: string
-  absence_type: AbsenceType
-  start_date: string
-  end_date: string
-  duration_days: number
-  notes: string | null
-  collaborator: {
-    id: string
-    current_title: string | null
-    practice: string | null
-    person: { full_name: string | null } | null
-  } | null
-}
-
-export type ClientClosureRow = {
-  id: string
-  company_id: string
-  start_date: string
-  end_date: string
-  label: string
-  is_recurring: boolean
-  notes: string | null
-  company: { id: string; name: string | null } | null
-}
-
-export type CompensationRow = {
-  id: string
-  collaborator_id: string
-  effective_from: string
-  effective_to: string | null
-  gross_annual: number | null
-  charges_rate: number | null
-  working_days_per_year: number | null
-  taci: number | null
-  cjm: number | null
-  collaborator: {
-    id: string
-    current_title: string | null
-    person: { full_name: string | null } | null
-  } | null
-}
-
-export type ActivityDashboardData = {
-  year: number
-  generatedAt: string
-  summaries: ActivitySummaryRow[]
-  ytd: YtdActivityRow[]
-  alerts: ProfitabilityAlertRow[]
-  absences: AbsenceRow[]
-  closures: ClientClosureRow[]
-  compensations: CompensationRow[]
-  sourceIssues: string[]
-}
+// ─────────────────────────────────────────────────────────────────────────────
+//  Consultants Workspace — chapitre Activités & congés, rendu (Lot 5)
+//
+//  Déplacé depuis `components/consultants/activite-conges/ConsultantsActivityDashboard`.
+//  Server component (aucun hook). Le `<h1>` interne a été retiré : le header du
+//  shell `/consultants` porte le titre « Activités & congés ». Aucun recalcul métier.
+// ─────────────────────────────────────────────────────────────────────────────
 
 type MonthlyAggregate = {
   month: string
@@ -286,7 +179,7 @@ function getAlertLabels(alert: ProfitabilityAlertRow): string[] {
   ].filter(Boolean) as string[]
 }
 
-export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboardData }) {
+export function ActivityDashboard({ data }: { data: ActivityDashboardData }) {
   const monthly = getMonthlyAggregates(data.summaries)
   const totalBusinessDays = data.ytd.reduce((sum, row) => sum + n(row.total_business_days), 0)
   const totalBillableDays = data.ytd.reduce((sum, row) => sum + n(row.total_billable_days), 0)
@@ -346,9 +239,6 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary-fg/70">
               Cockpit annuel {data.year}
             </p>
-            <h1 className="mt-2 font-heading text-3xl font-black tracking-tight">
-              Activite & conges
-            </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-primary-fg/78">
               Productivite CRA, absences, rentabilite reelle et fermetures client sur une seule surface de pilotage.
             </p>
