@@ -12,7 +12,7 @@ Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 4 — Migration Collaborateurs
 Lot courant              : —
 Prochain lot             : Lot 5 — Migration Activités & congés
-Dernier SHA connu origin/main : 149c2bbf   (2026-09-08 ; SHA Lot 4 renseigné après push)
+Dernier SHA connu origin/main : 3296d8ea72bbed4e305f8f2eba5e5e4bf1345919   (2026-09-08, après commit Lot 4)
 ```
 
 ## Table des lots
@@ -26,7 +26,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
 | 2 | Data Contract Synthèse | ✅ techniquement livré | `61bbab04` | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
 | 3 | Synthèse Desktop + Mobile | ✅ techniquement livré + **déployé prod** | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. Gates verts ; **build de prod Vercel `READY`** (`7724d800` = déploiement courant `kredo-green.vercel.app`). |
-| 4 | Migration Collaborateurs (`?section=collaborateurs`) | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/collaborators/` : `CollaboratorsDesktop`/`Mobile` + `collaborators.types` + 4 tests. C-23 / **LEGACY-4 résolu** (statut ⇐ `collaborators.status`) ; loader filtre `sorti`. `components/consultants/synthese/` supprimé. Gates verts (build → Vercel). |
+| 4 | Migration Collaborateurs (`?section=collaborateurs`) | ✅ techniquement livré | `3296d8ea` | `src/features/consultants/collaborators/` : `CollaboratorsDesktop`/`Mobile` + `collaborators.types` + 4 tests. C-23 / **LEGACY-4 résolu** (statut ⇐ `collaborators.status`) ; loader filtre `sorti`. `components/consultants/synthese/` supprimé. Gates verts (build → Vercel). |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ⬜ todo | — | REUSE `PoolCompetencesMap`. Redirection route legacy. |
 | 7 | Data Contract Candidats (candidate-centric) | ⬜ todo | — | Résoudre DATA-4/6, PRODUCT-2/3. Backfill → sous-lot 7.x. |
@@ -171,8 +171,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npx eslint src/features/consultants src/app/(app)/consultants/page.tsx` → PASS
   - `npm run build` (local) → non joué (`next dev` concurrent) — **build de prod Vercel = gate** (cf. Lot 3).
 - **QA visuelle** : non réalisée — réservée à Guillaume.
-- **Commit** : _(SHA après push)_ — `refactor(consultants): chapitre Collaborateurs dans la feature + statut aligné (Lot 4)`.
-- **SHA final** : _(à renseigner après push)_.
+- **Commit** : `3296d8ea` — `refactor(consultants): chapitre Collaborateurs dans la feature + statut aligné (Lot 4)`.
+- **SHA final** : `3296d8ea72bbed4e305f8f2eba5e5e4bf1345919`.
 - **NEXT LOT** : Lot 5 — Migration Activités & congés.
 
 ### Lot 3 — Synthèse Desktop + Mobile — ✅ techniquement livré (2026-09-08)
