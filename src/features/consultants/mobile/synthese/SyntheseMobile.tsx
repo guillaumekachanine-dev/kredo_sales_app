@@ -225,7 +225,7 @@ export function SyntheseMobile({ vm }: SyntheseMobileProps) {
           Voir les collaborateurs
         </Link>
         <Link
-          href="/recruitment"
+          href="/consultants?section=candidats"
           className="flex min-h-11 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface text-sm font-semibold text-body"
         >
           Ouvrir le recrutement

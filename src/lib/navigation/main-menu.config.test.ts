@@ -30,7 +30,7 @@ describe("navigation de section", () => {
       {
         label: "Recrutement",
         shortLabel: "Recrutement",
-        href: "/recruitment",
+        href: "/consultants?section=candidats",
       },
     ])
 

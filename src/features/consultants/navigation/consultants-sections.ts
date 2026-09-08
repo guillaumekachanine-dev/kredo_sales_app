@@ -13,7 +13,7 @@
 //
 //  Internalisation progressive (`external: false`) : `synthese` + `collaborateurs`
 //  (Lot 1), `activite-conges` (Lot 5), `pool-competences` (Lot 6), `candidats`
-//  (Lot 8). La route `/recruitment` reste vivante jusqu'à sa dépréciation (Lot 10).
+//  (Lot 8). La route `/recruitment` est dépréciée et redirige de façon permanente vers `/consultants?section=candidats` (Lot 10).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type ConsultantsSection =

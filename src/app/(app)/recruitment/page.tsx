@@ -1,22 +1,10 @@
-import { Suspense } from "react"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { RecruitmentWorkspace } from "@/components/recruitment/RecruitmentWorkspace"
-import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
-import { getRecruitmentWorkspace } from "./_data/get-recruitment-workspace"
+import { permanentRedirect } from "next/navigation"
 
-async function RecruitmentPageContent() {
-  const [device, rows] = await Promise.all([
-    getDashboardDevice(),
-    getRecruitmentWorkspace(),
-  ])
-
-  return <RecruitmentWorkspace rows={rows} isMobile={device === "mobile"} />
-}
+// Route historique consolidée dans le chapitre Candidats de Consultants
+// (chantier docs/FEATURES/consultants_workspace/, Lot 10).
+// Le point d'entrée canonique unique est `/consultants?section=candidats`.
+// Le nettoyage physique du code legacy appartient au Lot 15.
 
 export default function RecruitmentPage() {
-  return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <RecruitmentPageContent />
-    </Suspense>
-  )
+  permanentRedirect("/consultants?section=candidats")
 }

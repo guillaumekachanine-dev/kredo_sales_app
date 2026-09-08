@@ -64,7 +64,7 @@ export function TalentProfileDetail({
       footer={profile ? (
         <div className="border-t border-edito-border bg-edito-surface px-4 py-3">
           <Link
-            href={profile.kind === "collaborator" ? "/consultants" : "/recruitment"}
+            href={profile.kind === "collaborator" ? "/consultants" : "/consultants?section=candidats"}
             className="inline-flex h-11 w-full items-center justify-center rounded-[var(--radius-medium)] border border-edito-border bg-edito-surface px-3 text-xs font-semibold text-edito-navy transition-colors hover:bg-edito-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-brass"
           >
             {profile.kind === "collaborator" ? "Voir dans Équipe" : "Voir dans Recrutement"}

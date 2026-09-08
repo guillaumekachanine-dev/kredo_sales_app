@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 9 — Absorption fonctionnelle Recruitment
+Dernier lot livré        : Lot 10 — Dépréciation /recruitment
 Lot courant              : —
-Prochain lot             : Lot 10 — Dépréciation /recruitment
-Dernier SHA connu origin/main : 16596041d22e6d6799089cb5245edb0e00dccd20   (2026-09-08, commit feat Lot 9)
+Prochain lot             : Lot 11 — Module Production & Congés — Data
+Dernier SHA connu origin/main : 8e8583ba   (2026-09-08)
 ```
 
 ## Table des lots
@@ -32,7 +32,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 7 | Data Contract Candidats (candidate-centric) | ✅ techniquement livré | `767e6696` | `src/features/consultants/candidates/data/` : builder pur + loader + types + 11 tests ; `src/lib/recruitment/candidate-lifecycle.ts` (+ 4 tests). C-26. **DATA-4/6 + PRODUCT-2/3 résolus.** Dettes CAND-1/2/3. Aucune migration, aucune UI. Gates verts (build → Vercel). |
 | 8 | Page Candidats (Desktop + Mobile, inline edit) | ✅ techniquement livré | `84c7d8f1` | `src/features/consultants/candidates/` : `CandidatesDesktop` (`StructuredList` 7 col.) + `CandidatesMobile` (cartes) + `CandidateInlineControls` + `candidates-view` (+6 tests). C-27. **5/5 chapitres in-shell.** Drawers `CandidateDrawer`/`NewCandidateDrawer` réutilisés. `revalidatePath("/consultants")` sur 5 actions. Dette CAND-4 (positionnement inline). `/recruitment` intact. Gates verts (build → Vercel). |
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ✅ techniquement livré | `16596041` | Matrice parité 17/17. CAND-3 résolu (labels unifiés). CAND-4 tranché (C-28 option 1). LEGACY-2 confirmé orphelin. CandidatesKanbanDesktop (EntityKanbanView). Rapports + Agenda intégrés. Planning déprécié (heuristiques illégitimes C-08). |
-| 10 | Dépréciation `/recruitment` (redirect permanent) | ⬜ todo | — | Après parité Lot 9. Patron `prospection/page.tsx`. |
+| 10 | Dépréciation `/recruitment` (redirect permanent) | ✅ techniquement livré | à enregistrer | `permanentRedirect("/consultants?section=candidats")`. C-13 résolue (contrat mobile `getMobileTabsForPath` repointé). NAV-3 volet dépréciation résolu. Call-sites actifs repointés (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`). Code métier legacy préservé (Lot 15). |
 | 11 | Module Production & Congés — Data | ⬜ todo | — | Résoudre DATA-5. Aucun calendrier fictif (C-08). |
 | 12 | Module Production & Congés — UI | ⬜ todo | — | Déclare le module dans `contextualModules`. |
 | 13 | Module Matching profil (UI vers moteur existant) | ⬜ todo | — | Résoudre PRODUCT-1. Aucun second moteur (C-09). |
@@ -71,6 +71,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-26 | Contrat Candidats candidate-centric (`src/features/consultants/candidates/data/`) : builder pur + loader `server-only` + types + tests. Population = tous les `candidates` (filtrage à l'affichage via `pipelineState`). DATA-4 : `qualifiedThisYear` = jalon `prequalification/valide` daté année civile. DATA-6 : `available_from`+`notice_period_days` (43/43) = source structurée, texte `availability` jamais parsé. PRODUCT-2 : `nextAction` = positionnement actif le + récent, `null` sinon (option a). PRODUCT-3 : whitelist canonique `src/lib/recruitment/candidate-lifecycle.ts`. Practice = `practice_id → slug` (C-17), repli `job_profile_id`. Dettes CAND-1/2/3 | 7 |
 | C-27 | Chapitre Candidats internalisé (`?section=candidats`, 5/5 sections in-shell) : `CandidatesDesktop` (`StructuredList` maison, patron Lot 4 — pas `DataTable`/`EntityListView`), `CandidatesMobile` (cartes), `CandidateInlineControls`, `candidates-view.ts`. Distribution serveur (`page.tsx`). Drawers `CandidateDrawer` (déjà candidate-centric) + `NewCandidateDrawer` réutilisés tels quels. Édition inline = lifecycle (`updateCandidateStatus`) + étape process si actif (`updateHiringStep`) ; positionnement `opportunity_candidates` NON inline (dette CAND-4). `revalidatePath("/consultants")` ajouté aux 5 actions recrutement (C-12). `/recruitment` + `getMobileTabsForPath` + `main-menu.config` intacts (C-13). | 8 |
 | C-28 | Parité Recruitment : Kanban candidate-centric (`CandidatesKanbanDesktop` via `EntityKanbanView` + `HIRING_KANBAN_STAGES`), planning déprécié (heuristiques illégitimes C-08, zéro migration), CAND-3 résolu (`src/lib/recruitment/candidate-lifecycle.ts`), CAND-4 Option 1 confirmée (`opportunity_candidates.status` maintenu au staffing/drawer), LEGACY-2 confirmé orphelin (suppression Lot 15), « Nouveau rapport » + Agenda (« Planifier ») intégrés. | 9 |
+| C-29 | Dépréciation /recruitment & redirection canonique : permanentRedirect("/consultants?section=candidats") direct sans loader ni composant. C-13 résolue (getMobileTabsForPath repointé). Call-sites actifs repointés (SyntheseMobile, TalentProfileDetail, entity-links, mainMenuItems). Code métier legacy préservé (Lot 15). | 10 |
 
 ## Questions ouvertes en cours
 
@@ -91,7 +92,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ouverte |
 | NAV-1 | `?section=` confirmé vs pathname après audit code réel Lot 1 | 1 | ✅ résolue (Lot 1) |
 | NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ✅ résolue — `activite-conges` (C-24) + `pool-competences` (C-25) = `permanentRedirect` ; suppression des fichiers de route + `(tabbed)/layout.tsx` + `SectionNavBarSlot` = Lot 15 |
-| NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ouverte |
+| NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ⚠️ partiellement résolue (C-29) — volet dépréciation et redirection canonique résolu Lot 10 ; retrait global du menu principal = Lot 14 (coord. SHELL-0018 Phase 6) |
 | NAV-4 | Consultants sous `CRM` ou `Ressources` dans SHELL-0018 Phase 6 | 14 | ouverte |
 | LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; global = Phase 6) |
 | LEGACY-2 | `components/recruitment/dashboard/*` morts — confirmer et supprimer | 9 / 15 | ✅ résolue (C-28) — orphelins confirmés (0 import repo), suppression au Lot 15 |
@@ -156,6 +157,45 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 10 — Dépréciation `/recruitment` — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `8e8583ba` (`main` = `origin/main`).
+- **Objectif** : Faire de `/consultants?section=candidats` l'unique point d'entrée fonctionnel du recrutement dans KREDO via une redirection permanente (`permanentRedirect`) de `/recruitment`, sans exécuter aucun loader legacy ni monter aucun composant, tout en adaptant les références de navigation actives nécessaires sans anticiper le Lot 14 ni supprimer prématurément le code legacy (réservé au Lot 15).
+- **Fichiers modifiés** :
+  - `src/app/(app)/recruitment/page.tsx` — Remplacé par `permanentRedirect("/consultants?section=candidats")` (patron `prospection/page.tsx`). Suppression des imports et appels à `getDashboardDevice`, `getRecruitmentWorkspace`, `RecruitmentWorkspace` et `DashboardSkeleton`.
+  - `src/lib/navigation/main-menu.config.ts` :
+    - `getMobileTabsForPath()` : onglet « Recrutement » repointé de `/recruitment` vers `/consultants?section=candidats` (**C-13 résolue**).
+    - `mainMenuItems` sous Ressources : entrée « Recrutement » repointée vers `/consultants?section=candidats` pour éviter une redirection intermédiaire morte, sans restructurer le menu global (frontière **NAV-3**).
+  - `src/features/consultants/mobile/synthese/SyntheseMobile.tsx` : bouton raccourci repointé vers `/consultants?section=candidats`.
+  - `src/features/knowledge-hub/talents/TalentProfileDetail.tsx` : lien vers le profil candidat repointé vers `/consultants?section=candidats`.
+  - `src/lib/reports/weekly-manager/entity-links.ts` : entité `candidate` repointée vers `/consultants?section=candidats&candidateId=${entityId}`.
+  - `src/features/consultants/navigation/consultants-sections.ts` : commentaire d'en-tête mis à jour pour documenter la dépréciation.
+  - `src/lib/navigation/main-menu.config.test.ts` : assertion mise à jour sur `/consultants?section=candidats`.
+  - `src/lib/navigation/mobile-navigation-history.test.ts` : assertion mise à jour sur `/consultants?section=candidats`.
+  - `src/features/consultants/desktop/synthese/synthese-render.test.ts` : assertion raccourci mise à jour sur `href="/consultants?section=candidats"`.
+- **Fichiers créés** :
+  - `src/features/consultants/recruitment-deprecation.test.ts` : test structurel validant les invariants (redirection permanente, absence de loader/composant legacy sur la route, contrat mobile et menu).
+- **Fichiers préservés intacts (conformément aux règles du Lot 10)** :
+  - `src/components/recruitment/RecruitmentWorkspace.tsx`
+  - `src/components/recruitment/RecruitmentListView.tsx`
+  - `src/components/recruitment/RecruitmentKanbanView.tsx`
+  - `src/components/recruitment/RecruitmentPlanningView.tsx`
+  - `src/app/(app)/recruitment/_data/get-recruitment-workspace.ts`
+  - `src/app/(app)/recruitment/_actions/**` (mutations toujours consommées via C-12)
+  - `src/components/recruitment/dashboard/**` (orphelins LEGACY-2 préservés pour Lot 15)
+- **Data & n8n** : Aucune migration Supabase, aucune nouvelle table, aucun workflow n8n.
+- **Décisions** : **C-29**. **C-13 résolue** (Mobile tabs). **NAV-3 partiellement résolue** (dépréciation et redirection effectuées ; restructuration globale et retrait du module menu réservés au Lot 14 coord. SHELL-0018 Phase 6).
+- **Gates exécutées** :
+  - `rm -rf .next && npm run typecheck` → **PASS**
+  - `npm test` (**suite complète**) → **PASS**
+  - `npm run check:server-boundary` → **PASS**
+  - `npx eslint` (fichiers touchés) → **PASS**
+  - `npm run build` → **PASS**
+- **QA visuelle** : non réalisée — réservée à Guillaume.
+- **Commit** : à enregistrer.
+- **SHA final** : à enregistrer.
+- **NEXT LOT** : Lot 11 — Module Production & Congés / Data.
 
 ### Lot 9 — Absorption fonctionnelle Recruitment — ✅ techniquement livré (2026-09-08)
 

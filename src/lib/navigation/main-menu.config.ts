@@ -132,7 +132,7 @@ export function getMobileTabsForPath(pathname: string): SectionTab[] {
   if (pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")) {
     return [
       { label: "Besoins & Staffing", shortLabel: "Besoins", href: "/missions/opps?scope=needs" },
-      { label: "Recrutement", shortLabel: "Recrutement", href: "/recruitment" },
+      { label: "Recrutement", shortLabel: "Recrutement", href: "/consultants?section=candidats" },
     ]
   }
 
@@ -257,7 +257,7 @@ export const mainMenuItems: MainMenuItem[] = [
       },
       {
         label: "Recrutement",
-        href: "/recruitment",
+        href: "/consultants?section=candidats",
         icon: "recrutement",
       },
     ],

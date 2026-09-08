@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-9 livrés)**
+> **Statut global : en cours (Lots 0-10 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -16,8 +16,8 @@ couvrant le cycle de vie complet des ressources internes et candidates :
 pilotage des collaborateurs, activité, congés, vivier candidats, recrutement,
 compétences et matching.
 
-La route canonique reste **`/consultants`**. `/recruitment` disparaît fonctionnellement
-à terme et redirige vers `/consultants?section=candidats` (Lot 10, jamais avant parité prouvée).
+La route canonique reste **`/consultants`**. `/recruitment` est désormais dépréciée et
+redirige de façon permanente vers `/consultants?section=candidats` (Lot 10).
 
 ## Documents
 
@@ -51,7 +51,7 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 10 — Dépréciation `/recruitment`** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 10).
+➡️ **Lot 11 — Module Production & Congés / Data** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 11).
 
 - Lot 1 : shell `/consultants` sur `SectionRail` V2, navigation `?section=`, `SectionNavBarSlot` descendu.
 - Lot 2 : view-model unique `getConsultantsSynthese()` — DATA-1/2/3/7 résolus (C-16→C-20).
@@ -62,5 +62,6 @@ par l'absence de QA visuelle.
 - Lot 7 : contrat de données Candidats candidate-centric — `src/features/consultants/candidates/data/` (builder pur + loader + tests) + `src/lib/recruitment/candidate-lifecycle.ts` (C-26). **DATA-4/6 + PRODUCT-2/3 résolus.** Aucune UI.
 - Lot 8 : chapitre Candidats in-shell (`?section=candidats`) — `CandidatesDesktop` (`StructuredList`), `CandidatesMobile` (cartes), édition inline lifecycle + étape process, drawers réutilisés (C-27). **5/5 chapitres in-shell.** `/recruitment` intact.
 - Lot 9 : absorption fonctionnelle Recruitment — parité prouvée, Kanban candidate-centric Desktop (`CandidatesKanbanDesktop`, sélecteur Tableau/Kanban), bouton « Nouveau rapport », bouton « Planifier » (`AgendaEventDrawer` dans `CandidateDrawer`), CAND-3 résolu (labels lifecycle canoniques), CAND-4 tranché (Option 1 : positioning dans `StaffingDrawer`), LEGACY-2 confirmé orphelins (C-28). `/recruitment` intact.
+- Lot 10 : dépréciation de la route legacy `/recruitment` via `permanentRedirect("/consultants?section=candidats")`, suppression de tout loader et rendu legacy de cette route, repointage du contrat mobile `getMobileTabsForPath()` (C-13 résolue), de l'entrée `mainMenuItems` sous Ressources et des call-sites UI actifs (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`), tests d'invariants (C-29). Aucun nettoyage prématuré du code métier legacy (réservé Lot 15). NAV-3 partiellement résolue (retrait complet du menu réservé Lot 14).
 
 > ⚠️ Travail parallèle non commité dans l'arbre (cockpit mobile, veille, `design-lab/`) : stager les chemins consultants explicitement, ne jamais `git add -A`.

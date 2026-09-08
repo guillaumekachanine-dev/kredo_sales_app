@@ -109,7 +109,7 @@ describe("SyntheseMobile", () => {
     expect(markup).toContain("Prochaines fins de mission")
     expect(markup).toContain("Pipeline de recrutement")
     expect(markup).toContain('href="/consultants?section=collaborateurs"')
-    expect(markup).toContain('href="/recruitment"')
+    expect(markup).toContain('href="/consultants?section=candidats"')
   })
 
   it("indique les positionnements non traçables", () => {

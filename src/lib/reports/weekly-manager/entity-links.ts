@@ -16,7 +16,7 @@ export function resolveWeeklyManagerEntityHref(
     case "mission":
       return `/missions?missionId=${entityId}`
     case "candidate":
-      return `/recruitment?candidateId=${entityId}`
+      return `/consultants?section=candidats&candidateId=${entityId}`
     default:
       return null
   }
