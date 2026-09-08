@@ -88,7 +88,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; global = Phase 6) |
 | LEGACY-2 | `components/recruitment/dashboard/*` morts — confirmer et supprimer | 9 / 15 | ouverte |
 | LEGACY-3 | `consultants/(tabbed)/layout.tsx` passthrough — supprimer après migration | 15 | ouverte |
-| LEGACY-4 | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — réconcilier avec DATA-1 | 2 | ouverte |
+| LEGACY-4 | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — réconcilier avec C-16 | 4 | reportée (contrat figé C-16, réconciliation à la migration du tableau) |
 
 ## Baseline technique constatée (2026-09-08, `064b6c02`)
 
