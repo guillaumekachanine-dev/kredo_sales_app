@@ -88,7 +88,7 @@ QA minimale :
 | **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **3.x** | Standardisation des modules contextuels | ⬜ todo | uniquement contexte page |
 | **4.x** | URLisation des navigations client-state restantes | ⬜ todo | après stabilisation du rail |
-| **5.x** | Migration Finance / mécanismes horizontaux | ⬜ todo | rail + URL |
+| **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
 | **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
 | **8.x** | Nettoyage / clôture | ⬜ todo | suppression legacy prouvée sûre |
@@ -682,7 +682,75 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Lot 2.8 techniquement livré.**
 
-## 20. Prochaine étape
+## 20. Clôture du Lot 5.1 — Finance
+
+### Fichiers modifiés, créés et supprimés
+
+- `src/components/finance/FinanceLocalNavigation.tsx` (nouveau composant adaptateur `SectionRail`, configuration et helpers URL) ;
+- `src/components/finance/FinanceDesktopDashboard.tsx` (intégration du SectionRail, suppression de `FinanceTabs`, URL comme source de vérité) ;
+- `src/components/finance/FinanceTabs.tsx` (supprimé — composant horizontal legacy orphelin après migration) ;
+- `src/components/finance/FinanceLocalNavigation.test.ts` (nouveaux tests unitaires et de contrat) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`.
+
+### Architecture retenue
+
+- La barre horizontale legacy `FinanceTabs` a été définitivement supprimée de la vue Desktop et du repository ;
+- Le rail secondaire Desktop délègue sa présentation à la primitive canonique `SectionRail` via l'adaptateur léger `FinanceLocalNavigation` ;
+- Largeur canonique standard `11.5rem` (`184px`) respectée sans débordement ni scroll horizontal ;
+- Le chapeau canonique affiche `Finance` (navy, texte blanc, gras, centré horizontalement et verticalement, largeur 11.5rem / 184px) et son action `home.onSelect` ramène au chapitre racine `synthesis` via la navigation URL standard ;
+- La configuration Desktop unique et typée `FINANCE_DESKTOP_CHAPTERS` sert de source de vérité pour les trois chapitres :
+  1. `synthesis` : « Synthèse »
+  2. `profitability` : « Rentabilité missions »
+  3. `forecast` : « Prévision & simulation »
+  conservant strictement leurs clés, leur ordre et leurs libellés canoniques ;
+- L'attribut accessible `aria-current="page"` matérialise l'état actif du chapitre courant ;
+- Le header principal de `DesktopAnalyticalPage` applique l'invariant SHELL-0018 en affichant dynamiquement le nom exact du chapitre actif (`Synthèse`, `Rentabilité missions` ou `Prévision & simulation`), dérivé de `getFinanceDesktopChapterLabel(activeTab)` au lieu du titre générique statique `Cockpit Financier & Rentabilité` ;
+- Distinction stricte des deux rails : le nouveau `SectionRail` gauche (184px) est la navigation locale, tandis que le rail contextuel droit `rail={...}` de `DesktopAnalyticalPage` (analyse des risques sur Synthèse, outil de simulation sur Prévision & simulation) est intégralement préservé sans interférence ;
+- Les actions du header (`PageQuickActions`) restent intégralement préservées dans leur composant dédié (Rapport financier, Simulation, Synthèse direction, Arbitrage N+1) et ne sont ni déplacées ni dupliquées.
+
+### URL comme source de vérité
+
+- L'état de navigation n'utilise plus un `useState` local non reconstructible : `activeTab` est dérivé directement de `useSearchParams()` via le helper pur `parseFinanceTab` ;
+- Mapping URL canonique sans duplication :
+  - `/finance` → `synthesis` (racine canonique)
+  - `/finance?tab=profitability` → `profitability`
+  - `/finance?tab=forecast` → `forecast`
+  - Valeur inconnue ou absente → fallback déterministe vers `synthesis` ;
+- La navigation par `buildFinanceHref` supprime le paramètre `tab` pour l'état racine `synthesis` et préserve tous les éventuels autres query params de la page ;
+- La navigation par `router.push()` crée une véritable entrée d'historique (Back, Forward, refresh, lien partagé).
+
+### Modules contextuels
+
+- Aucun module contextuel n'étant requis pour ce lot, `contextualModules` est explicitement défini à `undefined` ;
+- La section Modules n'est donc pas rendue dans le rail, évitant tout bouton mort ou placeholder artificiel.
+
+### Mobile — protection absolue
+
+- Le branchement serveur conditionnel dans `src/components/finance/index.tsx` basé sur `getDashboardDevice()` reste strictement intact ;
+- Aucun composant Desktop lourd n'est importé ni rendu côté Mobile ;
+- `FinanceMobileDashboard.tsx`, `getFinanceMobileDashboardData()` et `getDashboardDevice()` ne sont aucunement modifiés.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** sans erreur ;
+2. `npm test -- src/components/finance/FinanceLocalNavigation.test.ts src/components/layout/SectionRail.test.ts src/components/finance/` : **16/16 tests passés** (et **14/14 tests passés** sur l'ensemble de Finance) ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des fichiers créés et modifiés : **passé sans erreur** ; les 3 warnings `<img>` préexistants sur `FinanceDesktopDashboard.tsx` restent inchangés ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès en production.
+
+### Limites et dettes restantes
+
+- Aucune dette de routage : l'état Finance est désormais entièrement URL-addressable ;
+- Aucune modification Supabase, RLS, RPC, fetch métier ou workflow n8n ;
+- Aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Lot 5.1 techniquement livré.**
+
+## 21. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
