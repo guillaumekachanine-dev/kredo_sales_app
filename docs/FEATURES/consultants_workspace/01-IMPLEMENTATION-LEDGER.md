@@ -179,7 +179,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm test` (**suite complète**) → **PASS** (261 fichiers / 2633 tests) — plus aucun échec hors périmètre (veille résorbé par `55d637ee`)
   - `npm run check:server-boundary` → **PASS**
   - `npx eslint` (fichiers touchés : `skills/`, `data/get-consultants-skills.ts`, `page.tsx`, redirect, `consultants-sections{,.test}.ts`, 3 consommateurs) → **PASS**
-  - `npm run build` (local) → **non joué** (`next dev` concurrent). **Build de prod Vercel = gate.**
+  - `npm run build` (local) → **non joué** (`next dev` concurrent). **Build de prod Vercel = gate** : commit `a9d34e38` → `dpl_BagZ45CNJCYphakvZLSDrzNadQ8t`, target `production`, **`READY`**, aliasé sur `kredo-green.vercel.app` (turbopack, `nodejs:3`). Le commit cockpit `55d637ee` avait déjà buildé `READY` séparément (`dpl_9xh9kzacv9ossexuqBbNZEHyfAu5`).
 - **⚠️ Travail parallèle** : le commit contient aussi `55d637ee` (cockpit mobile v2 + veille + `design-qa.md`) — décision explicite de Guillaume de le pousser avec le Lot 6. Le WIP restant non suivi (`design-lab/*`) n'est **pas** stagé.
 - **QA visuelle** : réservée à Guillaume.
 - **Commit** : `2eb96035` — `refactor(consultants): chapitre Pool de compétences internalisé (Lot 6)`.
