@@ -180,9 +180,10 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm test` (**suite complète**) → **PASS** (263 fichiers / 2648 tests)
   - `npm run check:server-boundary` → **PASS**
   - `npx eslint src/features/consultants/candidates src/lib/recruitment/candidate-lifecycle.ts src/lib/recruitment/candidate-lifecycle.test.ts` → **PASS**
-  - `npm run build` (local) → **non joué** (`next dev` concurrent). Build de prod Vercel = gate.
+  - `npm run build` (local) → **non joué** (`next dev` concurrent). **Build de prod Vercel = gate** : commit `00740322` → `dpl_4fpvQxZz8r5Zg1YeteLVahLau7tX`, target `production`, **`READY`**, aliasé `kredo-green.vercel.app` (~140 s).
 - **QA visuelle** : réservée à Guillaume (aucune surface UI dans ce lot).
-- **Commit** : `767e6696` — `feat(consultants): data contract Candidats — view-model candidate-centric (Lot 7)`.
+- **⚠️ Travail parallèle** : `origin/main` a avancé pendant le lot (`00a8c876 feat(cockpit): finalize mobile homepage redesign`, Guillaume) — intégré par `git merge --ff-only`, hors périmètre, non modifié.
+- **Commit** : `767e6696` — `feat(consultants): data contract Candidats — view-model candidate-centric (Lot 7)` ; doc-commit `00740322`.
 - **SHA final** : `767e6696`.
 - **NEXT LOT** : Lot 8 — Page Candidats.
 
