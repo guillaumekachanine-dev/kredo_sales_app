@@ -79,7 +79,7 @@ QA minimale :
 | **1.1** | Primitive présentationnelle `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/components/layout/SectionRail.tsx` |
 | **1.2** | Tests unitaires de la primitive | ✅ done | `SectionRail.test.ts` — 5/5 tests passés le 2026-09-08 |
 | **2.1** | Migration Account Intelligence | ✅ techniquement livré | commit `31163105` ; QA visuelle réservée à Guillaume |
-| **2.2** | Migration Business Intelligence | ⬜ todo | conserver `?tab=` |
+| **2.2** | Migration Business Intelligence | ✅ techniquement livré | châssis `SectionRail` ; `?segment=` + `?tab=` conservés ; QA visuelle réservée à Guillaume |
 | **2.3** | Migration Veille | ⬜ todo | modules contextuels existants |
 | **2.4** | Migration Rapports | ⬜ todo | extraire rail inline |
 | **2.5** | Migration Automatisations | ⬜ todo | supprimer divergences visuelles |
@@ -335,7 +335,80 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 **Verdict Lot 2.1 : `techniquement livré`.** Toutes les gates techniques demandées passent et
 aucune régression technique connue ne subsiste dans le périmètre du lot.
 
-## 12. Prochaine étape
+## 12. Préparation du Lot 2.2 — delta Business Intelligence / `SectionRail`
 
-Faire réaliser la QA visuelle et ergonomique d'Account Intelligence par Guillaume. Aucun autre
-lot de migration n'est commencé dans cette livraison.
+Delta établi le 2026-09-08 sur le code de `main`, avant modification applicative :
+
+| Axe | État actuel | Cible du Lot 2.2 |
+|---|---|---|
+| Châssis | `BusinessIntelligenceLocalNavigation` duplique le rail en JSX et en classes locales | conserver le composant comme adaptateur léger de `SectionRail` |
+| Chapeau | bloc clair statique, sans retour à l'état racine | chapeau canonique `Business Intelligence`, actionnant `tab=home` pour le segment actif via les helpers URL existants |
+| Chapitres | six entrées issues de `BI_CHAPTERS`, callbacks URL existants | mapper les mêmes définitions, dans le même ordre, vers `chapters` |
+| Header principal | table locale de titres ; `home` affiche `Business Intelligence` | dériver le libellé de `BI_CHAPTERS` et afficher `Accueil` pour `home` |
+| Signature | reçoit la même table locale que le header principal | lui transmettre le libellé dérivé du chapitre actif sans changer son rendu métier |
+| Modules | deux capacités segmentaires réelles et une action transverse | ne transmettre que les capacités contextuelles disposant d'un callback ; retirer du rail toute action non contextuelle |
+| Routage | `segment` et `tab` sont déjà reconstruits par `resolveBiChapter`, `buildBusinessIntelligenceHref` et `replaceBiChapterInHref` | préserver intégralement deep-link, refresh, back/forward et changement de segment |
+| Mobile | `BI_CHAPTERS` et les helpers URL sont partagés | ne modifier aucun contrat, libellé ou composant Mobile |
+
+Le lot reste un refactor de châssis : aucune donnée, aucun fetch, aucune règle métier et aucun
+workspace analytique ne sont modifiés.
+
+## 13. Clôture du Lot 2.2 — Business Intelligence
+
+### Fichiers modifiés
+
+- `src/features/business-intelligence/desktop/BusinessIntelligenceLocalNavigation.tsx` ;
+- `src/features/business-intelligence/desktop/BusinessIntelligenceDesktop.tsx` ;
+- `src/features/business-intelligence/desktop/BusinessIntelligenceLocalNavigation.test.ts` ;
+- `src/features/business-intelligence/navigation/business-intelligence-chapters.ts`.
+
+### Architecture retenue
+
+- `BusinessIntelligenceLocalNavigation` reste un adaptateur Desktop léger autour de la primitive
+  canonique `SectionRail` ;
+- le chapeau canonique affiche `Business Intelligence` et déclenche le retour au chapitre `home`
+  via le callback URL existant, qui conserve le segment actif avec `replaceBiChapterInHref` ;
+- les six chapitres, leur ordre, leurs identifiants, leurs libellés et leurs icônes sont conservés
+  depuis `BI_CHAPTERS` ;
+- le titre du chapitre actif est désormais dérivé de `BI_CHAPTERS` puis transmis au header
+  principal et à la signature ; l'état `home` affiche donc `Accueil` dans le header principal ;
+- `resolveBiChapter`, `buildBusinessIntelligenceHref`, `replaceBiChapterInHref`, `?segment=` et
+  `?tab=` restent les mécanismes de navigation, sans nouvel état client ni nouvelle sous-route ;
+- le chargement dynamique des modales et workspaces lourds reste inchangé.
+
+### Modules contextuels
+
+- `Études sectorielles` et `Playbooks` sont conservés comme capacités liées au segment courant ;
+- chacun n'est transmis à `contextualModules` que lorsque son callback réel est fourni ;
+- toute action non contextuelle a été retirée du rail sans création d'un nouvel emplacement ;
+- la primitive commune porte l'ancrage bas de la section `Modules` ; aucun bouton mort ne
+  subsiste.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** après mise à l'écart d'un cache `.next` périmé qui contenait
+   des déclarations générées dupliquées ;
+2. `npm test -- src/features/business-intelligence/desktop/BusinessIntelligenceLocalNavigation.test.ts src/features/business-intelligence/navigation/business-intelligence-chapters.test.ts src/features/business-intelligence/__tests__/business-intelligence-layout-contracts.test.ts src/features/business-intelligence/__tests__/business-intelligence-lot2-shell.test.ts src/components/layout/SectionRail.test.ts` : **25/25 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des quatre fichiers applicatifs et de test modifiés : **passé sans erreur ni
+   warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7, TypeScript et génération des 41 pages
+   statiques terminées avec succès.
+
+### Limites et dettes restantes
+
+- aucune dette de routage n'est introduite : l'état reste URL-addressable et conserve le segment ;
+- aucune modification Mobile, Supabase, RLS, RPC, fetch métier, workspace analytique ou workflow
+  n8n ;
+- aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Lot 2.2 techniquement livré.**
+
+## 14. Prochaine étape
+
+Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
+n'est commencé dans cette livraison.
