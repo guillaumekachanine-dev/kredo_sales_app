@@ -17,11 +17,18 @@ import {
   type CommunicationEntryIntent,
 } from "@/lib/communication/communication-entry-intents"
 import { formatEuroCompact } from "@/lib/formatters"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { PnlBarChart } from "./PnlBarChart"
 import Link from "next/link"
 
 // Nouveaux composants de la refonte
-import { FinanceTabs, type FinanceTabId } from "./FinanceTabs"
+import {
+  FinanceLocalNavigation,
+  getFinanceDesktopChapterLabel,
+  parseFinanceTab,
+  buildFinanceHref,
+  type FinanceTabId,
+} from "./FinanceLocalNavigation"
 import { FinanceExecutiveHero } from "./FinanceExecutiveHero"
 import { FinanceWaterfallChart } from "./FinanceWaterfallChart"
 import { PipelineForecastChart } from "./PipelineForecastChart"
@@ -56,7 +63,17 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
     alerts,
   } = data
 
-  const [activeTab, setActiveTab] = useState<FinanceTabId>("synthesis")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const activeTab = parseFinanceTab(searchParams.get("tab"))
+
+  const handleTabChange = (tab: FinanceTabId) => {
+    const nextHref = buildFinanceHref(pathname, searchParams, tab)
+    router.push(nextHref)
+  }
+
   const [isSimulationOpen, setIsSimulationOpen] = useState(false)
   const [activeAlert, setActiveAlert] = useState<FinanceAlert | null>(null)
 
@@ -249,22 +266,23 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
 
   return (
     <>
-      <DesktopAnalyticalPage
-        title="Cockpit Financier & Rentabilité"
-        maxWidth="wide"
-        actions={<PageQuickActions actions={quickActions} />}
-        rail={
-          activeTab === "profitability"
-            ? null
-            : activeTab === "forecast"
-            ? forecastRailContent
-            : synthesisRailContent
-        }
-      >
-        {/* En-tête : Onglets de navigation */}
-        <FinanceTabs activeTab={activeTab} onChange={setActiveTab} />
+      <div className="flex h-full min-h-0 w-full min-w-0 overflow-hidden bg-canvas">
+        <FinanceLocalNavigation active={activeTab} onChange={handleTabChange} />
 
-        {/* CONTENU ONGLETS */}
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <DesktopAnalyticalPage
+            title={getFinanceDesktopChapterLabel(activeTab)}
+            maxWidth="wide"
+            actions={<PageQuickActions actions={quickActions} />}
+            rail={
+              activeTab === "profitability"
+                ? null
+                : activeTab === "forecast"
+                ? forecastRailContent
+                : synthesisRailContent
+            }
+          >
+            {/* CONTENU ONGLETS */}
 
         {/* 1. Onglet Synthèse */}
         {activeTab === "synthesis" && (
@@ -421,7 +439,9 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
 
           </div>
         )}
-      </DesktopAnalyticalPage>
+          </DesktopAnalyticalPage>
+        </div>
+      </div>
 
       {/* Confirmation de l'action sur une alerte */}
       <AppDialog
