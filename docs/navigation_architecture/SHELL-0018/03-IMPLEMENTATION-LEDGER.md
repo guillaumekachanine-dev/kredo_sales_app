@@ -75,15 +75,15 @@ QA minimale :
 |---|---|---|---|
 | **0A** | Audit complet code + DB | ✅ done | audit du 2026-09-07 |
 | **0B** | Rebaseline documentaire V2 | ✅ done | baseline du 2026-09-07 |
-| **1.0** | Contrat client-safe de `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/lib/navigation/section-rail.ts` |
-| **1.1** | Primitive présentationnelle `SectionRail` | 🟡 gates locales ciblées validées, smoke bloqué par la session QA | `src/components/layout/SectionRail.tsx` |
+| **1.0** | Contrat client-safe de `SectionRail` | ✅ techniquement livré — QA visuelle réservée à Guillaume | `src/lib/navigation/section-rail.ts` |
+| **1.1** | Primitive présentationnelle `SectionRail` | ✅ techniquement livré — QA visuelle réservée à Guillaume | `src/components/layout/SectionRail.tsx` |
 | **1.2** | Tests unitaires de la primitive | ✅ done | `SectionRail.test.ts` — 5/5 tests passés le 2026-09-08 |
 | **2.1** | Migration Account Intelligence | ✅ techniquement livré | commit `31163105` ; QA visuelle réservée à Guillaume |
 | **2.2** | Migration Business Intelligence | ✅ techniquement livré | châssis `SectionRail` ; `?segment=` + `?tab=` conservés ; QA visuelle réservée à Guillaume |
 | **2.3** | Migration Veille | ✅ techniquement livré | commit `df160aab` ; QA visuelle réservée à Guillaume |
 | **2.4** | Migration Rapports | ✅ techniquement livré | commit `d22ad5ca` ; QA visuelle réservée à Guillaume |
 | **2.5** | Migration Automatisations | ✅ techniquement livré | commit `c20f33fd` ; QA visuelle réservée à Guillaume |
-| **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
+| **2.6** | Migration Engagements | ✅ techniquement livré — QA visuelle réservée à Guillaume | premier pilote réel |
 | **2.7** | Migration Prospection | ✅ techniquement livré | commit `9b13d84d` ; 15rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **3.1** | Standardisation des modules contextuels | ✅ techniquement livré | matrice exhaustive `05-CONTEXTUAL-MODULES-MATRIX.md` ; QA visuelle réservée à Guillaume |
@@ -93,11 +93,13 @@ QA minimale :
 | **4.4** | URLisation Automatisations | ✅ techniquement livré | `?section=` Desktop ; `journal` canonique sans paramètre ; suppression de `useState` Desktop ; préservation intégrale de `?run=` ; QA visuelle réservée à Guillaume |
 | **4.5** | URLisation Prospection Intelligence | ✅ techniquement livré | `?section=` Desktop ; `strategy` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
 | **4.6** | URLisation Knowledge Hub | ✅ techniquement livré | `?domain=` + `?section=` Desktop ; racine `/knowledge` ; QA visuelle réservée à Guillaume |
-| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Knowledge Hub |
+| **4.7** | Audit & clôture Phase 4 | ✅ techniquement livré | audit exhaustif des 9 surfaces ; aucune navigation secondaire Desktop client-state résiduelle |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
 | **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
 | **8.x** | Nettoyage / clôture | ⬜ todo | suppression legacy prouvée sûre |
+
+> **Phase 4 — ✅ close techniquement (Lot 4.7)**
 
 ## 5. Journal des décisions de rebaseline
 
@@ -216,8 +218,9 @@ La primitive supporte :
 - aucune migration Supabase ;
 - aucun changement métier.
 
-Le socle compile, se déploie et passe les gates locales ciblées demandées. Son verdict reste
-`partial` jusqu'au smoke Desktop authentifié.
+Le socle compile, se déploie et passe l'intégralité des gates techniques locales et de build.
+Conformément à la règle projet réconciliée, la QA visuelle est réservée exclusivement à Guillaume et son absence ne bloque pas la livraison technique.
+Son verdict historique est réconcilié : **`techniquement livré — QA visuelle réservée à Guillaume`**.
 
 ## 9. Lot 2.6 — pilote Engagements
 
@@ -245,7 +248,8 @@ Le socle compile, se déploie et passe les gates locales ciblées demandées. So
 - aucun changement n8n ;
 - aucune modification Mobile.
 
-**Verdict Lot 2.6 : `partial` jusqu'à la QA visuelle authentifiée.**
+Conformément à la règle projet réconciliée, la QA visuelle est réservée exclusivement à Guillaume et son absence ne bloque pas la livraison technique.
+**Verdict Lot 2.6 : `techniquement livré — QA visuelle réservée à Guillaume`.**
 
 ## 10. Préparation du Lot 2.1 — delta `ClientIntelligenceSidebar` / `SectionRail`
 
@@ -1188,7 +1192,72 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Verdict Lot 4.6 : `techniquement livré`.**
 
-## 29. Prochaine étape
+## 29. Lot 4.7 — Audit et clôture Phase 4
 
-Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. L'audit d'une clôture exhaustive de la Phase 4 fera l'objet d'un lot séparé.
+### SHA audité
+- `918f55d9` (main synchronisé avec origin/main).
+
+### Surfaces auditées
+- Les 9 surfaces Desktop canoniques :
+  1. Engagements (`/missions`)
+  2. Business Intelligence (`/intelligence`)
+  3. Account Intelligence (`/prospection/accounts/[companyId]`)
+  4. Veille & actualités (`/veille`)
+  5. Rapports & rédaction (`/reports`)
+  6. Automatisations (`/automations`)
+  7. Prospection Intelligence (`/prospection-intelligence`)
+  8. Knowledge Hub (`/knowledge`)
+  9. Finance (`/finance`)
+
+### Recherches effectuées
+- Recherches ripgrep exhaustives sur l'ensemble de `src/app`, `src/components`, `src/features` :
+  - `SectionRail`, `LocalNavigation`, `activeTab`, `activeSection`, `activeView`, `setActiveTab`, `setActiveSection`, `setActiveView` ;
+  - `useState<`, `useSearchParams`, `usePathname`, `useRouter`, `router.push`, `router.replace` ;
+  - `SectionNavBar`, `SectionNavBarSlot`, `useSidebarCollapse`.
+
+### Exceptions locales légitimes
+- Confirmées conformes à l'ADR-0018 V2 :
+  - Mode embedded CRM multi-comptes (`CrmTabbedShell`) : mémoire locale isolée par panneau via réducteur pur (`embeddedAccountIntelligenceNavigationReducer`), synchronisation avec l'URL (`?aiSection=`) sur le panneau actif, restauration via `router.replace()`, direct route sans mémoire ;
+  - Paramètres orthogonaux préservés : `?run=` sur Automatisations, `?doc=` sur Rapports, `?segment=` sur Business Intelligence ;
+  - États UI locaux métier : filtres, modales, dialogues, accordéons, tri de tables (`sort`).
+
+### Statut des neuf navigations
+- 9/9 conformes au contrat URL-driven :
+  - Chaque navigation Desktop est reconstructible après refresh depuis l'URL ou le contrat embedded documenté ;
+  - Aucun rail principal ne repose sur un `useState` éphémère ;
+  - Chaque header principal affiche dynamiquement le libellé exact du chapitre actif.
+
+### État des anciens `SectionNavBar*`
+- `SectionNavBarSlot` monté dans 6 layouts :
+  - 4 no-ops au runtime (`automations`, `knowledge`, `finance`, `prospection`) car aucun onglet dans `main-menu.config.ts` ;
+  - 2 consommateurs actifs : `missions/(tabbed)` et `consultants` ;
+  - Risque et plan de traitement documentés pour Phase 6.
+
+### Réconciliation des anciens statuts QA
+- Conformément à la règle projet (la QA visuelle est réservée exclusivement à Guillaume et son absence ne bloque pas une livraison technique) :
+  - Lots 1.0, 1.1 et 2.6 réconciliés vers `✅ techniquement livré — QA visuelle réservée à Guillaume`.
+
+### Fichiers documentaires mis à jour et créés
+- `docs/navigation_architecture/SHELL-0018/04-CURRENT-NAVIGATION-INVENTORY.md` (remis à niveau avec le code actuel) ;
+- `docs/navigation_architecture/SHELL-0018/06-PHASE-4-CLOSURE-AUDIT-2026-09-08.md` (rapport de clôture de Phase 4) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md` (mise à jour du ledger et clôture Phase 4).
+
+### Tests et gates exécutés
+- `npm run typecheck` : **passé** ;
+- `npm run check:server-boundary` : **passé** ;
+- Suite vitest ciblée sur les 9 surfaces, la primitive et les helpers de navigation : **21 fichiers / 249 tests passés** ;
+- 0 modification de code applicatif dans ce lot.
+
+### Verdict
+- **Phase 4 — ✅ close techniquement.**
+
+---
+
+## 30. Prochaine étape — Entrée Phase 6 (Refonte Shell global)
+
+La standardisation du menu secondaire et l'URLisation des navigations secondaires Desktop (Phases 1 à 4) étant achevées, le chantier passe à la **Phase 6 — Refonte Shell global** :
+1. Arbitrage du comportement du menu principal Desktop (push vs overlay vs rail permanent) ;
+2. Migration du module « Équipe » (`/consultants`) et unification des sous-routes `/missions` ;
+3. Retrait définitif de `SectionNavBarSlot`, `SectionNavBar` et simplification de `useSidebarCollapse` ;
+4. Intégration globale avec Cockpit Intelligence.
 

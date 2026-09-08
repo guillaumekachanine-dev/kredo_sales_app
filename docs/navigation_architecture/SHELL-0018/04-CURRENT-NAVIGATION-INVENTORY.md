@@ -1,238 +1,185 @@
 # SHELL-0018 V2 — Inventaire des navigations secondaires Desktop
 
+> **Statut : à jour au 2026-09-08 (HEAD de clôture Phase 4)**  
+> **Chantier : SHELL-0018 Navigation secondaire Desktop**  
+> **Branche de travail unique : `main`**
+
 ## 1. Objet
 
-Inventaire opérationnel des surfaces à migrer vers `SectionRail`.
-
-Ce document décrit le code actuel. Il ne redéfinit pas le métier des pages.
-
-## 2. Matrice
-
-| Ordre | Surface | Fichier principal | Mécanisme | Largeur | Chapeau | Chapitres | Modules contextuels | État URL | Priorité |
-|---:|---|---|---|---:|---|---|---|---|---|
-| 1 | Account Intelligence | `src/components/accounts-contacts/intelligence/ClientIntelligenceSidebar.tsx` | rail local | `11.5rem` | navy centré | oui | oui | client-state / contexte page | Golden Master |
-| 2 | Business Intelligence | `src/features/business-intelligence/desktop/BusinessIntelligenceLocalNavigation.tsx` | rail local | `11.5rem` | clair statique | oui | oui | `?tab=` | haute |
-| 3 | Veille | `src/components/veille/VeilleLocalNavigation.tsx` | rail local | `11.5rem` | clair statique | oui | oui | principalement client-state | haute |
-| 4 | Rapports | `src/components/reports/ReportsDesktopView.tsx` | rail inline | `11.5rem` | clair statique | oui | partiel | chapitre client-state | haute |
-| 5 | Automatisations | `src/components/automations/AutomationsLocalNavigation.tsx` | rail local | `11.5rem` | clair + shadow | oui | non | client-state | haute |
-| 6 | Engagements | `src/components/missions/engagements/EngagementsDesktopView.tsx` | rail inline | `11.5rem` | clair statique | implicite | non | `?vue=` | haute |
-| 7 | Prospection | `src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.tsx` | rail local | `15rem` | clair statique | intitulé `Sections` | partiel | client-state | moyenne |
-| 8 | Knowledge Hub | `src/features/knowledge-hub/KnowledgeHubLocalNavigation.tsx` | rail contextuel local | `12.5rem` | navy centré | navigation contextuelle | oui | client-state | moyenne |
-| 9 | Finance | `src/components/finance/FinanceTabs.tsx` | tabs horizontaux | — | — | horizontal | — | client-state | après primitive |
-| 10 | Routes legacy / tabbed | `src/components/layout/SectionNavBar.tsx` + `SectionNavBarSlot.tsx` | barre horizontale routée | — | — | horizontal | — | pathname | phase Shell |
-
-## 3. Account Intelligence
-
-### À conserver
-
-- `w-[11.5rem]` ;
-- bouton navy ;
-- texte blanc gras ;
-- centrage du chapeau ;
-- titre `Chapitres` ;
-- items 40px ;
-- filet brass actif ;
-- icônes fines ;
-- section `Modules`.
-
-### À vérifier lors du lot 2.1
-
-- que le texte du chapeau correspond bien au titre de page principal ;
-- que le header principal affiche systématiquement le nom de l'onglet actif ;
-- que chaque module affiché est bien contextuel ;
-- que la section Modules puisse être placée en bas sans casser les petits écrans Desktop.
-
-## 4. Business Intelligence
-
-### État
-
-Le rail est déjà `11.5rem` et sa navigation est pilotée par le workspace mono-segment.
-
-### À changer
-
-- chapeau clair → bouton navy canonique ;
-- remplacement du JSX local par `SectionRail` ;
-- positionnement Modules en bas ;
-- conserver strictement `?segment=` et `?tab=` ;
-- header principal = nom du chapitre actif.
-
-### À ne pas changer
-
-- modèle mono-segment ;
-- loaders ;
-- contrat de workspace ;
-- stratégie URL ;
-- contenu métier des chapitres.
-
-## 5. Veille
-
-### État
-
-Rail `11.5rem`, section Chapitres et modules contextuels existants.
-
-### À changer
-
-- chapeau clair → navy ;
-- composant local → `SectionRail` ;
-- modules contextuels en bas ;
-- header principal systématiquement aligné sur l'onglet courant.
-
-### À ne pas changer
-
-- logique Actualités / Veille ciblée / Analyses / Archives ;
-- dialogues et workflows métier.
-
-## 6. Rapports
-
-### Dette principale
-
-`ReportsLocalNavigation` est défini inline dans `ReportsDesktopView.tsx`.
-
-### À changer
-
-- extraction / suppression du clone ;
-- `SectionRail` ;
-- chapeau navy ;
-- vraie section Modules si la page possède des modules contextuels ;
-- header avec nom exact de l'onglet ;
-- dans une phase ultérieure, rendre le chapitre URL-addressable.
-
-### Risque
-
-Le composant de page est déjà volumineux. Le lot de migration doit éviter toute refonte opportuniste du lecteur de documents ou des actions métier.
-
-## 7. Automatisations
-
-### Divergences
-
-- `shadow-sm` sur le chapeau ;
-- `shadow-xs` sur l'actif ;
-- `role="tab"` / `aria-selected` ;
-- absence de Modules.
-
-### Cible
-
-- chapeau navy ;
-- grammaire visuelle commune ;
-- header = `Journal d'exécution`, `Santé des workflows` ou `Coûts` selon l'état courant ;
-- section Modules absente si aucun module contextuel n'est requis.
-
-## 8. Engagements
-
-### État
-
-Le shell récent a copié le pattern `11.5rem` mais ne possède ni titre `Chapitres` ni section Modules.
-
-Les vues sont déjà URL-addressables via `?vue=`.
-
-### Cible
-
-- chapeau `Engagements` en navy, blanc, gras, centré ;
-- `Chapitres` ;
-- items via `SectionRail` ;
-- header = nom de la vue active (`Synthèse`, `Missions AT`, `Projets`, etc.) ;
-- conserver `?vue=`.
-
-## 9. Prospection
-
-### Divergences
-
-- `15rem` ;
-- `Sections` au lieu de `Chapitres` ;
-- chapeau clair ;
-- module injecté dans le flux de chapitres.
-
-### Cible
-
-- `11.5rem` ;
-- `Chapitres` ;
-- chapeau navy centré ;
-- modules uniquement contextuels dans la zone basse ;
-- header = nom de l'onglet actif.
-
-## 10. Knowledge Hub
-
-### Particularité à conserver
-
-Le contenu de navigation dépend du domaine actif et peut changer dynamiquement.
-
-### Châssis à standardiser
-
-- `12.5rem → 11.5rem` ;
-- chapeau navy conservé mais contrat aligné ;
-- rendu des items aligné sur le standard ;
-- `Modules` en bas ;
-- header principal = nom de la vue / section active ;
-- conserver la logique de domaines et sections.
-
-## 11. Finance
-
-### État
-
-`FinanceTabs.tsx` garde trois tabs horizontaux avec état client.
-
-### Migration cible
-
-1. définir un état URL canonique ;
-2. ajouter le header de tab explicite ;
-3. remplacer `FinanceTabs` par `SectionRail` ;
-4. ne pas changer le contenu Finance dans le même lot.
-
-Finance intervient après preuve de la primitive sur plusieurs rails existants.
-
-## 12. `SectionNavBar` / `SectionNavBarSlot`
-
-Ces composants restent utilisés dans plusieurs layouts et sont également liés à des contrats consommés sur Mobile.
-
-Ils ne sont pas supprimés pendant la Phase 1/2.
-
-Condition de suppression :
-
-- toutes les pages Desktop concernées migrées ;
-- chaque consommateur Mobile identifié ;
-- helper/config remplacé ou conservé explicitement ;
-- aucun chemin de navigation routé encore dépendant.
-
-## 13. `useSidebarCollapse`
-
-Le hook est utilisé par plusieurs surfaces Desktop, dont certaines nouvellement refondues.
-
-Il ne doit pas être modifié pendant les migrations de rail, sauf nécessité locale démontrée.
-
-Un audit autonome est prévu en phase Shell global.
-
-## 14. Headers — checklist transversale
-
-Pour chaque migration, vérifier dans le composant de zone principale :
-
-| Question | Réponse attendue |
-|---|---|
-| Le titre affiché correspond-il à l'onglet actif ? | oui |
-| Le titre de page principal reste-t-il dans le chapeau ? | oui |
-| Les deux titres sont-ils visibles simultanément ? | oui |
-| Le header est-il dans la section principale et non dans le rail ? | oui |
-| Un changement d'onglet met-il immédiatement à jour le header ? | oui |
-
-## 15. Ordre de migration confirmé
-
-```text
-Account Intelligence
-        ↓
-Business Intelligence
-        ↓
-Veille
-        ↓
-Rapports
-        ↓
-Automatisations
-        ↓
-Engagements
-        ↓
-Prospection
-        ↓
-Knowledge Hub
-        ↓
-Finance / anciens tabs
-```
-
-Cet ordre commence par la référence la plus mature, prouve ensuite la compatibilité avec différents modèles URL, puis traite les écarts de largeur et enfin les mécanismes horizontaux.
+Inventaire opérationnel exhaustif des navigations secondaires Desktop après exécution des Phases 1, 2, 3, 4 et 5.1.
+
+Ce document décrit l'état réel du code sur `main`.
+
+---
+
+## 2. Matrice globale des 9 surfaces canoniques
+
+| Ordre | Surface | Fichier principal | Primitive | Largeur | Chapeau (navy centré) | Chapitres | Modules contextuels (Lot 3.1) | État de navigation URL | Statut Phase 4 |
+|---:|---|---|---|---:|---|---|---|---|:---:|
+| 1 | Account Intelligence | `src/components/accounts-contacts/intelligence/ClientIntelligenceSidebar.tsx` | `SectionRail` | `11.5rem` | `Account Intelligence` | 7 chapitres typés | 3 modules conditionnels (`contacts`, `documents`, `playbook`) | `?aiSection=` (accueil racine sans paramètre) ; embedded CRM isolé | ✅ techniquement livré |
+| 2 | Business Intelligence | `src/features/business-intelligence/desktop/BusinessIntelligenceLocalNavigation.tsx` | `SectionRail` | `11.5rem` | `Business Intelligence` | 6 chapitres typés | 2 modules conditionnels (`studies`, `playbooks`) | `?segment=<id>&tab=<chapter>` (`home` racine) | ✅ techniquement livré |
+| 3 | Veille & actualités | `src/components/veille/VeilleLocalNavigation.tsx` | `SectionRail` | `11.5rem` | `Veille & actualités` | 4 chapitres typés | 1 module conditionnel (`source-management`) | `?section=` (`news` racine sans paramètre) | ✅ techniquement livré |
+| 4 | Rapports & rédaction | `src/components/reports/ReportsLocalNavigation.tsx` | `SectionRail` | `11.5rem` | `Rapports & rédaction` | 3 chapitres typés | `undefined` (aucun module artificiel) | `?section=` (`documents` racine sans paramètre) | ✅ techniquement livré |
+| 5 | Automatisations | `src/components/automations/AutomationsLocalNavigation.tsx` | `SectionRail` | `11.5rem` | `Automatisations` | 3 chapitres typés | `undefined` (actions transverses exclues) | `?section=` (`journal` racine sans paramètre) ; `?run=` orthogonal | ✅ techniquement livré |
+| 6 | Engagements | `src/components/missions/engagements/EngagementsDesktopView.tsx` | `SectionRail` (inline) | `11.5rem` | `Engagements` | 5 chapitres typés | `undefined` (aucun module) | `?vue=` (`synthese` racine sans paramètre) | ✅ techniquement livré |
+| 7 | Prospection Intelligence | `src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.tsx` | `SectionRail` | `11.5rem` | `Prospection` | 4 chapitres typés | `undefined` (actions globales exclues) | `?section=` (`strategy` racine sans paramètre) | ✅ techniquement livré |
+| 8 | Knowledge Hub | `src/features/knowledge-hub/KnowledgeHubLocalNavigation.tsx` | `SectionRail` | `11.5rem` | `Knowledge Hub` | Contextuel (Domaines / Sections) | 1 module conditionnel (`workshop`) | `?domain=` + `?section=` (`/knowledge` racine Catégories) | ✅ techniquement livré |
+| 9 | Finance | `src/components/finance/FinanceLocalNavigation.tsx` | `SectionRail` | `11.5rem` | `Finance` | 3 chapitres typés | `undefined` (rail droit analytique distinct) | `?tab=` (`synthesis` racine sans paramètre) | ✅ techniquement livré |
+| 10 | Legacy Shell | `src/components/layout/SectionNavBarSlot.tsx` | `SectionNavBar` (horizontal) | — | — | Onglets horizontaux legacy (2 routes actives, 4 no-ops) | — | Pathname | ⬜ Phase 6 |
+
+---
+
+## 3. Détail des 9 surfaces
+
+### 3.1 Account Intelligence
+
+- **Route :** `/prospection/accounts/[companyId]` + shell multi-comptes CRM (`/prospection/accounts`)
+- **Composant Desktop :** `ClientIntelligenceDesktopView.tsx`
+- **Adaptateur rail :** `ClientIntelligenceSidebar.tsx` → primitive partagée `SectionRail`
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Account Intelligence`, actionnant le retour au chapitre `accueil`
+- **Chapitres :** 7 entrées typées (`accueil`, `socle`, `connaissance`, `secteur`, `enjeux`, `strategie`, `roadmap`)
+- **Modules contextuels :** `Répertoire` (ouvre `ContactDirectoryDialog` sur le compte), `Bibliothèque` (ouvre `CompanyDocumentsModal` sur le compte), `Playbook` (lien direct `/ressources/playbook/{slug}`). Uniquement si le callback ou le slug existe ; `undefined` sinon
+- **État navigation :** Dérivé de `useSearchParams()` via `parseAccountIntelligenceSection()`
+- **Contrat URL :** `?aiSection=` (`accueil` est l'état racine sans paramètre)
+- **Mode embedded CRM :** Géré par le réducteur pur de `CrmTabbedShell.tsx` (`embeddedAccountIntelligenceNavigationReducer`) qui mémorise la section active par panneau sans polluer l'URL des autres comptes
+- **Header principal :** Affiche dynamiquement le nom du chapitre actif via `getClientIntelligenceDesktopTabLabel(activeTab)` (`Accueil`, `Socle`, `Entreprise`, `Secteur`, `Enjeux`, `Stratégie`, `Roadmap`)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 4.2)
+
+### 3.2 Business Intelligence
+
+- **Route :** `/intelligence`
+- **Composant Desktop :** `BusinessIntelligenceDesktop.tsx`
+- **Adaptateur rail :** `BusinessIntelligenceLocalNavigation.tsx` → `SectionRail`
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Business Intelligence`, actionnant `home` via `onChange("home")`
+- **Chapitres :** 6 entrées issues de `BI_CHAPTERS` (`home`, `sector-analysis`, `competitive-environment`, `regulatory-calendar`, `value-chain`, `sector-news`)
+- **Modules contextuels :** `Études sectorielles` (`studies`) et `Playbooks` (`playbooks`), soumis à double garde (couverture disponible `coverage.*.available` + callback présent) ; `undefined` sinon
+- **État navigation :** Dérivé de l'URL via `resolveBiChapter(searchParams.get("tab") ?? initialTab)`
+- **Contrat URL :** `?segment=<id>&tab=<chapter>` (`home` est le chapitre d'accueil canonique)
+- **Navigation :** `window.history.pushState` avec `replaceBiChapterInHref` (maintient le segment actif)
+- **Header principal :** Affiche le libellé exact du chapitre actif via `getBiChapterLabel(activeChapter)` dans `BusinessIntelligenceHeader` et `BusinessIntelligenceSignatureHeader`
+- **Statut Phase 4 :** ✅ Techniquement livré (Lots 2.2 et 3.1)
+
+### 3.3 Veille & actualités
+
+- **Route :** `/veille`
+- **Composant Desktop :** `VeilleActualitesDesktop.tsx`
+- **Adaptateur rail :** `VeilleLocalNavigation.tsx` → `SectionRail`
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Veille & actualités`, actionnant la section racine `news`
+- **Chapitres :** 4 entrées typées `VEILLE_DESKTOP_CHAPTERS` (`news`, `watched-accounts`, `strategic-analysis`, `history`)
+- **Modules contextuels :** `Gestion des sources` (`source-management`), rendu uniquement si `onOpenSourceManagement` est fourni ; `undefined` sinon
+- **État navigation :** Dérivé de `useSearchParams()` via `parseVeilleSection(searchParams.get("section"))`
+- **Contrat URL :** `?section=` (`news` est l'état racine sans paramètre, `section` est omis)
+- **Navigation :** `router.push(buildVeilleSectionHref(pathname, searchParams, nextSection))`
+- **Header principal :** Affiche le titre exact via `getVeilleDesktopChapterLabel(section)` (`Actualités`, `Veille ciblée`, `Analyses`, `Archives`)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 4.1)
+
+### 3.4 Rapports & rédaction
+
+- **Route :** `/reports`
+- **Composant Desktop :** `ReportsDesktopView.tsx`
+- **Adaptateur rail :** `ReportsLocalNavigation.tsx` → `SectionRail`
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Rapports & rédaction`, actionnant la section racine `documents`
+- **Chapitres :** 3 entrées typées `REPORTS_DESKTOP_CHAPTERS` (`documents`, `knowledge`, `generation`)
+- **Modules contextuels :** `undefined` (aucun module contextuel distinct des chapitres)
+- **État navigation :** Dérivé de `useSearchParams()` via `parseReportsSection(searchParams.get("section"))`
+- **Contrat URL :** `?section=` (`documents` est l'état racine sans paramètre ; les filtres et `?doc=` sont orthogonaux et préservés)
+- **Navigation :** `router.push(buildReportsSectionHref(pathname, searchParams, nextSection), { scroll: false })`
+- **Header principal :** Affiche le titre exact via `getReportsDesktopChapterLabel(activeSection)` (`Bibliothèque`, `Connaissances`, `Génération`)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 4.3)
+
+### 3.5 Automatisations
+
+- **Route :** `/automations`
+- **Composant Desktop :** `AutomationsDesktopDashboard.tsx`
+- **Adaptateur rail :** `AutomationsLocalNavigation.tsx` → `SectionRail`
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Automatisations`, actionnant le chapitre racine `journal`
+- **Chapitres :** 3 entrées typées `AUTOMATIONS_DESKTOP_CHAPTERS` (`journal`, `sante`, `couts`)
+- **Modules contextuels :** `undefined` (actions transverses exclues)
+- **État navigation :** Dérivé de `useSearchParams()` via `parseAutomationsSection(searchParams.get("section"))`
+- **Contrat URL :** `?section=` (`journal` est l'état racine sans paramètre ; `?run=<id>` est strictement orthogonal)
+- **Navigation :** `router.push(buildAutomationsSectionHref(pathname, searchParams, next), { scroll: false })`
+- **Header principal :** Affiche le titre exact via `getAutomationsDesktopChapterLabel(activeTab)` (`Journal d'exécution`, `Santé des workflows`, `Coûts`)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 4.4)
+
+### 3.6 Engagements
+
+- **Route :** `/missions`
+- **Composant Desktop :** `EngagementsDesktopView.tsx`
+- **Adaptateur rail :** `<SectionRail>` inline direct
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Engagements`, pointant vers `home: { href: "/missions" }`
+- **Chapitres :** 5 entrées typées `NAV_ENTRIES` (`synthese`, `missions-at`, `projets`, `activite-conges`, `planning-at`)
+- **Modules contextuels :** Non déclarés / `undefined`
+- **État navigation :** Dérivé du paramètre serveur `vue` via `pickView()` dans `src/app/(app)/missions/page.tsx`
+- **Contrat URL :** `?vue=` (`synthese` est l'état racine sans paramètre ou avec `vue=synthese`)
+- **Navigation :** `<SectionRail>` utilise `href: /missions?vue=${entry.view}` via `<Link>` Next.js
+- **Header principal :** Affiche le titre exact via `HEADER_TITLE_BY_VIEW[activeView]` (`Synthèse`, `Missions AT`, `Projets`, `Activité & congés`, `Planning des engagements`)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 2.6)
+
+### 3.7 Prospection Intelligence
+
+- **Route :** `/prospection-intelligence` (redirection de `/prospection` vers `/intelligence` inchangée)
+- **Composant Desktop :** `ProspectionIntelligenceDesktop.tsx`
+- **Adaptateur rail :** `ProspectionIntelligenceLocalNavigation.tsx` → `SectionRail` (normalisé de `15rem` à `11.5rem`)
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Prospection`, actionnant le chapitre racine `strategy`
+- **Chapitres :** 4 entrées typées `PROSPECTION_DESKTOP_CHAPTERS` (`strategy`, `chapter_1`, `chapter_2`, `chapter_3`)
+- **Modules contextuels :** `undefined` (actions transverses exclues)
+- **État navigation :** Dérivé de `useSearchParams()` via `parseProspectionSection(searchParams.get("section"))`
+- **Contrat URL :** `?section=` (`strategy` est l'état racine sans paramètre)
+- **Navigation :** `router.push(buildProspectionSectionHref(pathname, searchParams, next), { scroll: false })`
+- **Header principal :** Affiche le titre exact via `getProspectionDesktopChapterLabel(activeTab)` (`Brief`, `Fenêtres d'opportunités`, `Approches commerciales`, `Playbooks`)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 4.5)
+
+### 3.8 Knowledge Hub
+
+- **Route :** `/knowledge`
+- **Composant Desktop :** `KnowledgeHubDesktop.tsx`
+- **Adaptateur rail :** `KnowledgeHubLocalNavigation.tsx` → `SectionRail` (normalisé de `12.5rem` à `11.5rem`)
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Knowledge Hub`, actionnant l'accueil `{ type: "categories" }`
+- **Chapitres :** Navigation contextuelle dynamique :
+  - Niveau racine (`categories`) : liste des domaines
+  - Niveau domaine (`domain`) : liste des sections du domaine actif (`EXPERTISE_CHAPTERS`, `TALENTS_CHAPTERS`, etc.)
+- **Modules contextuels :** `Ateliers` (`workshop`), conditionné par la disponibilité de `onOpenModal` ; `undefined` sinon. (Note : l'entrée placeholder `ask` a été retirée au Lot 3.1)
+- **État navigation :** Dérivé de `useSearchParams()` via `parseKnowledgeHubView(searchParams.get("domain"), searchParams.get("section"))`
+- **Contrat URL :** `/knowledge` (racine Catégories), `/knowledge?domain=<id>` ou `/knowledge?domain=<id>&section=<id>`
+- **Navigation :** `router.push(buildKnowledgeHubViewHref(pathname, searchParams, nextView), { scroll: false })`
+- **Header principal :** Affiche le titre actif via `getKnowledgeHubActiveLabel(activeView)` (`Catégories`, ou nom de la section/domaine actif)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 4.6)
+
+### 3.9 Finance
+
+- **Route :** `/finance`
+- **Composant Desktop :** `FinanceDesktopDashboard.tsx` (remplacement définitif de `FinanceTabs.tsx`)
+- **Adaptateur rail :** `FinanceLocalNavigation.tsx` → `SectionRail`
+- **Largeur :** `11.5rem` (`184px`)
+- **Chapeau :** Bouton navy centré `Finance`, actionnant le chapitre racine `synthesis`
+- **Chapitres :** 3 entrées typées `FINANCE_DESKTOP_CHAPTERS` (`synthesis`, `profitability`, `forecast`)
+- **Modules contextuels :** `undefined` (le rail droit analytique de `DesktopAnalyticalPage` est distinct et préservé)
+- **État navigation :** Dérivé de `useSearchParams()` via `parseFinanceTab(searchParams.get("tab"))`
+- **Contrat URL :** `?tab=` (`synthesis` est l'état racine sans paramètre)
+- **Navigation :** `router.push(buildFinanceHref(pathname, searchParams, tab))`
+- **Header principal :** Affiche le titre exact via `getFinanceDesktopChapterLabel(activeTab)` dans `DesktopAnalyticalPage` (`Synthèse`, `Rentabilité missions`, `Prévision & simulation`)
+- **Statut Phase 4 :** ✅ Techniquement livré (Lot 5.1)
+
+---
+
+## 4. Éléments legacy identifiés pour Phase 6 (Refonte Shell global)
+
+1. **`SectionNavBarSlot.tsx`** et **`SectionNavBar.tsx`** :
+   - Montés dans 6 layouts : `missions/(tabbed)`, `consultants`, `automations`, `knowledge`, `finance`, `prospection`.
+   - Actifs sur 2 routes : `/missions/(tabbed)` et `/consultants`.
+   - No-ops au runtime sur 4 routes : `/automations`, `/knowledge`, `/finance`, `/prospection` (aucun onglet configuré dans `main-menu.config.ts`, retournent `null`).
+   - Traitement Phase 6 : migration de `/consultants`, unification des sous-routes missions, puis suppression des deux composants.
+2. **`useSidebarCollapse`** :
+   - Hook / store Zustand gérant le repli automatique de la sidebar globale gauche sur les pages à rail secondaire dense.
+   - Traitement Phase 6 : décision finale sur le comportement du menu principal (push vs overlay vs largeur adaptative).
+3. **Layouts historiques à unifier :**
+   - `src/app/(app)/missions/(tabbed)/layout.tsx`
+   - `src/app/(app)/consultants/layout.tsx`
