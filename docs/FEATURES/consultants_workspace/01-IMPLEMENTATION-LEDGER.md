@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : cadré
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 0 — Cadrage documentaire
+Dernier lot livré        : Lot 0 — Cadrage documentaire (SHA 4f9fbba1ca0a5ad22da39631af5f7775cfba0f21)
 Lot courant              : —
 Prochain lot             : Lot 1 — Socle Consultants Workspace
-Dernier SHA connu origin/main : 064b6c025fa24d0978b3c0959a3f640a5763f43b   (au 2026-09-08, avant commit Lot 0)
+Dernier SHA connu origin/main : 4f9fbba1ca0a5ad22da39631af5f7775cfba0f21   (2026-09-08, après commit Lot 0)
 ```
 
 ## Table des lots
@@ -22,7 +22,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 
 | Lot | Objet | Statut | Commit | Notes |
 |---|---|---|---|---|
-| 0 | Cadrage documentaire | ✅ techniquement livré | _(voir commit `docs(consultants): bootstrap Consultants Workspace roadmap`)_ | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
+| 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` retiré du layout consultants) | ⬜ todo | — | Modèle : `EngagementsDesktopView.tsx`. Résoudre NAV-1, LEGACY-1. |
 | 2 | Data Contract Synthèse | ⬜ todo | — | Résoudre DATA-1/2/3/7. Migration éventuelle → sous-lot 2.x. |
 | 3 | Synthèse Desktop + Mobile | ⬜ todo | — | SVG maison, zéro librairie graphique. |
@@ -146,7 +146,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 - **QA visuelle** : non applicable (lot documentaire) — réservée à Guillaume.
 - **Limites** : aucune (lot documentaire).
 - **Dettes** : voir table « Dettes connues » ci-dessus — toutes reportées à leur lot.
-- **Commit** : `docs(consultants): bootstrap Consultants Workspace roadmap` _(SHA à renseigner après push)_.
-- **SHA final** : _(à renseigner après push)_.
-- **Dernier SHA connu origin/main** : _(à renseigner après push)_.
+- **Commit** : `4f9fbba1` — `docs(consultants): bootstrap Consultants Workspace roadmap`.
+- **SHA final** : `4f9fbba1ca0a5ad22da39631af5f7775cfba0f21`.
+- **Dernier SHA connu origin/main** : `4f9fbba1ca0a5ad22da39631af5f7775cfba0f21`.
 - **NEXT LOT** : Lot 1 — Socle Consultants Workspace.
