@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Sous-lot 12.1 — Harmonisation IntelligenceSplitModalShell (Production & Congés)
+Dernier lot livré        : Lot 13 — Module Matching profil (UI vers moteur existant)
 Lot courant              : —
-Prochain lot             : Lot 13 — Module Matching profil (UI vers moteur existant)
-Dernier SHA connu origin/main : 9d715c3e   (2026-09-08)
+Prochain lot             : Lot 14 — Intégration Shell global / CRM
+Dernier SHA connu origin/main : f223a9a0   (2026-09-09)
 ```
 
 ## Table des lots
@@ -36,7 +36,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 11 | Module Production & Congés — Data | ✅ techniquement livré | `ab637998` | Granularité mensuelle `1 collab × 1 mois` (C-30, DATA-5 résolu). 22 tests + sentinelles. Loader server-only, RLS respectée. Zéro migration, zéro UI. |
 | 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `149eb699` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
 | 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `d50c77e2` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
-| 13 | Module Matching profil (UI vers moteur existant) | ⬜ todo | — | Résoudre PRODUCT-1. Aucun second moteur (C-09). |
+| 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `f223a9a0` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
 
@@ -75,6 +75,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-29 | Dépréciation /recruitment & redirection canonique : permanentRedirect("/consultants?section=candidats") direct sans loader ni composant. C-13 résolue (getMobileTabsForPath repointé). Call-sites actifs repointés (SyntheseMobile, TalentProfileDetail, entity-links, mainMenuItems). Code métier legacy préservé (Lot 15). | 10 |
 | C-30 | Production & Congés adopte une granularité mensuelle fondée sur les CRA réels (v_collaborator_activity_summary, ytd, absences) ; aucun planning journalier de production fictif ; TACI non double-compté ; RLS salaires respectée (coûts/marges null si non habilité). | 11 |
 | C-31 | Arbitrage UI Production & Congés et résolution PRODUCT-4 : Desktop conserve le chapitre analytique global Activités & congés et expose Production & Congés comme module transverse dans contextualModules (lazy-loaded via ?module=production-conges) ; Mobile utilise Production & Congés comme vue adaptée du chapitre Activité (?section=activite-conges), éliminant définitivement le rendu du dashboard Desktop dense sur Mobile. Distribution serveur stricte : jamais les deux loaders pour le même device. | 12 |
+| C-32 | Projection profil → besoins compatibles et résolution PRODUCT-1 : Le module « Matching profil » du workspace Consultants est profil-centrique (Collaborateur ou Candidat → besoins compatibles). Il constitue une projection inverse en lecture des résultats déjà calculés et persistés dans `match_scores` (filtrés par `person_id`) par le moteur unique existant (`src/lib/staffing-matching/`). Aucun second moteur n'est créé. L'absence de ligne dans `match_scores` n'est jamais assimilée à un score 0 ou à une incompatibilité (taux de couverture explicite exposé). Le recalcul éventuel reste strictement besoin-centrique via `runOpportunityMatching(opportunityId)` unitaire (aucun batch global d'opportunités). | 13 |
 
 ## Questions ouvertes en cours
 
@@ -89,7 +90,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | DATA-5 | Planning journalier de production inexistant en base | 11 | ✅ résolue (C-30) — abandon du planning journalier fictif au profit du contrat mensuel CRA |
 | DATA-6 | `candidates.availability` texte libre — normalisation ? | 7 | ✅ résolue (C-26) — `available_from`+`notice_period_days` (43/43) = source structurée ; texte jamais parsé |
 | DATA-7 | Salaire/CJM intercontrat sous RLS confidentielle — comportement rôle non habilité | 2 | ✅ résolue (C-19) |
-| PRODUCT-1 | Intention module Matching : profil→besoins et/ou besoin→profils | 13 | ouverte |
+| PRODUCT-1 | Intention module Matching : profil→besoins et/ou besoin→profils | 13 | ✅ résolue (C-32) — projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant |
 | PRODUCT-2 | « Prochaine action » pour un candidat sans opportunité active | 7 | ✅ résolue (C-26, option a) — positionnement actif le + récent, `null` sinon ; porteur dédié = dette CAND-2 |
 | PRODUCT-3 | Valeurs métier du sélecteur lifecycle candidat en UI | 7-8 | ✅ résolue (C-26) — whitelist `src/lib/recruitment/candidate-lifecycle.ts` ; convergence des 3 copies legacy = dette CAND-3 |
 | PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ✅ résolue (C-31) — Desktop conserve Activité global et charge Production & Congés à la demande ; Mobile utilise ProductionLeaveMobile sur activite-conges. Aucun chevauchement ni double chargement. |
@@ -160,6 +161,62 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 13 — Module Matching profil — ✅ techniquement livré (2026-09-09)
+
+- **Baseline** : `f223a9a0` (`main` = `origin/main`).
+- **Objectif** : Implémenter le module transverse **Matching profil** sous le paradigme profil-centrique (Collaborateur ou Candidat → besoins commerciaux compatibles), résolvant **PRODUCT-1** via la décision **C-32**. Le module opère comme une projection inverse pure en lecture seule des scores précalculés par le moteur unique existant (`src/lib/staffing-matching/`) et persistés dans `match_scores` filtrés par `person_id`. Aucun second moteur n'est créé.
+- **Audit de la base live (`match_scores`, `opportunities`)** :
+  - `match_scores` contient 644 lignes réparties sur 24 opportunités évaluées.
+  - 9 lignes comportent un JSONB legacy `synthetic-seed-v1` (sans structure de composantes C1-C6 standard). Le builder pur intègre un parseur défensif qui tolère ce format sans crash, préserve `overallScore` et émet une `dataNote` méthodologique explicite.
+  - `opportunities` : 32 opportunités dont 5 sont en étape ouverte (`isOpenOpportunityStage()`) et 27 en étapes terminales (`isTerminalOpportunityStage()`). Sur les 5 ouvertes, 2 disposent d'évaluations dans `match_scores`, 3 ne sont pas encore évaluées.
+  - **Invariant clé respecté** : L'absence de ligne dans `match_scores` n'est JAMAIS assimilée à un score 0 ou à une incompatibilité. Le view-model et l'UI affichent explicitement les compteurs de couverture (`openOpportunityCount`, `evaluatedOpportunityCount`, `scoredOpportunityCountForProfile`).
+- **Fichiers créés** :
+  - `src/features/consultants/modules/profile-matching/data/profile-matching.types.ts` — Types stricts du contrat, de la couverture, des lignes brutes et du view-model.
+  - `src/features/consultants/modules/profile-matching/data/build-profile-matching.ts` — Builder pur (100% déterministe, exclusion opportunités fermées, tri décroissant des scores, calcul de couverture, parsing défensif JSONB).
+  - `src/features/consultants/modules/profile-matching/data/get-profile-matching.ts` — Loader serveur (`server-only`, 4 requêtes parallèles sur collaborateurs actifs, candidats pertinents, opportunités ouvertes, et `match_scores`).
+  - `src/features/consultants/modules/profile-matching/data/__tests__/build-profile-matching.test.ts` — 12 tests unitaires couvrant l'exhaustivité des cas du contrat de données.
+  - `src/features/consultants/modules/profile-matching/desktop/ProfileMatchingProfileList.tsx` — Volet gauche : recherche par nom/titre, filtre par type (Tous, Collaborateurs, Candidats), filtre par Practice, liste compacte avec badges de scores et nombre de matches.
+  - `src/features/consultants/modules/profile-matching/desktop/ProfileMatchingDetail.tsx` — Volet droit : identité du profil, pavé de couverture, liste ordonnée des besoins, décomposition C1-C6, pros/cons/missingData, action « Ouvrir le besoin » (`/missions/opps/${id}`), action unitaire « Relancer le matching de ce besoin » (`runOpportunityMatching(id)`).
+  - `src/features/consultants/modules/profile-matching/desktop/ProfileMatchingDesktop.tsx` — Intégration dans le shell canonique `IntelligenceSplitModalShell` avec navigation URL-driven et fermeture conservant la section active.
+  - `src/features/consultants/modules/profile-matching/desktop/__tests__/profile-matching-desktop.test.ts` — 3 tests de rendu et d'intégration desktop.
+  - `src/features/consultants/modules/profile-matching/mobile/ProfileMatchingMobileDrawer.tsx` — Drawer mobile canonique (`AppDrawer`) affichant le détail du match et le lien direct vers le besoin.
+  - `src/features/consultants/modules/profile-matching/mobile/ProfileMatchingMobile.tsx` — Vue mobile dédiée : en-tête profil, bannière de couverture, top 4 matches avec bouton « Afficher la suite ».
+  - `src/features/consultants/modules/profile-matching/mobile/__tests__/profile-matching-mobile.test.ts` — 2 tests de rendu mobile.
+  - `src/features/consultants/modules/profile-matching/__tests__/profile-matching-sentinels.test.ts` — 8 tests sentinelles vérifiant tous les interdits d'architecture.
+- **Fichiers modifiés** :
+  - `src/features/consultants/navigation/consultants-sections.ts` — Ajout du module contextuel `"matching-profil"` dans `CONSULTANTS_CONTEXTUAL_MODULES`, typage, parsing et helper d'URL.
+  - `src/features/consultants/navigation/consultants-icons.tsx` — Ajout de l'icône outline Heroicons v2 `MatchingProfilIcon`.
+  - `src/features/consultants/desktop/ConsultantsDesktopShell.tsx` — Câblage du module dans `contextualModules` du rail et rendu paresseux de `ProfileMatchingDesktop`.
+  - `src/features/consultants/navigation/consultants-sections.test.ts` — Tests de navigation mis à jour (21 tests).
+  - `src/app/(app)/consultants/page.tsx` — Lazy-loading strict sous ADR-0006 : `getProfileMatching()` uniquement exécuté quand `activeModule === "matching-profil"`. Branche mobile contextuelle dédiée. Jamais de chargement simultané de `ProductionLeaveViewModel` et `ProfileMatchingViewModel`.
+  - `src/features/consultants/__tests__/consultants-page-distribution.test.ts` — 10 tests de distribution serveur vérifiant le lazy-loading et l'étanchéité des branches.
+  - `src/types/consultant-drawer.ts` — Ajout de `person_id` sur `DrawerConsultantData` et `DrawerPerson`.
+  - `src/components/consultants/ConsultantDrawer.tsx` — Sélection de `person_id` et ajout du bouton d'action contextuelle « Besoins compatibles » (touch target ≥ 44px).
+  - `src/components/recruitment/CandidateDrawer.tsx` — Ajout du bouton d'action contextuelle « Besoins compatibles » (touch target ≥ 44px).
+  - `docs/FEATURES/consultants_workspace/00-REFERENCE-CHANTIER-CONSULTANTS.md` — Enregistrement C-32, résolution PRODUCT-1, mise à jour Lot 13.
+  - `docs/FEATURES/consultants_workspace/README.md` — Statut 0-13 livrés, NEXT LOT = Lot 14.
+  - `docs/FEATURES/consultants_workspace/01-IMPLEMENTATION-LEDGER.md` — Mise à jour complète du journal.
+- **Invariants protégés & Sentinelles (§40)** :
+  - Aucun second moteur de matching : seule la table `match_scores` est requêtée en lecture seule.
+  - Aucun nouveau calcul C1-C6 ou pondération : les explications proviennent du moteur existant.
+  - Aucun LLM / IA générative : affichage 100% déterministe et explicable.
+  - Aucun appel ou workflow n8n.
+  - Absence de score ≠ incompatibilité : couverture documentée et affichée.
+  - Aucun batch de recalcul automatique de toutes les opportunités : recalcul unitaire ciblé uniquement.
+  - Aucun recalcul de marge financière.
+  - Aucune dépendance graphique externe (pas de recharts, chart.js, etc.).
+  - Zéro migration Supabase.
+- **Gates exécutées** :
+  - `npm run check:server-boundary` → **PASS**
+  - `rm -rf .next && npm run typecheck` → **PASS** (0 erreurs)
+  - `npm test` (**suite complète**) → **PASS**
+  - `npx eslint` (fichiers touchés) → **PASS**
+  - `npm run build` → **PASS**
+  - `git diff --check` → **PASS**
+- **QA visuelle** : réservée à Guillaume (aucun navigateur automatisé ni Playwright exécuté).
+- **Commit** : à renseigner.
+- **NEXT LOT** : Lot 14 — Intégration Shell global / CRM.
 
 ### Sous-lot 12.1 — Harmonisation IntelligenceSplitModalShell — ✅ techniquement livré (2026-09-09)
 

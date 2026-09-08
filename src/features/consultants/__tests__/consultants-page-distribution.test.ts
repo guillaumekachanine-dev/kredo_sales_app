@@ -44,4 +44,24 @@ describe("Consultants Page — distribution serveur et invariants (Lot 12 / C-31
     expect(pageSource).toContain("activeModule={activeModule}")
     expect(pageSource).toContain("productionLeaveVm={productionLeaveVm}")
   })
+
+  it("importe getProfileMatching et ProfileMatchingMobile (Lot 13 / C-32)", () => {
+    expect(pageSource).toContain('import { getProfileMatching }')
+    expect(pageSource).toContain('import { ProfileMatchingMobile }')
+  })
+
+  it("lazy-loade getProfileMatching sur Desktop uniquement si le module matching-profil est demandé (ADR-0006)", () => {
+    expect(pageSource).toContain('!isMobile && activeModule === "matching-profil"')
+    expect(pageSource).toContain("await getProfileMatching()")
+  })
+
+  it("branche Mobile contextuelle pour matching-profil sans charger les données de section", () => {
+    expect(pageSource).toContain('if (isMobile && activeModule === "matching-profil")')
+    expect(pageSource).toContain("<ProfileMatchingMobile")
+  })
+
+  it("passe profileMatchingVm et initialPersonId à ConsultantsDesktopShell", () => {
+    expect(pageSource).toContain("profileMatchingVm={profileMatchingVm}")
+    expect(pageSource).toContain("initialPersonId={personId}")
+  })
 })

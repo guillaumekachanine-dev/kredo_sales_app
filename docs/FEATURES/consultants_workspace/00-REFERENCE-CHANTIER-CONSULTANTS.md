@@ -594,19 +594,19 @@ Point d'entrée UI vers le **moteur de matching unique existant**. **Aucun secon
 | Points d'entrée UI existants | `src/components/staffing/matching/MatchingDialog.tsx`, `src/components/intelligence/matching/MatchingComposer.tsx`, `src/components/intelligence/AccountRecruitmentDialog.tsx` |
 | Données | `match_scores` (`opportunity_id`, `person_id`, `overall_score`, `scores` JSONB, `model_version`, `source_run_id`) — 644 lignes / 24 opportunités |
 
-### `OPEN QUESTION PRODUCT-1` — intention du module
+### `OPEN QUESTION PRODUCT-1` — intention du module (✅ RÉSOLUE — Décision C-32)
 
-Deux intentions possibles :
+Deux intentions étaient possibles :
 
 ```
 Profil  → besoins compatibles     (part d'un collaborateur/candidat)
 Besoin  → profils compatibles     (part d'une opportunité — c'est ce que fait runOpportunityMatching aujourd'hui)
 ```
 
-Le moteur actuel est **besoin-centrique** (`runOpportunityMatching(opportunityId)`). Un module
-« Profil → besoins » demande soit une itération sur les besoins ouverts, soit une nouvelle
-requête de lecture sur `match_scores` filtrée par `person_id`. **Le choix produit est enregistré
-comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
+Le moteur actuel est **besoin-centrique** (`runOpportunityMatching(opportunityId)`).
+**Décision cible C-32 actée au Lot 13** :
+Le module « Matching profil » du workspace Consultants est **profil-centrique** (collaborateur ou candidat → besoins commerciaux compatibles) en tant que **projection inverse en lecture** des résultats calculés et persistés dans `match_scores` filtrés par `person_id`. Aucun second moteur ni calcul inverse n'est créé.
+
 
 ---
 
@@ -700,6 +700,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-29** | **Dépréciation de `/recruitment` & redirection canonique** : `src/app/(app)/recruitment/page.tsx` applique un `permanentRedirect("/consultants?section=candidats")` direct sans aucun loader ni composant monté. Le contrat mobile `getMobileTabsForPath()` (C-13) et l'entrée « Recrutement » de `mainMenuItems` sous Ressources sont repointés vers `/consultants?section=candidats` pour éviter une redirection intermédiaire morte. Les call-sites actifs UI (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`) sont repointés. Le code métier legacy (`RecruitmentWorkspace`, `_actions/`, `_data/`, dashboards orphelins) est conservé intact pour le Lot 15. C-13 résolue ; NAV-3 résolue sur le volet dépréciation (retrait global du menu principal reporté au Lot 14 coord. SHELL-0018 Phase 6). | Respect de la convention KREDO (patron prospection) ; élimination des navigations mortes ; étanchéité stricte entre dépréciation de route (Lot 10), restructuration Shell (Lot 14) et suppression physique du legacy (Lot 15). | Actée (Lot 10) |
 | **C-30** | **Production & Congés adopte une granularité mensuelle fondée sur les CRA réels** (`mission_activity_reports` et `v_collaborator_activity_summary`). Aucun planning journalier de production n'est créé ou reconstruit. Les absences conservent leur détail daté lorsqu'il existe dans `collaborator_absences`. L'analyse économique distingue la production, le manque à produire théorique et le coût structurel sans inventer de coût RH par type d'absence. | Résolution DATA-5 ; Single Source of Truth respectée ; aucune migration Supabase requise. | Actée (Lot 11) |
 | **C-31** | **Arbitrage UI Production & Congés et résolution PRODUCT-4** : Desktop conserve le chapitre analytique global Activités & congés (`?section=activite-conges` → `ActivityDashboard`) et expose Production & Congés comme module transverse dans `contextualModules` (lazy-loaded via `?module=production-conges` → `ProductionLeaveDesktop`) ; Mobile utilise Production & Congés comme vue adaptée du chapitre Activité (`?section=activite-conges` → `ProductionLeaveMobile`), éliminant définitivement le rendu du dashboard Desktop dense sur Mobile. Distribution serveur stricte : jamais les deux loaders pour le même device. | Conforme à l'Adaptive Design KREDO et ADR-0006 ; résout PRODUCT-4 sans créer un 6e onglet mobile ; module transverse accessible sans surcoût de charge sur les autres chapitres. | Actée (Lot 12) |
+| **C-32** | **Projection profil → besoins compatibles et résolution PRODUCT-1** : Le module « Matching profil » du workspace Consultants est profil-centrique (Collaborateur ou Candidat → besoins compatibles). Il constitue une projection inverse en lecture des résultats déjà calculés et persistés dans `match_scores` (filtrés par `person_id`) par le moteur unique existant (`src/lib/staffing-matching/`). Aucun second moteur n'est créé. L'absence de ligne dans `match_scores` n'est jamais assimilée à un score 0 ou à une incompatibilité (taux de couverture explicite exposé). Le recalcul éventuel reste strictement besoin-centrique via `runOpportunityMatching(opportunityId)` unitaire (aucun batch global d'opportunités). | Respect strict de C-09 (moteur unique) ; explicabilité déterministe C1-C6 préservée sans LLM ; couverture explicite évitant toute fausse illusion d'exhaustivité. | Actée (Lot 13) |
 
 ---
 
@@ -724,10 +725,11 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 
 | ID | Question | Lot cible |
 |---|---|---|
-| **PRODUCT-1** | Intention du module **Matching profil** : `Profil → besoins` et/ou `Besoin → profils` ? (Moteur actuel = besoin-centrique.) | 13 (décision avant impl.) |
+| ~~**PRODUCT-1**~~ | ✅ **RÉSOLU (Lot 13, C-32)** — Intention profil-centrique (Collaborateur/Candidat → besoins compatibles) via projection en lecture du cache `match_scores` du moteur unique. Moteur inchangé, absence score ≠ incompatible. | 13 |
 | ~~**PRODUCT-2**~~ | ✅ **RÉSOLU (Lot 7, C-26 — option a)** — `nextAction` = `opportunity_candidates.next_action` du positionnement actif le plus récent ; `null` sinon. Aucune dérivation depuis un milestone, aucune colonne nouvelle. Porteur dédié = dette **CAND-2**. | 7 |
 | ~~**PRODUCT-3**~~ | ✅ **RÉSOLU (Lot 7, C-26)** — whitelist canonique `src/lib/recruitment/candidate-lifecycle.ts` : 10 statuts (= `VALID_STATUSES`), libellés FR, flag `terminal` (`recrute`/`refuse`/`ko_manager`/`archive`). Les 3 copies legacy convergent au Lot 8 (dette **CAND-3**). | 7-8 |
 | ~~**PRODUCT-4**~~ | ✅ **RÉSOLU (Lot 12, C-31)** — Desktop conserve le chapitre analytique global Activités & congés et charge Production & Congés à la demande ; Mobile utilise ProductionLeaveMobile sur activite-conges. Aucun chevauchement ni double chargement. | 3 / 12 |
+
 
 ### NAVIGATION
 
@@ -1020,15 +1022,18 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Gates** : suite complète (`typecheck` → `test` → `check:server-boundary` → `eslint` → `build`).
 - **Conditions de sortie** : commit poussé, `NEXT LOT = Lot 13`.
 
-### Lot 13 — Module Matching profil
+### Lot 13 — Module Matching profil — ✅ techniquement livré
 
-- **Objectif** : exposer une UI de matching profils ↔ besoins réutilisant le moteur unique. **Aucun second moteur** (C-09).
-- **Prérequis** : Lot 1. Résoudre PRODUCT-1 (décision produit enregistrée avant impl.).
-- **Data** : `match_scores`, `runOpportunityMatching`, `use-opportunity-matching`, `person_skills`, `opportunity_skills`, `opportunities`.
-- **Desktop / Mobile** : point d'entrée contextualisé (dialog / composer), réutilise `MatchingDialog` / `MatchingComposer` si pertinent.
-- **Critères d'acceptation** : le module appelle le moteur existant ; module déclaré dans `contextualModules` seulement une fois fonctionnel ; les deux intentions (profil→besoins / besoin→profils) tranchées et documentées.
-- **Gates** : suite complète.
+- **Objectif** : exposer une UI de matching profils ↔ besoins réutilisant le moteur unique. **Aucun second moteur** (C-09 / C-32).
+- **Prérequis** : Lot 1. Résoudre PRODUCT-1 (décision C-32 actée : profil-centrique en lecture seule sur `match_scores`).
+- **Data** : `match_scores`, `opportunities` (ouvertes non terminales), `collaborators` (actifs non sortis), `candidates` (non archivés), `offer_practices`.
+- **Desktop / Mobile** :
+  - Desktop : module transverse dans `contextualModules` du `SectionRail` (`?module=matching-profil`), shell canonique `IntelligenceSplitModalShell` (liste profils + filtres à gauche, matches ordonnés + critères C1-C6 à droite, actions « Ouvrir le besoin » et « Relancer le matching de ce besoin »).
+  - Mobile : point d'entrée contextuel sur fiches/drawers profil (« Besoins compatibles », touch target ≥ 44px), vue `ProfileMatchingMobile` avec indicateurs de couverture, top 4 matches ordonnés, drawer détail `ProfileMatchingMobileDrawer`.
+- **Critères d'acceptation** : réutilisation exclusive de `match_scores` en aval sans second moteur ; absence de score ≠ incompatibilité (couverture affichée) ; parsing défensif du JSONB (legacy `synthetic-seed-v1` toléré) ; lazy-loading strict sous ADR-0006 ; aucune librairie graphique externe ; zéro migration DB ; zéro LLM/n8n ; suite complète de tests et sentinelles validée.
+- **Gates** : suite complète (`typecheck` → `test` → `check:server-boundary` → `eslint` → `build`).
 - **Conditions de sortie** : commit poussé, `NEXT LOT = Lot 14`.
+
 
 ### Lot 14 — Intégration Shell global / CRM
 

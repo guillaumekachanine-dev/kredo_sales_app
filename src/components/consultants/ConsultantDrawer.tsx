@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { Button } from '@/components/ui/Button'
@@ -711,9 +712,9 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
     const { data, error } = await supabase
       .from('collaborators')
       .select(`
-        id, entry_date, exit_date, status, current_title, seniority, practice,
+        id, entry_date, exit_date, status, current_title, seniority, practice, person_id,
         person:persons (
-          full_name, first_name, last_name,
+          id, full_name, first_name, last_name,
           person_skills (
             id, level, years, confidence, source,
             skill:skills ( id, name, category )
@@ -802,24 +803,40 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
         className="max-w-[480px]"
         footer={
           !loading && drawerData && collaboratorId ? (
-            <div className="flex items-center justify-between w-full">
-              {/* Action Planifier (à gauche) */}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setEventInitialValues({
-                    title: `Point · ${name}`,
-                    event_type: 'suivi_collaborateur',
-                    company: reliableMission?.company?.name ? { id: '', name: reliableMission.company.name, isNew: false } : null,
-                  })
-                  setEventDrawerOpen(true)
-                }}
-                className="bg-[var(--color-cockpit-cobalt-soft)] text-[var(--color-primary)] border border-[var(--color-primary)]/20 hover:bg-[var(--color-primary)]/10 font-semibold"
-              >
-                Planifier
-              </Button>
+            <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+              <div className="flex items-center gap-2">
+                {/* Action Planifier (à gauche) */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setEventInitialValues({
+                      title: `Point · ${name}`,
+                      event_type: 'suivi_collaborateur',
+                      company: reliableMission?.company?.name ? { id: '', name: reliableMission.company.name, isNew: false } : null,
+                    })
+                    setEventDrawerOpen(true)
+                  }}
+                  className="bg-[var(--color-cockpit-cobalt-soft)] text-[var(--color-primary)] border border-[var(--color-primary)]/20 hover:bg-[var(--color-primary)]/10 font-semibold"
+                >
+                  Planifier
+                </Button>
+
+                {/* Action Besoins compatibles (Lot 13) */}
+                {drawerData.person_id || drawerData.person?.id ? (
+                  <Link
+                    href={`/consultants?section=collaborateurs&module=matching-profil&person=${drawerData.person_id || drawerData.person?.id}`}
+                    onClick={() => onOpenChange(false)}
+                    className="inline-flex min-h-[36px] sm:min-h-0 items-center justify-center gap-1.5 rounded-[var(--radius-medium)] border border-brand-brass/40 bg-brand-brass/10 px-3 py-1.5 text-xs font-semibold text-brand-brass transition-colors hover:bg-brand-brass/20"
+                  >
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                    </svg>
+                    Besoins compatibles
+                  </Link>
+                ) : null}
+              </div>
 
               {/* Action Rédiger / préparer (à droite) */}
               <CommunicationIntentMenu

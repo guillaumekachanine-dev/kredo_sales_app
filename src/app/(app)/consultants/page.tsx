@@ -5,6 +5,7 @@ import { getConsultantsTeam } from "@/features/consultants/data/get-consultants-
 import { getConsultantsSynthese } from "@/features/consultants/data/get-consultants-synthese"
 import { getConsultantsActivity } from "@/features/consultants/data/get-consultants-activity"
 import {
+  buildConsultantsSectionHref,
   parseConsultantsModule,
   parseConsultantsSection,
 } from "@/features/consultants/navigation/consultants-sections"
@@ -22,6 +23,8 @@ import { CandidatesDesktop } from "@/features/consultants/candidates/CandidatesD
 import { CandidatesMobile } from "@/features/consultants/candidates/CandidatesMobile"
 import { getProductionLeave } from "@/features/consultants/modules/production-leave/data/get-production-leave"
 import { ProductionLeaveMobile } from "@/features/consultants/modules/production-leave/mobile/ProductionLeaveMobile"
+import { getProfileMatching } from "@/features/consultants/modules/profile-matching/data/get-profile-matching"
+import { ProfileMatchingMobile } from "@/features/consultants/modules/profile-matching/mobile/ProfileMatchingMobile"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Consultants Workspace — orchestrateur de la route `/consultants`
@@ -34,11 +37,9 @@ import { ProductionLeaveMobile } from "@/features/consultants/modules/production
 //  Sections internalisées : `synthese` (racine), `collaborateurs`,
 //  `activite-conges`, `candidats`, `pool-competences`.
 //
-//  Résolution PRODUCT-4 (Lot 12 / Décision C-31) :
-//  - Desktop : conserve ActivityDashboard sur activite-conges et expose
-//    Production & Congés comme module transverse via `contextualModules`.
-//  - Mobile : activite-conges sert la vue dédiée ProductionLeaveMobile.
-//  - Module transverse Desktop : lazy-loadé uniquement sur demande (?module=).
+//  Modules contextuels :
+//  - Production & Congés (Lot 12 / C-31) : Desktop contextualModule, Mobile sur activite-conges.
+//  - Matching profil (Lot 13 / C-32) : Desktop contextualModule, Mobile contextuel sur action profil.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SearchParams = Record<string, string | string[] | undefined>
@@ -55,13 +56,34 @@ export default async function ConsultantsPage({
 
   const activeSection = parseConsultantsSection(resolvedSearchParams.section)
   const activeModule = parseConsultantsModule(resolvedSearchParams.module)
+  const rawPerson = resolvedSearchParams.person
+  const personId = Array.isArray(rawPerson) ? rawPerson[0] : (rawPerson ?? null)
   const isMobile = device === "mobile"
 
-  // Lazy loading du module transverse Desktop uniquement si demandé (ADR-0006)
+  // Lazy loading des modules transverses Desktop uniquement si demandés (ADR-0006)
   const productionLeaveVm =
     !isMobile && activeModule === "production-conges"
       ? await getProductionLeave()
       : null
+
+  const profileMatchingVm =
+    !isMobile && activeModule === "matching-profil"
+      ? await getProfileMatching()
+      : null
+
+  // Mobile : branche contextuelle du module Matching profil (Lot 13)
+  if (isMobile && activeModule === "matching-profil") {
+    const vm = await getProfileMatching()
+    return (
+      <ConsultantsMobileShell activeSection={activeSection}>
+        <ProfileMatchingMobile
+          vm={vm}
+          selectedPersonId={personId}
+          backHref={buildConsultantsSectionHref(activeSection)}
+        />
+      </ConsultantsMobileShell>
+    )
+  }
 
   if (activeSection === "synthese") {
     const vm = await getConsultantsSynthese()
@@ -74,6 +96,8 @@ export default async function ConsultantsPage({
         activeSection={activeSection}
         activeModule={activeModule}
         productionLeaveVm={productionLeaveVm}
+        profileMatchingVm={profileMatchingVm}
+        initialPersonId={personId}
       >
         <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <SyntheseDesktop vm={vm} />
@@ -106,6 +130,8 @@ export default async function ConsultantsPage({
         activeSection={activeSection}
         activeModule={activeModule}
         productionLeaveVm={productionLeaveVm}
+        profileMatchingVm={profileMatchingVm}
+        initialPersonId={personId}
       >
         {content}
       </ConsultantsDesktopShell>
@@ -129,6 +155,8 @@ export default async function ConsultantsPage({
         activeSection={activeSection}
         activeModule={activeModule}
         productionLeaveVm={productionLeaveVm}
+        profileMatchingVm={profileMatchingVm}
+        initialPersonId={personId}
       >
         {content}
       </ConsultantsDesktopShell>
@@ -148,6 +176,8 @@ export default async function ConsultantsPage({
         activeSection={activeSection}
         activeModule={activeModule}
         productionLeaveVm={productionLeaveVm}
+        profileMatchingVm={profileMatchingVm}
+        initialPersonId={personId}
       >
         <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <CandidatesDesktop vm={vm} />
@@ -167,6 +197,8 @@ export default async function ConsultantsPage({
       activeSection={activeSection}
       activeModule={activeModule}
       productionLeaveVm={productionLeaveVm}
+      profileMatchingVm={profileMatchingVm}
+      initialPersonId={personId}
     >
       <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
         <CollaboratorsDesktop data={team} />

@@ -17,12 +17,15 @@ import {
   ActiviteCongesIcon,
   CandidatsIcon,
   CollaborateursIcon,
+  MatchingProfilIcon,
   PoolCompetencesIcon,
   ProductionCongesIcon,
   SyntheseIcon,
 } from "../navigation/consultants-icons"
 import { ProductionLeaveDesktop } from "../modules/production-leave/desktop/ProductionLeaveDesktop"
 import type { ProductionLeaveViewModel } from "../modules/production-leave/data/production-leave.types"
+import { ProfileMatchingDesktop } from "../modules/profile-matching/desktop/ProfileMatchingDesktop"
+import type { ProfileMatchingViewModel } from "../modules/profile-matching/data/profile-matching.types"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Shell Desktop du Consultants Workspace — chrome uniquement (repli sidebar +
@@ -31,8 +34,7 @@ import type { ProductionLeaveViewModel } from "../modules/production-leave/data/
 //
 //  SHELL-0018 V2 : chapeau navy = titre de page (« Consultants ») ; le header
 //  de la zone principale affiche toujours le nom exact du chapitre actif.
-//  Module contextuel : « Production & Congés » disponible au Lot 12.
-//  « Matching profil » reste absent jusqu'au Lot 13.
+//  Modules contextuels : « Production & Congés » (Lot 12), « Matching profil » (Lot 13).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ICON_BY_SECTION: Record<ConsultantsSection, ReactNode> = {
@@ -47,6 +49,8 @@ interface ConsultantsDesktopShellProps {
   activeSection: ConsultantsInShellSection
   activeModule?: ConsultantsContextualModule | null
   productionLeaveVm?: ProductionLeaveViewModel | null
+  profileMatchingVm?: ProfileMatchingViewModel | null
+  initialPersonId?: string | null
   children?: ReactNode
 }
 
@@ -54,6 +58,8 @@ export function ConsultantsDesktopShell({
   activeSection,
   activeModule,
   productionLeaveVm,
+  profileMatchingVm,
+  initialPersonId,
   children,
 }: ConsultantsDesktopShellProps) {
   // Repli automatique de la sidebar principale (même pattern que /missions, /reports).
@@ -71,6 +77,7 @@ export function ConsultantsDesktopShell({
   }))
 
   const isProductionCongesActive = activeModule === "production-conges"
+  const isMatchingProfilActive = activeModule === "matching-profil"
 
   const contextualModules: SectionRailEntry[] = [
     {
@@ -79,6 +86,13 @@ export function ConsultantsDesktopShell({
       icon: <ProductionCongesIcon />,
       href: buildConsultantsModuleHref(activeSection, "production-conges"),
       active: isProductionCongesActive,
+    },
+    {
+      key: "matching-profil",
+      label: "Matching profil",
+      icon: <MatchingProfilIcon />,
+      href: buildConsultantsModuleHref(activeSection, "matching-profil"),
+      active: isMatchingProfilActive,
     },
   ]
 
@@ -107,6 +121,15 @@ export function ConsultantsDesktopShell({
         <ProductionLeaveDesktop
           vm={productionLeaveVm}
           closeHref={buildConsultantsSectionHref(activeSection)}
+        />
+      ) : null}
+
+      {/* Module transverse Matching profil (Lot 13) */}
+      {isMatchingProfilActive && profileMatchingVm ? (
+        <ProfileMatchingDesktop
+          vm={profileMatchingVm}
+          closeHref={buildConsultantsSectionHref(activeSection)}
+          initialPersonId={initialPersonId}
         />
       ) : null}
     </div>

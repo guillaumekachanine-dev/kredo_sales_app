@@ -16,6 +16,7 @@ export interface DrawerSkill {
 }
 
 export interface DrawerPerson {
+  id?: string
   full_name: string | null
   first_name: string | null
   last_name: string | null
@@ -59,6 +60,7 @@ export interface DrawerMission {
 
 export interface DrawerConsultantData {
   id: string
+  person_id?: string | null
   entry_date: string | null
   exit_date: string | null
   status: string

@@ -152,35 +152,42 @@ describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
     expect(markup).toContain('aria-current="page"')
   })
 
-  it("rend la section Modules avec Production & Congés et sans Matching profil", () => {
+  it("rend la section Modules avec Production & Congés et Matching profil (Lot 13)", () => {
     const markup = render("synthese")
     expect(markup).toContain("Modules")
     expect(markup).toContain("Production &amp; Congés")
     expect(markup).toContain('href="/consultants?module=production-conges"')
-    expect(markup).not.toContain("Matching profil")
+    expect(markup).toContain("Matching profil")
+    expect(markup).toContain('href="/consultants?module=matching-profil"')
   })
 
   it("génère l'URL correcte du module pour les sections avec query param", () => {
     const markup = render("collaborateurs")
     expect(markup).toContain('href="/consultants?section=collaborateurs&amp;module=production-conges"')
+    expect(markup).toContain('href="/consultants?section=collaborateurs&amp;module=matching-profil"')
   })
 })
 
 describe("consultants-sections — modules contextuels", () => {
-  it("parseConsultantsModule résout 'production-conges' et ignore les valeurs inconnues", () => {
+  it("parseConsultantsModule résout 'production-conges', 'matching-profil' et ignore les valeurs inconnues", () => {
     expect(parseConsultantsModule("production-conges")).toBe("production-conges")
     expect(parseConsultantsModule(["production-conges"])).toBe("production-conges")
+    expect(parseConsultantsModule("matching-profil")).toBe("matching-profil")
+    expect(parseConsultantsModule(["matching-profil"])).toBe("matching-profil")
     expect(parseConsultantsModule("matching")).toBeNull()
     expect(parseConsultantsModule(null)).toBeNull()
     expect(parseConsultantsModule(undefined)).toBeNull()
   })
 
-  it("buildConsultantsModuleHref construit le lien avec module en préservant la section", () => {
+  it("buildConsultantsModuleHref construit le lien avec module et optionnellement person en préservant la section", () => {
     expect(buildConsultantsModuleHref("synthese", "production-conges")).toBe(
       "/consultants?module=production-conges",
     )
     expect(buildConsultantsModuleHref("collaborateurs", "production-conges")).toBe(
       "/consultants?section=collaborateurs&module=production-conges",
+    )
+    expect(buildConsultantsModuleHref("candidats", "matching-profil", "person-123")).toBe(
+      "/consultants?section=candidats&module=matching-profil&person=person-123",
     )
     expect(buildConsultantsModuleHref("synthese", null)).toBe("/consultants")
   })
