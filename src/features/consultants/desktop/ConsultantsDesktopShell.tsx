@@ -5,8 +5,11 @@ import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailEntry } from "@/lib/navigation/section-rail"
 import {
+  buildConsultantsModuleHref,
+  buildConsultantsSectionHref,
   CONSULTANTS_SECTIONS,
   HEADER_TITLE_BY_SECTION,
+  type ConsultantsContextualModule,
   type ConsultantsInShellSection,
   type ConsultantsSection,
 } from "../navigation/consultants-sections"
@@ -15,8 +18,11 @@ import {
   CandidatsIcon,
   CollaborateursIcon,
   PoolCompetencesIcon,
+  ProductionCongesIcon,
   SyntheseIcon,
 } from "../navigation/consultants-icons"
+import { ProductionLeaveDesktop } from "../modules/production-leave/desktop/ProductionLeaveDesktop"
+import type { ProductionLeaveViewModel } from "../modules/production-leave/data/production-leave.types"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Shell Desktop du Consultants Workspace — chrome uniquement (repli sidebar +
@@ -25,7 +31,8 @@ import {
 //
 //  SHELL-0018 V2 : chapeau navy = titre de page (« Consultants ») ; le header
 //  de la zone principale affiche toujours le nom exact du chapitre actif.
-//  Aucun module contextuel n'est disponible à ce stade (Lots 12-13).
+//  Module contextuel : « Production & Congés » disponible au Lot 12.
+//  « Matching profil » reste absent jusqu'au Lot 13.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ICON_BY_SECTION: Record<ConsultantsSection, ReactNode> = {
@@ -38,11 +45,15 @@ const ICON_BY_SECTION: Record<ConsultantsSection, ReactNode> = {
 
 interface ConsultantsDesktopShellProps {
   activeSection: ConsultantsInShellSection
+  activeModule?: ConsultantsContextualModule | null
+  productionLeaveVm?: ProductionLeaveViewModel | null
   children?: ReactNode
 }
 
 export function ConsultantsDesktopShell({
   activeSection,
+  activeModule,
+  productionLeaveVm,
   children,
 }: ConsultantsDesktopShellProps) {
   // Repli automatique de la sidebar principale (même pattern que /missions, /reports).
@@ -59,6 +70,18 @@ export function ConsultantsDesktopShell({
     active: !entry.external && entry.key === activeSection,
   }))
 
+  const isProductionCongesActive = activeModule === "production-conges"
+
+  const contextualModules: SectionRailEntry[] = [
+    {
+      key: "production-conges",
+      label: "Production & Congés",
+      icon: <ProductionCongesIcon />,
+      href: buildConsultantsModuleHref(activeSection, "production-conges"),
+      active: isProductionCongesActive,
+    },
+  ]
+
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
       <SectionRail
@@ -66,6 +89,7 @@ export function ConsultantsDesktopShell({
         title="Consultants"
         home={{ href: "/consultants" }}
         chapters={chapters}
+        contextualModules={contextualModules}
       />
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -77,6 +101,14 @@ export function ConsultantsDesktopShell({
 
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </section>
+
+      {/* Module transverse Production & Congés (Lot 12) */}
+      {isProductionCongesActive && productionLeaveVm ? (
+        <ProductionLeaveDesktop
+          vm={productionLeaveVm}
+          closeHref={buildConsultantsSectionHref(activeSection)}
+        />
+      ) : null}
     </div>
   )
 }

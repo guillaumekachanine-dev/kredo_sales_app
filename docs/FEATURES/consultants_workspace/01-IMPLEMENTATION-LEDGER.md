@@ -9,9 +9,9 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 11 — Module Production & Congés — Data Contract mensuel
+Dernier lot livré        : Lot 12 — Module Production & Congés — UI Desktop + Mobile
 Lot courant              : —
-Prochain lot             : Lot 12 — Module Production & Congés — UI
+Prochain lot             : Lot 13 — Module Matching profil (UI vers moteur existant)
 Dernier SHA connu origin/main : 9d715c3e   (2026-09-08)
 ```
 
@@ -34,7 +34,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ✅ techniquement livré | `16596041` | Matrice parité 17/17. CAND-3 résolu (labels unifiés). CAND-4 tranché (C-28 option 1). LEGACY-2 confirmé orphelin. CandidatesKanbanDesktop (EntityKanbanView). Rapports + Agenda intégrés. Planning déprécié (heuristiques illégitimes C-08). |
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ✅ techniquement livré | `b900b0f4` | `permanentRedirect("/consultants?section=candidats")`. C-13 résolue (contrat mobile `getMobileTabsForPath` repointé). NAV-3 volet dépréciation résolu. Call-sites actifs repointés (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`). Code métier legacy préservé (Lot 15). |
 | 11 | Module Production & Congés — Data | ✅ techniquement livré | `ab637998` | Granularité mensuelle `1 collab × 1 mois` (C-30, DATA-5 résolu). 22 tests + sentinelles. Loader server-only, RLS respectée. Zéro migration, zéro UI. |
-| 12 | Module Production & Congés — UI | ⬜ todo | — | Déclare le module dans `contextualModules`. |
+| 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `cde68af5` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
 | 13 | Module Matching profil (UI vers moteur existant) | ⬜ todo | — | Résoudre PRODUCT-1. Aucun second moteur (C-09). |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
@@ -73,6 +73,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-28 | Parité Recruitment : Kanban candidate-centric (`CandidatesKanbanDesktop` via `EntityKanbanView` + `HIRING_KANBAN_STAGES`), planning déprécié (heuristiques illégitimes C-08, zéro migration), CAND-3 résolu (`src/lib/recruitment/candidate-lifecycle.ts`), CAND-4 Option 1 confirmée (`opportunity_candidates.status` maintenu au staffing/drawer), LEGACY-2 confirmé orphelin (suppression Lot 15), « Nouveau rapport » + Agenda (« Planifier ») intégrés. | 9 |
 | C-29 | Dépréciation /recruitment & redirection canonique : permanentRedirect("/consultants?section=candidats") direct sans loader ni composant. C-13 résolue (getMobileTabsForPath repointé). Call-sites actifs repointés (SyntheseMobile, TalentProfileDetail, entity-links, mainMenuItems). Code métier legacy préservé (Lot 15). | 10 |
 | C-30 | Production & Congés adopte une granularité mensuelle fondée sur les CRA réels (v_collaborator_activity_summary, ytd, absences) ; aucun planning journalier de production fictif ; TACI non double-compté ; RLS salaires respectée (coûts/marges null si non habilité). | 11 |
+| C-31 | Arbitrage UI Production & Congés et résolution PRODUCT-4 : Desktop conserve le chapitre analytique global Activités & congés et expose Production & Congés comme module transverse dans contextualModules (lazy-loaded via ?module=production-conges) ; Mobile utilise Production & Congés comme vue adaptée du chapitre Activité (?section=activite-conges), éliminant définitivement le rendu du dashboard Desktop dense sur Mobile. Distribution serveur stricte : jamais les deux loaders pour le même device. | 12 |
 
 ## Questions ouvertes en cours
 
@@ -90,7 +91,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | PRODUCT-1 | Intention module Matching : profil→besoins et/ou besoin→profils | 13 | ouverte |
 | PRODUCT-2 | « Prochaine action » pour un candidat sans opportunité active | 7 | ✅ résolue (C-26, option a) — positionnement actif le + récent, `null` sinon ; porteur dédié = dette CAND-2 |
 | PRODUCT-3 | Valeurs métier du sélecteur lifecycle candidat en UI | 7-8 | ✅ résolue (C-26) — whitelist `src/lib/recruitment/candidate-lifecycle.ts` ; convergence des 3 copies legacy = dette CAND-3 |
-| PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ouverte |
+| PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ✅ résolue (C-31) — Desktop conserve Activité global et charge Production & Congés à la demande ; Mobile utilise ProductionLeaveMobile sur activite-conges. Aucun chevauchement ni double chargement. |
 | NAV-1 | `?section=` confirmé vs pathname après audit code réel Lot 1 | 1 | ✅ résolue (Lot 1) |
 | NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ✅ résolue — `activite-conges` (C-24) + `pool-competences` (C-25) = `permanentRedirect` ; suppression des fichiers de route + `(tabbed)/layout.tsx` + `SectionNavBarSlot` = Lot 15 |
 | NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ⚠️ partiellement résolue (C-29) — volet dépréciation et redirection canonique résolu Lot 10 ; retrait global du menu principal = Lot 14 (coord. SHELL-0018 Phase 6) |
@@ -148,7 +149,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | ~~Divergence statut collaborateur~~ | Résolu Lot 4 (C-23) : `CollaboratorsDesktop`/`Mobile` lisent `collaborators.status` | — |
 | `collaborators.practice_id` absent | Practice collaborateur résolue par heuristique sur texte libre (C-17) ; 1 valeur (`Mobile`) non mappée ; FK + backfill = amélioration future non planifiée | futur |
 | Positionnements non traçables | 3/3 intercontrat live sans fiche candidat miroir → colonne « — » (C-18) ; lien direct `opp↔collab` = sous-question ouverte | futur |
-| `activite-conges` sans vue Mobile dédiée | Lot 5 : vue analytique dense unique servie aux deux devices (contenu large `overflow-auto`). Une vraie vue Mobile activité chevauche le module Production & Congés → **PRODUCT-4** | 12 |
+| ~~`activite-conges` sans vue Mobile dédiée~~ | Résolu Lot 12 (C-31) : `ProductionLeaveMobile` remplace le dashboard dense sur Mobile (PRODUCT-4 résolue) | — |
 | **SKILLS-1** — `pool-competences` sans vue Mobile dédiée | Lot 6 : `PoolCompetencesMap` (cartographie SVG large) servie aux deux devices en `overflow-auto`. Une vraie synthèse compétences Mobile (cartes / jauges) n'est pas cadrée | futur |
 | ~~`SectionNavBarSlot` sur `/consultants/layout.tsx`~~ | Résolu Lot 1 (descendu dans `(tabbed)/layout.tsx`). Suppression globale `SectionNavBar*` = SHELL-0018 Phase 6 | 14 |
 | Routes `(tabbed)` consultants | Lot 6 : `activite-conges` **et** `pool-competences` redirigent (`permanentRedirect`). Fichiers de route + `(tabbed)/layout.tsx` + `SectionNavBarSlot` supprimés au **Lot 15** (aucune route `(tabbed)` réelle ne subsiste). | 15 |
@@ -158,6 +159,80 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 12 — Module Production & Congés / UI Desktop + Mobile — ✅ techniquement livré (2026-09-09)
+
+- **Baseline** : `ab637998` (`main` = `origin/main`).
+- **Objectif** : Construire l'interface complète du module transverse **Production & Congés** à partir du view-model mensuel du Lot 11, déclarer le module dans le `SectionRail` Desktop via `contextualModules` avec chargement à la demande (lazy-loading via `?module=production-conges`), et résoudre la dette **PRODUCT-4** sur Mobile en remplaçant le rendu du `ActivityDashboard` dense par une vue dédiée `ProductionLeaveMobile` sur `?section=activite-conges` (Décision C-31).
+- **Audit du Data Contract Lot 11 & Point 22 (Zéro réel vs absence de données)** :
+  - L'audit du builder Lot 11 a confirmé qu'un mois sans CRA (`summary === undefined`) renvoyait des jours ouvrés/produits à 0 et un taux de productivité à `null`, risquant d'être interprété par l'UI comme une contre-performance (0 %).
+  - Évolution minimale du contrat apportée conformément au Point 22 : ajout du flag déterministe `hasActivityData: boolean` sur `CollaboratorMonthlyProduction` (`true` si un CRA a été soumis, `false` sinon).
+  - Tests unitaires complétés dans `build-production-leave.test.ts` (23 tests au total, distinction prouvée entre vrai zéro et donnée absente).
+- **Architecture Desktop** :
+  - Déclaration dans `CONSULTANTS_CONTEXTUAL_MODULES` de `SectionRail` (`ConsultantsDesktopShell.tsx`) avec label canonique `Production & Congés` et icône Heroicons v2 outline chart-bar (`ProductionCongesIcon`).
+  - Lazy-loading URL-driven : `?module=production-conges` déclenche le chargement de `getProductionLeave()` côté serveur dans `src/app/(app)/consultants/page.tsx` uniquement lorsque le module est actif. À la fermeture `[×]`, le lien `closeHref` préserve la section active en cours (`buildConsultantsSectionHref(activeSection)`).
+  - Interface à deux zones denses :
+    - Volet latéral gauche (`ProductionLeaveCollaboratorList`) : recherche par nom/titre/practice, filtre par Practice, liste dense avec productivité du mois et badge d'écart cible.
+    - Zone principale droite :
+      - En-tête avec sélecteur de mois (`availableMonths` sans re-fetch client), identité et practice.
+      - Bloc KPI & composition mensuelle (`ProductionLeaveMonthlySummary`) : taux de productivité, cible, écart, jours ouvrés/produits/non facturables, barre de composition visuelle respectant C-30 (non facturable jamais assimilé à absence).
+      - Visualisation historique 12 mois (`ProductionLeaveHistoryChart`) : SVG maison avec courbe réelle, ligne cible, points interactifs, tooltip hover léger, complété par un ruban tabulaire compact.
+      - Détail des absences (`ProductionLeaveAbsenceDetail`) : ventilation par motif, nombre de jours, impact économique théorique libellé « Manque à produire théorique » (jamais « Coût de l'absence »), liste déroulante des absences datées réelles.
+      - Synthèse financière (`ProductionLeaveFinancialSummary`) : CA réalisé/cible/écart, coût structurel, marge/cible/écart. RLS respectée : masquage propre de la section si les données sont `null` (aucun faux 0 € affiché).
+      - Gestion rigoureuse des empty states : collaborateur sans CRA sur le mois (« Aucune donnée d'activité disponible pour ce mois »), pas d'absence (« Aucune absence enregistrée sur ce mois »), pas de cible.
+- **Architecture Mobile & Résolution PRODUCT-4 (Décision C-31)** :
+  - Sur Mobile, `?section=activite-conges` sert désormais exclusivement `ProductionLeaveMobile`, alimenté par `getProductionLeave()`.
+  - L'ancien rendu `ActivityDashboard` Desktop dense dans un conteneur dégradé en overflow-auto est supprimé sur Mobile.
+  - Écran Mobile dédié : en-tête avec sélecteur de mois horizontal, champ de recherche, cartes collaborateur d'action (`ProductionLeaveMobileCard`, touch targets >= 44px) résumant productivité, écart cible, jours ouvrés/produits et jours d'absence.
+  - Tiroir modal (`AppDrawer`) au tap sur une carte (`ProductionLeaveMobileDrawer`) : métriques clés, ventilation des absences, histogramme 12 mois en HTML + barres Tailwind (aucun SVG lourd), données financières masquées si null.
+- **Distribution serveur stricte (ADR-0006)** :
+  - Desktop `activite-conges` → charge `getConsultantsActivity()`, rend `ActivityDashboard`.
+  - Mobile `activite-conges` → charge `getProductionLeave()`, rend `ProductionLeaveMobile`.
+  - Desktop `?module=production-conges` → charge `getProductionLeave()`, ouvre la modale `ProductionLeaveDesktop`.
+  - Jamais les deux loaders exécutés pour le même device.
+- **Fichiers créés** :
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveCollaboratorList.tsx`
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveMonthlySummary.tsx`
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveHistoryChart.tsx`
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveAbsenceDetail.tsx`
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveFinancialSummary.tsx`
+  - `src/features/consultants/modules/production-leave/desktop/ProductionLeaveDesktop.tsx`
+  - `src/features/consultants/modules/production-leave/desktop/__tests__/production-leave-desktop.test.ts` (6 tests)
+  - `src/features/consultants/modules/production-leave/mobile/ProductionLeaveMobileCard.tsx`
+  - `src/features/consultants/modules/production-leave/mobile/ProductionLeaveMobileDrawer.tsx`
+  - `src/features/consultants/modules/production-leave/mobile/ProductionLeaveMobile.tsx`
+  - `src/features/consultants/modules/production-leave/mobile/__tests__/production-leave-mobile.test.ts` (3 tests)
+  - `src/features/consultants/__tests__/consultants-page-distribution.test.ts` (6 tests)
+- **Fichiers modifiés** :
+  - `src/features/consultants/modules/production-leave/data/production-leave.types.ts` (`+ hasActivityData: boolean`)
+  - `src/features/consultants/modules/production-leave/data/build-production-leave.ts` (`+ hasActivityData = Boolean(summary)`)
+  - `src/features/consultants/modules/production-leave/data/__tests__/build-production-leave.test.ts` (tests vrai 0 vs pas de CRA)
+  - `src/features/consultants/navigation/consultants-icons.tsx` (`+ ProductionCongesIcon`)
+  - `src/features/consultants/navigation/consultants-sections.ts` (`+ parseConsultantsModule`, `+ buildConsultantsModuleHref`, `+ CONSULTANTS_CONTEXTUAL_MODULES`)
+  - `src/features/consultants/navigation/consultants-sections.test.ts` (tests contextualModules, absence Matching profil)
+  - `src/features/consultants/desktop/ConsultantsDesktopShell.tsx` (câblage `contextualModules` et modale `ProductionLeaveDesktop`)
+  - `src/app/(app)/consultants/page.tsx` (distribution serveur, lazy loading desktop, branche mobile dédiée)
+  - `docs/FEATURES/consultants_workspace/README.md`
+  - `docs/FEATURES/consultants_workspace/00-REFERENCE-CHANTIER-CONSULTANTS.md`
+  - `docs/FEATURES/consultants_workspace/01-IMPLEMENTATION-LEDGER.md`
+- **Invariants protégés** :
+  - Aucune dépendance externe de dataviz (pas de recharts, chart.js, tremor) : SVG maison et barres HTML pures.
+  - Aucun composant tiers (pas de shadcn/ui, Radix).
+  - Aucun recalcul métier financier ou de taux dans les composants UI.
+  - Aucun calendrier journalier de production (C-08 / C-30).
+  - RLS respectée : null financier n'est jamais affiché comme 0 €.
+  - Aucune migration Supabase, aucun workflow n8n.
+- **Gates exécutées** :
+  - `rm -rf .next && npm run typecheck` → **PASS** (0 erreurs)
+  - `npm test` (**suite complète**) → **PASS** (270 fichiers / 2704 tests)
+  - `npm run check:server-boundary` → **PASS**
+  - `npx eslint src/features/consultants src/app/\(app\)/consultants/page.tsx` → **PASS** (0 erreur, 0 avertissement)
+  - `npm run build` → **PASS** (Turbopack, exit code 0, 42 routes compilées sans erreur)
+  - `git diff --check` → **PASS** (0 whitespace/syntax issue)
+- **QA visuelle** : réservée à Guillaume (aucun navigateur automatisé ni Playwright exécuté).
+- **Commit** : `cde68af5` — `feat(consultants): add production and leave module UI (Lot 12)`
+- **SHA final** : `cde68af5acb20aefd8571efc5eb4e432fa8e9fcd`
+- **NEXT LOT** : Lot 13 — Module Matching profil (UI vers moteur existant).
 
 ### Lot 11 — Module Production & Congés / Data Contract mensuel — ✅ techniquement livré (2026-09-09)
 

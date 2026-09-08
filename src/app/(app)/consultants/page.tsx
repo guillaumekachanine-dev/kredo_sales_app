@@ -4,7 +4,10 @@ import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getConsultantsTeam } from "@/features/consultants/data/get-consultants-team"
 import { getConsultantsSynthese } from "@/features/consultants/data/get-consultants-synthese"
 import { getConsultantsActivity } from "@/features/consultants/data/get-consultants-activity"
-import { parseConsultantsSection } from "@/features/consultants/navigation/consultants-sections"
+import {
+  parseConsultantsModule,
+  parseConsultantsSection,
+} from "@/features/consultants/navigation/consultants-sections"
 import { ConsultantsDesktopShell } from "@/features/consultants/desktop/ConsultantsDesktopShell"
 import { ConsultantsMobileShell } from "@/features/consultants/mobile/ConsultantsMobileShell"
 import { SyntheseDesktop } from "@/features/consultants/desktop/synthese/SyntheseDesktop"
@@ -17,6 +20,8 @@ import { PoolCompetencesMap } from "@/features/consultants/skills/PoolCompetence
 import { getConsultantsCandidates } from "@/features/consultants/candidates/data/get-consultants-candidates"
 import { CandidatesDesktop } from "@/features/consultants/candidates/CandidatesDesktop"
 import { CandidatesMobile } from "@/features/consultants/candidates/CandidatesMobile"
+import { getProductionLeave } from "@/features/consultants/modules/production-leave/data/get-production-leave"
+import { ProductionLeaveMobile } from "@/features/consultants/modules/production-leave/mobile/ProductionLeaveMobile"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Consultants Workspace — orchestrateur de la route `/consultants`
@@ -28,6 +33,12 @@ import { CandidatesMobile } from "@/features/consultants/candidates/CandidatesMo
 //
 //  Sections internalisées : `synthese` (racine), `collaborateurs`,
 //  `activite-conges`, `candidats`, `pool-competences`.
+//
+//  Résolution PRODUCT-4 (Lot 12 / Décision C-31) :
+//  - Desktop : conserve ActivityDashboard sur activite-conges et expose
+//    Production & Congés comme module transverse via `contextualModules`.
+//  - Mobile : activite-conges sert la vue dédiée ProductionLeaveMobile.
+//  - Module transverse Desktop : lazy-loadé uniquement sur demande (?module=).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SearchParams = Record<string, string | string[] | undefined>
@@ -43,7 +54,14 @@ export default async function ConsultantsPage({
   ])
 
   const activeSection = parseConsultantsSection(resolvedSearchParams.section)
+  const activeModule = parseConsultantsModule(resolvedSearchParams.module)
   const isMobile = device === "mobile"
+
+  // Lazy loading du module transverse Desktop uniquement si demandé (ADR-0006)
+  const productionLeaveVm =
+    !isMobile && activeModule === "production-conges"
+      ? await getProductionLeave()
+      : null
 
   if (activeSection === "synthese") {
     const vm = await getConsultantsSynthese()
@@ -52,7 +70,11 @@ export default async function ConsultantsPage({
         <SyntheseMobile vm={vm} />
       </ConsultantsMobileShell>
     ) : (
-      <ConsultantsDesktopShell activeSection={activeSection}>
+      <ConsultantsDesktopShell
+        activeSection={activeSection}
+        activeModule={activeModule}
+        productionLeaveVm={productionLeaveVm}
+      >
         <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <SyntheseDesktop vm={vm} />
         </div>
@@ -61,19 +83,32 @@ export default async function ConsultantsPage({
   }
 
   if (activeSection === "activite-conges") {
-    // Vue analytique dense unique (pas de branche Mobile dédiée — dette PRODUCT-4,
-    // chevauchement avec le module Production & Congés du Lot 12). Le contenu
-    // large défile horizontalement dans son propre conteneur.
+    // Résolution PRODUCT-4 (C-31) :
+    // Mobile sert la vue dédiée ProductionLeaveMobile (action / compréhension immédiate)
+    if (isMobile) {
+      const vm = await getProductionLeave()
+      return (
+        <ConsultantsMobileShell activeSection={activeSection}>
+          <ProductionLeaveMobile vm={vm} />
+        </ConsultantsMobileShell>
+      )
+    }
+
+    // Desktop conserve l'ActivityDashboard analytique global existant
     const data = await getConsultantsActivity()
     const content = (
       <div className="min-h-0 flex-1 overflow-auto bg-canvas">
         <ActivityDashboard data={data} />
       </div>
     )
-    return isMobile ? (
-      <ConsultantsMobileShell activeSection={activeSection}>{content}</ConsultantsMobileShell>
-    ) : (
-      <ConsultantsDesktopShell activeSection={activeSection}>{content}</ConsultantsDesktopShell>
+    return (
+      <ConsultantsDesktopShell
+        activeSection={activeSection}
+        activeModule={activeModule}
+        productionLeaveVm={productionLeaveVm}
+      >
+        {content}
+      </ConsultantsDesktopShell>
     )
   }
 
@@ -90,7 +125,13 @@ export default async function ConsultantsPage({
     return isMobile ? (
       <ConsultantsMobileShell activeSection={activeSection}>{content}</ConsultantsMobileShell>
     ) : (
-      <ConsultantsDesktopShell activeSection={activeSection}>{content}</ConsultantsDesktopShell>
+      <ConsultantsDesktopShell
+        activeSection={activeSection}
+        activeModule={activeModule}
+        productionLeaveVm={productionLeaveVm}
+      >
+        {content}
+      </ConsultantsDesktopShell>
     )
   }
 
@@ -103,7 +144,11 @@ export default async function ConsultantsPage({
         <CandidatesMobile vm={vm} />
       </ConsultantsMobileShell>
     ) : (
-      <ConsultantsDesktopShell activeSection={activeSection}>
+      <ConsultantsDesktopShell
+        activeSection={activeSection}
+        activeModule={activeModule}
+        productionLeaveVm={productionLeaveVm}
+      >
         <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <CandidatesDesktop vm={vm} />
         </div>
@@ -118,7 +163,11 @@ export default async function ConsultantsPage({
       <CollaboratorsMobile data={team} />
     </ConsultantsMobileShell>
   ) : (
-    <ConsultantsDesktopShell activeSection={activeSection}>
+    <ConsultantsDesktopShell
+      activeSection={activeSection}
+      activeModule={activeModule}
+      productionLeaveVm={productionLeaveVm}
+    >
       <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
         <CollaboratorsDesktop data={team} />
       </div>

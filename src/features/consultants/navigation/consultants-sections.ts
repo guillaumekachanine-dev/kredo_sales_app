@@ -119,3 +119,24 @@ export function buildConsultantsSectionHref(section: ConsultantsInShellSection):
     ? "/consultants"
     : `/consultants?section=${section}`
 }
+
+/** Modules contextuels du rail Consultants Workspace (Lot 12). */
+export const CONSULTANTS_CONTEXTUAL_MODULES = ["production-conges"] as const
+export type ConsultantsContextualModule = (typeof CONSULTANTS_CONTEXTUAL_MODULES)[number]
+
+export function parseConsultantsModule(
+  raw: string | string[] | null | undefined,
+): ConsultantsContextualModule | null {
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return value === "production-conges" ? "production-conges" : null
+}
+
+export function buildConsultantsModuleHref(
+  section: ConsultantsInShellSection,
+  module: ConsultantsContextualModule | null,
+): string {
+  const base = buildConsultantsSectionHref(section)
+  if (!module) return base
+  const separator = base.includes("?") ? "&" : "?"
+  return `${base}${separator}module=${module}`
+}

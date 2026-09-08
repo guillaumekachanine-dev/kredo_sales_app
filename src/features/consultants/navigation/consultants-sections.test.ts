@@ -4,11 +4,13 @@ import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import {
+  buildConsultantsModuleHref,
   buildConsultantsSectionHref,
   CONSULTANTS_IN_SHELL_SECTIONS,
   CONSULTANTS_ROOT_SECTION,
   CONSULTANTS_SECTIONS,
   HEADER_TITLE_BY_SECTION,
+  parseConsultantsModule,
   parseConsultantsSection,
   type ConsultantsSection,
 } from "./consultants-sections"
@@ -150,8 +152,37 @@ describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
     expect(markup).toContain('aria-current="page"')
   })
 
-  it("ne rend aucune section Modules (aucun module contextuel disponible)", () => {
-    expect(render("synthese")).not.toContain(">Modules<")
+  it("rend la section Modules avec Production & Congés et sans Matching profil", () => {
+    const markup = render("synthese")
+    expect(markup).toContain("Modules")
+    expect(markup).toContain("Production &amp; Congés")
+    expect(markup).toContain('href="/consultants?module=production-conges"')
+    expect(markup).not.toContain("Matching profil")
+  })
+
+  it("génère l'URL correcte du module pour les sections avec query param", () => {
+    const markup = render("collaborateurs")
+    expect(markup).toContain('href="/consultants?section=collaborateurs&amp;module=production-conges"')
+  })
+})
+
+describe("consultants-sections — modules contextuels", () => {
+  it("parseConsultantsModule résout 'production-conges' et ignore les valeurs inconnues", () => {
+    expect(parseConsultantsModule("production-conges")).toBe("production-conges")
+    expect(parseConsultantsModule(["production-conges"])).toBe("production-conges")
+    expect(parseConsultantsModule("matching")).toBeNull()
+    expect(parseConsultantsModule(null)).toBeNull()
+    expect(parseConsultantsModule(undefined)).toBeNull()
+  })
+
+  it("buildConsultantsModuleHref construit le lien avec module en préservant la section", () => {
+    expect(buildConsultantsModuleHref("synthese", "production-conges")).toBe(
+      "/consultants?module=production-conges",
+    )
+    expect(buildConsultantsModuleHref("collaborateurs", "production-conges")).toBe(
+      "/consultants?section=collaborateurs&module=production-conges",
+    )
+    expect(buildConsultantsModuleHref("synthese", null)).toBe("/consultants")
   })
 })
 

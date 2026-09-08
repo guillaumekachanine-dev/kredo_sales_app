@@ -402,8 +402,11 @@ export function buildProductionLeave(
         })
       })
 
+      const hasActivityData = Boolean(summary)
+
       return {
         month,
+        hasActivityData,
         businessDays,
         productionDays,
         nonBillableDays,

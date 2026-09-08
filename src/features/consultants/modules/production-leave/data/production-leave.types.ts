@@ -22,6 +22,7 @@ export interface MonthlyAbsenceItem {
 
 export interface CollaboratorMonthlyProduction {
   month: string // "YYYY-MM"
+  hasActivityData: boolean
 
   businessDays: number
   productionDays: number

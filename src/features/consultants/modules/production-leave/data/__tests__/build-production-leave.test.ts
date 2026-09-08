@@ -234,7 +234,7 @@ describe("buildProductionLeave", () => {
       expect(m?.productivityRate).toBe(45.45)
     })
 
-    it("gère un collaborateur sans aucun CRA sur le mois de référence", () => {
+    it("gère un collaborateur sans aucun CRA sur le mois de référence et positionne hasActivityData à false", () => {
       const vm = buildProductionLeave(createInput({ activitySummaries: [] }))
       const c = vm.collaborators[0]
       expect(c.currentMonth).toBeNull()
@@ -242,6 +242,35 @@ describe("buildProductionLeave", () => {
       expect(c.history[0].businessDays).toBe(0)
       expect(c.history[0].productionDays).toBe(0)
       expect(c.history[0].productivityRate).toBeNull()
+      expect(c.history[0].hasActivityData).toBe(false)
+    })
+
+    it("distingue un zéro réel (CRA avec 0 jour produit) d'une absence de CRA", () => {
+      const zeroProductionSummary: RawActivitySummary = {
+        collaborator_id: "collab-1",
+        period_start: "2026-09-01",
+        business_days: 22,
+        billable_days: 0,
+        pto_days: 0,
+        sick_days: 0,
+        non_billable_days: 22,
+        activity_rate_percent: 0,
+        cra_status: "validated",
+        tjm_snapshot: 600,
+        cjm_snapshot: 332.5,
+        revenue: 0,
+        employer_cost: 7316.51,
+        real_margin: -7316.51,
+        gross_annual: 50000,
+      }
+
+      const vm = buildProductionLeave(createInput({ activitySummaries: [zeroProductionSummary] }))
+      const c = vm.collaborators[0]
+      expect(c.currentMonth).not.toBeNull()
+      expect(c.currentMonth?.hasActivityData).toBe(true)
+      expect(c.currentMonth?.businessDays).toBe(22)
+      expect(c.currentMonth?.productionDays).toBe(0)
+      expect(c.currentMonth?.productivityRate).toBe(0)
     })
 
     it("protège contre la division par zéro sur un mois sans jours ouvrés", () => {
