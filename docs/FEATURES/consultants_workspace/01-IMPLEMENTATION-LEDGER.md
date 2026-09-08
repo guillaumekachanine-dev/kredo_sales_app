@@ -35,7 +35,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ✅ techniquement livré | `b900b0f4` | `permanentRedirect("/consultants?section=candidats")`. C-13 résolue (contrat mobile `getMobileTabsForPath` repointé). NAV-3 volet dépréciation résolu. Call-sites actifs repointés (`SyntheseMobile`, `TalentProfileDetail`, `entity-links`). Code métier legacy préservé (Lot 15). |
 | 11 | Module Production & Congés — Data | ✅ techniquement livré | `ab637998` | Granularité mensuelle `1 collab × 1 mois` (C-30, DATA-5 résolu). 22 tests + sentinelles. Loader server-only, RLS respectée. Zéro migration, zéro UI. |
 | 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `149eb699` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
-| 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `94de39cd` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
+| 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `d50c77e2` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
 | 13 | Module Matching profil (UI vers moteur existant) | ⬜ todo | — | Résoudre PRODUCT-1. Aucun second moteur (C-09). |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
@@ -207,8 +207,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm run build` → **PASS** (Turbopack, exit code 0, 42 routes compilées sans erreur)
   - `git diff --check` → **PASS** (0 whitespace/syntax issue)
 - **QA visuelle** : réservée à Guillaume (aucun navigateur automatisé ni Playwright exécuté).
-- **Commit** : `94de39cd` — `refactor(consultants): align production leave module with split modal shell`
-- **SHA final** : `94de39cd94f0f98c2fa4c872698f60e1f56b2eee`
+- **Commit** : `d50c77e2` — `refactor(consultants): align production leave module with split modal shell`
+- **SHA final** : `d50c77e21b02c9552df0b11e323b004a12f79c0c`
 - **NEXT LOT** : Lot 13 — Module Matching profil (UI vers moteur existant).
 
 ### Lot 12 — Module Production & Congés / UI Desktop + Mobile — ✅ techniquement livré (2026-09-09)
