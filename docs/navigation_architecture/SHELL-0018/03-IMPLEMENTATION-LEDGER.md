@@ -85,7 +85,7 @@ QA minimale :
 | **2.5** | Migration Automatisations | ✅ techniquement livré | commit `c20f33fd` ; QA visuelle réservée à Guillaume |
 | **2.6** | Migration Engagements | 🟡 build validé, QA visuelle à faire | premier pilote réel |
 | **2.7** | Migration Prospection | ✅ techniquement livré | commit `9b13d84d` ; 15rem → 11.5rem ; QA visuelle réservée à Guillaume |
-| **2.8** | Migration Knowledge Hub | ⬜ todo | conserver navigation contextuelle |
+| **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **3.x** | Standardisation des modules contextuels | ⬜ todo | uniquement contexte page |
 | **4.x** | URLisation des navigations client-state restantes | ⬜ todo | après stabilisation du rail |
 | **5.x** | Migration Finance / mécanismes horizontaux | ⬜ todo | rail + URL |
@@ -625,7 +625,64 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Lot 2.7 techniquement livré.**
 
-## 19. Prochaine étape
+## 19. Clôture du Lot 2.8 — Knowledge Hub
+
+### Fichiers modifiés et créés
+
+- `src/features/knowledge-hub/knowledge-hub.types.ts` (contrat partagé `KnowledgeView`) ;
+- `src/features/knowledge-hub/KnowledgeHubLocalNavigation.tsx` (adaptateur refactorisé `SectionRail` et helpers purs) ;
+- `src/features/knowledge-hub/KnowledgeHubDesktop.tsx` (intégration du header actif et suppression de dépendance inversée) ;
+- `src/features/knowledge-hub/KnowledgeHubLocalNavigation.test.ts` (suite complète de tests unitaires et de contrat) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md`.
+
+### Architecture retenue
+
+- `KnowledgeHubLocalNavigation` délègue intégralement son châssis à la primitive canonique `SectionRail` ;
+- La largeur locale historique `12.5rem` est normalisée à la largeur standard `11.5rem` (`184px`) sans débordement ni scroll horizontal ;
+- Le conteneur `<nav>` local redondant et les styles dupliqués ont été retirés au profit du standard ;
+- Le contrat de navigation `KnowledgeView` a été extrait vers `knowledge-hub.types.ts`, éliminant la dépendance inversée entre `KnowledgeHubLocalNavigation` et `KnowledgeHubDesktop` ;
+- L'architecture contextuelle obligatoire est strictement préservée :
+  - **Racine (`categories`)** : le rail affiche les domaines issus de `domains` avec leurs libellés, leur ordre et leurs icônes via `KnowledgeHubCategoryIcon` ;
+  - **Domaine (`domain`)** : le rail affiche uniquement les sections du domaine actif (`EXPERTISE_CHAPTERS` pour Expertise KREDO, `TALENTS_CHAPTERS` pour Talents, ou les sections dérivées de `subItems` pour les autres domaines) ;
+  - La sélection d'une section active est matérialisée par `active === true` et `aria-current="page"`.
+- Une source de vérité unique et typée centralise la résolution de la navigation et des libellés (`getKnowledgeHubDomainChapters`, `getKnowledgeHubActiveLabel`, `getKnowledgeHubDefaultSection`) ;
+- Le chapeau canonique affiche `Knowledge Hub` (navy, texte blanc, gras, centré horizontalement et verticalement, largeur 11.5rem / 184px) et son action `home.onSelect` ramène à l'accueil du Hub `{ type: "categories" }` sans dupliquer de bouton retour ;
+- Le header principal Desktop applique l'invariant SHELL-0018 en affichant le titre exact du contexte actif :
+  - `Catégories` à la racine ;
+  - Le libellé exact de la section active en consultation de domaine (`Practices`, `Métiers`, `Équipe`, `Alumni`, etc.) ;
+  - Le nom du domaine en fallback si aucune sectionId n'est active ;
+- Les titres métier internes de consultation (`Expertise KREDO`, `Talents`) sont protégés et conservés dans leurs vues respectives sans collision visuelle ;
+- Toutes les données, filtres, cartes et modèles métier (Expertise, Talents, REX, AO, etc.) restent strictement protégés et inchangés.
+
+### Modules contextuels
+
+- Les deux modules contextuels propres au Knowledge Hub (`Ateliers` / `workshop` et `Interroger` / `ask`) sont conservés dans `contextualModules` sous réserve de disponibilité de l'action (`onOpenModal`) ;
+- L'état actif des modules reflète `activeModal` ;
+- Lorsque `onOpenModal` est absent, `contextualModules` est `undefined`, garantissant l'absence de tout bouton mort ou placeholder trompeur ;
+- Les modales `KnowledgeHubModuleModal` et leur chargement dynamique sont rigoureusement préservés.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** sans erreur ;
+2. `npm test -- src/features/knowledge-hub/KnowledgeHubLocalNavigation.test.ts src/components/layout/SectionRail.test.ts` : **17/17 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des fichiers créés et modifiés : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès.
+
+### Limites et dettes restantes
+
+- L'état de navigation principal `activeView` reste un état local dans ce lot ; l'URLisation du Knowledge Hub reste une dette de Phase 4 SHELL-0018 conformément au cadrage ;
+- Aucune modification Mobile (la vue mobile `KnowledgeHubMobile` et la partie mobile de `KnowledgeLibraryMode` sont inchangées) ;
+- Aucune modification Supabase, RLS, RPC, fetch métier ou workflow n8n ;
+- Aucune régression technique connue ne subsiste dans le périmètre du lot.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Lot 2.8 techniquement livré.**
+
+## 20. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
