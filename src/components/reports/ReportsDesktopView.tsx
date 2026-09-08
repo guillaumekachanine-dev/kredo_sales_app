@@ -2,7 +2,6 @@
 
 import { useRef, useState, useTransition, useEffect, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 import { Button } from "@/components/ui/Button"
 import { AddToListDialogDesktop } from "@/features/content-collections/components/AddToListDialogDesktop"
 import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
@@ -49,6 +48,11 @@ import { DocumentCommunicationActions } from "./DocumentCommunicationActions"
 import { DocumentEditor } from "./DocumentEditor"
 import { DocumentGenerationParameters } from "./DocumentGenerationParameters"
 import { DocumentVersionHistory } from "./DocumentVersionHistory"
+import {
+  getReportsDesktopChapterLabel,
+  ReportsLocalNavigation,
+  type ReportsSection,
+} from "./ReportsLocalNavigation"
 
 type ReportsDesktopViewProps = {
   reportsData: ReportsListData
@@ -60,14 +64,7 @@ type ReportsDesktopViewProps = {
   listError?: string | null
 }
 
-type ReportsSection = "documents" | "knowledge" | "generation"
 type PendingAction = "copy" | "duplicate" | "favorite" | "archive" | null
-
-const LOCAL_SECTIONS: Array<{ id: ReportsSection; label: string }> = [
-  { id: "documents", label: "Bibliothèque" },
-  { id: "knowledge", label: "Connaissances" },
-  { id: "generation", label: "Génération" },
-]
 
 const STATUS_LABELS: Record<DocumentListItem["status"], string> = {
   draft: "Brouillon",
@@ -108,111 +105,7 @@ function countActiveFilters(filters: ReportsFilterState) {
 
 
 
-function ReportsSidebarIcon({ name }: { name: ReportsSection }) {
-  const commonProps = {
-    className: "size-4 shrink-0",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  }
 
-  if (name === "documents") {
-    return (
-      <svg {...commonProps}>
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-    )
-  }
-  if (name === "generation") {
-    return (
-      <svg {...commonProps}>
-        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      </svg>
-    )
-  }
-  return (
-    <svg {...commonProps}>
-      <rect x="3" y="4" width="18" height="4" rx="1" />
-      <rect x="3" y="10" width="11" height="4" rx="1" />
-      <rect x="3" y="16" width="14" height="4" rx="1" />
-    </svg>
-  )
-}
-
-function ReportsLocalNavigation({ active, onChange }: { active: ReportsSection; onChange: (section: ReportsSection) => void }) {
-  return (
-    <nav
-      aria-label="Navigation locale Rapports & rédaction"
-      className="flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
-    >
-      {/* Title box positioned exactly like 'Retour aux comptes' button */}
-      <div className="flex min-h-10 w-full items-center gap-2 rounded-md border border-edito-border bg-edito-surface px-3 text-left text-xs font-bold text-edito-navy select-none">
-        <span>Rapports & rédaction</span>
-      </div>
-
-      <div className="mt-5 border-t border-edito-border pt-4">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Chapitres
-        </p>
-        <div className="mt-2 space-y-1">
-          {LOCAL_SECTIONS.map((section) => {
-            const activeSection = active === section.id
-            return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => onChange(section.id)}
-                aria-current={activeSection ? "page" : undefined}
-                className={cn(
-                  "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 px-3 text-left text-xs font-semibold transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-                  activeSection
-                    ? "border-l-edito-brass bg-edito-surface text-edito-navy"
-                    : "border-l-transparent text-edito-muted hover:bg-edito-surface/70 hover:text-edito-body",
-                )}
-              >
-                <span className={cn("text-edito-navy", !activeSection && "opacity-75")}>
-                  <ReportsSidebarIcon name={section.id} />
-                </span>
-                <span className="truncate">{section.label}</span>
-              </button>
-            )
-          })}
-          <div className="my-2 border-t border-edito-border/50" />
-          <button
-            type="button"
-            onClick={() => useCrmAccountLauncherStore.getState().open()}
-            className={cn(
-              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
-            )}
-          >
-            <span className="text-edito-navy opacity-75">
-              <svg
-                className="size-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3.75 21h16.5M4.5 3h15A1.5 1.5 0 0 1 21 4.5V21H3V4.5A1.5 1.5 0 0 1 4.5 3zM8.25 7.5h.008v.008H8.25V7.5zm0 3.75h.008v.008H8.25v-.008zm0 3.75h.008v.008H8.25V15zm3.742-7.5H12v.008h-.008V7.5zm0 3.75H12v.008h-.008v-.008zm0 3.75H12v.008h-.008V15zm3.75-7.5h.008v.008h-.008V7.5zm0 3.75h.008v.008h-.008v-.008zm0 3.75h.008v.008h-.008V15z" />
-              </svg>
-            </span>
-            <span className="truncate">CRM Launcher</span>
-          </button>
-        </div>
-      </div>
-    </nav>
-  )
-}
 
 function DocumentContent({ document }: { document: DocumentDetail }) {
   if (document.documentType === "financial_reference") {
@@ -410,6 +303,8 @@ export function ReportsDesktopView({
     URL.revokeObjectURL(url)
   }
 
+  const activeChapterTitle = getReportsDesktopChapterLabel(activeSection)
+
   return (
     <>
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas">
@@ -417,7 +312,9 @@ export function ReportsDesktopView({
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex min-h-[76px] shrink-0 items-center justify-between gap-5 border-b border-border bg-surface px-5 py-4">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">Rapports & rédaction</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
+            {activeChapterTitle}
+          </h1>
           <div className="flex items-center gap-2">
             <Button
               variant="brass"
