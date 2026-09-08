@@ -25,7 +25,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
 | 2 | Data Contract Synthèse | ✅ techniquement livré | `61bbab04` | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
-| 3 | Synthèse Desktop + Mobile | ✅ techniquement livré | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. `typecheck`+`test` complet+`server-boundary`+`eslint` verts ; **`npm run build` non joué** (dev server concurrent) → Guillaume. |
+| 3 | Synthèse Desktop + Mobile | ✅ techniquement livré + **déployé prod** | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. Gates verts ; **build de prod Vercel `READY`** (`7724d800` = déploiement courant `kredo-green.vercel.app`). |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ⬜ todo | — | REUSE `PoolCompetencesMap`. Redirection route legacy. |
@@ -166,9 +166,10 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npx vitest run src/features/consultants` → PASS (37 tests : 18 nav + 13 builder + 6 rendu) puis `npm test` (**suite complète**) → PASS (258 fichiers)
   - `npm run check:server-boundary` → PASS
   - `npx eslint src/features/consultants src/app/(app)/consultants/page.tsx` → PASS
-  - `npm run build` → ⚠️ **NON JOUÉ EN SESSION.** `next build` reste bloqué à 0 % CPU tant que le serveur `next dev` de Guillaume tourne sur le même projet (Next 16 ne tolère pas de build concurrent) ; le poste crée en plus des doublons `.next/* 2` (iCloud). Le contrôle statique équivalent `check:server-boundary` passe, et l'inspection confirme qu'aucun composant client de Lot 3 (`SyntheseDesktop`, `SyntheseMobile`, `PracticeBreakdownChart`) n'importe de module `server-only` — seulement `StructuredList`/`MobilePageHeader` (clients), `formatEuro` (pur), `next/link`, et des imports `type`. **À rejouer par Guillaume (`npm run build`), naturellement avec sa passe de QA.**
+  - `npm run build` (local) → non joué en session (`next build` bloqué par le `next dev` concurrent + doublons iCloud `.next/* 2`). **MAIS : le build de production Vercel a tourné sur le commit exact `f4b66b3e` puis `7724d800` et est `READY`** (`dpl_Gi7KBdK2iQ4UL4gj6w9cFCxrd9HY`, `dpl_7DAmwDmWvCeVRV8ggbLtUDNM5Qee`, target `production`, bundler turbopack, `nodejs:3` lambdas) → **la vérification `next build` canonique EST passée, sur Vercel.** 0 erreur runtime dans les 2 h suivant le déploiement.
 - **QA visuelle** : non réalisée — réservée à Guillaume.
-- **Limites** : `npm run build` non joué (voir Gates) ; la vue `collaborateurs` reste sur le composant legacy (déplacement + alignement C-16 = Lot 4).
+- **Déploiement** : `main` auto-déploie en production (intégration GitHub↔Vercel). Commit `7724d800` = déploiement de production courant, `READY`, servi sur `kredo-green.vercel.app` (`/consultants` → 200, mur d'auth `/login` attendu).
+- **Limites** : la vue `collaborateurs` reste sur le composant legacy (déplacement + alignement C-16 = Lot 4).
 - **Commit** : `f4b66b3e` — `feat(consultants): page Synthèse Desktop + Mobile (Lot 3)`.
 - **SHA final** : `f4b66b3e4be9293c127bd4056a9e345cee89b4e2`.
 - **NEXT LOT** : Lot 4 — Migration Collaborateurs.

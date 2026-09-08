@@ -856,7 +856,8 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Modifié** : `src/app/(app)/consultants/page.tsx` — branche par section : `synthese` charge `getConsultantsSynthese()` uniquement, `collaborateurs` charge `getConsultantsTeam()` uniquement (ADR-0006 : chaque section ne charge que ses données).
 - **Décisions** : C-21 (`synthese` = tableau de bord dédié, `collaborateurs` garde le tableau legacy — dette C-14 résorbée), C-22 (dataviz Desktop = SVG maison, Mobile = barres HTML+Tailwind ; palette practice = `offer_practices.color_hex`, fallback `var(--color-muted)`).
 - **Critères tenus** : branches Desktop/Mobile distribuées côté serveur (`getDashboardDevice()`) ; aucune bibliothèque graphique ; header shell = `Synthèse`.
-- **Gates** : `typecheck` ✅ · `npm test` complet ✅ · `check:server-boundary` ✅ · `eslint` ✅ · `build` ⚠️ **non joué en session** (`next build` bloqué par le `next dev` concurrent de Guillaume + doublons iCloud `.next/* 2`) — à rejouer par Guillaume avec sa QA ; server-boundary vérifié statiquement + par inspection (aucun import `server-only` dans les composants client). QA visuelle : réservée à Guillaume.
+- **Gates** : `typecheck` ✅ · `npm test` complet ✅ · `check:server-boundary` ✅ · `eslint` ✅ · `build` local non joué (env : `next dev` concurrent + iCloud) **mais build de production Vercel `READY` sur le commit exact** → vérification `next build` canonique passée. QA visuelle : réservée à Guillaume.
+- **Déploiement** : `main` → auto-déploie en production (GitHub↔Vercel). Lots 0-3 tous déployés ; production courante = `7724d800` sur `kredo-green.vercel.app`.
 - **NEXT LOT** : Lot 4 — Migration Collaborateurs.
 
 ### Lot 4 — Migration Collaborateurs
