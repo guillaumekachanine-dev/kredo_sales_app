@@ -3,8 +3,9 @@
 import type { ReactNode } from "react"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailProps } from "@/lib/navigation/section-rail"
+import type { AutomationsTabKey } from "./automations-desktop-navigation"
 
-export type AutomationsTabKey = "journal" | "sante" | "couts"
+export type { AutomationsTabKey }
 
 export interface AutomationsDesktopChapter {
   key: AutomationsTabKey

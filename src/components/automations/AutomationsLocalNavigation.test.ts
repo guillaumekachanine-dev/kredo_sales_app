@@ -147,4 +147,20 @@ describe("AutomationsLocalNavigation", () => {
     expect(desktopSource).toContain("const [selectedRunId, setSelectedRunId] = useState<string | null>(initialRun?.id ?? null)")
     expect(desktopSource).toContain("const [dialogOpen, setDialogOpen] = useState(Boolean(initialRun))")
   })
+
+  it("vérifie l'absence de useState pour la navigation et l'utilisation de useSearchParams et router.push", () => {
+    expect(desktopSource).not.toContain("useState<AutomationsTabKey>")
+    expect(desktopSource).toContain("const activeTab = parseAutomationsSection(searchParams.get(\"section\"))")
+    expect(desktopSource).toContain("router.push(")
+    expect(desktopSource).toContain("buildAutomationsSectionHref(pathname, searchParams, next)")
+  })
+
+  it("garantit que AutomationsMobileDashboard reste indépendant du contrôleur URL Desktop", () => {
+    const mobileSource = readFileSync(
+      resolve(root, "src/components/automations/AutomationsMobileDashboard.tsx"),
+      "utf8",
+    )
+    expect(mobileSource).not.toContain("parseAutomationsSection")
+    expect(mobileSource).not.toContain("buildAutomationsSectionHref")
+  })
 })

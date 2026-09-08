@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
 import { Button } from "@/components/ui/Button"
@@ -30,6 +31,10 @@ import {
   getAutomationsDesktopChapterLabel,
   type AutomationsTabKey,
 } from "./AutomationsLocalNavigation"
+import {
+  parseAutomationsSection,
+  buildAutomationsSectionHref,
+} from "./automations-desktop-navigation"
 import { CostTimelineChart } from "./CostTimelineChart"
 import { VeilleSimulatorModal } from "./VeilleSimulatorModal"
 import { AutomationsDataErrorBanner } from "./AutomationsDataErrorBanner"
@@ -205,8 +210,20 @@ function WorkflowCostBar({ workflow, maxCost }: { workflow: WorkflowHealthRow; m
 }
 
 export function AutomationsDesktopDashboard({ data, initialRunId }: { data: AutomationsDashboardData; initialRunId?: string }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const activeTab = parseAutomationsSection(searchParams.get("section"))
+
+  const navigateSection = (next: AutomationsTabKey) => {
+    router.push(
+      buildAutomationsSectionHref(pathname, searchParams, next),
+      { scroll: false },
+    )
+  }
+
   const initialRun = initialRunId ? data.journal.find((run) => run.id === initialRunId) ?? null : null
-  const [activeTab, setActiveTab] = useState<AutomationsTabKey>("journal")
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialRun?.id ?? null)
   const [dialogOpen, setDialogOpen] = useState(Boolean(initialRun))
   const [metricsOpen, setMetricsOpen] = useState(false)
@@ -555,7 +572,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
   return (
     <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full min-h-0 min-w-0 overflow-hidden bg-canvas w-full">
       {/* ── Navigation latérale secondaire (Style Cockpit Intelligence / EDITO Bright) ── */}
-      <AutomationsLocalNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <AutomationsLocalNavigation activeTab={activeTab} onTabChange={navigateSection} />
 
       {/* ── Contenu principal scrollable ── */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
