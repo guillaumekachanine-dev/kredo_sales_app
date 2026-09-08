@@ -9,33 +9,16 @@ import { Select } from '@/components/ui/Select'
 import { ConsultantDrawer } from '@/components/consultants/ConsultantDrawer'
 import { StructuredList, type StructuredListColumn } from '@/components/ui/StructuredList'
 import { StatusPill } from '@/components/ui/StatusPill'
+import { isCollaboratorStaffed, type CollaborateurRow } from './collaborators.types'
 
-// ─── Type exporté — utilisé par page.tsx ─────────────────────────────────────
-
-export interface CollaborateurRow {
-  id: string
-  status: string
-  current_title: string | null
-  seniority: string | null
-  practice: string | null
-  exit_date: string | null
-  person: {
-    first_name: string | null
-    last_name: string | null
-    full_name: string | null
-  } | null
-  missions: Array<{
-    id: string
-    title: string
-    status: string
-    start_date: string | null
-    end_date: string | null
-    tjm: number
-    cjm: number
-    gross_margin_pct: number | null
-    company: { name: string } | null
-  }>
-}
+// ─────────────────────────────────────────────────────────────────────────────
+//  Consultants Workspace — chapitre Collaborateurs, vue Desktop (Lot 4)
+//
+//  Déplacé depuis `components/consultants/synthese/ConsultantsSyntheseDesktop`.
+//  Comportement métier inchangé, hormis l'alignement du statut « en mission »
+//  sur `collaborators.status` (C-16 / LEGACY-4) — les colonnes mission (client,
+//  fin, TJM/CJM/marge) restent dérivées de la mission active.
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,10 +54,6 @@ function getFullName(row: CollaborateurRow): string {
 
 function getActiveMission(row: CollaborateurRow) {
   return row.missions.find((m) => m.status === 'active') ?? null
-}
-
-function isEnMission(row: CollaborateurRow): boolean {
-  return row.missions.some((m) => m.status === 'active')
 }
 
 const fmtEur = (n: number) => formatEuro(n)
@@ -225,7 +204,7 @@ function FilterSelect({
 
 interface Props { data: CollaborateurRow[] }
 
-export function ConsultantsSyntheseDesktop({ data }: Props) {
+export function CollaboratorsDesktop({ data }: Props) {
   const [statusFilter, setStatusFilter]     = useState('all')
   const [practiceFilter, setPracticeFilter] = useState('all')
   const { open: drawerOpen, selectedId, openDrawer, setOpen: setDrawerOpen } = useDrawerState()
@@ -235,7 +214,7 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
   const avgTjm = activeMissions.length
     ? Math.round(activeMissions.reduce((s, m) => s + m.tjm, 0) / activeMissions.length)
     : 0
-  const enMission     = data.filter(isEnMission).length
+  const enMission     = data.filter(isCollaboratorStaffed).length
   const interContrat  = data.length - enMission
   const tauxOccup     = data.length ? Math.round((enMission / data.length) * 100) : 0
 
@@ -244,8 +223,8 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
 
   const filtered = data.filter((c) => {
     if (practiceFilter !== 'all' && c.practice !== practiceFilter) return false
-    if (statusFilter === 'en_mission' && !isEnMission(c)) return false
-    if (statusFilter === 'inter_contrat' && isEnMission(c)) return false
+    if (statusFilter === 'en_mission' && !isCollaboratorStaffed(c)) return false
+    if (statusFilter === 'inter_contrat' && isCollaboratorStaffed(c)) return false
     return true
   })
 
@@ -290,7 +269,7 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
           style={{ borderColor: 'var(--color-border)' }}
         >
           <h2 className="text-sm font-bold" style={{ color: 'var(--color-heading)' }}>
-            Synthèse Consultants ({data.length})
+            Effectif ({data.length})
           </h2>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -315,7 +294,7 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
           items={filtered}
           getItemId={(c) => c.id}
           onItemClick={(c) => openDrawer(c.id)}
-          ariaLabel="Synthèse consultants"
+          ariaLabel="Effectif consultants"
           emptyState="Aucun collaborateur ne correspond aux filtres sélectionnés."
           columns={[
             {
@@ -444,11 +423,11 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
               align: 'center',
               width: '7.5rem',
               render: (collab) => {
-                const enMission = Boolean(getActiveMission(collab))
+                const staffed = isCollaboratorStaffed(collab)
                 return (
                   <StatusPill
-                    label={enMission ? 'En mission' : 'Inter-contrat'}
-                    variant={enMission ? 'success' : 'warning'}
+                    label={staffed ? 'En mission' : 'Inter-contrat'}
+                    variant={staffed ? 'success' : 'warning'}
                   />
                 )
               },

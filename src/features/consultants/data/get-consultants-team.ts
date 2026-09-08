@@ -1,14 +1,14 @@
 import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
-import type { CollaborateurRow } from "@/components/consultants/synthese/ConsultantsSyntheseDesktop"
+import type { CollaborateurRow } from "@/features/consultants/collaborators/collaborators.types"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Loader de l'effectif consultant — collaborateurs + missions imbriquées.
+//  Loader de l'effectif consultant — collaborateurs actifs + missions imbriquées.
 //
-//  Lot 1 : reprise à l'identique de la requête qui vivait inline dans
-//  `src/app/(app)/consultants/page.tsx`. Le contrat de statut « effectif actif »
-//  (OPEN QUESTION DATA-1) est traité au Lot 2 ; ce loader ne filtre rien.
+//  Effectif actif = `collaborators.status <> 'sorti'` (C-16). Le contrat de
+//  statut « en mission / intercontrat » est lu sur `collaborators.status` côté
+//  composant (LEGACY-4), plus sur la présence d'une mission active.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getConsultantsTeam(): Promise<CollaborateurRow[]> {
@@ -36,6 +36,7 @@ export async function getConsultantsTeam(): Promise<CollaborateurRow[]> {
         company:companies ( name )
       )
     `)
+    .neq("status", "sorti")
 
   return (data ?? []) as CollaborateurRow[]
 }

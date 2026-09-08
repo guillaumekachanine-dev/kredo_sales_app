@@ -11,7 +11,14 @@ import {
   MobilePageHeader,
 } from '@/components/ui/mobile'
 import { ConsultantDrawer } from '@/components/consultants/ConsultantDrawer'
-import type { CollaborateurRow } from './ConsultantsSyntheseDesktop'
+import { isCollaboratorStaffed, type CollaborateurRow } from './collaborators.types'
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Consultants Workspace — chapitre Collaborateurs, vue Mobile (Lot 4)
+//
+//  Déplacé depuis `components/consultants/synthese/ConsultantsSyntheseMobile`.
+//  Statut « en mission » aligné sur `collaborators.status` (C-16 / LEGACY-4).
+// ─────────────────────────────────────────────────────────────────────────────
 
 function getFullName(row: CollaborateurRow): string {
   return (
@@ -39,15 +46,11 @@ function avatarTone(name: string): string {
   return AVATAR_TONES[code % AVATAR_TONES.length]
 }
 
-function isEnMission(row: CollaborateurRow): boolean {
-  return row.missions.some((m) => m.status === 'active')
-}
-
 interface Props { data: CollaborateurRow[] }
 
-export function ConsultantsSyntheseMobile({ data }: Props) {
+export function CollaboratorsMobile({ data }: Props) {
   const { open: drawerOpen, selectedId, openDrawer, setOpen: setDrawerOpen } = useDrawerState()
-  const enMission    = data.filter(isEnMission).length
+  const enMission    = data.filter(isCollaboratorStaffed).length
   const interContrat = data.length - enMission
   const hasInterContrat = interContrat > 0
 
@@ -55,8 +58,8 @@ export function ConsultantsSyntheseMobile({ data }: Props) {
     <div className="flex flex-col gap-4 p-4 pb-24">
       <MobilePageHeader
         eyebrow="Consultants"
-        title="Synthèse d’équipe"
-        description="Vision rapide des disponibilités et des missions actives."
+        title="Collaborateurs"
+        description="Disponibilités et missions actives de l'effectif."
       />
 
       <MobileHeroInsight
@@ -96,7 +99,7 @@ export function ConsultantsSyntheseMobile({ data }: Props) {
           const initials = getInitials(collab)
           const tone = avatarTone(name)
           const mission = collab.missions.find((m) => m.status === 'active') ?? null
-          const inMission = Boolean(mission)
+          const staffed = isCollaboratorStaffed(collab)
 
           return (
             <MobileEntitySummary
@@ -113,12 +116,12 @@ export function ConsultantsSyntheseMobile({ data }: Props) {
               }
               status={(
                 <StatusPill
-                  label={inMission ? 'En mission' : 'Disponible'}
-                  variant={inMission ? 'success' : 'warning'}
+                  label={staffed ? 'En mission' : 'Disponible'}
+                  variant={staffed ? 'success' : 'warning'}
                 />
               )}
               facts={[
-                { label: 'Statut', value: inMission ? 'Actif' : 'À affecter' },
+                { label: 'Statut', value: staffed ? 'Actif' : 'À affecter' },
                 { label: 'Practice', value: collab.practice ?? 'Non renseignée' },
                 {
                   label: 'TJM',

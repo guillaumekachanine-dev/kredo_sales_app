@@ -281,8 +281,8 @@ Valeurs `collaborators.status` en base : `en_mission`, `intercontrat`, `sorti`.
 sémantique d'autorité ; `exit_date` en est une projection cohérente. La présence d'une mission
 active n'entre **pas** dans la définition de l'effectif (un intercontrat reste un actif).
 
-Dette LEGACY-4 restante : `ConsultantsSyntheseDesktop` (vue actuelle, chapitre Collaborateurs)
-calcule encore « en mission » depuis `missions.status` — à réconcilier au Lot 4.
+LEGACY-4 (réconciliation de la vue Collaborateurs) : ✅ résolu au Lot 4 — `CollaboratorsDesktop`/`Mobile`
+lisent le statut sur `collaborators.status` via `isCollaboratorStaffed`.
 
 ---
 
@@ -675,6 +675,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-20** | **View-model Synthèse = builder pur `buildConsultantsSynthese` (testé) + loader mince `getConsultantsSynthese`.** Aucun recalcul côté composant (Lot 3). | Patron KREDO (`buildPoolCompetencesDataset`) ; toute la logique métier testable sans DB. | Actée (Lot 2) |
 | **C-21** | **Section `synthese` = tableau de bord dédié** (`SyntheseDesktop`/`SyntheseMobile`, `getConsultantsSynthese()`) ; **`collaborateurs` garde le tableau legacy** (`ConsultantsSyntheseDesktop`/`Mobile`). `page.tsx` charge par section. | Résorbe la duplication transitoire C-14 ; ADR-0006 (ne charger que les données de la vue rendue). | Actée (Lot 3) |
 | **C-22** | **Dataviz Desktop = SVG maison** (`PracticeBreakdownChart` client pour le toggle, `RecruitmentPipelineChart` pur) ; **Mobile = barres HTML+Tailwind** (`div` width %). Palette practice = `offer_practices.color_hex` (donnée, cohérent avec `practiceBadgeStyle`), fallback `var(--color-muted)`. | Règle dataviz KREDO ; zéro bibliothèque ; les couleurs practice sont une palette catégorielle pilotée par la donnée, pas des HEX arbitraires en dur. | Actée (Lot 3) |
+| **C-23** | **Chapitre Collaborateurs = `src/features/consultants/collaborators/`** (`CollaboratorsDesktop`/`Mobile` + `collaborators.types.ts`). Le statut « en mission / intercontrat » se lit sur **`collaborators.status`** (`isCollaboratorStaffed`), pas sur la présence d'une mission active. `getConsultantsTeam` filtre `status <> 'sorti'`. `components/consultants/synthese/` supprimé. | LEGACY-4 : le champ `status` est l'autorité (C-16) ; alignement des KPI, du filtre et du pill. Colonnes mission restent dérivées de la mission active (données de mission, pas de statut). | Actée (Lot 4) |
 
 ---
 
@@ -720,7 +721,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | ~~**LEGACY-1**~~ | ✅ **RÉSOLU (Lot 1)** — retrait local livré : `SectionNavBarSlot` descendu dans `(tabbed)/layout.tsx` (C-15). Suppression globale de `SectionNavBarSlot`/`SectionNavBar` + nettoyage `main-menu.config` = SHELL-0018 Phase 6 (Lot 14 en coordination). | 1 / 14 |
 | **LEGACY-2** | `dashboard/RecruitmentDesktopDashboard.tsx` + `RecruitmentMobileDashboard.tsx` : confirmer qu'ils sont morts (aucun import externe constaté) et les supprimer. | 9 / 15 |
 | **LEGACY-3** | `src/app/(app)/consultants/(tabbed)/layout.tsx` (passthrough neutre) : à supprimer une fois les deux sous-routes migrées. | 15 |
-| **LEGACY-4** | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status`, pas `collaborators.status` — divergence à réconcilier avec DATA-1. | 2 |
+| ~~**LEGACY-4**~~ | ✅ **RÉSOLU (Lot 4, C-23)** — `CollaboratorsDesktop`/`Mobile` lisent le statut sur `collaborators.status` (`isCollaboratorStaffed`) ; `getConsultantsTeam` filtre `status <> 'sorti'`. | 4 |
 
 ---
 
@@ -860,19 +861,24 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Déploiement** : `main` → auto-déploie en production (GitHub↔Vercel). Lots 0-3 tous déployés ; production courante = `7724d800` sur `kredo-green.vercel.app`.
 - **NEXT LOT** : Lot 4 — Migration Collaborateurs.
 
-### Lot 4 — Migration Collaborateurs
+### Lot 4 — Migration Collaborateurs — ✅ techniquement livré (2026-09-08)
 
-- **État après Lot 3** : `?section=collaborateurs` rend `ConsultantsSyntheseDesktop`/`Mobile` (loader `get-consultants-team.ts`) — **plus de duplication avec `synthese`** (qui a désormais son tableau de bord dédié, C-21). Lot 4 = déplacer les composants dans `src/features/consultants/collaborators/`, aligner le calcul « en mission » sur C-16 (LEGACY-4), header « Collaborateurs », préserver drawer/tri/filtres.
-- **Objectif** : déplacer / réutiliser le tableau collaborateurs existant vers `?section=collaborateurs`, capacités préservées (drawer profil, tri, filtres, colonnes).
-- **Prérequis** : Lot 1 (Lot 3 recommandé pour cohérence visuelle).
-- **Data** : loader `collaborators` + `missions` existant — extrait vers `src/features/consultants/data/`, aligné sur le contrat de statut du Lot 2.
-- **Desktop** : `ConsultantsSyntheseDesktop` réutilisé / renommé `CollaboratorsDesktop`.
-- **Mobile** : `ConsultantsSyntheseMobile` réutilisé.
-- **Fichiers probables** : `src/features/consultants/collaborators/**`, `src/components/consultants/synthese/*` (déplacés).
-- **Hors périmètre** : réécriture métier, module Production & Congés.
-- **Critères d'acceptation** : parité fonctionnelle avec l'actuelle Synthèse racine ; drawer profil OK ; header = `Collaborateurs`.
-- **Gates** : suite ciblée + `build`.
-- **Conditions de sortie** : commit poussé, `NEXT LOT = Lot 5`.
+**Réalisé.** Détail dans le ledger § « Lot 4 ».
+
+- **Objectif** : déplacer le tableau collaborateurs vers `src/features/consultants/collaborators/`, aligner le statut sur `collaborators.status`, préserver drawer/tri/filtres.
+- **Livré** :
+  - `src/features/consultants/collaborators/collaborators.types.ts` — `CollaborateurRow` + `isCollaboratorStaffed()` (statut ⇐ `collaborators.status === 'en_mission'`).
+  - `src/features/consultants/collaborators/CollaboratorsDesktop.tsx` — déplacé de `components/consultants/synthese/ConsultantsSyntheseDesktop`, renommé, statut/occupation/filtre alignés sur `collaborators.status` (LEGACY-4). Colonnes mission (client, fin, TJM/CJM/marge) restent dérivées de la mission active. Header interne « Effectif (N) ».
+  - `src/features/consultants/collaborators/CollaboratorsMobile.tsx` — idem, `MobilePageHeader` retitré « Collaborateurs ».
+  - `src/features/consultants/collaborators/collaborators.test.ts` — 4 tests (helper + LEGACY-4 sur les deux vues).
+- **Modifié** :
+  - `src/features/consultants/data/get-consultants-team.ts` — `.neq("status", "sorti")` (C-16 : effectif actif) + import du type depuis `collaborators/`.
+  - `src/app/(app)/consultants/page.tsx` — imports/usages renommés.
+- **Supprimé** : `src/components/consultants/synthese/` (2 fichiers + dossier).
+- **Décision** : C-23. **LEGACY-4 résolu.**
+- **Critères tenus** : parité fonctionnelle (drawer, tri, filtres, colonnes) ; header shell = `Collaborateurs`.
+- **Gates** : `typecheck` ✅ · `npm test` complet ✅ (260 fichiers / 2628) · `check:server-boundary` ✅ · `eslint` ✅ · `build` local non joué (`next dev` concurrent) → build de prod Vercel.
+- **NEXT LOT** : Lot 5 — Migration Activités & congés.
 
 ### Lot 5 — Migration Activités & congés
 

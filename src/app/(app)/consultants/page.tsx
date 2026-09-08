@@ -8,8 +8,8 @@ import { ConsultantsDesktopShell } from "@/features/consultants/desktop/Consulta
 import { ConsultantsMobileShell } from "@/features/consultants/mobile/ConsultantsMobileShell"
 import { SyntheseDesktop } from "@/features/consultants/desktop/synthese/SyntheseDesktop"
 import { SyntheseMobile } from "@/features/consultants/mobile/synthese/SyntheseMobile"
-import { ConsultantsSyntheseDesktop } from "@/components/consultants/synthese/ConsultantsSyntheseDesktop"
-import { ConsultantsSyntheseMobile } from "@/components/consultants/synthese/ConsultantsSyntheseMobile"
+import { CollaboratorsDesktop } from "@/features/consultants/collaborators/CollaboratorsDesktop"
+import { CollaboratorsMobile } from "@/features/consultants/collaborators/CollaboratorsMobile"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Consultants Workspace — orchestrateur de la route `/consultants`
@@ -57,19 +57,19 @@ export default async function ConsultantsPage({
     )
   }
 
-  // ── section=collaborateurs — tableau collaborateurs actuel (Lot 4 le déplace) ──
+  // ── section=collaborateurs — effectif consultant actif (Lot 4) ──
   const team = await getConsultantsTeam()
   if (device === "mobile") {
     return (
       <ConsultantsMobileShell activeSection={activeSection}>
-        <ConsultantsSyntheseMobile data={team} />
+        <CollaboratorsMobile data={team} />
       </ConsultantsMobileShell>
     )
   }
   return (
     <ConsultantsDesktopShell activeSection={activeSection}>
       <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
-        <ConsultantsSyntheseDesktop data={team} />
+        <CollaboratorsDesktop data={team} />
       </div>
     </ConsultantsDesktopShell>
   )

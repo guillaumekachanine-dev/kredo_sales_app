@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 3 — Synthèse Desktop + Mobile
+Dernier lot livré        : Lot 4 — Migration Collaborateurs
 Lot courant              : —
-Prochain lot             : Lot 4 — Migration Collaborateurs
-Dernier SHA connu origin/main : f4b66b3e4be9293c127bd4056a9e345cee89b4e2   (2026-09-08, après commit Lot 3)
+Prochain lot             : Lot 5 — Migration Activités & congés
+Dernier SHA connu origin/main : 149c2bbf   (2026-09-08 ; SHA Lot 4 renseigné après push)
 ```
 
 ## Table des lots
@@ -26,7 +26,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | `8e191c8b` | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
 | 2 | Data Contract Synthèse | ✅ techniquement livré | `61bbab04` | `src/features/consultants/data/` : builder pur + loader + 13 tests. DATA-1/2/3/7 résolus (C-16→C-20). **Aucune migration** (2.x non déclenché). `npm test` complet vert. |
 | 3 | Synthèse Desktop + Mobile | ✅ techniquement livré + **déployé prod** | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. Gates verts ; **build de prod Vercel `READY`** (`7724d800` = déploiement courant `kredo-green.vercel.app`). |
-| 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
+| 4 | Migration Collaborateurs (`?section=collaborateurs`) | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/collaborators/` : `CollaboratorsDesktop`/`Mobile` + `collaborators.types` + 4 tests. C-23 / **LEGACY-4 résolu** (statut ⇐ `collaborators.status`) ; loader filtre `sorti`. `components/consultants/synthese/` supprimé. Gates verts (build → Vercel). |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ⬜ todo | — | REUSE `ConsultantsActivityDashboard`. Redirection route legacy. |
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ⬜ todo | — | REUSE `PoolCompetencesMap`. Redirection route legacy. |
 | 7 | Data Contract Candidats (candidate-centric) | ⬜ todo | — | Résoudre DATA-4/6, PRODUCT-2/3. Backfill → sous-lot 7.x. |
@@ -65,6 +65,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-20 | View-model Synthèse = builder pur testé + loader mince ; aucun recalcul côté composant | 2 |
 | C-21 | Section `synthese` = tableau de bord dédié ; `collaborateurs` garde le tableau legacy ; `page.tsx` charge par section | 3 |
 | C-22 | Dataviz Desktop = SVG maison, Mobile = barres HTML+Tailwind ; palette practice = `offer_practices.color_hex` (fallback `var(--color-muted)`) | 3 |
+| C-23 | Chapitre Collaborateurs = `src/features/consultants/collaborators/` ; statut lu sur `collaborators.status` (`isCollaboratorStaffed`) ; `getConsultantsTeam` filtre `sorti` ; `components/consultants/synthese/` supprimé | 4 |
 
 ## Questions ouvertes en cours
 
@@ -90,7 +91,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; global = Phase 6) |
 | LEGACY-2 | `components/recruitment/dashboard/*` morts — confirmer et supprimer | 9 / 15 | ouverte |
 | LEGACY-3 | `consultants/(tabbed)/layout.tsx` passthrough — supprimer après migration | 15 | ouverte |
-| LEGACY-4 | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — réconcilier avec C-16 | 4 | reportée (contrat figé C-16, réconciliation à la migration du tableau) |
+| LEGACY-4 | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — réconcilier avec C-16 | 4 | ✅ résolue (C-23) |
 
 ## Baseline technique constatée (2026-09-08, `064b6c02`)
 
@@ -133,7 +134,7 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `dashboard/RecruitmentDesktopDashboard` / `RecruitmentMobileDashboard` | Orphelins probables | 9 / 15 |
 | `collaborators.practice` non normalisé | Text libre, non aligné `offer_practices.slug` | 2 / 2.x |
 | Planning journalier de production | Absent en base (agrégats mensuels seulement) | 11 |
-| Divergence statut collaborateur | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — à réconcilier avec C-16 | 4 |
+| ~~Divergence statut collaborateur~~ | Résolu Lot 4 (C-23) : `CollaboratorsDesktop`/`Mobile` lisent `collaborators.status` | — |
 | `collaborators.practice_id` absent | Practice collaborateur résolue par heuristique sur texte libre (C-17) ; 1 valeur (`Mobile`) non mappée ; FK + backfill = amélioration future non planifiée | futur |
 | Positionnements non traçables | 3/3 intercontrat live sans fiche candidat miroir → colonne « — » (C-18) ; lien direct `opp↔collab` = sous-question ouverte | futur |
 | `activite-conges` sans branche Mobile serveur | Pas de `getDashboardDevice()` sur la page | 5 |
@@ -145,6 +146,34 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 4 — Migration Collaborateurs — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `149c2bbf` (`main` = `origin/main`, rien à intégrer).
+- **Objectif** : déplacer le tableau collaborateurs vers `src/features/consultants/collaborators/`, aligner le statut sur `collaborators.status` (LEGACY-4), préserver les capacités.
+- **Fichiers créés** :
+  - `src/features/consultants/collaborators/collaborators.types.ts` — `CollaborateurRow` + `isCollaboratorStaffed()`.
+  - `src/features/consultants/collaborators/CollaboratorsDesktop.tsx` — déplacé + renommé depuis `components/consultants/synthese/ConsultantsSyntheseDesktop`, statut/occupation/filtre/pill ⇐ `collaborators.status`.
+  - `src/features/consultants/collaborators/CollaboratorsMobile.tsx` — idem ; `MobilePageHeader` retitré « Collaborateurs ».
+  - `src/features/consultants/collaborators/collaborators.test.ts` — 4 tests.
+- **Fichiers modifiés** :
+  - `src/features/consultants/data/get-consultants-team.ts` — `.neq("status", "sorti")` (C-16) + import du type depuis `collaborators/`.
+  - `src/app/(app)/consultants/page.tsx` — imports/usages renommés (`CollaboratorsDesktop`/`Mobile`).
+- **Fichiers supprimés** : `src/components/consultants/synthese/ConsultantsSyntheseDesktop.tsx`, `.../ConsultantsSyntheseMobile.tsx` (+ dossier `synthese/`). Aucun autre consommateur (vérifié par grep).
+- **Aucune migration, aucun n8n, aucune route/menu touchés.**
+- **Décision** : C-23. **LEGACY-4 résolu** — colonnes mission (client, fin, TJM/CJM/marge) restent volontairement dérivées de la mission active (données de mission, pas de statut).
+- **Impact données** : le chapitre Collaborateurs affiche désormais **29** collaborateurs (effectif actif) au lieu de 30 (1 `sorti` exclu).
+- **Invariants protégés** : drawer profil (`ConsultantDrawer` inchangé), tri/filtres, colonnes, `StructuredList` ; `ConsultantDrawer` et les dossiers `activite-conges/` `pool-competences/` de `components/consultants/` non touchés.
+- **Gates exécutées** :
+  - `npm run typecheck` → PASS
+  - `npx vitest run src/features/consultants` → PASS (41 tests) puis `npm test` (**suite complète**) → PASS (260 fichiers / 2628 tests)
+  - `npm run check:server-boundary` → PASS
+  - `npx eslint src/features/consultants src/app/(app)/consultants/page.tsx` → PASS
+  - `npm run build` (local) → non joué (`next dev` concurrent) — **build de prod Vercel = gate** (cf. Lot 3).
+- **QA visuelle** : non réalisée — réservée à Guillaume.
+- **Commit** : _(SHA après push)_ — `refactor(consultants): chapitre Collaborateurs dans la feature + statut aligné (Lot 4)`.
+- **SHA final** : _(à renseigner après push)_.
+- **NEXT LOT** : Lot 5 — Migration Activités & congés.
 
 ### Lot 3 — Synthèse Desktop + Mobile — ✅ techniquement livré (2026-09-08)
 
