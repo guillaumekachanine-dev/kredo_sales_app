@@ -12,7 +12,7 @@ Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 9 — Absorption fonctionnelle Recruitment
 Lot courant              : —
 Prochain lot             : Lot 10 — Dépréciation /recruitment
-Dernier SHA connu origin/main : 5fadc96ef811e59265f97ae89098fb4923e5a5f4   (2026-09-08, baseline Lot 9)
+Dernier SHA connu origin/main : 16596041d22e6d6799089cb5245edb0e00dccd20   (2026-09-08, commit feat Lot 9)
 ```
 
 ## Table des lots
@@ -31,7 +31,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 6 | Migration Pool de compétences (`?section=pool-competences`) | ✅ techniquement livré | `2eb96035` | `git mv` → `src/features/consultants/skills/` + loader `data/get-consultants-skills.ts` + `<header>` retiré + route legacy → `permanentRedirect`. C-25. **NAV-2 résolu.** 3 consommateurs externes repointés. Gates verts (build → Vercel). |
 | 7 | Data Contract Candidats (candidate-centric) | ✅ techniquement livré | `767e6696` | `src/features/consultants/candidates/data/` : builder pur + loader + types + 11 tests ; `src/lib/recruitment/candidate-lifecycle.ts` (+ 4 tests). C-26. **DATA-4/6 + PRODUCT-2/3 résolus.** Dettes CAND-1/2/3. Aucune migration, aucune UI. Gates verts (build → Vercel). |
 | 8 | Page Candidats (Desktop + Mobile, inline edit) | ✅ techniquement livré | `84c7d8f1` | `src/features/consultants/candidates/` : `CandidatesDesktop` (`StructuredList` 7 col.) + `CandidatesMobile` (cartes) + `CandidateInlineControls` + `candidates-view` (+6 tests). C-27. **5/5 chapitres in-shell.** Drawers `CandidateDrawer`/`NewCandidateDrawer` réutilisés. `revalidatePath("/consultants")` sur 5 actions. Dette CAND-4 (positionnement inline). `/recruitment` intact. Gates verts (build → Vercel). |
-| 9 | Absorption fonctionnelle Recruitment (audit parité) | ✅ techniquement livré | `en cours` | Matrice parité 17/17. CAND-3 résolu (labels unifiés). CAND-4 tranché (C-28 option 1). LEGACY-2 confirmé orphelin. CandidatesKanbanDesktop (EntityKanbanView). Rapports + Agenda intégrés. Planning déprécié (heuristiques illégitimes C-08). |
+| 9 | Absorption fonctionnelle Recruitment (audit parité) | ✅ techniquement livré | `16596041` | Matrice parité 17/17. CAND-3 résolu (labels unifiés). CAND-4 tranché (C-28 option 1). LEGACY-2 confirmé orphelin. CandidatesKanbanDesktop (EntityKanbanView). Rapports + Agenda intégrés. Planning déprécié (heuristiques illégitimes C-08). |
 | 10 | Dépréciation `/recruitment` (redirect permanent) | ⬜ todo | — | Après parité Lot 9. Patron `prospection/page.tsx`. |
 | 11 | Module Production & Congés — Data | ⬜ todo | — | Résoudre DATA-5. Aucun calendrier fictif (C-08). |
 | 12 | Module Production & Congés — UI | ⬜ todo | — | Déclare le module dans `contextualModules`. |
@@ -223,8 +223,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npx eslint` (fichiers touchés) → **PASS**
   - `npm run build` → **PASS** (Turbopack, exit code 0, routes `/consultants` et `/recruitment` compilées sans erreur)
 - **QA visuelle** : réservée à Guillaume.
-- **Commit** : `feat(consultants): absorb recruitment capabilities and prove parity (Lot 9)`
-- **SHA final** : `<à renseigner après commit>`
+- **Commit** : `16596041` — `feat(consultants): absorb recruitment capabilities and prove parity (Lot 9)`
+- **SHA final** : `16596041d22e6d6799089cb5245edb0e00dccd20`
 - **NEXT LOT** : Lot 10 — Dépréciation `/recruitment` (redirection permanente vers `/consultants?section=candidats`).
 
 ### Lot 8 — Page Candidats — ✅ techniquement livré (2026-09-08)
