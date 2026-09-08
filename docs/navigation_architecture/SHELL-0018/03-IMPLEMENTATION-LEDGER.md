@@ -87,6 +87,7 @@ QA minimale :
 | **2.7** | Migration Prospection | ✅ techniquement livré | commit `9b13d84d` ; 15rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **3.1** | Standardisation des modules contextuels | ✅ techniquement livré | matrice exhaustive `05-CONTEXTUAL-MODULES-MATRIX.md` ; QA visuelle réservée à Guillaume |
+| **4.1** | URLisation Veille | ✅ techniquement livré | `?section=` Desktop ; état racine `news` sans paramètre ; commit `001a9e29` ; QA réelle réservée à Guillaume |
 | **4.x** | URLisation des navigations client-state restantes | ⬜ todo | après stabilisation du rail |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
@@ -829,7 +830,69 @@ BI, le déclenchement des callbacks, la conservation des clés/libellés et l'ab
 
 **Verdict Lot 3.1 : `techniquement livré`.**
 
-## 22. Prochaine étape
+## 22. Lot 4.1 — URLisation Veille & actualités
+
+### Contrat de navigation Desktop
+
+- l'ancien `useState<VeilleSection>("news")` a été supprimé de
+  `VeilleActualitesDesktop.tsx` ; le chapitre actif est désormais dérivé à chaque rendu de
+  `useSearchParams()` via le helper client-safe `parseVeilleSection()` ;
+- les changements de chapitre passent par `router.push()` et
+  `buildVeilleSectionHref(pathname, searchParams, nextSection)`, ce qui crée une entrée
+  d'historique et permet la restauration déterministe par deep-link, refresh, Back et Forward ;
+- le paramètre Desktop est `section`. Le paramètre `tab` n'a pas été réutilisé car il appartient
+  déjà au contrat Mobile `tab=veille` ; cette séparation évite toute collision Desktop/Mobile ;
+- mapping canonique :
+  - `/veille` → `news` → `Actualités` ;
+  - `/veille?section=watched-accounts` → `Veille ciblée` ;
+  - `/veille?section=strategic-analysis` → `Analyses` ;
+  - `/veille?section=history` → `Archives` ;
+- `section=news`, un paramètre absent et toute valeur inconnue sont lus comme `news`. Lors d'une
+  navigation normale vers `news`, le paramètre `section` est supprimé afin de conserver `/veille`
+  comme URL racine canonique ;
+- le builder part de `new URLSearchParams(searchParams.toString())` et ne modifie que `section`.
+  Tous les autres paramètres présents, dont `digestId`, `topic`, `tab`, `companyId` et tout futur
+  query param, sont donc préservés.
+
+### Archives, Mobile et modules contextuels
+
+- `HistorySection` ne reçoit plus `onOpenDigest` et ne déclenche plus de changement d'état local.
+  Son lien unique `/veille?digestId=...` omet naturellement `section`, donc ouvre le digest dans
+  le chapitre racine `news` sans double navigation `router.push` + `Link` ;
+- la `key={digest?.id ?? "veille-no-digest"}` de `VeilleActualitesPage` est conservée. Un remount
+  du lecteur Desktop reconstruit désormais le chapitre actif depuis l'URL ;
+- le contrat Mobile reste inchangé : branche serveur distincte, `initialMobileTab`,
+  `initialMobileCompanyId`, `tab=veille` et `companyId` n'ont pas été modifiés ;
+- le contrat du Lot 3.1 reste inchangé : `Gestion des sources` demeure conditionnée par
+  `onOpenSourceManagement` et `contextualModules` reste `undefined` sans module disponible ;
+- aucun loader, fetch, état métier/UI, composant Mobile, contrat `topic`/`digestId`, élément visuel,
+  accès Supabase, RPC, RLS, n8n ou tracking de run n'a été modifié.
+
+### Tests et gates
+
+Les tests ciblés couvrent le parsing de `undefined`, `null`, des quatre valeurs valides et d'une
+valeur inconnue ; la suppression de `section` pour `news` ; l'ajout des autres chapitres ; la
+préservation des paramètres existants ; l'état actif du `SectionRail` ; le titre de header ; le
+contrat structurel `useSearchParams()` + `router.push()` ; le lien Archives → Digest ; le remount
+par `key` ; ainsi que les invariants Mobile et modules contextuels.
+
+Gates exécutées dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** après mise à l'écart récupérable du cache `.next` périmé qui
+   contenait deux déclarations générées dupliquées ;
+2. `npm test -- src/components/veille/veille-desktop-contracts.test.ts src/components/layout/SectionRail.test.ts src/features/source-management/__tests__/source-management-components.test.ts src/components/veille/mobile/veille-mobile-view-models.test.ts` : **103/103 tests passés** ;
+3. `npm run check:server-boundary` : **passé** ;
+4. lint ciblé des trois fichiers applicatifs et de test modifiés : **passé sans erreur** ; trois
+   warnings préexistants et hors périmètre restent inchangés ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7, TypeScript et génération des 41 pages
+   statiques terminées avec succès.
+
+**QA visuelle, Back/Forward réel et ergonomique : non exécutés conformément à la consigne du lot ;
+validation réservée à Guillaume.**
+
+**Verdict Lot 4.1 : `techniquement livré`.**
+
+## 23. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant
 n'est commencé dans cette livraison.
