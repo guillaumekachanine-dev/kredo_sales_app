@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : cadré (Lot 0 livré)**
+> **Statut global : en cours (Lots 0-1 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,4 +51,6 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 1 — Socle Consultants Workspace** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 1).
+➡️ **Lot 2 — Data Contract Synthèse** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 2).
+
+Lot 1 livré : shell `/consultants` sur `SectionRail` V2, navigation `?section=` (`synthese` + `collaborateurs` in-shell), `SectionNavBarSlot` descendu dans `(tabbed)/layout.tsx`.

@@ -1,9 +1,12 @@
-import { SectionNavBarSlot } from "@/components/layout/SectionNavBarSlot"
-
-// Layout commun au module Équipe (consultants) :
-//   /consultants                  → Synthèse
-//   /consultants/pool-competences → Pool de compétences
-//   /consultants/activite-conges  → Activité & congés
+// Layout commun au module Consultants.
+//
+// SHELL-0018 V2 — chantier Consultants Workspace, Lot 1 :
+// la barre d'onglets horizontale (`SectionNavBarSlot`) est descendue dans
+// `(tabbed)/layout.tsx`. La page racine `/consultants` porte désormais le shell
+// Consultants (navigation secondaire verticale `SectionRail`), qui doublonnerait
+// la barre horizontale. Les sous-routes `(tabbed)` (Activités & congés, Pool de
+// compétences) conservent la barre via leur propre layout jusqu'à leur migration
+// vers `/consultants?section=…` (Lots 5-6).
 
 export default function ConsultantsLayout({
   children,
@@ -11,11 +14,8 @@ export default function ConsultantsLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <SectionNavBarSlot />
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {children}
-      </div>
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
     </div>
   )
 }

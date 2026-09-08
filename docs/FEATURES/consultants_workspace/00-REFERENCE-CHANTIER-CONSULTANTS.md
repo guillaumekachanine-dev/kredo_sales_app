@@ -655,6 +655,8 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 | **C-11** | Emplacement du code : **feature verticale `src/features/consultants/`** (convention KREDO récente), migration progressive sans big-bang. | Cohérence avec `business-intelligence`, `knowledge-hub`, etc. | Actée (Lot 0) |
 | **C-12** | Les **Server Actions recrutement existantes sont réutilisées / refactorées**, jamais dupliquées. | Une seule implémentation des mutations candidat/process/positionnement. | Actée (Lot 0) |
 | **C-13** | Le **contrat Mobile `getMobileTabsForPath()`** (groupe `/missions/opps` + `/recruitment`) est une dépendance protégée jusqu'à la migration Mobile explicite (Lots 9-10). | Règle SHELL-0018 D2-10 : Mobile protégé. | Actée (Lot 0) |
+| **C-14** | **Lot 1 — internalisation progressive** : seuls `synthese` et `collaborateurs` sont rendus dans le shell via `?section=` ; `activite-conges` / `candidats` / `pool-competences` restent des **liens directs** vers leur route existante (`external: true`) jusqu'à leur lot d'internalisation (5 / 8 / 6). | Les pages existantes portent leur propre `<h1>` (double-titre en slot) ; l'internalisation prématurée est le périmètre des Lots 5-8. Le socle de navigation est livrable sans réécriture métier. | Actée (Lot 1) |
+| **C-15** | **`SectionNavBarSlot` descendu** de `consultants/layout.tsx` vers `consultants/(tabbed)/layout.tsx` (patron `missions`). `main-menu.config.ts` et le Mobile restent intacts. | Éviter le doublon rail vertical + barre horizontale sur `/consultants` sans casser les sous-routes historiques ni le Mobile. Suppression globale de `SectionNavBar*` = SHELL-0018 Phase 6. | Actée (Lot 1) |
 
 ---
 
@@ -688,7 +690,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 
 | ID | Question | Lot cible |
 |---|---|---|
-| **NAV-1** | `?section=` confirmé comme contrat (vs pathname `/consultants/candidats`) après audit du code réel du Lot 1 ? | 1 |
+| ~~**NAV-1**~~ | ✅ **RÉSOLU (Lot 1)** — `?section=` confirmé comme contrat (patron Engagements `?vue=` transposé, aucun conflit dans le code réel). | 1 |
 | **NAV-2** | Redirections des routes historiques `/consultants/activite-conges` et `/consultants/pool-competences` : `redirect` serveur permanent vs temporaire, quand supprimer ? | 5-6 / 15 |
 | **NAV-3** | `/recruitment` : à quel moment exact la redirection permanente est-elle posée (parité prouvée Lot 9) et quand le module `main-menu` « Recrutement » disparaît-il (Lot 14, coord. SHELL-0018 Phase 6) ? | 10 / 14 |
 | **NAV-4** | Le module Consultants doit-il rejoindre le groupe `CRM` ou rester `Ressources` dans la taxonomie du menu principal SHELL-0018 Phase 6 ? | 14 |
@@ -697,7 +699,7 @@ comme décision (DECISION LOG) avant l'implémentation du Lot 13.**
 
 | ID | Question | Lot cible |
 |---|---|---|
-| **LEGACY-1** | `src/app/(app)/consultants/layout.tsx` monte `SectionNavBarSlot` — c'est exactement SHELL-0018 Phase 6 Lot 6.2. Le retrait se fait-il dans ce chantier (Lot 1) ou est-il délégué à SHELL-0018 ? (Proposition : retrait local au Lot 1, `SectionNavBarSlot`/`SectionNavBar` supprimés globalement par SHELL-0018.) | 1 / 14 |
+| ~~**LEGACY-1**~~ | ✅ **RÉSOLU (Lot 1)** — retrait local livré : `SectionNavBarSlot` descendu dans `(tabbed)/layout.tsx` (C-15). Suppression globale de `SectionNavBarSlot`/`SectionNavBar` + nettoyage `main-menu.config` = SHELL-0018 Phase 6 (Lot 14 en coordination). | 1 / 14 |
 | **LEGACY-2** | `dashboard/RecruitmentDesktopDashboard.tsx` + `RecruitmentMobileDashboard.tsx` : confirmer qu'ils sont morts (aucun import externe constaté) et les supprimer. | 9 / 15 |
 | **LEGACY-3** | `src/app/(app)/consultants/(tabbed)/layout.tsx` (passthrough neutre) : à supprimer une fois les deux sous-routes migrées. | 15 |
 | **LEGACY-4** | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status`, pas `collaborators.status` — divergence à réconcilier avec DATA-1. | 2 |
@@ -783,22 +785,27 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Conditions de sortie** : commit `docs(consultants): bootstrap Consultants Workspace roadmap` poussé sur `main`.
 - **Lot suivant** : Lot 1.
 
-### Lot 1 — Socle Consultants Workspace
+### Lot 1 — Socle Consultants Workspace — ✅ techniquement livré (2026-09-08)
 
-- **Objectif** : créer le nouveau shell `/consultants` conforme SHELL-0018 : `SectionRail` V2 inline, navigation URL-driven `?section=`, chapeau navy `Consultants`, header = chapitre actif, 5 chapitres, `contextualModules: undefined` (aucun module encore disponible).
-- **Prérequis** : Lot 0. Lire `EngagementsDesktopView.tsx` (modèle), `SectionRail.tsx`, `section-rail.ts`, `src/app/(app)/missions/page.tsx` (`pickView`).
-- **Data** : aucune refonte. Le loader Synthèse actuel (`collaborators` + `missions`) est **conservé tel quel** derrière le chapitre `synthese` provisoirement (ou déplacé vers `collaborateurs` — au choix du lot, documenté).
-- **Desktop** : `src/features/consultants/` — `index.tsx` (Server Component : parse `?section=`, `getDashboardDevice()`, distribue), `navigation/` (`SECTIONS`, `HEADER_TITLE_BY_SECTION`, `parseConsultantsSection`, `buildConsultantsSectionHref`), `desktop/ConsultantsDesktopShell.tsx` (rail inline + header + slot contenu).
-- **Mobile** : `mobile/ConsultantsMobileShell.tsx` — structure minimale (5 entrées), pas de design détaillé.
-- **Navigation** : `?section=` — `synthese` racine sans paramètre ; `router.push(build…Href(...), { scroll: false })`.
-- **Legacy** : retirer `SectionNavBarSlot` de `src/app/(app)/consultants/layout.tsx` (LEGACY-1) ; **ne pas** toucher `SectionNavBar` / `main-menu.config.ts` (délégué SHELL-0018 Phase 6). Les routes `(tabbed)/*` restent fonctionnelles.
-- **Fichiers probables** : `src/features/consultants/**`, `src/app/(app)/consultants/page.tsx`, `src/app/(app)/consultants/layout.tsx`.
-- **Hors périmètre** : nouvelle Synthèse, refonte candidats, modules, menu principal, Mobile détaillé.
-- **Critères d'acceptation** : les 5 chapitres naviguent via URL ; deep-link/refresh/back-forward OK ; header affiche le libellé exact ; rail = `11.5rem` ; chapeau navy centré ; aucun module rendu ; `SectionNavBarSlot` retiré du layout consultants ; Mobile non régressé (`getMobileTabsForPath` intact).
-- **Gates** : `typecheck` → `test` (ciblé `src/features/consultants/**` + `main-menu.config.test.ts` + `SectionRail.test.ts`) → `check:server-boundary` → `eslint` (fichiers touchés) → `build`.
-- **Documentation** : ledger (baseline, fichiers, décisions NAV-1/LEGACY-1, gates, commits) ; NAV-1 résolue ou maintenue OPEN avec justification.
-- **Conditions de sortie** : gates vertes, commit poussé, SHA au ledger, `NEXT LOT = Lot 2`.
-- **Lot suivant** : Lot 2.
+**Réalisé.** Détail d'exécution dans le ledger `01-IMPLEMENTATION-LEDGER.md` § « Lot 1 ».
+
+- **Objectif** : créer le nouveau shell `/consultants` conforme SHELL-0018 : `SectionRail` V2 inline, navigation URL-driven `?section=`, chapeau navy `Consultants`, header = chapitre actif, 5 chapitres, `contextualModules: undefined`.
+- **Livré** :
+  - `src/features/consultants/navigation/consultants-sections.ts` — `ConsultantsSection`, `CONSULTANTS_SECTIONS` (5 chapitres, ordre canonique), `HEADER_TITLE_BY_SECTION`, `parseConsultantsSection`, `buildConsultantsSectionHref`, `CONSULTANTS_IN_SHELL_SECTIONS`.
+  - `src/features/consultants/navigation/consultants-icons.tsx` — 5 icônes Heroicons v2 outline (patron `engagement-icons`).
+  - `src/features/consultants/desktop/ConsultantsDesktopShell.tsx` — `SectionRail` inline (patron `EngagementsDesktopView`), `useSidebarCollapse`, header = chapitre actif, aucun module.
+  - `src/features/consultants/mobile/ConsultantsMobileShell.tsx` — coquille minimale (couture serveur, pas de nav ajoutée).
+  - `src/features/consultants/data/get-consultants-team.ts` — loader `collaborators` + `missions` extrait de `page.tsx`, aucun filtre (DATA-1 reste au Lot 2).
+  - `src/app/(app)/consultants/page.tsx` — orchestrateur : `getDashboardDevice()` + `parseConsultantsSection(?section)` → shell + contenu de section.
+  - `src/app/(app)/consultants/layout.tsx` — `SectionNavBarSlot` retiré.
+  - `src/app/(app)/consultants/(tabbed)/layout.tsx` — `SectionNavBarSlot` ajouté (descendu ici, patron `missions`).
+  - `src/features/consultants/navigation/consultants-sections.test.ts` — 18 tests (parse/build, contrat des 5 chapitres, rendu shell SHELL-0018, invariants de code).
+- **Décision de périmètre (C-14)** : seuls `synthese` et `collaborateurs` sont rendus dans le shell via `?section=` ; `activite-conges`, `candidats`, `pool-competences` restent des **liens directs** vers leur route existante (`external: true` dans `CONSULTANTS_SECTIONS`), internalisés à leur lot (5, 8, 6). Motif : les pages existantes portent leur propre `<h1>` (double-titre en slot) et l'internalisation prématurée est exactement le périmètre des Lots 5-8.
+- **Décision legacy (C-15)** : `SectionNavBarSlot` descendu de `layout.tsx` vers `(tabbed)/layout.tsx` (patron `missions`). `main-menu.config.ts` **intact**, Mobile **intact** (`getMobileTabsForPath` non modifié). La suppression globale de `SectionNavBar*` reste SHELL-0018 Phase 6.
+- **Transitoire assumé** : `synthese` et `collaborateurs` rendent la même vue jusqu'aux Lots 3 (nouvelle Synthèse) + 4 (foyer canonique du tableau) ; dual-paradigme desktop `/consultants` (rail vertical) vs `/consultants/activite-conges` (barre horizontale legacy) — identique à la dette `missions/(tabbed)`, résorbé Lots 5-6.
+- **OPEN QUESTIONS résolues** : NAV-1 (contrat `?section=` confirmé, patron Engagements `?vue=` transposé) ; LEGACY-1 (retrait local livré ; global = SHELL-0018 Phase 6).
+- **Gates exécutées** : `typecheck` ✅ · `npm test` **complet** ✅ (257 fichiers / 2605 tests) · `check:server-boundary` ✅ · `eslint` fichiers touchés ✅ · `build` ✅. QA visuelle : réservée à Guillaume.
+- **NEXT LOT** : Lot 2 — Data Contract Synthèse.
 
 ### Lot 2 — Data Contract Synthèse
 
@@ -829,6 +836,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 ### Lot 4 — Migration Collaborateurs
 
+- **État après Lot 1** : `?section=collaborateurs` existe déjà et rend le tableau actuel (`ConsultantsSyntheseDesktop`, loader `get-consultants-team.ts`) — **identique à `synthese`**. Lot 4 = en faire le foyer canonique (contenu propre, header "Collaborateurs"), retirer la duplication avec `synthese` une fois le Lot 3 livré, brancher le contrat de statut du Lot 2.
 - **Objectif** : déplacer / réutiliser le tableau collaborateurs existant vers `?section=collaborateurs`, capacités préservées (drawer profil, tri, filtres, colonnes).
 - **Prérequis** : Lot 1 (Lot 3 recommandé pour cohérence visuelle).
 - **Data** : loader `collaborators` + `missions` existant — extrait vers `src/features/consultants/data/`, aligné sur le contrat de statut du Lot 2.
@@ -842,10 +850,11 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 ### Lot 5 — Migration Activités & congés
 
+- **État après Lot 1** : le chapitre `activite-conges` est un **lien direct** (`external: true`) vers `/consultants/activite-conges`, qui garde sa barre horizontale via `(tabbed)/layout.tsx`. Lot 5 = passer `external: false`, contrat `?section=activite-conges`, extraire le loader, traiter le `<header>` interne du composant (double-titre), rediriger la route legacy.
 - **Objectif** : absorber `src/app/(app)/consultants/(tabbed)/activite-conges/` dans `?section=activite-conges`, contenu fonctionnel conservé.
 - **Prérequis** : Lot 1.
 - **Data** : extraire le loader inline (6 lectures) vers `src/features/consultants/data/`.
-- **Desktop / Mobile** : `ConsultantsActivityDashboard` réutilisé. Auditer le besoin d'une vraie branche Mobile (aujourd'hui pas de `getDashboardDevice()` sur cette page).
+- **Desktop / Mobile** : `ConsultantsActivityDashboard` réutilisé — **retirer son `<header>`/`<h1>` interne** (le shell fournit le header). Auditer le besoin d'une vraie branche Mobile (aujourd'hui pas de `getDashboardDevice()` sur cette page).
 - **Navigation** : redirection `/consultants/activite-conges` → `/consultants?section=activite-conges` (NAV-2).
 - **Fichiers probables** : `src/features/consultants/activity/**`, `src/app/(app)/consultants/(tabbed)/activite-conges/page.tsx` (→ redirect ou suppression différée Lot 15).
 - **Hors périmètre** : recalcul métier, module Production & Congés.
@@ -855,10 +864,11 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 ### Lot 6 — Migration Pool de compétences
 
+- **État après Lot 1** : chapitre `pool-competences` = **lien direct** (`external: true`) vers `/consultants/pool-competences` (barre horizontale conservée). Lot 6 = `external: false`, contrat `?section=`, loader extrait, `<header>`/`<h1>` interne de `PoolCompetencesMap` retiré, route legacy redirigée.
 - **Objectif** : absorber `.../pool-competences/` dans `?section=pool-competences` sans refonte métier.
 - **Prérequis** : Lot 1.
 - **Data** : loader inline (référentiels cachés + `person_skills` + `opportunity_skills`) extrait ; `buildPoolCompetencesDataset` inchangé.
-- **Desktop / Mobile** : `PoolCompetencesMap` + composants réutilisés.
+- **Desktop / Mobile** : `PoolCompetencesMap` + composants réutilisés (retirer le `<header>` interne).
 - **Navigation** : redirection `/consultants/pool-competences` → `?section=pool-competences`.
 - **Fichiers probables** : `src/features/consultants/skills/**`, composants déplacés.
 - **Critères d'acceptation** : parité ; ancien chemin redirige ; header = `Pool de compétences`.
@@ -880,6 +890,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 ### Lot 8 — Page Candidats
 
+- **État après Lot 1** : chapitre `candidats` = **lien direct** (`external: true`) vers `/recruitment` (module inchangé). Lot 8 = `external: false`, contrat `?section=candidats`, rendu in-shell candidate-centric (view-model Lot 7).
 - **Objectif** : construire le chapitre Candidats — tableau Desktop, cartes Mobile, filtres, édition inline process/statut, prochaine action, ouverture détail candidat.
 - **Prérequis** : Lot 7.
 - **Data** : view-model du Lot 7.

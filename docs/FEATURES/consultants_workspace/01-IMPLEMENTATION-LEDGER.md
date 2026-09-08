@@ -6,13 +6,13 @@
 
 ```
 Chantier                 : Consultants Workspace
-Statut global            : cadré
+Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 0 — Cadrage documentaire (SHA 4f9fbba1ca0a5ad22da39631af5f7775cfba0f21)
+Dernier lot livré        : Lot 1 — Socle Consultants Workspace
 Lot courant              : —
-Prochain lot             : Lot 1 — Socle Consultants Workspace
-Dernier SHA connu origin/main : 4f9fbba1ca0a5ad22da39631af5f7775cfba0f21   (2026-09-08, après commit Lot 0)
+Prochain lot             : Lot 2 — Data Contract Synthèse
+Dernier SHA connu origin/main : 3f522358   (2026-09-08, après commit Lot 0 ; SHA Lot 1 renseigné plus bas après push)
 ```
 
 ## Table des lots
@@ -23,7 +23,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | Lot | Objet | Statut | Commit | Notes |
 |---|---|---|---|---|
 | 0 | Cadrage documentaire | ✅ techniquement livré | `4f9fbba1` | Dossier + doc de référence + ledger + inventaire + roadmap 0→15 + DECISION LOG C-01→C-13 + 20 OPEN QUESTIONS. Aucun code applicatif. |
-| 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` retiré du layout consultants) | ⬜ todo | — | Modèle : `EngagementsDesktopView.tsx`. Résoudre NAV-1, LEGACY-1. |
+| 1 | Socle Consultants Workspace (rail V2 `SectionRail`, `?section=`, header, 5 chapitres, `SectionNavBarSlot` descendu) | ✅ techniquement livré | _(SHA après push)_ | `src/features/consultants/{navigation,desktop,mobile,data}`. C-14 (2 sections in-shell), C-15 (`SectionNavBarSlot` → `(tabbed)/layout`). NAV-1 + LEGACY-1 résolues. `npm test` complet vert. |
 | 2 | Data Contract Synthèse | ⬜ todo | — | Résoudre DATA-1/2/3/7. Migration éventuelle → sous-lot 2.x. |
 | 3 | Synthèse Desktop + Mobile | ⬜ todo | — | SVG maison, zéro librairie graphique. |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ⬜ todo | — | MOVE + REUSE `ConsultantsSynthese{Desktop,Mobile}`. |
@@ -56,6 +56,8 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-11 | Code en feature verticale `src/features/consultants/`, migration progressive | 0 |
 | C-12 | Server actions recrutement réutilisées/refactorées, jamais dupliquées | 0 |
 | C-13 | Contrat Mobile `getMobileTabsForPath()` protégé jusqu'à migration Mobile (Lots 9-10) | 0 |
+| C-14 | Lot 1 : seuls `synthese` + `collaborateurs` rendus in-shell (`?section=`) ; `activite-conges`/`candidats`/`pool-competences` = liens directs jusqu'aux Lots 5/8/6 | 1 |
+| C-15 | `SectionNavBarSlot` descendu de `consultants/layout.tsx` → `consultants/(tabbed)/layout.tsx` (patron `missions`) ; `main-menu.config` + Mobile intacts | 1 |
 
 ## Questions ouvertes en cours
 
@@ -74,11 +76,11 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | PRODUCT-2 | « Prochaine action » pour un candidat sans opportunité active | 7 | ouverte |
 | PRODUCT-3 | Valeurs métier du sélecteur lifecycle candidat en UI | 7-8 | ouverte |
 | PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ouverte |
-| NAV-1 | `?section=` confirmé vs pathname après audit code réel Lot 1 | 1 | ouverte |
+| NAV-1 | `?section=` confirmé vs pathname après audit code réel Lot 1 | 1 | ✅ résolue (Lot 1) |
 | NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ouverte |
 | NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ouverte |
 | NAV-4 | Consultants sous `CRM` ou `Ressources` dans SHELL-0018 Phase 6 | 14 | ouverte |
-| LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ouverte |
+| LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; global = Phase 6) |
 | LEGACY-2 | `components/recruitment/dashboard/*` morts — confirmer et supprimer | 9 / 15 | ouverte |
 | LEGACY-3 | `consultants/(tabbed)/layout.tsx` passthrough — supprimer après migration | 15 | ouverte |
 | LEGACY-4 | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — réconcilier avec DATA-1 | 2 | ouverte |
@@ -126,10 +128,44 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | Planning journalier de production | Absent en base (agrégats mensuels seulement) | 11 |
 | Divergence statut collaborateur | `ConsultantsSyntheseDesktop` ignore `collaborators.status` | 2 |
 | `activite-conges` sans branche Mobile serveur | Pas de `getDashboardDevice()` sur la page | 5 |
-| `SectionNavBarSlot` sur `/consultants/layout.tsx` | = SHELL-0018 Phase 6 Lot 6.2 | 1 / 14 |
+| ~~`SectionNavBarSlot` sur `/consultants/layout.tsx`~~ | Résolu Lot 1 (descendu dans `(tabbed)/layout.tsx`). Suppression globale `SectionNavBar*` = SHELL-0018 Phase 6 | 14 |
 | Routes `(tabbed)` consultants | À rediriger puis supprimer | 5-6 / 15 |
+| `synthese` ≈ `collaborateurs` (Lot 1) | Les deux chapitres in-shell rendent la même vue jusqu'aux Lots 3 + 4 | 3 / 4 |
+| Dual-paradigme desktop (Lot 1) | `/consultants` (rail vertical) vs `/consultants/activite-conges` (barre horizontale legacy) — identique à la dette `missions/(tabbed)` | 5-6 |
+| `<header>`/`<h1>` internes des composants legacy | `ConsultantsActivityDashboard` + `PoolCompetencesMap` self-headers → double-titre si mis en slot | 5 / 6 |
+| `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Lot 1 — Socle Consultants Workspace — ✅ techniquement livré (2026-09-08)
+
+- **Baseline** : `3f522358` (`main` = `origin/main`, `git merge --ff-only` — rien à intégrer).
+- **Objectif** : shell `/consultants` conforme SHELL-0018 — `SectionRail` V2 inline, navigation `?section=`, chapeau navy `Consultants`, header = chapitre actif, 5 chapitres, aucun module contextuel.
+- **Fichiers créés** :
+  - `src/features/consultants/navigation/consultants-sections.ts`
+  - `src/features/consultants/navigation/consultants-icons.tsx`
+  - `src/features/consultants/desktop/ConsultantsDesktopShell.tsx`
+  - `src/features/consultants/mobile/ConsultantsMobileShell.tsx`
+  - `src/features/consultants/data/get-consultants-team.ts`
+  - `src/features/consultants/navigation/consultants-sections.test.ts` (18 tests)
+- **Fichiers modifiés** :
+  - `src/app/(app)/consultants/page.tsx` — réécrit en orchestrateur (device + `?section=` → shell + contenu).
+  - `src/app/(app)/consultants/layout.tsx` — `SectionNavBarSlot` retiré.
+  - `src/app/(app)/consultants/(tabbed)/layout.tsx` — `SectionNavBarSlot` ajouté (patron `missions`).
+- **Décisions** : C-14 (2 sections in-shell : `synthese` + `collaborateurs` ; les 3 autres = liens directs `external: true` vers leur route actuelle, internalisées Lots 5/8/6) ; C-15 (`SectionNavBarSlot` descendu ; `main-menu.config.ts` et Mobile intacts).
+- **Écart vs fiche Lot 0** : la fiche envisageait « les 5 chapitres in-shell ». L'audit du code réel a montré que `ConsultantsActivityDashboard` et `PoolCompetencesMap` portent leur propre `<header>`/`<h1>` (double-titre en slot) et que le contenu candidate-centric n'existe pas encore → internalisation reportée aux lots dédiés (C-14). Consigné avant modification.
+- **Invariants protégés** : `main-menu.config.ts` non touché ; `getMobileTabsForPath` non touché ; routes `(tabbed)` fonctionnelles (barre horizontale conservée) ; primitive `SectionRail` non modifiée ; branche serveur `getDashboardDevice()` conservée.
+- **Gates exécutées** :
+  - `npm run typecheck` → PASS
+  - `npm test` (**suite complète**) → PASS (257 fichiers / 2605 tests)
+  - `npm run check:server-boundary` → PASS
+  - `npx eslint` (fichiers touchés) → PASS
+  - `npm run build` → PASS (routes `/consultants`, `/consultants/activite-conges`, `/consultants/pool-competences` compilées)
+- **QA visuelle** : non réalisée — réservée à Guillaume.
+- **Limites / transitoire** : `synthese` et `collaborateurs` rendent la même vue (résorbé Lots 3-4) ; dual-paradigme desktop `/consultants` vs `/consultants/(tabbed)` (résorbé Lots 5-6). Voir « Dettes connues ».
+- **Commit** : _(SHA après push)_ — `feat(consultants): shell /consultants sur SectionRail V2 (Lot 1)`.
+- **SHA final** : _(à renseigner après push)_.
+- **NEXT LOT** : Lot 2 — Data Contract Synthèse.
 
 ### Lot 0 — Cadrage documentaire — ✅ techniquement livré (2026-09-08)
 
