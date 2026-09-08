@@ -12,7 +12,7 @@ Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 6 — Migration Pool de compétences
 Lot courant              : —
 Prochain lot             : Lot 7 — Data Contract Candidats
-Dernier SHA connu origin/main : <SHA Lot 6 doc-commit>   (2026-09-08, après commit Lot 6)
+Dernier SHA connu origin/main : 2eb96035f6f12eeee7df70e842fbe5605303ae99   (2026-09-08, commit refactor Lot 6 ; doc-commit SHA suit)
 ```
 
 ## Table des lots
@@ -28,7 +28,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 3 | Synthèse Desktop + Mobile | ✅ techniquement livré + **déployé prod** | `f4b66b3e` | `src/features/consultants/{desktop,mobile}/synthese/` : KPI + 2 graphiques (SVG maison / barres HTML) + 2 tableaux + `dataNotes`. C-21/C-22. Gates verts ; **build de prod Vercel `READY`** (`7724d800` = déploiement courant `kredo-green.vercel.app`). |
 | 4 | Migration Collaborateurs (`?section=collaborateurs`) | ✅ techniquement livré | `3296d8ea` | `src/features/consultants/collaborators/` : `CollaboratorsDesktop`/`Mobile` + `collaborators.types` + 4 tests. C-23 / **LEGACY-4 résolu** (statut ⇐ `collaborators.status`) ; loader filtre `sorti`. `components/consultants/synthese/` supprimé. Gates verts (build → Vercel). |
 | 5 | Migration Activités & congés (`?section=activite-conges`) | ✅ techniquement livré | `e88500b6` | `src/features/consultants/activity/` (`ActivityDashboard` + types + loader) + 8 tests. C-24 : `<h1>` retiré, route legacy → `permanentRedirect`, pas de Mobile dédié (dette PRODUCT-4). Gates verts (build → Vercel). |
-| 6 | Migration Pool de compétences (`?section=pool-competences`) | ✅ techniquement livré | `<SHA Lot 6>` | `git mv` → `src/features/consultants/skills/` + loader `data/get-consultants-skills.ts` + `<header>` retiré + route legacy → `permanentRedirect`. C-25. **NAV-2 résolu.** 3 consommateurs externes repointés. Gates verts (build → Vercel). |
+| 6 | Migration Pool de compétences (`?section=pool-competences`) | ✅ techniquement livré | `2eb96035` | `git mv` → `src/features/consultants/skills/` + loader `data/get-consultants-skills.ts` + `<header>` retiré + route legacy → `permanentRedirect`. C-25. **NAV-2 résolu.** 3 consommateurs externes repointés. Gates verts (build → Vercel). |
 | 7 | Data Contract Candidats (candidate-centric) | ⬜ todo | — | Résoudre DATA-4/6, PRODUCT-2/3. Backfill → sous-lot 7.x. |
 | 8 | Page Candidats (Desktop + Mobile, inline edit) | ⬜ todo | — | Réutiliser server actions recrutement (jamais dupliquer). |
 | 9 | Absorption fonctionnelle Recruitment (audit parité) | ⬜ todo | — | Rapport de parité au ledger. Confirmer LEGACY-2. |
@@ -182,8 +182,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   - `npm run build` (local) → **non joué** (`next dev` concurrent). **Build de prod Vercel = gate.**
 - **⚠️ Travail parallèle** : le commit contient aussi `55d637ee` (cockpit mobile v2 + veille + `design-qa.md`) — décision explicite de Guillaume de le pousser avec le Lot 6. Le WIP restant non suivi (`design-lab/*`) n'est **pas** stagé.
 - **QA visuelle** : réservée à Guillaume.
-- **Commit** : `<SHA Lot 6>` — `refactor(consultants): chapitre Pool de compétences internalisé (Lot 6)`.
-- **SHA final** : `<SHA Lot 6>`.
+- **Commit** : `2eb96035` — `refactor(consultants): chapitre Pool de compétences internalisé (Lot 6)`.
+- **SHA final** : `2eb96035`.
 - **NEXT LOT** : Lot 7 — Data Contract Candidats.
 
 ### Lot 5 — Migration Activités & congés — ✅ techniquement livré (2026-09-08)
