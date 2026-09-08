@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useRef } from "react"
 import dynamic from "next/dynamic"
 import type { CockpitMobileSnapshot } from "@/lib/cockpit/mobile/cockpit-mobile-snapshot-types"
-import type { CockpitModuleId } from "./CockpitMobileModuleGrid"
+import type { CockpitModuleId } from "./cockpit-mobile-module-types"
 
 function ModuleLoading() {
   return <p className="cockpit-sheet-empty" role="status">Chargement du module…</p>
@@ -20,9 +20,6 @@ const CockpitOpportunitiesModule = dynamic(() => (
 ), { loading: ModuleLoading })
 const CockpitWeeklyBriefModule = dynamic(() => (
   import("./CockpitWeeklyBriefModule").then((module) => module.CockpitWeeklyBriefModule)
-), { loading: ModuleLoading })
-const CockpitDiagnosticModule = dynamic(() => (
-  import("./CockpitDiagnosticModule").then((module) => module.CockpitDiagnosticModule)
 ), { loading: ModuleLoading })
 const CockpitSignalsModule = dynamic(() => (
   import("./CockpitSignalsModule").then((module) => module.CockpitSignalsModule)
@@ -43,7 +40,6 @@ const MODULE_TITLES: Record<CockpitModuleId, string> = {
   meetings: "Mes RDV",
   opportunities: "Opportunités",
   weeklyBrief: "Brief hebdo",
-  diagnostic: "Diagnostic IA",
   signals: "Signaux",
 }
 
@@ -68,10 +64,6 @@ function ModuleContent({ module, snapshot, onComposerOpen, onOpenModule }: Pick<
 
   if (module === "weeklyBrief") {
     return <CockpitWeeklyBriefModule snapshot={snapshot} onOpenPriorities={() => onOpenModule("priorities")} />
-  }
-
-  if (module === "diagnostic") {
-    return <CockpitDiagnosticModule snapshot={snapshot} />
   }
 
   return <CockpitSignalsModule snapshot={snapshot} onComposerOpen={onComposerOpen} />
@@ -133,7 +125,6 @@ export function MobileCockpitModuleSheet({ module, snapshot, onClose, returnFocu
         aria-labelledby={titleId}
         className="cockpit-module-sheet"
         data-suspended={suspended || undefined}
-        data-theme={module === "diagnostic" ? "intelligence-reports" : undefined}
       >
         <header className="cockpit-module-sheet__header">
           <h2 id={titleId}>{MODULE_TITLES[module]}</h2>

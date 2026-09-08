@@ -69,6 +69,15 @@ export interface CockpitSignalItem {
   sourceUrl: string | null
 }
 
+export interface CockpitNewsItem {
+  id: string
+  kind: "account_signal" | "digest" | "analysis"
+  title: string
+  occurredAt: string
+  contextLabel: string | null
+  href: string | null
+}
+
 export interface CockpitMobileSnapshot {
   generatedAt: string
 
@@ -87,6 +96,7 @@ export interface CockpitMobileSnapshot {
 
   meetings: {
     items: CockpitMeetingItem[]
+    todayItems: CockpitMeetingItem[]
     weekCount: number
     nextMeetingLabel: string | null
   }
@@ -98,11 +108,16 @@ export interface CockpitMobileSnapshot {
   }
 
   weeklyBrief: WeeklyManagerContent | null
+  /** Conservé pour le module diagnostic historique, sans chargement dans la homepage. */
   diagnostic: WorkspaceDiagnosticSnapshot | null
 
   signals: {
     items: CockpitSignalItem[]
     strongCount: number
     totalAvailableCount: number
+  }
+
+  news: {
+    items: CockpitNewsItem[]
   }
 }

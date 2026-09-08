@@ -5,12 +5,12 @@ import type { WeeklyManagerContent } from "@/app/(app)/reports/_data/reports-typ
 import { loadAgendaSnapshot } from "@/lib/agenda/aggregate-agenda-snapshot"
 import { AGENDA_V1_TIMEZONE } from "@/lib/agenda/agenda-thresholds"
 import type { ScheduledEventItem } from "@/lib/agenda/agenda-types"
-import { getWorkspaceDiagnostic } from "@/lib/intelligence/diagnostic/get-workspace-diagnostic"
 import { OPPORTUNITY_ACTIVE_STAGES } from "@/lib/opportunities/stages"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserId, resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import type { Database } from "@/types/database"
 import {
+  COCKPIT_MOBILE_NEWS_LIMIT,
   COCKPIT_MOBILE_OPPORTUNITY_LIMIT,
   COCKPIT_MOBILE_SIGNAL_LIMIT,
   COCKPIT_STRONG_SIGNAL_THRESHOLD,
@@ -18,17 +18,20 @@ import {
   getCockpitPriorityKey,
   getNextMeetingLabel,
   selectCockpitOpportunities,
+  selectCockpitNewsItems,
   selectCockpitPriorities,
   selectCockpitSignals,
   selectCockpitUrgencies,
   selectCommercialMeetings,
   selectTodayEvents,
+  selectTodayCommercialMeetings,
   sortCockpitOpportunitySources,
   type CockpitOpportunitySource,
   type CockpitSignalSource,
 } from "./cockpit-mobile-selectors"
 import type {
   CockpitMobileSnapshot,
+  CockpitNewsItem,
   CockpitOpportunityItem,
   CockpitSignalItem,
 } from "./cockpit-mobile-snapshot-types"
@@ -95,6 +98,26 @@ type VeilleArticleRow = {
   url: string
 }
 
+type NewsAccountSignalRow = {
+  id: string
+  title: string
+  last_evidence_at: string
+  company_id: string
+  company: { id: string; name: string } | Array<{ id: string; name: string }> | null
+}
+
+type VeilleDigestNewsRow = {
+  id: string
+  titre_digest: string
+  digest_date: string
+}
+
+type StrategicWatchAnalysisNewsRow = {
+  id: string
+  title: string
+  created_at: string
+}
+
 type OpportunitiesBundle = {
   items: CockpitOpportunityItem[]
   overdueNextStepCount: number
@@ -105,6 +128,10 @@ type SignalsBundle = {
   items: CockpitSignalItem[]
   strongCount: number
   totalAvailableCount: number
+}
+
+type NewsBundle = {
+  items: CockpitNewsItem[]
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -508,6 +535,76 @@ async function loadSignals(
   }
 }
 
+async function loadNews(
+  supabase: ServerSupabaseClient,
+  workspaceId: string,
+  now: string,
+): Promise<NewsBundle> {
+  const activeFilter = `expires_at.is.null,expires_at.gt.${now}`
+  const [signalsResult, digestResult, analysisResult] = await Promise.all([
+    supabase
+      .from("account_signals")
+      .select("id,title,last_evidence_at,company_id,company:companies!inner(id,name)")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "new")
+      .or(activeFilter)
+      .order("last_evidence_at", { ascending: false })
+      .limit(COCKPIT_MOBILE_NEWS_LIMIT),
+    supabase
+      .from("veille_digests")
+      .select("id,titre_digest,digest_date")
+      .eq("workspace_id", workspaceId)
+      .order("digest_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("intelligence_documents")
+      .select("id,title,created_at")
+      .eq("workspace_id", workspaceId)
+      .eq("document_type", "strategic_watch_analysis")
+      .neq("status", "archived")
+      .order("created_at", { ascending: false })
+      .limit(1),
+  ])
+
+  if (signalsResult.error) console.error("[cockpit-mobile] news signals query failed", signalsResult.error.message)
+  if (digestResult.error) console.error("[cockpit-mobile] news digest query failed", digestResult.error.message)
+  if (analysisResult.error) console.error("[cockpit-mobile] news analysis query failed", analysisResult.error.message)
+
+  const signalItems: CockpitNewsItem[] = ((signalsResult.data ?? []) as unknown as NewsAccountSignalRow[])
+    .map((signal) => {
+      const company = firstRelation(signal.company)
+      return {
+        id: signal.id,
+        kind: "account_signal",
+        title: signal.title,
+        occurredAt: signal.last_evidence_at,
+        contextLabel: company?.name ?? null,
+        href: company?.id ?? signal.company_id ? `/prospection/accounts/${company?.id ?? signal.company_id}` : null,
+      }
+    })
+  const digestItems: CockpitNewsItem[] = ((digestResult.data ?? []) as VeilleDigestNewsRow[])
+    .map((digest) => ({
+      id: digest.id,
+      kind: "digest",
+      title: digest.titre_digest,
+      occurredAt: digest.digest_date,
+      contextLabel: "Veille hebdomadaire",
+      href: `/veille?digestId=${digest.id}`,
+    }))
+  const analysisItems: CockpitNewsItem[] = ((analysisResult.data ?? []) as StrategicWatchAnalysisNewsRow[])
+    .map((analysis) => ({
+      id: analysis.id,
+      kind: "analysis",
+      title: analysis.title,
+      occurredAt: analysis.created_at,
+      contextLabel: "Analyse de veille",
+      href: `/veille?tab=analyses&analysisId=${analysis.id}`,
+    }))
+
+  return { items: selectCockpitNewsItems([...signalItems, ...digestItems, ...analysisItems]) }
+}
+
 export async function getCockpitMobileSnapshot(): Promise<CockpitMobileSnapshot | null> {
   const workspaceId = await resolveCurrentWorkspaceId()
   const userId = await getCurrentUserId()
@@ -524,14 +621,14 @@ export async function getCockpitMobileSnapshot(): Promise<CockpitMobileSnapshot 
     dismissedPriorityKeys,
     opportunities,
     signals,
-    diagnostic,
+    news,
   ] = await Promise.all([
     loadScheduledEvents(userId, generatedAt, week.from, week.to),
     loadLatestWeeklyBrief(supabase, workspaceId, userId),
     loadDismissedPriorityKeys(supabase, workspaceId, userId, week.weekIso),
     loadOpportunities(supabase, workspaceId, userId, generatedAt, week.to),
     loadSignals(supabase, workspaceId, generatedAt),
-    getWorkspaceDiagnostic(),
+    loadNews(supabase, workspaceId, generatedAt),
   ])
 
   const priorities = selectCockpitPriorities(
@@ -541,6 +638,7 @@ export async function getCockpitMobileSnapshot(): Promise<CockpitMobileSnapshot 
   const urgencies = selectCockpitUrgencies(priorities)
   const todayEvents = selectTodayEvents(scheduledEvents, week.todayDateKey)
   const meetings = selectCommercialMeetings(scheduledEvents)
+  const todayMeetings = selectTodayCommercialMeetings(scheduledEvents, week.todayDateKey)
 
   return {
     generatedAt,
@@ -557,12 +655,14 @@ export async function getCockpitMobileSnapshot(): Promise<CockpitMobileSnapshot 
     },
     meetings: {
       items: meetings,
+      todayItems: todayMeetings,
       weekCount: meetings.length,
       nextMeetingLabel: getNextMeetingLabel(meetings, generatedAt),
     },
     opportunities,
     weeklyBrief,
-    diagnostic,
+    diagnostic: null,
     signals,
+    news,
   }
 }

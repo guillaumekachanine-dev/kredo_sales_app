@@ -23,6 +23,7 @@ import { getIsoWeekLabel } from "@/lib/reports/weekly-manager/iso-week"
 import { isOpenOpportunityStage } from "@/lib/opportunities/stages"
 import type {
   CockpitMeetingItem,
+  CockpitNewsItem,
   CockpitOpportunityCoverageStatus,
   CockpitOpportunityItem,
   CockpitPriorityItem,
@@ -32,6 +33,7 @@ import type {
 
 export const COCKPIT_MOBILE_SIGNAL_LIMIT = 3
 export const COCKPIT_MOBILE_OPPORTUNITY_LIMIT = 6
+export const COCKPIT_MOBILE_NEWS_LIMIT = 5
 export const COCKPIT_STRONG_SIGNAL_THRESHOLD = 0.7
 
 const COMMERCIAL_MEETING_EVENT_TYPES = new Set([
@@ -194,6 +196,49 @@ export function selectCommercialMeetings(events: ScheduledEventItem[]): CockpitM
       opportunityId: event.opportunityId ?? null,
       opportunityTitle: event.opportunityTitle ?? null,
     }))
+}
+
+export function selectTodayCommercialMeetings(
+  events: ScheduledEventItem[],
+  todayDateKey: string,
+  timezone = AGENDA_V1_TIMEZONE,
+): CockpitMeetingItem[] {
+  return events
+    .filter(isVisibleCalendarEvent)
+    .filter((event) => isCommercialMeetingEventType(event.eventType))
+    .filter((event) => {
+      const range = getAgendaTimeboxDateRange(event.timebox, timezone)
+      return todayDateKey >= range.startDate && todayDateKey <= range.endDate
+    })
+    .sort((left, right) => (
+      compareTimestampValues(
+        timestamp(getAgendaTimeboxPrimaryAt(left.timebox)),
+        timestamp(getAgendaTimeboxPrimaryAt(right.timebox)),
+      )
+      || left.sourceId.localeCompare(right.sourceId)
+    ))
+    .map((event) => ({
+      ...mapBaseCalendarEvent(event),
+      location: event.location ?? null,
+      meetingUrl: event.meetingUrl ?? null,
+      contactId: event.contactId ?? null,
+      contactName: event.contactName ?? null,
+      opportunityId: event.opportunityId ?? null,
+      opportunityTitle: event.opportunityTitle ?? null,
+    }))
+}
+
+export function selectCockpitNewsItems(
+  items: CockpitNewsItem[],
+  limit = COCKPIT_MOBILE_NEWS_LIMIT,
+): CockpitNewsItem[] {
+  return items
+    .toSorted((left, right) => (
+      compareTimestampValues(timestamp(right.occurredAt), timestamp(left.occurredAt))
+      || left.kind.localeCompare(right.kind)
+      || left.id.localeCompare(right.id)
+    ))
+    .slice(0, limit)
 }
 
 export function groupCockpitMeetingsByDay(meetings: CockpitMeetingItem[]) {

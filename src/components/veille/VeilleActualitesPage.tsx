@@ -44,7 +44,8 @@ interface VeilleActualitesPageProps {
   analysisHistory: StrategicWatchAnalysis[]
   monthlyGeneration: MonthlyWatchGenerationContext
   sourceManagementSnapshot: SourceManagementSnapshot
-  initialMobileTab?: "veille"
+  initialMobileTab?: "veille" | "analyses"
+  initialMobileAnalysisId?: string
   initialMobileCompanyId?: string
 }
 
@@ -72,6 +73,7 @@ export function VeilleActualitesPage({
   monthlyGeneration,
   sourceManagementSnapshot,
   initialMobileTab,
+  initialMobileAnalysisId,
   initialMobileCompanyId,
 }: VeilleActualitesPageProps) {
   const resolvedLaunchOptions: DigestLaunchOptions = launchOptions ?? {
@@ -98,6 +100,7 @@ export function VeilleActualitesPage({
         sourceManagementSnapshot={sourceManagementSnapshot}
         initialTab={initialMobileTab}
         initialCompanyId={initialMobileCompanyId}
+        initialAnalysisId={initialMobileAnalysisId}
       />
     )
   }

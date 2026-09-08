@@ -278,8 +278,9 @@ describe("veille Desktop UI source contract", () => {
   it("keeps the Mobile tab contract and contextual module contract unchanged", () => {
     const page = readFileSync(resolve(root, "src/app/(app)/veille/page.tsx"), "utf8")
 
-    expect(page).toContain('resolvedParams.tab === "veille" ? "veille" : undefined')
+    expect(page).toContain('resolvedParams.tab === "veille" || resolvedParams.tab === "analyses"')
     expect(page).toContain("initialMobileTab={initialTab}")
+    expect(page).toContain("initialMobileAnalysisId={initialAnalysisId}")
     expect(desktop).toContain("onOpenSourceManagement={() => setSourceManagementOpen(true)}")
     expect(navigation).toContain("contextualModules,")
   })

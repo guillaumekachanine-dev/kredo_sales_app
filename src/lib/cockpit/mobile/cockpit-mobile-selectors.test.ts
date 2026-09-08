@@ -6,12 +6,14 @@ import {
   getNextMeetingLabel,
   groupCockpitMeetingsByDay,
   selectCockpitOpportunities,
+  selectCockpitNewsItems,
   selectCockpitModulePriorities,
   selectCockpitPriorities,
   selectCockpitSignals,
   selectCockpitUrgencies,
   selectCommercialMeetings,
   selectTodayEvents,
+  selectTodayCommercialMeetings,
   type CockpitOpportunitySource,
   type CockpitSignalSource,
 } from "./cockpit-mobile-selectors"
@@ -222,6 +224,30 @@ describe("cockpit mobile selectors", () => {
       "prospection",
       "soutenance",
     ])
+  })
+
+  it("projette les seuls rendez-vous commerciaux du jour dans le fuseau Agenda", () => {
+    const meetings = selectTodayCommercialMeetings([
+      scheduledEvent("demain", "rdv_prospection", "2026-07-17T07:00:00.000Z"),
+      scheduledEvent("matin", "rdv_prospection", "2026-07-16T07:00:00.000Z"),
+      scheduledEvent("apres-midi", "atelier_client", "2026-07-16T12:00:00.000Z"),
+      scheduledEvent("non-commercial", "entretien_candidat", "2026-07-16T08:00:00.000Z"),
+    ], "2026-07-16")
+
+    expect(meetings.map((item) => item.id)).toEqual(["matin", "apres-midi"])
+  })
+
+  it("fusionne les actualités par récence décroissante puis les borne à cinq", () => {
+    const items = selectCockpitNewsItems([
+      { id: "digest", kind: "digest", title: "Digest", occurredAt: "2026-07-12T00:00:00.000Z", contextLabel: null, href: "/veille?digestId=digest" },
+      { id: "signal", kind: "account_signal", title: "Signal", occurredAt: "2026-07-16T12:00:00.000Z", contextLabel: null, href: null },
+      { id: "analysis", kind: "analysis", title: "Analyse", occurredAt: "2026-07-15T12:00:00.000Z", contextLabel: null, href: "/veille?tab=analyses&analysisId=analysis" },
+      { id: "one", kind: "account_signal", title: "1", occurredAt: "2026-07-14T00:00:00.000Z", contextLabel: null, href: null },
+      { id: "two", kind: "account_signal", title: "2", occurredAt: "2026-07-13T00:00:00.000Z", contextLabel: null, href: null },
+      { id: "three", kind: "account_signal", title: "3", occurredAt: "2026-07-11T00:00:00.000Z", contextLabel: null, href: null },
+    ])
+
+    expect(items.map((item) => item.id)).toEqual(["signal", "analysis", "one", "two", "digest"])
   })
 
   it("groupe les rendez-vous commerciaux par journée locale", () => {

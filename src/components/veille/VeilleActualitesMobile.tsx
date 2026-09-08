@@ -62,6 +62,7 @@ interface VeilleActualitesMobileProps {
   sourceManagementSnapshot: SourceManagementSnapshot
   initialTab?: VeilleTab
   initialCompanyId?: string
+  initialAnalysisId?: string
 }
 
 export function VeilleActualitesMobile({
@@ -78,6 +79,7 @@ export function VeilleActualitesMobile({
   sourceManagementSnapshot,
   initialTab = "actualites",
   initialCompanyId,
+  initialAnalysisId,
 }: VeilleActualitesMobileProps) {
   const router = useRouter()
 
@@ -89,7 +91,7 @@ export function VeilleActualitesMobile({
   const [activeDigestId, setActiveDigestId] = useState<string | null>(selectedDigestId)
   /** Article ouvert DANS l'onglet Actualités — la lecture ne quitte plus l'onglet. */
   const [openArticleId, setOpenArticleId] = useState<string | null>(null)
-  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null)
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(initialAnalysisId ?? null)
 
   const [localSignals, setLocalSignals] = useState<WatchedAccountSignal[]>(watchedSignals)
   const [articleOverrides, setArticleOverrides] = useState<Record<string, VeilleArticle>>({})

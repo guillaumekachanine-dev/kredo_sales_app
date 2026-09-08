@@ -29,12 +29,15 @@ import { getDigestLaunchOptions } from "@/features/veille/digest/data/get-digest
 export default async function VeillePage({
   searchParams,
 }: {
-  searchParams: Promise<{ digestId?: string; tab?: string; companyId?: string; topic?: string }>
+  searchParams: Promise<{ digestId?: string; tab?: string; companyId?: string; topic?: string; analysisId?: string }>
 }) {
   const resolvedParams = await searchParams
   const digestId = resolvedParams.digestId
-  const initialTab = resolvedParams.tab === "veille" ? "veille" : undefined
+  const initialTab = resolvedParams.tab === "veille" || resolvedParams.tab === "analyses"
+    ? resolvedParams.tab
+    : undefined
   const initialCompanyId = resolvedParams.companyId || undefined
+  const initialAnalysisId = resolvedParams.analysisId || undefined
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -195,6 +198,7 @@ export default async function VeillePage({
         sourceManagementSnapshot={sourceManagementSnapshot}
         initialMobileTab={initialTab}
         initialMobileCompanyId={initialCompanyId}
+        initialMobileAnalysisId={initialAnalysisId}
       />
     </div>
   )
