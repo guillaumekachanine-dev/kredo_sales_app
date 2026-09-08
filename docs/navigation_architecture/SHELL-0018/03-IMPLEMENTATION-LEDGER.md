@@ -88,9 +88,11 @@ QA minimale :
 | **2.8** | Migration Knowledge Hub | ✅ techniquement livré | navigation contextuelle Racine → Domaine → Section conservée ; 12.5rem → 11.5rem ; QA visuelle réservée à Guillaume |
 | **3.1** | Standardisation des modules contextuels | ✅ techniquement livré | matrice exhaustive `05-CONTEXTUAL-MODULES-MATRIX.md` ; QA visuelle réservée à Guillaume |
 | **4.1** | URLisation Veille | ✅ techniquement livré | `?section=` Desktop ; état racine `news` sans paramètre ; commit `001a9e29` ; QA réelle réservée à Guillaume |
+| **4.2** | URLisation Account Intelligence | ✅ techniquement livré | `?aiSection=` Desktop ; accueil canonique sans paramètre ; commit `844777ea` ; QA visuelle réservée à Guillaume |
 | **4.3** | URLisation Rapports & rédaction | ✅ techniquement livré | `?section=` Desktop ; `documents` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
 | **4.4** | URLisation Automatisations | ✅ techniquement livré | `?section=` Desktop ; `journal` canonique sans paramètre ; suppression de `useState` Desktop ; préservation intégrale de `?run=` ; QA visuelle réservée à Guillaume |
-| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Automatisations |
+| **4.5** | URLisation Prospection Intelligence | ✅ techniquement livré | `?section=` Desktop ; `strategy` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
+| **4.x** | URLisation des navigations client-state restantes | ⬜ todo | poursuivre après Prospection Intelligence |
 | **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
 | **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
 | **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
@@ -1100,6 +1102,55 @@ Exécutée dans l'ordre prescrit le 2026-09-08 :
 
 **Verdict Lot 4.4 : `techniquement livré`.**
 
-## 27. Prochaine étape
+## 27. Clôture du Lot 4.5 — URLisation Prospection Intelligence
+
+### Fichiers modifiés et créés
+
+- `src/features/prospection-intelligence/desktop/prospection-intelligence-desktop-navigation.ts` (nouveaux helpers client-safe `parseProspectionSection` et `buildProspectionSectionHref`) ;
+- `src/features/prospection-intelligence/desktop/prospection-intelligence-desktop-navigation.test.ts` (nouveaux tests unitaires purs de parsing et de construction URL) ;
+- `src/features/prospection-intelligence/desktop/ProspectionIntelligenceDesktop.tsx` (suppression du `useState<PiTabKey>` local, URL comme source de vérité) ;
+- `src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.tsx` (réexport du type client-safe `PiTabKey`) ;
+- `src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.test.ts` (contrats de navigation URL et assertions d'isolation) ;
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md` (correction documentaire de l'index 4.2 et enregistrement du Lot 4.5).
+
+### Architecture retenue et contrat URL
+
+- L'état local `const [activeTab, setActiveTab] = useState<PiTabKey>("strategy")` a été intégralement supprimé de `ProspectionIntelligenceDesktop.tsx` ;
+- Le chapitre actif `activeTab` est désormais dérivé de manière déterministe depuis l'URL via `parseProspectionSection(searchParams.get("section"))` ;
+- Contrat canonique de navigation :
+  - `/prospection-intelligence` → `strategy` (« Brief ») ;
+  - `/prospection-intelligence?section=chapter_1` → `chapter_1` (« Fenêtres d'opportunités ») ;
+  - `/prospection-intelligence?section=chapter_2` → `chapter_2` (« Approches commerciales ») ;
+  - `/prospection-intelligence?section=chapter_3` → `chapter_3` (« Playbooks ») ;
+- `strategy` est l'état racine canonique sans paramètre : la navigation vers `strategy` supprime `section` de l'URL ;
+- `parseProspectionSection` accepte néanmoins `?section=strategy` et le résout vers `strategy`, tout comme `null`, `undefined` ou toute valeur inconnue ;
+- `buildProspectionSectionHref()` part de `new URLSearchParams(searchParams.toString())` et modifie uniquement `section` ;
+- Les changements de chapitre utilisent `router.push()` avec `{ scroll: false }`, créant une véritable étape dans l'historique de navigation (Back, Forward, refresh, deep-link, lien partagé).
+
+### Préservation des états métier et des filtres
+
+- Le header principal Desktop continue d'afficher le titre du chapitre actif (`Brief`, `Fenêtres d'opportunités`, `Approches commerciales` ou `Playbooks`) via `getProspectionDesktopChapterLabel(activeTab)` ;
+- Le chapeau canonique `Prospection` ramène au chapitre racine `strategy` tout en préservant les eventuals query params existants ;
+- Tous les états React locaux métier (`period`, `selectedSector`, `searchQuery`, `selectedAccountId`, `isAccountsOpen`) sont intégralement conservés lors de la navigation entre chapitres ;
+- Les trois chapitres métier encore en cours de développement (`chapter_1`, `chapter_2`, `chapter_3`) et leurs conteneurs sont maintenus intacts ;
+- La redirection serveur historique de `/prospection` vers `/intelligence` (`src/app/(app)/prospection/page.tsx`) reste inchangée ;
+- La détection du device serveur et la vue Mobile placeholder restent inchangées ;
+- `contextualModules` reste `undefined`.
+
+### Validation technique
+
+Exécutée dans l'ordre prescrit le 2026-09-08 :
+
+1. `npm run typecheck` : **passé** sans erreur ;
+2. `npm test -- src/features/prospection-intelligence/ src/components/layout/SectionRail.test.ts` : **23/23 tests passés** (et **2560/2560 tests passés** sur la suite complète `npm test`) ;
+3. `npm run check:server-boundary` : **passé** ;
+4. `npx eslint` sur les fichiers modifiés/créés : **passé sans erreur ni warning** ;
+5. `npm run build` : **passé**, compilation Next.js 16.2.7 (Turbopack), TypeScript et génération des 41 pages statiques terminées avec succès en production.
+
+**QA visuelle : non exécutée conformément à la règle projet ; validation réservée à Guillaume.**
+
+**Verdict Lot 4.5 : `techniquement livré`.**
+
+## 28. Prochaine étape
 
 Faire exécuter la QA visuelle et ergonomique des lots livrés par Guillaume. Aucun lot suivant n'est commencé dans cette livraison.
