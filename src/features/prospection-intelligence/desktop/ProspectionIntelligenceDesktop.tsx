@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { BusinessIntelligenceDesktopViewModel } from "@/features/business-intelligence/presenters/build-business-intelligence-desktop-model"
 import { BusinessIntelligenceSnapshot } from "@/features/business-intelligence/data/business-intelligence-types"
 import { StrategicBrief } from "@/features/business-intelligence/desktop/StrategicBrief"
@@ -64,11 +63,8 @@ function ProspectionIntelligenceDesktopReady({ viewModel, snapshot }: Prospectio
   // Modals state
   const [isAccountsOpen, setIsAccountsOpen] = useState(false)
 
-  // Repli automatique de la sidebar principale
-  useEffect(() => {
-    useSidebarCollapse.getState().requestCollapse()
-    return () => useSidebarCollapse.getState().requestRestore()
-  }, [])
+  // Le repli de la sidebar principale est décidé par le Shell selon le pathname
+  // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
 
   // Get active period precomputed model
   const periodData = useMemo(() => {

@@ -2,60 +2,38 @@
 
 import { create } from "zustand"
 
-// Coordonne le repli automatique de la sidebar principale avec le panneau
-// Cockpit Intelligence (les deux rails ne doivent jamais être dépliés en
-// même temps). DesktopSidebar reste seul maître de son état affiché (via
-// son propre useState, pour préserver le rendu sans flash au premier tour
-// piloté par le cookie serveur) — ce store n'est qu'un bus de requêtes que
-// DesktopSidebar écoute et applique lui-même à son état local, en lui
-// reportant son état réel après coup (reportState).
+// ─────────────────────────────────────────────────────────────────────────────
+//  useSidebarCollapse — registre de verrous temporaires externes (SHELL 6.5)
+//
+//  Ce store n'est PLUS un bus d'ordre de repli/dépli, ni une source de vérité
+//  sur l'état visuel de la sidebar. `DesktopSidebar` dérive lui-même son état
+//  effectif (préférence utilisateur cookie + politique pathname du Shell +
+//  ce compteur de verrous — voir `resolveDesktopSidebarCollapsed`).
+//
+//  Chaque consommateur légitime (Cockpit Intelligence, cockpit CRM) est
+//  responsable d'un couple équilibré :
+//     requestCollapse()  à l'acquisition du verrou
+//     requestRestore()   au nettoyage (unmount / condition retombée)
+//
+//  Le compteur autorise plusieurs verrous simultanés (Cockpit CRM + Cockpit
+//  Intelligence = 2). La sidebar reste repliée tant que
+//  `collapseRequestCount > 0`. `requestRestore` est protégé contre l'underflow.
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface SidebarCollapseState {
-  isCollapsed: boolean
-  pendingRequest: boolean | null
-  wasExpandedBeforePanel: boolean
   collapseRequestCount: number
-  reportState: (collapsed: boolean) => void
   requestCollapse: () => void
   requestRestore: () => void
-  consumeRequest: () => void
 }
 
-export const useSidebarCollapse = create<SidebarCollapseState>((set, get) => ({
-  isCollapsed: false,
-  pendingRequest: null,
-  wasExpandedBeforePanel: false,
+export const useSidebarCollapse = create<SidebarCollapseState>((set) => ({
   collapseRequestCount: 0,
 
-  reportState: (collapsed) => set({ isCollapsed: collapsed }),
+  requestCollapse: () =>
+    set((state) => ({ collapseRequestCount: state.collapseRequestCount + 1 })),
 
-  requestCollapse: () => {
-    const { collapseRequestCount, isCollapsed, wasExpandedBeforePanel } = get()
-    const isFirstRequest = collapseRequestCount === 0
-    const wasExpanded = isFirstRequest && !isCollapsed
-
-    set({
-      collapseRequestCount: collapseRequestCount + 1,
-      wasExpandedBeforePanel: isFirstRequest ? wasExpanded : wasExpandedBeforePanel,
-      pendingRequest: !isCollapsed ? true : null,
-    })
-  },
-
-  requestRestore: () => {
-    const { collapseRequestCount, wasExpandedBeforePanel } = get()
-    if (collapseRequestCount === 0) return
-
-    const remainingRequests = collapseRequestCount - 1
-    if (remainingRequests > 0) {
-      set({ collapseRequestCount: remainingRequests })
-      return
-    }
-
-    set({
-      collapseRequestCount: 0,
-      pendingRequest: wasExpandedBeforePanel ? false : null,
-      wasExpandedBeforePanel: false,
-    })
-  },
-
-  consumeRequest: () => set({ pendingRequest: null }),
+  requestRestore: () =>
+    set((state) => ({
+      collapseRequestCount: Math.max(0, state.collapseRequestCount - 1),
+    })),
 }))

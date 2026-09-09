@@ -1,65 +1,50 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import { useSidebarCollapse } from "./use-sidebar-collapse"
 
-describe("useSidebarCollapse", () => {
+describe("useSidebarCollapse — registre de verrous externes (SHELL 6.5)", () => {
   beforeEach(() => {
-    useSidebarCollapse.setState({
-      isCollapsed: false,
-      pendingRequest: null,
-      wasExpandedBeforePanel: false,
-      collapseRequestCount: 0,
-    })
+    useSidebarCollapse.setState({ collapseRequestCount: 0 })
   })
 
-  it("restaure une sidebar initialement développée après le dernier verrou", () => {
+  it("un verrou : requestCollapse incrémente, requestRestore décrémente", () => {
     const store = useSidebarCollapse.getState()
 
     store.requestCollapse()
-    expect(useSidebarCollapse.getState()).toMatchObject({
-      collapseRequestCount: 1,
-      pendingRequest: true,
-      wasExpandedBeforePanel: true,
-    })
-
-    store.consumeRequest()
-    store.reportState(true)
-    store.requestCollapse()
-    expect(useSidebarCollapse.getState()).toMatchObject({
-      collapseRequestCount: 2,
-      pendingRequest: null,
-      wasExpandedBeforePanel: true,
-    })
+    expect(useSidebarCollapse.getState().collapseRequestCount).toBe(1)
 
     store.requestRestore()
-    expect(useSidebarCollapse.getState()).toMatchObject({
-      collapseRequestCount: 1,
-      pendingRequest: null,
-    })
-
-    store.requestRestore()
-    expect(useSidebarCollapse.getState()).toMatchObject({
-      collapseRequestCount: 0,
-      pendingRequest: false,
-      wasExpandedBeforePanel: false,
-    })
+    expect(useSidebarCollapse.getState().collapseRequestCount).toBe(0)
   })
 
-  it("ne développe pas une sidebar déjà repliée avant le cockpit", () => {
+  it("deux verrous concurrents restent composables", () => {
     const store = useSidebarCollapse.getState()
-    store.reportState(true)
 
     store.requestCollapse()
-    store.requestRestore()
+    store.requestCollapse()
+    expect(useSidebarCollapse.getState().collapseRequestCount).toBe(2)
 
-    expect(useSidebarCollapse.getState()).toMatchObject({
-      collapseRequestCount: 0,
-      pendingRequest: null,
-      wasExpandedBeforePanel: false,
-    })
+    store.requestRestore()
+    expect(useSidebarCollapse.getState().collapseRequestCount).toBe(1)
+
+    store.requestRestore()
+    expect(useSidebarCollapse.getState().collapseRequestCount).toBe(0)
   })
 
-  it("ignore une restauration sans verrou actif", () => {
+  it("protège contre l'underflow (restore sans verrou actif)", () => {
     useSidebarCollapse.getState().requestRestore()
     expect(useSidebarCollapse.getState().collapseRequestCount).toBe(0)
+
+    useSidebarCollapse.getState().requestRestore()
+    useSidebarCollapse.getState().requestRestore()
+    expect(useSidebarCollapse.getState().collapseRequestCount).toBe(0)
+  })
+
+  it("n'expose plus l'ancien bus d'ordre de repli/dépli", () => {
+    const state = useSidebarCollapse.getState() as unknown as Record<string, unknown>
+    expect("isCollapsed" in state).toBe(false)
+    expect("pendingRequest" in state).toBe(false)
+    expect("wasExpandedBeforePanel" in state).toBe(false)
+    expect("reportState" in state).toBe(false)
+    expect("consumeRequest" in state).toBe(false)
   })
 })

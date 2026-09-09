@@ -9,7 +9,6 @@ import { AccountWatchHeaderActions } from "@/components/accounts-contacts/intell
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
 import { Button } from "@/components/ui/Button"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { formatDateFr, formatDateNumeric } from "@/lib/formatters"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
@@ -1460,11 +1459,8 @@ export function VeilleActualitesDesktop({
   const [message, setMessage] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  // Repli automatique de la sidebar principale
-  useEffect(() => {
-    useSidebarCollapse.getState().requestCollapse()
-    return () => useSidebarCollapse.getState().requestRestore()
-  }, [])
+  // Le repli de la sidebar principale est décidé par le Shell selon le pathname
+  // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
 
   // Réutilisé par le compositeur d'analyse à la demande (LOT L1) pour la
   // famille « Digest & articles » : corpus déjà chargé côté page, jamais de

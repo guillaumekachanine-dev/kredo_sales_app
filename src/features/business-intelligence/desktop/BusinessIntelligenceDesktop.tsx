@@ -2,8 +2,7 @@
 
 import dynamic from "next/dynamic"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState, useTransition } from "react"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
+import { useState, useTransition } from "react"
 import type { BusinessIntelligenceDesktopViewModel } from "../presenters/build-business-intelligence-desktop-model"
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 import type { BusinessIntelligenceCatalogSegment, BusinessIntelligenceSegmentWorkspace } from "../data/business-intelligence-workspace-types"
@@ -52,10 +51,8 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
   const [pendingSegment, setPendingSegment] = useState<BusinessIntelligenceCatalogSegment | null>(null)
   const [isSegmentPending, startSegmentTransition] = useTransition()
 
-  useEffect(() => {
-    useSidebarCollapse.getState().requestCollapse()
-    return () => useSidebarCollapse.getState().requestRestore()
-  }, [])
+  // Le repli de la sidebar principale est décidé par le Shell selon le pathname
+  // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
 
   const navigateChapter = (chapter: BiChapter) => {
     const currentHref = `/intelligence?${searchParams.toString()}`

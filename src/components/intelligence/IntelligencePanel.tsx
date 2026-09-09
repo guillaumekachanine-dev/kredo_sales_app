@@ -347,12 +347,14 @@ export function IntelligencePanel() {
     return resolvePageCockpitConfig(pathname).label
   }, [isAccountMode, entityContext, pathname])
 
-  // Les deux rails ne peuvent pas être dépliés en même temps.
+  // Verrou de repli sur la sidebar principale : les deux rails ne peuvent pas
+  // être dépliés en même temps. Acquisition/relâchement équilibrés — aucun
+  // appel tant que le panneau est fermé, cleanup au unmount ou à la fermeture.
   useEffect(() => {
+    if (!isOpen) return
     const store = useSidebarCollapse.getState()
-    if (isOpen) {
-      store.requestCollapse()
-    } else {
+    store.requestCollapse()
+    return () => {
       store.requestRestore()
     }
   }, [isOpen])

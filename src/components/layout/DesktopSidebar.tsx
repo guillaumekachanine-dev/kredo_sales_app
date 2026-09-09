@@ -3,8 +3,12 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { useState, useEffect, useLayoutEffect } from "react"
+import { useState } from "react"
 import { MainMenuItem, mainMenuItems, getActiveModuleHref } from "@/lib/navigation/main-menu.config"
+import {
+  resolveDesktopSidebarCollapsed,
+  shouldAutoCollapseDesktopSidebar,
+} from "@/lib/navigation/desktop-sidebar-policy"
 import { getNavigationIcon } from "./navigation-icons"
 import { cn } from "@/lib/utils"
 import { IconButton } from "@/components/ui/IconButton"
@@ -123,8 +127,18 @@ function ModuleItem({
 // ─────────────────────────────────────────────────────────────────────────────
 //  DesktopSidebar
 //
-//  État persisté via cookie `kredo_sidebar_collapsed` lu côté serveur dans
-//  AppShell et injecté en prop — évite le flash de layout à l'hydratation.
+//  État effectif dérivé (SHELL 6.5) de trois entrées indépendantes :
+//   1. préférence utilisateur durable — `preferredCollapsed`, persistée dans le
+//      cookie `kredo_sidebar_collapsed` (lu côté serveur dans AppShell et injecté
+//      en prop `defaultCollapsed` pour éviter le flash d'hydratation) ;
+//   2. politique Shell d'auto-repli dérivée du pathname
+//      (`shouldAutoCollapseDesktopSidebar`) — les workspaces à `SectionRail` ne
+//      pilotent plus la sidebar eux-mêmes ;
+//   3. verrous temporaires externes (`useSidebarCollapse.collapseRequestCount`)
+//      — Cockpit Intelligence et cockpit CRM uniquement.
+//
+//  Un repli imposé par (2) ou (3) ne touche jamais au cookie ; quitter le
+//  workspace / fermer le panneau restaure automatiquement la préférence (1).
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface DesktopSidebarProps {
@@ -133,35 +147,24 @@ interface DesktopSidebarProps {
 
 export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps) {
   const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
+  const [preferredCollapsed, setPreferredCollapsed] = useState(defaultCollapsed)
   const activeModuleHref = getActiveModuleHref(pathname)
-  const pendingRequest = useSidebarCollapse((s) => s.pendingRequest)
   const collapseRequestCount = useSidebarCollapse((s) => s.collapseRequestCount)
-  const reportState = useSidebarCollapse((s) => s.reportState)
-  const consumeRequest = useSidebarCollapse((s) => s.consumeRequest)
   const openSandbox = useLegacySandboxStore((s) => s.open)
   const isOpen = useLegacySandboxStore((s) => s.isOpen)
 
-  // Reporte l'état réel de la sidebar au store partagé — sert de référence
-  // au panneau Cockpit Intelligence pour savoir si elle était dépliée avant
-  // son ouverture (et donc si elle doit se redéplier à sa fermeture).
-  useLayoutEffect(() => {
-    reportState(isCollapsed)
-  }, [isCollapsed, reportState])
-
-  // Applique une requête de repli/dépli émise par le panneau Cockpit
-  // Intelligence, sans jamais écraser un toggle manuel de l'utilisateur
-  // ni persister ce repli automatique dans le cookie (préférence durable).
-  useEffect(() => {
-    if (pendingRequest === null) return
-    setIsCollapsed(pendingRequest) // eslint-disable-line react-hooks/set-state-in-effect -- synchronise avec le store Zustand externe (bus de requêtes one-shot), pas un état dérivé
-    consumeRequest()
-  }, [pendingRequest, consumeRequest])
+  const workspaceAutoCollapsed = shouldAutoCollapseDesktopSidebar(pathname)
+  const isForcedCollapsed = workspaceAutoCollapsed || collapseRequestCount > 0
+  const isCollapsed = resolveDesktopSidebarCollapsed({
+    preferredCollapsed,
+    workspaceAutoCollapsed,
+    externalCollapseRequestCount: collapseRequestCount,
+  })
 
   const toggle = () => {
-    if (isCollapsed && collapseRequestCount > 0) return
-    const next = !isCollapsed
-    setIsCollapsed(next)
+    if (isForcedCollapsed) return
+    const next = !preferredCollapsed
+    setPreferredCollapsed(next)
     persistCollapsed(next)
   }
 
@@ -215,7 +218,7 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
 
             <IconButton
               onClick={toggle}
-              disabled={isCollapsed && collapseRequestCount > 0}
+              disabled={isForcedCollapsed}
               aria-label={isCollapsed ? "Développer la navigation" : "Réduire la navigation"}
               aria-expanded={!isCollapsed}
               size="sm"

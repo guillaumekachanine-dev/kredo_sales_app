@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { KnowledgeLibraryModeDesktop } from "./KnowledgeLibraryMode"
 import { KredoExpertiseSnapshot } from "./expertise/kredo-expertise.types"
@@ -15,7 +15,6 @@ import {
   getKnowledgeHubDefaultSection,
   parseKnowledgeHubView,
 } from "./knowledge-hub-desktop-navigation"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { ExpertiseTab } from "./expertise/KredoExpertiseNavigation"
 import { TalentTab } from "./talents/talent-knowledge.types"
 import type { KnowledgeView } from "./knowledge-hub.types"
@@ -44,12 +43,8 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
 
   const [activeModal, setActiveModal] = useState<"workshop" | "ask" | null>(null)
 
-  const { requestCollapse, requestRestore } = useSidebarCollapse()
-
-  useEffect(() => {
-    requestCollapse()
-    return () => requestRestore()
-  }, [requestCollapse, requestRestore])
+  // Le repli de la sidebar principale est décidé par le Shell selon le pathname
+  // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
 
   const navigateView = (nextView: KnowledgeView) => {
     router.push(buildKnowledgeHubViewHref(pathname, searchParams, nextView), {

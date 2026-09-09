@@ -1,4 +1,3 @@
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import {
   getProspectionDesktopChapterLabel,
   type PiTabKey,
@@ -13,18 +12,11 @@ export function ProspectionIntelligenceHeader({
   title,
   activeTab,
 }: ProspectionIntelligenceHeaderProps = {}) {
-  const isCollapsed = useSidebarCollapse((s) => s.isCollapsed)
   const displayTitle =
     title ?? (activeTab ? getProspectionDesktopChapterLabel(activeTab) : "Brief")
 
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-border/40 bg-surface/80 px-4 backdrop-blur-md lg:px-8">
-      {!isCollapsed && (
-        <div className="flex h-full items-center">
-          <div className="h-4 w-px bg-border/40" />
-        </div>
-      )}
-
       <div className="flex flex-1 items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">

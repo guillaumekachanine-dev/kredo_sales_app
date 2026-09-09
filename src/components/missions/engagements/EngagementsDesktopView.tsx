@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, type ReactNode } from "react"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
+import { type ReactNode } from "react"
 import { SectionRail } from "@/components/layout/SectionRail"
 import {
   ActivityIcon,
@@ -57,11 +56,8 @@ export const HEADER_TITLE_BY_VIEW: Record<EngagementsView, string> = {
 }
 
 export function EngagementsDesktopView({ activeView, children }: EngagementsDesktopViewProps) {
-  // Repli automatique de la sidebar principale (même pattern que /reports).
-  useEffect(() => {
-    useSidebarCollapse.getState().requestCollapse()
-    return () => useSidebarCollapse.getState().requestRestore()
-  }, [])
+  // Le repli de la sidebar principale est décidé par le Shell selon le pathname
+  // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
 
   return (
     <div

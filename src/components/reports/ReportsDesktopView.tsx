@@ -15,7 +15,6 @@ import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { cn } from "@/lib/utils"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import {
   duplicateDocument,
   setDocumentFavorite,
@@ -189,11 +188,8 @@ export function ReportsDesktopView({
   const [zoomLevel, setZoomLevel] = useState(100)
   const [isAnalysisComposerOpen, setIsAnalysisComposerOpen] = useState(false)
 
-  // Repli automatique de la sidebar principale
-  useEffect(() => {
-    useSidebarCollapse.getState().requestCollapse()
-    return () => useSidebarCollapse.getState().requestRestore()
-  }, [])
+  // Le repli de la sidebar principale est décidé par le Shell selon le pathname
+  // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
 
   // Écoute de l'événement global pour ouvrir le compositeur d'analyse à la demande
   useEffect(() => {
