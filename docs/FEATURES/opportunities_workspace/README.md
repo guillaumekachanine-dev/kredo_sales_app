@@ -104,8 +104,9 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 5 — Data/detail Besoins & staffing** (loaders + détail besoin, réutilise
-l'existant ; voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 5).
+➡️ **Lot 6 — Migration UI Besoins & staffing** (chapitre Besoins sur
+`OpportunitiesTriPanel` : Liste │ Détail │ « Staffing en cours » ; voir
+`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 6).
 
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
@@ -117,6 +118,9 @@ l'existant ; voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 5).
 - Lot 4 livré : Synthèse Desktop (`src/features/opportunities/summary/`) — 3 KPI +
   pipe `Clients | Practices` + miroir compétences + entonnoir staffing + échéances,
   SVG maison. **QA visuelle Guillaume en attente.**
+- Lot 5 livré : Data contract Besoins & staffing (`src/features/opportunities/needs/data/`)
+  — `buildNeedsList` / `resolveSelectedNeedId` (purs) + `getNeedsChapterData` (loader,
+  détail du seul besoin sélectionné). Sélection `?opp=` → **OPP-23**. Data-only.
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`

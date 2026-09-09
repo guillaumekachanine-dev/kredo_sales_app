@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 4 — Synthèse Desktop
+Dernier lot livré             : Lot 5 — Data/detail Besoins & staffing
 Lot courant                   : aucun
-Prochain lot                  : Lot 5 — Data/detail Besoins & staffing
-Dernier SHA connu origin/main : 19f4ccad   (2026-09-09, commit Lot 4)
+Prochain lot                  : Lot 6 — Migration UI Besoins & staffing
+Dernier SHA connu origin/main : __LOT5_SHA__   (2026-09-09, commit Lot 5)
 ```
 
 ## Table des lots
@@ -27,7 +27,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ✅ techniquement livré | `653eb736` | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). Props `list` / `main` / `details?` / `detailsEmpty?` / `ariaLabel?` / `className?`. Rail droit → `<aside aria-hidden />` si `details` absent. **Aucun consommateur ce lot** (chapitres = Lots 6/7/9). |
 | 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `606cbbb4` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
 | 4 | Synthèse Desktop | ✅ techniquement livré | `19f4ccad` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
-| 5 | Data/detail Besoins & staffing | ⬜ todo | — | Réutilise loaders existants, évite les doubles queries. |
+| 5 | Data/detail Besoins & staffing | ✅ techniquement livré | `__LOT5_SHA__` | `src/features/opportunities/needs/data/` : types + `buildNeedsList`/`resolveSelectedNeedId` (purs) + `parseNeedsSelection` (`?opp=` + filtres via `parseNeedsStaffingUrlState`) + loader `getNeedsChapterData` composant 4 loaders existants — **détail chargé pour le seul besoin sélectionné** (OPP-23). 18 tests. Aucune UI, aucune migration. |
 | 6 | Migration UI Besoins & staffing | ⬜ todo | — | Liste │ Détail │ « Staffing en cours ». **Résout PRODUCT-02/03/04, NAVIGATION-02, LEGACY-05.** Parité prouvée. |
 | 7 | Avant-vente (structure + `EmptyState` V1) | ⬜ todo | — | Aucune fausse donnée. PRODUCT-05 reste ouverte. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ⬜ todo | — | **Résout DATA-03.** Partagé Synthèse + Planning (OPP-10). |
@@ -62,6 +62,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-20 | DATA-02b : Top compétences — demande classée par `Σ (weight × importance)` (×3/×2/×1), vivier par nb de profils distincts. Top 5 chacun. | 3 |
 | OPP-21 | PRODUCT-01 (affichage) : 5 buckets `identifie/propose/envoye_client/entretien/retenu` superposés à `stages.ts`, jamais fusionnés (OPP-09) ; terminaux négatifs hors entonnoir. Aucune écriture DB. | 3 |
 | OPP-22 | Échéances Synthèse provisoires : `next_action_at` sinon `target_close_date` (jamais `start_date`), futures, tri ASC, LIMIT 5. `calendar_events` + concept canonique `OpportunityDeadline` = Lot 8 (DATA-03). | 3 |
+| OPP-23 | Chapitre Besoins : sélection d'entité `?opp=<id>` (PRODUCT-03) — parsée par `parseNeedsSelection`, résolue par `resolveSelectedNeedId` (id demandé s'il est dans la liste filtrée, sinon 1er, sinon `null`). Le **détail** (`getOpportunityDetail`) n'est chargé que pour le besoin sélectionné, jamais par ligne. Le contrat de href/navigation (`?view=`, strip de `opp` au changement de chapitre) reste au Lot 6 (NAVIGATION-02). | 5 |
 
 ## Questions ouvertes en cours
 
@@ -78,7 +79,7 @@ canonique § 17.
 | ~~DATA-05~~ | Taxonomie d'étape commerciale | 0 | ✅ tranché (OPP-08) — `stages.ts` |
 | PRODUCT-01 | Représentation unifiée `stage` + `status` (buckets de progression) | 3 | ✅ **volet affichage tranché (OPP-21)** — 5 buckets ; unification *stockée* hors périmètre |
 | PRODUCT-02 | Quelles capacités Kanban survivent après la refonte | 6 | **ouverte** |
-| PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 6 / 9 | **ouverte** — reco : oui |
+| PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 5 / 6 / 9 | ✅ **volet parsing/résolution tranché (OPP-23, Lot 5)** — `?opp=<id>`, `parseNeedsSelection` + `resolveSelectedNeedId`. Reste au Lot 6 : href builder + strip au changement de chapitre ; au Lot 9 : partage avec Planning |
 | PRODUCT-04 | Forme du détail besoin (inline / drawer / `OpportunityDetailView`) | 6 | **ouverte** |
 | PRODUCT-05 | Relation opportunité ↔ projet avant-vente ↔ mission/projet gagné | 7 / futur | **ouverte** — bloque le contenu métier Avant-vente |
 | NAVIGATION-01 | Conversion des deep-links `scope` vers `?section=` | 1 / 11 | ✅ **volet parsing résolu (Lot 1)** — `parseOpportunitiesSection` ; redirections dures `/staffing` + `main-menu` mobile → Lot 11 |
@@ -257,6 +258,60 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 5 — Data/detail Besoins & staffing — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : stabiliser les contrats de données du chapitre Besoins (liste des
+  besoins ouverts, besoin sélectionné, détail, staffing actif) en **réutilisant les
+  loaders existants** et **sans double query**. Data-only, aucune UI (Lot 6).
+
+- **Fichiers créés** — `src/features/opportunities/needs/data/` :
+  - `opportunities-needs.types.ts` — `NeedsFilterState`, `NeedsSelectionState`,
+    `NeedsListItem` (projection mince de `MissionsListRow` + snapshot de couverture +
+    `coverageRatio`), `NeedsChapterData`.
+  - `needs-selection.ts` — `parseNeedsSelection` : `?opp=` + filtres
+    (`stage`/`priority`/`practice`/`sort`/`direction`) **délégués à
+    `parseNeedsStaffingUrlState`** (aucun parseur de filtre recréé). `scope`/`view`
+    ignorés (arbitrage Lot 6).
+  - `build-needs-list.ts` — **purs** : `buildNeedsList` (besoins ouverts via
+    `!isTerminalOpportunityStage` — même prédicat que `getNeedsStaffingSharedData` —
+    puis `filterNeedsRows` de `model.ts`, puis projection + couverture) ;
+    `resolveSelectedNeedId` (id demandé s'il est dans la liste filtrée, sinon 1er,
+    sinon `null`).
+  - `get-needs-chapter-data.ts` — loader `server-only` : `Promise.all` de
+    `getOpportunitiesList({onlyStaffingNeeds:true})` + `getNeedsStaffingSharedData()` +
+    `getStaffingsList()`, puis `getOpportunityDetail(selectedNeedId)` **une seule fois**
+    (jamais par ligne) et `groupActiveStaffingsByOpportunityId` (helper `model.ts`
+    existant) pour le rail « Staffing en cours ». `dataNotes` : `?opp=` introuvable,
+    liste vide sous filtre, erreur de détail.
+  - `__tests__/build-needs-list.test.ts` (11) + `__tests__/get-needs-chapter-data.test.ts` (7)
+    — filtres ouverts/partagés/tri, couverture, résolution de sélection, **un seul appel
+    `getOpportunityDetail` avec l'id sélectionné**, staffing actif du seul besoin,
+    `dataNotes`.
+
+- **Décision** : **OPP-23** (sélection `?opp=` — volet parsing/résolution). Aucune migration,
+  aucun loader forké, aucun composant.
+
+- **Questions** : PRODUCT-03 ✅ volet parsing/résolution (OPP-23). NAVIGATION-02 (contrat
+  `?view=` + strip de `opp`) et PRODUCT-04 (forme du détail) restent au **Lot 6**.
+
+- **Dettes / suites** :
+  - `getOpportunityDetail` porte `"use server"` + `"server-only"` : appelé depuis un loader
+    `server-only` comme le fait déjà `/missions/opps/[id]/page.tsx` — pas de refacto.
+  - `buildOpportunitiesSectionHref` ne strippe pas encore `opp` au changement de chapitre
+    (Lot 6, avec le reste du contrat de navigation Besoins).
+
+- **Gates réellement exécutées** (toutes vertes) :
+  - `npm run typecheck` — ✅.
+  - `npx vitest run src/features/opportunities/needs/` — ✅ (2 fichiers, 18 tests).
+    Régression : `+ src/features/opportunities/ src/lib/needs-staffing/` — ✅ (11 fichiers, 103).
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint src/features/opportunities/needs/` — ✅ 0 problème.
+  - `npm run build` — ✅ « Compiled successfully ».
+- **QA visuelle** : sans objet (aucune UI). Réservée à Guillaume au Lot 6.
+
+- **Commit** : `__LOT5_SHA__` — `feat(opportunities): data contract Besoins & staffing (Lot 5)`.
+- **NEXT LOT** : Lot 6 — Migration UI Besoins & staffing (`OpportunitiesTriPanel`).
 
 ### Lot 4 — Synthèse Desktop — ✅ techniquement livré (2026-09-09)
 
