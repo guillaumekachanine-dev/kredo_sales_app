@@ -12,9 +12,19 @@ import {
   type OpportunitiesSection,
 } from "../navigation/opportunities-sections"
 import {
+  buildOpportunitiesModuleHref,
+  OPPORTUNITIES_MODULE_LABELS,
+  opportunitiesModulesForSection,
+  parseOpportunitiesModule,
+  type OpportunitiesModule,
+} from "../modules/opportunities-modules"
+import {
   AvantVenteIcon,
   BesoinsStaffingIcon,
+  MatchingProfilIcon,
   PlanningIcon,
+  PostMortemIcon,
+  SimulationDevisIcon,
   SyntheseIcon,
 } from "../navigation/opportunities-icons"
 
@@ -29,7 +39,8 @@ import {
 //  relit l'URL et transmet la query courante ; le rail reconstruit les `href` de
 //  chapitre en préservant les query params tiers.
 //
-//  Lot 1 : aucun module contextuel → `contextualModules` n'est pas passé.
+//  Lot 10 : section « Modules » = Matching profil · Simulation devis · Post-Mortem,
+//  restreinte aux modules actionnables sur le chapitre courant (§ 13). `?module=`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ICON_BY_SECTION: Record<OpportunitiesSection, ReactNode> = {
@@ -37,6 +48,12 @@ const ICON_BY_SECTION: Record<OpportunitiesSection, ReactNode> = {
   besoins: <BesoinsStaffingIcon />,
   "avant-vente": <AvantVenteIcon />,
   planning: <PlanningIcon />,
+}
+
+const ICON_BY_MODULE: Record<OpportunitiesModule, ReactNode> = {
+  matching: <MatchingProfilIcon />,
+  simulation: <SimulationDevisIcon />,
+  "post-mortem": <PostMortemIcon />,
 }
 
 interface OpportunitiesDesktopShellProps {
@@ -71,6 +88,20 @@ export function OpportunitiesDesktopShell({
     active: entry.key === activeSection,
   }))
 
+  // Modules contextuels (Lot 10) : seulement ceux réellement actionnables sur le
+  // chapitre courant (§ 13 — aucun bouton mort). `?module=` orthogonal à
+  // `?section=` / `?opp=`.
+  const activeModule = parseOpportunitiesModule(currentSearchParams, activeSection)
+  const contextualModules: SectionRailEntry[] = opportunitiesModulesForSection(
+    activeSection,
+  ).map((key) => ({
+    key,
+    label: OPPORTUNITIES_MODULE_LABELS[key],
+    icon: ICON_BY_MODULE[key],
+    href: buildOpportunitiesModuleHref(OPPORTUNITIES_CANONICAL_PATH, currentSearchParams, key),
+    active: key === activeModule,
+  }))
+
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
       <SectionRail
@@ -78,6 +109,7 @@ export function OpportunitiesDesktopShell({
         title="Opportunités"
         home={{ href: OPPORTUNITIES_CANONICAL_PATH }}
         chapters={chapters}
+        contextualModules={contextualModules}
       />
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">

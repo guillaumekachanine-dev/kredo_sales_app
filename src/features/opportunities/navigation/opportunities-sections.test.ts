@@ -107,11 +107,11 @@ describe("opportunities-sections — contrat de navigation", () => {
       ).toBe("/missions/opps?theme=dark")
     })
 
-    it("retire les params d'état de chapitre (scope/view/stage/priority/practice/sort/direction/opp) au changement de chapitre", () => {
+    it("retire les params d'état de chapitre (scope/view/stage/priority/practice/sort/direction/opp/module) au changement de chapitre", () => {
       expect(
         buildOpportunitiesSectionHref(
           OPPORTUNITIES_CANONICAL_PATH,
-          sp("scope=staffing&view=kanban&stage=gagne&priority=haute&practice=Data&sort=acv&direction=desc&opp=need-1&keep=1"),
+          sp("scope=staffing&view=kanban&stage=gagne&priority=haute&practice=Data&sort=acv&direction=desc&opp=need-1&module=matching&keep=1"),
           "planning",
         ),
       ).toBe("/missions/opps?keep=1&section=planning")
@@ -199,8 +199,23 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
     expect(render("besoins")).toContain("border-l-edito-brass")
   })
 
-  it("ne rend aucune section Modules (contextualModules absent au Lot 1)", () => {
-    expect(render("synthese")).not.toContain(">Modules<")
+  it("rend la section Modules (Lot 10) — Post-Mortem + Simulation partout, Matching sur besoins/planning", () => {
+    const synthese = render("synthese")
+    expect(synthese).toContain(">Modules<")
+    expect(synthese).toContain("Simulation devis")
+    expect(synthese).toContain("Post-Mortem")
+    expect(synthese).not.toContain("Matching profil")
+    expect(synthese).toContain('href="/missions/opps?module=simulation"')
+
+    const besoins = render("besoins", "opp=need-1")
+    expect(besoins).toContain("Matching profil")
+    expect(besoins).toContain('href="/missions/opps?opp=need-1&amp;module=matching"')
+  })
+
+  it("marque le module actif avec aria-current=page", () => {
+    const markup = render("besoins", "opp=need-1&module=matching")
+    expect(markup).toContain('aria-current="page"')
+    expect(markup).toContain("Matching profil")
   })
 })
 

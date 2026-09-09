@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 9 — Planning Desktop (milestone planning Mois / Année)
+Dernier lot livré             : Lot 10 — Modules contextuels (Matching profil · Simulation devis · Post-Mortem)
 Lot courant                   : aucun
-Prochain lot                  : Lot 10 — Modules existants
-Dernier SHA connu origin/main : d94a1b16   (2026-09-09, commit Lot 9)
+Prochain lot                  : Lot 11 — Legacy / compatibilité / navigation globale
+Dernier SHA connu origin/main : 127af469   (2026-09-09, commit refactor Lot 9)
 ```
 
 ## Table des lots
@@ -32,7 +32,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 7 | Avant-vente (structure + `EmptyState` V1) | ✅ techniquement livré | `6a84b978` | `PresalesDesktop` : `OpportunitiesTriPanel` + 3 `EmptyState` authentiques (liste / surface / détails). **Aucune donnée, aucun seed, aucun modèle Projet.** `page.tsx` `avant-vente` → `PresalesDesktop`. PRODUCT-05 reste **ouverte** et documentée. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ✅ techniquement livré | `adde8825` | `src/features/opportunities/planning/data/` : `opportunity-deadline.types.ts` + `build-opportunity-deadlines.ts` (pur) + `get-opportunity-deadlines.ts` (loader). **Résout DATA-03 → OPP-28.** Synthèse refactorée pour consommer ce builder (OPP-10). Builder unique (test d'arbitrage + `start_date` jamais échéance). Aucune migration. |
 | 9 | Planning Desktop | ✅ techniquement livré | `d94a1b16` | `OpportunitiesTriPanel` : liste des opportunités ouvertes │ milestone planning central `Mois \| Année` │ détail contextuel. Builder `OpportunityDeadline` unique, sélection `?opp=`, ligne Aujourd’hui, formes + couleurs par source, navigation de période. **OPP-29.** Mobile inchangé. |
-| 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ⬜ todo | — | Câblage vers capacités existantes. **Résout CROSS-01/02/03.** `Modélisation de CA` non affichée (OPP-11). |
+| 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ✅ techniquement livré | _(à renseigner)_ | `src/features/opportunities/modules/` : contrat `?module=` + 3 wrappers REUSE-only (`MatchingDialog` · `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) + `OpportunitiesModulesHost` (dialogs lazy). Rail « Modules » restreint par chapitre (§ 13). **Résout CROSS-01/02/03 → OPP-30.** `Modélisation de CA` non affichée (OPP-11). Aucune Data, aucune migration. |
 | 11 | Legacy / compatibilité / navigation globale | ⬜ todo | — | Redirection `/staffing`, `main-menu` label « Opportunités », deep-links `scope`. **Coord. SHELL-0018 Phase 6.3.** |
 | 12 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
 
@@ -69,6 +69,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-28 | DATA-03 : `OpportunityDeadline` — arbitrage figé, **une seule échéance par opportunité ouverte** parmi les dates **futures ou du jour**, priorité `next_action_at` > prochain `calendar_events.starts_at` (hors `cancelled`) > `target_close_date`. `start_date` **jamais** une échéance ; jalons `opportunity_candidates` hors périmètre V1 (dates passées). Builder pur unique `build-opportunity-deadlines.ts`, réutilisé par la Synthèse (§ 9.6) et le Planning (Lot 9). Remplace la règle provisoire OPP-22. | 8 |
 | OPP-27 | LEGACY-05 : chapitre Besoins V2 **sans HEX** (`getOpportunityStageColor` = `var(--color-*)`, tokens `@theme`). Les HEX de `NeedsStaffingWorkspace.tsx` sont dans les toggles Kanban/Planning non repris → retirés au Lot 12. | 6 |
 | OPP-29 | Planning V1 = **milestone planning**, pas Gantt projet : une lane par opportunité ouverte, au plus un jalon `OpportunityDeadline`, même grammaire en Mois/Année, source distinguée par forme + couleur. Aucune durée, dépendance, baseline, progression, WBS, date synthétique ou drag-and-drop. Échelle et période restent éphémères ; sélection seule URL-addressable via `?opp=`. | 9 |
+| OPP-30 | **Modules contextuels = câblage REUSE-only, contrat `?module=matching\|simulation\|post-mortem`** (orthogonal à `?section=`/`?opp=`, stripé au changement de chapitre). **CROSS-01** : Matching = `MatchingDialog` besoin-centrique monté tel quel (moteur unique, aucun launcher partagé nouveau), déclaré seulement sur `besoins`/`planning` (contexte `?opp=` du détail déjà chargé). **CROSS-02** : Post-Mortem = `MissionComposerDesktop` + `POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG` dans un `AppDialog` thémé cockpit ; aucune mission/workflow/trigger. **CROSS-03** : Simulation devis = toujours déclarée ; préset opportunité si contexte, flash nu sinon. Rail « Modules » restreint par `opportunitiesModulesForSection` (§ 13, aucun bouton mort). `Modélisation de CA` jamais rendue (OPP-11). | 10 |
 
 ## Questions ouvertes en cours
 
@@ -96,9 +97,9 @@ canonique § 17.
 | LEGACY-03 | Composants `src/components/staffing/` encore montés après migration | 6 / 12 | **ouverte** |
 | LEGACY-04 | `OpportunitiesKpiSection.tsx` (`getWeightedValue`) — réconcilier ou déprécier | 3 | ✅ **réconcilié (OPP-19)** — sa formule devient le contrat canonique ; composant déprécié au Lot 6/12 |
 | LEGACY-05 | HEX en dur dans `NeedsStaffingWorkspace.tsx` → variables `@theme` | 6 | ✅ **traité (OPP-27)** — chapitre V2 sans HEX ; HEX legacy dans les toggles non repris, retrait au Lot 12 |
-| CROSS-01 | Point d'entrée partagé propre pour « Matching profil » | 10 | **ouverte** |
-| CROSS-02 | Launcher officiel de `post-mortem-commercial` depuis un module contextuel | 10 | **ouverte** |
-| CROSS-03 | « Simulation devis » disponible sans contexte ou seulement avec contexte | 10 | **ouverte** — reco : toujours dispo |
+| CROSS-01 | Point d'entrée partagé propre pour « Matching profil » | 10 | ✅ **tranché (OPP-30)** — `MatchingDialog` besoin-centrique monté tel quel ; module déclaré sur `besoins`/`planning` (contexte `?opp=`) ; aucun launcher partagé nouveau |
+| CROSS-02 | Launcher officiel de `post-mortem-commercial` depuis un module contextuel | 10 | ✅ **tranché (OPP-30)** — `MissionComposerDesktop` (config `post_mortem_pipeline`) dans un `AppDialog` `data-theme="cockpit"` ; aucune mission/workflow/trigger |
+| CROSS-03 | « Simulation devis » disponible sans contexte ou seulement avec contexte | 10 | ✅ **tranché (OPP-30)** — toujours disponible ; préset opportunité si `?opp=`, flash nu sinon |
 
 ## Baseline technique constatée (2026-09-09, `61aba08e`)
 
@@ -264,6 +265,97 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 10 — Modules contextuels — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : raccorder **Matching profil**, **Simulation devis**, **Post-Mortem** dans
+  `SectionRail.contextualModules`, **exclusivement via les capacités existantes** (aucun
+  composant copié, aucun loader forké, aucune deuxième modale / moteur / mission). Résout
+  CROSS-01/02/03 → **OPP-30**. Aucune Data, aucune migration.
+
+- **Audit des capacités réutilisées** :
+  - `src/components/staffing/matching/MatchingDialog.tsx` — besoin-centrique, `opportunityId`
+    + `opportunityTitle` requis, `useOpportunityMatching` (moteur unique `staffing-matching`,
+    cache `match_scores`). Déjà monté dans `OpportunityNeedTab` (`dynamic`, `key={opp.id}`).
+  - `@/features/financial-modeling` → `FinancialModelingDesktopDialog` (préset optionnel,
+    flash par défaut) — déjà importé 4× dans le repo (dont `StaffingInProgressRail` Lot 6).
+  - `POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG` (`mission-composer-model.ts`, slug
+    `post-mortem-commercial`, `inputKind: "month"` → période pipeline trimestrielle) +
+    `MissionComposerDesktop` (`useMissionLauncher`, `WorkflowExecutionConfirmDialog`,
+    habillage cockpit `text-primary-fg`/`brand-brass`). Monté aujourd'hui seulement dans
+    `IntelligencePanel`.
+
+- **Fichiers créés** — `src/features/opportunities/modules/` :
+  - `opportunities-modules.ts` — **isomorphe** : `OpportunitiesModule`
+    (`matching`/`simulation`/`post-mortem`), `opportunitiesModulesForSection` (matching sur
+    `besoins`/`planning` seulement ; simulation + post-mortem partout — § 13),
+    `parseOpportunitiesModule(params, section)` (déterministe, gardé par le chapitre :
+    module non applicable → `null`), `buildOpportunitiesModuleHref` (toggle `module`,
+    préserve `section`/`opp`/tiers).
+  - `MatchingProfilModule.tsx` — `"use client"` : monte `MatchingDialog` (`isMobile={false}`,
+    `key={opportunityId}`), fermeture → `router.push(closeHref)`.
+  - `SimulationDevisModule.tsx` — `"use client"` : `FinancialModelingDesktopDialog` +
+    `initialPreset?` (`mode:"full"`, opportunité/client/TJM cible).
+  - `PostMortemModule.tsx` — `"use client"` : `AppDialog dataTheme="cockpit"` + wrapper
+    `bg-brand-primary` hébergeant `MissionComposerDesktop` (config post-mortem existante).
+  - `OpportunitiesModulesHost.tsx` — `"use client"` : dispatcher ; les 3 wrappers en
+    `next/dynamic({ ssr:false })` (dialogs chargés seulement quand `?module=` présent) ;
+    branche `matching` sans contexte → `AppDialog` d'aiguillage (aucun bouton mort).
+  - `__tests__/opportunities-modules.test.ts` (17) + `__tests__/opportunities-modules-reuse.test.ts` (8)
+    — applicabilité par chapitre, parsing gardé, href orthogonal, invariants REUSE-only
+    (imports canoniques, pas de moteur/webhook/mission recréés).
+
+- **Fichiers modifiés** :
+  - `navigation/opportunities-icons.tsx` — 3 icônes module (Heroicons v2 outline :
+    sparkles / calculator / document-magnifying-glass).
+  - `navigation/opportunities-sections.ts` — `"module"` ajouté à
+    `LEGACY_NEEDS_STAFFING_QUERY_KEYS` (stripé au changement de chapitre, comme `opp`).
+  - `desktop/OpportunitiesDesktopShell.tsx` — calcule et passe `contextualModules`
+    (label + icône + href + `active`), restreint par `opportunitiesModulesForSection`.
+  - `app/(app)/missions/opps/page.tsx` — parse `?module=`, monte
+    `<OpportunitiesModulesHost>` en **frère** du contenu du chapitre ; le contexte
+    opportunité (`opportunityId`/`title`/`companyId`/`companyName`/`salesDailyRate`) est
+    **extrait du détail DÉJÀ chargé** (`selectedNeedDetail` / `selectedOpportunityDetail`)
+    — jamais une requête de plus. `closeHref` = URL courante sans `module`.
+  - `navigation/opportunities-sections.test.ts` — le test « aucune section Modules »
+    devient « rend la section Modules (Lot 10) » ; strip `module` ; `aria-current` module.
+  - `summary/__tests__/summary-route.test.ts` — `page.props.children` est désormais
+    `[contenuChapitre, host?]` : helper `chapterChild()` + 3 cas host (absent sans
+    `?module=`, monté avec, ignoré si non applicable au chapitre).
+
+- **Décisions** : **OPP-30** (CROSS-01/02/03). Aucune divergence de contrat.
+
+- **Périmètre respecté** :
+  - `Modélisation de CA` **jamais** rendue (OPP-11) — absente de `OpportunitiesModule`.
+  - Mobile inchangé : le shell V2 n'est pas monté sur Mobile ; `ProfileMatchingMobile` /
+    `FinancialModelingMobileFlow` inchangés.
+  - Aucune nouvelle modale / moteur / mission / workflow n8n / trigger.
+  - `contextualModules` passe de `undefined` (Lots 1→9) à toujours ≥ 2 entrées.
+
+- **Dettes / suites** :
+  - `MissionComposerDesktop` reste stylé pour le cockpit ; l'habillage `AppDialog` cockpit
+    est correct mais la QA visuelle Guillaume doit valider le contraste dans ce contexte.
+  - Le module Matching sur `besoins`/`planning` suppose une sélection résolue (toujours vrai
+    tant qu'il existe ≥ 1 besoin ouvert) ; sinon `AppDialog` d'aiguillage vers la liste.
+  - `l'action « Simuler la marge » par ligne du rail Staffing (Lot 6) n'est pas retirée`
+    (§ 13.5) — cohabite avec le module ; rationalisation éventuelle = Lot 12.
+
+- **Gates réellement exécutées** (dans l'ordre, toutes vertes) :
+  - `npm run typecheck` — ✅ (après `rm -rf .next`).
+  - `npx vitest run src/features/opportunities/` — ✅ **18 fichiers / 146 tests**.
+  - `npm test` (**suite complète**) — ✅ **291 fichiers / 2884 tests** ; **1 échec hors lot**
+    persistant dans `consultants/desktop/synthese/synthese-render.test.ts` (chantier
+    Consultants parallèle non commité — `Pipeline de recrutement` attendu). Aucun fichier
+    Consultants touché par le Lot 10.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` sur les fichiers touchés — ✅ 0 problème (règle `no-assign-module-variable`
+    corrigée : `moduleKey` au lieu de `module`).
+  - `npm run build` — ✅ « Compiled successfully », route `ƒ /missions/opps` (pas de déopt).
+
+- **Commit** : _(à renseigner)_ — `feat(opportunities): modules contextuels Matching · Simulation · Post-Mortem (Lot 10)`.
+- **QA visuelle** : réservée à Guillaume (§ 20.3) — section « Modules » du rail, ouverture des
+  3 dialogs, habillage cockpit du Post-Mortem, préset Simulation depuis un besoin.
+- **NEXT LOT** : Lot 11 — Legacy / compatibilité / navigation globale (coord. SHELL-0018 Phase 6.3).
 
 ### Lot 9 — Planning Desktop — ✅ techniquement livré (2026-09-09)
 

@@ -23,12 +23,25 @@ vi.mock("@/components/needs-staffing/NeedsStaffingWorkspace", () => ({ NeedsStaf
 vi.mock("@/features/opportunities/desktop/OpportunitiesDesktopShell", () => ({ OpportunitiesDesktopShell: () => null }))
 vi.mock("@/features/opportunities/needs/NeedsDesktop", () => ({ NeedsDesktop: () => null }))
 vi.mock("@/features/opportunities/planning/PlanningDesktop", () => ({ PlanningDesktop: () => null }))
+vi.mock("@/features/opportunities/modules/OpportunitiesModulesHost", () => ({
+  OpportunitiesModulesHost: () => null,
+}))
 
 import Page from "@/app/(app)/missions/opps/page"
 import { SummaryDesktop } from "../SummaryDesktop"
 import { NeedsStaffingWorkspace } from "@/components/needs-staffing/NeedsStaffingWorkspace"
 import { NeedsDesktop } from "@/features/opportunities/needs/NeedsDesktop"
 import { PlanningDesktop } from "@/features/opportunities/planning/PlanningDesktop"
+import { OpportunitiesModulesHost } from "@/features/opportunities/modules/OpportunitiesModulesHost"
+
+/**
+ * Depuis le Lot 10 le shell reçoit `[contenuChapitre, <OpportunitiesModulesHost>?]`.
+ * Le premier enfant est toujours le contenu du chapitre actif.
+ */
+function chapterChild(page: { props: { children: unknown } }): ReactElement {
+  const { children } = page.props
+  return (Array.isArray(children) ? children[0] : children) as ReactElement
+}
 
 const vm = buildOpportunitiesSynthese({
   referenceDate: new Date("2026-09-09T00:00:00Z"),
@@ -75,7 +88,7 @@ beforeEach(() => {
 describe("Synthèse route device and section isolation", () => {
   it.each([{}, { section: "synthese" }])("loads the canonical VM once for desktop %j", async (query) => {
     const page = await Page({ searchParams: Promise.resolve(query) })
-    const child = page.props.children as ReactElement<{ vm: typeof vm }>
+    const child = chapterChild(page) as ReactElement<{ vm: typeof vm }>
     expect(child.type).toBe(SummaryDesktop)
     expect(child.props.vm).toBe(vm)
     expect(mocks.synthese).toHaveBeenCalledTimes(1)
@@ -98,7 +111,7 @@ describe("Synthèse route device and section isolation", () => {
 
   it("mounts NeedsDesktop for ?section=besoins (desktop) and loads only the chapter data", async () => {
     const page = await Page({ searchParams: Promise.resolve({ section: "besoins", opp: "n1" }) })
-    expect(page.props.children.type).toBe(NeedsDesktop)
+    expect(chapterChild(page).type).toBe(NeedsDesktop)
     expect(mocks.needsChapter).toHaveBeenCalledTimes(1)
     expect(mocks.needsChapter).toHaveBeenCalledWith(
       expect.objectContaining({ requestedNeedId: "n1" }),
@@ -121,9 +134,37 @@ describe("Synthèse route device and section isolation", () => {
 
   it("mounts PlanningDesktop and restores ?opp= through the planning loader", async () => {
     const page = await Page({ searchParams: Promise.resolve({ section: "planning", opp: "o1" }) })
-    expect(page.props.children.type).toBe(PlanningDesktop)
+    expect(chapterChild(page).type).toBe(PlanningDesktop)
     expect(mocks.planningChapter).toHaveBeenCalledWith("o1")
     expect(mocks.synthese).not.toHaveBeenCalled()
     expect(mocks.needsChapter).not.toHaveBeenCalled()
+  })
+
+  it("no ?module= → no modules host mounted", async () => {
+    const page = await Page({ searchParams: Promise.resolve({ section: "planning" }) })
+    const children = page.props.children as unknown[]
+    expect(Array.isArray(children) ? children[1] : null).toBeNull()
+  })
+
+  it("?module=simulation → mounts OpportunitiesModulesHost as a sibling of the chapter", async () => {
+    const page = await Page({
+      searchParams: Promise.resolve({ section: "planning", opp: "o1", module: "simulation" }),
+    })
+    const [chapter, host] = page.props.children as [
+      ReactElement,
+      ReactElement<{ activeModule: string; closeHref: string }>,
+    ]
+    expect(chapter.type).toBe(PlanningDesktop)
+    expect(host.type).toBe(OpportunitiesModulesHost)
+    expect(host.props.activeModule).toBe("simulation")
+    expect(host.props.closeHref).toBe("/missions/opps?section=planning&opp=o1")
+  })
+
+  it("?module=matching on synthèse is ignored (not applicable) — no host", async () => {
+    const page = await Page({
+      searchParams: Promise.resolve({ section: "synthese", module: "matching" }),
+    })
+    const children = page.props.children as unknown[]
+    expect(Array.isArray(children) ? children[1] : null).toBeNull()
   })
 })

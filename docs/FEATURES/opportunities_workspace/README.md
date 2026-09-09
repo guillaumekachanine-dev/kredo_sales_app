@@ -2,7 +2,7 @@
 
 > **Nom canonique :** Opportunities Workspace
 > **Nom produit affiché :** Opportunités
-> **Statut global : en implémentation (Lots 1→9 livrés le 2026-09-09)**
+> **Statut global : en implémentation (Lots 1→10 livrés le 2026-09-09)**
 > **Branche de travail unique : `main`** (aucune feature branch)
 > **Baseline de cadrage : `61aba08ee1b35f848d223f96e08a1e1a624545ec`**
 
@@ -104,9 +104,9 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 10 — Modules existants** (Matching profil, Simulation devis, Post-Mortem ;
-câblage vers les capacités existantes, sans duplication ; voir
-`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 10).
+➡️ **Lot 11 — Legacy / compatibilité / navigation globale** (redirection `/staffing`,
+libellé `main-menu` « Opportunités », deep-links `scope` ; **coord. SHELL-0018 Phase 6.3** ;
+voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 11).
 
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
@@ -138,6 +138,12 @@ câblage vers les capacités existantes, sans duplication ; voir
   canonique par opportunité, source encodée par forme + couleur, ligne Aujourd’hui, navigation
   de période et sélection partagée `?opp=`. **OPP-29**. Mobile inchangé. **QA visuelle
   Guillaume en attente.**
+- Lot 10 livré : modules contextuels (`src/features/opportunities/modules/`) — contrat
+  `?module=matching|simulation|post-mortem` + 3 wrappers REUSE-only (`MatchingDialog` ·
+  `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) +
+  `OpportunitiesModulesHost` (dialogs lazy). Rail « Modules » restreint par chapitre.
+  **CROSS-01/02/03 → OPP-30**. `Modélisation de CA` non affichée. Mobile inchangé.
+  **QA visuelle Guillaume en attente.**
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`

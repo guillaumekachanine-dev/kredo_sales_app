@@ -60,3 +60,30 @@ export function PlanningIcon(props: IconProps) {
     </Icon>
   )
 }
+
+// Heroicons v2 · sparkles — Matching profil (module)
+export function MatchingProfilIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+    </Icon>
+  )
+}
+
+// Heroicons v2 · calculator — Simulation devis (module)
+export function SimulationDevisIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008ZM8.25 15h.008v.008H8.25V15Zm0 2.25h.008v.008H8.25v-.008ZM10.5 15h.008v.008H10.5V15Zm0 2.25h.008v.008H10.5v-.008ZM12.75 15h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008ZM15 15h.008v.008H15V15Zm0-2.25h.008v.008H15v-.008ZM6.75 6.75h10.5v3H6.75v-3ZM6 3.75A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6Z" />
+    </Icon>
+  )
+}
+
+// Heroicons v2 · document-magnifying-glass — Post-Mortem (module)
+export function PostMortemIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm-1.5 12a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+    </Icon>
+  )
+}

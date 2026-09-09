@@ -38,10 +38,12 @@ export const OPPORTUNITIES_SECTION_KEYS = [
 const SECTION_KEY_SET = new Set<string>(OPPORTUNITIES_SECTION_KEYS)
 
 /**
- * Paramètres décrivant l'état interne d'UN chapitre : au changement de chapitre
- * ils sont retirés de l'URL (état du chapitre frère, non pertinent sur la cible).
+ * Paramètres décrivant l'état interne / éphémère d'UN chapitre : au changement de
+ * chapitre ils sont retirés de l'URL (état du chapitre frère, non pertinent sur
+ * la cible).
  * → OPP-17 (filtres legacy `NeedsStaffingWorkspace`), OPP-23/OPP-26 (`opp` =
- * besoin sélectionné du chapitre Besoins).
+ *   besoin sélectionné du chapitre Besoins), OPP-30 (`module` = module contextuel
+ *   ouvert au-dessus du chapitre courant).
  */
 export const LEGACY_NEEDS_STAFFING_QUERY_KEYS = [
   "scope",
@@ -52,6 +54,7 @@ export const LEGACY_NEEDS_STAFFING_QUERY_KEYS = [
   "sort",
   "direction",
   "opp",
+  "module",
 ] as const
 
 /** Libellé affiché dans le header de la zone principale (jamais dans le chapeau). */

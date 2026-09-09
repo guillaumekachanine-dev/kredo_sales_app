@@ -1,5 +1,6 @@
 import "server-only"
 
+import type { ReactNode } from "react"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getNeedsStaffingSharedData } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
 import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
@@ -19,6 +20,16 @@ import { PresalesDesktop } from "@/features/opportunities/presales/PresalesDeskt
 import { getPlanningChapterData } from "@/features/opportunities/planning/data/get-planning-chapter-data"
 import { parsePlanningSelection } from "@/features/opportunities/planning/data/planning-selection"
 import { PlanningDesktop } from "@/features/opportunities/planning/PlanningDesktop"
+import {
+  buildOpportunitiesModuleHref,
+  parseOpportunitiesModule,
+} from "@/features/opportunities/modules/opportunities-modules"
+import {
+  OpportunitiesModulesHost,
+  type OpportunitiesModuleContext,
+} from "@/features/opportunities/modules/OpportunitiesModulesHost"
+import { OPPORTUNITIES_CANONICAL_PATH } from "@/features/opportunities/navigation/opportunities-sections"
+import type { OpportunityDetailData } from "@/app/(app)/missions/_data/get-opportunity-detail"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Opportunities Workspace — orchestrateur de la route `/missions/opps`
@@ -43,6 +54,20 @@ import { PlanningDesktop } from "@/features/opportunities/planning/PlanningDeskt
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SearchParams = Record<string, string | string[] | undefined>
+
+/** Contexte opportunité pour les modules contextuels (Lot 10) — jamais une requête de plus. */
+function toModuleContext(
+  detail: OpportunityDetailData | null | undefined,
+): OpportunitiesModuleContext | null {
+  if (!detail) return null
+  return {
+    opportunityId: detail.opportunity.id,
+    opportunityTitle: detail.opportunity.title,
+    companyId: detail.opportunity.company_id,
+    companyName: detail.account?.name ?? null,
+    salesDailyRate: detail.opportunity.target_daily_rate,
+  }
+}
 
 export default async function OpportunitesPage({
   searchParams,
@@ -76,39 +101,44 @@ export default async function OpportunitesPage({
 
   // ── Desktop : shell SHELL-0018 V2 + contenu du chapitre actif ───────────────
   const searchParamsString = searchParamsToString(resolvedSearchParams)
+  const activeModule = parseOpportunitiesModule(resolvedSearchParams, activeSection)
+
+  // Contenu du chapitre + contexte opportunité pour les modules (Lot 10) — le
+  // contexte est extrait du détail DÉJÀ chargé par le chapitre, jamais requêté à part.
+  let chapterContent: ReactNode
+  let moduleContext: OpportunitiesModuleContext | null = null
 
   if (activeSection === "besoins") {
     const data = await getNeedsChapterData(parseNeedsSelection(resolvedSearchParams))
-    return (
-      <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
-        <NeedsDesktop data={data} searchParamsString={searchParamsString} />
-      </OpportunitiesDesktopShell>
-    )
-  }
-
-  if (activeSection === "synthese") {
+    chapterContent = <NeedsDesktop data={data} searchParamsString={searchParamsString} />
+    moduleContext = toModuleContext(data.selectedNeedDetail)
+  } else if (activeSection === "synthese") {
     const vm = await getOpportunitiesSynthese()
-    return (
-      <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
-        <SummaryDesktop vm={vm} />
-      </OpportunitiesDesktopShell>
+    chapterContent = <SummaryDesktop vm={vm} />
+  } else if (activeSection === "avant-vente") {
+    chapterContent = <PresalesDesktop />
+  } else {
+    const planningData = await getPlanningChapterData(
+      parsePlanningSelection(resolvedSearchParams),
     )
+    chapterContent = <PlanningDesktop data={planningData} searchParamsString={searchParamsString} />
+    moduleContext = toModuleContext(planningData.selectedOpportunityDetail)
   }
 
-  if (activeSection === "avant-vente") {
-    return (
-      <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
-        <PresalesDesktop />
-      </OpportunitiesDesktopShell>
-    )
-  }
-
-  const planningData = await getPlanningChapterData(
-    parsePlanningSelection(resolvedSearchParams),
-  )
   return (
     <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
-      <PlanningDesktop data={planningData} searchParamsString={searchParamsString} />
+      {chapterContent}
+      {activeModule ? (
+        <OpportunitiesModulesHost
+          activeModule={activeModule}
+          closeHref={buildOpportunitiesModuleHref(
+            OPPORTUNITIES_CANONICAL_PATH,
+            new URLSearchParams(searchParamsString),
+            null,
+          )}
+          context={moduleContext}
+        />
+      ) : null}
     </OpportunitiesDesktopShell>
   )
 }
