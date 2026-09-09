@@ -36,7 +36,7 @@ export function AnalyzeMarginsResult({ result }: { result: AnalyzeMarginsResultD
         <div className="space-y-2.5">
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-fg/45">Top 3 à vérifier</p>
           {result.worstMargins.map((item) => (
-            <a key={item.missionId} href="/missions/actives" className="block rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-3 transition-colors hover:bg-primary-fg/[0.07]">
+            <a key={item.missionId} href={item.missionId ? `/missions?vue=missions-at&mission=${item.missionId}` : "/missions?vue=missions-at"} className="block rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-3 transition-colors hover:bg-primary-fg/[0.07]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold leading-snug text-primary-fg">{item.title}</p>

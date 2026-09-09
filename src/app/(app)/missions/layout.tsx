@@ -1,10 +1,10 @@
-// Layout commun à toutes les pages du module Missions.
+// Layout commun à toutes les pages du module Missions (Engagements).
 //
-// La barre d'onglets de section (SectionNavBarSlot) a été descendue dans
-// `(tabbed)/layout.tsx` : la page racine `/missions` porte désormais le nouveau
-// shell Engagements (navigation secondaire verticale), qui doublonnerait la
-// barre d'onglets horizontale. Les pages `(tabbed)` (Missions, Projets)
-// conservent la barre via leur propre layout.
+// SHELL-0018 Lot 6.3 : le groupe (tabbed) et son SectionNavBarSlot ont été
+// définitivement retirés. La page racine `/missions` porte le shell Engagements
+// unifié (navigation secondaire SectionRail via `?vue=`). Les sous-routes
+// historiques `/missions/actives` et `/missions/projets` redirigent désormais
+// de façon permanente vers leurs vues canoniques respectives.
 
 export default function MissionsLayout({
   children,

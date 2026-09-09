@@ -2,7 +2,7 @@
 
 > **Nom canonique :** Opportunities Workspace
 > **Nom produit affiché :** Opportunités
-> **Statut global : en implémentation (Lots 1→10 livrés le 2026-09-09)**
+> **Statut global : en implémentation (Lots 1→11 livrés le 2026-09-09)**
 > **Branche de travail unique : `main`** (aucune feature branch)
 > **Baseline de cadrage : `61aba08ee1b35f848d223f96e08a1e1a624545ec`**
 
@@ -104,10 +104,14 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 11 — Legacy / compatibilité / navigation globale** (redirection `/staffing`,
-libellé `main-menu` « Opportunités », deep-links `scope` ; **coord. SHELL-0018 Phase 6.3** ;
-voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 11).
+➡️ **Lot 12 — Nettoyage et clôture** (audit exhaustif, parité, code mort, suppressions prouvées sûres, rapport `02-CLOSURE-AUDIT.md` ; voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 12).
 
+- Lot 11 livré : Legacy / compatibilité / navigation globale (coordonné SHELL-0018 Lot 6.3) —
+  renommage CRM « Opportunités », retrait tabs Desktop Engagements, redirection canonique
+  `/staffing` vers `?section=besoins` sans scope/view, canonisation du lien mobile vers
+  `?section=besoins`, retrait de `useSidebarCollapse` dans `OpportunitiesDesktopShell`,
+  compatibilité `scope=needs|staffing` maintenue au parsing, migration de tous les deep-links
+  utilisateur vers `/missions?vue=...`.
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
 - Lot 2 livré : primitive `OpportunitiesTriPanel` (Liste │ Main │ Détails), locale à

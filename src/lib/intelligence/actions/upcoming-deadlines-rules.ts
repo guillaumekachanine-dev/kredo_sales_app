@@ -195,7 +195,7 @@ export function buildUpcomingDeadlines(
       ].filter(Boolean).join(" · "),
       amountEur: revenue,
       impactDays: null,
-      link: `/missions/actives`,
+      link: `/missions?vue=missions-at&mission=${mission.id}`,
     })
   }
 

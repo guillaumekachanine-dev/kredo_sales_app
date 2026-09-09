@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -248,12 +248,42 @@ describe("Opportunities Workspace — invariants de code", () => {
   })
 
   it("la route vit hors du groupe (tabbed)", () => {
-    let removed = false
-    try {
-      readFileSync(resolve(root, "src/app/(app)/missions/(tabbed)/opps/page.tsx"), "utf8")
-    } catch {
-      removed = true
-    }
-    expect(removed).toBe(true)
+    expect(existsSync(resolve(root, "src/app/(app)/missions/(tabbed)/opps/page.tsx"))).toBe(false)
+  })
+
+  it("OpportunitiesDesktopShell n'importe ni n'utilise useSidebarCollapse (SHELL 6.3 / Lot 11)", () => {
+    const desktopShellSource = readFileSync(
+      resolve(root, "src/features/opportunities/desktop/OpportunitiesDesktopShell.tsx"),
+      "utf8",
+    )
+    expect(desktopShellSource).not.toContain("useSidebarCollapse")
+    expect(desktopShellSource).not.toContain("requestCollapse")
+    expect(desktopShellSource).not.toContain("requestRestore")
+  })
+})
+
+describe("Engagements & Missions — invariants legacy (SHELL 6.3)", () => {
+  const tabbedDir = resolve(root, "src/app/(app)/missions/(tabbed)")
+  const activesPath = resolve(root, "src/app/(app)/missions/actives/page.tsx")
+  const projetsPath = resolve(root, "src/app/(app)/missions/projets/page.tsx")
+  const tabbedShellPath = resolve(root, "src/components/missions/MissionsTabbedShell.tsx")
+
+  it("le dossier missions/(tabbed) est définitivement supprimé", () => {
+    expect(existsSync(tabbedDir)).toBe(false)
+  })
+
+  it("MissionsTabbedShell est définitivement supprimé", () => {
+    expect(existsSync(tabbedShellPath)).toBe(false)
+  })
+
+  it("les routes /missions/actives et /missions/projets redirigent de façon permanente vers ?vue=", () => {
+    expect(existsSync(activesPath)).toBe(true)
+    expect(existsSync(projetsPath)).toBe(true)
+
+    const activesSource = readFileSync(activesPath, "utf8")
+    const projetsSource = readFileSync(projetsPath, "utf8")
+
+    expect(activesSource).toContain('permanentRedirect("/missions?vue=missions-at")')
+    expect(projetsSource).toContain('permanentRedirect("/missions?vue=projets")')
   })
 })

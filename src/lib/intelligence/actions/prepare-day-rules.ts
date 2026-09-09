@@ -178,7 +178,7 @@ export function buildPrepareDay(input: BuildPrepareDayInput): PrepareDayRulesRes
           type: "mission_ending",
           message: `Point mission à traiter : ${task.title}`,
           entityId: id,
-          link: `/missions/actives/${id}`,
+          link: `/missions?vue=missions-at&mission=${id}`,
         }]
       }
       if (task.title.toLowerCase().includes("cra")) {

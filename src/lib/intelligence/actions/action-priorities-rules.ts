@@ -229,7 +229,7 @@ export function buildActionPriorities(input: BuildActionPrioritiesInput): Action
       entityLabel: mission.companyName ? `${mission.title} · ${mission.companyName}` : mission.title,
       action: `Anticiper la fin de mission — ${formatDayCount(Math.max(0, daysToEnd))}`,
       impactReason: mission.opportunityId ? "Renouvellement ou suite déjà identifié à vérifier" : "Aucune suite liée à la mission",
-      link: `/missions/actives/${mission.id}`,
+      link: `/missions?vue=missions-at&mission=${mission.id}`,
     })
   }
 

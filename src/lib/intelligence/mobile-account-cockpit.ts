@@ -370,7 +370,7 @@ export function selectBestOpportunityWindow(data: MobileCockpitSource, now: Date
       meta: null,
       ctaLabel: "Relancer",
       actionKind: "opportunity",
-      href: "/missions/actives",
+      href: `/missions?vue=missions-at&mission=${mission.id}`,
       missionId: mission.id,
       missionTitle: mission.title,
     }
@@ -531,7 +531,7 @@ export function selectUpcomingMovements(data: MobileCockpitSource, now: Date): M
         id: `mission:${mission.id}`,
         label: `Fin ${mission.title}`,
         timing: distance < 0 ? "Échue" : `Dans ${distance} j`,
-        href: "/missions/actives",
+        href: `/missions?vue=missions-at&mission=${mission.id}`,
         overdue: distance < 0,
       })
     }

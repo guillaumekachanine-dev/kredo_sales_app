@@ -140,14 +140,14 @@ export function getMobileTabsForPath(pathname: string): SectionTab[] {
 
   if (pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")) {
     return [
-      { label: "Besoins & Staffing", shortLabel: "Besoins", href: "/missions/opps?scope=needs" },
+      { label: "Besoins & Staffing", shortLabel: "Besoins", href: "/missions/opps?section=besoins" },
       { label: "Recrutement", shortLabel: "Recrutement", href: "/consultants?section=candidats" },
     ]
   }
 
   // Engagements sur Mobile : le shell unique vit sur /missions et pilote ses
-  // vues par `?vue=` (les routes (tabbed) /missions/actives · /projets sont
-  // redirigées vers ce shell sur Mobile — cf. ADR-0006).
+  // vues par `?vue=` (les routes /missions/actives · /projets redirigent vers
+  // leurs vues canoniques — SHELL-0018 Lot 6.3).
   if (pathname === "/missions" || pathname.startsWith("/missions/actives") || pathname.startsWith("/missions/projets")) {
     return [
       { label: "Synthèse", shortLabel: "Synthèse", href: "/missions" },
@@ -198,8 +198,8 @@ export const mainMenuItems: MainMenuItem[] = [
         primary: true,
       },
       {
-        label: "Besoins & Staffing",
-        shortLabel: "Besoins",
+        label: "Opportunités",
+        shortLabel: "Opportunités",
         href: "/missions/opps",
         icon: "staffing",
         primary: true,
@@ -209,11 +209,6 @@ export const mainMenuItems: MainMenuItem[] = [
         shortLabel: "Missions",
         href: "/missions",
         icon: "engagements",
-        tabs: [
-          { label: "Synthèse",   shortLabel: "Synthèse",  href: "/missions" },
-          { label: "Missions",   shortLabel: "Missions",  href: "/missions/actives" },
-          { label: "Projets",    shortLabel: "Projets",    href: "/missions/projets" },
-        ],
       },
       {
         label: "Consultants",

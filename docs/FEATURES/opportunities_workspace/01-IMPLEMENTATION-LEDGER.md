@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 10 — Modules contextuels (Matching profil · Simulation devis · Post-Mortem)
+Dernier lot livré             : Lot 11 — Legacy / compatibilité / navigation globale
 Lot courant                   : aucun
-Prochain lot                  : Lot 11 — Legacy / compatibilité / navigation globale
-Dernier SHA connu origin/main : de2efc32   (2026-09-09, correction Lot 10)
+Prochain lot                  : Lot 12 — Nettoyage et clôture
+Dernier SHA connu origin/main : 04cbf1e6
 ```
 
 ## Table des lots
@@ -33,7 +33,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ✅ techniquement livré | `adde8825` | `src/features/opportunities/planning/data/` : `opportunity-deadline.types.ts` + `build-opportunity-deadlines.ts` (pur) + `get-opportunity-deadlines.ts` (loader). **Résout DATA-03 → OPP-28.** Synthèse refactorée pour consommer ce builder (OPP-10). Builder unique (test d'arbitrage + `start_date` jamais échéance). Aucune migration. |
 | 9 | Planning Desktop | ✅ techniquement livré | `d94a1b16` | `OpportunitiesTriPanel` : liste des opportunités ouvertes │ milestone planning central `Mois \| Année` │ détail contextuel. Builder `OpportunityDeadline` unique, sélection `?opp=`, ligne Aujourd’hui, formes + couleurs par source, navigation de période. **OPP-29.** Mobile inchangé. |
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ✅ techniquement livré | `a965a94c` + correction | `src/features/opportunities/modules/` : contrat `?module=` + 3 wrappers REUSE-only (`MatchingDialog` · `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) + `OpportunitiesModulesHost` (dialogs lazy). **Les 3 modules sont constamment visibles sur tous les chapitres** (indépendants de l'onglet). **Résout CROSS-01/02/03 → OPP-30.** `Modélisation de CA` non affichée (OPP-11). Aucune Data, aucune migration. |
-| 11 | Legacy / compatibilité / navigation globale | ⬜ todo | — | Redirection `/staffing`, `main-menu` label « Opportunités », deep-links `scope`. **Coord. SHELL-0018 Phase 6.3.** |
+| 11 | Legacy / compatibilité / navigation globale | ✅ techniquement livré | coordonné SHELL 6.3 | Redirection `/staffing` vers `?section=besoins`, `main-menu` « Opportunités », retrait tabs Desktop Engagements, deep-links canoniques `/missions?vue=`, retrait `useSidebarCollapse` dans OpportunitiesDesktopShell. **Coord. SHELL-0018 Phase 6.3.** |
 | 12 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
 
 ## Décisions actées (miroir du DECISION LOG — détail dans le doc canonique § 16)
@@ -70,6 +70,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-27 | LEGACY-05 : chapitre Besoins V2 **sans HEX** (`getOpportunityStageColor` = `var(--color-*)`, tokens `@theme`). Les HEX de `NeedsStaffingWorkspace.tsx` sont dans les toggles Kanban/Planning non repris → retirés au Lot 12. | 6 |
 | OPP-29 | Planning V1 = **milestone planning**, pas Gantt projet : une lane par opportunité ouverte, au plus un jalon `OpportunityDeadline`, même grammaire en Mois/Année, source distinguée par forme + couleur. Aucune durée, dépendance, baseline, progression, WBS, date synthétique ou drag-and-drop. Échelle et période restent éphémères ; sélection seule URL-addressable via `?opp=`. | 9 |
 | OPP-30 | **Modules contextuels = câblage REUSE-only, les 3 constamment visibles sur tous les chapitres** (indépendants de l'onglet). Contrat `?module=matching\|simulation\|post-mortem` orthogonal à `?section=`/`?opp=`, stripé au changement de chapitre. **CROSS-01** : Matching = `MatchingDialog` besoin-centrique monté tel quel (moteur unique, aucun launcher partagé nouveau) ; contexte `?opp=` transmis du détail déjà chargé s'il existe, sinon écran d'aiguillage. **CROSS-02** : Post-Mortem = `MissionComposerDesktop` + `POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG` dans un `AppDialog` thémé cockpit ; aucune mission/workflow/trigger. **CROSS-03** : Simulation devis = préset opportunité si contexte, flash nu sinon. `Modélisation de CA` jamais rendue (OPP-11). | 10 |
+| OPP-31 | Navigation globale, compatibilité legacy et sortie définitive de `(tabbed)` (Lot 11 / SHELL 6.3) : KREDO ne génère plus de lien `?scope=` ; compatibilité `scope=needs\|staffing` maintenue au parsing ; `/staffing` redirige de façon permanente vers `?section=besoins` sans `scope`/`view` ; libellé CRM = « Opportunités » ; `/missions/opps` reste canonique ; retrait de `useSidebarCollapse` ; `missions/(tabbed)` et `MissionsTabbedShell` supprimés ; `/missions/actives` et `/missions/projets` redirigent vers `?vue=`. | 11 |
 
 ## Questions ouvertes en cours
 
@@ -265,6 +266,63 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 11 — Legacy / compatibilité / navigation globale — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : finaliser la navigation globale et la compatibilité legacy du workspace
+  Opportunités, de manière coordonnée avec **SHELL-0018 Lot 6.3** :
+  - Renommage de l'entrée « Besoins & Staffing » en **« Opportunités »** dans le menu principal sous CRM (`mainMenuItems`) ;
+  - Retrait du tableau `tabs` de l'entrée « Engagements » ;
+  - Canonisation du lien mobile Opportunités vers `/missions/opps?section=besoins` dans `getMobileTabsForPath` ;
+  - Redirection permanente de `/staffing` vers `/missions/opps?section=besoins` sans générer `scope` ni `view`, tout en préservant les filtres autorisés (`stage`, `priority`, `practice`, `sort`, `direction`) ;
+  - Préservation stricte de la compatibilité d'entrée `?scope=needs` et `?scope=staffing` dans `parseOpportunitiesSection` ;
+  - Retrait du repli de sidebar `useSidebarCollapse` dans `OpportunitiesDesktopShell` ;
+  - Migration intégrale des deep-links utilisateur vers `/missions?vue=missions-at&mission=` et `/missions?vue=projets&projet=` ;
+  - Suppression définitive du route group `src/app/(app)/missions/(tabbed)/` et du wrapper orphelin `MissionsTabbedShell.tsx` ;
+  - Création des routes de redirection permanente `/missions/actives/page.tsx` et `/missions/projets/page.tsx` vers leurs vues canoniques `?vue=`.
+
+- **Fichiers modifiés / créés / supprimés** :
+  - `src/lib/navigation/main-menu.config.ts` — libellé « Opportunités » sous CRM, retrait `tabs` Engagements, lien mobile `?section=besoins`.
+  - `src/lib/needs-staffing/url-state.ts` — `resolveLegacyStaffingRedirect` vers `?section=besoins` sans `scope`/`view`.
+  - `src/app/(app)/staffing/page.tsx` — `permanentRedirect(resolveLegacyStaffingRedirect(await searchParams))`.
+  - `src/features/opportunities/desktop/OpportunitiesDesktopShell.tsx` — retrait de `useEffect` et `useSidebarCollapse`.
+  - `src/app/(app)/missions/(tabbed)/` — **supprimé** (`layout.tsx`, `actives/page.tsx`, `projets/page.tsx`).
+  - `src/components/missions/MissionsTabbedShell.tsx` — **supprimé** (0 import applicatif restant).
+  - `src/app/(app)/missions/actives/page.tsx` — **créé** : `permanentRedirect("/missions?vue=missions-at")`.
+  - `src/app/(app)/missions/projets/page.tsx` — **créé** : `permanentRedirect("/missions?vue=projets")`.
+  - `src/app/(app)/missions/layout.tsx` — commentaires alignés sur la suppression de `(tabbed)`.
+  - `src/lib/cockpit/cockpit-desktop-view-model.ts` — deep-links `?vue=missions-at&mission=` et `?vue=projets&projet=`.
+  - `src/lib/intelligence/actions/{action-priorities-rules,detect-risks-rules,prepare-day-rules,upcoming-deadlines-rules}.ts` — deep-links canoniques.
+  - `src/lib/intelligence/mobile-account-cockpit.ts` — deep-links canoniques.
+  - `src/components/finance/FinanceDesktopDashboard.tsx` — deep-link fiche mission `?vue=missions-at&mission=`.
+  - `src/components/intelligence/action-results/AnalyzeMarginsResult.tsx` — deep-link fiche mission `?vue=missions-at&mission=`.
+  - `src/STRUCTURE.md` — arborescence mise à jour sans `(tabbed)` ni `MissionsTabbedShell`.
+  - Tests : `main-menu.config.test.ts`, `url-state.test.ts`, `opportunities-sections.test.ts`, `mobile-navigation-history.test.ts`.
+
+- **Décisions nouvelles** : **OPP-31** (miroir de la clôture coordonnée SHELL 6.3).
+
+- **Questions résolues** :
+  - `NAVIGATION-01` → ✅ résolu (redirection `/staffing` canonique, lien mobile canonique, fin de production de `scope`).
+  - `LEGACY-01` → ✅ résolu (suppression `missions/(tabbed)`, `SectionNavBarSlot` = 0 consommateur applicatif).
+
+- **Gates réellement exécutées** :
+  - `npm run typecheck` — ✅ (0 erreur, après purge `.next`).
+  - Tests ciblés (4 fichiers, 57 tests) — ✅ 57/57 passés.
+  - Tests cross-feature Opportunities + Intelligence (51 fichiers, 577 tests) — ✅ 577/577 passés.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` sur l'ensemble des fichiers modifiés — ✅ (0 erreur).
+  - `npm run build` — ✅ (Next.js 16.2.7 Turbopack, 42/42 pages compilées).
+  - `git diff --check` — ✅.
+  - `npm test` (**suite complète**) — ✅ **292 fichiers / 2 896 tests passés (0 échec)**.
+
+- **Dettes restantes** :
+  - `OpportunitiesDesktopView.tsx` orphelin (LEGACY-02) → Lot 12.
+  - Composants `src/components/staffing/` et `src/components/needs-staffing/` (LEGACY-03) → Lot 12.
+  - Retrait physique de `SectionNavBarSlot.tsx` et `SectionNavBar.tsx` → réservé SHELL 6.4.
+  - QA visuelle : réservée à Guillaume.
+
+- **Commit** : coordonné avec SHELL 6.3
+- **NEXT LOT** : Lot 12 — Nettoyage et clôture (rapport `02-CLOSURE-AUDIT.md`).
 
 ### Lot 10 — Modules contextuels — ✅ techniquement livré (2026-09-09)
 

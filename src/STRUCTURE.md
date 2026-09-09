@@ -11,20 +11,16 @@ src/
 │   │   ├── layout.tsx              Détection device → AppShell
 │   │   ├── page.tsx                Redirection → /cockpit
 │   │   ├── cockpit/                Dashboard de pilotage global
-│   │   ├── missions/               Module Missions & Opps (Phase 0 livré)
-│   │   │   ├── page.tsx              Vue d'ensemble (liste)
-│   │   │   └── (tabbed)/             Sous-pages avec MissionsTabbedShell
-│   │   │       ├── layout.tsx          Shell onglets (+ record tabs)
-│   │   │       ├── actives/            Missions actives
-│   │   │       ├── opps/               Opportunités
-│   │   │       └── planning/           Planning
-│   │   ├── consultants/            Module Consultants & Compétences
-│   │   │   ├── layout.tsx            Layout module (SectionNavBarSlot)
-│   │   │   ├── page.tsx              Onglet Synthèse (accueil par défaut)
-│   │   │   └── (tabbed)/             Onglets secondaires
-│   │   │       ├── layout.tsx          Shell onglets (neutre, extensible)
-│   │   │       ├── pool-competences/   Cartographie compétences & passerelles
-│   │   │       └── activite-conges/    CRA & absences planifiées
+│   │   ├── missions/               Module Engagements & Opportunités (SHELL-0018 V2)
+│   │   │   ├── page.tsx              Shell Engagements unifié (SectionRail ?vue=)
+│   │   │   ├── actives/              Redirection permanente → ?vue=missions-at
+│   │   │   ├── projets/              Redirection permanente → ?vue=projets
+│   │   │   └── opps/                 Opportunities Workspace (?section=)
+│   │   ├── consultants/            Module Consultants (SHELL-0018 V2)
+│   │   │   ├── layout.tsx            Layout module
+│   │   │   ├── page.tsx              Shell Consultants unifié (SectionRail ?section=)
+│   │   │   ├── activite-conges/      Redirection permanente → ?section=activite-conges
+│   │   │   └── pool-competences/     Redirection permanente → ?section=pool-competences
 │   │   ├── prospection/            Module Prospection Intelligence
 │   │   ├── proposals/              Module Proposal Intelligence
 │   │   ├── finance/                Module Finance
@@ -51,8 +47,8 @@ src/
 │   │   ├── SectionMobileDashboard.tsx
 │   │   ├── layout/               Blocs de layout (Header, KpiGrid, AiPanel…)
 │   │   └── widgets/              Widgets atomiques (MetricCard, AlertCard, AiSummaryCard…)
-│   ├── missions/                 Composants du module Missions
-│   │   (MissionsTabbedShell, MissionsListView, MissionsEntityPanel)
+│   ├── missions/                 Composants du module Missions (Engagements & Opps)
+│   │   (EngagementsDesktopView, MissionsEntityPanel, OpportunitiesTriPanel)
 │   ├── documents/                Viewer de documents (shell + toolbar + preview)
 │   └── editor/                   KredoRichTextEditor — éditeur JSON natif léger
 │

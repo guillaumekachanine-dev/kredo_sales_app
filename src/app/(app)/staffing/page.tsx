@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation"
+import { permanentRedirect } from "next/navigation"
 import { resolveLegacyStaffingRedirect } from "@/lib/needs-staffing/url-state"
 
 interface StaffingPageProps {
@@ -6,5 +6,5 @@ interface StaffingPageProps {
 }
 
 export default async function StaffingPage({ searchParams }: StaffingPageProps) {
-  redirect(resolveLegacyStaffingRedirect(await searchParams))
+  permanentRedirect(resolveLegacyStaffingRedirect(await searchParams))
 }

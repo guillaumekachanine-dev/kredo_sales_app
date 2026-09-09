@@ -89,8 +89,14 @@ export function buildNeedsStaffingUrl(pathname: string, state: NeedsStaffingUrlS
 
 export function resolveLegacyStaffingRedirect(params: RawSearchParams) {
   const state = parseNeedsStaffingUrlState(params)
-  return buildNeedsStaffingUrl("/missions/opps", {
-    ...state,
-    scope: "staffing",
-  })
+  const searchParams = new URLSearchParams()
+  searchParams.set("section", "besoins")
+
+  if (state.stage) searchParams.set("stage", state.stage)
+  if (state.priority) searchParams.set("priority", state.priority)
+  if (state.practice) searchParams.set("practice", state.practice)
+  if (state.sort) searchParams.set("sort", state.sort)
+  if (state.direction) searchParams.set("direction", state.direction)
+
+  return `/missions/opps?${searchParams.toString()}`
 }

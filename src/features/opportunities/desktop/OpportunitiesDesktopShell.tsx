@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, type ReactNode } from "react"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
+import type { ReactNode } from "react"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailEntry } from "@/lib/navigation/section-rail"
 import {
@@ -68,12 +67,6 @@ export function OpportunitiesDesktopShell({
   searchParamsString = "",
   children,
 }: OpportunitiesDesktopShellProps) {
-  // Repli automatique de la sidebar principale (même pattern que /missions, /reports, /consultants).
-  useEffect(() => {
-    useSidebarCollapse.getState().requestCollapse()
-    return () => useSidebarCollapse.getState().requestRestore()
-  }, [])
-
   const currentSearchParams = new URLSearchParams(searchParamsString)
 
   const chapters: SectionRailEntry[] = OPPORTUNITIES_SECTIONS.map((entry) => ({

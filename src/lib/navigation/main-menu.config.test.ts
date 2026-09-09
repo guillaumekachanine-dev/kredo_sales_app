@@ -13,12 +13,9 @@ describe("navigation de section", () => {
     expect(getSectionTabsForPath("/prospection/accounts/company-id")).toEqual([])
   })
 
-  it("conserve les onglets de section des autres modules", () => {
-    expect(getModuleTabs("/missions").map((tab) => tab.label)).toEqual([
-      "Synthèse",
-      "Missions",
-      "Projets",
-    ])
+  it("ne rend plus d'onglets de section legacy dans Engagements (SHELL 6.3)", () => {
+    expect(getModuleTabs("/missions")).toEqual([])
+    expect(getSectionTabsForPath("/missions")).toEqual([])
   })
 
   it("résout les regroupements mobiles vers leurs URLs canoniques", () => {
@@ -26,13 +23,19 @@ describe("navigation de section", () => {
       {
         label: "Besoins & Staffing",
         shortLabel: "Besoins",
-        href: "/missions/opps?scope=needs",
+        href: "/missions/opps?section=besoins",
       },
       {
         label: "Recrutement",
         shortLabel: "Recrutement",
         href: "/consultants?section=candidats",
       },
+    ])
+
+    expect(getMobileTabsForPath("/missions")).toEqual([
+      { label: "Synthèse", shortLabel: "Synthèse", href: "/missions" },
+      { label: "Missions", shortLabel: "Missions", href: "/missions?vue=missions-at" },
+      { label: "Projets", shortLabel: "Projets", href: "/missions?vue=projets" },
     ])
 
     expect(getMobileTabsForPath("/consultants")).toEqual([
@@ -45,13 +48,13 @@ describe("navigation de section", () => {
   })
 })
 
-describe("menu principal — intégration CRM et Consultants (SHELL 6.2 / Lot 14)", () => {
-  it("contient le groupe CRM avec ses entrées canoniques", () => {
+describe("menu principal — intégration CRM, Opportunités et Consultants (SHELL 6.2/6.3)", () => {
+  it("contient le groupe CRM avec ses entrées canoniques dont Opportunités", () => {
     const crmGroup = mainMenuItems.find((group) => group.label === "CRM")
     expect(crmGroup).toBeDefined()
     expect(crmGroup?.items?.map((item) => item.label)).toEqual([
       "Comptes & contacts",
-      "Besoins & Staffing",
+      "Opportunités",
       "Engagements",
       "Consultants",
     ])
@@ -72,6 +75,18 @@ describe("menu principal — intégration CRM et Consultants (SHELL 6.2 / Lot 14
     expect(consultantsItem?.tabs).toBeUndefined()
     expect(getModuleTabs("/consultants")).toEqual([])
     expect(getSectionTabsForPath("/consultants")).toEqual([])
+  })
+
+  it("intègre Engagements sous CRM sans tabs Desktop legacy (SHELL 6.3)", () => {
+    const crmGroup = mainMenuItems.find((group) => group.label === "CRM")
+    const engagementsItem = crmGroup?.items?.find((item) => item.label === "Engagements")
+
+    expect(engagementsItem).toBeDefined()
+    expect(engagementsItem?.href).toBe("/missions")
+    expect(engagementsItem?.icon).toBe("engagements")
+    expect(engagementsItem?.tabs).toBeUndefined()
+    expect(getModuleTabs("/missions")).toEqual([])
+    expect(getSectionTabsForPath("/missions")).toEqual([])
   })
 
   it("ne comporte plus d'entrée globale Recrutement", () => {

@@ -96,7 +96,10 @@ QA minimale :
 | **4.7** | Audit & clôture Phase 4 | ✅ techniquement livré | audit exhaustif des 9 surfaces ; aucune navigation secondaire Desktop client-state résiduelle |
 | **6.0** | Audit d'entrée & architecture cible Phase 6 | ✅ livré | document `08-PHASE-6-ENTRY-AUDIT-AND-TARGET-ARCHITECTURE.md` |
 | **6.1** | Retrait des `SectionNavBarSlot` no-op | ✅ techniquement livré | 4 layouts nettoyés ; build blocker CSS préexistant corrigé (`e6550db8`) ; QA visuelle réservée à Guillaume |
-| **6.x** | Refonte Shell global (lots 6.2 à 6.7) | ⬜ todo | sidebar / routes tabbed legacy / Cockpit Intelligence |
+| **6.2** | Shell Consultants + Consultants Lot 14 | ✅ techniquement livré | `(tabbed)` supprimé, `Consultants` sous CRM, commit `50f1a31e` ; QA visuelle réservée à Guillaume |
+| **6.3** | Missions historiques + Opportunities Lot 11 | ✅ techniquement livré | `missions/(tabbed)` supprimé, `MissionsTabbedShell` supprimé, `SectionNavBarSlot` 0 consommateur, CRM `Opportunités`, `/staffing` redirect permanent |
+| **6.4** | Retrait définitif `SectionNavBarSlot` + `SectionNavBar` | ⬜ todo (prochain lot) | suppression après preuve 0 consommateur atteinte au 6.3 |
+| **6.x** | Refonte Shell global (lots 6.5 à 6.7) | ⬜ todo | sidebar / useSidebarCollapse / Cockpit Intelligence |
 | **8.x** | Nettoyage / clôture | ⬜ todo | suppression legacy prouvée sûre |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)**
@@ -1432,3 +1435,80 @@ Finaliser l'intégration du workspace Consultants au Shell V2 : supprimer le der
 ### Verdict
 - **Lot 6.2 — ✅ techniquement livré.**
 - **Commit coordonné :** `50f1a31e`
+
+## 33. Clôture du Lot 6.3 — Rationalisation Missions historiques + Opportunities Lot 11
+
+### Date
+2026-09-09
+
+### Baseline
+- SHA de départ : `04cbf1e6` (`docs(shell-0018): record Lot 6.2 and Consultants Lot 14 commit SHA`).
+- `main` synchronisé avec `origin/main`.
+
+### Fichiers supprimés
+- `src/app/(app)/missions/(tabbed)/layout.tsx` — suppression définitive du dernier layout montant `SectionNavBarSlot` et `MissionsTabbedShell`.
+- `src/app/(app)/missions/(tabbed)/actives/page.tsx` — ancien composant métier Desktop supprimé.
+- `src/app/(app)/missions/(tabbed)/projets/page.tsx` — ancien composant métier Desktop supprimé.
+- `src/components/missions/MissionsTabbedShell.tsx` — shell horizontal legacy Engagements supprimé (0 consommateur résiduel).
+
+### Fichiers créés / déplacés (redirections permanentes)
+- `src/app/(app)/missions/actives/page.tsx` — route minimale de compatibilité avec `permanentRedirect("/missions?vue=missions-at")`.
+- `src/app/(app)/missions/projets/page.tsx` — route minimale de compatibilité avec `permanentRedirect("/missions?vue=projets")`.
+
+### Fichiers modifiés
+- `src/app/(app)/missions/layout.tsx` — mise à jour du commentaire d'en-tête (alignement SHELL 6.3).
+- `src/features/opportunities/desktop/OpportunitiesDesktopShell.tsx` — suppression de `useSidebarCollapse` et du hook `useEffect` (`requestCollapse/requestRestore`).
+- `src/lib/navigation/main-menu.config.ts` :
+  - Renommage de l'entrée CRM `Besoins & Staffing` en `Opportunités` (`href: "/missions/opps"`, icône `staffing`).
+  - Retrait des `tabs` legacy sur l'entrée `Engagements` (`tabs: undefined`).
+  - Canonisation du lien onglet mobile vers `/missions/opps?section=besoins` (au lieu de `?scope=needs`).
+- `src/app/(app)/staffing/page.tsx` — redirection permanente via `permanentRedirect(resolveLegacyStaffingRedirect(await searchParams))`.
+- `src/lib/needs-staffing/url-state.ts` — `resolveLegacyStaffingRedirect` redirige vers `/missions/opps?section=besoins` en préservant les filtres autorisés (`stage`, `priority`, `practice`, `sort`, `direction`) et sans jamais injecter `scope` ni `view`.
+- Deep-links actifs migrés vers `?vue=missions-at&mission=` et `?vue=projets&projet=` :
+  - `src/lib/cockpit/cockpit-desktop-view-model.ts`
+  - `src/lib/intelligence/actions/action-priorities-rules.ts`
+  - `src/lib/intelligence/actions/detect-risks-rules.ts`
+  - `src/lib/intelligence/actions/prepare-day-rules.ts`
+  - `src/lib/intelligence/actions/upcoming-deadlines-rules.ts`
+  - `src/lib/intelligence/mobile-account-cockpit.ts`
+  - `src/components/finance/FinanceDesktopDashboard.tsx`
+  - `src/components/intelligence/action-results/AnalyzeMarginsResult.tsx`
+- Tests adaptés :
+  - `src/lib/navigation/main-menu.config.test.ts` (CRM avec Opportunités, Engagements sans tabs, mobile `?section=besoins`)
+  - `src/lib/needs-staffing/url-state.test.ts` (`resolveLegacyStaffingRedirect` vers `?section=besoins`, absence de `scope`/`view`)
+  - `src/features/opportunities/navigation/opportunities-sections.test.ts` (tests invariants du shell et compatibilité scope maintenue)
+  - `src/lib/navigation/mobile-navigation-history.test.ts` (mise à jour attendu mobile `/missions/opps?section=besoins`)
+- Documentation :
+  - `src/STRUCTURE.md`
+  - `docs/FEATURES/opportunities_workspace/README.md`
+  - `docs/FEATURES/opportunities_workspace/00-REFERENCE-CHANTIER-OPPORTUNITES.md` (décision OPP-31, questions NAVIGATION-01 et LEGACY-01 résolues)
+  - `docs/FEATURES/opportunities_workspace/01-IMPLEMENTATION-LEDGER.md` (Lot 11 livré techniquement)
+
+### Preuve SectionNavBarSlot — 0 consommateur applicatif
+- `rg -n "SectionNavBarSlot" src/app src/components` :
+  - Unique résultat : `src/components/layout/SectionNavBarSlot.tsx` (sa propre définition).
+  - Aucun consommateur applicatif dans `src/app` ni `src/components`.
+  - Prêt pour suppression coordonnée au **SHELL 6.4**.
+
+### Gates exécutées
+- `npm run typecheck` : **passé** (0 erreur)
+- `npm test -- ...` (tests ciblés) : **57/57 passés**
+- `npm run check:server-boundary` : **passé**
+- `npx eslint` ciblé : **passé** (0 erreur, 0 warning)
+- `npm test` (**suite complète**) : **292 fichiers / 2 896 tests passés (0 échec)**
+- `npm run build` : **passé** (Next.js 16.2.7 Turbopack, 42/42 pages générées)
+- `git diff --check` : **passé**
+
+### Recherches statiques
+- `MissionsTabbedShell` dans `src` : **0 occurrence**
+- `useSidebarCollapse` dans `src/features/opportunities` : **0 occurrence**
+- `scope=needs|scope=staffing` nouvellement générés : **0 occurrence** (uniquement tests & `parseOpportunitiesSection` pour compatibilité d'entrée)
+- Deep-links utilisateurs actifs vers `/missions/actives` ou `/missions/projets` : **0 occurrence résiduelle**
+
+### Prochain lot
+- **SHELL 6.4** — Retrait définitif de `SectionNavBarSlot`, `SectionNavBar`, `section-tab-styles.ts`, `SectionTab`, `getModuleTabs`, `getSectionTabsForPath`.
+- **Opportunities Lot 12** — Nettoyage et clôture.
+
+### Verdict
+- **Lot 6.3 — ✅ techniquement livré.**
+- **Commit coordonné :** `PENDING`

@@ -55,12 +55,20 @@ describe("needs staffing url state", () => {
     })
   })
 
-  it("redirects /staffing to /missions/opps while preserving deep-link params", () => {
-    expect(resolveLegacyStaffingRedirect({
+  it("redirects /staffing to canonical /missions/opps?section=besoins without scope/view (Opportunities Lot 11)", () => {
+    const url = resolveLegacyStaffingRedirect({
       view: "kanban",
       stage: "preselectionne",
       priority: "haute",
       practice: "Digital",
-    })).toBe("/missions/opps?scope=staffing&view=kanban&stage=preselectionne&priority=haute&practice=Digital")
+      sort: "acv",
+      direction: "desc",
+    })
+
+    expect(url).toBe(
+      "/missions/opps?section=besoins&stage=preselectionne&priority=haute&practice=Digital&sort=acv&direction=desc",
+    )
+    expect(url).not.toContain("scope=")
+    expect(url).not.toContain("view=")
   })
 })

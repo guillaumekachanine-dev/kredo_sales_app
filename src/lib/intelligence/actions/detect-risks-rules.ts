@@ -182,7 +182,7 @@ export function buildDetectRisks(input: BuildDetectRisksInput): DetectRisksRules
       entityId: report.missionId,
       entityLabel: mission?.title ?? "Mission",
       suggestedAction: "Relancer la soumission et validation avant facturation.",
-      link: `/missions/actives/${report.missionId}`,
+      link: `/missions?vue=missions-at&mission=${report.missionId}`,
     })
     missionRiskIds.add(report.missionId)
   }
@@ -202,7 +202,7 @@ export function buildDetectRisks(input: BuildDetectRisksInput): DetectRisksRules
       entityId: mission.id,
       entityLabel: mission.title,
       suggestedAction: daysToEnd <= 30 ? "Arbitrer renouvellement, extension ou sortie cette semaine." : "Préparer le point de renouvellement.",
-      link: `/missions/actives/${mission.id}`,
+      link: `/missions?vue=missions-at&mission=${mission.id}`,
     })
     missionRiskIds.add(mission.id)
   }

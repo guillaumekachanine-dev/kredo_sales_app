@@ -202,7 +202,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
               {/* Second bouton d'action contextuel à droite */}
               {alert.type === "ending" && (
                 <Link
-                  href={`/missions/actives?id=${alert.metadata?.missionId}`}
+                  href={alert.metadata?.missionId ? `/missions?vue=missions-at&mission=${alert.metadata.missionId}` : "/missions?vue=missions-at"}
                   className="text-xs font-semibold text-primary hover:underline cursor-pointer"
                 >
                   fiche mission

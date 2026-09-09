@@ -196,14 +196,14 @@ function buildExposure(input: CockpitDesktopSources, now: Date) {
     .flatMap((mission) => {
       const days = daysUntil(mission.endDate, now)
       if (days === null || days > 30) return []
-      return [{ id: `mission:${mission.id}`, label: mission.title, detail: days < 0 ? `Mission échue depuis ${Math.abs(days)} j` : `Mission à échéance dans ${days} j`, dueDate: mission.endDate as string, action: { label: "Voir la mission", href: `/missions/actives/${mission.id}` } }]
+      return [{ id: `mission:${mission.id}`, label: mission.title, detail: days < 0 ? `Mission échue depuis ${Math.abs(days)} j` : `Mission à échéance dans ${days} j`, dueDate: mission.endDate as string, action: { label: "Voir la mission", href: `/missions?vue=missions-at&mission=${mission.id}` } }]
     })
   const projectItems = input.projects
     .filter((project) => project.status === "active")
     .flatMap((project) => {
       const days = daysUntil(project.endDate, now)
       if (!project.hasBlockedPhase && (days === null || days > 0)) return []
-      return [{ id: `project:${project.id}`, label: project.title, detail: project.hasBlockedPhase ? "Projet à risque : phase bloquée" : `Projet en retard de ${Math.abs(days as number)} j`, dueDate: project.endDate ?? undefined, action: { label: "Voir les projets", href: "/missions/projets" } }]
+      return [{ id: `project:${project.id}`, label: project.title, detail: project.hasBlockedPhase ? "Projet à risque : phase bloquée" : `Projet en retard de ${Math.abs(days as number)} j`, dueDate: project.endDate ?? undefined, action: { label: "Voir le projet", href: `/missions?vue=projets&projet=${project.id}` } }]
     })
   const opportunityItems = input.opportunities
     .filter((opportunity) => isAdvancedWithoutRecentAction(opportunity, now))
@@ -214,8 +214,8 @@ function buildExposure(input: CockpitDesktopSources, now: Date) {
 
 function buildHorizons(input: CockpitDesktopSources, now: Date) {
   const candidates = [
-    ...input.missions.filter((mission) => mission.status === "active").flatMap((mission) => mission.endDate ? [{ id: `mission:${mission.id}`, label: mission.title, detail: "Échéance de mission", dueDate: mission.endDate, action: { label: "Voir la mission", href: `/missions/actives/${mission.id}` } }] : []),
-    ...input.projects.filter((project) => project.status === "active").flatMap((project) => project.endDate ? [{ id: `project:${project.id}`, label: project.title, detail: "Échéance projet", dueDate: project.endDate, action: { label: "Voir les projets", href: "/missions/projets" } }] : []),
+    ...input.missions.filter((mission) => mission.status === "active").flatMap((mission) => mission.endDate ? [{ id: `mission:${mission.id}`, label: mission.title, detail: "Échéance de mission", dueDate: mission.endDate, action: { label: "Voir la mission", href: `/missions?vue=missions-at&mission=${mission.id}` } }] : []),
+    ...input.projects.filter((project) => project.status === "active").flatMap((project) => project.endDate ? [{ id: `project:${project.id}`, label: project.title, detail: "Échéance projet", dueDate: project.endDate, action: { label: "Voir le projet", href: `/missions?vue=projets&projet=${project.id}` } }] : []),
     ...input.opportunities.filter((opportunity) => !isTerminalOpportunityStage(opportunity.stage ?? "")).flatMap((opportunity) => opportunity.nextActionAt ? [{ id: `opportunity:${opportunity.id}`, label: opportunity.title, detail: opportunity.nextActionLabel || "Prochaine action commerciale", dueDate: opportunity.nextActionAt, action: { label: "Voir l’opportunité", href: `/missions/opps/${opportunity.id}/modifier` } }] : []),
   ]
   return ([30, 60, 90] as const).map((days) => ({
@@ -240,7 +240,7 @@ function buildAlerts(input: CockpitDesktopSources, now: Date): CockpitOperationa
     .map((issue) => ({ id: `issue:${issue.id}`, type: "urgent_issue" as const, title: issue.title, detail: `Enjeu urgent ${issue.urgency}/5`, status: "danger" as const, action: { label: "Ouvrir le compte", href: issueHref(issue.companyId) } }))
   const lateProjects = input.projects
     .filter((project) => project.status === "active" && (project.hasBlockedPhase || (daysUntil(project.endDate, now) ?? 1) <= 0))
-    .map((project) => ({ id: `project:${project.id}`, type: "project_risk" as const, title: project.title, detail: project.hasBlockedPhase ? "Projet à risque : phase bloquée" : "Projet en retard", status: "warning" as const, action: { label: "Voir les projets", href: "/missions/projets" } }))
+    .map((project) => ({ id: `project:${project.id}`, type: "project_risk" as const, title: project.title, detail: project.hasBlockedPhase ? "Projet à risque : phase bloquée" : "Projet en retard", status: "warning" as const, action: { label: "Voir le projet", href: `/missions?vue=projets&projet=${project.id}` } }))
   const stuckRuns = input.aiRuns
     .filter((run) => run.status === "running")
     .filter((run) => {

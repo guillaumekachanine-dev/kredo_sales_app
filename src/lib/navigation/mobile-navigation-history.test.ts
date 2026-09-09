@@ -232,7 +232,7 @@ describe("mobile-navigation-history (moteur pur et intégration)", () => {
     ])
 
     const besoinsItem = mainItems.find((item) => item.id === "besoins")
-    expect(besoinsItem?.tabs?.map((t) => t.href)).toContain("/missions/opps?scope=needs")
+    expect(besoinsItem?.tabs?.map((t) => t.href)).toContain("/missions/opps?section=besoins")
     expect(besoinsItem?.tabs?.map((t) => t.href)).toContain("/consultants?section=candidats")
 
     const engagementsItem = mainItems.find((item) => item.id === "engagements")
