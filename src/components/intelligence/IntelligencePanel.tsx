@@ -10,7 +10,6 @@ import {
 } from "@/lib/intelligence/intelligence-registry"
 import { useIntelligencePanel } from "@/hooks/use-intelligence-panel"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { IntelligenceActionCard } from "./IntelligenceActionCard"
 import { PanelActionsGrid } from "./PanelActionsGrid"
 import { PanelResources } from "./PanelResources"
@@ -347,17 +346,10 @@ export function IntelligencePanel() {
     return resolvePageCockpitConfig(pathname).label
   }, [isAccountMode, entityContext, pathname])
 
-  // Verrou de repli sur la sidebar principale : les deux rails ne peuvent pas
-  // être dépliés en même temps. Acquisition/relâchement équilibrés — aucun
-  // appel tant que le panneau est fermé, cleanup au unmount ou à la fermeture.
-  useEffect(() => {
-    if (!isOpen) return
-    const store = useSidebarCollapse.getState()
-    store.requestCollapse()
-    return () => {
-      store.requestRestore()
-    }
-  }, [isOpen])
+  // Le repli de la sidebar principale quand le Cockpit Intelligence est ouvert
+  // est désormais décidé par le Shell lui-même : `DesktopSidebar` observe
+  // directement `useIntelligencePanel.isOpen` (SHELL 6.6). Ce composant ne
+  // pilote plus la sidebar.
 
   // Reset des écrans secondaires lors du changement d'entité
   useEffect(() => {

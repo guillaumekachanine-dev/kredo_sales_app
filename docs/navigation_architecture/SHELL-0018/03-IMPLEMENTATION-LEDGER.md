@@ -102,8 +102,8 @@ QA minimale :
 | **6.4A** | Démantèlement navigation horizontale **legacy** (technique) | ✅ techniquement livré | `SectionNavBar.tsx` + `SectionNavBarSlot.tsx` supprimés ; `getModuleTabs`, `getSectionTabsForPath`, `MainMenuItem.tabs`, type `SectionTab` de `main-menu.config` supprimés ; type Mobile explicite `MobileNavigationTab` ; `getMobileTabsForPath` découplé. `section-tab-styles.ts` + `SectionTabBar` **conservés**. Voir §35 |
 | **6.4B** | Alignement **navigation principale Desktop** (produit) | ✅ techniquement livré | `Cockpit` → `Accueil` (icône `home`, pathname `/cockpit` conservé) ; Finance déplacée sous CRM (5ᵉ) ; Paramètres déplacé sous Outils (3ᵉ) ; groupes `Finance`/`Ressources` racines supprimés ; logo `aria-label` « Retour à l'accueil ». 0 pathname modifié, 0 workspace touché, 0 Mobile. Voir §36 |
 | **6.5** | Stabilisation `DesktopSidebar` / collapse | ✅ techniquement livré | politique pathname `desktop-sidebar-policy.ts` ; `DesktopSidebar` dérive son état effectif (préférence cookie + auto-repli + verrous) ; `useSidebarCollapse` réduit à un compteur de verrous ; 6 émetteurs historiques + 1 lecteur supprimés ; `IntelligencePanel` verrou équilibré. Voir §37 |
-| **6.6** | Intégration Shell global ↔ Cockpit Intelligence | ⬜ todo (**prochain lot**) | interface sidebar ↔ IntelligencePanel minimale |
-| **6.7** | Audit de clôture Phase 6 | ⬜ todo | inventaire de clôture, 0 legacy Shell |
+| **6.6** | Intégration finale Shell global ↔ Cockpit Intelligence | ✅ techniquement livré | `DesktopSidebar` observe directement `useIntelligencePanel.isOpen` ; `resolveDesktopSidebarCollapsed` gagne la dimension `intelligencePanelOpen` ; `IntelligencePanel` n'importe plus `useSidebarCollapse` et n'émet plus de verrou ; `CrmTabbedShell` reste le seul émetteur applicatif ; `AppShell` inchangé (Server Component). Voir §38 |
+| **6.7** | Audit de clôture Phase 6 | ⬜ todo (**prochain lot**) | inventaire de clôture, 0 legacy Shell |
 | **Phase 7** | Alignement fonctionnel des workspaces (7.0 → 7.10) | ⬜ todo | voir §34 — chapitres/modules par workspace, cible = document `09-…` |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)**
@@ -1909,3 +1909,141 @@ n'utilisaient déjà pas d'émetteur — la politique Shell (`/finance`, `/autom
 ### Verdict
 
 - **Lot 6.5 — ✅ techniquement livré.** Commit : `c10c5589` (`refactor(shell-0018): centralize desktop sidebar collapse`).
+
+---
+
+## 38. Lot 6.6 — Intégration finale Shell global ↔ Cockpit Intelligence
+
+> **Nature :** petit lot architectural. Le Cockpit Intelligence est un élément du **Shell
+> global** ; son état d'ouverture devient un signal lu **directement** par la sidebar, et non
+> plus un verrou artificiel dans `useSidebarCollapse`.
+> **Baseline Git :** `e739f20f` (`docs(shell-0018): record Lot 6.5 commit SHA`) — `HEAD` = `origin/main`.
+>
+> ⚠️ **Travail parallèle préservé** — dirty au démarrage et **jamais touché / stagé** :
+> `docs/JOURNAL-SESSIONS.md` + `src/features/opportunities/summary/{SummaryDesktop,summary-geometry,
+> DeadlinesTable,PipeBreakdownChart,ProcessFlowChart,SkillsComparisonChart}.tsx` +
+> `src/features/opportunities/summary/__tests__/summary.test.ts` (refonte Synthèse Opportunités).
+> `git add` explicites fichier par fichier.
+
+### Architecture avant → après
+
+**Avant (6.5)** — le Cockpit Intelligence pilotait la sidebar via un verrou :
+
+```
+IntelligencePanel  ──useEffect(isOpen)──▶  useSidebarCollapse.requestCollapse/Restore
+                                                   │
+                                                   ▼
+                                           DesktopSidebar (collapseRequestCount > 0)
+```
+
+**Après (6.6)** — le Shell lit le signal lui-même :
+
+```
+useIntelligencePanel.isOpen ──────────────▶ DesktopSidebar
+                                              ├── preferredCollapsed        (cookie)
+                                              ├── workspaceAutoCollapsed    (politique pathname)
+                                              ├── intelligencePanelOpen     (signal direct)  ← nouveau
+                                              └── externalCollapseRequestCount > 0
+                                                        └── cockpit CRM uniquement
+```
+
+### Fichiers modifiés (7)
+
+| Fichier | Changement |
+|---|---|
+| `src/lib/navigation/desktop-sidebar-policy.ts` | `resolveDesktopSidebarCollapsed` gagne la 4ᵉ dimension `intelligencePanelOpen` (OU logique) ; commentaires : `externalCollapseRequestCount` ne cite plus Cockpit Intelligence, désigne « les surfaces dont l'état ne peut pas être dérivé directement par le Shell — actuellement le cockpit CRM ». |
+| `src/lib/navigation/desktop-sidebar-policy.test.ts` | helper `resolve` à 4 arguments ; cas `intelligencePanelOpen` ; test de composition Intelligence + verrou CRM (indépendance) ; nouveau `describe` statique de découplage. |
+| `src/components/layout/DesktopSidebar.tsx` | `import { useIntelligencePanel }` ; `const intelligencePanelOpen = useIntelligencePanel((state) => state.isOpen)` (sélecteur, pas de destructuration du store) ; `isForcedCollapsed` inclut `intelligencePanelOpen` ; `resolveDesktopSidebarCollapsed(...)` reçoit `intelligencePanelOpen` ; commentaire d'en-tête passé à 4 entrées. |
+| `src/components/intelligence/IntelligencePanel.tsx` | suppression de `import { useSidebarCollapse }` et de l'`useEffect` de verrou (lignes ~353‑360). Import `useEffect` **conservé** (effet de reset des écrans secondaires). Aucun autre effet / écran / action / drawer / composer / matching / header touché. |
+| `src/hooks/use-sidebar-collapse.ts` | commentaires uniquement — le store (`collapseRequestCount` / `requestCollapse` / `requestRestore`) est **inchangé**. Documente : registre de verrous externes exceptionnels ; seul consommateur à date = `CrmTabbedShell` ; Cockpit Intelligence n'est plus cité comme consommateur. |
+| `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md` | tableau des Lots (6.6 ✅, 6.7 prochain) + présente section. |
+
+**Non modifiés (conformité périmètre) :** `AppShell.tsx` (reste Server Component, monte toujours
+`DesktopSidebar` / `main` / `IntelligenceToggle` / `IntelligencePanel` — aucun provider ajouté),
+`IntelligenceToggle.tsx`, `use-intelligence-panel.ts` (API `isOpen`/`toggle`/`open`/`close`
+inchangée, aucun provider), `CrmTabbedShell.tsx` (pattern `useEffect` équilibré conservé — son
+`isCockpitActive` dépend du pathname + `activeTabId` + mode embedded multi-compte, non déductible
+proprement par le Shell ; `DesktopSidebar` ne dépend donc pas de `useCrmTabStore`). Géométrie du
+panneau (sibling flex, largeur, `brand-primary`, `data-theme="cockpit"`, transitions, z-index) :
+**intacte**. Mobile (`IntelligenceFAB`, `MobileNav*`) : **hors périmètre, intact**. Accès rapides
+« Bientôt » : inchangés. `main-menu.config.ts`, `navigation-icons.tsx`, `SectionRail`, préfixes
+de politique, `getActiveModuleHref`, breadcrumb : intacts.
+
+### Émetteurs finaux du registre de verrous
+
+- `useSidebarCollapse` (applicatif) : `use-sidebar-collapse.ts` (+ test), `DesktopSidebar.tsx`
+  (lecteur `collapseRequestCount`), `CrmTabbedShell.tsx` (émetteur). **Plus aucune occurrence dans
+  `src/components/intelligence/`, `src/features/`, `src/components/reports|veille|missions`.**
+- `requestCollapse` / `requestRestore` (hors hook/test/Mobile) : `CrmTabbedShell.tsx`
+  **uniquement**. *(NB : `MobileNavigationMenu.tsx` a une fonction locale homonyme `requestCollapse`
+  sans rapport — Mobile, hors périmètre, non modifiée.)*
+
+### Composition des contraintes (vérifiée par test)
+
+| préférence | workspace | intelligence | verrou CRM | → repli |
+|---|---|---|---|---|
+| false | false | false | 0 | **false** |
+| true  | false | false | 0 | true |
+| false | true  | false | 0 | true |
+| false | false | **true** | 0 | true |
+| false | false | false | 1 | true |
+| false | false | true | 1 | true |
+| false | false | **true → false** | 1 | true (verrou CRM tient) |
+| false | false | true | **1 → 0** | true (Intelligence tient) |
+| false | false | false | 0 | restauration préférence/workspace |
+
+Aucune dépendance entre les deux mécanismes. Le toggle utilisateur reste `disabled` tant que
+`isForcedCollapsed === true` et ne modifie que `preferredCollapsed` (aucun changement de cookie).
+
+### Preuves `rg`
+
+```
+rg -n "useSidebarCollapse" src/components/intelligence      → 0
+rg -n "requestCollapse|requestRestore" src \
+  --glob '!src/hooks/use-sidebar-collapse.ts' \
+  --glob '!src/hooks/use-sidebar-collapse.test.ts' \
+  --glob '!src/components/layout/MobileNavigationMenu.tsx' \
+  --glob '!**/*.test.ts'                                    → CrmTabbedShell.tsx uniquement
+```
+
+### Dette consignée — `kredo_intelligence_open`
+
+`useIntelligencePanel` **écrit** le cookie `kredo_intelligence_open` (via `persistOpen`) mais
+`AppShell` (Server Component) ne le **relit jamais** : seul `kredo_sidebar_collapsed` est lu au SSR.
+Le store Zustand démarre donc toujours à `isOpen: false` au rechargement, quel que soit le cookie.
+**Décision 6.6 :** hors périmètre — pas d'extension à un chantier d'hydratation Zustand/SSR. À
+arbitrer séparément après la clôture du Shell (candidat Phase 6.7 ou ultérieur). Les deux cookies
+restent strictement disjoints : `kredo_sidebar_collapsed` (préférence sidebar) n'est jamais utilisé
+pour déterminer `kredo_intelligence_open` et réciproquement.
+
+### Gates
+
+- Tests ciblés (`desktop-sidebar-policy.test.ts` + `use-sidebar-collapse.test.ts`) :
+  **2 fichiers / 39 tests passés**.
+- `npm run typecheck` : **passé**.
+- `npm run check:server-boundary` : **passé** (`AppShell` reste Server Component).
+- `npx eslint` (5 fichiers touchés) : **0 problème introduit**. 1 anomalie **pré-existante**
+  confirmée (Lot 6.5) : `IntelligencePanel.tsx` `react-hooks/set-state-in-effect` **error** sur
+  l'effet de reset des écrans secondaires — explicitement **hors périmètre** (§9 du cadrage), non
+  corrigée. Le retrait de l'effet de verrou a seulement décalé sa ligne (355→356).
+- `npm run build` : **passé** (Next.js 16.2.7 Turbopack, 42/42 pages, compiled in ~7s).
+- `git diff --check` : **passé**.
+- `npm test` (**suite complète**) : **293 fichiers / 2 937 tests passés (0 échec)** — inclut les
+  fichiers de test du travail parallèle Synthèse Opportunités, non affectés.
+
+### Critères d'acceptation — tous remplis
+
+`DesktopSidebar` observe `useIntelligencePanel.isOpen` ✔ · ouvrir le Cockpit replie la sidebar ✔ ·
+le fermer restaure préférence/workspace ✔ · `IntelligencePanel` n'importe plus `useSidebarCollapse` ✔ ·
+n'émet plus `requestCollapse/requestRestore` ✔ · `CrmTabbedShell` seul émetteur applicatif ✔ ·
+pas de fuite `useCrmTabStore` dans le Shell ✔ · contraintes composables ✔ · toggle bloqué sous
+contrainte forcée ✔ · `AppShell` Server Component ✔ · aucun provider Shell ✔ · aucun changement
+visuel / Mobile / workspace ✔ · aucun fichier Opportunities parallèle committé ✔ · gates vertes ✔.
+
+### Prochain lot
+
+- **SHELL 6.7 — Audit de clôture Phase 6**.
+
+### Verdict
+
+- **Lot 6.6 — ✅ techniquement livré.** Commit : _(SHA à consigner après push)_.
