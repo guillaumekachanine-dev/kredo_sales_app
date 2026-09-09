@@ -18,6 +18,12 @@ export interface EntityPlanningViewProps<TRow> {
   labelColumnWidth?: number
   timelineColumnMinWidth?: number
   emptyState?: React.ReactNode
+  className?: string
+  frameClassName?: string
+  headerClassName?: string
+  getRowClassName?: (row: TRow) => string | undefined
+  getRowLabelClassName?: (row: TRow) => string | undefined
+  timelineClassName?: string
 }
 
 export function EntityPlanningView<TRow>({
@@ -31,6 +37,12 @@ export function EntityPlanningView<TRow>({
   labelColumnWidth = 270,
   timelineColumnMinWidth = 90,
   emptyState,
+  className,
+  frameClassName,
+  headerClassName,
+  getRowClassName,
+  getRowLabelClassName,
+  timelineClassName,
 }: EntityPlanningViewProps<TRow>) {
   const gridStyle = {
     gridTemplateColumns: `${labelColumnWidth}px minmax(${columns.length * timelineColumnMinWidth}px, 1fr)`,
@@ -42,9 +54,9 @@ export function EntityPlanningView<TRow>({
   }
 
   return (
-    <div className="relative flex select-none flex-col gap-5">
-      <div className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface shadow-sm">
-        <div className="grid border-b border-border/80" style={gridStyle}>
+    <div className={cn("relative flex select-none flex-col gap-5", className)}>
+      <div className={cn("overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface shadow-sm", frameClassName)}>
+        <div className={cn("grid border-b border-border/80", headerClassName)} style={gridStyle}>
           <div className="sticky left-0 z-30 flex h-11 items-center border-r border-border bg-surface px-4">
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
               {labelColumnHeader}
@@ -85,13 +97,16 @@ export function EntityPlanningView<TRow>({
             {rows.map((row) => (
               <div
                 key={getRowId(row)}
-                className="group grid min-h-[56px] transition-colors duration-150 hover:bg-canvas/30"
+                className={cn(
+                  "group grid min-h-[56px] transition-colors duration-150 hover:bg-canvas/30",
+                  getRowClassName?.(row),
+                )}
                 style={gridStyle}
               >
-                <div className="sticky left-0 z-30 min-w-0 border-r border-border bg-surface px-4 py-2">
+                <div className={cn("sticky left-0 z-30 min-w-0 border-r border-border bg-surface px-4 py-2", getRowLabelClassName?.(row))}>
                   {renderRowLabel(row)}
                 </div>
-                <div className="relative flex items-center bg-surface">
+                <div className={cn("relative flex items-center bg-surface", timelineClassName)}>
                   {renderTimelineRow(row)}
                 </div>
               </div>

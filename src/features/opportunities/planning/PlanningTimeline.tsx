@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
+import { EntityPlanningView } from "@/components/common/EntityPlanningView"
 import { cn } from "@/lib/utils"
 import type { OpportunityDeadlineSource } from "./data/opportunity-deadline.types"
 import type { PlanningOpportunityItem } from "./data/opportunities-planning.types"
@@ -147,106 +148,94 @@ export function PlanningTimeline({
 
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="min-w-[620px]">
-          <div className="sticky top-0 z-30 grid grid-cols-[180px_minmax(0,1fr)] border-b border-border bg-surface">
-            <div className="flex h-10 items-center border-r border-border px-4 text-[9px] font-bold uppercase tracking-[0.16em] text-muted">
-              Opportunité
-            </div>
-            <div className="relative grid" style={{ gridTemplateColumns: `repeat(${period.columns.length}, minmax(0, 1fr))` }}>
-              {period.columns.map((column) => (
-                <div
-                  key={column.key}
-                  className={cn(
-                    "flex h-10 items-center justify-center border-r border-border/50 text-[9px] font-semibold last:border-r-0",
-                    column.isCurrent ? "bg-primary/[0.05] text-primary" : "text-muted",
-                  )}
-                >
-                  {column.label}
-                </div>
-              ))}
-              {todayPosition !== null ? (
-                <div className="pointer-events-none absolute inset-y-0 z-20 w-px bg-primary" style={{ left: `${todayPosition}%` }} aria-hidden="true" />
-              ) : null}
-            </div>
-          </div>
-
-          {items.length === 0 ? (
-            <div className="flex min-h-64 items-center justify-center px-6 text-center">
-              <div>
+          <EntityPlanningView
+            rows={items}
+            columns={period.columns}
+            getRowId={(item) => item.id}
+            labelColumnHeader="Opportunité"
+            labelColumnWidth={180}
+            timelineColumnMinWidth={0}
+            currentMarkerLeft={todayPosition === null ? null : `${todayPosition}%`}
+            className="gap-0"
+            frameClassName="rounded-none border-0 shadow-none"
+            headerClassName="sticky top-0 z-30 bg-surface"
+            timelineClassName="block bg-transparent"
+            getRowClassName={(item) =>
+              item.id === selectedOpportunityId
+                ? "min-h-[88px] bg-primary/[0.045] hover:bg-primary/[0.045]"
+                : "min-h-[58px] hover:bg-canvas/60"
+            }
+            getRowLabelClassName={(item) =>
+              item.id === selectedOpportunityId ? "bg-primary/[0.045] py-4" : "py-3"
+            }
+            emptyState={
+              <div className="text-center">
                 <p className="text-sm font-bold text-heading">Aucune opportunité ouverte</p>
                 <p className="mt-1 text-xs text-muted">Le planning se remplira dès qu’une échéance commerciale sera disponible.</p>
               </div>
-            </div>
-          ) : (
-            <div>
-              {items.map((item) => {
-                const position = item.deadline ? getTimelinePosition(item.deadline.dueAt, period) : null
-                const isSelected = item.id === selectedOpportunityId
-                return (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      "grid grid-cols-[180px_minmax(0,1fr)] border-b border-border/70 transition-colors",
-                      isSelected ? "min-h-[88px] bg-primary/[0.045]" : "min-h-[58px] hover:bg-canvas/60",
-                    )}
-                  >
-                    <div className={cn("border-r border-border px-4", isSelected ? "py-4" : "py-3")}>
-                      <p className={cn("truncate text-[11px] font-semibold", isSelected ? "text-primary-deep" : "text-heading")}>
-                        {item.clientName}
-                      </p>
-                      <p className="mt-0.5 truncate text-[10px] text-body">{item.title}</p>
-                    </div>
-                    <div className="relative">
-                      <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${period.columns.length}, minmax(0, 1fr))` }} aria-hidden="true">
-                        {period.columns.map((column) => (
-                          <div key={column.key} className={cn("border-r border-border/35 last:border-r-0", column.isCurrent && "bg-primary/[0.025]")} />
-                        ))}
-                      </div>
-                      <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px bg-border/70" aria-hidden="true" />
-                      {todayPosition !== null ? (
-                        <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-primary/55" style={{ left: `${todayPosition}%` }} aria-hidden="true" />
-                      ) : null}
-
-                      {position !== null && item.deadline ? (
-                        <Link
-                          href={buildPlanningHref(searchParamsString, item.id)}
-                          replace
-                          scroll={false}
-                          aria-label={`${item.title}, ${item.clientName}, ${SOURCE_LABEL[item.deadline.source]}, ${formatDate(item.deadline.dueAt)}`}
-                          aria-current={isSelected ? "true" : undefined}
-                          className="absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                          style={{ left: `${position}%` }}
-                        >
-                          <DeadlineMark source={item.deadline.source} selected={isSelected} />
-                        </Link>
-                      ) : null}
-
-                      {isSelected && item.deadline && position !== null ? (
-                        <div
-                          className={cn(
-                            "pointer-events-none absolute top-2 z-20 w-[202px] border border-border bg-surface px-3 py-2 text-[10px] leading-4",
-                            position > 68 ? "-translate-x-full -ml-3" : "ml-3",
-                          )}
-                          style={{ left: `${position}%` }}
-                        >
-                          <p className="truncate font-bold text-heading">{item.title}</p>
-                          <p className="truncate text-body">{item.clientName}</p>
-                          <p className="mt-0.5 font-medium text-primary">
-                            {formatDate(item.deadline.dueAt)} · {SOURCE_LABEL[item.deadline.source]}
-                          </p>
-                        </div>
-                      ) : null}
-
-                      {isSelected && (!item.deadline || position === null) ? (
-                        <div className="absolute inset-y-0 left-4 z-20 flex items-center text-[10px] text-muted">
-                          {item.deadline ? "Échéance hors de la période affichée" : "Aucune échéance canonique"}
-                        </div>
-                      ) : null}
-                    </div>
+            }
+            renderRowLabel={(item) => {
+              const isSelected = item.id === selectedOpportunityId
+              return (
+                <>
+                  <p className={cn("truncate text-[11px] font-semibold", isSelected ? "text-primary-deep" : "text-heading")}>
+                    {item.clientName}
+                  </p>
+                  <p className="mt-0.5 truncate text-[10px] text-body">{item.title}</p>
+                </>
+              )
+            }}
+            renderTimelineRow={(item) => {
+              const position = item.deadline ? getTimelinePosition(item.deadline.dueAt, period) : null
+              const isSelected = item.id === selectedOpportunityId
+              return (
+                <>
+                  <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${period.columns.length}, minmax(0, 1fr))` }} aria-hidden="true">
+                    {period.columns.map((column) => (
+                      <div key={column.key} className={cn("border-r border-border/35 last:border-r-0", column.isCurrent && "bg-primary/[0.025]")} />
+                    ))}
                   </div>
-                )
-              })}
-            </div>
-          )}
+                  <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px bg-border/70" aria-hidden="true" />
+                  {todayPosition !== null ? (
+                    <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-primary/55" style={{ left: `${todayPosition}%` }} aria-hidden="true" />
+                  ) : null}
+                  {position !== null && item.deadline ? (
+                    <Link
+                      href={buildPlanningHref(searchParamsString, item.id)}
+                      replace
+                      scroll={false}
+                      aria-label={`${item.title}, ${item.clientName}, ${SOURCE_LABEL[item.deadline.source]}, ${formatDate(item.deadline.dueAt)}`}
+                      aria-current={isSelected ? "true" : undefined}
+                      className="absolute top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-full p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      style={{ left: `${position}%` }}
+                    >
+                      <DeadlineMark source={item.deadline.source} selected={isSelected} />
+                    </Link>
+                  ) : null}
+                  {isSelected && item.deadline && position !== null ? (
+                    <div
+                      className={cn(
+                        "pointer-events-none absolute top-2 z-20 w-[202px] border border-border bg-surface px-3 py-2 text-[10px] leading-4",
+                        position > 68 ? "-translate-x-full -ml-3" : "ml-3",
+                      )}
+                      style={{ left: `${position}%` }}
+                    >
+                      <p className="truncate font-bold text-heading">{item.title}</p>
+                      <p className="truncate text-body">{item.clientName}</p>
+                      <p className="mt-0.5 font-medium text-primary">
+                        {formatDate(item.deadline.dueAt)} · {SOURCE_LABEL[item.deadline.source]}
+                      </p>
+                    </div>
+                  ) : null}
+                  {isSelected && (!item.deadline || position === null) ? (
+                    <div className="absolute inset-y-0 left-4 z-20 flex items-center text-[10px] text-muted">
+                      {item.deadline ? "Échéance hors de la période affichée" : "Aucune échéance canonique"}
+                    </div>
+                  ) : null}
+                </>
+              )
+            }}
+          />
         </div>
       </div>
 

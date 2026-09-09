@@ -300,8 +300,10 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
     La branche Mobile reste avant tout chargement Desktop et est strictement inchangée.
 
 - **Réutilisation legacy** : audit de `UnifiedPlanningView`, `OpportunitiesPlanningView`,
-  `StaffingPlanningView` et `EntityPlanningView`. Reprise des seules primitives valides (lanes,
-  grille, position proportionnelle, repère courant). Les jalons historiques/synthétiques,
+  `StaffingPlanningView` et `EntityPlanningView`. Le moteur partagé `EntityPlanningView` est
+  effectivement consommé par `PlanningTimeline` ; ses nouvelles options d’apparence et de ligne
+  sont rétrocompatibles. Reprise des seules primitives valides (lanes, grille, position
+  proportionnelle, repère courant). Les jalons historiques/synthétiques,
   durées, dépendances, couleurs HEX, ombres, semaine/trimestre et moteurs parallèles ne sont pas
   repris. Le legacy reste en place pour ses consommateurs actuels jusqu’au Lot 12.
 
