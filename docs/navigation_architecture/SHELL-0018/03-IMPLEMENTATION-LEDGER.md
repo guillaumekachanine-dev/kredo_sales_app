@@ -109,7 +109,7 @@ QA minimale :
 | **7.1** | Alignement Opportunités | ⬜ todo | `YES AFTER REBASELINE` — attend l'intégration de la refonte Synthèse Opportunités parallèle |
 | **7.2** | Alignement Consultants | ✅ techniquement livré (`bb2a3a4d`) | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
 | **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
-| **7.4** | Alignement Business Intelligence | ✅ techniquement livré | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
+| **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
 | **7.5 → 7.9** | Prospection · Rapports · Veille · Knowledge Hub · Automatisations | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
 
@@ -2342,4 +2342,4 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 ### Verdict
 
-- **Lot 7.4 — ✅ livré.**
+- **Lot 7.4 — ✅ livré.** Commit : `a9ac0d36` — `refactor(business-intelligence): align workspace target navigation`. Push sur `origin/main`.

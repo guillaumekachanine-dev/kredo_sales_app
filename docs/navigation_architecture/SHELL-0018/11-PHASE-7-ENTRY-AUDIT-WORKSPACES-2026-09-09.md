@@ -830,7 +830,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
   `Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle` ; IDs techniques `home`, `sector-analysis`,
   `competitive-environment`, `regulatory-calendar`, `value-chain`, `sector-news` inchangés ; Mobile labels
   `Terrain`, `Analyse`, `Concurrence`, `Réglementation`, `Chaîne`, `Actualités` inchangés ; 0 changement d'URL ;
-  0 changement Data.
+  0 changement Data. Commit `a9ac0d36` (`refactor(business-intelligence): align workspace target navigation`).
 
 ### 7.5 — Prospection
 - **Objectif :** `chapter_2` → « Angles d'approche » ; `chapter_1` REMOVE ; `chapter_3` → module
