@@ -54,7 +54,7 @@ src/
 │
 ├── lib/
 │   ├── navigation/               main-menu.config.ts — SOURCE UNIQUE de navigation
-│   │                             (types MainMenuItem / SectionTab, getSectionTabsForPath)
+│   │                             (type MainMenuItem, MobileNavigationTab, getMobileTabsForPath)
 │   ├── dashboard/                Système dashboard
 │   │   ├── dashboard-types.ts      Types (DashboardDevice, metrics, alerts…)
 │   │   ├── dashboard-device.ts     Détection device (User-Agent serveur)

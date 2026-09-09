@@ -2,14 +2,24 @@
 //  Navigation — source unique de vérité
 //
 //  Règle : la sidebar liste les MODULES (2 niveaux : groupe → module).
-//  Les sous-pages d'un module vivent dans `tabs` et sont affichées par la
-//  barre d'onglets de section, PAS dans la sidebar.
-//  La bottom nav mobile dérive des modules marqués `primary: true`.
+//  La navigation secondaire interne d'un module (chapitres) appartient au
+//  workspace concerné, via sa propre primitive `SectionRail` — jamais à ce
+//  fichier (la navigation horizontale legacy a été démantelée en SHELL 6.4A).
+//  La bottom nav mobile dérive des modules marqués `primary: true` ; les
+//  regroupements d'onglets Mobile sont résolus explicitement par
+//  `getMobileTabsForPath`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { CONSULTANTS_SECTIONS } from "@/features/consultants/navigation/consultants-sections"
 
-export type SectionTab = {
+/**
+ * Onglet de navigation du shell **Mobile** (bottom nav + rail contextuel).
+ *
+ * Concept propre au Mobile : sans rapport avec l'ancienne navigation secondaire
+ * Desktop (supprimée en SHELL 6.4A) ni avec le `SectionTab` des fiches entités
+ * (`src/lib/tabs/tab-types.ts`, hors périmètre).
+ */
+export type MobileNavigationTab = {
   label: string
   shortLabel?: string
   href: string
@@ -26,11 +36,10 @@ export type MainMenuItem = {
   comingSoon?: boolean
   primary?: boolean
   items?: MainMenuItem[]
-  tabs?: SectionTab[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Utilitaires — résolution du module actif et des onglets de section
+//  Utilitaires — résolution du module actif et des onglets Mobile
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -69,68 +78,15 @@ export function getActiveModuleHref(pathname: string): string | null {
 }
 
 /**
- * Retourne les onglets d'un module par son href exact (ex. "/missions").
- */
-export function getModuleTabs(moduleHref: string): SectionTab[] {
-  for (const item of mainMenuItems) {
-    if (item.href === moduleHref) return item.tabs ?? []
-    if (item.items) {
-      const found = item.items.find((sub) => sub.href === moduleHref)
-      if (found) return found.tabs ?? []
-    }
-  }
-  return []
-}
-
-/**
- * Retourne les onglets de section pour un chemin donné.
+ * Résout les onglets réellement navigables du shell **Mobile**.
  *
- * Utilise le matching le plus spécifique : si le pathname matche à la fois
- * "/missions" et "/missions/opps", le href le plus long l'emporte.
- * Un module sans `tabs` qui matche renvoie `[]` — empêche le fall-through
- * vers un parent moins spécifique.
+ * Chaque regroupement Mobile qui a réellement besoin d'onglets est traité
+ * explicitement ci-dessous (Consultants, Opportunités/Recrutement, Engagements,
+ * Rapports/Veille) et pointe vers des routes canoniques distinctes. Tout autre
+ * pathname n'a pas d'onglets Mobile → `[]` (aucune source générique d'onglets
+ * après le démantèlement de la navigation horizontale Desktop, SHELL 6.4A).
  */
-export function getSectionTabsForPath(pathname: string): SectionTab[] {
-  const candidates: MainMenuItem[] = []
-
-  for (const item of mainMenuItems) {
-    if (item.href) candidates.push(item)
-    if (item.items) {
-      for (const sub of item.items) {
-        if (sub.href) candidates.push(sub)
-      }
-    }
-  }
-
-  let bestTabs: SectionTab[] = []
-  let bestLen = -1
-
-  for (const item of candidates) {
-    const href = item.href!
-    if (pathname === href || pathname.startsWith(href + "/")) {
-      if (href.length > bestLen) {
-        bestLen = href.length
-        bestTabs = item.tabs ?? []
-      }
-    }
-  }
-
-  return bestTabs
-}
-
-/**
- * Résout les onglets réellement navigables du shell mobile.
- *
- * Certains regroupements mobiles réunissent plusieurs modules desktop qui
- * disposent déjà de routes canoniques distinctes (Staffing/Recrutement et
- * Rapports/Veille). Les autres modules réutilisent directement leurs tabs de
- * section : le menu mobile ne maintient donc aucune copie locale de ces listes.
- */
-export function getMobileTabsForPath(pathname: string): SectionTab[] {
-  if (pathname.startsWith("/prospection")) {
-    return getSectionTabsForPath(pathname)
-  }
-
+export function getMobileTabsForPath(pathname: string): MobileNavigationTab[] {
   if (pathname === "/consultants" || pathname.startsWith("/consultants/") || pathname.startsWith("/consultants?")) {
     return CONSULTANTS_SECTIONS.map((section) => ({
       label: section.label,
@@ -163,9 +119,7 @@ export function getMobileTabsForPath(pathname: string): SectionTab[] {
     ]
   }
 
-  return getSectionTabsForPath(pathname).filter(
-    (tab) => !tab.disabled && !tab.comingSoon,
-  )
+  return []
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import {
   getMobileTabsForPath,
-  type SectionTab,
+  type MobileNavigationTab,
 } from "@/lib/navigation/main-menu.config"
 import { cn } from "@/lib/utils"
 import { getNavigationIcon } from "./navigation-icons"
@@ -41,10 +41,10 @@ export type MenuItem = {
   href: string
   size: MenuItemSize
   activePaths: string[]
-  tabs?: SectionTab[]
+  tabs?: MobileNavigationTab[]
 }
 
-function tabsFor(pathname: string): SectionTab[] | undefined {
+function tabsFor(pathname: string): MobileNavigationTab[] | undefined {
   const tabs = getMobileTabsForPath(pathname)
   if (tabs.length <= 1) return undefined
   return tabs.map((tab) => {
@@ -191,7 +191,7 @@ function isItemActive(item: MenuItem, pathname: string) {
   return item.activePaths.some((href) => pathMatches(pathname, href))
 }
 
-function activeTabHref(tabs: SectionTab[], pathname: string) {
+function activeTabHref(tabs: MobileNavigationTab[], pathname: string) {
   return tabs
     .filter((tab) => pathMatches(pathname, tab.href))
     .sort((left, right) => right.href.length - left.href.length)[0]?.href

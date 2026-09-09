@@ -20,26 +20,14 @@ const ROOT: Crumb = { label: "KREDO", href: "/cockpit", isCurrent: false }
 
 // ── Index statique href → label UI, construit une seule fois au chargement ────
 //
-//  Règle de priorité : le label du MODULE l'emporte sur celui de son 1er onglet
-//  quand ils partagent le même href (ex. /prospection = "Prospection Intelligence",
-//  pas l'onglet "Synthèse" qui pointe aussi sur /prospection).
+//  La navigation secondaire Desktop (`tabs`) a été démantelée en SHELL 6.4A :
+//  l'index ne contient plus que les href de groupes → modules.
 
 const HREF_LABEL: Record<string, string> = (() => {
   const index: Record<string, string> = {}
 
-  const addTabs = (item: MainMenuItem) => {
-    if (!item.href || !item.tabs) return
-    for (const tab of item.tabs) {
-      // L'onglet ne s'indexe que s'il a un href propre (≠ href du module).
-      if (tab.href !== item.href && !(tab.href in index)) {
-        index[tab.href] = tab.label
-      }
-    }
-  }
-
   const addModule = (item: MainMenuItem) => {
     if (item.href) index[item.href] = item.label
-    addTabs(item)
   }
 
   for (const item of mainMenuItems) {

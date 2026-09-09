@@ -1,21 +1,25 @@
 import { describe, expect, it } from "vitest"
 import {
   getMobileTabsForPath,
-  getModuleTabs,
-  getSectionTabsForPath,
   mainMenuItems,
+  type MainMenuItem,
 } from "./main-menu.config"
 
-describe("navigation de section", () => {
-  it("ne rend plus de navigation de section dans Comptes & contacts", () => {
-    expect(getModuleTabs("/prospection/accounts")).toEqual([])
-    expect(getSectionTabsForPath("/prospection/accounts")).toEqual([])
-    expect(getSectionTabsForPath("/prospection/accounts/company-id")).toEqual([])
+describe("navigation de section — legacy démantelé (SHELL 6.4A)", () => {
+  it("aucune entrée de menu ne porte de navigation secondaire Desktop (`tabs`)", () => {
+    const walk = (items: MainMenuItem[]): void => {
+      for (const item of items) {
+        expect(item).not.toHaveProperty("tabs")
+        if (item.items) walk(item.items)
+      }
+    }
+    walk(mainMenuItems)
   })
 
-  it("ne rend plus d'onglets de section legacy dans Engagements (SHELL 6.3)", () => {
-    expect(getModuleTabs("/missions")).toEqual([])
-    expect(getSectionTabsForPath("/missions")).toEqual([])
+  it("n'exporte plus les helpers d'onglets Desktop legacy", async () => {
+    const mod = await import("./main-menu.config")
+    expect("getModuleTabs" in mod).toBe(false)
+    expect("getSectionTabsForPath" in mod).toBe(false)
   })
 
   it("résout les regroupements mobiles vers leurs URLs canoniques", () => {
@@ -45,6 +49,20 @@ describe("navigation de section", () => {
       { label: "Candidats", href: "/consultants?section=candidats" },
       { label: "Pool de compétences", href: "/consultants?section=pool-competences" },
     ])
+
+    expect(getMobileTabsForPath("/reports")).toEqual([
+      { label: "Rapports & Rédaction", shortLabel: "Rapports", href: "/reports" },
+      { label: "Veille & Actualités", shortLabel: "Veille", href: "/veille" },
+    ])
+    expect(getMobileTabsForPath("/veille")).toEqual(getMobileTabsForPath("/reports"))
+  })
+
+  it("ne produit aucun onglet mobile hors regroupement explicite", () => {
+    expect(getMobileTabsForPath("/prospection/accounts")).toEqual([])
+    expect(getMobileTabsForPath("/prospection/accounts/company-id")).toEqual([])
+    expect(getMobileTabsForPath("/prospection-intelligence")).toEqual([])
+    expect(getMobileTabsForPath("/finance")).toEqual([])
+    expect(getMobileTabsForPath("/cockpit")).toEqual([])
   })
 })
 
@@ -72,9 +90,7 @@ describe("menu principal — intégration CRM, Opportunités et Consultants (SHE
     expect(consultantsItem).toBeDefined()
     expect(consultantsItem?.href).toBe("/consultants")
     expect(consultantsItem?.icon).toBe("equipe")
-    expect(consultantsItem?.tabs).toBeUndefined()
-    expect(getModuleTabs("/consultants")).toEqual([])
-    expect(getSectionTabsForPath("/consultants")).toEqual([])
+    expect(consultantsItem).not.toHaveProperty("tabs")
   })
 
   it("intègre Engagements sous CRM sans tabs Desktop legacy (SHELL 6.3)", () => {
@@ -84,9 +100,7 @@ describe("menu principal — intégration CRM, Opportunités et Consultants (SHE
     expect(engagementsItem).toBeDefined()
     expect(engagementsItem?.href).toBe("/missions")
     expect(engagementsItem?.icon).toBe("engagements")
-    expect(engagementsItem?.tabs).toBeUndefined()
-    expect(getModuleTabs("/missions")).toEqual([])
-    expect(getSectionTabsForPath("/missions")).toEqual([])
+    expect(engagementsItem).not.toHaveProperty("tabs")
   })
 
   it("ne comporte plus d'entrée globale Recrutement", () => {

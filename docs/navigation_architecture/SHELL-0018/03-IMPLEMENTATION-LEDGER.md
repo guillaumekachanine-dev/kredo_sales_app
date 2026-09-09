@@ -99,8 +99,8 @@ QA minimale :
 | **6.2** | Shell Consultants + Consultants Lot 14 | ✅ techniquement livré | `(tabbed)` supprimé, `Consultants` sous CRM, commit `50f1a31e` ; QA visuelle réservée à Guillaume |
 | **6.3** | Missions historiques + Opportunities Lot 11 | ✅ techniquement livré | `missions/(tabbed)` supprimé, `MissionsTabbedShell` supprimé, `SectionNavBarSlot` 0 consommateur, CRM `Opportunités`, `/staffing` redirect permanent |
 | **6.3R** | Rebaseline architecture cible finale de navigation | ✅ livré (documentaire) | document `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` ; supersède les anciennes cibles ; 0 code applicatif |
-| **6.4A** | Démantèlement navigation horizontale **legacy** (technique) | ⬜ todo (**prochain lot**) | `SectionNavBarSlot`, `SectionNavBar`, `SectionTab`, `getModuleTabs`, `getSectionTabsForPath`, `section-tab-styles.ts`, styles/tests legacy — après preuve 0 consommateur (atteinte au 6.3) |
-| **6.4B** | Alignement **navigation principale Desktop** (produit) | ⬜ todo | applique NAV-TARGET-03/04/05 : Accueil, Agenda, CRM (+ Finance), Intelligence, Outils (+ Paramètres), Bac à sable séparé. **Ne jamais mélanger avec 6.4A.** |
+| **6.4A** | Démantèlement navigation horizontale **legacy** (technique) | ✅ techniquement livré | `SectionNavBar.tsx` + `SectionNavBarSlot.tsx` supprimés ; `getModuleTabs`, `getSectionTabsForPath`, `MainMenuItem.tabs`, type `SectionTab` de `main-menu.config` supprimés ; type Mobile explicite `MobileNavigationTab` ; `getMobileTabsForPath` découplé. `section-tab-styles.ts` + `SectionTabBar` **conservés**. Voir §35 |
+| **6.4B** | Alignement **navigation principale Desktop** (produit) | ⬜ todo (**prochain lot**) | applique NAV-TARGET-03/04/05 : Accueil, Agenda, CRM (+ Finance), Intelligence, Outils (+ Paramètres), Bac à sable séparé. **Ne jamais mélanger avec 6.4A.** |
 | **6.5** | Stabilisation `DesktopSidebar` / collapse | ⬜ todo | réduction de `useSidebarCollapse`, auto-repli Shell |
 | **6.6** | Intégration Shell global ↔ Cockpit Intelligence | ⬜ todo | interface sidebar ↔ IntelligencePanel minimale |
 | **6.7** | Audit de clôture Phase 6 | ⬜ todo | inventaire de clôture, 0 legacy Shell |
@@ -1623,3 +1623,84 @@ bouton mort (NAV-TARGET-07). Transformations internes des workspaces = Phase 7 (
 ### Verdict
 
 - **Lot 6.3R — ✅ livré (documentaire).**
+
+---
+
+## 35. Lot 6.4A — Démantèlement navigation horizontale legacy
+
+> **Nature :** lot technique de démantèlement. **N'applique PAS** la nouvelle taxonomie du menu
+> principal (réservée à 6.4B). **Baseline Git :** `b5387bd1` (`main` = `origin/main`, non avancé).
+
+### Audit d'entrée (avant suppression)
+
+| Symbole | Constat |
+|---|---|
+| `SectionNavBarSlot` | 0 consommateur applicatif — seule sa définition + 1 assertion de test (`consultants-sections.test.ts`, string-check, toujours valide) + 2 commentaires historiques |
+| `SectionNavBar` | Consommé **uniquement** par `SectionNavBarSlot` |
+| `getModuleTabs` | Définition dans `main-menu.config.ts` + tests uniquement |
+| `getSectionTabsForPath` | Définition + `SectionNavBar` + tests + 2 usages internes de `getMobileTabsForPath` (branche `/prospection` et fallback final, tous deux → `[]` car plus aucune entrée `tabs`) + 1 usage `breadcrumb.ts` (`item.tabs`, déjà no-op) |
+| `section-tab-styles.ts` | **3 consommateurs actifs** : `SectionTabBar`, `StaffingSectionTabBar`, `CrmSectionTabBar` → **conservé** |
+| `src/lib/tabs/tab-types.ts::SectionTab` | Type des fiches entités ouvertes — **hors périmètre, intact** |
+
+### Fichiers supprimés
+
+- `src/components/layout/SectionNavBar.tsx`
+- `src/components/layout/SectionNavBarSlot.tsx`
+
+### `main-menu.config.ts`
+
+- **Supprimé** : `export type SectionTab` (legacy Desktop), `MainMenuItem.tabs`, `getModuleTabs()`, `getSectionTabsForPath()`.
+- **Ajouté** : `export type MobileNavigationTab` (même forme ; concept explicitement Mobile).
+- **`getMobileTabsForPath()` découplé** : retour typé `MobileNavigationTab[]` ; branche `/prospection`
+  retirée (fallback identique) ; fallback final `getSectionTabsForPath(...).filter(...)` → `return []`.
+  Les 4 regroupements explicites (Consultants, Opportunités/Recrutement, Engagements, Rapports/Veille)
+  et leurs destinations canoniques sont **inchangés**.
+
+### Autres fichiers touchés
+
+| Fichier | Changement |
+|---|---|
+| `src/components/layout/MobileSectionRail.tsx` | `import { SectionTab }` → `import type { MobileNavigationTab }` ; prop `tabs` re-typée ; commentaire « écho de la SectionNavBar » retiré. Aucun changement UI/comportement. |
+| `src/components/layout/MobileNavigationMenu.tsx` | `type SectionTab` → `type MobileNavigationTab` (import + 3 annotations `tabs` / `tabsFor` / `activeTabHref`). Aucun changement UI. |
+| `src/lib/navigation/breadcrumb.ts` | Retrait de `addTabs()` (indexait `item.tabs`, déjà vide) ; l'index href→label ne contient plus que groupes → modules. Comportement identique. |
+| `src/lib/navigation/main-menu.config.test.ts` | Tests `getModuleTabs` / `getSectionTabsForPath` retirés ; ajout : aucune entrée ne porte `tabs`, helpers legacy absents de l'export, onglets Mobile canoniques + `[]` hors regroupement (`/prospection*`, `/finance`, `/cockpit`). |
+| `src/STRUCTURE.md` | Ligne navigation mise à jour (`MobileNavigationTab`, `getMobileTabsForPath`). |
+
+### Non touché (hors périmètre, vérifié)
+
+`SectionTabBar`, `CrmSectionTabBar`, `StaffingSectionTabBar`, `CrmTabbedShell`, `StaffingTabbedShell`,
+`src/lib/tabs/*`, `section-tab-styles.ts`, `DesktopSidebar.tsx`, `navigation-icons.tsx`, la taxonomie
+de `mainMenuItems`, `SectionRail`, les navigations de workspaces, `useSidebarCollapse`, Supabase/RLS/n8n.
+
+### Preuves de sortie
+
+- `rg "SectionNavBarSlot" src` → 2 hits : 1 assertion de test (`.not.toContain`), 1 commentaire historique (`missions/layout.tsx`). **0 code.**
+- `rg "\bSectionNavBar\b" src` → **0** (le symbole n'existe plus).
+- `rg "getModuleTabs|getSectionTabsForPath" src` → 2 hits, tous dans `main-menu.config.test.ts` (assertions d'absence).
+- `rg "tabs\?:" src/lib/navigation/main-menu.config.ts` → **0**.
+- `rg "\bSectionTab\b" src/lib/navigation src/components/layout` → `SectionTabBar.tsx` (type entité, `@/lib/tabs/tab-types`) + 1 commentaire. **0 depuis `main-menu.config`.**
+- `rg "section-tab-styles" src` → 3 consommateurs actifs (attendu).
+
+### Gates
+
+- `npm run typecheck` : **passé** (après purge `.next` ; a révélé `breadcrumb.ts`, corrigé).
+- Tests ciblés (`main-menu.config`, `mobile-navigation-history`, `recruitment-deprecation`, `consultants-sections`, `business-intelligence-migration`) : **56/56 passés**.
+- `npm run check:server-boundary` : **passé**.
+- `npx eslint` (fichiers touchés) : **0 erreur** ; 1 *warning* pré-existant `prettify is defined but never used` dans `breadcrumb.ts` (présent avant ce lot, hors périmètre 6.4A).
+- `npm run build` : **passé** (Next.js 16.2.7 Turbopack, 42/42 pages).
+- `npm test` (**suite complète**) : **292 fichiers / 2 897 tests passés (0 échec)**.
+- `git diff --check` : **passé**.
+
+### Dettes restantes
+
+- *Warning* lint `prettify` inutilisé dans `breadcrumb.ts` — pré-existant, à nettoyer dans un lot d'hygiène dédié.
+- Commentaire historique « le groupe (tabbed) et son SectionNavBarSlot ont été… » dans `src/app/(app)/missions/layout.tsx` — factuel, conservé.
+- `MobileSectionRail` / `SectionTabBar` : renommage éventuel pour lever l'ambiguïté « SectionTab » — non prioritaire, hors 6.4A.
+
+### Prochain lot
+
+- **SHELL 6.4B — Alignement navigation principale Desktop** (taxonomie du menu : Accueil, CRM+Finance, Outils+Paramètres…).
+
+### Verdict
+
+- **Lot 6.4A — ✅ techniquement livré.** Commit : `417775de` (`refactor(shell-0018): remove legacy section navigation`).

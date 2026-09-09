@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
-import { SectionTab } from "@/lib/navigation/main-menu.config"
+import type { MobileNavigationTab } from "@/lib/navigation/main-menu.config"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils"
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface MobileSectionRailProps {
-  tabs: SectionTab[]
+  tabs: MobileNavigationTab[]
   pathname: string
   onSelect: () => void
   onDismiss: () => void
@@ -136,7 +136,7 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
               )}
             >
               {tab.shortLabel ?? tab.label}
-              {/* Indicateur souligné — écho de la SectionNavBar desktop, croît depuis le centre */}
+              {/* Indicateur souligné — croît depuis le centre */}
               <span
                 aria-hidden
                 className={cn(
