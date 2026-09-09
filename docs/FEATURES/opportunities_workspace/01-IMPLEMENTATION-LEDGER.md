@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 7 — Avant-vente (structure + EmptyState V1)
 Lot courant                   : aucun
 Prochain lot                  : Lot 8 — Data Contract Planning (builder OpportunityDeadline)
-Dernier SHA connu origin/main : __LOT7_SHA__   (2026-09-09, commit Lot 7)
+Dernier SHA connu origin/main : 6a84b978   (2026-09-09, commit Lot 7)
 ```
 
 ## Table des lots
@@ -29,7 +29,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 4 | Synthèse Desktop | ✅ techniquement livré | `19f4ccad` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
 | 5 | Data/detail Besoins & staffing | ✅ techniquement livré | `bad25af3` | `src/features/opportunities/needs/data/` : types + `buildNeedsList`/`resolveSelectedNeedId` (purs) + `parseNeedsSelection` (`?opp=` + filtres via `parseNeedsStaffingUrlState`) + loader `getNeedsChapterData` composant 4 loaders existants — **détail chargé pour le seul besoin sélectionné** (OPP-23). 18 tests. Aucune UI, aucune migration. |
 | 6 | Migration UI Besoins & staffing | ✅ techniquement livré | `b769623f` | Chapitre Besoins Desktop sur `OpportunitiesTriPanel` : `NeedsListPanel` (rail gauche, filtres + `?opp=` + `NewOpportunityButton` + `StageQuickEditorDialog`) │ `NeedsDetailPanel` (`OpportunityDetailView` inline) │ `StaffingInProgressRail` (positionnements actifs, drawer unique, `NewStaffingButton`, simulation par ligne). `page.tsx` `besoins` → `getNeedsChapterData` + `NeedsDesktop`. **Résout PRODUCT-02 (OPP-25), PRODUCT-04 (OPP-24), NAVIGATION-02 (OPP-26), LEGACY-05 (OPP-27).** `NeedsStaffingWorkspace` Desktop plus monté (Mobile inchangé). SVG/tokens `@theme`, aucun HEX. |
-| 7 | Avant-vente (structure + `EmptyState` V1) | ✅ techniquement livré | `__LOT7_SHA__` | `PresalesDesktop` : `OpportunitiesTriPanel` + 3 `EmptyState` authentiques (liste / surface / détails). **Aucune donnée, aucun seed, aucun modèle Projet.** `page.tsx` `avant-vente` → `PresalesDesktop`. PRODUCT-05 reste **ouverte** et documentée. |
+| 7 | Avant-vente (structure + `EmptyState` V1) | ✅ techniquement livré | `6a84b978` | `PresalesDesktop` : `OpportunitiesTriPanel` + 3 `EmptyState` authentiques (liste / surface / détails). **Aucune donnée, aucun seed, aucun modèle Projet.** `page.tsx` `avant-vente` → `PresalesDesktop`. PRODUCT-05 reste **ouverte** et documentée. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ⬜ todo | — | **Résout DATA-03.** Partagé Synthèse + Planning (OPP-10). |
 | 9 | Planning Desktop | ⬜ todo | — | Liste │ Planning mois/année │ Détails. Adapte le moteur existant. |
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ⬜ todo | — | Câblage vers capacités existantes. **Résout CROSS-01/02/03.** `Modélisation de CA` non affichée (OPP-11). |
@@ -300,7 +300,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
   - `npm run build` — ✅ « Compiled successfully ».
 - **QA visuelle** : réservée à Guillaume (structure 3 panneaux + wording des `EmptyState`).
 
-- **Commit** : `__LOT7_SHA__` — `feat(opportunities): chapitre Avant-vente structurel (Lot 7)`.
+- **Commit** : `6a84b978` — `feat(opportunities): chapitre Avant-vente structurel (Lot 7)`.
 - **NEXT LOT** : Lot 8 — Data Contract Planning (builder unique `OpportunityDeadline`, résout DATA-03).
 
 ### Lot 6 — Migration UI Besoins & staffing — ✅ techniquement livré (2026-09-09)
