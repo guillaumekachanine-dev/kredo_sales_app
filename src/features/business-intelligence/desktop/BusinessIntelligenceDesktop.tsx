@@ -146,17 +146,17 @@ export function BusinessIntelligenceWorkspaceDesktop({ sectorMapCatalog, competi
                   regulatory={workspace.knowledge.regulatory}
                   segmentName={workspace.segment.name}
                 />
-              ) : unavailable("Calendrier réglementaire")
+              ) : unavailable("Calendrier Réglementaire")
             ) : null}
             {activeChapter === "value-chain" ? (
               workspace.coverage.valueChain.available ? (
                 <BusinessIntelligenceSectorMapDesktop catalog={sectorMapCatalog} />
-              ) : unavailable("Chaîne de valeur")
+              ) : unavailable("Chaîne de Valeur")
             ) : null}
             {activeChapter === "sector-news" ? (
               workspace.coverage.news.available ? (
                 <SectorNewsChapterDesktop news={workspace.news} />
-              ) : unavailable("Actualités sectorielles")
+              ) : unavailable("Actualité sectorielle")
             ) : null}
           </div>
         </main>

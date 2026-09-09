@@ -206,4 +206,26 @@ describe("BusinessIntelligenceLocalNavigation", () => {
     expect(onStudiesClick).toHaveBeenCalledOnce()
     expect(onPlaybooksClick).toHaveBeenCalledOnce()
   })
+
+  it("ne crée ni n'expose la capacité Bibliothèque future dans le rail (uniquement modules réels)", () => {
+    const model = buildBusinessIntelligenceRailProps({
+      active: "home",
+      onChange: () => {},
+      studiesAvailable: true,
+      playbooksAvailable: true,
+      onStudiesClick: () => {},
+      onPlaybooksClick: () => {},
+    })
+
+    const keys = model.contextualModules?.map((m) => m.key) ?? []
+    const labels = model.contextualModules?.map((m) => m.label) ?? []
+
+    expect(keys).toEqual(["studies", "playbooks"])
+    expect(labels).toEqual(["Études sectorielles", "Playbooks"])
+    expect(keys).not.toContain("library")
+    expect(labels).not.toContain("Bibliothèque")
+
+    const html = renderNavigation({ withStudies: true, withPlaybooks: true })
+    expect(html).not.toContain("Bibliothèque")
+  })
 })

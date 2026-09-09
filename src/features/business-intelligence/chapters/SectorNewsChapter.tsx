@@ -59,7 +59,7 @@ export function SectorNewsChapterDesktop({ news }: { news: SegmentNewsLibrary })
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Veille & Signaux d’affaires</p>
-            <h1 className="mt-1 font-heading text-2xl font-bold text-edito-navy">Actualités sectorielles</h1>
+            <h1 className="mt-1 font-heading text-2xl font-bold text-edito-navy">Actualité sectorielle</h1>
             <p className="mt-1 text-xs text-edito-body">
               Bibliothèque de veille sectorielle et signaux actionnables du segment
             </p>

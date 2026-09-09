@@ -81,7 +81,7 @@ export function RegulatoryCalendarChapterDesktop({ regulatory, segmentName }: Re
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Gouvernance & Conformité</p>
-            <h1 className="mt-1 font-heading text-2xl font-bold text-edito-navy">Calendrier réglementaire</h1>
+            <h1 className="mt-1 font-heading text-2xl font-bold text-edito-navy">Calendrier Réglementaire</h1>
             <p className="mt-1 text-xs text-edito-body">
               {regulatory.length} disposition{regulatory.length > 1 ? "s" : ""} réglementaire{regulatory.length > 1 ? "s" : ""} applicable{regulatory.length > 1 ? "s" : ""} au segment {segmentName}
             </p>

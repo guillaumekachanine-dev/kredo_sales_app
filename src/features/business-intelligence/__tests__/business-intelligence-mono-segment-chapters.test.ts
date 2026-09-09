@@ -616,7 +616,7 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
         }),
       )
 
-      expect(markup).toContain("Calendrier réglementaire")
+      expect(markup).toContain("Calendrier Réglementaire")
       expect(markup).toContain("Amendement IFRA 51 — Entrée en vigueur obligatoire")
       expect(markup).toContain("01 oct. 2026")
       expect(markup).toContain("Urgence haute")
@@ -656,7 +656,7 @@ describe("Lot 3 : Chapitres Business Intelligence mono-segment", () => {
         }),
       )
 
-      expect(markupDesktop).toContain("Actualités sectorielles")
+      expect(markupDesktop).toContain("Actualité sectorielle")
       expect(markupDesktop).toContain("Rapport IFRA 2026 : croissance verte du secteur")
       expect(markupDesktop).toContain("Robertet investit 15 M€ dans son site de Grasse")
       expect(markupDesktop).toContain("Signal d’affaires")

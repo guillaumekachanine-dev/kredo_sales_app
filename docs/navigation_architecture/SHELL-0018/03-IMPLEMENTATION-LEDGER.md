@@ -109,7 +109,8 @@ QA minimale :
 | **7.1** | Alignement Opportunités | ⬜ todo | `YES AFTER REBASELINE` — attend l'intégration de la refonte Synthèse Opportunités parallèle |
 | **7.2** | Alignement Consultants | ✅ techniquement livré (`bb2a3a4d`) | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
 | **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
-| **7.4 → 7.9** | BI · Prospection · Rapports · Veille · Knowledge Hub · Automatisations | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
+| **7.4** | Alignement Business Intelligence | ✅ techniquement livré | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
+| **7.5 → 7.9** | Prospection · Rapports · Veille · Knowledge Hub · Automatisations | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)** · **Phase 6 — ✅ CLOSED (Lot 6.7, doc `10-*`)**
@@ -2291,3 +2292,54 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 - **Consultants Lot 15 — Nettoyage et clôture** : ✅ **CLOSED (2026-09-10)**. Suppression définitive de `src/components/recruitment/`, `_data/`, `_actions/` ; déplacement des composants et actions candidats sous `src/features/consultants/candidates/` ; rapport `02-CLOSURE-AUDIT.md`.
 - **Travaux parallèles** (`src/features/opportunities/summary/*`, `docs/JOURNAL-SESSIONS.md`) :
   **jamais touchés / stagés**.
+
+---
+
+## 42. Lot 7.4 — Alignement Business Intelligence sur l'architecture cible
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `135e8e2a` (`HEAD == origin/main`).
+> Cible : `09-*` §B.5 / §C.6. Plan d'exécution : `11-*` §7 / §19 (§7.4).
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre Desktop | `home` « Accueil » | **Accueil** | KEEP |
+| Chapitre Desktop | `sector-analysis` « Analyse sectorielle » | **Analyse sectorielle** | KEEP |
+| Chapitre Desktop | `competitive-environment` « Environnement concurrentiel » | **Environnement concurrentiel** | KEEP |
+| Chapitre Desktop | `regulatory-calendar` « Calendrier réglementaire » | **Calendrier Réglementaire** | RENAME (casse) |
+| Chapitre Desktop | `value-chain` « Chaîne de valeur » | **Chaîne de Valeur** | RENAME (casse) |
+| Chapitre Desktop | `sector-news` « Actualités sectorielles » | **Actualité sectorielle** | RENAME (singulier) |
+| Module | `studies` « Études sectorielles » | **Études sectorielles** | KEEP (conditionnel `study.available`) |
+| Module | `playbooks` « Playbooks » | **Playbooks** | KEEP (conditionnel `playbook.available`) |
+| Module | — | Bibliothèque | **NEW/FUTURE — non implémenté** (aucun bouton mort) |
+
+### Architecture
+
+- **Source unique de vérité** : `BI_CHAPTERS` (`src/features/business-intelligence/navigation/business-intelligence-chapters.ts`) met à jour les 3 libellés Desktop canoniques tout en préservant strictement les `id` techniques et les `mobileLabel`.
+- **Propagation automatique** : `getBiChapterLabel(activeChapter)` propage naturellement les libellés cibles à `BusinessIntelligenceSignatureHeader`, `BusinessIntelligenceHeader` et `SectionRail` via `buildBusinessIntelligenceRailProps`.
+- **Alignement des en-têtes et fallbacks** :
+  - `RegulatoryCalendarChapterDesktop.tsx` : `<h1>Calendrier Réglementaire</h1>` ;
+  - `SectorNewsChapter.tsx` : `<h1>Actualité sectorielle</h1>` ;
+  - `BusinessIntelligenceDesktop.tsx` : fallbacks indisponibles alignés sur les nouveaux libellés (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`).
+- **Mobile** : **NO IMPACT**. Les `mobileLabel` (`Terrain`, `Analyse`, `Concurrence`, `Réglementation`, `Chaîne`, `Actualités`) et `BusinessIntelligenceMobileHeader` restent strictement découplés et inchangés.
+- **Modules contextuels** : seuls les 2 modules réels existants (`Études sectorielles`, `Playbooks`) sont exposés si disponibles. La capacité future `Bibliothèque` n'est ni créée, ni simulée, ni affichée comme placeholder ou bouton désactivé.
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-0**. Les URLs restent strictement `/intelligence?segment=<id>&tab=<chapter>`. Les valeurs `tab` (`regulatory-calendar`, `value-chain`, `sector-news`, etc.) et les alias de compatibilité `LEGACY_CHAPTERS` sont strictement conservés sans modification.
+- **Data** : **DATA-0**. Aucune modification de contrat, table, vue, RPC, schéma Supabase ou workflow n8n.
+- **Invariant KANBAN-001** : 0 occurrence kanban dans la feature.
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (348 tests BI / suite complète)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers modifiés) → **PASS**
+- `npm run build` → **PASS** (42/42 pages)
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.4 — ✅ livré.**

@@ -19,9 +19,9 @@ export const BI_CHAPTERS: readonly BiChapterDefinition[] = [
   { id: "home", label: "Accueil", mobileLabel: "Terrain", resource: null },
   { id: "sector-analysis", label: "Analyse sectorielle", mobileLabel: "Analyse", resource: "study" },
   { id: "competitive-environment", label: "Environnement concurrentiel", mobileLabel: "Concurrence", resource: "competitiveMap" },
-  { id: "regulatory-calendar", label: "Calendrier réglementaire", mobileLabel: "Réglementation", resource: "regulatory" },
-  { id: "value-chain", label: "Chaîne de valeur", mobileLabel: "Chaîne", resource: "valueChain" },
-  { id: "sector-news", label: "Actualités sectorielles", mobileLabel: "Actualités", resource: "news" },
+  { id: "regulatory-calendar", label: "Calendrier Réglementaire", mobileLabel: "Réglementation", resource: "regulatory" },
+  { id: "value-chain", label: "Chaîne de Valeur", mobileLabel: "Chaîne", resource: "valueChain" },
+  { id: "sector-news", label: "Actualité sectorielle", mobileLabel: "Actualités", resource: "news" },
 ] as const
 
 const BI_CHAPTER_LABELS = new Map<BiChapter, string>(

@@ -416,7 +416,9 @@ distinct par chapitre — `BI_CHAPTERS[].mobileLabel`). Mobile : `BusinessIntell
 ### Matrice (résumé) — 6 chapitres (3 KEEP, 3 RENAME casse), 2 modules KEEP, 1 module NEW/FUTURE.
 Tous **DATA-0 / URL-0**, sauf Bibliothèque `NEW/FUTURE`.
 
-**Statut : `READY`.** Complexité **LOW** (renames de casse + `mobileLabel` déjà découplé).
+**Statut : `IMPLEMENTED / PASS` (Phase 7.4 — 2026-09-10).** Complexité **LOW** (3 renames de casse Desktop canoniques, `mobileLabel` découplé inchangé).
+
+> **Livré :** 6 chapitres Desktop conformes (`BI_CHAPTERS` : `Accueil`, `Analyse sectorielle`, `Environnement concurrentiel`, `Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; 0 modification d'identifiant technique (`home`, `sector-analysis`, `competitive-environment`, `regulatory-calendar`, `value-chain`, `sector-news`) ; 0 changement de routing (`?segment=&tab=`) ; 0 modification Data/Supabase/n8n (DATA-0) ; Mobile labels inchangés (`Terrain`, `Analyse`, `Concurrence`, `Réglementation`, `Chaîne`, `Actualités` — `NO IMPACT`) ; 2 modules réels conservés (`Études sectorielles`, `Playbooks`) ; `Bibliothèque` non implémentée (NEW/FUTURE). Gates : `typecheck` / `test` (348 tests BI) / `check:server-boundary` / `lint` / `build` = **PASS**.
 
 ---
 
@@ -817,13 +819,18 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **DoD :** pas de duplication UI avec Engagements ; `Business Review` = `NEW/FUTURE` ; module
   Simulation monté via `@/features/financial-modeling`.
 
-### 7.4 — Business Intelligence
+### 7.4 — Business Intelligence — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** 3 RENAME de casse/singulier (`regulatory-calendar`, `value-chain`, `sector-news`).
 - **Data :** DATA-0. **Routing :** URL-0.
 - **Desktop :** `business-intelligence-chapters.ts` (`BI_CHAPTERS[].label`).
-- **Mobile :** `NO IMPACT` (`mobileLabel` déjà découplé) — ne pas modifier sans décision.
+- **Mobile :** `NO IMPACT` (`mobileLabel` déjà découplé) — aucun changement.
 - **DoD :** labels alignés ; `mobileLabel` inchangés ; `Bibliothèque` = `NEW/FUTURE` ;
   `studies`/`playbooks` inchangés.
+- **✅ Livré (2026-09-10) :** `BI_CHAPTERS` labels `Accueil`, `Analyse sectorielle`, `Environnement concurrentiel`,
+  `Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle` ; IDs techniques `home`, `sector-analysis`,
+  `competitive-environment`, `regulatory-calendar`, `value-chain`, `sector-news` inchangés ; Mobile labels
+  `Terrain`, `Analyse`, `Concurrence`, `Réglementation`, `Chaîne`, `Actualités` inchangés ; 0 changement d'URL ;
+  0 changement Data.
 
 ### 7.5 — Prospection
 - **Objectif :** `chapter_2` → « Angles d'approche » ; `chapter_1` REMOVE ; `chapter_3` → module
@@ -878,7 +885,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | **7.3A** | Rentabilité Data | HIGH | **DATA-2** | — | — | décision vue/builder | Non | **NO — DECISION REQUIRED** |
 | **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A | Non | NO (après 7.3A) |
 | **7.3C** | Finance | MEDIUM | DATA-1 | 2 RENAME + 1 module | LABEL SYNC | 7.3A, 7.3B | Non | NO (après 7.3B) |
-| **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | **YES** |
+| **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** |
 | **7.5** | Prospection | HIGH | DATA-1+ | REMOVE + RENAME + TRANSFORM (coquilles vides) | FUTURE | **décision produit** | Non | **NO — DECISION REQUIRED** |
 | **7.6** | Rapports | LOW | DATA-0 | 1 label + extraction composant | NO IMPACT | — | Non | **YES** |
 | **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + module REUSE | LABEL SYNC | 7.6 | Non | YES (après 7.6) |
