@@ -3,7 +3,7 @@
 //
 //  Source de vérité unique du chantier Consultants Workspace (Lot 7, C-26 /
 //  PRODUCT-3). La whitelist reproduit exactement celle de la Server Action
-//  `src/app/(app)/recruitment/_actions/update-candidate-status.ts`
+//  `src/features/consultants/candidates/actions/update-candidate-status.ts`
 //  (`VALID_STATUSES`) — toute évolution se fait des deux côtés.
 //
 //  Les libellés FR étaient dupliqués dans trois composants recrutement

@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-14 + Phase 7.2 livrés)**
+> **Statut global : techniquement clos (Lots 0-15 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,7 +51,8 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 15 — Nettoyage et clôture — `UNBLOCKED / READY`** (Phase 7.2 Consultants livrée).
+➡️ **Chantier Consultants Workspace techniquement clos (Lot 15 livré).**
+Rapport de clôture : [`02-CLOSURE-AUDIT.md`](./02-CLOSURE-AUDIT.md).
 
 > **KANBAN-001 livré (2026-09-09 — [ADR-0023](../../adr/ADR-0023-suppression-kanban.md))** :
 > le paradigme Kanban est retiré globalement. Côté Vivier Candidats, `CandidatesKanbanDesktop`

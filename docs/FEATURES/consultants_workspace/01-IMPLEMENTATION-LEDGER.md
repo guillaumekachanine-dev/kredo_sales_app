@@ -6,13 +6,13 @@
 
 ```
 Chantier                 : Consultants Workspace
-Statut global            : en cours
+Statut global            : techniquement close
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Phase 7.2 — Alignement workspace cible (SHELL-0018)
+Dernier lot livré        : Lot 15 — Nettoyage et clôture
 Lot courant              : —
-Prochain lot             : Lot 15 — Nettoyage et clôture — UNBLOCKED / READY (Phase 7.2 livrée)
-Dernier SHA connu origin/main : adf1df5a   (2026-09-09, feat(agenda): refine mobile visual composition)
+Prochain lot             : — (chantier clos)
+Dernier SHA connu origin/main : 83861559   (2026-09-09, feat(agenda): refonte mobile de la modale « Créer un événement »)
 ```
 
 ## Table des lots
@@ -40,7 +40,53 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 13.1 | Synthèse — Double voie | ✅ techniquement livré | `67aa1859` | C-33. Ratio supprimé ; collaborateurs + candidats rattachés + recrutés YTD par practice. Desktop = panneau principal + rail vertical processus/intercontrat. Mobile = liste dédiée. Aucun nouveau fetch, migration ou dépendance. Correction à la reprise : assertion Mobile stale (`Pipeline de recrutement` → `Processus actifs par étape`). |
 | 14 | Intégration Shell global / CRM | ✅ techniquement livré | `50f1a31e` | Coordonné SHELL-0018 Lot 6.2. Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources ». Suppression SectionNavBarSlot et (tabbed)/layout.tsx, deep-links déplacés par git mv, useSidebarCollapse retiré de ConsultantsDesktopShell. Mobile sécurisé via CONSULTANTS_SECTIONS. C-34, NAV-3/NAV-4/LEGACY-3 résolues. |
 | 7.2 | Alignement workspace cible (SHELL-0018 Phase 7.2) | ✅ techniquement livré | `bb2a3a4d` | Libellés cible (Vue d'ensemble / Vivier Candidats / Activité & Congés / Matching Profil) ; `pool-competences` **chapitre Desktop → Module Desktop** (composant + Data réutilisés) ; Mobile inchangé (5 accès, SEPARATE IMPLEMENTATION) ; compat `?section=pool-competences` réinterprétée par device ; 0 pathname, 0 redirect, 0 Data nouvelle. |
-| 15 | Nettoyage et clôture | ⬜ todo (**UNBLOCKED / READY** — Phase 7.2 livrée) | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
+| 15 | Nettoyage et clôture | ✅ techniquement livré | `pending` | Suppression définitive du legacy Recruitment (`src/components/recruitment/`, `_data/`, `_actions/`). Déplacement des composants et actions candidats sous `src/features/consultants/candidates/`. Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
+
+### Lot 15 — Nettoyage et clôture technique — ✅ techniquement livré (2026-09-10)
+
+- **Baseline** : `83861559` (main synchronisé avec origin/main).
+- **Objectif** : supprimer définitivement l'ancien workspace Recruitment inaccessible et son code orphelin, déplacer les composants et Server Actions actifs sous `src/features/consultants/candidates/`, supprimer les revalidations obsolètes `/recruitment`, préserver les contrats partagés (`recruitment-stages.ts`, `candidate-lifecycle.ts`, `HIRING_PROCESS_STAGES`, `RECRUITMENT_TERMINAL_STATUSES`), valider les 0-dettes BLOCKING et publier le rapport `02-CLOSURE-AUDIT.md`.
+- **Fichiers supprimés (`git rm`)** :
+  - `src/app/(app)/recruitment/_data/get-recruitment-workspace.ts`
+  - `src/app/(app)/recruitment/_actions/update-recruitment-status.ts`
+  - `src/components/recruitment/RecruitmentWorkspace.tsx`
+  - `src/components/recruitment/RecruitmentListView.tsx`
+  - `src/components/recruitment/RecruitmentPlanningView.tsx`
+  - `src/components/recruitment/dashboard/RecruitmentDesktopDashboard.tsx`
+  - `src/components/recruitment/dashboard/RecruitmentMobileDashboard.tsx`
+  - Répertoires `src/components/recruitment/`, `src/app/(app)/recruitment/_actions/`, `src/app/(app)/recruitment/_data/` éliminés.
+- **Fichiers déplacés (`git mv`) & modifiés** :
+  - `src/components/recruitment/CandidateDrawer.tsx` → `src/features/consultants/candidates/components/CandidateDrawer.tsx`
+  - `src/components/recruitment/CandidateProfileEditor.tsx` → `src/features/consultants/candidates/components/CandidateProfileEditor.tsx`
+  - `src/components/recruitment/CandidateReferenceProfile.tsx` → `src/features/consultants/candidates/components/CandidateReferenceProfile.tsx`
+  - `src/components/recruitment/HiringProcessStepper.tsx` → `src/features/consultants/candidates/components/HiringProcessStepper.tsx`
+  - `src/components/recruitment/NewCandidateDrawer.tsx` → `src/features/consultants/candidates/components/NewCandidateDrawer.tsx`
+  - `src/app/(app)/recruitment/_actions/create-candidate.ts` → `src/features/consultants/candidates/actions/create-candidate.ts` (retrait revalidation `/recruitment`)
+  - `src/app/(app)/recruitment/_actions/update-candidate-profile.ts` → `src/features/consultants/candidates/actions/update-candidate-profile.ts` (retrait revalidation `/recruitment`)
+  - `src/app/(app)/recruitment/_actions/update-candidate-status.ts` → `src/features/consultants/candidates/actions/update-candidate-status.ts` (retrait revalidation `/recruitment`)
+  - `src/app/(app)/recruitment/_actions/update-hiring-step.ts` → `src/features/consultants/candidates/actions/update-hiring-step.ts` (retrait revalidation `/recruitment`)
+  - `src/features/consultants/candidates/CandidateInlineControls.tsx` — imports repointés vers `./actions/...`
+  - `src/features/consultants/candidates/CandidatesDesktop.tsx` — imports repointés vers `./components/...`
+  - `src/features/consultants/candidates/CandidatesMobile.tsx` — imports repointés vers `./components/...`
+  - `src/components/staffing/TabDetails.tsx` — import repointé vers `@/features/consultants/candidates/components/CandidateReferenceProfile`
+  - `src/components/staffing/AssistanceCaseDrawer.tsx` — imports repointés vers `@/features/consultants/candidates/components/...`
+  - `src/features/consultants/recruitment-deprecation.test.ts` — enrichi avec tests d'invariants Lot 15
+- **Rapports & Documentation** :
+  - `docs/FEATURES/consultants_workspace/02-CLOSURE-AUDIT.md` — créé
+  - `docs/FEATURES/consultants_workspace/README.md` — mis à jour
+  - `docs/FEATURES/consultants_workspace/01-IMPLEMENTATION-LEDGER.md` — mis à jour
+- **Invariants protégés** : `/recruitment` reste uniquement `permanentRedirect("/consultants?section=candidats")` ; 0 symbole Kanban réintroduit ; contrats partagés intacts ; aucune modification UX/UI fonctionnelle.
+- **Gates exécutées** :
+  - `npm test -- src/features/consultants/recruitment-deprecation.test.ts src/features/consultants/navigation/consultants-sections.test.ts` → PASS (55 tests)
+  - `npm test -- src/features/consultants/candidates/ src/lib/recruitment/` → PASS (23 tests)
+  - `npm run typecheck` → PASS
+  - `npm run check:server-boundary` → PASS
+  - `npx eslint` (fichiers touchés) → PASS
+  - `npm test` (**suite complète**) → PASS
+  - `npm run build` → PASS
+- **Dettes restantes** : BLOCKING = 0. NON-BLOCKING = CAND-4 (positionnement inline via StaffingDrawer), SKILLS-1 (Mobile separate implementation).
+- **Statut** : ✅ techniquement livré. Chantier Consultants Workspace techniquement clos.
+- **NEXT LOT** : — (chantier clos).
 
 ### Lot 14 — Intégration Shell global / CRM — ✅ techniquement livré (2026-09-09)
 

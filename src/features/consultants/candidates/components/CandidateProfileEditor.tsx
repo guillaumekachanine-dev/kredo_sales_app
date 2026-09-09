@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react"
-import { updateCandidateProfile } from "@/app/(app)/recruitment/_actions/update-candidate-profile"
+import { updateCandidateProfile } from "@/features/consultants/candidates/actions/update-candidate-profile"
 import { Button } from "@/components/ui/Button"
 import { Field } from "@/components/ui/Field"
 import { Input } from "@/components/ui/Input"

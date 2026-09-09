@@ -3,8 +3,8 @@
 import React, { useOptimistic, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Select } from "@/components/ui/Select"
-import { updateCandidateStatus } from "@/app/(app)/recruitment/_actions/update-candidate-status"
-import { updateHiringStep } from "@/app/(app)/recruitment/_actions/update-hiring-step"
+import { updateCandidateStatus } from "@/features/consultants/candidates/actions/update-candidate-status"
+import { updateHiringStep } from "@/features/consultants/candidates/actions/update-hiring-step"
 import { HIRING_PROCESS_STAGES } from "@/lib/recruitment/recruitment-stages"
 import {
   LIFECYCLE_EDIT_OPTIONS,

@@ -35,7 +35,6 @@ export async function updateCandidateStatus(candidateId: string, status: string)
     return { error: error.message }
   }
 
-  revalidatePath("/recruitment")
   revalidatePath("/consultants")
   return { success: true }
 }

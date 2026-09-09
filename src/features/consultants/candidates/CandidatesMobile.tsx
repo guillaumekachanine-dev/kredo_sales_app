@@ -11,8 +11,8 @@ import {
   MobileHeroInsight,
   MobilePageHeader,
 } from "@/components/ui/mobile"
-import { CandidateDrawer } from "@/components/recruitment/CandidateDrawer"
-import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
+import { CandidateDrawer } from "./components/CandidateDrawer"
+import { NewCandidateDrawer } from "./components/NewCandidateDrawer"
 import {
   AVAILABILITY_BUCKET_META,
   PIPELINE_STATE_META,

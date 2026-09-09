@@ -926,10 +926,10 @@ exécutable** si 7.1 reste bloqué.
 ## 23. Prochain lot
 
 - ~~**Phase 7.2 — Alignement Consultants**~~ → ✅ **livré (2026-09-09)**. Consultants Lot 15 →
-  **`UNBLOCKED / READY`** (ne PAS l'exécuter dans le lot 7.2).
+  ✅ **CLOSED (2026-09-10)** (workspace techniquement clos).
 - **Phase 7.1 — Alignement Opportunités** dès que `src/features/opportunities/summary/` est intégré
   à `main` ou rebaseliné.
 - Suite Phase 7 : `7.4 → 7.8 → 7.9 → 7.6 → 7.7 → [7.1 dès rebaseline] → 7.3A → 7.3B → 7.3C → 7.5 → 7.10`.
 
 Opportunities Lot 12 : **DEFERRED UNTIL TARGET-ALIGNMENT** (après 7.1). Consultants Lot 15 :
-**UNBLOCKED / READY** (après 7.2).
+**CLOSED** (workspace techniquement clos).

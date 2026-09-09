@@ -1,6 +1,6 @@
 "use client"
 
-import { CandidateReferenceProfile } from "@/components/recruitment/CandidateReferenceProfile"
+import { CandidateReferenceProfile } from "@/features/consultants/candidates/components/CandidateReferenceProfile"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
 
 interface TabDetailsProps {

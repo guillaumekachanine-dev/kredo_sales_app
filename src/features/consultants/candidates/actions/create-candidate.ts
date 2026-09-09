@@ -128,7 +128,6 @@ export async function createCandidate(input: CreateCandidateInput) {
     }
   }
 
-  revalidatePath("/recruitment")
   revalidatePath("/consultants")
   revalidatePath("/missions/opps")
 

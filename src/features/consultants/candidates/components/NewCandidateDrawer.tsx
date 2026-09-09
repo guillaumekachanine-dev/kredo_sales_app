@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/Textarea"
 import {
   createCandidate,
   type CreateCandidateInput,
-} from "@/app/(app)/recruitment/_actions/create-candidate"
+} from "@/features/consultants/candidates/actions/create-candidate"
 import { getOfferPracticesForPicker } from "@/lib/reference-data/reference-data-actions"
 
 interface NewCandidateDrawerProps {

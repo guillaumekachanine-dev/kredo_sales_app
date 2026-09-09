@@ -31,7 +31,6 @@ export async function updateHiringStep(processId: string, step: string) {
     return { error: error.message }
   }
 
-  revalidatePath("/recruitment")
   revalidatePath("/consultants")
   return { success: true }
 }

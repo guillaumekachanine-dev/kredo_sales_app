@@ -8,13 +8,13 @@ import {
   AgendaEventDrawer,
   type AgendaEventDrawerInitialValues,
 } from "@/components/agenda/AgendaEventDrawer"
-import { CandidateProfileEditor } from "@/components/recruitment/CandidateProfileEditor"
-import { CandidateReferenceProfile } from "@/components/recruitment/CandidateReferenceProfile"
+import { CandidateProfileEditor } from "@/features/consultants/candidates/components/CandidateProfileEditor"
+import { CandidateReferenceProfile } from "@/features/consultants/candidates/components/CandidateReferenceProfile"
 import {
   HiringProcessStepper,
   findActiveProcess,
   type HiringProcess,
-} from "@/components/recruitment/HiringProcessStepper"
+} from "@/features/consultants/candidates/components/HiringProcessStepper"
 import { createClient } from "@/lib/supabase/client"
 import {
   getOfferPracticesForPicker,

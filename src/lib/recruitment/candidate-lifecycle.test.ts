@@ -8,7 +8,7 @@ import {
 } from "./candidate-lifecycle"
 
 // Doit rester aligné sur `VALID_STATUSES` de
-// src/app/(app)/recruitment/_actions/update-candidate-status.ts (C-26).
+// src/features/consultants/candidates/actions/update-candidate-status.ts (C-26).
 const VALID_STATUSES = [
   "nouveau",
   "qualifie",

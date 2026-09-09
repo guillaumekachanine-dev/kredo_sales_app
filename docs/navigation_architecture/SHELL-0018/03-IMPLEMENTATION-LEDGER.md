@@ -2288,10 +2288,6 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 - **Lot 7.2 — ✅ livré.** Commit : `bb2a3a4d` — `refactor(consultants): align workspace target navigation`.
   Push `adf1df5a..bb2a3a4d` sur `origin/main`.
-- **Consultants Lot 15 — Nettoyage et clôture** : `DEFERRED UNTIL TARGET-ALIGNMENT` →
-  **`UNBLOCKED / READY`**. Auditables au Lot 15 : `src/components/recruitment/dashboard/*`
-  (orphelins), `_actions/` legacy `/recruitment` non repointés. À **conserver** :
-  `src/lib/consultants/pool-competences-data.ts` (consommé Desktop + Mobile), routes legacy
-  `permanentRedirect` (compat bookmarks).
+- **Consultants Lot 15 — Nettoyage et clôture** : ✅ **CLOSED (2026-09-10)**. Suppression définitive de `src/components/recruitment/`, `_data/`, `_actions/` ; déplacement des composants et actions candidats sous `src/features/consultants/candidates/` ; rapport `02-CLOSURE-AUDIT.md`.
 - **Travaux parallèles** (`src/features/opportunities/summary/*`, `docs/JOURNAL-SESSIONS.md`) :
   **jamais touchés / stagés**.

@@ -4,14 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { Button } from '@/components/ui/Button'
-import { CandidateProfileEditor } from '@/components/recruitment/CandidateProfileEditor'
-import { CandidateReferenceProfile } from '@/components/recruitment/CandidateReferenceProfile'
+import { CandidateProfileEditor } from './CandidateProfileEditor'
+import { CandidateReferenceProfile } from './CandidateReferenceProfile'
 import { ContextualCommunicationButton } from '@/components/communication/ContextualCommunicationButton'
 import {
   HiringProcessStepper,
   findActiveProcess,
   type HiringProcess,
-} from '@/components/recruitment/HiringProcessStepper'
+} from './HiringProcessStepper'
 import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from '@/components/agenda/AgendaEventDrawer'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'

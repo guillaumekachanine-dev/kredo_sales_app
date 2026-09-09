@@ -136,7 +136,6 @@ export async function updateCandidateProfile(
     }
   }
 
-  revalidatePath("/recruitment")
   revalidatePath("/consultants")
   revalidatePath("/missions/opps")
 
