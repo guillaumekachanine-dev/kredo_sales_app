@@ -28,15 +28,6 @@ export interface CockpitWeeklyBriefSection {
   qaFlags: WeeklyManagerContent["qaFlags"]
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Europe/Paris",
-  }).format(new Date(value))
-}
-
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -79,10 +70,7 @@ export function getCockpitWeeklyBriefSections(
       title: "L’essentiel",
       summary: narrative.executiveSummary,
       items: narrative.weeklyFocus,
-      metrics: [
-        { label: "Période", value: `${formatDate(facts.period.startDate)} — ${formatDate(facts.period.endDate)}` },
-        { label: "Fraîcheur", value: `Données au ${formatDate(facts.dataCutoffAt)}` },
-      ],
+      metrics: [],
       qaFlags: [],
     },
     {

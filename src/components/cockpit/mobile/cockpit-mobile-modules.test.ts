@@ -131,6 +131,12 @@ describe("cockpit mobile understanding modules", () => {
     )
   })
 
+  it("sort la période et la fraîcheur de L’essentiel pour les afficher dans le header du brief", () => {
+    const essential = getCockpitWeeklyBriefSections(weeklyBrief()).find((section) => section.id === "essential")
+
+    expect(essential?.metrics).toEqual([])
+  })
+
   it("n’affiche le pipeline que lorsque couverture et QA sont fiables", () => {
     const content = weeklyBrief()
     content.facts.caveats = []

@@ -22,15 +22,27 @@ const CockpitWeeklyBriefModule = dynamic(() => (
 
 type WeekModuleConfig = {
   title: string
-  meta: string
+  meta?: string
   tone: "info" | "warning" | "idea"
   icon: string
 }
 
 const WEEK_MODULES: Record<CockpitWeekModuleId, WeekModuleConfig> = {
-  weeklyBrief: { title: "Brief hebdomadaire", meta: "Lecture de la semaine", tone: "info", icon: "reports" },
+  weeklyBrief: { title: "Brief hebdomadaire", tone: "info", icon: "reports" },
   priorities: { title: "Priorités", meta: "Points à traiter", tone: "warning", icon: "clipboard-mobile" },
   opportunities: { title: "Opportunités", meta: "Actions commerciales", tone: "idea", icon: "crm-mobile" },
+}
+
+function formatBriefDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    day: "2-digit",
+    month: "long",
+  }).formatToParts(new Date(value)).map((part) => (
+    part.type === "month"
+      ? `${part.value.charAt(0).toUpperCase()}${part.value.slice(1)}`
+      : part.value
+  )).join("")
 }
 
 function WeekModalContent({ module, snapshot, onComposerOpen, onOpenPriorities }: {
@@ -53,6 +65,9 @@ export function CockpitWeekModal({ module, snapshot, onClose, onComposerOpen, on
   onOpenPriorities: () => void
 }) {
   const config = WEEK_MODULES[module]
+  const briefPeriod = module === "weeklyBrief" && snapshot?.weeklyBrief
+    ? `${formatBriefDate(snapshot.weeklyBrief.facts.period.startDate)} — ${formatBriefDate(snapshot.weeklyBrief.facts.period.endDate)}`
+    : null
 
   return (
     <AppDialog
@@ -60,14 +75,18 @@ export function CockpitWeekModal({ module, snapshot, onClose, onComposerOpen, on
       onOpenChange={(open) => { if (!open) onClose() }}
       title={config.title}
       className="cockpit-week-modal"
-      maxHeightClassName="max-h-[min(calc(100dvh-2rem),48rem)]"
+      maxHeightClassName="max-h-[calc(100dvh-8.75rem)]"
       headerClassName="cockpit-week-modal__header"
       closeButtonClassName="cockpit-week-modal__close"
       bodyClassName="cockpit-week-modal__content"
       headerLeading={(
-        <div className="cockpit-week-modal__heading" data-tone={config.tone}>
+        <div className="cockpit-week-modal__heading" data-tone={config.tone} data-module={module}>
           <span className="cockpit-week-modal__icon" aria-hidden="true">{getNavigationIcon(config.icon, "size-4", 1.8)}</span>
-          <div><p>{config.meta}</p><h2>{config.title}</h2></div>
+          <div>
+            {config.meta ? <p className="cockpit-week-modal__heading-meta">{config.meta}</p> : null}
+            <h2>{config.title}</h2>
+            {briefPeriod ? <p className="cockpit-week-modal__brief-period">{briefPeriod}</p> : null}
+          </div>
         </div>
       )}
     >

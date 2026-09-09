@@ -1,12 +1,20 @@
 "use client"
 
 import type { CockpitMobileSnapshot } from "@/lib/cockpit/mobile/cockpit-mobile-snapshot-types"
+import { getNavigationIcon } from "@/components/layout/navigation-icons"
 import { getCockpitWeeklyBriefSections } from "./cockpit-mobile-module-presenters"
 
 interface CockpitWeeklyBriefModuleProps {
   snapshot: CockpitMobileSnapshot
   onOpenPriorities: () => void
 }
+
+const SECTION_ICONS = {
+  essential: "reports",
+  business: "sales",
+  delivery: "engagements",
+  vigilances: "settings",
+} as const
 
 export function CockpitWeeklyBriefModule({
   snapshot,
@@ -27,7 +35,12 @@ export function CockpitWeeklyBriefModule({
     <div className="cockpit-brief-module">
       {sections.map((section) => (
         <section key={section.id} className="cockpit-module-section" aria-labelledby={`brief-${section.id}`}>
-          <h3 id={`brief-${section.id}`}>{section.title}</h3>
+          <div className="cockpit-week-modal__section-heading">
+            <span className="cockpit-week-modal__section-icon" aria-hidden="true">
+              {getNavigationIcon(SECTION_ICONS[section.id], "size-3.5", 1.8)}
+            </span>
+            <h3 id={`brief-${section.id}`}>{section.title}</h3>
+          </div>
 
           {section.summary ? <p className="cockpit-sheet-summary">{section.summary}</p> : null}
 
@@ -47,8 +60,13 @@ export function CockpitWeeklyBriefModule({
           ) : null}
 
           {section.qaFlags.length > 0 ? (
-            <div className="cockpit-qa-flags" aria-label="Contrôles qualité du brief">
-              <h4>Alertes QA</h4>
+            <details className="cockpit-qa-flags">
+              <summary>
+                <span>Alertes QA</span>
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m7.5 5 5 5-5 5" />
+                </svg>
+              </summary>
               <ul>
                 {section.qaFlags.map((flag) => (
                   <li key={`${flag.check}-${flag.detail ?? ""}`} data-passed={flag.passed}>
@@ -58,7 +76,7 @@ export function CockpitWeeklyBriefModule({
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
           ) : null}
         </section>
       ))}
