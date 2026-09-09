@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 8 — Data Contract Planning (builder unique OpportunityDeadline)
+Dernier lot livré             : Lot 9 — Planning Desktop (milestone planning Mois / Année)
 Lot courant                   : aucun
-Prochain lot                  : Lot 9 — Planning Desktop
-Dernier SHA connu origin/main : adde8825   (2026-09-09, commit Lot 8)
+Prochain lot                  : Lot 10 — Modules existants
+Dernier SHA connu origin/main : d94a1b16   (2026-09-09, commit Lot 9)
 ```
 
 ## Table des lots
@@ -31,7 +31,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 6 | Migration UI Besoins & staffing | ✅ techniquement livré | `b769623f` | Chapitre Besoins Desktop sur `OpportunitiesTriPanel` : `NeedsListPanel` (rail gauche, filtres + `?opp=` + `NewOpportunityButton` + `StageQuickEditorDialog`) │ `NeedsDetailPanel` (`OpportunityDetailView` inline) │ `StaffingInProgressRail` (positionnements actifs, drawer unique, `NewStaffingButton`, simulation par ligne). `page.tsx` `besoins` → `getNeedsChapterData` + `NeedsDesktop`. **Résout PRODUCT-02 (OPP-25), PRODUCT-04 (OPP-24), NAVIGATION-02 (OPP-26), LEGACY-05 (OPP-27).** `NeedsStaffingWorkspace` Desktop plus monté (Mobile inchangé). SVG/tokens `@theme`, aucun HEX. |
 | 7 | Avant-vente (structure + `EmptyState` V1) | ✅ techniquement livré | `6a84b978` | `PresalesDesktop` : `OpportunitiesTriPanel` + 3 `EmptyState` authentiques (liste / surface / détails). **Aucune donnée, aucun seed, aucun modèle Projet.** `page.tsx` `avant-vente` → `PresalesDesktop`. PRODUCT-05 reste **ouverte** et documentée. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ✅ techniquement livré | `adde8825` | `src/features/opportunities/planning/data/` : `opportunity-deadline.types.ts` + `build-opportunity-deadlines.ts` (pur) + `get-opportunity-deadlines.ts` (loader). **Résout DATA-03 → OPP-28.** Synthèse refactorée pour consommer ce builder (OPP-10). Builder unique (test d'arbitrage + `start_date` jamais échéance). Aucune migration. |
-| 9 | Planning Desktop | ⬜ todo | — | Liste │ Planning mois/année │ Détails. Adapte le moteur existant. |
+| 9 | Planning Desktop | ✅ techniquement livré | `d94a1b16` | `OpportunitiesTriPanel` : liste des opportunités ouvertes │ milestone planning central `Mois \| Année` │ détail contextuel. Builder `OpportunityDeadline` unique, sélection `?opp=`, ligne Aujourd’hui, formes + couleurs par source, navigation de période. **OPP-29.** Mobile inchangé. |
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ⬜ todo | — | Câblage vers capacités existantes. **Résout CROSS-01/02/03.** `Modélisation de CA` non affichée (OPP-11). |
 | 11 | Legacy / compatibilité / navigation globale | ⬜ todo | — | Redirection `/staffing`, `main-menu` label « Opportunités », deep-links `scope`. **Coord. SHELL-0018 Phase 6.3.** |
 | 12 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
@@ -68,6 +68,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-26 | NAVIGATION-02 : contrat URL Besoins = `?section=besoins&opp=&stage=&priority=&practice=&sort=&direction=` (builder pur `buildNeedsHref`). `?scope`/`?view` abandonnés (compat `scope` d'entrée conservée). `buildOpportunitiesSectionHref` strippe `opp`. | 6 |
 | OPP-28 | DATA-03 : `OpportunityDeadline` — arbitrage figé, **une seule échéance par opportunité ouverte** parmi les dates **futures ou du jour**, priorité `next_action_at` > prochain `calendar_events.starts_at` (hors `cancelled`) > `target_close_date`. `start_date` **jamais** une échéance ; jalons `opportunity_candidates` hors périmètre V1 (dates passées). Builder pur unique `build-opportunity-deadlines.ts`, réutilisé par la Synthèse (§ 9.6) et le Planning (Lot 9). Remplace la règle provisoire OPP-22. | 8 |
 | OPP-27 | LEGACY-05 : chapitre Besoins V2 **sans HEX** (`getOpportunityStageColor` = `var(--color-*)`, tokens `@theme`). Les HEX de `NeedsStaffingWorkspace.tsx` sont dans les toggles Kanban/Planning non repris → retirés au Lot 12. | 6 |
+| OPP-29 | Planning V1 = **milestone planning**, pas Gantt projet : une lane par opportunité ouverte, au plus un jalon `OpportunityDeadline`, même grammaire en Mois/Année, source distinguée par forme + couleur. Aucune durée, dépendance, baseline, progression, WBS, date synthétique ou drag-and-drop. Échelle et période restent éphémères ; sélection seule URL-addressable via `?opp=`. | 9 |
 
 ## Questions ouvertes en cours
 
@@ -84,7 +85,7 @@ canonique § 17.
 | ~~DATA-05~~ | Taxonomie d'étape commerciale | 0 | ✅ tranché (OPP-08) — `stages.ts` |
 | PRODUCT-01 | Représentation unifiée `stage` + `status` (buckets de progression) | 3 | ✅ **volet affichage tranché (OPP-21)** — 5 buckets ; unification *stockée* hors périmètre |
 | PRODUCT-02 | Quelles capacités Kanban survivent après la refonte | 6 | ✅ **tranché (OPP-25)** — Kanban non repris ; changement d'étape conservé (`StageQuickEditorDialog`) |
-| PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 5 / 6 / 9 | ✅ **Lot 5 (OPP-23) + Lot 6 (OPP-26, `buildNeedsHref` + strip)** — reste au Lot 9 : partage avec Planning |
+| PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 5 / 6 / 9 | ✅ **livré** — Besoins : OPP-23/26 ; Planning : OPP-29, liste + jalon + détail synchronisés par `?opp=` |
 | PRODUCT-04 | Forme du détail besoin (inline / drawer / `OpportunityDetailView`) | 6 | ✅ **tranché (OPP-24)** — `OpportunityDetailView` inline |
 | PRODUCT-05 | Relation opportunité ↔ projet avant-vente ↔ mission/projet gagné | futur | **ouverte** — structure Avant-vente livrée (Lot 7) ; contenu métier subordonné à l'arbitrage |
 | NAVIGATION-01 | Conversion des deep-links `scope` vers `?section=` | 1 / 11 | ✅ **volet parsing résolu (Lot 1)** — `parseOpportunitiesSection` ; redirections dures `/staffing` + `main-menu` mobile → Lot 11 |
@@ -263,6 +264,70 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 9 — Planning Desktop — ✅ techniquement livré (2026-09-09)
+
+- **Direction visuelle** : milestone planning opérationnel conforme à **OPP-29**, validé avant
+  implémentation. Surface centrale ouverte et dominante ; une lane par opportunité ouverte ; au
+  plus un jalon canonique par lane ; grille légère, ligne Aujourd’hui, sélection sobre avec
+  callout direct. Source encodée sans dépendre de la couleur seule : cercle cobalt
+  `next_action`, carré pétrole `calendar_event`, losange brass `target_close`.
+
+- **Architecture / Data** :
+  - `data/build-planning-chapter.ts` — projection pure des `MissionsListRow` ouverts + jointure
+    avec les `OpportunityDeadline`, tri par échéance puis client/titre, résolution déterministe
+    de `?opp=` (repli sur la première échéance si invalide).
+  - `data/get-planning-chapter-data.ts` — loader `server-only` : compose
+    `getOpportunitiesList()` et `getOpportunityDeadlines()` puis ne charge
+    `getOpportunityDetail()` que pour l’unique sélection ; aucun détail par ligne.
+  - `data/get-opportunity-deadlines.ts` — filtre Supabase aligné sur le contrat « futur ou jour
+    même » : borne à minuit UTC, le builder canonique reste inchangé et unique.
+  - `data/opportunities-planning.types.ts` + `data/planning-selection.ts` — contrats minces,
+    aucun nouveau modèle métier, aucune migration.
+
+- **UI / interaction** :
+  - `PlanningDesktop.tsx` monte `OpportunitiesTriPanel` : `PlanningListPanel` │
+    `PlanningTimeline` │ `PlanningDetailsPanel`.
+  - `PlanningTimeline.tsx` est la seule frontière client : échelle `Mois | Année`, navigation
+    précédent/suivant/Aujourd’hui, positionnement proportionnel, focus clavier, sélection par
+    jalon. `planning-timeline.ts` garde toute la géométrie pure et testable.
+  - `navigation/planning-url.ts` pose `section=planning&opp=<uuid>`, nettoie l’état des chapitres
+    frères, préserve les paramètres tiers ; liens `replace` + `scroll={false}` conformément au
+    workspace. Refresh, deep-link et navigation historique reconstruisent la sélection serveur.
+  - Le rail droit réutilise `OpportunityDetailData`, `CompanyLogo`, les helpers d’étape et le
+    formatage KREDO ; il donne le contexte compact et renvoie vers la fiche complète existante.
+  - `page.tsx` remplace le placeholder Planning par le loader et `<PlanningDesktop />`.
+    La branche Mobile reste avant tout chargement Desktop et est strictement inchangée.
+
+- **Réutilisation legacy** : audit de `UnifiedPlanningView`, `OpportunitiesPlanningView`,
+  `StaffingPlanningView` et `EntityPlanningView`. Reprise des seules primitives valides (lanes,
+  grille, position proportionnelle, repère courant). Les jalons historiques/synthétiques,
+  durées, dépendances, couleurs HEX, ombres, semaine/trimestre et moteurs parallèles ne sont pas
+  repris. Le legacy reste en place pour ses consommateurs actuels jusqu’au Lot 12.
+
+- **Tests ajoutés / adaptés** : 34 tests ciblés verts (7 fichiers) couvrant mois réel, bornes et
+  positions début/milieu/fin, hors période, ligne Aujourd’hui, 12 mois, année bissextile,
+  navigation de période, filtre des étapes terminales, tri, `?opp=` valide/invalide, chargement
+  d’un seul détail, composition 3 panneaux et intégration route.
+
+- **Gates exécutés** :
+  - `npm run typecheck` — ✅ (cache `.next` périmé déplacé dans `/tmp`, puis relance verte).
+  - `npx vitest run src/features/opportunities/planning src/features/opportunities/summary/__tests__/summary-route.test.ts`
+    — ✅ **7 fichiers / 34 tests**.
+  - `npm test` — périmètre Lot 9 vert ; suite globale : **2861 tests verts**, 1 échec hors lot
+    dans `consultants/desktop/synthese/synthese-render.test.ts`, causé par un chantier parallèle
+    non commité (`Pipeline de recrutement` attendu, `Processus actifs par étape` rendu). Aucun
+    fichier Consultants modifié ou stagé par le Lot 9.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` ciblé sur les fichiers Lot 9 — ✅ 0 problème.
+  - `npm run build` — ✅ « Compiled successfully », route `ƒ /missions/opps`.
+  - `git diff --check` / diff stagé — ✅.
+
+- **Commit** : `d94a1b16` — `feat(opportunities): deliver milestone planning desktop (Lot 9)`.
+- **QA visuelle** : réservée à Guillaume (§ 20.3) — à valider sur données réelles : densité des
+  lanes, collision du callout sélectionné aux extrémités, lisibilité des 12 mois et cohérence
+  visuelle des trois formes de jalon.
+- **NEXT LOT** : Lot 10 — Modules existants (Matching profil, Simulation devis, Post-Mortem).
 
 ### Lot 8 — Data Contract Planning (builder unique `OpportunityDeadline`) — ✅ techniquement livré (2026-09-09)
 

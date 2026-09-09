@@ -2,7 +2,7 @@
 
 > **Nom canonique :** Opportunities Workspace
 > **Nom produit affiché :** Opportunités
-> **Statut global : en implémentation (Lots 1→8 livrés le 2026-09-09)**
+> **Statut global : en implémentation (Lots 1→9 livrés le 2026-09-09)**
 > **Branche de travail unique : `main`** (aucune feature branch)
 > **Baseline de cadrage : `61aba08ee1b35f848d223f96e08a1e1a624545ec`**
 
@@ -104,9 +104,9 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 9 — Planning Desktop** (Liste opps │ Planning mois/année │ Détails opp,
-sélecteur `Mois | Année`, échéances = builder `OpportunityDeadline` du Lot 8 ;
-voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 9).
+➡️ **Lot 10 — Modules existants** (Matching profil, Simulation devis, Post-Mortem ;
+câblage vers les capacités existantes, sans duplication ; voir
+`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 10).
 
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
@@ -133,6 +133,11 @@ voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 9).
   `getOpportunityDeadlines`. **DATA-03 → OPP-28** (arbitrage `next_action_at` > prochain
   `calendar_events` hors `cancelled` > `target_close_date` ; `start_date` jamais échéance).
   Synthèse refactorée pour consommer ce builder (remplace OPP-22). Data-only, aucune migration.
+- Lot 9 livré : Planning Desktop sur `OpportunitiesTriPanel` — liste des opportunités ouvertes │
+  milestone planning central `Mois | Année` │ détail contextuel. Une lane et au plus un jalon
+  canonique par opportunité, source encodée par forme + couleur, ligne Aujourd’hui, navigation
+  de période et sélection partagée `?opp=`. **OPP-29**. Mobile inchangé. **QA visuelle
+  Guillaume en attente.**
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`
