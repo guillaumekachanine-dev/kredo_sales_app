@@ -6,10 +6,10 @@ import type { SectionRailEntry } from "@/lib/navigation/section-rail"
 import {
   buildConsultantsModuleHref,
   buildConsultantsSectionHref,
-  CONSULTANTS_SECTIONS,
+  CONSULTANTS_DESKTOP_CHAPTERS,
   HEADER_TITLE_BY_SECTION,
   type ConsultantsContextualModule,
-  type ConsultantsInShellSection,
+  type ConsultantsDesktopChapter,
   type ConsultantsSection,
 } from "../navigation/consultants-sections"
 import {
@@ -25,6 +25,8 @@ import { ProductionLeaveDesktop } from "../modules/production-leave/desktop/Prod
 import type { ProductionLeaveViewModel } from "../modules/production-leave/data/production-leave.types"
 import { ProfileMatchingDesktop } from "../modules/profile-matching/desktop/ProfileMatchingDesktop"
 import type { ProfileMatchingViewModel } from "../modules/profile-matching/data/profile-matching.types"
+import { PoolCompetencesDesktop } from "../modules/pool-competences/desktop/PoolCompetencesDesktop"
+import type { ConsultantsSkillsData } from "../data/get-consultants-skills"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Shell Desktop du Consultants Workspace — chrome uniquement (navigation
@@ -33,7 +35,10 @@ import type { ProfileMatchingViewModel } from "../modules/profile-matching/data/
 //
 //  SHELL-0018 V2 : chapeau navy = titre de page (« Consultants ») ; le header
 //  de la zone principale affiche toujours le nom exact du chapitre actif.
-//  Modules contextuels : « Production & Congés » (Lot 12), « Matching profil » (Lot 13).
+//
+//  Phase 7.2 : 4 chapitres Desktop (`CONSULTANTS_DESKTOP_CHAPTERS`).
+//  Modules contextuels : « Pool de compétences » (ex-chapitre, Phase 7.2),
+//  « Production & Congés » (Lot 12), « Matching Profil » (Lot 13).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ICON_BY_SECTION: Record<ConsultantsSection, ReactNode> = {
@@ -45,8 +50,9 @@ const ICON_BY_SECTION: Record<ConsultantsSection, ReactNode> = {
 }
 
 interface ConsultantsDesktopShellProps {
-  activeSection: ConsultantsInShellSection
+  activeSection: ConsultantsDesktopChapter
   activeModule?: ConsultantsContextualModule | null
+  poolSkillsData?: ConsultantsSkillsData | null
   productionLeaveVm?: ProductionLeaveViewModel | null
   profileMatchingVm?: ProfileMatchingViewModel | null
   initialPersonId?: string | null
@@ -56,12 +62,13 @@ interface ConsultantsDesktopShellProps {
 export function ConsultantsDesktopShell({
   activeSection,
   activeModule,
+  poolSkillsData,
   productionLeaveVm,
   profileMatchingVm,
   initialPersonId,
   children,
 }: ConsultantsDesktopShellProps) {
-  const chapters: SectionRailEntry[] = CONSULTANTS_SECTIONS.map((entry) => ({
+  const chapters: SectionRailEntry[] = CONSULTANTS_DESKTOP_CHAPTERS.map((entry) => ({
     key: entry.key,
     label: entry.label,
     icon: ICON_BY_SECTION[entry.key],
@@ -69,10 +76,18 @@ export function ConsultantsDesktopShell({
     active: !entry.external && entry.key === activeSection,
   }))
 
+  const isPoolCompetencesActive = activeModule === "pool-competences"
   const isProductionCongesActive = activeModule === "production-conges"
   const isMatchingProfilActive = activeModule === "matching-profil"
 
   const contextualModules: SectionRailEntry[] = [
+    {
+      key: "pool-competences",
+      label: "Pool de compétences",
+      icon: <PoolCompetencesIcon />,
+      href: buildConsultantsModuleHref(activeSection, "pool-competences"),
+      active: isPoolCompetencesActive,
+    },
     {
       key: "production-conges",
       label: "Production & Congés",
@@ -82,7 +97,7 @@ export function ConsultantsDesktopShell({
     },
     {
       key: "matching-profil",
-      label: "Matching profil",
+      label: "Matching Profil",
       icon: <MatchingProfilIcon />,
       href: buildConsultantsModuleHref(activeSection, "matching-profil"),
       active: isMatchingProfilActive,
@@ -109,6 +124,14 @@ export function ConsultantsDesktopShell({
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </section>
 
+      {/* Module « Pool de compétences » (Phase 7.2 — ex-chapitre) */}
+      {isPoolCompetencesActive && poolSkillsData ? (
+        <PoolCompetencesDesktop
+          data={poolSkillsData}
+          closeHref={buildConsultantsSectionHref(activeSection)}
+        />
+      ) : null}
+
       {/* Module transverse Production & Congés (Lot 12) */}
       {isProductionCongesActive && productionLeaveVm ? (
         <ProductionLeaveDesktop
@@ -117,7 +140,7 @@ export function ConsultantsDesktopShell({
         />
       ) : null}
 
-      {/* Module transverse Matching profil (Lot 13) */}
+      {/* Module transverse Matching Profil (Lot 13) */}
       {isMatchingProfilActive && profileMatchingVm ? (
         <ProfileMatchingDesktop
           vm={profileMatchingVm}

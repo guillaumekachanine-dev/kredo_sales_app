@@ -96,7 +96,7 @@ export function ProfileMatchingMobile({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
-              Matching profil
+              Matching Profil
             </span>
             <h1 className="mt-0.5 truncate font-heading text-xl font-bold text-heading">
               {profile.fullName}

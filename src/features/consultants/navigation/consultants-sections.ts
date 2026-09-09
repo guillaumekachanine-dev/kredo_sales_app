@@ -3,17 +3,28 @@
 //
 //  Chantier : docs/FEATURES/consultants_workspace/
 //  Standard : docs/navigation_architecture/SHELL-0018/02-SECONDARY-RAIL-STANDARD.md
+//  Cible    : docs/navigation_architecture/SHELL-0018/09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md §B.3
 //
-//  Contrat URL cible (C-05) :
-//    /consultants                              → Synthèse (racine, sans paramètre)
+//  Contrat URL (pathname stable `/consultants`, aucun redirect nouveau) :
+//    /consultants                              → Vue d'ensemble (racine, sans paramètre)
 //    /consultants?section=collaborateurs
-//    /consultants?section=activite-conges      (Lot 5)
-//    /consultants?section=candidats            (Lot 8)
-//    /consultants?section=pool-competences     (Lot 6)
+//    /consultants?section=activite-conges
+//    /consultants?section=candidats
+//    /consultants?section=pool-competences     → compat historique (Mobile : vue Pool ;
+//                                                Desktop : module « Pool de compétences »)
+//    /consultants?module=pool-competences      → module Desktop « Pool de compétences »
+//    /consultants?module=production-conges
+//    /consultants?module=matching-profil
 //
-//  Internalisation progressive (`external: false`) : `synthese` + `collaborateurs`
-//  (Lot 1), `activite-conges` (Lot 5), `pool-competences` (Lot 6), `candidats`
-//  (Lot 8). La route `/recruitment` est dépréciée et redirige de façon permanente vers `/consultants?section=candidats` (Lot 10).
+//  Phase 7.2 — alignement cible :
+//   - libellés produit : Synthèse → « Vue d'ensemble », Candidats → « Vivier Candidats »,
+//     « Activités & congés » → « Activité & Congés » (les clés techniques restent stables) ;
+//   - `pool-competences` **sort des chapitres Desktop** et devient un **Module Desktop**
+//     (`CONSULTANTS_CONTEXTUAL_MODULES`). Le composant et la Data existants
+//     (`src/features/consultants/skills/`, `get-consultants-skills.ts`) sont réutilisés tels quels.
+//   - `pool-competences` **reste une section adressable** (`CONSULTANTS_SECTIONS`, 5 entrées) pour
+//     la navigation Mobile et la compatibilité `?section=pool-competences` :
+//     `SEPARATE IMPLEMENTATION` / dette adaptative (voir dette SKILLS-1), **pas un oubli**.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type ConsultantsSection =
@@ -40,10 +51,10 @@ const IN_SHELL_SECTION_SET = new Set<string>(CONSULTANTS_IN_SHELL_SECTIONS)
 
 /** Libellé affiché dans le header de la zone principale (jamais dans le chapeau). */
 export const HEADER_TITLE_BY_SECTION: Record<ConsultantsSection, string> = {
-  synthese: "Synthèse",
+  synthese: "Vue d’ensemble",
   collaborateurs: "Collaborateurs",
-  "activite-conges": "Activités & congés",
-  candidats: "Candidats",
+  "activite-conges": "Activité & Congés",
+  candidats: "Vivier Candidats",
   "pool-competences": "Pool de compétences",
 }
 
@@ -64,7 +75,7 @@ export interface ConsultantsSectionEntry {
 export const CONSULTANTS_SECTIONS: readonly ConsultantsSectionEntry[] = [
   {
     key: "synthese",
-    label: "Synthèse",
+    label: "Vue d’ensemble",
     href: "/consultants",
     external: false,
     internalizedAtLot: 1,
@@ -78,14 +89,14 @@ export const CONSULTANTS_SECTIONS: readonly ConsultantsSectionEntry[] = [
   },
   {
     key: "activite-conges",
-    label: "Activités & congés",
+    label: "Activité & Congés",
     href: "/consultants?section=activite-conges",
     external: false,
     internalizedAtLot: 5,
   },
   {
     key: "candidats",
-    label: "Candidats",
+    label: "Vivier Candidats",
     href: "/consultants?section=candidats",
     external: false,
     internalizedAtLot: 8,
@@ -120,20 +131,53 @@ export function buildConsultantsSectionHref(section: ConsultantsInShellSection):
     : `/consultants?section=${section}`
 }
 
-/** Modules contextuels du rail Consultants Workspace (Lots 12 et 13). */
+// ─────────────────────────────────────────────────────────────────────────────
+//  Chapitres Desktop (Phase 7.2)
+//
+//  Le rail Desktop ne rend QUE ces quatre chapitres. `pool-competences` en est
+//  volontairement absent : il est devenu un Module Desktop (voir plus bas). Il
+//  reste néanmoins une section adressable (`CONSULTANTS_SECTIONS`) pour la
+//  navigation Mobile et la compatibilité `?section=pool-competences`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ConsultantsDesktopChapter = Exclude<ConsultantsInShellSection, "pool-competences">
+
+export const CONSULTANTS_DESKTOP_CHAPTER_KEYS = [
+  "synthese",
+  "collaborateurs",
+  "activite-conges",
+  "candidats",
+] as const satisfies readonly ConsultantsDesktopChapter[]
+
+const DESKTOP_CHAPTER_KEY_SET = new Set<string>(CONSULTANTS_DESKTOP_CHAPTER_KEYS)
+
+/** Chapitres rendus dans la section « Chapitres » du `SectionRail` Desktop. */
+export const CONSULTANTS_DESKTOP_CHAPTERS: readonly ConsultantsSectionEntry[] =
+  CONSULTANTS_SECTIONS.filter((entry) => DESKTOP_CHAPTER_KEY_SET.has(entry.key))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Modules contextuels du rail Consultants Workspace
+//   - `pool-competences` : ex-chapitre monté en module Desktop (Phase 7.2 / TRANSFORM).
+//   - `production-conges` : Lot 12.
+//   - `matching-profil`   : Lot 13.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const CONSULTANTS_CONTEXTUAL_MODULES = [
+  "pool-competences",
   "production-conges",
   "matching-profil",
 ] as const
 export type ConsultantsContextualModule = (typeof CONSULTANTS_CONTEXTUAL_MODULES)[number]
 
+const CONTEXTUAL_MODULE_SET = new Set<string>(CONSULTANTS_CONTEXTUAL_MODULES)
+
 export function parseConsultantsModule(
   raw: string | string[] | null | undefined,
 ): ConsultantsContextualModule | null {
   const value = Array.isArray(raw) ? raw[0] : raw
-  if (value === "production-conges") return "production-conges"
-  if (value === "matching-profil") return "matching-profil"
-  return null
+  return value && CONTEXTUAL_MODULE_SET.has(value)
+    ? (value as ConsultantsContextualModule)
+    : null
 }
 
 export function buildConsultantsModuleHref(
@@ -146,4 +190,41 @@ export function buildConsultantsModuleHref(
   const separator = base.includes("?") ? "&" : "?"
   const personQuery = personId ? `&person=${encodeURIComponent(personId)}` : ""
   return `${base}${separator}module=${module}${personQuery}`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Résolution Desktop pure (Phase 7.2)
+//
+//  Traduit les paramètres d'URL bruts en un état Desktop effectif :
+//   - `chapter` : l'un des quatre chapitres Desktop ;
+//   - `module`  : le module ouvert au-dessus du chapitre (ou `null`).
+//
+//  Compatibilité `?section=pool-competences` : sur Desktop, `pool-competences`
+//  n'est plus un chapitre. La requête est interprétée comme un accès de
+//  compatibilité au **module** « Pool de compétences », rendu au-dessus du
+//  chapitre support « Vue d'ensemble » (`synthese`). Aucun `permanentRedirect`
+//  n'est ajouté : l'ancien bookmark continue de fonctionner, réinterprété selon
+//  le device.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ConsultantsDesktopEntry {
+  chapter: ConsultantsDesktopChapter
+  module: ConsultantsContextualModule | null
+}
+
+export function resolveConsultantsDesktopEntry(
+  rawSection: string | string[] | null | undefined,
+  rawModule: string | string[] | null | undefined,
+): ConsultantsDesktopEntry {
+  const requestedSection = parseConsultantsSection(rawSection)
+  const requestedModule = parseConsultantsModule(rawModule)
+
+  if (requestedSection === "pool-competences") {
+    return {
+      chapter: CONSULTANTS_ROOT_SECTION,
+      module: requestedModule ?? "pool-competences",
+    }
+  }
+
+  return { chapter: requestedSection, module: requestedModule }
 }

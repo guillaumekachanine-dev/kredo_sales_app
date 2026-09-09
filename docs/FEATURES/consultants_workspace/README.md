@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-14 livrés)**
+> **Statut global : en cours (Lots 0-14 + Phase 7.2 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,17 +51,22 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 15 — Nettoyage et clôture — `DEFERRED UNTIL TARGET-ALIGNMENT` (reporté après Phase 7.2 Consultants).**
+➡️ **Lot 15 — Nettoyage et clôture — `UNBLOCKED / READY`** (Phase 7.2 Consultants livrée).
 
-> **Supersession / dépendance :** la cible de navigation canonique est désormais
-> `docs/navigation_architecture/SHELL-0018/09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`
-> (décision SHELL 6.3R). Elle prévoit pour ce workspace : `RENAME` de chapitres
-> (Synthèse → Vue d'ensemble, Candidats → Vivier Candidats), et surtout la **transformation
-> structurelle** du chapitre **Pool de compétences → Module** (`TRANSFORM`), traitée en
-> **Phase 7.2**. Le **Lot 15 n'est pas annulé** : il est **différé jusqu'après Phase 7.2**, car
-> des composants aujourd'hui classés legacy (dashboards recrutement orphelins
-> `src/components/recruitment/dashboard/*`, routes `(tabbed)` résiduelles) peuvent être
-> réutilisés ou transformés par la cible. **Aucune suppression prématurée.**
+> **Phase 7.2 livrée (2026-09-09)** : libellés cible appliqués (Synthèse → « Vue d'ensemble »,
+> Candidats → « Vivier Candidats », « Activités & congés » → « Activité & Congés », module
+> « Matching profil » → « Matching Profil ») ; le chapitre **Pool de compétences** est devenu un
+> **Module Desktop** (`TRANSFORM`, `?module=pool-competences`) réutilisant le composant
+> `PoolCompetencesMap` et le loader `getConsultantsSkills` à l'identique. Le **Mobile est
+> inchangé** : « Pool de compétences » reste le 5ᵉ accès (`?section=pool-competences`),
+> `SEPARATE IMPLEMENTATION` / dette adaptative SKILLS-1. Aucun pathname, aucun redirect nouveau,
+> aucune Data nouvelle. Détail : `01-IMPLEMENTATION-LEDGER.md` § Phase 7.2.
+>
+> **Lot 15** peut désormais auditer / supprimer les composants legacy qu'aucune cible ne
+> réutilise (`src/components/recruitment/dashboard/*` orphelins, `_actions/` `/recruitment`
+> non repointés). **Ne pas** supprimer `src/lib/consultants/pool-competences-data.ts`
+> (consommé par le module Desktop et la vue Mobile) ni les routes legacy `permanentRedirect`
+> (compat bookmarks).
 
 Contenu inchangé du Lot 15 quand il s'exécutera : voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 15.
 
@@ -79,6 +84,7 @@ Contenu inchangé du Lot 15 quand il s'exécutera : voir `00-REFERENCE-CHANTIER-
 - Lot 12 : UI Module Production & Congés (Desktop + Mobile) — déclaration dans SectionRail (`contextualModules`), lazy-loading via `?module=production-conges`, résolution PRODUCT-4 via vue dédiée `ProductionLeaveMobile` sur `activite-conges` (C-31), dataviz SVG maison Desktop et barres HTML Mobile, masquage RLS `null` sans 0 €, distinction `hasActivityData` (zéro vs données absentes), aucun calendrier journalier.
 - Lot 13 : Module Matching profil (Desktop + Mobile) — projection profil-centrique en lecture seule sur le cache `match_scores` du moteur existant (C-09 / C-32, PRODUCT-1 résolu), absence de score ≠ incompatibilité (couverture affichée), parsing défensif JSONB, modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6 (« Ouvrir le besoin » + « Relancer le matching de ce besoin »), branche Mobile contextuelle `ProfileMatchingMobile` accessible depuis les profils/drawers (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 second moteur, 0 LLM/n8n.
 - Lot 14 : intégration Shell global / CRM (SHELL 6.2) — rattachement Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources », suppression du dernier SectionNavBarSlot et du route group (tabbed), préservation des deep-links historiques par git mv, retrait useSidebarCollapse, résolution NAV-3 et NAV-4 (C-34).
+- Phase 7.2 (SHELL-0018) : alignement cible — 4 chapitres Desktop + libellés produit, `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés, `resolveConsultantsDesktopEntry` pure), Mobile inchangé (5 accès, SEPARATE IMPLEMENTATION), compat `?section=pool-competences` réinterprétée par device, 0 pathname / 0 redirect / 0 Data nouvelle. Lot 15 → `UNBLOCKED / READY`.
 
 
 > ⚠️ Travail parallèle non commité dans l'arbre (cockpit mobile, veille, `design-lab/`) : stager les chemins consultants explicitement, ne jamais `git add -A`.

@@ -67,7 +67,7 @@ export function CandidatesMobile({ vm }: Props) {
     <div className="flex flex-col gap-4 p-4 pb-24">
       <MobilePageHeader
         eyebrow="Consultants"
-        title="Candidats"
+        title="Vivier Candidats"
         description="Vivier de recrutement et processus en cours."
       />
 

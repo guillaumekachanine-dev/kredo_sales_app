@@ -40,8 +40,8 @@ describe("Consultants Page — distribution serveur et invariants (Lot 12 / C-31
     expect(activiteCongesBlock).toContain("getConsultantsActivity()")
   })
 
-  it("passe activeModule et productionLeaveVm à ConsultantsDesktopShell", () => {
-    expect(pageSource).toContain("activeModule={activeModule}")
+  it("passe l'état Desktop résolu et productionLeaveVm à ConsultantsDesktopShell", () => {
+    expect(pageSource).toContain("activeModule={desktopEntry.module}")
     expect(pageSource).toContain("productionLeaveVm={productionLeaveVm}")
   })
 
@@ -63,5 +63,34 @@ describe("Consultants Page — distribution serveur et invariants (Lot 12 / C-31
   it("passe profileMatchingVm et initialPersonId à ConsultantsDesktopShell", () => {
     expect(pageSource).toContain("profileMatchingVm={profileMatchingVm}")
     expect(pageSource).toContain("initialPersonId={personId}")
+  })
+
+  // ── Phase 7.2 : module Desktop « Pool de compétences » ──────────────────────
+
+  it("importe getConsultantsSkills, PoolCompetencesMap et le résolveur Desktop pur", () => {
+    expect(pageSource).toContain("import { getConsultantsSkills }")
+    expect(pageSource).toContain("import { PoolCompetencesMap }")
+    expect(pageSource).toContain("resolveConsultantsDesktopEntry")
+  })
+
+  it("lazy-loade getConsultantsSkills sur Desktop uniquement si le module pool-competences est demandé (ADR-0006)", () => {
+    expect(pageSource).toContain('!isMobile && activeModule === "pool-competences"')
+    expect(pageSource).toContain("await getConsultantsSkills()")
+  })
+
+  it("passe poolSkillsData à ConsultantsDesktopShell", () => {
+    expect(pageSource).toContain("poolSkillsData={poolSkillsData}")
+  })
+
+  it("le Mobile rend la scène Pool historique sans wrapper Desktop", () => {
+    expect(pageSource).toContain('if (isMobile && activeSection === "pool-competences")')
+    expect(pageSource).toContain("<PoolCompetencesMap dataset={dataset} collaborators={collaborators} />")
+    expect(pageSource).not.toContain("PoolCompetencesDesktop")
+  })
+
+  it("Desktop distingue requestedSection / requestedModule / device via une fonction pure", () => {
+    expect(pageSource).toContain("const desktopEntry = resolveConsultantsDesktopEntry(")
+    expect(pageSource).toContain("desktopEntry.chapter")
+    expect(pageSource).toContain("desktopEntry.module")
   })
 })

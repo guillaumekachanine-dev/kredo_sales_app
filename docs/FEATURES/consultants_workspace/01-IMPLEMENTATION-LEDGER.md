@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 14 — Intégration Shell global / CRM
+Dernier lot livré        : Phase 7.2 — Alignement workspace cible (SHELL-0018)
 Lot courant              : —
-Prochain lot             : Lot 15 — Nettoyage et clôture — DEFERRED UNTIL TARGET-ALIGNMENT (après Phase 7.2)
-Dernier SHA connu origin/main : 02c316e0   (2026-09-09, Baseline SHELL 6.2)
+Prochain lot             : Lot 15 — Nettoyage et clôture — UNBLOCKED / READY (Phase 7.2 livrée)
+Dernier SHA connu origin/main : adf1df5a   (2026-09-09, feat(agenda): refine mobile visual composition)
 ```
 
 ## Table des lots
@@ -39,7 +39,8 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `d91a49c8` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
 | 13.1 | Synthèse — Double voie | ✅ techniquement livré | `67aa1859` | C-33. Ratio supprimé ; collaborateurs + candidats rattachés + recrutés YTD par practice. Desktop = panneau principal + rail vertical processus/intercontrat. Mobile = liste dédiée. Aucun nouveau fetch, migration ou dépendance. Correction à la reprise : assertion Mobile stale (`Pipeline de recrutement` → `Processus actifs par étape`). |
 | 14 | Intégration Shell global / CRM | ✅ techniquement livré | `50f1a31e` | Coordonné SHELL-0018 Lot 6.2. Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources ». Suppression SectionNavBarSlot et (tabbed)/layout.tsx, deep-links déplacés par git mv, useSidebarCollapse retiré de ConsultantsDesktopShell. Mobile sécurisé via CONSULTANTS_SECTIONS. C-34, NAV-3/NAV-4/LEGACY-3 résolues. |
-| 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
+| 7.2 | Alignement workspace cible (SHELL-0018 Phase 7.2) | ✅ techniquement livré | _(voir §Phase 7.2)_ | Libellés cible (Vue d'ensemble / Vivier Candidats / Activité & Congés / Matching Profil) ; `pool-competences` **chapitre Desktop → Module Desktop** (composant + Data réutilisés) ; Mobile inchangé (5 accès, SEPARATE IMPLEMENTATION) ; compat `?section=pool-competences` réinterprétée par device ; 0 pathname, 0 redirect, 0 Data nouvelle. |
+| 15 | Nettoyage et clôture | ⬜ todo (**UNBLOCKED / READY** — Phase 7.2 livrée) | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
 
 ### Lot 14 — Intégration Shell global / CRM — ✅ techniquement livré (2026-09-09)
 
@@ -250,6 +251,96 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | `ConsultantsDesktopShell.children` typé `children?` | Optionnel pour compat `renderToStaticMarkup` sous eslint `react/no-children-prop` ; cohérent avec un shell | — |
 
 ## Journal des lots
+
+### Phase 7.2 — Alignement Consultants sur l'architecture cible — ✅ techniquement livré (2026-09-09)
+
+- **Coordonné avec** : SHELL-0018 Phase 7 (doc `11-*` §5). Cible : `09-*` §B.3 / §C.4.
+- **Baseline** : `adf1df5a` (`main` == `origin/main`).
+- **Objectif** : aligner `/consultants` sur la cible Phase 7 — libellés produit + transformation
+  structurelle **`pool-competences` chapitre Desktop → Module Desktop** (`TRANSFORM`), en
+  réutilisant le composant et la Data existants. La capacité `NEW/FUTURE`
+  « Mission : prévoir les disponibilités » **n'est pas implémentée** (aucun bouton mort).
+
+- **Chapitres Desktop** : 5 → **4** (`CONSULTANTS_DESKTOP_CHAPTERS`) —
+  Vue d'ensemble · Collaborateurs · Activité & Congés · Vivier Candidats.
+- **Libellés renommés** (clés techniques inchangées) :
+  `synthese` « Synthèse » → **« Vue d'ensemble »** ;
+  `activite-conges` « Activités & congés » → **« Activité & Congés »** ;
+  `candidats` « Candidats » → **« Vivier Candidats »** ;
+  module `matching-profil` « Matching profil » → **« Matching Profil »**.
+- **Modules Desktop** : 2 → **3** (`CONSULTANTS_CONTEXTUAL_MODULES`) —
+  **Pool de compétences** (1ᵉʳ) · Production & Congés (2ᵉ) · Matching Profil (3ᵉ).
+- **Pool de compétences — Desktop** : ex-chapitre monté en **Module** via la primitive KREDO
+  `AppDialog` (`src/features/consultants/modules/pool-competences/desktop/PoolCompetencesDesktop.tsx`).
+  Le wrapper ne gère que surface / titre / fermeture URL-driven / scroll ; toute la cartographie
+  (`PoolCompetencesMap`), la Data (`getConsultantsSkills`, `buildPoolCompetencesDataset`) et la
+  logique métier restent **inchangées**. Accès canonique `?module=pool-competences` (ou
+  `?section=<chapitre>&module=pool-competences`).
+- **Pool de compétences — Mobile** : **inchangé** — 5 accès (`getMobileTabsForPath`,
+  `CONSULTANTS_SECTIONS`), dont « Pool de compétences » → `?section=pool-competences` rendant
+  directement `PoolCompetencesMap`. Documenté `SEPARATE IMPLEMENTATION` / dette adaptative
+  SKILLS-1 — **pas un oubli**. Aucune transformation Mobile dans ce lot.
+- **Compatibilité `?section=pool-competences`** : conservée, **aucun `permanentRedirect` nouveau**.
+  Réinterprétation par device via la fonction pure `resolveConsultantsDesktopEntry` :
+  Desktop → chapitre support `synthese` (« Vue d'ensemble ») + module Pool ouvert ;
+  Mobile → vue Pool historique. Fermeture du module : `/consultants` (chapitre support) ou le
+  chapitre d'origine si le module a été ouvert depuis un autre chapitre Desktop explicite.
+- **Route legacy** `src/app/(app)/consultants/pool-competences/page.tsx` : **conservée**
+  (`permanentRedirect("/consultants?section=pool-competences")`) — la route canonique interprète
+  désormais ce query différemment selon le device.
+- **Data** : **DATA-0** — 0 loader nouveau, 0 RPC, 0 view, 0 table, 0 migration, 0 n8n.
+  `getConsultantsSkills()` réutilisé tel quel, lazy-loadé côté Desktop uniquement quand
+  `activeModule === "pool-competences"` (ADR-0006 préservé).
+- **Adaptive Design** : `PoolCompetencesDesktop` monté uniquement par `ConsultantsDesktopShell` ;
+  le Mobile rend `PoolCompetencesMap` directement. Aucune bascule CSS `hidden md:block` / `md:hidden`.
+- **Mobile label sync** : `MobilePageHeader` de `SyntheseMobile` (« Synthèse » → « Vue d'ensemble »)
+  et `CandidatesMobile` (« Candidats » → « Vivier Candidats »). Ordre / comportement / route inchangés.
+- **Fichiers créés** :
+  - `src/features/consultants/modules/pool-competences/desktop/PoolCompetencesDesktop.tsx`
+- **Fichiers modifiés** :
+  - `src/features/consultants/navigation/consultants-sections.ts` — libellés ; `CONSULTANTS_DESKTOP_CHAPTERS`
+    + `ConsultantsDesktopChapter` ; `pool-competences` ajouté à `CONSULTANTS_CONTEXTUAL_MODULES` ;
+    `parseConsultantsModule` élargi ; `resolveConsultantsDesktopEntry` (pur).
+  - `src/features/consultants/desktop/ConsultantsDesktopShell.tsx` — rail sur 4 chapitres + 3 modules,
+    overlay `PoolCompetencesDesktop`, label « Matching Profil ».
+  - `src/app/(app)/consultants/page.tsx` — résolution Desktop/Mobile via `resolveConsultantsDesktopEntry`,
+    lazy-load `getConsultantsSkills` pour le module, branche Mobile Pool isolée.
+  - `src/features/consultants/modules/profile-matching/desktop/ProfileMatchingDesktop.tsx` +
+    `.../mobile/ProfileMatchingMobile.tsx` — titre « Matching Profil » (casse cible).
+  - `src/features/consultants/mobile/synthese/SyntheseMobile.tsx` ·
+    `src/features/consultants/candidates/CandidatesMobile.tsx` — libellés d'en-tête Mobile.
+  - Tests : `consultants-sections.test.ts` (réécrit) · `consultants-page-distribution.test.ts` ·
+    `main-menu.config.test.ts` · `profile-matching/desktop/__tests__/profile-matching-desktop.test.ts`.
+  - Docs : `docs/navigation_architecture/SHELL-0018/{03-IMPLEMENTATION-LEDGER,11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09}.md`,
+    `docs/FEATURES/consultants_workspace/{README,01-IMPLEMENTATION-LEDGER}.md`.
+- **Invariants Shell non rouverts** : `main-menu.config.ts`, `DesktopSidebar`, `desktop-sidebar-policy`,
+  `useSidebarCollapse`, `AppShell`, Cockpit Intelligence, primitive `SectionRail`, `SectionTabBar`,
+  navigation globale Mobile, tous les pathnames. `/consultants` inchangé.
+- **Gates exécutées** :
+  - `rm -rf .next && npm run typecheck` → **PASS**
+  - `npm test` (**suite complète**) → **PASS** (293 fichiers / 2 965 tests)
+  - `npm run check:server-boundary` → **PASS**
+  - `npx eslint` (fichiers modifiés) → **PASS** (0 erreur, 0 warning)
+  - `npm run build` → **PASS** (Turbopack, 42/42 pages ; `/consultants`, `/consultants/activite-conges`,
+    `/consultants/pool-competences` compilées)
+  - `git diff --check` → **PASS**
+- **Recherches de sortie** : occurrences résiduelles « Synthèse » / « Candidats » / « Activités & congés »
+  / « Matching profil » = commentaires historiques, noms de fichiers de données (Lots 2-13), libellés
+  internes hors périmètre (KPI, drawers). « Pool de compétences » n'apparaît plus comme chapitre
+  Desktop — uniquement comme module Desktop et section Mobile/compatibilité.
+- **QA visuelle** : réservée à Guillaume (aucun navigateur / Playwright).
+- **Commit** : `refactor(consultants): align workspace target navigation` — SHA consigné après push.
+- **NEXT LOT** : **Lot 15 — Nettoyage et clôture** — passe de `DEFERRED UNTIL TARGET-ALIGNMENT` à
+  **`UNBLOCKED / READY`**. Éléments désormais auditables / supprimables au Lot 15 (aucune cible ne les
+  réutilise après 7.2) :
+  - `src/components/recruitment/dashboard/*` (`RecruitmentDesktopDashboard` / `RecruitmentMobileDashboard`)
+    — orphelins confirmés (LEGACY-2, 0 import repo) ;
+  - fichier de route `src/app/(app)/consultants/pool-competences/page.tsx` **à conserver** tant qu'un
+    bookmark legacy peut exister — sa suppression reste hors périmètre (compat) ; réévaluer au Lot 15 ;
+  - `src/app/(app)/consultants/activite-conges/page.tsx` — idem (compat `permanentRedirect`) ;
+  - loader `get-recruitment-workspace.ts` et `_actions/` legacy `/recruitment` non repointés ;
+  - `src/lib/consultants/pool-competences-data.ts` — **conservé** (consommé par le module Desktop
+    et la vue Mobile) ; ne PAS supprimer.
 
 ### Lot 13 — Module Matching profil — ✅ techniquement livré (2026-09-09)
 

@@ -107,7 +107,7 @@ QA minimale :
 | **Phase 6** | Refonte Shell global Desktop | ✅ **CLOSED (2026-09-09)** | doc `10-*` — invariants Shell figés |
 | **7.0** | Audit global CURRENT → TARGET des workspaces | ✅ livré | audit sur `HEAD` (`f477f736`) ; 10 workspaces revalidés contre 09 §B/C ; impact Data/Routing/Desktop/Mobile ; blockers ; sous-lots 7.3A/B/C ; séquence Phase 7 ; `MISSION_CATALOG` = 7 specs (framework mission réutilisable) ; duplication rentabilité Finance↔Engagements confirmée. Document `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md`. Voir §40 |
 | **7.1** | Alignement Opportunités | ⬜ todo | `YES AFTER REBASELINE` — attend l'intégration de la refonte Synthèse Opportunités parallèle |
-| **7.2** | Alignement Consultants | ⬜ todo (**premier lot exécutable si 7.1 bloqué**) | `READY` — `pool-competences` chapitre → module |
+| **7.2** | Alignement Consultants | ✅ techniquement livré | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
 | **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
 | **7.4 → 7.9** | BI · Prospection · Rapports · Veille · Knowledge Hub · Automatisations | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
@@ -2227,3 +2227,71 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 - **Lot 7.0 — ✅ livré.** Commit : `docs(phase-7): audit workspace target alignment`.
 - **Phase 7 — ▶️ ENTRY AUDIT COMPLET. Implémentation prête (hors 7.1/7.3A/7.5 en attente de décision/rebaseline).**
+
+---
+
+## 41. Lot 7.2 — Alignement Consultants sur l'architecture cible
+
+> **Statut : ✅ techniquement livré (2026-09-09).** Baseline `adf1df5a` (`HEAD == origin/main`).
+> Cible : `09-*` §B.3 / §C.4. Plan d'exécution : `11-*` §5 / §19.
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre Desktop | `synthese` « Synthèse » | **Vue d'ensemble** | RENAME (clé stable) |
+| Chapitre Desktop | `collaborateurs` | Collaborateurs | KEEP |
+| Chapitre Desktop | `activite-conges` « Activités & congés » | **Activité & Congés** | RENAME (casse) |
+| Chapitre Desktop | `candidats` « Candidats » | **Vivier Candidats** | RENAME |
+| Chapitre → Module | `pool-competences` « Pool de compétences » | **Module Desktop « Pool de compétences »** | **TRANSFORM** — composant `PoolCompetencesMap` + loader `getConsultantsSkills` réutilisés à l'identique |
+| Module | `production-conges` | Production & Congés | KEEP (2ᵉ) |
+| Module | `matching-profil` « Matching profil » | **Matching Profil** (3ᵉ) | RENAME (casse) |
+| Module | — | Mission : prévoir les disponibilités | **NEW/FUTURE — non implémenté** (aucun bouton mort) |
+
+### Architecture
+
+- **`CONSULTANTS_DESKTOP_CHAPTERS`** (4) : nouveau contrat, dérivé de `CONSULTANTS_SECTIONS` en
+  excluant `pool-competences`. Le rail Desktop (`ConsultantsDesktopShell`) le consomme.
+- **`CONSULTANTS_SECTIONS`** (5) : **conservé** — alimente la navigation Mobile
+  (`getMobileTabsForPath` → `main-menu.config.ts`, non modifié) et le parsing `?section=`.
+  `pool-competences` y reste avec le libellé « Pool de compétences ».
+- **`CONSULTANTS_CONTEXTUAL_MODULES`** = `["pool-competences", "production-conges", "matching-profil"]`.
+- **`resolveConsultantsDesktopEntry(rawSection, rawModule)`** : fonction **pure** (testée isolément)
+  qui produit `{ chapter, module }` pour le Desktop. `?section=pool-competences` → chapitre support
+  `synthese` + module `pool-competences`. Aucun `permanentRedirect` nouveau.
+- **`PoolCompetencesDesktop`** (`src/features/consultants/modules/pool-competences/desktop/`) :
+  wrapper minimal sur la primitive KREDO `AppDialog` (surface / titre / fermeture URL-driven /
+  scroll). Aucune logique métier dupliquée.
+- **Adaptive Design** : `PoolCompetencesDesktop` monté uniquement par `ConsultantsDesktopShell` ;
+  Mobile rend `PoolCompetencesMap` directement (dette SKILLS-1). Aucune bascule CSS.
+- **Lazy loading** : `getConsultantsSkills()` chargé côté Desktop uniquement si
+  `activeModule === "pool-competences"` (ADR-0006).
+
+### Routing / Data
+
+- **Pathnames** : inchangés. **Redirects** : `/consultants/pool-competences` et
+  `/consultants/activite-conges` `permanentRedirect` **conservés tels quels** ; aucun nouveau.
+- **URL-2** matérialisé : `?module=pool-competences` (canonique) + `?section=pool-competences` (compat,
+  réinterprété par device).
+- **Data** : **DATA-0**. 0 migration, 0 RPC, 0 view, 0 table, 0 n8n.
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (293 fichiers / 2 965 tests)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers modifiés) → **PASS**
+- `npm run build` → **PASS** (42/42 pages)
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.2 — ✅ livré.** Commit : `refactor(consultants): align workspace target navigation`
+  (SHA consigné après push).
+- **Consultants Lot 15 — Nettoyage et clôture** : `DEFERRED UNTIL TARGET-ALIGNMENT` →
+  **`UNBLOCKED / READY`**. Auditables au Lot 15 : `src/components/recruitment/dashboard/*`
+  (orphelins), `_actions/` legacy `/recruitment` non repointés. À **conserver** :
+  `src/lib/consultants/pool-competences-data.ts` (consommé Desktop + Mobile), routes legacy
+  `permanentRedirect` (compat bookmarks).
+- **Travaux parallèles** (`src/features/opportunities/summary/*`, `docs/JOURNAL-SESSIONS.md`) :
+  **jamais touchés / stagés**.

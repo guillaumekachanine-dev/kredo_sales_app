@@ -86,7 +86,7 @@ describe("ProfileMatchingDesktop", () => {
       }),
     )
 
-    expect(html).toContain("Matching profil")
+    expect(html).toContain("Matching Profil")
     expect(html).toContain("Projection des besoins compatibles par profil")
     expect(html).toContain("Jean Dupont")
     expect(html).toContain("Marie Martin")
@@ -111,7 +111,7 @@ describe("ProfileMatchingDesktop", () => {
       }),
     )
 
-    expect(html).toContain("Matching profil")
+    expect(html).toContain("Matching Profil")
     expect(html).toContain("Aucun profil ne correspond aux critères sélectionnés.")
   })
 

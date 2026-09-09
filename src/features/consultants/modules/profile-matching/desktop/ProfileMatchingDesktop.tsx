@@ -52,7 +52,7 @@ export function ProfileMatchingDesktop({
   return (
     <IntelligenceSplitModalShell
       open
-      title="Matching profil"
+      title="Matching Profil"
       subtitle="Projection des besoins compatibles par profil · Moteur déterministe unique"
       onClose={handleClose}
       leftPaneWidth="34%"

@@ -6,12 +6,17 @@ import { describe, expect, it } from "vitest"
 import {
   buildConsultantsModuleHref,
   buildConsultantsSectionHref,
+  CONSULTANTS_CONTEXTUAL_MODULES,
+  CONSULTANTS_DESKTOP_CHAPTERS,
+  CONSULTANTS_DESKTOP_CHAPTER_KEYS,
   CONSULTANTS_IN_SHELL_SECTIONS,
   CONSULTANTS_ROOT_SECTION,
   CONSULTANTS_SECTIONS,
   HEADER_TITLE_BY_SECTION,
   parseConsultantsModule,
   parseConsultantsSection,
+  resolveConsultantsDesktopEntry,
+  type ConsultantsDesktopChapter,
   type ConsultantsSection,
 } from "./consultants-sections"
 import { ConsultantsDesktopShell } from "../desktop/ConsultantsDesktopShell"
@@ -26,6 +31,13 @@ const ALL_SECTIONS: ConsultantsSection[] = [
   "pool-competences",
 ]
 
+const DESKTOP_CHAPTERS: ConsultantsDesktopChapter[] = [
+  "synthese",
+  "collaborateurs",
+  "activite-conges",
+  "candidats",
+]
+
 describe("consultants-sections — contrat de navigation", () => {
   describe("parseConsultantsSection", () => {
     it("résout null / undefined / vide vers l'état racine synthese", () => {
@@ -34,7 +46,7 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(parseConsultantsSection("")).toBe("synthese")
     })
 
-    it("résout les sections internalisées", () => {
+    it("résout les 5 sections adressables (Mobile + compat)", () => {
       expect(parseConsultantsSection("collaborateurs")).toBe("collaborateurs")
       expect(parseConsultantsSection(["collaborateurs", "x"])).toBe("collaborateurs")
       expect(parseConsultantsSection("activite-conges")).toBe("activite-conges")
@@ -53,7 +65,7 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(buildConsultantsSectionHref("synthese")).toBe("/consultants")
     })
 
-    it("ajoute ?section= pour les autres chapitres internalisés", () => {
+    it("ajoute ?section= pour les autres sections", () => {
       expect(buildConsultantsSectionHref("collaborateurs")).toBe(
         "/consultants?section=collaborateurs",
       )
@@ -69,12 +81,12 @@ describe("consultants-sections — contrat de navigation", () => {
     })
   })
 
-  describe("CONSULTANTS_SECTIONS", () => {
-    it("liste les 5 chapitres dans l'ordre canonique", () => {
+  describe("CONSULTANTS_SECTIONS (Mobile + compat) — 5 entrées", () => {
+    it("liste les 5 sections dans l'ordre canonique", () => {
       expect(CONSULTANTS_SECTIONS.map((entry) => entry.key)).toEqual(ALL_SECTIONS)
     })
 
-    it("internalise les 5 chapitres dans le shell (aucune section externe)", () => {
+    it("garde les 5 sections internalisées (aucune section externe)", () => {
       const inShell = CONSULTANTS_SECTIONS.filter((entry) => !entry.external).map(
         (entry) => entry.key,
       )
@@ -83,40 +95,179 @@ describe("consultants-sections — contrat de navigation", () => {
       expect(CONSULTANTS_SECTIONS.every((entry) => !entry.external)).toBe(true)
     })
 
-    it("route tous les chapitres internalisés en ?section=", () => {
+    it("applique les libellés produit cible (Phase 7.2)", () => {
       const byKey = Object.fromEntries(
-        CONSULTANTS_SECTIONS.map((entry) => [entry.key, entry.href]),
+        CONSULTANTS_SECTIONS.map((entry) => [entry.key, entry.label]),
       )
-      expect(byKey["activite-conges"]).toBe("/consultants?section=activite-conges")
-      expect(byKey["pool-competences"]).toBe("/consultants?section=pool-competences")
-      expect(byKey["candidats"]).toBe("/consultants?section=candidats")
+      expect(byKey["synthese"]).toBe("Vue d’ensemble")
+      expect(byKey["collaborateurs"]).toBe("Collaborateurs")
+      expect(byKey["activite-conges"]).toBe("Activité & Congés")
+      expect(byKey["candidats"]).toBe("Vivier Candidats")
+      expect(byKey["pool-competences"]).toBe("Pool de compétences")
+    })
+
+    it("conserve « Pool de compétences » comme 5ᵉ accès Mobile (SEPARATE IMPLEMENTATION)", () => {
+      expect(CONSULTANTS_SECTIONS[4].key).toBe("pool-competences")
+      expect(CONSULTANTS_SECTIONS[4].href).toBe("/consultants?section=pool-competences")
     })
 
     it("expose un libellé de header pour chaque section", () => {
       for (const section of ALL_SECTIONS) {
         expect(HEADER_TITLE_BY_SECTION[section]).toBeTruthy()
       }
+      expect(HEADER_TITLE_BY_SECTION.synthese).toBe("Vue d’ensemble")
+      expect(HEADER_TITLE_BY_SECTION["activite-conges"]).toBe("Activité & Congés")
+      expect(HEADER_TITLE_BY_SECTION.candidats).toBe("Vivier Candidats")
     })
 
     it("garde synthese comme racine canonique", () => {
       expect(CONSULTANTS_ROOT_SECTION).toBe("synthese")
     })
   })
+
+  describe("CONSULTANTS_DESKTOP_CHAPTERS — 4 chapitres Desktop (Phase 7.2)", () => {
+    it("expose exactement les 4 chapitres Desktop dans l'ordre canonique", () => {
+      expect(CONSULTANTS_DESKTOP_CHAPTERS.map((entry) => entry.key)).toEqual(
+        DESKTOP_CHAPTERS,
+      )
+      expect(CONSULTANTS_DESKTOP_CHAPTER_KEYS).toEqual(DESKTOP_CHAPTERS)
+    })
+
+    it("exclut pool-competences des chapitres Desktop", () => {
+      expect(
+        CONSULTANTS_DESKTOP_CHAPTERS.some((entry) => entry.key === "pool-competences"),
+      ).toBe(false)
+    })
+
+    it("expose les libellés produit cible", () => {
+      expect(CONSULTANTS_DESKTOP_CHAPTERS.map((entry) => entry.label)).toEqual([
+        "Vue d’ensemble",
+        "Collaborateurs",
+        "Activité & Congés",
+        "Vivier Candidats",
+      ])
+    })
+
+    it("réutilise les entrées de CONSULTANTS_SECTIONS (mêmes href / clés)", () => {
+      for (const chapter of CONSULTANTS_DESKTOP_CHAPTERS) {
+        const source = CONSULTANTS_SECTIONS.find((entry) => entry.key === chapter.key)
+        expect(source).toBeDefined()
+        expect(chapter.href).toBe(source?.href)
+      }
+    })
+  })
+
+  describe("CONSULTANTS_CONTEXTUAL_MODULES — 3 modules Desktop", () => {
+    it("liste Pool de compétences · Production & Congés · Matching Profil dans cet ordre", () => {
+      expect([...CONSULTANTS_CONTEXTUAL_MODULES]).toEqual([
+        "pool-competences",
+        "production-conges",
+        "matching-profil",
+      ])
+    })
+
+    it("n'expose aucun module Mission futur", () => {
+      expect(CONSULTANTS_CONTEXTUAL_MODULES).not.toContain("capacite-staffing")
+      expect(
+        CONSULTANTS_CONTEXTUAL_MODULES.some((key) => key.startsWith("mission")),
+      ).toBe(false)
+    })
+  })
+
+  describe("parseConsultantsModule", () => {
+    it("résout les 3 modules et ignore les valeurs inconnues", () => {
+      expect(parseConsultantsModule("pool-competences")).toBe("pool-competences")
+      expect(parseConsultantsModule(["pool-competences"])).toBe("pool-competences")
+      expect(parseConsultantsModule("production-conges")).toBe("production-conges")
+      expect(parseConsultantsModule("matching-profil")).toBe("matching-profil")
+      expect(parseConsultantsModule("matching")).toBeNull()
+      expect(parseConsultantsModule("pool")).toBeNull()
+      expect(parseConsultantsModule(null)).toBeNull()
+      expect(parseConsultantsModule(undefined)).toBeNull()
+    })
+  })
+
+  describe("buildConsultantsModuleHref", () => {
+    it("construit la racine du module Pool depuis « Vue d'ensemble »", () => {
+      expect(buildConsultantsModuleHref("synthese", "pool-competences")).toBe(
+        "/consultants?module=pool-competences",
+      )
+    })
+
+    it("préserve le chapitre support pour le module Pool", () => {
+      expect(buildConsultantsModuleHref("collaborateurs", "pool-competences")).toBe(
+        "/consultants?section=collaborateurs&module=pool-competences",
+      )
+    })
+
+    it("préserve section + person pour les modules existants", () => {
+      expect(buildConsultantsModuleHref("synthese", "production-conges")).toBe(
+        "/consultants?module=production-conges",
+      )
+      expect(buildConsultantsModuleHref("candidats", "matching-profil", "person-123")).toBe(
+        "/consultants?section=candidats&module=matching-profil&person=person-123",
+      )
+      expect(buildConsultantsModuleHref("synthese", null)).toBe("/consultants")
+    })
+  })
+
+  describe("resolveConsultantsDesktopEntry — résolution Desktop pure (Phase 7.2)", () => {
+    it("mappe les 4 chapitres Desktop tels quels", () => {
+      expect(resolveConsultantsDesktopEntry(undefined, undefined)).toEqual({
+        chapter: "synthese",
+        module: null,
+      })
+      expect(resolveConsultantsDesktopEntry("collaborateurs", undefined)).toEqual({
+        chapter: "collaborateurs",
+        module: null,
+      })
+      expect(resolveConsultantsDesktopEntry("candidats", undefined)).toEqual({
+        chapter: "candidats",
+        module: null,
+      })
+    })
+
+    it("expose le module demandé au-dessus du chapitre courant", () => {
+      expect(resolveConsultantsDesktopEntry("collaborateurs", "pool-competences")).toEqual({
+        chapter: "collaborateurs",
+        module: "pool-competences",
+      })
+      expect(resolveConsultantsDesktopEntry(undefined, "matching-profil")).toEqual({
+        chapter: "synthese",
+        module: "matching-profil",
+      })
+    })
+
+    it("compat : ?section=pool-competences → chapitre support synthese + module pool", () => {
+      expect(resolveConsultantsDesktopEntry("pool-competences", undefined)).toEqual({
+        chapter: "synthese",
+        module: "pool-competences",
+      })
+    })
+
+    it("compat : ?section=pool-competences ne rend jamais un 5ᵉ chapitre Desktop", () => {
+      const { chapter } = resolveConsultantsDesktopEntry("pool-competences", undefined)
+      expect(chapter).not.toBe("pool-competences")
+      expect(CONSULTANTS_DESKTOP_CHAPTER_KEYS).toContain(chapter)
+    })
+
+    it("compat : un module explicite l'emporte sur le fallback pool", () => {
+      expect(
+        resolveConsultantsDesktopEntry("pool-competences", "production-conges"),
+      ).toEqual({ chapter: "synthese", module: "production-conges" })
+    })
+  })
 })
 
-describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
+describe("ConsultantsDesktopShell — conformité SHELL-0018 (Phase 7.2)", () => {
   function render(
-    active:
-      | "synthese"
-      | "collaborateurs"
-      | "activite-conges"
-      | "candidats"
-      | "pool-competences",
+    active: ConsultantsDesktopChapter,
+    activeModule?: "pool-competences" | "production-conges" | "matching-profil" | null,
   ) {
     return renderToStaticMarkup(
       React.createElement(
         ConsultantsDesktopShell,
-        { activeSection: active },
+        { activeSection: active, activeModule: activeModule ?? null },
         React.createElement("div", null, "contenu"),
       ),
     )
@@ -130,21 +281,25 @@ describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
     expect(markup).toContain('aria-label="Navigation Consultants"')
   })
 
-  it("affiche dans le header le libellé exact du chapitre actif", () => {
-    expect(render("synthese")).toContain("Synthèse")
+  it("affiche dans le header le libellé produit cible du chapitre actif", () => {
+    expect(render("synthese")).toContain("Vue d’ensemble")
     expect(render("collaborateurs")).toContain("Collaborateurs")
-    expect(render("activite-conges")).toContain("Activités &amp; congés")
-    expect(render("candidats")).toContain("Candidats")
-    expect(render("pool-competences")).toContain("Pool de compétences")
+    expect(render("activite-conges")).toContain("Activité &amp; Congés")
+    expect(render("candidats")).toContain("Vivier Candidats")
   })
 
-  it("rend les 5 chapitres avec leurs href ?section=", () => {
+  it("rend exactement les 4 chapitres Desktop avec leurs href ?section=", () => {
     const markup = render("collaborateurs")
     expect(markup).toContain('href="/consultants?section=collaborateurs"')
     expect(markup).toContain('href="/consultants?section=activite-conges"')
     expect(markup).toContain('href="/consultants?section=candidats"')
-    expect(markup).toContain('href="/consultants?section=pool-competences"')
     expect(markup).not.toContain('href="/recruitment"')
+  })
+
+  it("ne rend PAS « Pool de compétences » comme chapitre (?section=pool-competences absent des chapitres)", () => {
+    const markup = render("synthese")
+    // Le seul lien pool-competences autorisé est celui du MODULE.
+    expect(markup).not.toContain('href="/consultants?section=pool-competences"')
   })
 
   it("marque le chapitre actif avec aria-current=page", () => {
@@ -152,48 +307,41 @@ describe("ConsultantsDesktopShell — conformité SHELL-0018", () => {
     expect(markup).toContain('aria-current="page"')
   })
 
-  it("rend la section Modules avec Production & Congés et Matching profil (Lot 13)", () => {
+  it("rend la section Modules avec Pool de compétences, Production & Congés et Matching Profil", () => {
     const markup = render("synthese")
     expect(markup).toContain("Modules")
+    expect(markup).toContain("Pool de compétences")
+    expect(markup).toContain('href="/consultants?module=pool-competences"')
     expect(markup).toContain("Production &amp; Congés")
     expect(markup).toContain('href="/consultants?module=production-conges"')
-    expect(markup).toContain("Matching profil")
+    expect(markup).toContain("Matching Profil")
     expect(markup).toContain('href="/consultants?module=matching-profil"')
   })
 
-  it("génère l'URL correcte du module pour les sections avec query param", () => {
+  it("génère l'URL correcte des modules pour les chapitres avec query param", () => {
     const markup = render("collaborateurs")
-    expect(markup).toContain('href="/consultants?section=collaborateurs&amp;module=production-conges"')
-    expect(markup).toContain('href="/consultants?section=collaborateurs&amp;module=matching-profil"')
+    expect(markup).toContain(
+      'href="/consultants?section=collaborateurs&amp;module=pool-competences"',
+    )
+    expect(markup).toContain(
+      'href="/consultants?section=collaborateurs&amp;module=production-conges"',
+    )
+    expect(markup).toContain(
+      'href="/consultants?section=collaborateurs&amp;module=matching-profil"',
+    )
+  })
+
+  it("marque le module Pool actif dans le rail quand activeModule=pool-competences", () => {
+    // Sans poolSkillsData l'overlay ne s'ouvre pas, mais le rail signale l'état :
+    // le chapitre support (synthese) ET le module Pool portent aria-current=page.
+    const markup = render("synthese", "pool-competences")
+    const marks = markup.match(/aria-current="page"/g) ?? []
+    expect(marks.length).toBeGreaterThanOrEqual(2)
+    expect(markup).toContain('href="/consultants?module=pool-competences"')
   })
 })
 
-describe("consultants-sections — modules contextuels", () => {
-  it("parseConsultantsModule résout 'production-conges', 'matching-profil' et ignore les valeurs inconnues", () => {
-    expect(parseConsultantsModule("production-conges")).toBe("production-conges")
-    expect(parseConsultantsModule(["production-conges"])).toBe("production-conges")
-    expect(parseConsultantsModule("matching-profil")).toBe("matching-profil")
-    expect(parseConsultantsModule(["matching-profil"])).toBe("matching-profil")
-    expect(parseConsultantsModule("matching")).toBeNull()
-    expect(parseConsultantsModule(null)).toBeNull()
-    expect(parseConsultantsModule(undefined)).toBeNull()
-  })
-
-  it("buildConsultantsModuleHref construit le lien avec module et optionnellement person en préservant la section", () => {
-    expect(buildConsultantsModuleHref("synthese", "production-conges")).toBe(
-      "/consultants?module=production-conges",
-    )
-    expect(buildConsultantsModuleHref("collaborateurs", "production-conges")).toBe(
-      "/consultants?section=collaborateurs&module=production-conges",
-    )
-    expect(buildConsultantsModuleHref("candidats", "matching-profil", "person-123")).toBe(
-      "/consultants?section=candidats&module=matching-profil&person=person-123",
-    )
-    expect(buildConsultantsModuleHref("synthese", null)).toBe("/consultants")
-  })
-})
-
-describe("Consultants Workspace — invariants de code (SHELL 6.2 / Lot 14)", () => {
+describe("Consultants Workspace — invariants de code (SHELL 6.2 / Phase 7.2)", () => {
   const pageSource = readFileSync(
     resolve(root, "src/app/(app)/consultants/page.tsx"),
     "utf8",
@@ -218,6 +366,7 @@ describe("Consultants Workspace — invariants de code (SHELL 6.2 / Lot 14)", ()
 
   it("la page résout la section depuis l'URL, pas depuis un useState", () => {
     expect(pageSource).toContain("parseConsultantsSection")
+    expect(pageSource).toContain("resolveConsultantsDesktopEntry")
     expect(pageSource).not.toContain("useState")
   })
 
@@ -229,7 +378,7 @@ describe("Consultants Workspace — invariants de code (SHELL 6.2 / Lot 14)", ()
     expect(existsSync(tabbedDir)).toBe(false)
   })
 
-  it("les deux routes legacy existent toujours hors (tabbed) et redirigent canoniquement", () => {
+  it("les deux routes legacy existent toujours hors (tabbed) et redirigent canoniquement (aucun nouveau redirect)", () => {
     expect(existsSync(activiteCongesPath)).toBe(true)
     expect(existsSync(poolCompetencesPath)).toBe(true)
 
@@ -248,5 +397,53 @@ describe("Consultants Workspace — invariants de code (SHELL 6.2 / Lot 14)", ()
     expect(desktopShellSource).not.toContain("useSidebarCollapse")
     expect(desktopShellSource).not.toContain("requestCollapse")
     expect(desktopShellSource).not.toContain("requestRestore")
+  })
+})
+
+describe("Pool de compétences — Adaptive Design (Phase 7.2)", () => {
+  const pageSource = readFileSync(
+    resolve(root, "src/app/(app)/consultants/page.tsx"),
+    "utf8",
+  )
+  const desktopShellSource = readFileSync(
+    resolve(root, "src/features/consultants/desktop/ConsultantsDesktopShell.tsx"),
+    "utf8",
+  )
+  const poolDesktopPath = resolve(
+    root,
+    "src/features/consultants/modules/pool-competences/desktop/PoolCompetencesDesktop.tsx",
+  )
+
+  it("le wrapper Desktop du Pool existe et réutilise PoolCompetencesMap sans le réécrire", () => {
+    expect(existsSync(poolDesktopPath)).toBe(true)
+    const src = readFileSync(poolDesktopPath, "utf8")
+    expect(src).toContain("PoolCompetencesMap")
+    expect(src).toContain("AppDialog")
+    // Aucune logique métier dupliquée dans le wrapper.
+    expect(src).not.toContain("buildPoolCompetencesDataset")
+    expect(src).not.toContain("getConsultantsSkills(")
+  })
+
+  it("PoolCompetencesDesktop n'est monté que dans la branche Desktop (ConsultantsDesktopShell)", () => {
+    expect(desktopShellSource).toContain("PoolCompetencesDesktop")
+    // La page ne l'importe jamais directement : elle passe par le shell Desktop.
+    expect(pageSource).not.toContain("PoolCompetencesDesktop")
+  })
+
+  it("le Mobile rend PoolCompetencesMap directement via l'accès historique", () => {
+    expect(pageSource).toContain('isMobile && activeSection === "pool-competences"')
+    expect(pageSource).toContain("<PoolCompetencesMap")
+  })
+
+  it("aucune bascule CSS (hidden md:block / md:hidden) pour charger les deux implémentations", () => {
+    expect(pageSource).not.toMatch(/hidden\s+md:block/)
+    expect(pageSource).not.toMatch(/md:hidden/)
+    expect(desktopShellSource).not.toMatch(/hidden\s+md:block/)
+    expect(desktopShellSource).not.toMatch(/md:hidden/)
+  })
+
+  it("le Pool Desktop n'est lazy-loadé que si le module est demandé (ADR-0006)", () => {
+    expect(pageSource).toContain('!isMobile && activeModule === "pool-competences"')
+    expect(pageSource).toContain("await getConsultantsSkills()")
   })
 })

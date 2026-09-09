@@ -44,11 +44,13 @@ describe("navigation de section — legacy démantelé (SHELL 6.4A)", () => {
       { label: "Projets", shortLabel: "Projets", href: "/missions?vue=projets" },
     ])
 
+    // Phase 7.2 : libellés produit synchronisés avec CONSULTANTS_SECTIONS.
+    // Le Mobile garde ses 5 accès, dont « Pool de compétences » (SEPARATE IMPLEMENTATION).
     expect(getMobileTabsForPath("/consultants")).toEqual([
-      { label: "Synthèse", href: "/consultants" },
+      { label: "Vue d’ensemble", href: "/consultants" },
       { label: "Collaborateurs", href: "/consultants?section=collaborateurs" },
-      { label: "Activités & congés", href: "/consultants?section=activite-conges" },
-      { label: "Candidats", href: "/consultants?section=candidats" },
+      { label: "Activité & Congés", href: "/consultants?section=activite-conges" },
+      { label: "Vivier Candidats", href: "/consultants?section=candidats" },
       { label: "Pool de compétences", href: "/consultants?section=pool-competences" },
     ])
 

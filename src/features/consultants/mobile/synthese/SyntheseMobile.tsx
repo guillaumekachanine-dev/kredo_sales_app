@@ -162,7 +162,7 @@ export function SyntheseMobile({ vm }: SyntheseMobileProps) {
     <div className="flex flex-col gap-4 bg-edito-canvas p-4 pb-24">
       <MobilePageHeader
         eyebrow="Consultants"
-        title="Synthèse"
+        title="Vue d’ensemble"
         description="Effectif, candidats rattachés et recrutement en un coup d'œil."
       />
 

@@ -263,8 +263,21 @@ Desktop **ne doit pas** retirer le pool de la navigation Mobile sans décision e
 | Module | `matching-profil` « Matching profil » | Matching Profil | RENAME (casse) | `modules/profile-matching/` | DATA-0 | label | NO IMPACT | — | 7.2 |
 | Module | — | Mission : prévoir les disponibilités | NEW/FUTURE (framework REUSE possible) | `MISSION_CATALOG` slug `capacite-staffing` + `MissionComposerDesktop` | DATA-1 (providers mission existants) | nouveau `contextualModule` | FUTURE | §18 | 7.2 ou différé |
 
-**Statut : `READY`.** Complexité **MEDIUM** (1 TRANSFORM structurel + arbitrage Mobile + 1 module
-mission optionnel). 0 Data nouvelle pour le cœur du lot.
+**Statut : `IMPLEMENTED / PASS` (Phase 7.2 — 2026-09-09).** Complexité **MEDIUM** (1 TRANSFORM
+structurel + arbitrage Mobile). 0 Data nouvelle. `commit refactor(consultants): align workspace
+target navigation`.
+
+> **Livré :** 4 chapitres Desktop + libellés produit (`CONSULTANTS_DESKTOP_CHAPTERS`,
+> `HEADER_TITLE_BY_SECTION`) ; `pool-competences` chapitre Desktop → **Module Desktop**
+> (`CONSULTANTS_CONTEXTUAL_MODULES` = `pool-competences`, `production-conges`, `matching-profil`),
+> wrapper `PoolCompetencesDesktop` (primitive `AppDialog`) réutilisant `PoolCompetencesMap` +
+> `getConsultantsSkills` **à l'identique** ; résolution device pure `resolveConsultantsDesktopEntry`
+> (`?section=pool-competences` → Desktop : `synthese` + module Pool ; Mobile : vue Pool historique) ;
+> Mobile **inchangé** (5 accès, `SEPARATE IMPLEMENTATION`) ; libellés Mobile synchronisés
+> (`SyntheseMobile`, `CandidatesMobile`, `getMobileTabsForPath`). **0 pathname, 0 `permanentRedirect`
+> nouveau, 0 Data.** Module « Mission : prévoir les disponibilités » **non implémenté** (NEW/FUTURE —
+> aucun bouton mort). Gates : `typecheck` / `test` (293 f / 2 965 t) / `check:server-boundary` /
+> `lint` / `build` / `git diff --check` = **PASS**. Consultants Lot 15 → `UNBLOCKED / READY`.
 
 ---
 
@@ -755,7 +768,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
   non touché tant que la refonte Synthèse n'est pas mergée.
 - **Dependencies :** rebaseline refonte Synthèse Opportunités. **Puis** Opportunities Lot 12.
 
-### 7.2 — Consultants
+### 7.2 — Consultants — ✅ IMPLEMENTED / PASS (2026-09-09)
 - **Objectif :** 3 RENAME + `pool-competences` chapitre → module (TRANSFORM), code `skills/` conservé.
 - **Data :** DATA-0 pour le cœur ; DATA-1 si module mission `capacite-staffing` inclus.
 - **Desktop :** `consultants-sections.ts` (retirer `pool-competences` de `CONSULTANTS_SECTIONS`,
@@ -768,6 +781,10 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **Tests :** `consultants-sections.test.ts` (+ static decoupling).
 - **DoD :** `pool-competences` absent des chapitres Desktop, présent en module ; `skills/`
   inchangé ; Mobile inchangé ; redirect legacy fonctionnel. **Puis** Consultants Lot 15.
+- **✅ Livré (2026-09-09) :** `CONSULTANTS_DESKTOP_CHAPTERS` (4) distinct de `CONSULTANTS_SECTIONS` (5,
+  Mobile) ; `resolveConsultantsDesktopEntry` (fonction pure testée) ; wrapper `PoolCompetencesDesktop`
+  (`AppDialog`) ; libellés Desktop + Mobile alignés ; 0 pathname / 0 redirect / 0 Data.
+  Consultants Lot 15 → `UNBLOCKED / READY`.
 
 ### 7.3A — Contrat Data rentabilité (préalable)
 - **Objectif :** une seule source de vérité rentabilité mission/engagement.
@@ -858,7 +875,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | Lot | Workspace | Complexité | Data | Desktop | Mobile | Dépendances | Rebaseline requis | Go |
 |---|---|---|---|---|---|---|---|---|
 | **7.1** | Opportunités | LOW | DATA-0 | 7 labels | LABEL SYNC (à confirmer) | refonte Synthèse parallèle | **OUI** | **YES AFTER REBASELINE** |
-| **7.2** | Consultants | MEDIUM | DATA-0 (cœur) | 3 labels + 1 TRANSFORM | SEPARATE IMPL. (pool) | — | Non | **YES** |
+| **7.2** | Consultants | MEDIUM | DATA-0 (cœur) | 3 labels + 1 TRANSFORM | SEPARATE IMPL. (pool) | — | Non | ✅ **IMPLEMENTED / PASS** (2026-09-09) |
 | **7.3A** | Rentabilité Data | HIGH | **DATA-2** | — | — | décision vue/builder | Non | **NO — DECISION REQUIRED** |
 | **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A | Non | NO (après 7.3A) |
 | **7.3C** | Finance | MEDIUM | DATA-1 | 2 RENAME + 1 module | LABEL SYNC | 7.3A, 7.3B | Non | NO (après 7.3B) |
@@ -909,8 +926,11 @@ exécutable** si 7.1 reste bloqué.
 
 ## 23. Prochain lot
 
-- **Phase 7.2 — Alignement Consultants** (si 7.1 reste bloqué par la refonte Synthèse Opportunités).
+- ~~**Phase 7.2 — Alignement Consultants**~~ → ✅ **livré (2026-09-09)**. Consultants Lot 15 →
+  **`UNBLOCKED / READY`** (ne PAS l'exécuter dans le lot 7.2).
 - **Phase 7.1 — Alignement Opportunités** dès que `src/features/opportunities/summary/` est intégré
   à `main` ou rebaseliné.
+- Suite Phase 7 : `7.4 → 7.8 → 7.9 → 7.6 → 7.7 → [7.1 dès rebaseline] → 7.3A → 7.3B → 7.3C → 7.5 → 7.10`.
 
-Opportunities Lot 12 / Consultants Lot 15 : **DEFERRED UNTIL TARGET-ALIGNMENT** (après 7.1 / 7.2).
+Opportunities Lot 12 : **DEFERRED UNTIL TARGET-ALIGNMENT** (après 7.1). Consultants Lot 15 :
+**UNBLOCKED / READY** (après 7.2).
