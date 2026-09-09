@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 3 — Data Contract Synthèse
+Dernier lot livré             : Lot 4 — Synthèse Desktop
 Lot courant                   : aucun
-Prochain lot                  : Lot 4 — Synthèse Desktop
-Dernier SHA connu origin/main : 606cbbb4   (2026-09-09, commit Lot 3)
+Prochain lot                  : Lot 5 — Data/detail Besoins & staffing
+Dernier SHA connu origin/main : __LOT4_SHA__   (2026-09-09, commit Lot 4)
 ```
 
 ## Table des lots
@@ -26,7 +26,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `2f106d70` + `570306a0` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ✅ techniquement livré | `653eb736` | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). Props `list` / `main` / `details?` / `detailsEmpty?` / `ariaLabel?` / `className?`. Rail droit → `<aside aria-hidden />` si `details` absent. **Aucun consommateur ce lot** (chapitres = Lots 6/7/9). |
 | 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `606cbbb4` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
-| 4 | Synthèse Desktop | ⬜ todo | — | KPI + graphique pipe + compétences + processus + 5 échéances. SVG maison. |
+| 4 | Synthèse Desktop | ✅ techniquement livré | `__LOT4_SHA__` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
 | 5 | Data/detail Besoins & staffing | ⬜ todo | — | Réutilise loaders existants, évite les doubles queries. |
 | 6 | Migration UI Besoins & staffing | ⬜ todo | — | Liste │ Détail │ « Staffing en cours ». **Résout PRODUCT-02/03/04, NAVIGATION-02, LEGACY-05.** Parité prouvée. |
 | 7 | Avant-vente (structure + `EmptyState` V1) | ⬜ todo | — | Aucune fausse donnée. PRODUCT-05 reste ouverte. |
@@ -257,6 +257,96 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 4 — Synthèse Desktop — ✅ techniquement livré (2026-09-09)
+
+> Amorcé par Codex (non commité), **repris, validé et clôturé** dans cette session.
+> Constats de reprise ci-dessous (« Reprise Lot 4 — constats avant code »).
+
+- **Objectif** : chapitre Synthèse Desktop — surface analytique **pleine largeur**
+  (exception au shell 3 panneaux) consommant le view-model du Lot 3. Aucun recalcul
+  côté composant, SVG maison, `KpiCard`, Desktop seul.
+
+- **Fichiers créés** — `src/features/opportunities/summary/` :
+  - `SummaryDesktop.tsx` — Server Component : bande de 3 `KpiCard` (besoins ouverts ·
+    positionnements actifs · CA du pipe) + 4 sections + footer « Périmètre & méthode »
+    qui rend `vm.dataNotes`. `@container` + container queries pour la responsivité,
+    `overflow-y-auto`, aucun overflow horizontal.
+  - `PipeBreakdownChart.tsx` — **seul `"use client"`** : toggle `Clients | Practices`
+    (`useState`, aucune URL / persistance / requête serveur). Strate proportionnelle
+    SVG (largeurs = `weightedValue / total`), repères numérotés, liste détaillée par
+    catégorie avec valeur exacte + part + nb d'opportunités. Clients : opacité
+    dégradée par rang ; Practices : `var(--color-muted)` (voir dette couleur).
+  - `SkillsComparisonChart.tsx` — miroir Top 5 demande ↔ Top 5 vivier, **deux échelles
+    indépendantes**, rangs propres à chaque côté, mention explicite « hors Top 5 ≠ zéro ».
+  - `ProcessFlowChart.tsx` — 5 stations staffing (OPP-21, statuts **actuels** — pas un
+    taux de conversion), étape commerciale affichée séparément, `<details>` par
+    opportunité (liens vers `/missions/opps/[id]`).
+  - `DeadlinesTable.tsx` — tableau des échéances, dates relatives/absolues en calendrier
+    Europe/Paris (DST géré), `<time datetime>`, liens opportunité.
+  - `summary-formatters.ts` / `summary-geometry.ts` — helpers **purs** (euros FR compacts,
+    `formatDeadline`, `buildRevenueStrata`, `alignSkillTopFives`, `scaleLength`).
+  - `__tests__/summary.test.ts` + `__tests__/summary-route.test.ts` (20 cas) —
+    `renderToStaticMarkup` sur composants purs, invariant somme pipe re-testé côté UI,
+    formats FR + DST, EmptyState de chaque série, isolation route (desktop charge la
+    Synthèse une fois ; mobile ne la charge jamais ; besoins/avant-vente/planning non plus).
+
+- **Fichier modifié** : `src/app/(app)/missions/opps/page.tsx` — branche `synthese`
+  (desktop) → `await getOpportunitiesSynthese()` + `<SummaryDesktop vm={vm} />`.
+  Mobile et branches `besoins`/`avant-vente`/`planning` **inchangées**.
+
+- **Décisions** : aucune nouvelle (tout a été acté au Lot 3 — OPP-19→22). Aucune divergence
+  de contrat. Écart de nommage mineur : la fiche cite `ProcessFunnelChart`, le composant
+  livré s'appelle `ProcessFlowChart` (sans impact).
+
+- **Dettes** :
+  - **Couleur des practices** : `PipeBucket` (Lot 3) ne porte pas de `color_hex` ; la
+    répartition par practice s'affiche en `var(--color-muted)` uni (aucun HEX en dur).
+    Enrichissement possible plus tard via `offer_practices.color_hex` (loader Lot 3 +
+    `PipeBucket`), non requis par les critères d'acceptation.
+  - Chapitre Synthèse **non exposé sur Mobile** (V1) — conforme à la fiche.
+
+- **Gates réellement exécutées** (toutes vertes) :
+  - `npm run typecheck` — ✅ (après `rm -rf .next`).
+  - `npm test` (**suite complète**) — ✅ **279 fichiers / 2803 tests**.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint src/features/opportunities/summary/ + page.tsx` — ✅ 0 problème
+    (le `npm run lint` global reste rouge sur des fichiers **préexistants**, aucun du Lot 4).
+  - `npm run build` — ✅ « Compiled successfully », route `ƒ /missions/opps`.
+
+- **QA visuelle** : réservée à Guillaume — **non réalisée** par l'agent (§ 20.3).
+  La densité, la lisibilité des 3 figures et le toggle restent à valider.
+
+- **Commit** : `__LOT4_SHA__` — `feat(opportunities): Synthèse Desktop (Lot 4)`.
+- **NEXT LOT** : Lot 5 — Data/detail Besoins & staffing.
+
+### Reprise Lot 4 — constats avant code (2026-09-09)
+
+- `git fetch origin` : `main` propre et identique à `origin/main` ; Lots 1–3 présents.
+- Le `PipeBucket` réel ne porte **aucune couleur** (ni le loader Synthèse). Le fallback
+  practice sera donc `var(--color-muted)`, sans enrichissement Data ni requête additionnelle.
+- Les deux listes de compétences sont **déjà tronquées au Top 5 indépendamment**. Une
+  compétence absente d'un côté signifie « hors Top 5 », **jamais zéro ni manque de profils**.
+  Le miroir réunira les identités présentes (5 à 10 lignes), préservera les rangs de chaque
+  côté et affichera deux maxima indépendants : score pondéré / profils distincts.
+- `staffingFunnel` compte les **statuts actuels**, pas des passages cumulés ni des conversions.
+  Le rail à cinq stations est schématique ; les nombres peuvent croître vers la droite.
+- Le brief d'exécution fixe la composition et autorise sa réalisation complète. Il fait
+  foi pour l'implémentation directe, Desktop seul et sans QA navigateur ni concept raster.
+- Contrat graphique / passes locales : `data-visualization` + `data-analytics:visualize-data`
+  pour les encodages ; `d3-data-visualization` pour la géométrie SVG native (aucun ajout D3) ;
+  `react-and-nextjs-data-visualization` pour les frontières ;
+  `typescript-data-visualization-engineering` pour les helpers ;
+  `accessibility-and-inclusive-visualization` pour les alternatives textuelles.
+- Composition : bande de trois `KpiCard`, strate proportionnelle dominante et repères
+  numérotés attachés aux catégories, miroir fin, stations staffing, listing des dates.
+  Les légendes HTML restent à taille lisible au redimensionnement ; petits segments reliés
+  à leur détail numéroté. Valeurs exactes, notes et rangs visibles sans hover ni couleur.
+- Architecture : `SummaryDesktop` serveur, seul `PipeBreakdownChart` porte l'état local
+  Clients/Practices (aucune URL/persistance/requête). Trois figures principales ; géométrie
+  linéaire dans le nombre de catégories, miroir limité à dix lignes, cinq stations.
+  Pas de Canvas, animation, geste capturé, nouvelle dépendance ou modification Mobile.
+
 
 ### Lot 3 — Data Contract Synthèse — ✅ techniquement livré (2026-09-09)
 

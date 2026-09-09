@@ -104,8 +104,8 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 4 — Synthèse Desktop** (KPI + graphiques SVG maison + tableau échéances ;
-voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 4).
+➡️ **Lot 5 — Data/detail Besoins & staffing** (loaders + détail besoin, réutilise
+l'existant ; voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 5).
 
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
@@ -114,6 +114,9 @@ voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 4).
 - Lot 3 livré : Data Contract Synthèse — `buildOpportunitiesSynthese` (pur) +
   `getOpportunitiesSynthese` (loader). DATA-01 → **OPP-19** (option B), DATA-02b →
   OPP-20, PRODUCT-01 affichage → OPP-21, échéances provisoires → OPP-22.
+- Lot 4 livré : Synthèse Desktop (`src/features/opportunities/summary/`) — 3 KPI +
+  pipe `Clients | Practices` + miroir compétences + entonnoir staffing + échéances,
+  SVG maison. **QA visuelle Guillaume en attente.**
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`

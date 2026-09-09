@@ -13,6 +13,8 @@ import {
 } from "@/features/opportunities/navigation/opportunities-sections"
 import { OpportunitiesDesktopShell } from "@/features/opportunities/desktop/OpportunitiesDesktopShell"
 import { OpportunitiesChapterPlaceholder } from "@/features/opportunities/desktop/OpportunitiesChapterPlaceholder"
+import { getOpportunitiesSynthese } from "@/features/opportunities/data/get-opportunities-synthese"
+import { SummaryDesktop } from "@/features/opportunities/summary/SummaryDesktop"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Opportunities Workspace — orchestrateur de la route `/missions/opps`
@@ -26,9 +28,10 @@ import { OpportunitiesChapterPlaceholder } from "@/features/opportunities/deskto
 //  sans paramètre. Compat des anciennes URLs `?scope=needs|staffing` → chapitre
 //  `besoins`, résolue au parsing (OPP-16).
 //
-//  Lot 1 — aucun contenu métier refait :
+//  Lots 1 / 4 :
 //   - `besoins`     → `NeedsStaffingWorkspace` legacy monté TEL QUEL (parité) ;
-//   - `synthese` / `avant-vente` / `planning` → `EmptyState` provisoire.
+//   - `synthese`    → view-model Lot 3 + SummaryDesktop ;
+//   - `avant-vente` / `planning` → `EmptyState` provisoire.
 //
 //  Mobile INCHANGÉ : la branche `device === "mobile"` rend le Mobile legacy
 //  (`NeedsStaffingWorkspace` mobile), le shell V2 n'est jamais monté sur Mobile.
@@ -96,7 +99,16 @@ export default async function OpportunitesPage({
     )
   }
 
-  // synthese · avant-vente · planning → EmptyState provisoire (Lots 4 / 7 / 9)
+  if (activeSection === "synthese") {
+    const vm = await getOpportunitiesSynthese()
+    return (
+      <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
+        <SummaryDesktop vm={vm} />
+      </OpportunitiesDesktopShell>
+    )
+  }
+
+  // avant-vente · planning → EmptyState provisoire (Lots 7 / 9)
   return (
     <OpportunitiesDesktopShell
       activeSection={activeSection}
