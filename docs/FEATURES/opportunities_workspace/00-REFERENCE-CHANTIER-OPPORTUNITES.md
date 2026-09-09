@@ -857,8 +857,10 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | **OPP-14** | **Post-Mortem réutilise `post-mortem-commercial`** (`MISSION_CATALOG`, `MISSION_COMPOSER_ACTION_CONFIGS.post_mortem_pipeline`, `use-mission-launcher`). Aucune nouvelle mission, aucun workflow n8n, aucun duplicate trigger. Le module est un nouveau point d'entrée contextuel. | Le moteur de missions déclaratif (ADR-0020) est stabilisé ; on ne recrée pas de métier IA. | Actée (Lot 0) |
 | **OPP-15** | **Aucune capacité legacy n'est supprimée sans décision/parité.** Toute suppression (Kanban, bascule `?scope=`, actions rapides, drawers, planning legacy) exige une preuve de parité **ou** une décision produit inscrite au Decision Log. | Le workspace actuel a plus de capacités que la cible décrite ; la régression silencieuse est proscrite. | Actée (Lot 0) |
 | **OPP-16** | **Compatibilité des anciennes URLs `scope`** : `?scope=needs` → `section=besoins` ; `?scope=staffing` → `section=besoins` (le staffing devient le rail droit du chapitre Besoins). Résolution au parsing quand possible, redirection permanente sinon (route `/staffing`, liens `main-menu` mobiles), documentée au ledger. Aucun deep-link historique cassé sans plan de migration. | Le contrat `scope` est aujourd'hui obligatoire (redirection serveur) et porté par le Mobile (`getMobileTabsForPath`). | Actée (Lot 0) |
+| **OPP-17** | **`buildOpportunitiesSectionHref` nettoie l'état du chapitre frère.** Au changement de chapitre, le builder supprime `section` **et** les paramètres métier legacy `scope` · `view` · `stage` · `priority` · `practice` · `sort` · `direction` ; tous les autres query params (tiers) sont strictement préservés. La compat `scope` reste assurée **en entrée** par `parseOpportunitiesSection` (OPP-16). | Ces paramètres décrivent l'état interne du seul chapitre Besoins ; les traîner sur Synthèse / Planning / Avant-vente n'a pas de sens et brouille le deep-link. | Actée (Lot 1) |
+| **OPP-18** | **Le retrait de `src/app/(app)/missions/(tabbed)/opps/page.tsx` est fait AU Lot 1**, pas différé à un « Lot 1.1 ». Next.js interdit deux `page.tsx` résolvant `/missions/opps` (les route groups ne changent pas le pathname) : conserver l'ancienne route ferait échouer `next build`. Parité assurée par montage direct et inchangé de `NeedsStaffingWorkspace` (mêmes loaders, mêmes props, même branche mobile) dans le chapitre `besoins`. Le shell est alimenté par une prop `searchParamsString` (query relue côté serveur), pas par `useSearchParams()` — évite une Suspense boundary, navigation 100 % URL-driven. | Contrainte technique Next.js ; la fiche Lot 1 (« peut rester un lot 1.1 si prudence ») n'est pas applicable. | Actée (Lot 1) |
 
-> Décisions à ajouter pendant l'audit des lots : **OPP-17+** (ex. sort de la Synthèse UI de
+> Décisions à ajouter pendant l'audit des lots : **OPP-19+** (ex. sort de la Synthèse UI de
 > `OpportunitiesKpiSection`, forme du détail besoin, résolution DATA-01, sort du Kanban).
 
 ---
@@ -895,7 +897,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 | ID | Question | Lot cible | Statut |
 |---|---|---|---|
-| **NAVIGATION-01** | Comment **convertir les deep-links historiques utilisant `scope`** (`?scope=needs`, `?scope=staffing`, route `/staffing`, liens `getMobileTabsForPath`) vers le contrat `?section=` ? | **1 (parsing) / 11 (redirections globales)** | **partiellement tranchée (OPP-16)** — `needs`/`staffing` → `section=besoins` ; résolution au parsing, redirection permanente pour les points d'entrée durs |
+| **NAVIGATION-01** | Comment **convertir les deep-links historiques utilisant `scope`** (`?scope=needs`, `?scope=staffing`, route `/staffing`, liens `getMobileTabsForPath`) vers le contrat `?section=` ? | **1 (parsing) / 11 (redirections globales)** | ✅ **volet parsing résolu (Lot 1)** — `parseOpportunitiesSection` : `scope=needs\|staffing` sans `section` → `besoins` ; `section` explicite l'emporte (OPP-16/OPP-17). Reste ouvert au **Lot 11** : redirections dures de `/staffing` et des liens `main-menu` mobiles |
 | **NAVIGATION-02** | Le contrat `?view=` / `?stage` / `?priority` / `?practice` (filtres du chapitre Besoins) est-il préservé tel quel, renommé, ou réduit ? | **6** | **ouverte** |
 | ~~**NAVIGATION-03**~~ | `?section=` vs pathname ? | 0 | ✅ **tranché (OPP-04)** — `?section=`, patron Engagements `?vue=` transposé |
 
@@ -1013,8 +1015,9 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
     `getDashboardDevice()` + `parseOpportunitiesSection(?section)` → shell + contenu de chapitre
     (Synthèse = `EmptyState` provisoire ou KPI legacy ; Besoins = `NeedsStaffingWorkspace`
     monté avec `scope` forcé ; Avant-vente = `EmptyState` ; Planning = vue planning legacy).
-  - Retrait de `src/app/(app)/missions/(tabbed)/opps/page.tsx` **une fois la parité prouvée**
-    (peut rester un lot 1.1 si prudence).
+  - Retrait de `src/app/(app)/missions/(tabbed)/opps/page.tsx` **dans le Lot 1** (OPP-18) :
+    Next.js interdit deux `page.tsx` sur `/missions/opps`, le retrait n'est pas différable.
+    Parité = `NeedsStaffingWorkspace` monté tel quel dans le chapitre `besoins`.
 - **Mobile** : **inchangé** — la branche `device==="mobile"` continue de rendre le Mobile
   legacy ; le shell V2 n'est pas monté sur Mobile. `getMobileTabsForPath` **non modifié**.
 - **Fichiers probables** : cf. Desktop ci-dessus + `opportunities-sections.test.ts`.

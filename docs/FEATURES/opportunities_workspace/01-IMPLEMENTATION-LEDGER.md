@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 0 — Cadrage documentaire
-Lot courant                   : Lot 1 — Socle Opportunities Workspace (🟡 en cours)
+Dernier lot livré             : Lot 1 — Socle Opportunities Workspace
+Lot courant                   : aucun
 Prochain lot                  : Lot 2 — Primitive/layout 3 panneaux
-Dernier SHA connu origin/main : b381cd2d   (2026-09-09, docs Lot 0 SHA)
+Dernier SHA connu origin/main : __LOT1_SHA__   (2026-09-09, commit Lot 1)
 ```
 
 ## Table des lots
@@ -23,7 +23,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | Lot | Objet | Statut | Commit | Notes |
 |---|---|---|---|---|
 | 0 | Cadrage documentaire | ✅ techniquement livré | `e7f0f79f` | Dossier `docs/FEATURES/opportunities_workspace/` + doc de référence + ledger + inventaire code/Data (§ 15) + roadmap 0→12 + DECISION LOG OPP-01→OPP-16 + OPEN QUESTIONS (DATA/PRODUCT/NAVIGATION/LEGACY/CROSS-FEATURE). **Aucun code applicatif.** |
-| 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ⬜ todo | — | Root = `synthese` sans paramètre. `contextualModules: undefined`. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. |
+| 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `__LOT1_SHA__` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ⬜ todo | — | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). |
 | 3 | Data Contract Synthèse (view-model serveur unique) | ⬜ todo | — | **Résout DATA-01 → OPP-17.** Réutilise `getNeedsStaffingSharedData` pour KPI 1 & 2. Aucune migration. |
 | 4 | Synthèse Desktop | ⬜ todo | — | KPI + graphique pipe + compétences + processus + 5 échéances. SVG maison. |
@@ -56,6 +56,8 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-14 | Post-Mortem réutilise `post-mortem-commercial` ; aucune nouvelle mission / workflow n8n / trigger | 0 |
 | OPP-15 | Aucune capacité legacy supprimée sans preuve de parité ou décision produit inscrite au Decision Log | 0 |
 | OPP-16 | Compat URLs legacy `scope` : `?scope=needs` et `?scope=staffing` → `section=besoins` (staffing = rail droit) ; résolution au parsing, redirection permanente pour les points d'entrée durs | 0 |
+| OPP-17 | `buildOpportunitiesSectionHref` supprime, au changement de chapitre, `section` + les params métier legacy `scope/view/stage/priority/practice/sort/direction` ; les autres query params (tiers) sont préservés | 1 |
+| OPP-18 | Retrait de `(tabbed)/opps/page.tsx` fait AU Lot 1 (Next.js interdit 2 `page.tsx` sur `/missions/opps`) ; parité = `NeedsStaffingWorkspace` monté tel quel ; shell alimenté par prop `searchParamsString`, pas `useSearchParams()` | 1 |
 
 ## Questions ouvertes en cours
 
@@ -75,9 +77,9 @@ canonique § 17.
 | PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 6 / 9 | **ouverte** — reco : oui |
 | PRODUCT-04 | Forme du détail besoin (inline / drawer / `OpportunityDetailView`) | 6 | **ouverte** |
 | PRODUCT-05 | Relation opportunité ↔ projet avant-vente ↔ mission/projet gagné | 7 / futur | **ouverte** — bloque le contenu métier Avant-vente |
-| NAVIGATION-01 | Conversion des deep-links `scope` vers `?section=` | 1 / 11 | **partiellement tranchée (OPP-16)** |
+| NAVIGATION-01 | Conversion des deep-links `scope` vers `?section=` | 1 / 11 | ✅ **volet parsing résolu (Lot 1)** — `parseOpportunitiesSection` ; redirections dures `/staffing` + `main-menu` mobile → Lot 11 |
 | NAVIGATION-02 | Sort du contrat `?view=` / `?stage` / `?priority` / `?practice` | 6 | **ouverte** |
-| ~~NAVIGATION-03~~ | `?section=` vs pathname | 0 | ✅ tranché (OPP-04) |
+| ~~NAVIGATION-03~~ | `?section=` vs pathname | 0 | ✅ tranché (OPP-04) — **implémenté au Lot 1** (`?section=`, patron Engagements `?vue=`) |
 | LEGACY-01 | Consommateurs restants de `missions/(tabbed)` bloquant le retrait de `SectionNavBarSlot` | 11 | **partiellement audité** — `actives` + `projets` restent ; retrait global = Phase 6 |
 | LEGACY-02 | `OpportunitiesDesktopView.tsx` orphelin — suppression | 12 | **ouverte** |
 | LEGACY-03 | Composants `src/components/staffing/` encore montés après migration | 6 / 12 | **ouverte** |
@@ -251,6 +253,84 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 1 — Socle Opportunities Workspace — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : nouveau shell `/missions/opps` aligné SHELL-0018 V2 — `SectionRail`
+  inline, chapeau navy « Opportunités » → racine, header = chapitre actif, 4 chapitres
+  (`synthese` racine sans paramètre · `besoins` · `avant-vente` · `planning`),
+  navigation URL-driven `?section=`, compat `?scope=needs|staffing` → `besoins`,
+  sortie du groupe `(tabbed)`, `contextualModules` absent. Aucun contenu métier refait.
+
+- **Fichiers créés** :
+  - `src/features/opportunities/navigation/opportunities-sections.ts` — `OpportunitiesSection`,
+    `OPPORTUNITIES_SECTIONS`, `OPPORTUNITIES_SECTION_KEYS`, `HEADER_TITLE_BY_SECTION`,
+    `OPPORTUNITIES_ROOT_SECTION="synthese"`, `OPPORTUNITIES_CANONICAL_PATH`,
+    `LEGACY_NEEDS_STAFFING_QUERY_KEYS`, `parseOpportunitiesSection` (déterministe + compat
+    `scope`), `buildOpportunitiesSectionHref` (préserve les params tiers, purge l'état du
+    chapitre frère — OPP-17), `searchParamsToString`.
+  - `src/features/opportunities/navigation/opportunities-icons.tsx` — 4 icônes Heroicons v2
+    outline (patron `engagement-icons` / `consultants-icons`).
+  - `src/features/opportunities/desktop/OpportunitiesDesktopShell.tsx` — `"use client"`,
+    `SectionRail` **inline** + `useSidebarCollapse` + header ; hrefs de chapitre construits
+    depuis la prop `searchParamsString` (OPP-18) ; `contextualModules` non passé.
+  - `src/features/opportunities/desktop/OpportunitiesChapterPlaceholder.tsx` — EmptyState
+    provisoire (synthese → Lot 4, avant-vente → Lot 7, planning → Lot 9). Aucun bouton mort.
+  - `src/app/(app)/missions/opps/page.tsx` — **hors `(tabbed)`** — orchestrateur fin :
+    `getDashboardDevice()` + `parseOpportunitiesSection(?section)` → Mobile legacy inchangé
+    OU shell V2 + contenu. `besoins` = `NeedsStaffingWorkspace` legacy monté tel quel
+    (mêmes loaders desktop, mêmes props). `import "server-only"`.
+  - `src/features/opportunities/navigation/opportunities-sections.test.ts` — 25 cas :
+    parse (`{}`/`null`/vide/valides/`synthese` explicite/param répété/inconnu/compat
+    `scope`/scope inconnu/section explicite l'emporte), build (racine sans param, `?section=`,
+    préservation params tiers, purge params legacy, href besoins depuis URL legacy),
+    `searchParamsToString`, contrat des 4 chapitres, rendu `OpportunitiesDesktopShell`
+    (chapeau navy 184px « Opportunités », header chapitre actif, 4 hrefs `?section=`,
+    préservation params tiers dans les hrefs, `aria-current=page`, aucune section Modules),
+    invariants d'orchestrateur (résout depuis l'URL pas `useState`, distribution device,
+    montage `NeedsStaffingWorkspace`, pas de `redirect()`, hors `(tabbed)`).
+
+- **Fichier retiré** : `src/app/(app)/missions/(tabbed)/opps/page.tsx` (OPP-18 — obligatoire,
+  route parallèle Next.js interdite). Dossier `(tabbed)/opps/` supprimé.
+
+- **Fichiers NON touchés** (hors périmètre respecté) : `src/app/(app)/missions/(tabbed)/layout.tsx`
+  (reste pour `actives`/`projets`), `main-menu.config.ts`, `getMobileTabsForPath`,
+  `NeedsStaffingWorkspace.tsx` et tout le contenu métier, `src/lib/needs-staffing/url-state.ts`,
+  branche `device==="mobile"`. Aucune migration Supabase, aucun n8n.
+
+- **Divergences** : voir la section « Divergences constatées avant code — Lot 1 » ci-dessus.
+  Décisions nouvelles : **OPP-17**, **OPP-18**.
+
+- **Compat legacy préservée (OPP-15)** : le chapitre `besoins` EST le `NeedsStaffingWorkspace`
+  complet (liste/kanban/planning/staffing, bascule `?scope=`, filtres, drawer, simulation,
+  édition d'étape) — aucune capacité retirée. `?scope=needs` / `?scope=staffing` /
+  `/missions/opps?scope=needs` (lien `main-menu` mobile) continuent de résoudre `besoins`.
+
+- **Dettes / suites** :
+  - Contenu métier des chapitres `synthese` (Lot 4), `avant-vente` (Lot 7), `planning` (Lot 9)
+    = EmptyState provisoire.
+  - Le `NeedsStaffingWorkspace` réécrit l'historique via `window.history.replaceState`
+    (`use-needs-staffing-url-state`) en repassant à `?scope=needs...` (perd `?section=besoins`).
+    Sans conséquence : `parseOpportunitiesSection` reconstruit `besoins` depuis `scope`
+    (compat OPP-16). Uniformisation `?section=` du workspace = Lot 6.
+  - Redirections dures `/staffing` + liens `main-menu` mobiles vers `?section=` = Lot 11
+    (NAVIGATION-01 volet redirections).
+  - `.next/types/validator.ts` : `rm -rf .next` requis après le retrait de route avant
+    `npm run typecheck` (cache de types périmé) — sans impact CI (`next build` régénère).
+
+- **Gates réellement exécutées** (dans l'ordre, toutes vertes) :
+  - `npm run typecheck` — ✅ (après `rm -rf .next`).
+  - `npx vitest run src/features/opportunities/ src/components/layout/SectionRail.test.ts` —
+    ✅ 32/32. Régression : `npx vitest run src/lib/navigation/ src/features/consultants/` —
+    ✅ 154/154.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` sur les 6 fichiers touchés — ✅ (0 warning).
+  - `npm run build` — ✅ « Compiled successfully » ; route `ƒ /missions/opps` présente.
+
+- **QA visuelle** : réservée à Guillaume — non réalisée par l'agent (protocole § 20.3).
+
+- **Commit** : `__LOT1_SHA__` — `feat(opportunities): socle Opportunities Workspace (Lot 1)`.
+- **NEXT LOT** : Lot 2 — Primitive/layout 3 panneaux `OpportunitiesTriPanel`.
 
 ### Lot 0 — Cadrage documentaire — ✅ techniquement livré (2026-09-09)
 

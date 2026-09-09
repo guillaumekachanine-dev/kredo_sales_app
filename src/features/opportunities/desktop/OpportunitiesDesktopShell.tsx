@@ -43,7 +43,7 @@ interface OpportunitiesDesktopShellProps {
   activeSection: OpportunitiesSection
   /** Query string courante (aplatie côté serveur) — sert à préserver les params tiers. */
   searchParamsString?: string
-  children: ReactNode
+  children?: ReactNode
 }
 
 export function OpportunitiesDesktopShell({

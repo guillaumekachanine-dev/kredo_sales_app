@@ -2,7 +2,7 @@
 
 > **Nom canonique :** Opportunities Workspace
 > **Nom produit affiché :** Opportunités
-> **Statut global : cadré (Lot 0 livré le 2026-09-09)**
+> **Statut global : en implémentation (Lot 1 livré le 2026-09-09)**
 > **Branche de travail unique : `main`** (aucune feature branch)
 > **Baseline de cadrage : `61aba08ee1b35f848d223f96e08a1e1a624545ec`**
 
@@ -104,7 +104,12 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 1 — Socle Opportunities Workspace** (voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 1).
+➡️ **Lot 2 — Primitive/layout 3 panneaux `OpportunitiesTriPanel`** (voir
+`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 2).
+
+Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
+`?section=`, compat `?scope=`, sortie de `(tabbed)`). Chapitre `besoins` = workspace
+legacy monté tel quel ; `synthese`/`avant-vente`/`planning` = EmptyState provisoire.
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`
