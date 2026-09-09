@@ -19,6 +19,8 @@ import {
   toCanonicalOpportunityStage,
   type SalesStage,
 } from "@/lib/opportunities/stages"
+import { buildOpportunityDeadlines } from "../planning/data/build-opportunity-deadlines"
+import type { RawDeadlineOpportunity } from "../planning/data/opportunity-deadline.types"
 import type {
   BuildOpportunitiesSyntheseInput,
   OpportunitiesPracticeKey,
@@ -32,7 +34,6 @@ import type {
   SkillSupplyRow,
   StaffingFunnelStep,
   StaffingProgressionBucket,
-  SyntheseDeadline,
 } from "./opportunities-synthese.types"
 
 const OTHER_PRACTICE_LABEL = "Autre / non rattaché"
@@ -110,13 +111,16 @@ function pipeValue(opportunity: RawSyntheseOpportunity): number {
   return (base * conviction) / 100
 }
 
-function toUtcMidnight(date: Date): number {
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-}
-
-function parseDueMs(iso: string): number | null {
-  const ms = Date.parse(iso)
-  return Number.isNaN(ms) ? null : ms
+function toRawDeadlineOpportunity(opportunity: RawSyntheseOpportunity): RawDeadlineOpportunity {
+  return {
+    id: opportunity.id,
+    title: opportunity.title,
+    stage: opportunity.stage,
+    company_name: opportunity.company_name,
+    next_action_at: opportunity.next_action_at,
+    next_action_label: opportunity.next_action_label,
+    target_close_date: opportunity.target_close_date,
+  }
 }
 
 export function buildOpportunitiesSynthese(
@@ -131,6 +135,7 @@ export function buildOpportunitiesSynthese(
     vivierPersonSkills,
     vivierPersonCount,
     offerPractices,
+    calendarEvents,
   } = input
 
   const offerPracticeSlugByName = new Map<string, string>(
@@ -316,39 +321,12 @@ export function buildOpportunitiesSynthese(
     count: funnelTotals[step.bucket],
   }))
 
-  // ── 5 prochaines échéances (provisoire — canonique au Lot 8 / DATA-03) ────
-  const refMs = toUtcMidnight(referenceDate)
-  const upcomingDeadlines: SyntheseDeadline[] = openOpportunities
-    .map((opportunity): SyntheseDeadline | null => {
-      if (opportunity.next_action_at) {
-        return {
-          opportunityId: opportunity.id,
-          opportunityTitle: opportunity.title,
-          clientName: opportunity.company_name?.trim() || null,
-          kind: "action",
-          label: opportunity.next_action_label?.trim() || "Prochaine action",
-          dueAt: opportunity.next_action_at,
-        }
-      }
-      if (opportunity.target_close_date) {
-        return {
-          opportunityId: opportunity.id,
-          opportunityTitle: opportunity.title,
-          clientName: opportunity.company_name?.trim() || null,
-          kind: "closing",
-          label: "Date de closing visée",
-          dueAt: opportunity.target_close_date,
-        }
-      }
-      return null
-    })
-    .filter((deadline): deadline is SyntheseDeadline => {
-      if (!deadline) return false
-      const ms = parseDueMs(deadline.dueAt)
-      return ms !== null && ms >= refMs
-    })
-    .sort((a, b) => (parseDueMs(a.dueAt) ?? 0) - (parseDueMs(b.dueAt) ?? 0))
-    .slice(0, 5)
+  // ── 5 prochaines échéances — builder canonique unique (Lot 8 / DATA-03) ───
+  const upcomingDeadlines = buildOpportunityDeadlines({
+    referenceDate,
+    opportunities: openOpportunities.map(toRawDeadlineOpportunity),
+    calendarEvents: calendarEvents ?? [],
+  }).slice(0, 5)
 
   // ── Réserves méthodo ─────────────────────────────────────────────────────
   const openWithoutValue = openOpportunities.filter(
@@ -359,7 +337,7 @@ export function buildOpportunitiesSynthese(
     "CA du pipe = Σ ((ACV ?? gain estimé ?? 0) × conviction/100) sur les opportunités ouvertes (DATA-01, option B — OPP-19).",
     "Top compétences demandées classées par Σ (poids × importance : indispensable ×3 · souhaitée ×2 · bonus ×1) ; vivier par nombre de profils distincts (DATA-02b — OPP-20).",
     `Vivier = candidats au statut « vivier » — définition provisoire reprise du Consultants Workspace (DATA-02), à re-synchroniser au Consultants Lot 7. ${vivierPersonCount} profil(s).`,
-    "Échéances Synthèse provisoires (next_action_at puis target_close_date) : le concept canonique OpportunityDeadline, incluant calendar_events, est arrêté au Lot 8 (DATA-03).",
+    "Échéance par opportunité = priorité next_action_at, sinon prochain évènement d'agenda, sinon date de closing visée ; la date de démarrage n'est jamais une échéance (concept canonique OpportunityDeadline, DATA-03 — OPP-28).",
   ]
   if (openWithoutValue > 0) {
     dataNotes.push(

@@ -219,21 +219,40 @@ describe("buildOpportunitiesSynthese — progression staffing (OPP-21)", () => {
   })
 })
 
-describe("buildOpportunitiesSynthese — échéances provisoires", () => {
-  it("priorise next_action_at sur target_close_date, exclut le passé, trie ASC, limite à 5", () => {
+describe("buildOpportunitiesSynthese — échéances (builder canonique Lot 8)", () => {
+  it("délègue au builder OpportunityDeadline : priorité next_action_at > agenda > closing, trie ASC, limite à 5", () => {
     const vm = buildOpportunitiesSynthese(
       baseInput({
         opportunities: [
           opp({ id: "o1", title: "A", next_action_at: "2026-09-20T09:00:00Z", next_action_label: "Relance", target_close_date: "2026-09-10" }),
           opp({ id: "o2", title: "B", next_action_at: null, target_close_date: "2026-09-15" }),
-          opp({ id: "o3", title: "C", next_action_at: "2026-08-01T09:00:00Z" }), // passé → exclu
-          opp({ id: "o4", title: "D", next_action_at: null, target_close_date: null }), // aucune date → exclu
+          opp({ id: "o3", title: "C", next_action_at: "2026-08-01T09:00:00Z", target_close_date: "2026-09-30" }), // next_action_at passé → tombe sur le closing
+          opp({ id: "o4", title: "D", next_action_at: null, target_close_date: null }), // aucune date → exclue
+        ],
+        calendarEvents: [
+          { opportunity_id: "o2", event_type: "rdv_client_suivi", status: "scheduled", starts_at: "2026-09-12T08:00:00Z" },
         ],
       }),
     )
-    expect(vm.upcomingDeadlines.map((d) => d.opportunityId)).toEqual(["o2", "o1"])
-    expect(vm.upcomingDeadlines[1]).toMatchObject({ kind: "action", label: "Relance", dueAt: "2026-09-20T09:00:00Z" })
-    expect(vm.upcomingDeadlines[0]).toMatchObject({ kind: "closing", label: "Date de closing visée" })
+    expect(vm.upcomingDeadlines.map((d) => d.opportunityId)).toEqual(["o2", "o1", "o3"])
+    expect(vm.upcomingDeadlines[0]).toMatchObject({ source: "calendar_event", calendarEventType: "rdv_client_suivi", dueAt: "2026-09-12T08:00:00Z" })
+    expect(vm.upcomingDeadlines[1]).toMatchObject({ source: "next_action", label: "Relance", dueAt: "2026-09-20T09:00:00Z" })
+    expect(vm.upcomingDeadlines[2]).toMatchObject({ source: "target_close", label: "Date de closing visée" })
+  })
+
+  it("ignore les évènements agenda passés / annulés et retombe sur le closing", () => {
+    const vm = buildOpportunitiesSynthese(
+      baseInput({
+        opportunities: [opp({ id: "o1", title: "A", next_action_at: null, target_close_date: "2026-09-25" })],
+        calendarEvents: [
+          { opportunity_id: "o1", event_type: "soutenance", status: "cancelled", starts_at: "2026-09-12T08:00:00Z" },
+          { opportunity_id: "o1", event_type: "soutenance", status: "completed", starts_at: "2026-08-01T08:00:00Z" },
+        ],
+      }),
+    )
+    expect(vm.upcomingDeadlines).toEqual([
+      expect.objectContaining({ opportunityId: "o1", source: "target_close", dueAt: "2026-09-25" }),
+    ])
   })
 })
 
@@ -245,7 +264,7 @@ describe("buildOpportunitiesSynthese — dataNotes", () => {
     expect(joined).toContain("OPP-19")
     expect(joined).toContain("OPP-20")
     expect(joined).toContain("11 profil(s)")
-    expect(joined).toContain("Lot 8")
+    expect(joined).toContain("DATA-03")
   })
 
   it("ajoute une réserve quand une opp ouverte n'a ni ACV ni gain estimé, ou pas de practice", () => {

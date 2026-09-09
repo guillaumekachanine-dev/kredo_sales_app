@@ -123,12 +123,13 @@ describe("Summary components — static evidence and accessibility", () => {
     for (const text of ["Identifié", "Proposé", "Envoyé client", "Entretien", "Retenu", ">9<", ">0<", "Étape commerciale", "Qualification", "pas un flux mesuré", "<details", "2 positionnement(s) exclu(s)"]) expect(html).toContain(text)
     expect(html).not.toContain("<details open")
   })
-  it("keeps relative and absolute dates, action/closing uncertainty and opportunity links", () => {
+  it("keeps relative and absolute dates, source labels and opportunity links", () => {
     const html = markup(createElement(DeadlinesTable, { referenceAt: "2026-09-09T10:00:00Z", deadlines: [
-      { opportunityId: "o1", opportunityTitle: "Audit Cloud", clientName: "Acme", kind: "action", label: "Appeler", dueAt: "2026-09-10T10:00:00Z" },
-      { opportunityId: "o2", opportunityTitle: "Mission", clientName: null, kind: "closing", label: "Date de closing visée", dueAt: "2026-09-13" },
+      { opportunityId: "o1", opportunityTitle: "Audit Cloud", client: "Acme", source: "next_action", label: "Appeler", dueAt: "2026-09-10T10:00:00Z", calendarEventType: null },
+      { opportunityId: "o3", opportunityTitle: "RDV", client: "Beta", source: "calendar_event", label: "RDV suivi client", dueAt: "2026-09-11T08:00:00Z", calendarEventType: "rdv_client_suivi" },
+      { opportunityId: "o2", opportunityTitle: "Mission", client: null, source: "target_close", label: "Date de closing visée", dueAt: "2026-09-13", calendarEventType: null },
     ] }))
-    for (const text of ["Demain", "10 sept. 2026", "Dans 4 j", "Action", "Closing visé", "Date de closing visée", "Client non renseigné", 'href="/missions/opps/o1"', '<th scope="col"']) expect(html).toContain(text)
+    for (const text of ["Demain", "10 sept. 2026", "Dans 4 j", "Action", "Agenda", "RDV suivi client", "Closing visé", "Date de closing visée", "Client non renseigné", 'href="/missions/opps/o1"', '<th scope="col"']) expect(html).toContain(text)
   })
   it("passes canonical KPIs through, renders every methodology note and all empty states", () => {
     const vm = emptyVm()

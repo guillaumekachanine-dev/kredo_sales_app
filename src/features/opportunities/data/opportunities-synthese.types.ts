@@ -25,6 +25,10 @@
 
 import type { OfferPracticeSlug } from "@/lib/config/practices"
 import type { SalesStage } from "@/lib/opportunities/stages"
+import type {
+  OpportunityDeadline,
+  RawDeadlineCalendarEvent,
+} from "../planning/data/opportunity-deadline.types"
 
 /** Clé de bucket practice : slug `offer_practices` canonique, ou `null` = « Autre / non rattaché ». */
 export type OpportunitiesPracticeKey = OfferPracticeSlug | null
@@ -102,17 +106,6 @@ export interface OpportunityProcessRow {
   excludedPositioningsCount: number
 }
 
-export interface SyntheseDeadline {
-  opportunityId: string
-  opportunityTitle: string
-  clientName: string | null
-  /** `action` = `next_action_at` · `closing` = `target_close_date`. */
-  kind: "action" | "closing"
-  label: string
-  /** ISO. */
-  dueAt: string
-}
-
 export interface OpportunitiesSyntheseViewModel {
   generatedAt: string
   kpis: OpportunitiesSyntheseKpis
@@ -123,8 +116,12 @@ export interface OpportunitiesSyntheseViewModel {
   skillsSupply: SkillSupplyRow[]
   staffingFunnel: StaffingFunnelStep[]
   processByOpportunity: OpportunityProcessRow[]
-  /** Provisoire — arbitrage canonique `OpportunityDeadline` (incl. `calendar_events`) au Lot 8 (DATA-03). */
-  upcomingDeadlines: SyntheseDeadline[]
+  /**
+   * 5 prochaines échéances — concept canonique `OpportunityDeadline`, builder
+   * unique partagé avec le Planning (`planning/data/build-opportunity-deadlines`),
+   * arbitrage DATA-03 / OPP-28. Déjà limité à 5, tri `dueAt` ASC.
+   */
+  upcomingDeadlines: OpportunityDeadline[]
   /** Réserves méthodo à afficher discrètement (OPEN QUESTIONS non tranchées / couverture data). */
   dataNotes: string[]
 }
@@ -188,6 +185,12 @@ export interface BuildOpportunitiesSyntheseInput {
   opportunitySkills: RawSyntheseOpportunitySkill[]
   /** `person_skills` des profils **vivier** uniquement (le loader a déjà filtré). */
   vivierPersonSkills: RawSyntheseVivierPersonSkill[]
+  /**
+   * Évènements agenda rattachés à une opportunité — alimentent le builder
+   * d'échéances canonique (Lot 8). Optionnel : absent ⇒ aucune échéance issue
+   * de `calendar_events` (les tests Lot 3 restent valides sans le champ).
+   */
+  calendarEvents?: RawDeadlineCalendarEvent[]
   /** Nombre total de profils vivier distincts (pour une réserve méthodo). */
   vivierPersonCount: number
   offerPractices: RawSyntheseOfferPractice[]

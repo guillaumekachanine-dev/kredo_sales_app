@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 7 — Avant-vente (structure + EmptyState V1)
+Dernier lot livré             : Lot 8 — Data Contract Planning (builder unique OpportunityDeadline)
 Lot courant                   : aucun
-Prochain lot                  : Lot 8 — Data Contract Planning (builder OpportunityDeadline)
-Dernier SHA connu origin/main : 6a84b978   (2026-09-09, commit Lot 7)
+Prochain lot                  : Lot 9 — Planning Desktop
+Dernier SHA connu origin/main : 1f4e6c5c   (2026-09-09, commit doc Lot 7)
 ```
 
 ## Table des lots
@@ -30,7 +30,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 5 | Data/detail Besoins & staffing | ✅ techniquement livré | `bad25af3` | `src/features/opportunities/needs/data/` : types + `buildNeedsList`/`resolveSelectedNeedId` (purs) + `parseNeedsSelection` (`?opp=` + filtres via `parseNeedsStaffingUrlState`) + loader `getNeedsChapterData` composant 4 loaders existants — **détail chargé pour le seul besoin sélectionné** (OPP-23). 18 tests. Aucune UI, aucune migration. |
 | 6 | Migration UI Besoins & staffing | ✅ techniquement livré | `b769623f` | Chapitre Besoins Desktop sur `OpportunitiesTriPanel` : `NeedsListPanel` (rail gauche, filtres + `?opp=` + `NewOpportunityButton` + `StageQuickEditorDialog`) │ `NeedsDetailPanel` (`OpportunityDetailView` inline) │ `StaffingInProgressRail` (positionnements actifs, drawer unique, `NewStaffingButton`, simulation par ligne). `page.tsx` `besoins` → `getNeedsChapterData` + `NeedsDesktop`. **Résout PRODUCT-02 (OPP-25), PRODUCT-04 (OPP-24), NAVIGATION-02 (OPP-26), LEGACY-05 (OPP-27).** `NeedsStaffingWorkspace` Desktop plus monté (Mobile inchangé). SVG/tokens `@theme`, aucun HEX. |
 | 7 | Avant-vente (structure + `EmptyState` V1) | ✅ techniquement livré | `6a84b978` | `PresalesDesktop` : `OpportunitiesTriPanel` + 3 `EmptyState` authentiques (liste / surface / détails). **Aucune donnée, aucun seed, aucun modèle Projet.** `page.tsx` `avant-vente` → `PresalesDesktop`. PRODUCT-05 reste **ouverte** et documentée. |
-| 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ⬜ todo | — | **Résout DATA-03.** Partagé Synthèse + Planning (OPP-10). |
+| 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ✅ techniquement livré | _(à renseigner)_ | `src/features/opportunities/planning/data/` : `opportunity-deadline.types.ts` + `build-opportunity-deadlines.ts` (pur) + `get-opportunity-deadlines.ts` (loader). **Résout DATA-03 → OPP-28.** Synthèse refactorée pour consommer ce builder (OPP-10). Builder unique (test d'arbitrage + `start_date` jamais échéance). Aucune migration. |
 | 9 | Planning Desktop | ⬜ todo | — | Liste │ Planning mois/année │ Détails. Adapte le moteur existant. |
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ⬜ todo | — | Câblage vers capacités existantes. **Résout CROSS-01/02/03.** `Modélisation de CA` non affichée (OPP-11). |
 | 11 | Legacy / compatibilité / navigation globale | ⬜ todo | — | Redirection `/staffing`, `main-menu` label « Opportunités », deep-links `scope`. **Coord. SHELL-0018 Phase 6.3.** |
@@ -66,6 +66,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-24 | PRODUCT-04 : détail besoin = `OpportunityDetailView` **inline** (réemploi tel quel `{data, device:"desktop"}`), aucun modèle dupliqué. Route `/missions/opps/[id]` conservée pour le deep-link. | 6 |
 | OPP-25 | PRODUCT-02 : Kanban (`?view=kanban`) **non repris** dans le chapitre Besoins V2 ; changement d'étape conservé via `StageQuickEditorDialog` (action de ligne). Composants legacy retirés au Lot 12. | 6 |
 | OPP-26 | NAVIGATION-02 : contrat URL Besoins = `?section=besoins&opp=&stage=&priority=&practice=&sort=&direction=` (builder pur `buildNeedsHref`). `?scope`/`?view` abandonnés (compat `scope` d'entrée conservée). `buildOpportunitiesSectionHref` strippe `opp`. | 6 |
+| OPP-28 | DATA-03 : `OpportunityDeadline` — arbitrage figé, **une seule échéance par opportunité ouverte** parmi les dates **futures ou du jour**, priorité `next_action_at` > prochain `calendar_events.starts_at` (hors `cancelled`) > `target_close_date`. `start_date` **jamais** une échéance ; jalons `opportunity_candidates` hors périmètre V1 (dates passées). Builder pur unique `build-opportunity-deadlines.ts`, réutilisé par la Synthèse (§ 9.6) et le Planning (Lot 9). Remplace la règle provisoire OPP-22. | 8 |
 | OPP-27 | LEGACY-05 : chapitre Besoins V2 **sans HEX** (`getOpportunityStageColor` = `var(--color-*)`, tokens `@theme`). Les HEX de `NeedsStaffingWorkspace.tsx` sont dans les toggles Kanban/Planning non repris → retirés au Lot 12. | 6 |
 
 ## Questions ouvertes en cours
@@ -78,7 +79,7 @@ canonique § 17.
 | DATA-01 | Source canonique du « CA du pipe » | 3 | ✅ **tranché (OPP-19)** — option B, opps non terminales |
 | DATA-02 | Population exacte du vivier alimentant le Top compétences | 3 | ✅ **repris (Lot 3)** — contrat provisoire Consultants `candidates.status='vivier'` ; re-sync au Consultants Lot 7 |
 | DATA-02b | Critère de classement du Top compétences | 3 | ✅ **tranché (OPP-20)** |
-| DATA-03 | Règle d'arbitrage `OpportunityDeadline` en cas de dates multiples | 8 | **ouverte** |
+| DATA-03 | Règle d'arbitrage `OpportunityDeadline` en cas de dates multiples | 8 | ✅ **tranché (OPP-28)** — `next_action_at` > prochain `calendar_events` (hors `cancelled`) > `target_close_date` ; `start_date` exclue ; futures ou jour même ; 1 échéance / opp |
 | ~~DATA-04~~ | Fusion `stage` + `opportunity_candidates.status` dans le graphique Processus ? | 0 | ✅ tranché (OPP-09) — non |
 | ~~DATA-05~~ | Taxonomie d'étape commerciale | 0 | ✅ tranché (OPP-08) — `stages.ts` |
 | PRODUCT-01 | Représentation unifiée `stage` + `status` (buckets de progression) | 3 | ✅ **volet affichage tranché (OPP-21)** — 5 buckets ; unification *stockée* hors périmètre |
@@ -262,6 +263,90 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 8 — Data Contract Planning (builder unique `OpportunityDeadline`) — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : concept normalisé `OpportunityDeadline` + **builder pur unique**, réutilisé
+  par la Synthèse (§ 9.6, tableau « 5 prochaines échéances ») **et** le Planning (Lot 9).
+  Résout DATA-03. Aucune migration.
+
+- **Audit Data live (2026-09-09, Supabase MCP)** :
+  - `calendar_events` : colonnes `opportunity_id` (nullable), `event_type` (NOT NULL),
+    `status` (NOT NULL — `scheduled` / `completed` / `cancelled`), `starts_at` (timestamptz
+    NOT NULL). **11 events** rattachés aux 5 opps ouvertes, **10 futurs**, sur **2 opps**.
+  - Opps ouvertes : `next_action_at` renseigné 2/5 (2 futurs), `target_close_date` 2/5
+    (2 futurs). `start_date` **jamais** traité comme échéance (OPP-28).
+
+- **Fichiers créés** — `src/features/opportunities/planning/data/` :
+  - `opportunity-deadline.types.ts` — `OpportunityDeadline` (`{ opportunityId,
+    opportunityTitle, client, source, label, dueAt, calendarEventType }`),
+    `OpportunityDeadlineSource` = `next_action | calendar_event | target_close`, lignes
+    brutes `RawDeadlineOpportunity` / `RawDeadlineCalendarEvent`.
+    **Écart de nommage mineur** vs fiche (`type` → `source`, `client` conservé, ajout
+    `calendarEventType`) — sans impact contrat.
+  - `build-opportunity-deadlines.ts` — **PUR** : `buildOpportunityDeadlines(input)`. Filtre
+    les opps ouvertes (`!isTerminalOpportunityStage`), prend le **prochain** `calendar_events`
+    futur non `cancelled` par opp, arbitre **une** échéance (`next_action_at` >
+    `calendar_events` > `target_close_date`, dates **futures ou du jour**, seuil minuit UTC
+    comme le Lot 3), trie `dueAt` ASC puis titre puis priorité de source. Libellé d'évènement
+    via `AGENDA_EVENT_TYPES` (`@/lib/agenda/agenda-config`, constantes pures). Exporte
+    `DEADLINE_SOURCE_PRIORITY`.
+  - `get-opportunity-deadlines.ts` — loader `server-only` (`resolveCurrentWorkspaceId` en
+    garde) : lit `opportunities` (+ `companies(name)`) puis `calendar_events` des opps
+    ouvertes (`.gte("starts_at", ref)`), appelle le builder. Destiné au Planning (Lot 9).
+  - `__tests__/build-opportunity-deadlines.test.ts` — 11 cas : priorité des 3 sources,
+    fallback quand `next_action_at` passé, exclusion `cancelled` / autre opp / étape
+    terminale, jour de référence inclus, tri, libellés par défaut.
+
+- **Fichiers modifiés** (refactor Synthèse pour consommer le builder unique — OPP-10) :
+  - `data/opportunities-synthese.types.ts` — suppression de `SyntheseDeadline` ;
+    `upcomingDeadlines: OpportunityDeadline[]` ; `BuildOpportunitiesSyntheseInput.calendarEvents?`
+    (optionnel — les tests Lot 3 sans le champ restent valides).
+  - `data/build-opportunities-synthese.ts` — la logique d'échéances locale (≈ 35 lignes)
+    est remplacée par `buildOpportunityDeadlines({...}).slice(0, 5)`. `dataNotes` mis à jour
+    (échéance = concept canonique, plus « provisoire »).
+  - `data/get-opportunities-synthese.ts` — ajoute la lecture `calendar_events` (4ᵉ requête
+    du 2ᵉ `Promise.all`, filtrée `starts_at >= referenceDate` + IDs ouverts) et la passe au
+    builder.
+  - `summary/DeadlinesTable.tsx` — `SyntheseDeadline` → `OpportunityDeadline` (`kind` →
+    `source` 3 valeurs, `clientName` → `client`, libellé « Agenda » pour `calendar_event`).
+  - `data/__tests__/build-opportunities-synthese.test.ts` + `summary/__tests__/summary.test.ts`
+    — cas d'échéances réécrits pour la nouvelle forme (source agenda incluse).
+  - `SummaryDesktop.tsx` : **inchangé** (consomme `vm.upcomingDeadlines` tel quel).
+
+- **Décision** : **OPP-28** (DATA-03 tranchée). **Remplace OPP-22** (règle provisoire du
+  Lot 3). Différence de comportement vs OPP-22 : un `next_action_at` **passé** ne masque plus
+  une `target_close_date` future (fallthrough) ; les évènements `calendar_events` s'intercalent
+  entre les deux ; les évènements `cancelled` sont exclus.
+
+- **Unicité du builder (critère d'acceptation)** : `grep -rn "OpportunityDeadline\|buildOpportunityDeadlines"`
+  → un seul builder (`build-opportunity-deadlines.ts`), un consommateur pur (`build-opportunities-synthese`),
+  un loader dédié (`get-opportunity-deadlines`). Les résolveurs préexistants
+  `src/lib/agenda/opportunities-resolver.ts` (Agenda V1, `AgendaItem`/`DeadlineItem`,
+  owner-scopé, deep-links) et `src/lib/intelligence/actions/upcoming-deadlines*.ts` (règles
+  d'action quotidienne) sont un **autre concern** (agenda global / cockpit) — hors DATA-03,
+  non fusionnés.
+
+- **Dettes / suites** :
+  - Jalons `opportunity_candidates` (`sent_to_client_at`…) non intégrés : ce sont des dates
+    passées de suivi, pas des échéances. À réévaluer si le Planning (Lot 9) exprime un besoin.
+  - `get-opportunity-deadlines.ts` (loader Planning) créé mais **pas encore consommé** — câblage
+    au Lot 9. La Synthèse compose le builder inline (lignes déjà chargées, pas de double query).
+  - Couleur / catégorie d'évènement agenda non exposée dans `OpportunityDeadline` (seulement
+    `calendarEventType` brut) — enrichissement possible au Lot 9 si le calendrier en a besoin.
+
+- **Gates réellement exécutées** (dans l'ordre, toutes vertes) :
+  - `npm run typecheck` — ✅ (après `rm -rf .next`).
+  - `npx vitest run src/features/opportunities/` — ✅ (11 fichiers, 108 tests).
+  - `npm test` (**suite complète**) — ✅ **285 fichiers / 2843 tests**.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` sur les fichiers touchés — ✅ 0 problème.
+  - `npm run build` — ✅ « Compiled successfully », route `ƒ /missions/opps`.
+- **QA visuelle** : réservée à Guillaume (§ 20.3) — le tableau « 5 prochaines échéances »
+  affiche désormais une 3ᵉ source (« Agenda ») ; libellés à valider.
+
+- **Commit** : _(à renseigner)_ — `feat(opportunities): data contract Planning — builder OpportunityDeadline (Lot 8)`.
+- **NEXT LOT** : Lot 9 — Planning Desktop.
 
 ### Lot 7 — Avant-vente (structure) — ✅ techniquement livré (2026-09-09)
 

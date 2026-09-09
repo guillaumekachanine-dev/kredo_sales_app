@@ -539,23 +539,21 @@ CV, présentation candidat, etc. »*.
 
 ### 9.6 Tableau « 5 prochaines échéances »
 
-- **Concept normalisé `OpportunityDeadline`** (Lot 8, builder unique — cf. § 12) :
+- **Concept normalisé `OpportunityDeadline`** — **livré au Lot 8** (builder unique
+  `src/features/opportunities/planning/data/build-opportunity-deadlines.ts`, cf. § 12) :
   ```
-  { opportunityId, opportunityTitle, client, type, label, dueAt }
+  { opportunityId, opportunityTitle, client, source, label, dueAt, calendarEventType }
+  source = next_action | calendar_event | target_close
   ```
-- Sources candidates (à auditer et arbitrer au Lot 8, `OPEN QUESTION DATA-03`) :
-  | Source | Type de `dueAt` | Couverture live | Fiabilité |
-  |---|---|---|---|
-  | `calendar_events` (`opportunity_id`, `starts_at` futur) | RDV / entretien | 34 events futurs | **haute** (donnée métier explicite) |
-  | `opportunities.next_action_at` | prochaine action commerciale | **2/32** | faible couverture mais explicite |
-  | `opportunities.target_close_date` | date de closing visée | 28/32 | moyenne |
-  | `opportunities.start_date` | démarrage prévu | 32/32 | **≠ échéance** — ne pas assimiler |
-  | `opportunity_candidates` (`sent_to_client_at`, jalons) | jalon staffing | — | à évaluer |
-- **Règle d'arbitrage** en cas de plusieurs dates pour une opportunité : à figer au Lot 8
-  (recommandation : priorité `next_action_at` > prochain `calendar_events.starts_at` >
-  `target_close_date` ; `start_date` **exclue** par défaut). **Ne pas considérer
-  automatiquement `start_date` et `target_close_date` comme des échéances équivalentes.**
-- Tri `dueAt ASC`, `LIMIT 5`, opportunités ouvertes uniquement.
+- **Règle d'arbitrage figée — OPP-28 (résout DATA-03)** : pour chaque opportunité **ouverte**,
+  parmi les dates **futures ou du jour**, on retient **une seule** échéance par priorité :
+  1. `opportunities.next_action_at` ;
+  2. prochain `calendar_events.starts_at` (hors évènements `cancelled`) ;
+  3. `opportunities.target_close_date`.
+  `opportunities.start_date` n'est **jamais** une échéance. Les jalons `opportunity_candidates`
+  (`sent_to_client_at`…) sont des dates **passées** de suivi → hors périmètre V1.
+- Tri `dueAt ASC`, `LIMIT 5` (côté Synthèse), opportunités ouvertes uniquement. Le Planning
+  (Lot 9) consomme le **même** builder, sans `LIMIT`.
 
 ---
 
@@ -863,7 +861,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | **OPP-19** | **DATA-01 tranchée — « CA du pipe » = option B.** `Σ ((acv ?? estimated_gain ?? 0) × conviction/100)` sur les opportunités dont l'étape n'est **pas terminale** (`isTerminalOpportunityStage`, `non_traitee` incluse dans les terminales). C'est la formule incumbent `OpportunitiesKpiSection.getWeightedValue`. Le graphique Pipe (client / practice / étape) partage la **même mesure** — invariant `Σ catégories == KPI` testé. **Réconcilie LEGACY-04** : le view-model Synthèse `getOpportunitiesSynthese` est le contrat canonique ; `OpportunitiesKpiSection` reste en place jusqu'au Lot 6 puis est déprécié. | Meilleure couverture (`acv` 31/32, fallback gain estimé, sinon 0 → aucune valeur NULL, contre 3 NULL pour l'option A) ; continuité avec l'UI existante. | Actée (Lot 3) |
 | **OPP-20** | **DATA-02b tranchée — classement du Top compétences.** *Demandées* : `Σ (opportunity_skills.weight × poids d'importance)` sur les opportunités ouvertes, `indispensable ×3 · souhaitée ×2 · bonus ×1` ; départage par nombre d'opportunités distinctes. *Vivier* : nombre de **profils distincts** portant la compétence ; départage par `Σ level`. Top 5 de chaque côté. | Recommandation § 9.4 retenue : la demande porte une intensité (poids + criticité), l'offre se compte en têtes. | Actée (Lot 3) |
 | **OPP-21** | **PRODUCT-01 (volet affichage) — taxonomie de progression staffing.** 5 buckets explicites, superposés à l'étape commerciale `stages.ts`, **jamais fusionnés** (OPP-09) : `identifie` ← `identifie` · `propose` ← `propose_interne`/`preselectionne` · `envoye_client` ← `envoye_client` · `entretien` ← `entretien_planifie`/`entretien_realise` · `retenu` ← `retenu`/`gagne`. Les statuts terminaux négatifs (`refuse_client` · `refuse_candidat` · `abandonne`) sont **hors entonnoir**, comptés à part (`excludedPositioningsCount`). C'est un modèle d'**affichage**, aucune écriture DB, aucune nouvelle colonne. | Le graphique « Processus » (§ 9.5) exige des buckets déterministes ; le vocabulaire staffing DB reste inchangé. | Actée (Lot 3) |
-| **OPP-22** | **Échéances Synthèse — règle provisoire.** `getOpportunitiesSynthese.upcomingDeadlines` : `next_action_at` sinon `target_close_date` (jamais `start_date`), `dueAt >= referenceDate`, tri ASC, LIMIT 5, opps ouvertes. `calendar_events` **hors périmètre du Lot 3** (data scope de la fiche). Le concept canonique `OpportunityDeadline` (arbitrage multi-sources incl. `calendar_events`, partagé Synthèse/Planning — OPP-10) est arrêté au **Lot 8** (DATA-03) et remplacera ce champ. | La fiche Lot 3 couvre « 5 prochaines échéances » mais son data scope exclut `calendar_events` ; DATA-03 est explicitement un lot 8. | Actée (Lot 3) |
+| **OPP-22** | **Échéances Synthèse — règle provisoire.** `getOpportunitiesSynthese.upcomingDeadlines` : `next_action_at` sinon `target_close_date` (jamais `start_date`), `dueAt >= referenceDate`, tri ASC, LIMIT 5, opps ouvertes. `calendar_events` **hors périmètre du Lot 3** (data scope de la fiche). Le concept canonique `OpportunityDeadline` (arbitrage multi-sources incl. `calendar_events`, partagé Synthèse/Planning — OPP-10) est arrêté au **Lot 8** (DATA-03) et remplacera ce champ. | La fiche Lot 3 couvre « 5 prochaines échéances » mais son data scope exclut `calendar_events` ; DATA-03 est explicitement un lot 8. | Actée (Lot 3) — **remplacée par OPP-28 (Lot 8)** |
 | **OPP-23** | **Chapitre Besoins — sélection d'entité `?opp=<id>`** (PRODUCT-03, recommandation « oui »). Volet Lot 5 : `parseNeedsSelection` extrait `opp` + les filtres (délégués à `parseNeedsStaffingUrlState`) ; `resolveSelectedNeedId` résout l'actif (id demandé s'il est dans la liste **filtrée**, sinon 1ᵉ besoin, sinon `null`). `getNeedsChapterData` ne charge `getOpportunityDetail` que pour ce besoin — **jamais un détail par ligne de liste** (critère du Lot 5). Le href builder de `opp` + son retrait au changement de chapitre, le sort de `?view=` : **Lot 6** (NAVIGATION-02). Partage avec Planning : **Lot 9**. | Un seul chemin de chargement par entité ; deep-link partageable de la sélection. | Actée (Lot 5) |
 
 | **OPP-24** | **PRODUCT-04 — détail besoin = inline.** La surface centrale du chapitre Besoins réutilise `OpportunityDetailView` **tel quel** (`{ data: OpportunityDetailData, device: "desktop" }`), rendu dans un conteneur scrollable. Aucun modèle de détail dupliqué, pas de drawer besoin dédié, pas d'iframe de la route `[id]`. La route plein écran `/missions/opps/[id]` reste pour le deep-link. | Le tri-panneau EST la surface de détail ; `OpportunityDetailView` est déjà auto-portant (header + pipeline + onglets overview/staffing/timeline/finance) et branché sur le drawer unique. | Actée (Lot 6) |
@@ -871,8 +869,9 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | **OPP-26** | **NAVIGATION-02 — contrat URL du chapitre Besoins.** `?section=besoins` + `?opp=<id>` + filtres `?stage` · `?priority` · `?practice` · `?sort=acv` · `?direction` (repris de `url-state.ts`, builder pur `buildNeedsHref`). **Abandonnés** : `?scope=` (le staffing devient le rail droit, plus une bascule) et `?view=` (Kanban retiré OPP-25 ; Planning = chapitre dédié Lot 9). Compat d'entrée `?scope=needs\|staffing → besoins` conservée par `parseOpportunitiesSection` (OPP-16). `buildOpportunitiesSectionHref` strippe désormais `opp` (+ `view` déjà stripé) au changement de chapitre. Sélection & filtres → `router.replace` (`<Link replace scroll={false}>`), patron `/reports`. | Le chapitre a un état propre (besoin actif + filtres) ; `scope`/`view` n'ont plus de sens dans un chapitre 3-panneaux. | Actée (Lot 6) |
 | **OPP-27** | **LEGACY-05 — HEX.** Le chapitre Besoins V2 Desktop est **sans HEX en dur** : les couleurs d'étape viennent de `getOpportunityStageColor` (variables `var(--color-*)` de `stages.ts`), le reste des tokens `@theme`. Les HEX de `NeedsStaffingWorkspace.tsx` (`#FFC107`, `#9C27B0`, `#607D8B`, `#FF5252`…) vivent dans les **toggles Kanban/Planning non repris** (OPP-25) ; le fichier legacy conserve ses HEX jusqu'à son retrait complet (Lot 12, après migration Mobile). | La dette HEX était portée par des vues qui disparaissent du chapitre ; ne pas la recopier (critère § 20.4). | Actée (Lot 6) |
 
-> Décisions à ajouter pendant l'audit des lots : **OPP-28+** (ex. Avant-vente, Planning,
-> modules contextuels).
+| **OPP-28** | **DATA-03 tranchée — `OpportunityDeadline`.** Builder pur unique `src/features/opportunities/planning/data/build-opportunity-deadlines.ts` : pour chaque opportunité **ouverte** (`!isTerminalOpportunityStage`), parmi les dates **futures ou du jour** (seuil minuit UTC, comme le Lot 3), on retient **une seule** échéance par priorité `next_action_at` > prochain `calendar_events.starts_at` (hors `status='cancelled'`) > `target_close_date`. `start_date` **jamais** une échéance ; jalons `opportunity_candidates` hors périmètre V1 (dates passées). Forme : `{ opportunityId, opportunityTitle, client, source, label, dueAt, calendarEventType }`, `source ∈ {next_action, calendar_event, target_close}`. Tri `dueAt ASC` puis titre puis priorité de source. La Synthèse (`buildOpportunitiesSynthese`) consomme ce builder (`.slice(0,5)`) — **plus aucune logique d'échéance dupliquée**. Le Planning (Lot 9) réutilise le loader `get-opportunity-deadlines.ts`. **Remplace OPP-22.** Écart de nommage vs fiche (`type` → `source`) sans impact contrat. | § 9.6 exige un builder unique partagé Synthèse/Planning (OPP-10) ; `calendar_events` est la source d'échéance la plus fiable (donnée métier explicite, non `cancelled`). | Actée (Lot 8) |
+
+> Décisions à ajouter pendant l'audit des lots : **OPP-29+** (ex. Planning, modules contextuels).
 
 ---
 
@@ -890,7 +889,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | **DATA-01** | Quelle métrique est la **source canonique du « CA du pipe »** ? Options A (`weighted_gain` DB), B (pipe pondéré UI = `(acv ?? estimated_gain) × conviction/100`), C (brut), D (restreint périmètre staffing). | **3** | ✅ **tranché (OPP-19)** — option **B**, sur les opps à étape non terminale. Contrat = `getOpportunitiesSynthese`. Invariant `Σ catégories == KPI` testé. |
 | **DATA-02** | Quelle **population exacte du vivier** alimente le Top 5 compétences (§ 9.4) ? | **3** | ✅ **repris (Lot 3)** — définition **provisoire** du Consultants Workspace : `candidates.status = 'vivier'` (leur DATA-4, figée à leur Lot 7). `getOpportunitiesSynthese` la réutilise telle quelle, `dataNotes` le signale. Aucune définition concurrente créée. À re-synchroniser quand Consultants fige la sienne. |
 | **DATA-02b** | Critère de classement du Top 5 compétences : nombre de profils / occurrences / pondéré `importance`+`weight` / filtré `min_level` ? | **3** | ✅ **tranché (OPP-20)** — demande : `Σ (weight × importance)` (×3/×2/×1) ; vivier : nb de profils distincts. |
-| **DATA-03** | Règle d'arbitrage du concept normalisé **`OpportunityDeadline`** quand plusieurs dates existent pour une opportunité (`next_action_at`, `calendar_events.starts_at`, `target_close_date`, `start_date`, jalons staffing) ? | **8** | **ouverte** — recommandation : priorité `next_action_at` > prochain `calendar_events` > `target_close_date` ; `start_date` exclue par défaut |
+| **DATA-03** | Règle d'arbitrage du concept normalisé **`OpportunityDeadline`** quand plusieurs dates existent pour une opportunité (`next_action_at`, `calendar_events.starts_at`, `target_close_date`, `start_date`, jalons staffing) ? | **8** | ✅ **tranché (OPP-28)** — 1 échéance / opp ouverte, dates futures ou du jour, priorité `next_action_at` > prochain `calendar_events` (hors `cancelled`) > `target_close_date` ; `start_date` exclue ; jalons staffing hors périmètre V1 |
 | ~~**DATA-04**~~ | Le graphique « Processus » doit-il fusionner `stage` et `opportunity_candidates.status` ? | 0 | ✅ **tranché (OPP-09)** — non ; deux dimensions superposées, jamais confondues |
 | ~~**DATA-05**~~ | Quelle taxonomie d'étape commerciale utiliser ? | 0 | ✅ **tranché (OPP-08)** — `src/lib/opportunities/stages.ts` (`SalesStage`), pas le tableau de `CLAUDE.md` |
 

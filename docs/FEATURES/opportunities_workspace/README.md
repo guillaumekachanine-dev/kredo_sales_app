@@ -2,7 +2,7 @@
 
 > **Nom canonique :** Opportunities Workspace
 > **Nom produit affiché :** Opportunités
-> **Statut global : en implémentation (Lot 1 livré le 2026-09-09)**
+> **Statut global : en implémentation (Lots 1→8 livrés le 2026-09-09)**
 > **Branche de travail unique : `main`** (aucune feature branch)
 > **Baseline de cadrage : `61aba08ee1b35f848d223f96e08a1e1a624545ec`**
 
@@ -104,9 +104,9 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 8 — Data Contract Planning** (builder unique `OpportunityDeadline`,
-partagé Synthèse + Planning, résout DATA-03 ; voir
-`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 8).
+➡️ **Lot 9 — Planning Desktop** (Liste opps │ Planning mois/année │ Détails opp,
+sélecteur `Mois | Année`, échéances = builder `OpportunityDeadline` du Lot 8 ;
+voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 9).
 
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
@@ -128,6 +128,11 @@ partagé Synthèse + Planning, résout DATA-03 ; voir
   **QA visuelle Guillaume en attente.**
 - Lot 7 livré : chapitre Avant-vente (`PresalesDesktop`) — structure 3 panneaux + 3 vrais
   `EmptyState`, aucune donnée. PRODUCT-05 reste ouverte. **QA visuelle Guillaume en attente.**
+- Lot 8 livré : Data Contract Planning — `src/features/opportunities/planning/data/` :
+  `OpportunityDeadline` + builder pur **unique** `buildOpportunityDeadlines` + loader
+  `getOpportunityDeadlines`. **DATA-03 → OPP-28** (arbitrage `next_action_at` > prochain
+  `calendar_events` hors `cancelled` > `target_close_date` ; `start_date` jamais échéance).
+  Synthèse refactorée pour consommer ce builder (remplace OPP-22). Data-only, aucune migration.
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`

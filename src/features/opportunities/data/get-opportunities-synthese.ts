@@ -13,6 +13,7 @@ import type {
   RawSyntheseOpportunitySkill,
   RawSyntheseVivierPersonSkill,
 } from "./opportunities-synthese.types"
+import type { RawDeadlineCalendarEvent } from "../planning/data/opportunity-deadline.types"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Loader unique du chapitre Synthèse Opportunités (Lot 3).
@@ -109,20 +110,26 @@ export async function getOpportunitiesSynthese(
   )
   const vivierIdsFilter = vivierPersonIds.length > 0 ? vivierPersonIds : [NONE]
 
-  const [positioningsRes, opportunitySkillsRes, vivierSkillsRes] = await Promise.all([
-    supabase
-      .from("opportunity_candidates")
-      .select("opportunity_id, status")
-      .in("opportunity_id", openIdsFilter),
-    supabase
-      .from("opportunity_skills")
-      .select("opportunity_id, importance, weight, skill:skills ( id, name )")
-      .in("opportunity_id", openIdsFilter),
-    supabase
-      .from("person_skills")
-      .select("person_id, level, skill:skills ( id, name )")
-      .in("person_id", vivierIdsFilter),
-  ])
+  const [positioningsRes, opportunitySkillsRes, vivierSkillsRes, calendarEventsRes] =
+    await Promise.all([
+      supabase
+        .from("opportunity_candidates")
+        .select("opportunity_id, status")
+        .in("opportunity_id", openIdsFilter),
+      supabase
+        .from("opportunity_skills")
+        .select("opportunity_id, importance, weight, skill:skills ( id, name )")
+        .in("opportunity_id", openIdsFilter),
+      supabase
+        .from("person_skills")
+        .select("person_id, level, skill:skills ( id, name )")
+        .in("person_id", vivierIdsFilter),
+      supabase
+        .from("calendar_events")
+        .select("opportunity_id, event_type, status, starts_at")
+        .in("opportunity_id", openIdsFilter)
+        .gte("starts_at", referenceDate.toISOString()),
+    ])
 
   type SkillEmbed = Relation<{ id: string; name: string | null }>
 
@@ -169,6 +176,22 @@ export async function getOpportunitiesSynthese(
     })
     .filter((row) => row.skill_id !== "")
 
+  const calendarEvents: RawDeadlineCalendarEvent[] = (
+    (calendarEventsRes.data ?? []) as {
+      opportunity_id: string | null
+      event_type: string
+      status: string | null
+      starts_at: string
+    }[]
+  )
+    .filter((row): row is RawDeadlineCalendarEvent => Boolean(row.opportunity_id))
+    .map((row) => ({
+      opportunity_id: row.opportunity_id,
+      event_type: row.event_type,
+      status: row.status,
+      starts_at: row.starts_at,
+    }))
+
   return buildOpportunitiesSynthese({
     referenceDate,
     sharedKpis: {
@@ -179,6 +202,7 @@ export async function getOpportunitiesSynthese(
     positionings,
     opportunitySkills,
     vivierPersonSkills,
+    calendarEvents,
     vivierPersonCount: vivierPersonIds.length,
     offerPractices: offerPractices.map((op) => ({
       id: op.id,
