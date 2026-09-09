@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 10 — Modules contextuels (Matching profil · Simulation devis · Post-Mortem)
 Lot courant                   : aucun
 Prochain lot                  : Lot 11 — Legacy / compatibilité / navigation globale
-Dernier SHA connu origin/main : a965a94c   (2026-09-09, commit Lot 10)
+Dernier SHA connu origin/main : de2efc32   (2026-09-09, correction Lot 10)
 ```
 
 ## Table des lots
@@ -358,7 +358,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
 
 - **Commits** :
   - `a965a94c` — `feat(opportunities): modules contextuels Matching · Simulation · Post-Mortem (Lot 10)`.
-  - _(à renseigner)_ — `fix(opportunities): modules toujours visibles sur tous les chapitres (Lot 10)`.
+  - `de2efc32` — `fix(opportunities): modules toujours visibles sur tous les chapitres (Lot 10)`.
 - **QA visuelle** : réservée à Guillaume (§ 20.3) — section « Modules » du rail, ouverture des
   3 dialogs, habillage cockpit du Post-Mortem, préset Simulation depuis un besoin.
 - **NEXT LOT** : Lot 11 — Legacy / compatibilité / navigation globale (coord. SHELL-0018 Phase 6.3).
