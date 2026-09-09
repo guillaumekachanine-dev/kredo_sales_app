@@ -105,7 +105,12 @@ QA minimale :
 | **6.6** | Intégration finale Shell global ↔ Cockpit Intelligence | ✅ techniquement livré | commit `e8f5e4f6` ; `DesktopSidebar` observe directement `useIntelligencePanel.isOpen` ; `resolveDesktopSidebarCollapsed` gagne la dimension `intelligencePanelOpen` ; `IntelligencePanel` n'importe plus `useSidebarCollapse` et n'émet plus de verrou ; `CrmTabbedShell` reste le seul émetteur applicatif ; `AppShell` inchangé (Server Component). Voir §38 |
 | **6.7** | Audit de clôture Phase 6 | ✅ clôturé | audit sur `HEAD` (`2859c5bf`) ; navigation principale + URLs + collapse Shell-owned + Cockpit Intelligence global + Mobile distinct + tabs d'entités conservés : tous **PASS** ; 0 blocker ; 6 dettes NON-BLOCKING/DEFERRED. Document `10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md`. Voir §39 |
 | **Phase 6** | Refonte Shell global Desktop | ✅ **CLOSED (2026-09-09)** | doc `10-*` — invariants Shell figés |
-| **Phase 7** | Alignement fonctionnel des workspaces (7.0 → 7.10) | ⬜ todo (**prochaine phase**) | voir §34 — chapitres/modules par workspace, cible = document `09-…` ; **premier lot : 7.0 — Audit global CURRENT → TARGET** |
+| **7.0** | Audit global CURRENT → TARGET des workspaces | ✅ livré | audit sur `HEAD` (`f477f736`) ; 10 workspaces revalidés contre 09 §B/C ; impact Data/Routing/Desktop/Mobile ; blockers ; sous-lots 7.3A/B/C ; séquence Phase 7 ; `MISSION_CATALOG` = 7 specs (framework mission réutilisable) ; duplication rentabilité Finance↔Engagements confirmée. Document `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md`. Voir §40 |
+| **7.1** | Alignement Opportunités | ⬜ todo | `YES AFTER REBASELINE` — attend l'intégration de la refonte Synthèse Opportunités parallèle |
+| **7.2** | Alignement Consultants | ⬜ todo (**premier lot exécutable si 7.1 bloqué**) | `READY` — `pool-competences` chapitre → module |
+| **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
+| **7.4 → 7.9** | BI · Prospection · Rapports · Veille · Knowledge Hub · Automatisations | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
+| **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)** · **Phase 6 — ✅ CLOSED (Lot 6.7, doc `10-*`)**
 >
@@ -2134,3 +2139,91 @@ CURRENT → TARGET**. Opportunities Lot 12 / Consultants Lot 15 : **DEFERRED UNT
 
 - **Lot 6.7 — ✅ clôturé.** Commit : `docs(shell-0018): close phase 6 shell migration`.
 - **Phase 6 — ✅ CLOSED.**
+
+---
+
+## 40. Lot 7.0 — Audit global CURRENT → TARGET des workspaces
+
+> **Nature :** audit + documentation d'entrée de Phase 7. **0 code applicatif modifié.**
+> **HEAD audité :** `f477f736` — `HEAD == origin/main`.
+> **Document produit :** `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md` (référence opérationnelle
+> de la Phase 7).
+>
+> ⚠️ **Travaux parallèles préservés** — working tree dirty, jamais touché / stagé :
+> `src/features/opportunities/summary/*` (refonte Synthèse Opportunités) +
+> `src/components/agenda/*` (Agenda Mobile) + `docs/JOURNAL-SESSIONS.md`. Tous les audits portent
+> sur `HEAD`.
+
+### Portée
+
+Revalidation de la Partie C de `09-*` contre `origin/main` pour les 10 workspaces : Opportunités,
+Engagements, Consultants, Finance, Business Intelligence, Prospection, Rapports & Rédaction, Veille
+& Actualités, Knowledge Hub, Automatisations. Ajout des couches d'exécution : impact Data (DATA-0→3),
+Routing (URL-0→3), Desktop/Mobile, blockers, séquençage, critères d'acceptation par lot.
+
+### Résultats clés
+
+| Constat | Détail |
+|---|---|
+| **Partie C du 09 confirmée** | Tous les pointeurs de preuve (`opportunities-sections.ts`, `consultants-sections.ts`, `BI_CHAPTERS`, `FINANCE_DESKTOP_CHAPTERS`, `EngagementsDesktopView`, `PROSPECTION_DESKTOP_CHAPTERS`, `REPORTS_/VEILLE_/AUTOMATIONS_DESKTOP_CHAPTERS`, `knowledge-hub-shell-data.ts`) existent à `HEAD` et correspondent. |
+| **Majorité de renames purs** | BI, Rapports, Veille, Knowledge Hub, Automatisations, Opportunités = `DATA-0 / URL-0`, complexité LOW. |
+| **`MISSION_CATALOG` = 7 specs** (pas 1 — `CLAUDE.md` périmé) | `veille-analyse-mensuelle`, `rentabilite-portefeuille`, `activation-portefeuille`, `capacite-staffing`, `revue-compte-client`, `post-mortem-commercial`, `funnel-recrutement`. `MissionComposerDesktop` = **framework mission commun réutilisable** (déjà branché : Opportunités `post-mortem`). Les modules cibles « Mission : … » passent de `NEW` pur à `NEW/FUTURE avec framework REUSE`. |
+| **Duplication rentabilité Finance ↔ Engagements** | `getFinanceDashboardData()` (`src/lib/finance/finance-data.ts`) et `getEngagementsActivityAnalytics()` (`src/app/(app)/missions/_data/`) lisent séparément `missions`/`mission_activity_reports` et recalculent la marge. → **7.3A = DATA-2** (vue `v_mission_profitability` recommandée ou builder partagé). **NEEDS DATA DECISION.** |
+| **Prospection = workspace coquille** | `chapter_1` / `chapter_2` / `chapter_3` sont des panneaux **vides** (« Cette page est actuellement vide »). Seul `strategy` (Brief) a du contenu. Mobile = placeholder statique. La cible 09 §B.6 est de la **construction**, pas de l'alignement → **7.5 NEEDS PRODUCT DECISION**, à re-séquencer en fin de phase. |
+| **2 transformations chapitre → module** | Consultants `pool-competences` (7.2, URL-2, code `skills/` conservé) et Prospection `chapter_3` Playbooks (7.5). |
+| **Adaptive Design** | Tous les workspaces ont Desktop + Mobile réels **sauf Prospection** (stub). `production-leave` / `profile-matching` ont Desktop **et** Mobile → REUSE propre pour Engagements. `BI_CHAPTERS[].mobileLabel` déjà découplé du `label` Desktop. |
+
+### Blockers
+
+| Blocker | Impact | Résolution |
+|---|---|---|
+| Refonte Synthèse Opportunités parallèle (`src/features/opportunities/summary/`) | **7.1** — chapitre `synthese` → « Vue d'ensemble » | Attendre merge/rebaseline. Les 6 autres renames 7.1 sont indépendants. |
+| Décision Data 7.3A (vue vs builder partagé) | **7.3** | Arbitrage avant 7.3A. |
+| Contenu Prospection `chapter_1/2/3` | **7.5** | Décision produit : apporter le contenu ou classer `NEW/FUTURE`. |
+
+### Séquence Phase 7 recommandée
+
+`7.2 → 7.4 → 7.8 → 7.9 → 7.6 → 7.7 → [7.1 dès rebaseline] → 7.3A → 7.3B → 7.3C → 7.5 → 7.10`
+(l'ordre 09 §E.2 reste respecté pour les dépendances réelles : 7.6 avant 7.7, 7.3 coordonné en
+sous-lots, 7.10 dernier ; les lots LOW/`READY` sont avancés pendant que la refonte Synthèse se
+stabilise et que 7.3A est instruite).
+
+### Go / No-Go
+
+- **7.1 Opportunités** : `YES AFTER REBASELINE`.
+- **7.2 Consultants** : `YES` — **premier lot exécutable** si 7.1 reste bloqué (indépendance prouvée).
+- **7.3A** : `NO — DATA DECISION REQUIRED`.
+- **7.5 Prospection** : `NO — PRODUCT DECISION REQUIRED`.
+- **7.4 / 7.6 / 7.8 / 7.9** : `YES`. **7.7** : `YES` après 7.6.
+
+### Fichiers modifiés (documentation uniquement)
+
+- `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md` — **créé**
+- `03-IMPLEMENTATION-LEDGER.md` — tableau des Lots + présente section §40
+- `README.md` — ordre de lecture (ajout doc 11) + statut Phase 7
+
+**0 fichier `.ts` / `.tsx` / `.css` / `.sql` / JSON applicatif modifié.**
+
+### Gates
+
+- `git diff --check` : **passé**
+- `git rev-parse HEAD == git rev-parse origin/main` : **vrai**
+- `npx vitest run` (navigation : `main-menu.config`, `opportunities/navigation`,
+  `consultants/navigation`, `business-intelligence/navigation`) : **4 fichiers / 73 tests passés**
+- Aucun build : 0 code applicatif modifié.
+
+### Dettes relevées (à traiter en lot, hors 7.0)
+
+`CLAUDE.md` périmé sur `MISSION_CATALOG` · duplication rentabilité (7.3A) · Prospection coquille +
+Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renommer — compat) ·
+`Business Review` / `Atlas du portefeuille` = `NEW/FUTURE` différables.
+
+### Prochain lot
+
+- **Phase 7.2 — Alignement Consultants** (si 7.1 bloqué par la refonte Synthèse) **ou**
+  **Phase 7.1 — Alignement Opportunités** dès rebaseline.
+
+### Verdict
+
+- **Lot 7.0 — ✅ livré.** Commit : `docs(phase-7): audit workspace target alignment`.
+- **Phase 7 — ▶️ ENTRY AUDIT COMPLET. Implémentation prête (hors 7.1/7.3A/7.5 en attente de décision/rebaseline).**

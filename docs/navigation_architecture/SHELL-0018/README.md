@@ -1,10 +1,11 @@
 # SHELL-0018 — Hub canonique du chantier V2
 
-> **Statut : actif — Phase 6 (Shell global) ✅ CLOSED le 2026-09-09 ; Phase 7 (alignement fonctionnel des workspaces) à démarrer**
+> **Statut : actif — Phase 6 (Shell global) ✅ CLOSED le 2026-09-09 ; Phase 7 (alignement fonctionnel des workspaces) — audit d'entrée livré (Lot 7.0)**
 > **Baseline : 2026-09-07**  
 > **Branche de travail unique : `main`**
 > **Point de départ Git : `d9c7fc9edb9d35cc6d2fc889d9e251ad0fa311a1`**
 > **Clôture Phase 6 : `10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md`**
+> **Plan d'exécution Phase 7 : `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md`**
 
 Ce dossier est désormais le **point d'entrée obligatoire** de tout agent intervenant sur SHELL-0018 et sur la standardisation de la navigation secondaire Desktop.
 
@@ -27,7 +28,8 @@ Les anciens documents SHELL-0018 datés d'août 2026 restent dans le dépôt à 
 2. `02-SECONDARY-RAIL-STANDARD.md` — standard `SectionRail` (non supersédé)
 3. **`09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` — architecture cible finale (menu + workspaces)**
 4. **`10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md` — preuve de conformité technique du Shell (Phase 6 CLOSED)**
-5. `03-IMPLEMENTATION-LEDGER.md` — journal d'implémentation détaillé lot par lot
+5. **`11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md` — plan d'exécution Phase 7 (CURRENT → TARGET, lots 7.1 → 7.10)**
+6. `03-IMPLEMENTATION-LEDGER.md` — journal d'implémentation détaillé lot par lot
 
 **Historique (consultable, non normatif) :** `00-CURRENT-STATE-AUDIT-2026-09-07.md`,
 `04-CURRENT-NAVIGATION-INVENTORY.md`, `05-CONTEXTUAL-MODULES-MATRIX.md`,
