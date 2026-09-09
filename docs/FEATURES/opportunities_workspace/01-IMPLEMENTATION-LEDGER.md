@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 2 — Primitive/layout 3 panneaux
+Dernier lot livré             : Lot 3 — Data Contract Synthèse
 Lot courant                   : aucun
-Prochain lot                  : Lot 3 — Data Contract Synthèse
-Dernier SHA connu origin/main : 653eb736   (2026-09-09, commit Lot 2)
+Prochain lot                  : Lot 4 — Synthèse Desktop
+Dernier SHA connu origin/main : __LOT3_SHA__   (2026-09-09, commit Lot 3)
 ```
 
 ## Table des lots
@@ -25,7 +25,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 0 | Cadrage documentaire | ✅ techniquement livré | `e7f0f79f` | Dossier `docs/FEATURES/opportunities_workspace/` + doc de référence + ledger + inventaire code/Data (§ 15) + roadmap 0→12 + DECISION LOG OPP-01→OPP-16 + OPEN QUESTIONS (DATA/PRODUCT/NAVIGATION/LEGACY/CROSS-FEATURE). **Aucun code applicatif.** |
 | 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `2f106d70` + `570306a0` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ✅ techniquement livré | `653eb736` | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). Props `list` / `main` / `details?` / `detailsEmpty?` / `ariaLabel?` / `className?`. Rail droit → `<aside aria-hidden />` si `details` absent. **Aucun consommateur ce lot** (chapitres = Lots 6/7/9). |
-| 3 | Data Contract Synthèse (view-model serveur unique) | ⬜ todo | — | **Résout DATA-01 → OPP-17.** Réutilise `getNeedsStaffingSharedData` pour KPI 1 & 2. Aucune migration. |
+| 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `__LOT3_SHA__` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
 | 4 | Synthèse Desktop | ⬜ todo | — | KPI + graphique pipe + compétences + processus + 5 échéances. SVG maison. |
 | 5 | Data/detail Besoins & staffing | ⬜ todo | — | Réutilise loaders existants, évite les doubles queries. |
 | 6 | Migration UI Besoins & staffing | ⬜ todo | — | Liste │ Détail │ « Staffing en cours ». **Résout PRODUCT-02/03/04, NAVIGATION-02, LEGACY-05.** Parité prouvée. |
@@ -58,6 +58,10 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-16 | Compat URLs legacy `scope` : `?scope=needs` et `?scope=staffing` → `section=besoins` (staffing = rail droit) ; résolution au parsing, redirection permanente pour les points d'entrée durs | 0 |
 | OPP-17 | `buildOpportunitiesSectionHref` supprime, au changement de chapitre, `section` + les params métier legacy `scope/view/stage/priority/practice/sort/direction` ; les autres query params (tiers) sont préservés | 1 |
 | OPP-18 | Retrait de `(tabbed)/opps/page.tsx` fait AU Lot 1 (Next.js interdit 2 `page.tsx` sur `/missions/opps`) ; parité = `NeedsStaffingWorkspace` monté tel quel ; shell alimenté par prop `searchParamsString`, pas `useSearchParams()` | 1 |
+| OPP-19 | DATA-01 : « CA du pipe » = option B — `Σ ((acv ?? estimated_gain ?? 0) × conviction/100)` sur opps à étape non terminale. `getOpportunitiesSynthese` = contrat canonique. Réconcilie LEGACY-04. | 3 |
+| OPP-20 | DATA-02b : Top compétences — demande classée par `Σ (weight × importance)` (×3/×2/×1), vivier par nb de profils distincts. Top 5 chacun. | 3 |
+| OPP-21 | PRODUCT-01 (affichage) : 5 buckets `identifie/propose/envoye_client/entretien/retenu` superposés à `stages.ts`, jamais fusionnés (OPP-09) ; terminaux négatifs hors entonnoir. Aucune écriture DB. | 3 |
+| OPP-22 | Échéances Synthèse provisoires : `next_action_at` sinon `target_close_date` (jamais `start_date`), futures, tri ASC, LIMIT 5. `calendar_events` + concept canonique `OpportunityDeadline` = Lot 8 (DATA-03). | 3 |
 
 ## Questions ouvertes en cours
 
@@ -66,13 +70,13 @@ canonique § 17.
 
 | ID | Résumé | Lot cible | Statut |
 |---|---|---|---|
-| DATA-01 | Source canonique du « CA du pipe » (A `weighted_gain` DB / B pipe pondéré UI / C brut / D restreint) | 3 | **ouverte** — bloque la Synthèse UI |
-| DATA-02 | Population exacte du vivier alimentant le Top 5 compétences | 3 | **déléguée** au Consultants Workspace (C-16/C-26) |
-| DATA-02b | Critère de classement du Top 5 compétences (nb profils / occurrences / pondéré / min_level) | 3 | **ouverte** |
+| DATA-01 | Source canonique du « CA du pipe » | 3 | ✅ **tranché (OPP-19)** — option B, opps non terminales |
+| DATA-02 | Population exacte du vivier alimentant le Top compétences | 3 | ✅ **repris (Lot 3)** — contrat provisoire Consultants `candidates.status='vivier'` ; re-sync au Consultants Lot 7 |
+| DATA-02b | Critère de classement du Top compétences | 3 | ✅ **tranché (OPP-20)** |
 | DATA-03 | Règle d'arbitrage `OpportunityDeadline` en cas de dates multiples | 8 | **ouverte** |
 | ~~DATA-04~~ | Fusion `stage` + `opportunity_candidates.status` dans le graphique Processus ? | 0 | ✅ tranché (OPP-09) — non |
 | ~~DATA-05~~ | Taxonomie d'étape commerciale | 0 | ✅ tranché (OPP-08) — `stages.ts` |
-| PRODUCT-01 | Représentation unifiée `stage` + `status` (buckets de progression) | 3 | **ouverte** |
+| PRODUCT-01 | Représentation unifiée `stage` + `status` (buckets de progression) | 3 | ✅ **volet affichage tranché (OPP-21)** — 5 buckets ; unification *stockée* hors périmètre |
 | PRODUCT-02 | Quelles capacités Kanban survivent après la refonte | 6 | **ouverte** |
 | PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 6 / 9 | **ouverte** — reco : oui |
 | PRODUCT-04 | Forme du détail besoin (inline / drawer / `OpportunityDetailView`) | 6 | **ouverte** |
@@ -83,7 +87,7 @@ canonique § 17.
 | LEGACY-01 | Consommateurs restants de `missions/(tabbed)` bloquant le retrait de `SectionNavBarSlot` | 11 | **partiellement audité** — `actives` + `projets` restent ; retrait global = Phase 6 |
 | LEGACY-02 | `OpportunitiesDesktopView.tsx` orphelin — suppression | 12 | **ouverte** |
 | LEGACY-03 | Composants `src/components/staffing/` encore montés après migration | 6 / 12 | **ouverte** |
-| LEGACY-04 | `OpportunitiesKpiSection.tsx` (`getWeightedValue`) — réconcilier ou déprécier | 3 | **ouverte** — dépend de DATA-01 |
+| LEGACY-04 | `OpportunitiesKpiSection.tsx` (`getWeightedValue`) — réconcilier ou déprécier | 3 | ✅ **réconcilié (OPP-19)** — sa formule devient le contrat canonique ; composant déprécié au Lot 6/12 |
 | LEGACY-05 | HEX en dur dans `NeedsStaffingWorkspace.tsx` → variables `@theme` | 6 | **ouverte** |
 | CROSS-01 | Point d'entrée partagé propre pour « Matching profil » | 10 | **ouverte** |
 | CROSS-02 | Launcher officiel de `post-mortem-commercial` depuis un module contextuel | 10 | **ouverte** |
@@ -253,6 +257,75 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 3 — Data Contract Synthèse — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : view-model **serveur unique** du chapitre Synthèse — builder pur testé
+  + loader mince `server-only` (patron `buildConsultantsSynthese`). Pas d'UI.
+
+- **Audit Data live (2026-09-09, Supabase MCP)** : schéma `opportunities` /
+  `opportunity_skills` / `opportunity_candidates` / `person_skills` / `candidates`
+  conforme au § 8. `opportunities` = 32 lignes, **5 ouvertes** (étape ∉
+  `gagne/perdu/abandonne/non_traitee`) : `recherche_profil` ×2, `cv_envoyes` ×1,
+  `qualification` ×1, `contractualisation` ×1. **1 opp ouverte sans ACV ni gain
+  estimé**, **3 sans practice**. `opportunity_candidates` sur opps ouvertes = 2
+  positionnements seulement. `candidates.status='vivier'` = 11 (tous avec `person_skills`).
+  `importance` ∈ {indispensable, souhaitee, bonus}. Aucune divergence de schéma.
+
+- **Fichiers créés** :
+  - `src/features/opportunities/data/opportunities-synthese.types.ts` — view-model
+    (`OpportunitiesSyntheseViewModel`) : `kpis` (openNeedsCount, activePositioningsCount,
+    pipeWeightedValue, openOpportunitiesCount), `pipeByStage` / `pipeByClient` /
+    `pipeByPractice`, `skillsDemand` / `skillsSupply` (Top 5), `staffingFunnel` +
+    `processByOpportunity`, `upcomingDeadlines`, `dataNotes`. + types de lignes brutes
+    + `BuildOpportunitiesSyntheseInput`.
+  - `src/features/opportunities/data/build-opportunities-synthese.ts` — builder PUR
+    (aucune dépendance Supabase). Cascade practice C-17 (exact `offer_practices.name`
+    normalisé → `getPracticeByName` → `null`). Invariant `Σ pipeByStage == Σ pipeByClient
+    == Σ pipeByPractice == kpis.pipeWeightedValue`. Exporte `STAFFING_FUNNEL_LABELS` +
+    `IMPORTANCE_WEIGHT` pour l'UT / l'UI Lot 4.
+  - `src/features/opportunities/data/get-opportunities-synthese.ts` — loader `server-only` :
+    `getOfferPracticesCatalog` (cache 1h) + `getNeedsStaffingSharedData` (KPI 1 & 2, **non
+    recalculés**) + 1 lecture `opportunities` puis 3 lectures ciblées sur les IDs ouverts
+    (`opportunity_candidates`, `opportunity_skills`) et sur les `person_id` vivier
+    (`person_skills`). `resolveCurrentWorkspaceId` en garde.
+  - `src/features/opportunities/data/__tests__/build-opportunities-synthese.test.ts` —
+    ~18 cas : passthrough KPI 1 & 2, formule DATA-01/option B, **invariant somme pipe**,
+    pipe par étape (0 inclus) / client (bucket non renseigné) / practice (exact +
+    heuristique + « Autre » en dernier), Top compétences (pondération importance, Top 5,
+    exclusion opps terminales, profils distincts vivier), buckets staffing (mapping,
+    terminaux négatifs hors entonnoir, ordre canonique, 0 inclus), échéances (priorité
+    `next_action_at`, exclusion passé, tri, LIMIT 5), `dataNotes`.
+
+- **Décisions actées** : **OPP-19** (DATA-01 = option B), **OPP-20** (DATA-02b),
+  **OPP-21** (PRODUCT-01 volet affichage — buckets staffing), **OPP-22** (échéances
+  provisoires). Le doc canonique nommait « OPP-17 » pour DATA-01 ; OPP-17/18 ayant été
+  pris au Lot 1, DATA-01 devient **OPP-19** (Decision Log + fiche corrigés).
+
+- **Questions traitées** : DATA-01 ✅ (OPP-19), DATA-02b ✅ (OPP-20), PRODUCT-01 volet
+  affichage ✅ (OPP-21), LEGACY-04 ✅ réconciliée. DATA-02 : reprise du contrat
+  **provisoire** Consultants (`candidates.status='vivier'`), signalée dans `dataNotes`,
+  à re-synchroniser au Consultants Lot 7.
+
+- **Dettes / reports** :
+  - Échéances : version provisoire (`opportunities` seul). `calendar_events` + concept
+    canonique `OpportunityDeadline` partagé Synthèse/Planning = **Lot 8** (DATA-03).
+  - `OpportunitiesKpiSection.tsx` non touché : reste monté par le workspace legacy,
+    déprécié au Lot 6 puis retiré au Lot 12.
+  - Aucune UI (Lot 4).
+  - `.next/` : `rm -rf .next` avant `typecheck` (cache de types) — sans impact CI.
+
+- **Gates réellement exécutées** (dans l'ordre, toutes vertes) :
+  - `npm run typecheck` — ✅.
+  - `npx vitest run src/features/opportunities/` — ✅ (3 fichiers, 48 tests). Régression :
+    `+ src/features/consultants/data/ src/lib/needs-staffing/` — ✅ (8 fichiers, 78).
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint src/features/opportunities/data/` — ✅ (0 warning).
+  - `npm run build` — ✅ « Compiled successfully ».
+- **QA visuelle** : réservée à Guillaume (§ 20.3).
+
+- **Commit** : `__LOT3_SHA__` — `feat(opportunities): data contract Synthèse (Lot 3)`.
+- **NEXT LOT** : Lot 4 — Synthèse Desktop (KPI + graphiques SVG maison + tableau échéances).
 
 ### Lot 2 — Primitive/layout 3 panneaux — ✅ techniquement livré (2026-09-09)
 

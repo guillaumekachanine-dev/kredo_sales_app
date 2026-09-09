@@ -860,8 +860,13 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | **OPP-17** | **`buildOpportunitiesSectionHref` nettoie l'état du chapitre frère.** Au changement de chapitre, le builder supprime `section` **et** les paramètres métier legacy `scope` · `view` · `stage` · `priority` · `practice` · `sort` · `direction` ; tous les autres query params (tiers) sont strictement préservés. La compat `scope` reste assurée **en entrée** par `parseOpportunitiesSection` (OPP-16). | Ces paramètres décrivent l'état interne du seul chapitre Besoins ; les traîner sur Synthèse / Planning / Avant-vente n'a pas de sens et brouille le deep-link. | Actée (Lot 1) |
 | **OPP-18** | **Le retrait de `src/app/(app)/missions/(tabbed)/opps/page.tsx` est fait AU Lot 1**, pas différé à un « Lot 1.1 ». Next.js interdit deux `page.tsx` résolvant `/missions/opps` (les route groups ne changent pas le pathname) : conserver l'ancienne route ferait échouer `next build`. Parité assurée par montage direct et inchangé de `NeedsStaffingWorkspace` (mêmes loaders, mêmes props, même branche mobile) dans le chapitre `besoins`. Le shell est alimenté par une prop `searchParamsString` (query relue côté serveur), pas par `useSearchParams()` — évite une Suspense boundary, navigation 100 % URL-driven. | Contrainte technique Next.js ; la fiche Lot 1 (« peut rester un lot 1.1 si prudence ») n'est pas applicable. | Actée (Lot 1) |
 
-> Décisions à ajouter pendant l'audit des lots : **OPP-19+** (ex. sort de la Synthèse UI de
-> `OpportunitiesKpiSection`, forme du détail besoin, résolution DATA-01, sort du Kanban).
+| **OPP-19** | **DATA-01 tranchée — « CA du pipe » = option B.** `Σ ((acv ?? estimated_gain ?? 0) × conviction/100)` sur les opportunités dont l'étape n'est **pas terminale** (`isTerminalOpportunityStage`, `non_traitee` incluse dans les terminales). C'est la formule incumbent `OpportunitiesKpiSection.getWeightedValue`. Le graphique Pipe (client / practice / étape) partage la **même mesure** — invariant `Σ catégories == KPI` testé. **Réconcilie LEGACY-04** : le view-model Synthèse `getOpportunitiesSynthese` est le contrat canonique ; `OpportunitiesKpiSection` reste en place jusqu'au Lot 6 puis est déprécié. | Meilleure couverture (`acv` 31/32, fallback gain estimé, sinon 0 → aucune valeur NULL, contre 3 NULL pour l'option A) ; continuité avec l'UI existante. | Actée (Lot 3) |
+| **OPP-20** | **DATA-02b tranchée — classement du Top compétences.** *Demandées* : `Σ (opportunity_skills.weight × poids d'importance)` sur les opportunités ouvertes, `indispensable ×3 · souhaitée ×2 · bonus ×1` ; départage par nombre d'opportunités distinctes. *Vivier* : nombre de **profils distincts** portant la compétence ; départage par `Σ level`. Top 5 de chaque côté. | Recommandation § 9.4 retenue : la demande porte une intensité (poids + criticité), l'offre se compte en têtes. | Actée (Lot 3) |
+| **OPP-21** | **PRODUCT-01 (volet affichage) — taxonomie de progression staffing.** 5 buckets explicites, superposés à l'étape commerciale `stages.ts`, **jamais fusionnés** (OPP-09) : `identifie` ← `identifie` · `propose` ← `propose_interne`/`preselectionne` · `envoye_client` ← `envoye_client` · `entretien` ← `entretien_planifie`/`entretien_realise` · `retenu` ← `retenu`/`gagne`. Les statuts terminaux négatifs (`refuse_client` · `refuse_candidat` · `abandonne`) sont **hors entonnoir**, comptés à part (`excludedPositioningsCount`). C'est un modèle d'**affichage**, aucune écriture DB, aucune nouvelle colonne. | Le graphique « Processus » (§ 9.5) exige des buckets déterministes ; le vocabulaire staffing DB reste inchangé. | Actée (Lot 3) |
+| **OPP-22** | **Échéances Synthèse — règle provisoire.** `getOpportunitiesSynthese.upcomingDeadlines` : `next_action_at` sinon `target_close_date` (jamais `start_date`), `dueAt >= referenceDate`, tri ASC, LIMIT 5, opps ouvertes. `calendar_events` **hors périmètre du Lot 3** (data scope de la fiche). Le concept canonique `OpportunityDeadline` (arbitrage multi-sources incl. `calendar_events`, partagé Synthèse/Planning — OPP-10) est arrêté au **Lot 8** (DATA-03) et remplacera ce champ. | La fiche Lot 3 couvre « 5 prochaines échéances » mais son data scope exclut `calendar_events` ; DATA-03 est explicitement un lot 8. | Actée (Lot 3) |
+
+> Décisions à ajouter pendant l'audit des lots : **OPP-23+** (ex. forme du détail besoin,
+> sort du Kanban, modules contextuels).
 
 ---
 
@@ -876,9 +881,9 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 | ID | Question | Lot cible | Statut |
 |---|---|---|---|
-| **DATA-01** | Quelle métrique est la **source canonique du « CA du pipe »** ? Options A (`weighted_gain` DB), B (pipe pondéré UI = `(acv ?? estimated_gain) × conviction/100`), C (brut), D (restreint périmètre staffing). Impact : le graphique Pipe (§ 9.3) doit sommer à la même valeur. | **3** | **ouverte** — arbitrage produit + Data requis ; la Synthèse UI est bloquée tant que non tranchée |
-| **DATA-02** | Quelle **population exacte du vivier** alimente le Top 5 compétences (§ 9.4) ? | **3** | **déléguée** — réutiliser la définition canonique du Consultants Workspace (C-16 / C-26). Lire `docs/FEATURES/consultants_workspace/` avant de figer le dataset. Ne pas recréer de définition concurrente. |
-| **DATA-02b** | Critère de classement du Top 5 compétences : nombre de profils / occurrences / pondéré `importance`+`weight` / filtré `min_level` ? | **3** | **ouverte** — recommandation : nb de profils distincts (offre), pondéré `weight`+`importance` (demande) ; à justifier au Lot 3 |
+| **DATA-01** | Quelle métrique est la **source canonique du « CA du pipe »** ? Options A (`weighted_gain` DB), B (pipe pondéré UI = `(acv ?? estimated_gain) × conviction/100`), C (brut), D (restreint périmètre staffing). | **3** | ✅ **tranché (OPP-19)** — option **B**, sur les opps à étape non terminale. Contrat = `getOpportunitiesSynthese`. Invariant `Σ catégories == KPI` testé. |
+| **DATA-02** | Quelle **population exacte du vivier** alimente le Top 5 compétences (§ 9.4) ? | **3** | ✅ **repris (Lot 3)** — définition **provisoire** du Consultants Workspace : `candidates.status = 'vivier'` (leur DATA-4, figée à leur Lot 7). `getOpportunitiesSynthese` la réutilise telle quelle, `dataNotes` le signale. Aucune définition concurrente créée. À re-synchroniser quand Consultants fige la sienne. |
+| **DATA-02b** | Critère de classement du Top 5 compétences : nombre de profils / occurrences / pondéré `importance`+`weight` / filtré `min_level` ? | **3** | ✅ **tranché (OPP-20)** — demande : `Σ (weight × importance)` (×3/×2/×1) ; vivier : nb de profils distincts. |
 | **DATA-03** | Règle d'arbitrage du concept normalisé **`OpportunityDeadline`** quand plusieurs dates existent pour une opportunité (`next_action_at`, `calendar_events.starts_at`, `target_close_date`, `start_date`, jalons staffing) ? | **8** | **ouverte** — recommandation : priorité `next_action_at` > prochain `calendar_events` > `target_close_date` ; `start_date` exclue par défaut |
 | ~~**DATA-04**~~ | Le graphique « Processus » doit-il fusionner `stage` et `opportunity_candidates.status` ? | 0 | ✅ **tranché (OPP-09)** — non ; deux dimensions superposées, jamais confondues |
 | ~~**DATA-05**~~ | Quelle taxonomie d'étape commerciale utiliser ? | 0 | ✅ **tranché (OPP-08)** — `src/lib/opportunities/stages.ts` (`SalesStage`), pas le tableau de `CLAUDE.md` |
@@ -887,7 +892,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 | ID | Question | Lot cible | Statut |
 |---|---|---|---|
-| **PRODUCT-01** | Quelle **représentation unifiée** pour `opportunity.stage` + `opportunity_candidates.status` dans le graphique « Processus » (buckets de progression staffing, libellés, ordre) ? | **3** | **ouverte** — modèle proposé § 9.5 ; buckets à décider explicitement |
+| **PRODUCT-01** | Quelle **représentation unifiée** pour `opportunity.stage` + `opportunity_candidates.status` dans le graphique « Processus » (buckets de progression staffing, libellés, ordre) ? | **3** | ✅ **volet affichage tranché (OPP-21)** — 5 buckets `identifie/propose/envoye_client/entretien/retenu` superposés à `stages.ts`, jamais fusionnés ; terminaux négatifs hors entonnoir. Modèle d'affichage, aucune écriture DB. Une éventuelle unification **stockée** reste ouverte (hors périmètre de ce chantier). |
 | **PRODUCT-02** | Quelles **capacités Kanban actuelles** doivent survivre après la refonte (Kanban besoins, Kanban staffing, flip besoin↔candidat) — mode secondaire du chapitre Besoins ou dépréciation ? | **6** | **ouverte** — pas de suppression sans décision (OPP-15) |
 | **PRODUCT-03** | La **sélection d'entité** (besoin / opportunité) doit-elle être **URL-addressable** (`?opp=<id>`, patron `/reports?doc=`) pour être partagée entre Liste / Planning / Détails ? | **6 / 9** | **ouverte** — recommandation : oui |
 | **PRODUCT-04** | Forme du **détail besoin** dans la surface centrale : panneau inline, drawer `AssistanceCaseDrawer`, ou réemploi de `OpportunityDetailView` (route `[id]`) ? | **6** | **ouverte** |
@@ -908,7 +913,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 | **LEGACY-01** | Quels consommateurs utilisent encore le shell `missions/(tabbed)` après la sortie de `/missions/opps` ? (`/missions/actives`, `/missions/projets`, `MissionsTabbedShell`, `MissionsEntityPanel`, `useMissionsTabStore`) — et lesquels bloquent le retrait de `SectionNavBarSlot` ? | **11** (coord. SHELL-0018 Phase 6.3) | **partiellement audité** — `/missions/actives` + `/missions/projets` restent consommateurs ; retrait global = Phase 6 |
 | **LEGACY-02** | `src/components/missions/OpportunitiesDesktopView.tsx` — orphelin confirmé (0 import externe) : suppression au Lot 12 ? | **12** | **ouverte** — supprimer après parité |
 | **LEGACY-03** | `src/components/staffing/` — quels composants (`StaffingTabbedShell`, `StaffingDesktopView`, `StaffingDesktopDashboard`, `StaffingMobile*`) sont encore montés une fois `/missions/opps` migré et `/staffing` repointé ? | **6 / 12** | **ouverte** — audit des consommateurs réels |
-| **LEGACY-04** | `OpportunitiesKpiSection.tsx` (`getWeightedValue` = option B de DATA-01) : réconcilier avec le view-model Synthèse ou déprécier ? | **3** | **ouverte** — dépend de DATA-01 |
+| **LEGACY-04** | `OpportunitiesKpiSection.tsx` (`getWeightedValue` = option B de DATA-01) : réconcilier avec le view-model Synthèse ou déprécier ? | **3** | ✅ **réconcilié (OPP-19)** — sa formule **devient** le contrat canonique (`getOpportunitiesSynthese`). Le composant reste monté par le workspace legacy jusqu'au Lot 6, puis déprécié (LEGACY-02/03 batch Lot 12). |
 | **LEGACY-05** | HEX en dur dans `NeedsStaffingWorkspace.tsx` (`#FFC107`, `#9C27B0`, `#607D8B`, `#FF5252`…) — mapper vers des variables `@theme` lors de la migration. | **6** | **ouverte** — dette à résorber, pas à recopier |
 
 ### CROSS-FEATURE
@@ -1077,7 +1082,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Objectif** : view-model **serveur unique** de la Synthèse, **builder pur testé** + loader
   mince `server-only` (patron `buildConsultantsSynthese`). Couvre : 3 KPI, répartition pipe
   (Clients/Practices), top compétences (demandées VS vivier), progression processus par
-  opportunité, 5 prochaines échéances. **Résout DATA-01** (inscrit OPP-17). Aucune UI majeure.
+  opportunité, 5 prochaines échéances. **Résout DATA-01** (inscrit **OPP-19** — OPP-17/18 pris au Lot 1). Aucune UI majeure.
 - **État d'entrée** : Lot 1 livré.
 - **Prérequis** : § 9 de ce document ; `get-needs-staffing-shared.ts` ; `coverage.ts` ;
   `stages.ts` ; `src/lib/config/practices.ts` ; `docs/FEATURES/consultants_workspace/`
@@ -1092,7 +1097,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Réutilisations obligatoires** : `getNeedsStaffingSharedData` pour KPI 1 & 2 (ne pas
   recalculer) ; cascade practice C-17 du Consultants Workspace ; définition vivier canonique.
 - **Hors périmètre** : graphiques, composants.
-- **Critères d'acceptation** : DATA-01 tranchée et inscrite au Decision Log (OPP-17) ;
+- **Critères d'acceptation** : DATA-01 tranchée et inscrite au Decision Log (OPP-19) ;
   KPI 1 & 2 = valeurs de `getNeedsStaffingSharedData` (test d'égalité) ; `Σ KPI CA du pipe ==
   Σ catégories du graphique pipe` (test, aux arrondis près) ; `stage` et
   `opportunity_candidates.status` restent deux champs distincts dans le view-model (OPP-09) ;
@@ -1100,8 +1105,9 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 - **Tests** : builder pur (fixtures) — KPI, pipe par client/practice, top compétences,
   processus, échéances, invariant somme.
 - **Gates** : `typecheck` → test ciblé → `check:server-boundary` → `eslint` → `build`.
-- **Documentation** : ledger § Lot 3 ; Decision Log OPP-17 (DATA-01) ; DATA-02/02b, PRODUCT-01,
-  LEGACY-04 résolues ou reportées avec justification.
+- **Documentation** : ledger § Lot 3 ; Decision Log OPP-19 (DATA-01), OPP-20 (DATA-02b),
+  OPP-21 (PRODUCT-01 affichage), OPP-22 (échéances provisoires) ; DATA-02 reprise du contrat
+  provisoire Consultants ; LEGACY-04 réconciliée.
 - **Conditions de sortie** : gates vertes ; commit + push.
 - **Lot suivant** : Lot 4.
 
