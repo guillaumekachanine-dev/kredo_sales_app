@@ -288,9 +288,14 @@ lisent le statut sur `collaborators.status` via `isCollaboratorStaffed`.
 
 ## 8. Cible fonctionnelle — Graphique 1 : répartition par Practice
 
-- Section graphique de la Synthèse avec **sélecteur `Collaborateurs | Candidats`**.
-- Répartition des personnes par **Practice de rattachement**.
-- **SVG maison Desktop / barres HTML+Tailwind Mobile.** Aucune bibliothèque.
+- **Double voie** : une ligne par practice affiche simultanément les collaborateurs (voie pleine)
+  et les candidats rattachés (voie outline), sur une échelle commune à l'ensemble des practices.
+- Les valeurs sont directement lisibles ; aucun sélecteur et aucune information essentielle au hover.
+- La colonne finale porte les **recrutés YTD** par practice, issus des processus `hired` clôturés
+  dans l'année civile de référence. Ce n'est ni un ratio ni une troisième voie.
+- Desktop : la visualisation est le panneau analytique principal ; Mobile : liste verticale dédiée,
+  sans tableau horizontal.
+- **HTML/Tailwind local** pour les pistes simples ; aucune bibliothèque graphique.
 
 ### Source canonique de la Practice — ✅ **résolu (Lot 2, DATA-2 → C-17)**
 
@@ -317,6 +322,18 @@ lisent le statut sur `collaborators.status` via `isCollaboratorStaffed`.
 « Autre » ; une `dataNote` du view-model le signale. **Dette future** (hors périmètre, non
 bloquante) : ajouter `collaborators.practice_id` (FK) + backfill pour supprimer l'heuristique —
 candidat à un sous-lot dédié si le besoin de précision augmente.
+
+### Recrutés YTD par practice — décision C-33
+
+La source est `candidate_hiring_processes.status = 'hired'` avec `closed_at` dans l'année civile
+de référence, identique au KPI global C-16. Rattachement déterministe :
+
+1. `candidate_hiring_processes.job_profile_id → job_profiles.practice_id → offer_practices` ;
+2. fallback `candidate_hiring_processes.candidate_id → candidates.practice_id` ;
+3. sinon bucket `Autre / non rattaché`.
+
+Les processus actifs et les recrutements d'une autre année ne comptent jamais. La somme des
+recrutés de tous les buckets se réconcilie avec le KPI global quand le bucket `Autre` est inclus.
 
 ---
 
@@ -701,6 +718,7 @@ Le module « Matching profil » du workspace Consultants est **profil-centrique*
 | **C-30** | **Production & Congés adopte une granularité mensuelle fondée sur les CRA réels** (`mission_activity_reports` et `v_collaborator_activity_summary`). Aucun planning journalier de production n'est créé ou reconstruit. Les absences conservent leur détail daté lorsqu'il existe dans `collaborator_absences`. L'analyse économique distingue la production, le manque à produire théorique et le coût structurel sans inventer de coût RH par type d'absence. | Résolution DATA-5 ; Single Source of Truth respectée ; aucune migration Supabase requise. | Actée (Lot 11) |
 | **C-31** | **Arbitrage UI Production & Congés et résolution PRODUCT-4** : Desktop conserve le chapitre analytique global Activités & congés (`?section=activite-conges` → `ActivityDashboard`) et expose Production & Congés comme module transverse dans `contextualModules` (lazy-loaded via `?module=production-conges` → `ProductionLeaveDesktop`) ; Mobile utilise Production & Congés comme vue adaptée du chapitre Activité (`?section=activite-conges` → `ProductionLeaveMobile`), éliminant définitivement le rendu du dashboard Desktop dense sur Mobile. Distribution serveur stricte : jamais les deux loaders pour le même device. | Conforme à l'Adaptive Design KREDO et ADR-0006 ; résout PRODUCT-4 sans créer un 6e onglet mobile ; module transverse accessible sans surcoût de charge sur les autres chapitres. | Actée (Lot 12) |
 | **C-32** | **Projection profil → besoins compatibles et résolution PRODUCT-1** : Le module « Matching profil » du workspace Consultants est profil-centrique (Collaborateur ou Candidat → besoins compatibles). Il constitue une projection inverse en lecture des résultats déjà calculés et persistés dans `match_scores` (filtrés par `person_id`) par le moteur unique existant (`src/lib/staffing-matching/`). Aucun second moteur n'est créé. L'absence de ligne dans `match_scores` n'est jamais assimilée à un score 0 ou à une incompatibilité (taux de couverture explicite exposé). Le recalcul éventuel reste strictement besoin-centrique via `runOpportunityMatching(opportunityId)` unitaire (aucun batch global d'opportunités). | Respect strict de C-09 (moteur unique) ; explicabilité déterministe C1-C6 préservée sans LLM ; couverture explicite évitant toute fausse illusion d'exhaustivité. | Actée (Lot 13) |
+| **C-33** | **Synthèse « Double voie »** : chaque practice expose en même temps les collaborateurs, les candidats rattachés et les recrutés YTD. Le ratio est supprimé. Desktop adopte une zone principale éditoriale avec un rail droit « processus actifs » vertical puis intercontrat ; Mobile conserve une liste dédiée et verticale. | La comparaison des deux populations devient immédiate sans masquer une métrique derrière un toggle ; `hired + closed_at` conserve l'exacte sémantique du KPI global. Aucune migration ni dépendance graphique. | Actée (post-Lot 13) |
 
 ---
 

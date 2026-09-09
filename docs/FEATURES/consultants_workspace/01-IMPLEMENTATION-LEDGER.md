@@ -9,7 +9,7 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Lot 13 — Module Matching profil (UI vers moteur existant)
+Dernier lot livré        : Synthèse — Double voie (refonte post-Lot 13)
 Lot courant              : —
 Prochain lot             : Lot 14 — Intégration Shell global / CRM
 Dernier SHA connu origin/main : f223a9a0   (2026-09-09)
@@ -37,8 +37,44 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 12 | Module Production & Congés — UI Desktop + Mobile | ✅ techniquement livré | `149eb699` | `contextualModules` dans SectionRail Desktop (`?module=production-conges`), résolution PRODUCT-4 sur Mobile via `ProductionLeaveMobile` (`?section=activite-conges`), dataviz SVG maison + barres HTML, distinction `hasActivityData` (Point 22), RLS respectée sans faux 0 €. |
 | 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `d50c77e2` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
 | 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `d91a49c8` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
+| 13.1 | Synthèse — Double voie | ✅ techniquement livré | _(à renseigner)_ | C-33. Ratio supprimé ; collaborateurs + candidats rattachés + recrutés YTD par practice. Desktop = panneau principal + rail vertical processus/intercontrat. Mobile = liste dédiée. Aucun nouveau fetch, migration ou dépendance. Correction à la reprise : assertion Mobile stale (`Pipeline de recrutement` → `Processus actifs par étape`). |
 | 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
+
+### Synthèse — Double voie — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : appliquer la direction éditoriale claire `edito_bright_design` à la section
+  graphique de la Synthèse, sans toucher aux KPI, aux prochaines fins de mission, aux sources de
+  vérité ou à la distribution serveur Desktop/Mobile.
+- **Data** : `ConsultantsPracticeBucket` porte `hiresYearToDate`. Le loader ajoute seulement
+  `candidate_id` et `job_profile_id` à sa lecture existante de `candidate_hiring_processes`.
+  Le builder compte les processus `hired` clôturés dans l'année civile, rattache d'abord via
+  `job_profile_id → job_profiles.practice_id`, puis via `candidate_id → candidates.practice_id`,
+  sinon `Autre / non rattaché`. Aucune migration, RPC, table ou requête additionnelle.
+- **Desktop** : les anciens graphiques séparés sont remplacés par `DoubleTrackPracticeChart`
+  (deux voies à échelle commune, valeurs directes, recrutés YTD) dans une colonne principale ; le
+  rail droit accueille `RecruitmentStageRail` (six étapes, photographie actuelle, sans funnel) et
+  `InterContractRail` (projection compacte respectant la RLS). Les trois KPI deviennent une bande
+  analytique légère ; les prochaines fins de mission restent sous l'ensemble.
+- **Mobile** : composition dédiée et verticale — Double voie par practice, recrutés YTD visibles,
+  séquence verticale des processus, fins de mission et intercontrat. Aucun composant Desktop n'est
+  chargé puis masqué côté CSS.
+- **Tests ajoutés** : priorité `job_profile`, fallback candidat, exclusion année précédente et
+  process actif, bucket non rattaché et réconciliation somme des recrutés/KPI global. Les tests de
+  rendu couvrent Double voie, Recrutés, rail processus et masquage du CJM RLS.
+- **Correction à la reprise (commit)** : le bloc `SyntheseMobile` de `synthese-render.test.ts`
+  gardait une assertion stale `Pipeline de recrutement` (renommé `Processus actifs par étape`
+  côté composant) — corrigée avant commit.
+- **Gates exécutées** : première passe agent — `npm run typecheck` ✅ ; `npm test` ✅
+  (285 fichiers, 2 843 tests) ; `check:server-boundary` ✅ ; lint ciblé ✅ ; `build` ✅.
+  Re-vérification à la reprise (après Lot 10 Opportunités livré) — `npm run typecheck` ✅ ;
+  `npm test` **292 fichiers / 2 885 tests ✅ (0 échec)** ; `check:server-boundary` ✅ ;
+  `npx eslint` ciblé ✅ ; `npm run build` ✅ « Compiled successfully ».
+- **QA visuelle** : non exécutée ici ; la session persistante locale `.codex/auth-state.json` est
+  expirée et le protocole Consultants la réserve à Guillaume. Aucun contournement d'authentification.
+- **Limites** : le rattachement des collaborateurs sans profil reste la cascade C-17 existante ;
+  les recrutements sans `job_profile_id` ni candidat rattachable apparaissent explicitement dans
+  `Autre / non rattaché`.
 
 ## Décisions actées (miroir du DECISION LOG — détail dans le doc canonique)
 
@@ -76,6 +112,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-30 | Production & Congés adopte une granularité mensuelle fondée sur les CRA réels (v_collaborator_activity_summary, ytd, absences) ; aucun planning journalier de production fictif ; TACI non double-compté ; RLS salaires respectée (coûts/marges null si non habilité). | 11 |
 | C-31 | Arbitrage UI Production & Congés et résolution PRODUCT-4 : Desktop conserve le chapitre analytique global Activités & congés et expose Production & Congés comme module transverse dans contextualModules (lazy-loaded via ?module=production-conges) ; Mobile utilise Production & Congés comme vue adaptée du chapitre Activité (?section=activite-conges), éliminant définitivement le rendu du dashboard Desktop dense sur Mobile. Distribution serveur stricte : jamais les deux loaders pour le même device. | 12 |
 | C-32 | Projection profil → besoins compatibles et résolution PRODUCT-1 : Le module « Matching profil » du workspace Consultants est profil-centrique (Collaborateur ou Candidat → besoins compatibles). Il constitue une projection inverse en lecture des résultats déjà calculés et persistés dans `match_scores` (filtrés par `person_id`) par le moteur unique existant (`src/lib/staffing-matching/`). Aucun second moteur n'est créé. L'absence de ligne dans `match_scores` n'est jamais assimilée à un score 0 ou à une incompatibilité (taux de couverture explicite exposé). Le recalcul éventuel reste strictement besoin-centrique via `runOpportunityMatching(opportunityId)` unitaire (aucun batch global d'opportunités). | 13 |
+| C-33 | Synthèse « Double voie » : collaborateurs et candidats rattachés rendus simultanément par practice ; colonne ratio remplacée par recrutés YTD (`hired` + `closed_at` année civile), rattachement `job_profile → candidate → Autre`. Desktop main + rail droit (processus actifs vertical, intercontrat), Mobile vertical dédié. | post-13 |
 
 ## Questions ouvertes en cours
 

@@ -64,10 +64,10 @@ describe("buildConsultantsSynthese — KPI", () => {
     const vm = buildConsultantsSynthese(
       baseInput({
         hiringProcesses: [
-          { id: "h1", status: "hired", current_step: "integration", closed_at: "2026-03-01T00:00:00Z" },
-          { id: "h2", status: "hired", current_step: "integration", closed_at: "2025-12-30T00:00:00Z" },
-          { id: "h3", status: "hired", current_step: "integration", closed_at: null },
-          { id: "h4", status: "active", current_step: "signature", closed_at: null },
+          { id: "h1", status: "hired", current_step: "integration", closed_at: "2026-03-01T00:00:00Z", candidate_id: null, job_profile_id: null },
+          { id: "h2", status: "hired", current_step: "integration", closed_at: "2025-12-30T00:00:00Z", candidate_id: null, job_profile_id: null },
+          { id: "h3", status: "hired", current_step: "integration", closed_at: null, candidate_id: null, job_profile_id: null },
+          { id: "h4", status: "active", current_step: "signature", closed_at: null, candidate_id: null, job_profile_id: null },
         ],
       }),
     )
@@ -138,6 +138,120 @@ describe("buildConsultantsSynthese — répartition par practice", () => {
     )
     expect(vm.practiceBreakdown.every((b) => b.collaborators + b.candidates > 0)).toBe(true)
     expect(vm.practiceBreakdown.map((b) => b.key)).toEqual(["data-ai"])
+  })
+})
+
+describe("buildConsultantsSynthese — recrutements par practice", () => {
+  it("rattache un recrutement hired de l'année via le job profile, avant le candidat", () => {
+    const vm = buildConsultantsSynthese(
+      baseInput({
+        jobProfiles: [{ id: "jp-data", practice_id: "op-data" }],
+        candidates: [{ id: "candidate-cloud", status: "recrute", practice_id: "op-cloud", person_id: "p1" }],
+        hiringProcesses: [
+          {
+            id: "hired-1",
+            status: "hired",
+            current_step: "integration",
+            closed_at: "2026-04-12T00:00:00Z",
+            candidate_id: "candidate-cloud",
+            job_profile_id: "jp-data",
+          },
+        ],
+      }),
+    )
+
+    expect(vm.practiceBreakdown.find((bucket) => bucket.key === "data-ai")?.hiresYearToDate).toBe(1)
+    expect(vm.practiceBreakdown.find((bucket) => bucket.key === "cloud-engineering")?.hiresYearToDate).toBe(0)
+    expect(vm.kpis.hiresYearToDate).toBe(1)
+  })
+
+  it("utilise la practice du candidat comme fallback lorsque le job profile est absent", () => {
+    const vm = buildConsultantsSynthese(
+      baseInput({
+        candidates: [{ id: "candidate-cloud", status: "recrute", practice_id: "op-cloud", person_id: "p1" }],
+        hiringProcesses: [
+          {
+            id: "hired-1",
+            status: "hired",
+            current_step: "integration",
+            closed_at: "2026-04-12T00:00:00Z",
+            candidate_id: "candidate-cloud",
+            job_profile_id: null,
+          },
+        ],
+      }),
+    )
+
+    expect(vm.practiceBreakdown.find((bucket) => bucket.key === "cloud-engineering")?.hiresYearToDate).toBe(1)
+  })
+
+  it("exclut les recrutements d'une autre année et les processus actifs", () => {
+    const vm = buildConsultantsSynthese(
+      baseInput({
+        jobProfiles: [{ id: "jp-data", practice_id: "op-data" }],
+        hiringProcesses: [
+          {
+            id: "prior-year",
+            status: "hired",
+            current_step: "integration",
+            closed_at: "2025-12-31T00:00:00Z",
+            candidate_id: null,
+            job_profile_id: "jp-data",
+          },
+          {
+            id: "still-active",
+            status: "active",
+            current_step: "signature",
+            closed_at: null,
+            candidate_id: null,
+            job_profile_id: "jp-data",
+          },
+        ],
+      }),
+    )
+
+    expect(vm.kpis.hiresYearToDate).toBe(0)
+    expect(vm.practiceBreakdown).toHaveLength(0)
+  })
+
+  it("conserve les recrutements non rattachables dans le bucket Autre et réconcilie le total YTD", () => {
+    const vm = buildConsultantsSynthese(
+      baseInput({
+        jobProfiles: [{ id: "jp-data", practice_id: "op-data" }],
+        candidates: [{ id: "candidate-cloud", status: "recrute", practice_id: "op-cloud", person_id: "p1" }],
+        hiringProcesses: [
+          {
+            id: "data-hire",
+            status: "hired",
+            current_step: "integration",
+            closed_at: "2026-01-10T00:00:00Z",
+            candidate_id: null,
+            job_profile_id: "jp-data",
+          },
+          {
+            id: "cloud-hire",
+            status: "hired",
+            current_step: "integration",
+            closed_at: "2026-02-10T00:00:00Z",
+            candidate_id: "candidate-cloud",
+            job_profile_id: null,
+          },
+          {
+            id: "unmapped-hire",
+            status: "hired",
+            current_step: "integration",
+            closed_at: "2026-03-10T00:00:00Z",
+            candidate_id: null,
+            job_profile_id: null,
+          },
+        ],
+      }),
+    )
+
+    expect(vm.practiceBreakdown.find((bucket) => bucket.key === null)?.hiresYearToDate).toBe(1)
+    expect(vm.practiceBreakdown.reduce((sum, bucket) => sum + bucket.hiresYearToDate, 0)).toBe(
+      vm.kpis.hiresYearToDate,
+    )
   })
 })
 
@@ -241,12 +355,12 @@ describe("buildConsultantsSynthese — pipeline recrutement", () => {
     const vm = buildConsultantsSynthese(
       baseInput({
         hiringProcesses: [
-          { id: "h1", status: "active", current_step: "tests_techniques", closed_at: null },
-          { id: "h2", status: "active", current_step: "tests_techniques", closed_at: null },
-          { id: "h3", status: "active", current_step: "signature", closed_at: null },
-          { id: "h4", status: "hired", current_step: "integration", closed_at: "2026-02-02" },
-          { id: "h5", status: "rejected", current_step: "entretien_manager", closed_at: "2026-04-04" },
-          { id: "h6", status: "withdrawn", current_step: "proposition", closed_at: "2025-04-04" },
+          { id: "h1", status: "active", current_step: "tests_techniques", closed_at: null, candidate_id: null, job_profile_id: null },
+          { id: "h2", status: "active", current_step: "tests_techniques", closed_at: null, candidate_id: null, job_profile_id: null },
+          { id: "h3", status: "active", current_step: "signature", closed_at: null, candidate_id: null, job_profile_id: null },
+          { id: "h4", status: "hired", current_step: "integration", closed_at: "2026-02-02", candidate_id: null, job_profile_id: null },
+          { id: "h5", status: "rejected", current_step: "entretien_manager", closed_at: "2026-04-04", candidate_id: null, job_profile_id: null },
+          { id: "h6", status: "withdrawn", current_step: "proposition", closed_at: "2025-04-04", candidate_id: null, job_profile_id: null },
         ],
       }),
     )

@@ -71,7 +71,7 @@ export async function getConsultantsSynthese(
       .is("effective_to", null),
     supabase
       .from("candidate_hiring_processes")
-      .select("id, status, current_step, closed_at"),
+      .select("id, status, current_step, closed_at, candidate_id, job_profile_id"),
     supabase
       .from("opportunity_candidates")
       .select("status, candidate:candidates ( person_id ), opportunity:opportunities ( stage )"),

@@ -29,6 +29,8 @@ export interface ConsultantsPracticeBucket {
   colorHex: string | null
   collaborators: number
   candidates: number
+  /** Recrutements aboutis sur l'année civile de référence, rattachés à la practice. */
+  hiresYearToDate: number
 }
 
 export interface UpcomingMissionEnd {
@@ -129,6 +131,10 @@ export interface RawHiringProcess {
   status: string | null
   current_step: string | null
   closed_at: string | null
+  /** FK vers le candidat : fallback de rattachement practice pour un recrutement abouti. */
+  candidate_id: string | null
+  /** FK vers le profil de poste : rattachement practice prioritaire pour un recrutement abouti. */
+  job_profile_id: string | null
 }
 
 export interface RawPositioning {

@@ -162,6 +162,9 @@ export function buildConsultantsSynthese(
   const candidatePracticeKey = candidates.map((cand) =>
     resolveCandidatePracticeKey(cand.practice_id, offerPracticeSlugById),
   )
+  const candidatePracticeKeyById = new Map<string, ConsultantsPracticeKey>(
+    candidates.map((candidate, index) => [candidate.id, candidatePracticeKey[index]]),
+  )
   const talentPoolCandidates = candidates.filter((c) => c.status === TALENT_POOL_STATUS).length
   const candidatePersonIds = new Set(
     candidates.map((c) => c.person_id).filter((v): v is string => Boolean(v)),
@@ -177,30 +180,54 @@ export function buildConsultantsSynthese(
     candCountByKey.set(key, (candCountByKey.get(key) ?? 0) + 1)
   }
 
+  // ── Recrutements aboutis par practice ────────────────────────────────────
+  // La practice du besoin (job_profile) prime sur celle du candidat : elle est
+  // relationnelle et décrit le recrutement réalisé. Le candidat est le fallback.
+  const hiresCountByKey = new Map<ConsultantsPracticeKey, number>()
+  for (const process of hiringProcesses) {
+    if (process.status !== HIRED_STATUS || !inCivilYear(process.closed_at, referenceYear)) continue
+
+    const jobProfilePracticeId = process.job_profile_id
+      ? jobProfilePracticeById.get(process.job_profile_id) ?? null
+      : null
+    const fromJobProfile = jobProfilePracticeId
+      ? offerPracticeSlugById.get(jobProfilePracticeId) ?? null
+      : null
+    const key =
+      (fromJobProfile && isOfferPracticeSlug(fromJobProfile) ? fromJobProfile : null) ??
+      (process.candidate_id ? candidatePracticeKeyById.get(process.candidate_id) ?? null : null)
+
+    hiresCountByKey.set(key, (hiresCountByKey.get(key) ?? 0) + 1)
+  }
+
   const practiceBreakdown: ConsultantsPracticeBucket[] = []
   for (const op of orderedPractices) {
     if (!isOfferPracticeSlug(op.slug)) continue
     const key = op.slug as OfferPracticeSlug
     const collaboratorsCount = collabCountByKey.get(key) ?? 0
     const candidatesCount = candCountByKey.get(key) ?? 0
-    if (collaboratorsCount === 0 && candidatesCount === 0) continue
+    const hiresCount = hiresCountByKey.get(key) ?? 0
+    if (collaboratorsCount === 0 && candidatesCount === 0 && hiresCount === 0) continue
     practiceBreakdown.push({
       key,
       label: op.name,
       colorHex: op.color_hex,
       collaborators: collaboratorsCount,
       candidates: candidatesCount,
+      hiresYearToDate: hiresCount,
     })
   }
   const otherCollaborators = collabCountByKey.get(null) ?? 0
   const otherCandidates = candCountByKey.get(null) ?? 0
-  if (otherCollaborators > 0 || otherCandidates > 0) {
+  const otherHires = hiresCountByKey.get(null) ?? 0
+  if (otherCollaborators > 0 || otherCandidates > 0 || otherHires > 0) {
     practiceBreakdown.push({
       key: null,
       label: OTHER_PRACTICE_LABEL,
       colorHex: null,
       collaborators: otherCollaborators,
       candidates: otherCandidates,
+      hiresYearToDate: otherHires,
     })
   }
 

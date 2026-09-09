@@ -17,8 +17,22 @@ function vmFixture(
       referenceYear: 2026,
     },
     practiceBreakdown: [
-      { key: "data-ai", label: "Data & AI", colorHex: "#818CF8", collaborators: 5, candidates: 8 },
-      { key: null, label: "Autre / non rattaché", colorHex: null, collaborators: 1, candidates: 0 },
+      {
+        key: "data-ai",
+        label: "Data & AI",
+        colorHex: "#818CF8",
+        collaborators: 5,
+        candidates: 8,
+        hiresYearToDate: 3,
+      },
+      {
+        key: null,
+        label: "Autre / non rattaché",
+        colorHex: null,
+        collaborators: 1,
+        candidates: 0,
+        hiresYearToDate: 0,
+      },
     ],
     upcomingMissionEnds: [
       {
@@ -70,30 +84,32 @@ function renderMobile(vm: ConsultantsSyntheseViewModel) {
 }
 
 describe("SyntheseDesktop", () => {
-  it("affiche les 3 KPI, les practices et les tableaux", () => {
+  it("affiche les 3 KPI, Double voie et les sections éditoriales", () => {
     const markup = renderDesktop(vmFixture())
     expect(markup).toContain(">29<")
     expect(markup).toContain(">11<")
     expect(markup).toContain("Data &amp; AI")
-    expect(markup).toContain("Répartition par practice")
-    expect(markup).toContain("Pipeline de recrutement")
+    expect(markup).toContain("Double voie")
+    expect(markup).toContain("candidats rattachés par practice")
+    expect(markup).toContain("Recrutés")
+    expect(markup).toContain("Processus actifs par étape")
     expect(markup).toContain("Prochaines fins de mission")
     expect(markup).toContain("Alice Martin")
     expect(markup).toContain("Bob Durand")
     expect(markup).toContain("23 j")
   })
 
-  it("affiche les colonnes de rémunération quand elle est visible", () => {
-    expect(renderDesktop(vmFixture())).toContain("Salaire annuel")
+  it("affiche le CJM compact quand il est visible", () => {
+    expect(renderDesktop(vmFixture())).toContain("CJM")
   })
 
-  it("masque les colonnes de rémunération quand compensationVisible est faux", () => {
+  it("masque le CJM quand compensationVisible est faux", () => {
     const vm = vmFixture()
     vm.interContractCollaborators[0].compensationVisible = false
     vm.interContractCollaborators[0].grossAnnual = null
     vm.interContractCollaborators[0].cjm = null
     const markup = renderDesktop(vm)
-    expect(markup).not.toContain("Salaire annuel")
+    expect(markup).not.toContain("CJM")
   })
 
   it("rend les réserves méthodo", () => {
@@ -102,12 +118,13 @@ describe("SyntheseDesktop", () => {
 })
 
 describe("SyntheseMobile", () => {
-  it("rend les KPI, practices, pipeline et raccourcis", () => {
+  it("rend les KPI, Double voie, les processus et les raccourcis", () => {
     const markup = renderMobile(vmFixture())
     expect(markup).toContain(">29<")
     expect(markup).toContain("Data &amp; AI")
     expect(markup).toContain("Prochaines fins de mission")
-    expect(markup).toContain("Pipeline de recrutement")
+    expect(markup).toContain("Double voie")
+    expect(markup).toContain("Processus actifs par étape")
     expect(markup).toContain('href="/consultants?section=collaborateurs"')
     expect(markup).toContain('href="/consultants?section=candidats"')
   })
