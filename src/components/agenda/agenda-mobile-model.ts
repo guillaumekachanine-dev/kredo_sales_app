@@ -9,10 +9,11 @@ import type { AgendaItem, AgendaDeepLink, AgendaPriority } from "@/lib/agenda/ag
 export type AgendaMobileMode = "feed" | "calendar"
 
 export interface AgendaMobileFilters {
+  showCommerce: boolean
+  showRecruitment: boolean
+  showInternal: boolean
   showDeadlines: boolean
   showAbsences: boolean
-  showActivity: boolean
-  showInternal: boolean
 }
 
 export interface AgendaMobileRouteState {
@@ -41,6 +42,13 @@ function isValidIsoDate(value: string | undefined): boolean {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value))
 }
 
+function toWorkingDay(value: string): string {
+  const weekday = new Date(`${value}T12:00:00.000Z`).getUTCDay()
+  if (weekday === 6) return addDays(value, -1)
+  if (weekday === 0) return addDays(value, 1)
+  return value
+}
+
 export function parseAgendaMobileRouteState(
   searchParams: Record<string, string | string[] | undefined>,
   now: string,
@@ -49,27 +57,34 @@ export function parseAgendaMobileRouteState(
   const today = getTodayDateKey(now, timezone)
   const rawDate = toArray(searchParams.date)[0]
   const mode: AgendaMobileMode = "calendar"
-  const date = isValidIsoDate(rawDate) ? rawDate : today
+  const date = toWorkingDay(isValidIsoDate(rawDate) ? rawDate : today)
 
   const rawFilters = toArray(searchParams.filters)[0]
-  let showDeadlines = true
-  let showAbsences = true
-  let showActivity = true
-  let showInternal = true
+  // The mobile agenda opens on the two operational streams that need the most
+  // attention. Every other stream remains directly addressable through the URL.
+  let showCommerce = true
+  let showRecruitment = true
+  let showInternal = false
+  let showDeadlines = false
+  let showAbsences = false
 
   if (rawFilters !== undefined) {
     const active = rawFilters.split(",")
+    // Keep shared links using the former "activity" filter useful while
+    // canonicalising them to the two explicit operational categories.
+    showCommerce = active.includes("commerce") || active.includes("activity")
+    showRecruitment = active.includes("recruitment") || active.includes("activity")
+    showInternal = active.includes("internal")
     showDeadlines = active.includes("deadlines")
     showAbsences = active.includes("absences")
-    showActivity = active.includes("activity")
-    showInternal = active.includes("internal")
   }
 
   const activeList: string[] = []
+  if (showCommerce) activeList.push("commerce")
+  if (showRecruitment) activeList.push("recruitment")
+  if (showInternal) activeList.push("internal")
   if (showDeadlines) activeList.push("deadlines")
   if (showAbsences) activeList.push("absences")
-  if (showActivity) activeList.push("activity")
-  if (showInternal) activeList.push("internal")
 
   const canonicalQuery = new URLSearchParams()
   canonicalQuery.set("mode", mode)
@@ -87,7 +102,7 @@ export function parseAgendaMobileRouteState(
 
   const modeMatch = incoming.get("mode") === mode
   const dateMatch = incoming.get("date") === date
-  const filtersMatch = (incoming.get("filters") || "deadlines,absences,activity,internal") === activeList.join(",")
+  const filtersMatch = (incoming.get("filters") || "commerce,recruitment") === activeList.join(",")
 
   const shouldRedirect = !modeMatch || !dateMatch || !filtersMatch
 
@@ -95,10 +110,11 @@ export function parseAgendaMobileRouteState(
     mode,
     date,
     filters: {
+      showCommerce,
+      showRecruitment,
+      showInternal,
       showDeadlines,
       showAbsences,
-      showActivity,
-      showInternal,
     },
     canonicalQueryString,
     shouldRedirect,

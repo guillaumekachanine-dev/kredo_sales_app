@@ -1,29 +1,37 @@
-# Cockpit mobile Hero — design QA
+**Comparison target**
 
-## Evidence
+- Source visual truth: `/var/folders/nd/p8yph1j15bz4m89x1jpf6n3w0000gn/T/codex-clipboard-ada70ae6-091e-4fea-b412-cba63e98a72a.png`
+- Source pixels: 477 × 1006.
+- Implementation: authenticated local `/agenda?mode=calendar&date=2026-09-09&filters=commerce%2Crecruitment`, rendered at 390 × 844 CSS px in Chrome.
+- State: selected weekday, Commerce and Recrutement filters active, linked task present in the first event.
 
-- Source visual truth: `/var/folders/nd/p8yph1j15bz4m89x1jpf6n3w0000gn/T/codex-clipboard-3a17d764-6b44-45e7-b023-e140ce9c7dd1.png` (532 × 327 px), plus the solid-colour source `/var/folders/nd/p8yph1j15bz4m89x1jpf6n3w0000gn/T/codex-clipboard-5de8e4fd-7b3a-4702-b523-1fda21ef89bc.png` (116 × 42 px).
-- Browser-rendered implementation: inspected in the Codex in-app browser at a 390 × 844 CSS-pixel viewport. Its streamed capture is not persisted to a filesystem path by that browser surface.
-- Agent-browser capture attempt: `/tmp/kredo-cockpit-mobile-hero-390x844.png` (390 × 844 px, CSS density 1) is not a valid implementation capture: the required persisted authentication state redirected to `/login?next=%2Fcockpit`.
-- State: populated `/cockpit` homepage; Quick Actions opened and closed successfully in the in-app browser.
+**Evidence**
 
-## Comparison ledger
+- The source was opened at native size.
+- A browser-rendered implementation capture was reviewed at the stated mobile viewport. The capture is not persistable from the connected Chrome automation surface, so no implementation screenshot path is available for a normalized, side-by-side artifact.
+- Focused review covered the header actions, decorative area, date strip, filter row, timeline rail, first three bubbles, and linked-task row.
 
-1. **Palette / tokens** — matched. The Hero now resolves to `#1A417C`; its CSS background mass resolves to `#3F6288` through semantic global tokens.
-2. **Layout / crop** — matched. Hero height remains 258 px; white surface starts at y=198 px with 60 px overlap, 19 px horizontal margins, 352 px width and 28 px upper radius.
-3. **Illustration treatment** — matched. The existing transparent illustration remains unchanged and has been shifted 16 px to the left, retaining a right-weighted composition while freeing the Quick Actions area.
-4. **Date / typography** — matched in the in-app capture. The date is formatted from `snapshot.generatedAt` in `Europe/Paris`, capitalized, positioned directly above the white surface and styled as secondary editorial text.
-5. **Quick Actions / interaction** — matched. The original button callback and sheet are unchanged; the button keeps a 44 px target and renders with a 45% white translucent fill plus a subtle white border.
-6. **Desktop isolation** — matched by component scope. Changes are limited to the mobile home component, its stylesheet and globally scoped semantic color tokens; no desktop component changed.
+**Findings**
 
-## Findings
+- [P3] The implementation deliberately uses KREDO’s restrained mandarin token treatment rather than the more saturated orange surround of the reference. This preserves the existing product palette and keeps the page surface legible.
+- [P3] Live Agenda content can make a bubble taller than the reference when it includes a task row. The task remains integrated in the event bubble, as required.
 
-- [P1] A valid persisted screenshot from the mandated authenticated agent-browser session is unavailable. The session file `.codex/auth-state.json` is expired and redirects to the login page. The app authentication was not altered.
+**Required fidelity surfaces**
 
-## Resolution required
+- Fonts and typography: KREDO heading and body styles preserve the title/action hierarchy; event titles and times remain the dominant card row.
+- Spacing and layout rhythm: header actions align to the title, the dates and filters are compact, and the rail starts with the first event without a separate card system.
+- Colors and visual tokens: the warm backdrop uses the existing accent token; existing semantic Agenda colors still drive bubbles and dots.
+- Image quality and asset fidelity: the added transparent 1536 × 1024 PNG is an original, low-opacity architectural line-art decoration, rendered through Next Image. It is decorative only and never covers controls.
+- Copy and content: existing Agenda labels, filter names, event context, duration, and linked-task copy are retained.
 
-Renew `.codex/auth-state.json`, then capture `/cockpit` at 390 × 844 through agent-browser and perform the required filesystem-backed `view_image` comparison with the source image.
+**Implementation checklist**
 
-## Final result
+- [x] Compact title-aligned circular consultation and creation actions.
+- [x] Add low-contrast transparent header decoration.
+- [x] Preserve date selection, horizontal filters, timeline, event opening, linked-task toggle, report/action entry points, and URL-driven filters.
+
+**Final result**
 
 blocked
+
+Blocker: the available authenticated Chrome capture can be visually reviewed but cannot be written to a local screenshot path, preventing the required normalized side-by-side comparison artifact.

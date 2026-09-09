@@ -12,10 +12,11 @@ describe("agenda-mobile-model", () => {
       const state = parseAgendaMobileRouteState({}, now)
       expect(state.mode).toBe("calendar")
       expect(state.date).toBe(todayKey)
-      expect(state.filters.showDeadlines).toBe(true)
-      expect(state.filters.showAbsences).toBe(true)
-      expect(state.filters.showActivity).toBe(true)
-      expect(state.filters.showInternal).toBe(true)
+      expect(state.filters.showCommerce).toBe(true)
+      expect(state.filters.showRecruitment).toBe(true)
+      expect(state.filters.showInternal).toBe(false)
+      expect(state.filters.showDeadlines).toBe(false)
+      expect(state.filters.showAbsences).toBe(false)
       expect(state.shouldRedirect).toBe(true) // because the incoming URL has no mode or date
     })
 
@@ -68,22 +69,40 @@ describe("agenda-mobile-model", () => {
       expect(state.shouldRedirect).toBe(true)
     })
 
+    it("should canonicalise weekend links to a displayed working day", () => {
+      const state = parseAgendaMobileRouteState({ mode: "calendar", date: "2026-07-04" }, now)
+
+      expect(state.date).toBe("2026-07-03")
+      expect(state.shouldRedirect).toBe(true)
+    })
+
     it("should preserve filters in the state and canonical query string", () => {
       const state = parseAgendaMobileRouteState(
         {
           mode: "calendar",
           date: "2026-07-01",
-          filters: "deadlines,activity",
+          filters: "commerce,recruitment,deadlines",
         },
         now
       )
+      expect(state.filters.showCommerce).toBe(true)
+      expect(state.filters.showRecruitment).toBe(true)
       expect(state.filters.showDeadlines).toBe(true)
       expect(state.filters.showAbsences).toBe(false)
-      expect(state.filters.showActivity).toBe(true)
       expect(state.filters.showInternal).toBe(false)
       expect(state.shouldRedirect).toBe(false)
-      expect(state.canonicalQueryString).toContain("filters=deadlines")
-      expect(state.canonicalQueryString).toContain("activity")
+      expect(state.canonicalQueryString).toContain("filters=commerce")
+      expect(state.canonicalQueryString).toContain("recruitment")
+    })
+
+    it("should canonicalise the legacy activity filter into commerce and recruitment", () => {
+      const state = parseAgendaMobileRouteState({ mode: "calendar", date: "2026-07-01", filters: "activity" }, now)
+
+      expect(state.filters.showCommerce).toBe(true)
+      expect(state.filters.showRecruitment).toBe(true)
+      expect(state.filters.showInternal).toBe(false)
+      expect(state.shouldRedirect).toBe(true)
+      expect(state.canonicalQueryString).toContain("commerce%2Crecruitment")
     })
   })
 
