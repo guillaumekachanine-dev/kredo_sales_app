@@ -104,9 +104,9 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 7 — Avant-vente** (chapitre sur `OpportunitiesTriPanel` avec de vrais
-`EmptyState`, aucune donnée fictive ; voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md`
-§ Lot 7).
+➡️ **Lot 8 — Data Contract Planning** (builder unique `OpportunityDeadline`,
+partagé Synthèse + Planning, résout DATA-03 ; voir
+`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 8).
 
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
@@ -126,6 +126,8 @@ lecture du dépôt seul** :
   repris (**OPP-25**), détail inline (**OPP-24**), contrat URL `?opp=`+filtres (**OPP-26**),
   chapitre sans HEX (**OPP-27**). `NeedsStaffingWorkspace` Desktop retiré (Mobile inchangé).
   **QA visuelle Guillaume en attente.**
+- Lot 7 livré : chapitre Avant-vente (`PresalesDesktop`) — structure 3 panneaux + 3 vrais
+  `EmptyState`, aucune donnée. PRODUCT-05 reste ouverte. **QA visuelle Guillaume en attente.**
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`

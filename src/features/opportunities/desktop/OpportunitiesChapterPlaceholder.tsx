@@ -1,27 +1,20 @@
-import type { OpportunitiesSection } from "../navigation/opportunities-sections"
-
 // EmptyState provisoire des chapitres dont le contenu métier n'est pas encore
-// outillé (Lot 1). Aucun bouton mort, aucune donnée fictive : on annonce
-// simplement le lot qui livrera la surface.
+// outillé. Aucun bouton mort, aucune donnée fictive : on annonce simplement le
+// lot qui livrera la surface.
 //
-//  - Synthèse    → Lot 4
-//  - Avant-vente → Lot 7
-//  - Planning    → Lot 9 (le planning Besoins & staffing reste accessible
-//                  depuis le chapitre « Besoins & staffing »)
+//  - Synthèse → Lot 4 (livré) — plus routé ici
+//  - Planning → Lot 9 (le planning Besoins & staffing reste accessible
+//               depuis le chapitre « Besoins & staffing »)
+//
+// (Avant-vente est passé à `PresalesDesktop` au Lot 7.)
 
-const COPY: Record<
-  Exclude<OpportunitiesSection, "besoins">,
-  { title: string; description: string }
-> = {
+export type PlaceholderSection = "synthese" | "planning"
+
+const COPY: Record<PlaceholderSection, { title: string; description: string }> = {
   synthese: {
     title: "Synthèse en préparation",
     description:
       "La surface analytique (KPI, pipe, compétences, processus, prochaines échéances) sera livrée dans un prochain lot.",
-  },
-  "avant-vente": {
-    title: "Avant-vente à venir",
-    description:
-      "Le suivi des projets d'avant-vente sera outillé dans un prochain lot. Aucune donnée n'est affichée tant que la structure métier n'est pas arrêtée.",
   },
   planning: {
     title: "Planning en préparation",
@@ -33,7 +26,7 @@ const COPY: Record<
 export function OpportunitiesChapterPlaceholder({
   section,
 }: {
-  section: Exclude<OpportunitiesSection, "besoins">
+  section: PlaceholderSection
 }) {
   const { title, description } = COPY[section]
 

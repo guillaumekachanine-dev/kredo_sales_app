@@ -16,6 +16,7 @@ import { SummaryDesktop } from "@/features/opportunities/summary/SummaryDesktop"
 import { getNeedsChapterData } from "@/features/opportunities/needs/data/get-needs-chapter-data"
 import { parseNeedsSelection } from "@/features/opportunities/needs/data/needs-selection"
 import { NeedsDesktop } from "@/features/opportunities/needs/NeedsDesktop"
+import { PresalesDesktop } from "@/features/opportunities/presales/PresalesDesktop"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Opportunities Workspace — orchestrateur de la route `/missions/opps`
@@ -32,7 +33,8 @@ import { NeedsDesktop } from "@/features/opportunities/needs/NeedsDesktop"
 //   - `synthese`    → view-model Lot 3 + `SummaryDesktop` (Lot 4) ;
 //   - `besoins`     → `getNeedsChapterData` (Lot 5) + `NeedsDesktop` sur
 //                     `OpportunitiesTriPanel` (Lot 6) — sélection `?opp=` ;
-//   - `avant-vente` / `planning` → `EmptyState` provisoire (Lots 7 / 9).
+//   - `avant-vente` → `PresalesDesktop` — structure 3 panneaux + `EmptyState` (Lot 7) ;
+//   - `planning`    → `EmptyState` provisoire (Lot 9).
 //
 //  Mobile INCHANGÉ : la branche `device === "mobile"` rend le Mobile legacy
 //  (`NeedsStaffingWorkspace` mobile), le shell V2 n'est jamais monté sur Mobile.
@@ -91,7 +93,15 @@ export default async function OpportunitesPage({
     )
   }
 
-  // avant-vente · planning → EmptyState provisoire (Lots 7 / 9)
+  if (activeSection === "avant-vente") {
+    return (
+      <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
+        <PresalesDesktop />
+      </OpportunitiesDesktopShell>
+    )
+  }
+
+  // planning → EmptyState provisoire (Lot 9)
   return (
     <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
       <OpportunitiesChapterPlaceholder section={activeSection} />

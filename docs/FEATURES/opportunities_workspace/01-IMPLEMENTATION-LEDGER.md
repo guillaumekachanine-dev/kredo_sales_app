@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 6 — Migration UI Besoins & staffing
+Dernier lot livré             : Lot 7 — Avant-vente (structure + EmptyState V1)
 Lot courant                   : aucun
-Prochain lot                  : Lot 7 — Avant-vente (structure + EmptyState V1)
-Dernier SHA connu origin/main : b769623f   (2026-09-09, commit Lot 6)
+Prochain lot                  : Lot 8 — Data Contract Planning (builder OpportunityDeadline)
+Dernier SHA connu origin/main : __LOT7_SHA__   (2026-09-09, commit Lot 7)
 ```
 
 ## Table des lots
@@ -29,7 +29,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 4 | Synthèse Desktop | ✅ techniquement livré | `19f4ccad` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
 | 5 | Data/detail Besoins & staffing | ✅ techniquement livré | `bad25af3` | `src/features/opportunities/needs/data/` : types + `buildNeedsList`/`resolveSelectedNeedId` (purs) + `parseNeedsSelection` (`?opp=` + filtres via `parseNeedsStaffingUrlState`) + loader `getNeedsChapterData` composant 4 loaders existants — **détail chargé pour le seul besoin sélectionné** (OPP-23). 18 tests. Aucune UI, aucune migration. |
 | 6 | Migration UI Besoins & staffing | ✅ techniquement livré | `b769623f` | Chapitre Besoins Desktop sur `OpportunitiesTriPanel` : `NeedsListPanel` (rail gauche, filtres + `?opp=` + `NewOpportunityButton` + `StageQuickEditorDialog`) │ `NeedsDetailPanel` (`OpportunityDetailView` inline) │ `StaffingInProgressRail` (positionnements actifs, drawer unique, `NewStaffingButton`, simulation par ligne). `page.tsx` `besoins` → `getNeedsChapterData` + `NeedsDesktop`. **Résout PRODUCT-02 (OPP-25), PRODUCT-04 (OPP-24), NAVIGATION-02 (OPP-26), LEGACY-05 (OPP-27).** `NeedsStaffingWorkspace` Desktop plus monté (Mobile inchangé). SVG/tokens `@theme`, aucun HEX. |
-| 7 | Avant-vente (structure + `EmptyState` V1) | ⬜ todo | — | Aucune fausse donnée. PRODUCT-05 reste ouverte. |
+| 7 | Avant-vente (structure + `EmptyState` V1) | ✅ techniquement livré | `__LOT7_SHA__` | `PresalesDesktop` : `OpportunitiesTriPanel` + 3 `EmptyState` authentiques (liste / surface / détails). **Aucune donnée, aucun seed, aucun modèle Projet.** `page.tsx` `avant-vente` → `PresalesDesktop`. PRODUCT-05 reste **ouverte** et documentée. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ⬜ todo | — | **Résout DATA-03.** Partagé Synthèse + Planning (OPP-10). |
 | 9 | Planning Desktop | ⬜ todo | — | Liste │ Planning mois/année │ Détails. Adapte le moteur existant. |
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ⬜ todo | — | Câblage vers capacités existantes. **Résout CROSS-01/02/03.** `Modélisation de CA` non affichée (OPP-11). |
@@ -85,7 +85,7 @@ canonique § 17.
 | PRODUCT-02 | Quelles capacités Kanban survivent après la refonte | 6 | ✅ **tranché (OPP-25)** — Kanban non repris ; changement d'étape conservé (`StageQuickEditorDialog`) |
 | PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 5 / 6 / 9 | ✅ **Lot 5 (OPP-23) + Lot 6 (OPP-26, `buildNeedsHref` + strip)** — reste au Lot 9 : partage avec Planning |
 | PRODUCT-04 | Forme du détail besoin (inline / drawer / `OpportunityDetailView`) | 6 | ✅ **tranché (OPP-24)** — `OpportunityDetailView` inline |
-| PRODUCT-05 | Relation opportunité ↔ projet avant-vente ↔ mission/projet gagné | 7 / futur | **ouverte** — bloque le contenu métier Avant-vente |
+| PRODUCT-05 | Relation opportunité ↔ projet avant-vente ↔ mission/projet gagné | futur | **ouverte** — structure Avant-vente livrée (Lot 7) ; contenu métier subordonné à l'arbitrage |
 | NAVIGATION-01 | Conversion des deep-links `scope` vers `?section=` | 1 / 11 | ✅ **volet parsing résolu (Lot 1)** — `parseOpportunitiesSection` ; redirections dures `/staffing` + `main-menu` mobile → Lot 11 |
 | NAVIGATION-02 | Sort du contrat `?view=` / `?stage` / `?priority` / `?practice` | 6 | ✅ **tranché (OPP-26)** — filtres gardés + `?opp=` ; `?scope`/`?view` abandonnés |
 | ~~NAVIGATION-03~~ | `?section=` vs pathname | 0 | ✅ tranché (OPP-04) — **implémenté au Lot 1** (`?section=`, patron Engagements `?vue=`) |
@@ -262,6 +262,46 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 7 — Avant-vente (structure) — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : créer le chapitre Avant-vente sur `OpportunitiesTriPanel` — **structure
+  uniquement**. Aucun faux projet, aucun seed, aucun modèle métier inventé (§ 11).
+
+- **Fichiers créés** :
+  - `src/features/opportunities/presales/PresalesDesktop.tsx` — Server Component :
+    `OpportunitiesTriPanel` (`ariaLabel="Avant-vente"`) avec 3 `EmptyState` maison —
+    rail Liste (« Aucun projet avant-vente »), surface centrale (« Avant-vente à
+    structurer », renvoie explicitement à la question produit ouverte), rail Détails
+    visible (`<aside aria-label>` + « Aucune sélection »). Aucune `Data`, aucun bouton.
+  - `src/features/opportunities/presales/__tests__/presales-desktop.test.ts` (3 cas) —
+    grille 3 panneaux, 3 `EmptyState`, **aucune donnée fictive ni action**.
+
+- **Fichiers modifiés** :
+  - `src/app/(app)/missions/opps/page.tsx` — branche `avant-vente` → `<PresalesDesktop />`
+    (avant le fallback `planning`).
+  - `src/features/opportunities/desktop/OpportunitiesChapterPlaceholder.tsx` — resserré
+    à `PlaceholderSection = "synthese" | "planning"` (l'entrée `avant-vente` n'est plus
+    routée ici).
+  - `src/features/opportunities/summary/__tests__/summary-route.test.ts` — libellé du cas
+    `avant-vente`/`planning` ajusté (« structural chapter », aucune donnée chargée).
+
+- **Décisions** : aucune. **PRODUCT-05** (relation opportunité ↔ projet avant-vente ↔
+  mission/projet gagné, table `projects`) **reste ouverte** — le chapitre est structurel
+  tant qu'elle n'est pas cadrée.
+
+- **Dettes / suites** : contenu métier Avant-vente = lot futur, subordonné à PRODUCT-05.
+
+- **Gates réellement exécutées** (toutes vertes) :
+  - `npm run typecheck` — ✅.
+  - `npm test` (**suite complète**) — ✅ **284 fichiers / 2832 tests**.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` sur les fichiers touchés — ✅ 0 problème.
+  - `npm run build` — ✅ « Compiled successfully ».
+- **QA visuelle** : réservée à Guillaume (structure 3 panneaux + wording des `EmptyState`).
+
+- **Commit** : `__LOT7_SHA__` — `feat(opportunities): chapitre Avant-vente structurel (Lot 7)`.
+- **NEXT LOT** : Lot 8 — Data Contract Planning (builder unique `OpportunityDeadline`, résout DATA-03).
 
 ### Lot 6 — Migration UI Besoins & staffing — ✅ techniquement livré (2026-09-09)
 

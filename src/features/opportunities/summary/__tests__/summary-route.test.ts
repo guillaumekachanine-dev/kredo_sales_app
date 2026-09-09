@@ -98,7 +98,7 @@ describe("Synthèse route device and section isolation", () => {
     expect(mocks.synthese).not.toHaveBeenCalled()
   })
 
-  it.each(["avant-vente", "planning"])("renders the placeholder for %s without loading anything", async (section) => {
+  it.each(["avant-vente", "planning"])("renders the structural %s chapter without loading anything", async (section) => {
     await Page({ searchParams: Promise.resolve({ section }) })
     expect(mocks.synthese).not.toHaveBeenCalled()
     expect(mocks.needsChapter).not.toHaveBeenCalled()
