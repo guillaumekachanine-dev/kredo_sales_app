@@ -102,7 +102,7 @@ QA minimale :
 | **6.4A** | Démantèlement navigation horizontale **legacy** (technique) | ✅ techniquement livré | `SectionNavBar.tsx` + `SectionNavBarSlot.tsx` supprimés ; `getModuleTabs`, `getSectionTabsForPath`, `MainMenuItem.tabs`, type `SectionTab` de `main-menu.config` supprimés ; type Mobile explicite `MobileNavigationTab` ; `getMobileTabsForPath` découplé. `section-tab-styles.ts` + `SectionTabBar` **conservés**. Voir §35 |
 | **6.4B** | Alignement **navigation principale Desktop** (produit) | ✅ techniquement livré | `Cockpit` → `Accueil` (icône `home`, pathname `/cockpit` conservé) ; Finance déplacée sous CRM (5ᵉ) ; Paramètres déplacé sous Outils (3ᵉ) ; groupes `Finance`/`Ressources` racines supprimés ; logo `aria-label` « Retour à l'accueil ». 0 pathname modifié, 0 workspace touché, 0 Mobile. Voir §36 |
 | **6.5** | Stabilisation `DesktopSidebar` / collapse | ✅ techniquement livré | politique pathname `desktop-sidebar-policy.ts` ; `DesktopSidebar` dérive son état effectif (préférence cookie + auto-repli + verrous) ; `useSidebarCollapse` réduit à un compteur de verrous ; 6 émetteurs historiques + 1 lecteur supprimés ; `IntelligencePanel` verrou équilibré. Voir §37 |
-| **6.6** | Intégration finale Shell global ↔ Cockpit Intelligence | ✅ techniquement livré | `DesktopSidebar` observe directement `useIntelligencePanel.isOpen` ; `resolveDesktopSidebarCollapsed` gagne la dimension `intelligencePanelOpen` ; `IntelligencePanel` n'importe plus `useSidebarCollapse` et n'émet plus de verrou ; `CrmTabbedShell` reste le seul émetteur applicatif ; `AppShell` inchangé (Server Component). Voir §38 |
+| **6.6** | Intégration finale Shell global ↔ Cockpit Intelligence | ✅ techniquement livré | commit `e8f5e4f6` ; `DesktopSidebar` observe directement `useIntelligencePanel.isOpen` ; `resolveDesktopSidebarCollapsed` gagne la dimension `intelligencePanelOpen` ; `IntelligencePanel` n'importe plus `useSidebarCollapse` et n'émet plus de verrou ; `CrmTabbedShell` reste le seul émetteur applicatif ; `AppShell` inchangé (Server Component). Voir §38 |
 | **6.7** | Audit de clôture Phase 6 | ⬜ todo (**prochain lot**) | inventaire de clôture, 0 legacy Shell |
 | **Phase 7** | Alignement fonctionnel des workspaces (7.0 → 7.10) | ⬜ todo | voir §34 — chapitres/modules par workspace, cible = document `09-…` |
 
@@ -2046,4 +2046,4 @@ visuel / Mobile / workspace ✔ · aucun fichier Opportunities parallèle commit
 
 ### Verdict
 
-- **Lot 6.6 — ✅ techniquement livré.** Commit : _(SHA à consigner après push)_.
+- **Lot 6.6 — ✅ techniquement livré.** Commit : `e8f5e4f6` (`refactor(shell-0018): finalize intelligence shell integration`).
