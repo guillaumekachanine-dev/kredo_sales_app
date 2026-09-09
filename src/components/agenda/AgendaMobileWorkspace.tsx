@@ -20,6 +20,7 @@ import { AgendaTaskCreateDrawer } from "./AgendaTaskCreateDrawer"
 import { MobileAgendaItemSheet } from "./MobileAgendaItemSheet"
 import { MobileAgendaTimeline } from "./MobileAgendaTimeline"
 import { type AgendaMobileFilters, type AgendaMobileMode } from "./agenda-mobile-model"
+import "./agenda-mobile.css"
 
 const IntelligenceActionResultContent = dynamic(
   () => import("@/components/intelligence/action-results/IntelligenceActionResultContent").then((module) => module.IntelligenceActionResultContent),
@@ -71,6 +72,21 @@ function matchesMobileFilter(item: AgendaItem, filters: AgendaMobileFilters) {
   return false
 }
 
+function formatHeroDate(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number)
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }).formatToParts(new Date(year, month - 1, day, 12))
+
+  return parts.map((part) => (
+    part.type === "weekday" || part.type === "month"
+      ? `${part.value.charAt(0).toUpperCase()}${part.value.slice(1)}`
+      : part.value
+  )).join("")
+}
+
 export function AgendaMobileWorkspace({ snapshot, initialMode, initialDate, initialFilters }: AgendaMobileWorkspaceProps) {
   const router = useRouter()
   const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
@@ -115,6 +131,7 @@ export function AgendaMobileWorkspace({ snapshot, initialMode, initialDate, init
 
   const selectedItem = selectedItemId ? optimisticItems.find((item) => item.id === selectedItemId) ?? null : null
   const selectedGroup = selectedItemId ? relationGroups.find((group) => group.items.some((item) => item.id === selectedItemId)) ?? null : null
+  const heroDate = formatHeroDate(selectedDate)
 
   const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date)
@@ -155,39 +172,45 @@ export function AgendaMobileWorkspace({ snapshot, initialMode, initialDate, init
   }, [])
 
   return (
-    <section className="min-h-full bg-accent/10 px-3 pt-4 pb-[calc(var(--layout-mobile-content-bottom-offset)+var(--space-8))]">
-      <div className="mx-auto min-h-full w-full max-w-xl rounded-[var(--radius-medium)] bg-surface">
-        <div className="px-4 pt-4">
-          <header className="flex min-h-11 items-center justify-between gap-3">
-            <h1 className="font-heading text-xl font-bold tracking-tight text-heading">Agenda</h1>
-            <div className="flex items-center gap-2">
-              {isPending ? <span className="mr-1 size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-label="Mise à jour" /> : null}
-              <button type="button" onClick={() => setConsultMenuOpen(true)} aria-label="Consulter" className="flex size-11 items-center justify-center rounded-full bg-heading text-primary-fg transition-colors hover:bg-sidebar-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z" /><circle cx="12" cy="12" r="2.25" /></svg>
-              </button>
-              <button type="button" onClick={() => setCreateDrawerOpen(true)} aria-label="Créer un événement" className="flex size-11 items-center justify-center rounded-full bg-primary text-primary-fg transition-colors hover:bg-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-                <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" d="M12 5v14M5 12h14" /></svg>
-              </button>
-            </div>
-          </header>
+    <section className="agenda-mobile">
+      <section className="agenda-mobile__hero" aria-label="Agenda">
+        <h1 className="sr-only">Agenda</h1>
+        <div className="agenda-mobile__brand" aria-hidden="true"><span>A</span><small>agenda</small></div>
+        <Image
+          className="agenda-mobile__hero-illustration"
+          src="/illustrations/agenda-mobile-line-art.png"
+          alt=""
+          width={1536}
+          height={1024}
+          sizes="316px"
+          priority
+        />
+        <div className="agenda-mobile__actions">
+          {isPending ? <span className="agenda-mobile__pending" aria-label="Mise à jour" /> : null}
+          <button type="button" onClick={() => setConsultMenuOpen(true)} aria-label="Consulter" className="agenda-mobile__quick-action agenda-mobile__quick-action--consult">
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z" /><circle cx="12" cy="12" r="2.25" /></svg>
+          </button>
+          <button type="button" onClick={() => setCreateDrawerOpen(true)} aria-label="Créer un événement" className="agenda-mobile__quick-action agenda-mobile__quick-action--create">
+            <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" d="M12 5v14M5 12h14" /></svg>
+          </button>
         </div>
-        <div className="relative z-0 h-0 overflow-visible" aria-hidden="true">
-          <Image src="/illustrations/agenda-mobile-line-art.png" alt="" width={1536} height={1024} sizes="(max-width: 640px) 100vw, 32rem" className="pointer-events-none absolute -top-2 h-24 w-full object-contain object-center opacity-50" priority />
-        </div>
-        <div className="relative z-10 mt-2 grid grid-cols-5 px-4">
+        <time className="agenda-mobile__hero-date" dateTime={selectedDate}>{heroDate}</time>
+        <div className="agenda-mobile__week" aria-label="Jours ouvrés de la semaine">
           {dateStripDays.map((date) => {
             const dateKey = getLocalIsoDateString(date)
             const selected = dateKey === selectedDate
             const hasItems = (dayCounts.get(dateKey) ?? 0) > 0
-            return <button key={dateKey} type="button" onClick={() => handleDateChange(dateKey)} className="relative flex min-h-[4.25rem] flex-col items-center justify-center gap-0.5 rounded-[var(--radius-small)] px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-pressed={selected}>
-              <span className={cn("text-[11px] font-bold", selected ? "text-primary" : "text-muted")}>{date.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "")}</span><span className={cn("font-heading text-lg font-bold", selected ? "text-primary" : "text-heading")}>{date.getDate()}</span><span className={cn("size-1.5 rounded-full", selected ? "bg-primary" : hasItems ? "bg-muted/50" : "bg-transparent")} />
+            return <button key={dateKey} type="button" onClick={() => handleDateChange(dateKey)} className="agenda-mobile__week-day" aria-pressed={selected} data-selected={selected || undefined}>
+              <span>{date.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "")}</span><strong>{date.getDate()}</strong><i className={cn(selected ? "bg-primary-fg" : hasItems ? "bg-primary-fg/55" : "bg-transparent")} />
             </button>
           })}
         </div>
-        <div className="mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+      </section>
+      <div className="agenda-mobile__surface">
+        <div className="agenda-mobile__filters">
           {FILTERS.map((filter) => { const active = filters[filter.key]; return <button key={filter.key} type="button" onClick={() => handleFilterToggle(filter.key)} aria-pressed={active} className={cn("min-h-11 shrink-0 rounded-full border px-3 text-xs font-bold transition-colors", active ? "border-primary bg-primary text-primary-fg" : "border-border bg-surface text-body hover:bg-surface-hover")}>{filter.label}</button> })}
         </div>
-        <main className="mt-5 px-4 pb-5">
+        <main className="agenda-mobile__timeline">
           {calendarDayGroups.length ? <MobileAgendaTimeline groups={calendarDayGroups} timezone={snapshot.query.timezone} onItemClick={handleItemClick} onToggleTaskStatus={(taskId) => void handleTaskStatus(taskId)} /> : <div className="py-16 text-center"><h2 className="font-heading text-base font-bold text-heading">Aucun élément à afficher</h2><p className="mt-2 text-xs font-medium text-muted">Ajustez les filtres ou choisissez un autre jour.</p></div>}
         </main>
       </div>
