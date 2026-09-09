@@ -107,7 +107,7 @@ QA minimale :
 | **Phase 6** | Refonte Shell global Desktop | ✅ **CLOSED (2026-09-09)** | doc `10-*` — invariants Shell figés |
 | **7.0** | Audit global CURRENT → TARGET des workspaces | ✅ livré | audit sur `HEAD` (`f477f736`) ; 10 workspaces revalidés contre 09 §B/C ; impact Data/Routing/Desktop/Mobile ; blockers ; sous-lots 7.3A/B/C ; séquence Phase 7 ; `MISSION_CATALOG` = 7 specs (framework mission réutilisable) ; duplication rentabilité Finance↔Engagements confirmée. Document `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md`. Voir §40 |
 | **7.1** | Alignement Opportunités | ⬜ todo | `YES AFTER REBASELINE` — attend l'intégration de la refonte Synthèse Opportunités parallèle |
-| **7.2** | Alignement Consultants | ✅ techniquement livré | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
+| **7.2** | Alignement Consultants | ✅ techniquement livré (`bb2a3a4d`) | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
 | **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
 | **7.4 → 7.9** | BI · Prospection · Rapports · Veille · Knowledge Hub · Automatisations | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
@@ -2286,8 +2286,8 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 ### Verdict
 
-- **Lot 7.2 — ✅ livré.** Commit : `refactor(consultants): align workspace target navigation`
-  (SHA consigné après push).
+- **Lot 7.2 — ✅ livré.** Commit : `bb2a3a4d` — `refactor(consultants): align workspace target navigation`.
+  Push `adf1df5a..bb2a3a4d` sur `origin/main`.
 - **Consultants Lot 15 — Nettoyage et clôture** : `DEFERRED UNTIL TARGET-ALIGNMENT` →
   **`UNBLOCKED / READY`**. Auditables au Lot 15 : `src/components/recruitment/dashboard/*`
   (orphelins), `_actions/` legacy `/recruitment` non repointés. À **conserver** :

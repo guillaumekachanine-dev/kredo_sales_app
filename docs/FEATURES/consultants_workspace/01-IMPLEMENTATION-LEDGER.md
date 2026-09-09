@@ -39,7 +39,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `d91a49c8` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
 | 13.1 | Synthèse — Double voie | ✅ techniquement livré | `67aa1859` | C-33. Ratio supprimé ; collaborateurs + candidats rattachés + recrutés YTD par practice. Desktop = panneau principal + rail vertical processus/intercontrat. Mobile = liste dédiée. Aucun nouveau fetch, migration ou dépendance. Correction à la reprise : assertion Mobile stale (`Pipeline de recrutement` → `Processus actifs par étape`). |
 | 14 | Intégration Shell global / CRM | ✅ techniquement livré | `50f1a31e` | Coordonné SHELL-0018 Lot 6.2. Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources ». Suppression SectionNavBarSlot et (tabbed)/layout.tsx, deep-links déplacés par git mv, useSidebarCollapse retiré de ConsultantsDesktopShell. Mobile sécurisé via CONSULTANTS_SECTIONS. C-34, NAV-3/NAV-4/LEGACY-3 résolues. |
-| 7.2 | Alignement workspace cible (SHELL-0018 Phase 7.2) | ✅ techniquement livré | _(voir §Phase 7.2)_ | Libellés cible (Vue d'ensemble / Vivier Candidats / Activité & Congés / Matching Profil) ; `pool-competences` **chapitre Desktop → Module Desktop** (composant + Data réutilisés) ; Mobile inchangé (5 accès, SEPARATE IMPLEMENTATION) ; compat `?section=pool-competences` réinterprétée par device ; 0 pathname, 0 redirect, 0 Data nouvelle. |
+| 7.2 | Alignement workspace cible (SHELL-0018 Phase 7.2) | ✅ techniquement livré | `bb2a3a4d` | Libellés cible (Vue d'ensemble / Vivier Candidats / Activité & Congés / Matching Profil) ; `pool-competences` **chapitre Desktop → Module Desktop** (composant + Data réutilisés) ; Mobile inchangé (5 accès, SEPARATE IMPLEMENTATION) ; compat `?section=pool-competences` réinterprétée par device ; 0 pathname, 0 redirect, 0 Data nouvelle. |
 | 15 | Nettoyage et clôture | ⬜ todo (**UNBLOCKED / READY** — Phase 7.2 livrée) | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
 
 ### Lot 14 — Intégration Shell global / CRM — ✅ techniquement livré (2026-09-09)
@@ -329,7 +329,8 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
   internes hors périmètre (KPI, drawers). « Pool de compétences » n'apparaît plus comme chapitre
   Desktop — uniquement comme module Desktop et section Mobile/compatibilité.
 - **QA visuelle** : réservée à Guillaume (aucun navigateur / Playwright).
-- **Commit** : `refactor(consultants): align workspace target navigation` — SHA consigné après push.
+- **Commit** : `bb2a3a4d` — `refactor(consultants): align workspace target navigation`
+  (`bb2a3a4d51f53d775fe1ae8ba74d4e256cce206c`). Push `adf1df5a..bb2a3a4d` sur `origin/main`.
 - **NEXT LOT** : **Lot 15 — Nettoyage et clôture** — passe de `DEFERRED UNTIL TARGET-ALIGNMENT` à
   **`UNBLOCKED / READY`**. Éléments désormais auditables / supprimables au Lot 15 (aucune cible ne les
   réutilise après 7.2) :

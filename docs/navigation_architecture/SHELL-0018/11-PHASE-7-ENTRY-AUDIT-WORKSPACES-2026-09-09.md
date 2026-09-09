@@ -264,8 +264,7 @@ Desktop **ne doit pas** retirer le pool de la navigation Mobile sans décision e
 | Module | — | Mission : prévoir les disponibilités | NEW/FUTURE (framework REUSE possible) | `MISSION_CATALOG` slug `capacite-staffing` + `MissionComposerDesktop` | DATA-1 (providers mission existants) | nouveau `contextualModule` | FUTURE | §18 | 7.2 ou différé |
 
 **Statut : `IMPLEMENTED / PASS` (Phase 7.2 — 2026-09-09).** Complexité **MEDIUM** (1 TRANSFORM
-structurel + arbitrage Mobile). 0 Data nouvelle. `commit refactor(consultants): align workspace
-target navigation`.
+structurel + arbitrage Mobile). 0 Data nouvelle. commit `bb2a3a4d` (`refactor(consultants): align workspace target navigation`).
 
 > **Livré :** 4 chapitres Desktop + libellés produit (`CONSULTANTS_DESKTOP_CHAPTERS`,
 > `HEADER_TITLE_BY_SECTION`) ; `pool-competences` chapitre Desktop → **Module Desktop**
@@ -875,7 +874,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | Lot | Workspace | Complexité | Data | Desktop | Mobile | Dépendances | Rebaseline requis | Go |
 |---|---|---|---|---|---|---|---|---|
 | **7.1** | Opportunités | LOW | DATA-0 | 7 labels | LABEL SYNC (à confirmer) | refonte Synthèse parallèle | **OUI** | **YES AFTER REBASELINE** |
-| **7.2** | Consultants | MEDIUM | DATA-0 (cœur) | 3 labels + 1 TRANSFORM | SEPARATE IMPL. (pool) | — | Non | ✅ **IMPLEMENTED / PASS** (2026-09-09) |
+| **7.2** | Consultants | MEDIUM | DATA-0 (cœur) | 3 labels + 1 TRANSFORM | SEPARATE IMPL. (pool) | — | Non | ✅ **IMPLEMENTED / PASS** (`bb2a3a4d`) |
 | **7.3A** | Rentabilité Data | HIGH | **DATA-2** | — | — | décision vue/builder | Non | **NO — DECISION REQUIRED** |
 | **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A | Non | NO (après 7.3A) |
 | **7.3C** | Finance | MEDIUM | DATA-1 | 2 RENAME + 1 module | LABEL SYNC | 7.3A, 7.3B | Non | NO (après 7.3B) |
