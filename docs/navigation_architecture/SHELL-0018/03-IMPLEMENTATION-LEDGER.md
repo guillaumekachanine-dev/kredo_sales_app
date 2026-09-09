@@ -103,13 +103,15 @@ QA minimale :
 | **6.4B** | Alignement **navigation principale Desktop** (produit) | ✅ techniquement livré | `Cockpit` → `Accueil` (icône `home`, pathname `/cockpit` conservé) ; Finance déplacée sous CRM (5ᵉ) ; Paramètres déplacé sous Outils (3ᵉ) ; groupes `Finance`/`Ressources` racines supprimés ; logo `aria-label` « Retour à l'accueil ». 0 pathname modifié, 0 workspace touché, 0 Mobile. Voir §36 |
 | **6.5** | Stabilisation `DesktopSidebar` / collapse | ✅ techniquement livré | politique pathname `desktop-sidebar-policy.ts` ; `DesktopSidebar` dérive son état effectif (préférence cookie + auto-repli + verrous) ; `useSidebarCollapse` réduit à un compteur de verrous ; 6 émetteurs historiques + 1 lecteur supprimés ; `IntelligencePanel` verrou équilibré. Voir §37 |
 | **6.6** | Intégration finale Shell global ↔ Cockpit Intelligence | ✅ techniquement livré | commit `e8f5e4f6` ; `DesktopSidebar` observe directement `useIntelligencePanel.isOpen` ; `resolveDesktopSidebarCollapsed` gagne la dimension `intelligencePanelOpen` ; `IntelligencePanel` n'importe plus `useSidebarCollapse` et n'émet plus de verrou ; `CrmTabbedShell` reste le seul émetteur applicatif ; `AppShell` inchangé (Server Component). Voir §38 |
-| **6.7** | Audit de clôture Phase 6 | ⬜ todo (**prochain lot**) | inventaire de clôture, 0 legacy Shell |
-| **Phase 7** | Alignement fonctionnel des workspaces (7.0 → 7.10) | ⬜ todo | voir §34 — chapitres/modules par workspace, cible = document `09-…` |
+| **6.7** | Audit de clôture Phase 6 | ✅ clôturé | audit sur `HEAD` (`2859c5bf`) ; navigation principale + URLs + collapse Shell-owned + Cockpit Intelligence global + Mobile distinct + tabs d'entités conservés : tous **PASS** ; 0 blocker ; 6 dettes NON-BLOCKING/DEFERRED. Document `10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md`. Voir §39 |
+| **Phase 6** | Refonte Shell global Desktop | ✅ **CLOSED (2026-09-09)** | doc `10-*` — invariants Shell figés |
+| **Phase 7** | Alignement fonctionnel des workspaces (7.0 → 7.10) | ⬜ todo (**prochaine phase**) | voir §34 — chapitres/modules par workspace, cible = document `09-…` ; **premier lot : 7.0 — Audit global CURRENT → TARGET** |
 
-> **Phase 4 — ✅ close techniquement (Lot 4.7)**
+> **Phase 4 — ✅ close techniquement (Lot 4.7)** · **Phase 6 — ✅ CLOSED (Lot 6.7, doc `10-*`)**
 >
 > **Cible canonique de navigation : `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`** (Lot 6.3R).
 > Menu principal + architecture interne des workspaces. Supersède les anciennes cibles lorsqu'elles divergent.
+> **Preuve de conformité technique du Shell : `10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md`** (Lot 6.7).
 
 ## 5. Journal des décisions de rebaseline
 
@@ -2047,3 +2049,88 @@ visuel / Mobile / workspace ✔ · aucun fichier Opportunities parallèle commit
 ### Verdict
 
 - **Lot 6.6 — ✅ techniquement livré.** Commit : `e8f5e4f6` (`refactor(shell-0018): finalize intelligence shell integration`).
+
+---
+
+## 39. Lot 6.7 — Audit de clôture Phase 6
+
+> **Nature :** audit + documentation. **0 modification de code applicatif.**
+> **HEAD audité :** `2859c5bf` — `HEAD == origin/main` au démarrage.
+> **Document produit :** `10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md` (preuve de conformité technique).
+>
+> ⚠️ **Travail parallèle préservé** — working tree dirty au démarrage, jamais touché / stagé :
+> `docs/JOURNAL-SESSIONS.md` + `src/features/opportunities/summary/*` (refonte Synthèse
+> Opportunités). Tous les audits portent sur `HEAD` (`git show HEAD:…`, `git grep … HEAD`,
+> `git ls-tree HEAD`), pas sur le working tree.
+
+### Résultats d'audit (tous PASS)
+
+| # | Audit | Preuve clé | Verdict |
+|---|---|---|---|
+| 1 | Navigation principale | `main-menu.config.test.ts` verrouille `["Accueil","Agenda","CRM","Intelligence","Outils"]` + sous-arbres ; 0 `Cockpit`/`Ressources`/`Finance` racine | PASS |
+| 2 | Contrats URL | 14 pathnames canoniques inchangés ; aucune route `/accueil` `/home` `/crm` | PASS |
+| 3 | Nav horizontale legacy | `git grep -nw SectionNavBar HEAD` → 0 ; `SectionNavBarSlot` → 0 code actif (1 commentaire + 2 assertions de test) ; `getModuleTabs`/`getSectionTabsForPath` → assertions d'absence ; `MainMenuItem.tabs` → 0 | PASS |
+| 4 | Tabs d'entités distingués | `SectionTabBar` / `section-tab-styles.ts` / `src/lib/tabs/*` **actifs, conservés** ; `SectionTab` = `@/lib/tabs/tab-types` (fiches entités), 0 depuis `main-menu.config` | PASS |
+| 5 | Route groups `(tabbed)` | `git ls-tree HEAD | grep '(tabbed)'` → 0 | PASS |
+| 5 | Redirects de compatibilité | 6 `permanentRedirect` (consultants/activite-conges, pool-competences, missions/actives, projets, recruitment, staffing) → **COMPATIBILITY REDIRECT** intentionnels ; 0 DEAD/BLOCKER | PASS |
+| 5bis | `SectionRail` local | 11 composants de navigation locale consomment la primitive ; Shell ne transporte plus de chapitre | PASS |
+| 6 | Ownership collapse | `resolveDesktopSidebarCollapsed` pure à 4 champs : `preferredCollapsed \|\| workspaceAutoCollapsed \|\| intelligencePanelOpen \|\| externalCollapseRequestCount > 0` ; toggle bloqué sous contrainte forcée | PASS |
+| 7 | `useSidebarCollapse` | applicatif = hook (+test), `DesktopSidebar` (lecteur), `CrmTabbedShell` (émetteur) ; **`requestCollapse`/`requestRestore` hors hook/test → `CrmTabbedShell` uniquement** ; `MobileNavigationMenu` = fonction locale homonyme sans rapport | PASS |
+| 8 | Cockpit Intelligence global | `AppShell` monte `IntelligencePanel` en racine ; `DesktopSidebar` lit `useIntelligencePanel((s) => s.isOpen)` ; `IntelligencePanel` : `git grep useSidebarCollapse HEAD -- src/components/intelligence` → 0 | PASS |
+| 9 | AppShell / Adaptive Design | `export async function AppShell` (Server Component, `await cookies()`) ; branches Mobile/Desktop mutuellement exclusives ; 0 CSS-hide ; 0 composant Mobile modifié en Phase 6 | PASS |
+| 10 | Bac à sable | `useLegacySandboxStore` dédié, hors `mainMenuItems`, badge `Legacy` → INTENTIONAL LEGACY / NON-BLOCKING | PASS |
+| 12 | Cible 09 vs HEAD | 15 invariants, tous PASS avec preuve | PASS |
+
+### Dettes post-Phase 6 (aucune BLOCKING)
+
+| # | Dette | Classement |
+|---|---|---|
+| 1 | `kredo_intelligence_open` écrit (`use-intelligence-panel.ts:31`) jamais relu → Cockpit démarre `isOpen: false` après reload | **NON-BLOCKING / DEFERRED** (hydratation Zustand/SSR post-Shell) |
+| 2 | Lint `react-hooks/set-state-in-effect` **error** `IntelligencePanel.tsx` (effet reset écrans secondaires) — pré-existant, hors SHELL | **NON-BLOCKING** |
+| 3 | Lint `prettify` inutilisé `breadcrumb.ts` — *warning* pré-existant | **NON-BLOCKING / hygiène** |
+| 4 | Bac à sable legacy | **INTENTIONAL LEGACY / NON-BLOCKING** |
+| 5 | Commentaire historique `missions/layout.tsx:3` | **NON-BLOCKING** (conservé délibérément) |
+| 6 | Renommage `MobileSectionRail`/`SectionTabBar` (ambiguïté « SectionTab ») | **DEFERRED** |
+
+### Correction documentaire
+
+`09-*` §E.1 (roadmap 6.4A) listait `section-tab-styles.ts` parmi les fichiers **supprimés** — erreur
+factuelle (le fichier est conservé, 3 consommateurs actifs ; l'audit d'entrée 6.4A du ledger le
+documentait déjà correctement). Corrigé : la ligne distingue désormais SUPPRIMÉS vs CONSERVÉS.
+Pointeur vers le document 10 ajouté. Aucune autre décision historique réécrite.
+
+### Fichiers modifiés (documentation uniquement)
+
+- `docs/navigation_architecture/SHELL-0018/10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md` — **créé**
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md` — tableau des Lots + §39
+- `docs/navigation_architecture/SHELL-0018/README.md` — ordre de lecture + statut Phase 6 CLOSED
+- `docs/navigation_architecture/SHELL-0018/09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` —
+  correction factuelle 6.4A + note Phase 6 CLOSED
+
+**0 fichier `.ts` / `.tsx` / `.css` / `.sql` / JSON applicatif modifié.**
+
+### Gates
+
+- `git diff --check` : **passé**
+- `git rev-parse HEAD == git rev-parse origin/main` : **vrai**
+- `npx vitest run main-menu.config.test.ts desktop-sidebar-policy.test.ts use-sidebar-collapse.test.ts` :
+  **3 fichiers / 53 tests passés**
+- Dernière validation applicative complète de la Phase 6 = **Lot 6.6 / commit `e8f5e4f6`**
+  (typecheck + server-boundary + build 42/42 + `npm test` 293 fichiers / 2 937 tests). Aucun code
+  applicatif modifié depuis → non rejouée (working tree porteur du chantier parallèle).
+
+### Statut de clôture
+
+```
+Phase 6 — CLOSED
+```
+
+Toutes les conditions de clôture remplies (§18 du document 10). Aucun blocker. Prochaine phase :
+**Phase 7 — Alignement fonctionnel des workspaces**, premier lot **7.0 — Audit global
+CURRENT → TARGET**. Opportunities Lot 12 / Consultants Lot 15 : **DEFERRED UNTIL TARGET-ALIGNMENT**
+(après 7.1 / 7.2).
+
+### Verdict
+
+- **Lot 6.7 — ✅ clôturé.** Commit : `docs(shell-0018): close phase 6 shell migration`.
+- **Phase 6 — ✅ CLOSED.**

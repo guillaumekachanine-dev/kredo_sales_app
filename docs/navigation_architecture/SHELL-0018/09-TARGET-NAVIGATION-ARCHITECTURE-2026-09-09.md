@@ -612,7 +612,7 @@ Valeurs `Traitement` : `KEEP` · `RENAME` · `MOVE` · `REUSE` · `TRANSFORM` ·
 | Lot | Objet | Nature | Dépend de |
 |---|---|---|---|
 | **6.3R** | Rebaseline architecture cible finale (**ce document**) | Documentaire | 6.2, 6.3 |
-| **6.4A** | Démantèlement navigation horizontale **legacy** | **Technique** — `SectionNavBarSlot`, `SectionNavBar`, `SectionTab`, `getModuleTabs`, `getSectionTabsForPath`, `section-tab-styles.ts`, styles / tests legacy | 6.1 + 6.2 + 6.3 (0 consommateur) |
+| **6.4A** | Démantèlement navigation horizontale **legacy** | **Technique** — SUPPRIMÉS : `SectionNavBarSlot`, `SectionNavBar`, `SectionTab` de `main-menu.config`, `MainMenuItem.tabs`, `getModuleTabs`, `getSectionTabsForPath`, `breadcrumb.addTabs`. CONSERVÉS (tabs de fiches entités, sans rapport) : `SectionTabBar`, `section-tab-styles.ts`, `src/lib/tabs/*`, `SectionTab` de `@/lib/tabs/tab-types`, `CrmSectionTabBar` / `StaffingSectionTabBar` | 6.1 + 6.2 + 6.3 (0 consommateur) |
 | **6.4B** | Alignement **navigation principale Desktop** | **Produit** — applique NAV-TARGET-03/04/05 : Accueil, Agenda, CRM (+ Finance), Intelligence, Outils (+ Paramètres), Bac à sable séparé | 6.3R |
 | **6.5** | Stabilisation `DesktopSidebar` / collapse — réduction de `useSidebarCollapse` à ses émetteurs légitimes, auto-repli Shell | Technique | 6.4A |
 | **6.6** | Intégration Shell global ↔ Cockpit Intelligence | Technique | 6.5 |
@@ -620,6 +620,11 @@ Valeurs `Traitement` : `KEEP` · `RENAME` · `MOVE` · `REUSE` · `TRANSFORM` ·
 
 > **6.4A et 6.4B ne sont jamais mélangés.** 6.4A est un refactor technique sans décision
 > produit ; 6.4B applique la taxonomie de menu de ce document.
+
+> **Phase 6 — ✅ CLOSED (2026-09-09).** Preuve de conformité technique :
+> `10-PHASE-6-CLOSURE-AUDIT-2026-09-09.md`. Les invariants Shell (menu principal, ownership du
+> collapse, `SectionRail` local, contrats URL, Cockpit Intelligence global, Mobile distinct) sont
+> désormais **figés** : la Phase 7 ne les rouvre pas.
 
 ## E.2. Phase 7 — Alignement fonctionnel des workspaces (nouvelle)
 
