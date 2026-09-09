@@ -1639,7 +1639,7 @@ export function CompanyIdentityDrawer({
                                       href={trigger.source}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="group relative overflow-hidden bg-[#FF9800] hover:bg-[#E88900] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(255,152,0,0.24)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                                      className="group relative overflow-hidden bg-[#FF9800] hover:bg-[#E88900] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none kredo-company-identity-cta-shadow transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
                                       title="Accéder à la source du trigger"
                                     >
                                       <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
