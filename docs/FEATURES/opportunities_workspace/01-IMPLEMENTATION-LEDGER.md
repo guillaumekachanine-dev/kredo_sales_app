@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 10 — Modules contextuels (Matching profil · Simulation devis · Post-Mortem)
 Lot courant                   : aucun
 Prochain lot                  : Lot 11 — Legacy / compatibilité / navigation globale
-Dernier SHA connu origin/main : 127af469   (2026-09-09, commit refactor Lot 9)
+Dernier SHA connu origin/main : a965a94c   (2026-09-09, commit Lot 10)
 ```
 
 ## Table des lots
@@ -32,7 +32,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 7 | Avant-vente (structure + `EmptyState` V1) | ✅ techniquement livré | `6a84b978` | `PresalesDesktop` : `OpportunitiesTriPanel` + 3 `EmptyState` authentiques (liste / surface / détails). **Aucune donnée, aucun seed, aucun modèle Projet.** `page.tsx` `avant-vente` → `PresalesDesktop`. PRODUCT-05 reste **ouverte** et documentée. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ✅ techniquement livré | `adde8825` | `src/features/opportunities/planning/data/` : `opportunity-deadline.types.ts` + `build-opportunity-deadlines.ts` (pur) + `get-opportunity-deadlines.ts` (loader). **Résout DATA-03 → OPP-28.** Synthèse refactorée pour consommer ce builder (OPP-10). Builder unique (test d'arbitrage + `start_date` jamais échéance). Aucune migration. |
 | 9 | Planning Desktop | ✅ techniquement livré | `d94a1b16` | `OpportunitiesTriPanel` : liste des opportunités ouvertes │ milestone planning central `Mois \| Année` │ détail contextuel. Builder `OpportunityDeadline` unique, sélection `?opp=`, ligne Aujourd’hui, formes + couleurs par source, navigation de période. **OPP-29.** Mobile inchangé. |
-| 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ✅ techniquement livré | _(à renseigner)_ | `src/features/opportunities/modules/` : contrat `?module=` + 3 wrappers REUSE-only (`MatchingDialog` · `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) + `OpportunitiesModulesHost` (dialogs lazy). Rail « Modules » restreint par chapitre (§ 13). **Résout CROSS-01/02/03 → OPP-30.** `Modélisation de CA` non affichée (OPP-11). Aucune Data, aucune migration. |
+| 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ✅ techniquement livré | `a965a94c` | `src/features/opportunities/modules/` : contrat `?module=` + 3 wrappers REUSE-only (`MatchingDialog` · `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) + `OpportunitiesModulesHost` (dialogs lazy). Rail « Modules » restreint par chapitre (§ 13). **Résout CROSS-01/02/03 → OPP-30.** `Modélisation de CA` non affichée (OPP-11). Aucune Data, aucune migration. |
 | 11 | Legacy / compatibilité / navigation globale | ⬜ todo | — | Redirection `/staffing`, `main-menu` label « Opportunités », deep-links `scope`. **Coord. SHELL-0018 Phase 6.3.** |
 | 12 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
 
@@ -352,7 +352,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
     corrigée : `moduleKey` au lieu de `module`).
   - `npm run build` — ✅ « Compiled successfully », route `ƒ /missions/opps` (pas de déopt).
 
-- **Commit** : _(à renseigner)_ — `feat(opportunities): modules contextuels Matching · Simulation · Post-Mortem (Lot 10)`.
+- **Commit** : `a965a94c` — `feat(opportunities): modules contextuels Matching · Simulation · Post-Mortem (Lot 10)`.
 - **QA visuelle** : réservée à Guillaume (§ 20.3) — section « Modules » du rail, ouverture des
   3 dialogs, habillage cockpit du Post-Mortem, préset Simulation depuis un besoin.
 - **NEXT LOT** : Lot 11 — Legacy / compatibilité / navigation globale (coord. SHELL-0018 Phase 6.3).
