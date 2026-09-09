@@ -1776,4 +1776,4 @@ de `mainMenuItems`, `SectionRail`, les navigations de workspaces, `useSidebarCol
 
 ### Verdict
 
-- **Lot 6.4B — ✅ techniquement livré.** Commit : _(renseigné après push)_.
+- **Lot 6.4B — ✅ techniquement livré.** Commit : `e6a19d4d` (`refactor(shell-0018): align desktop main navigation`).
