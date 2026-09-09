@@ -10,9 +10,9 @@ Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 0 — Cadrage documentaire
-Lot courant                   : aucun
-Prochain lot                  : Lot 1 — Socle Opportunities Workspace
-Dernier SHA connu origin/main : e7f0f79ffed19d8a33323f37024d063eb1148fd5   (2026-09-09, commit Lot 0)
+Lot courant                   : Lot 1 — Socle Opportunities Workspace (🟡 en cours)
+Prochain lot                  : Lot 2 — Primitive/layout 3 panneaux
+Dernier SHA connu origin/main : b381cd2d   (2026-09-09, docs Lot 0 SHA)
 ```
 
 ## Table des lots
@@ -211,6 +211,44 @@ canonique § 17.
   (`stages.ts`) et la base font foi.
 - **Compat `scope`** : le contrat est aujourd'hui obligatoire (redirection serveur) et porté
   par le Mobile (`getMobileTabsForPath`) — à préserver jusqu'à migration Mobile explicite.
+
+## Divergences constatées avant code — Lot 1 (2026-09-09)
+
+Consignées **avant** modification du code, conformément au protocole § 20.1.
+
+1. **Routes parallèles Next.js interdites.** Conserver
+   `src/app/(app)/missions/(tabbed)/opps/page.tsx` **et** créer
+   `src/app/(app)/missions/opps/page.tsx` fait échouer `next build`
+   (« two parallel pages resolve to the same path /missions/opps » — les route
+   groups `(tabbed)` ne changent pas le pathname). Le retrait de l'ancienne route
+   n'est donc **pas** reportable à un « Lot 1.1 » : il est fait **dans le Lot 1**.
+   Parité assurée par montage **direct et inchangé** de `NeedsStaffingWorkspace`
+   (mêmes loaders desktop, même branche mobile, même contrat de props) dans le
+   chapitre `besoins`. Le doc canonique § 15 / fiche Lot 1 est ajusté en
+   conséquence (le « peut rester un lot 1.1 si prudence » n'est pas applicable ici).
+
+2. **`buildOpportunitiesSectionHref` — périmètre de nettoyage.** Au changement de
+   chapitre, le builder supprime, en plus de `section`, les paramètres **métier
+   legacy** `scope` · `view` · `stage` · `priority` · `practice` · `sort` ·
+   `direction` (état du chapitre frère, non pertinent sur le chapitre cible). Tous
+   les **autres** query params (réellement tiers) sont strictement préservés
+   (`new URLSearchParams(searchParams.toString())`). → **OPP-17**.
+
+3. **Shell alimenté par `searchParamsString` (prop), pas `useSearchParams()`.**
+   L'orchestrateur serveur relit l'URL à chaque navigation et passe la query
+   courante au shell, qui construit les `href` de chapitre via
+   `buildOpportunitiesSectionHref`. Évite une Suspense boundary `useSearchParams`
+   et rend `OpportunitiesDesktopShell` testable sans router. Navigation **100 %
+   URL-driven** (aucun `useState` de navigation). → **OPP-18**.
+
+4. **Mobile — sortie de `(tabbed)/layout.tsx`.** `/missions/opps` perd l'enveloppe
+   `SectionNavBarSlot` + `MissionsTabbedShell`. **Aucun impact comportemental
+   Mobile** : `SectionNavBarSlot` était un **no-op** sur l'entrée « Besoins &
+   Staffing » (pas de `tabs`), et le Mobile Besoins (`NeedsMobileCards` via
+   `NeedsStaffingWorkspace`) n'utilise **pas** `useMissionsTabStore` /
+   `MissionsEntityPanel`. La barre d'onglets Mobile reste portée par
+   `main-menu.config.ts` (`getMobileTabsForPath`) + `MobileNav` — **non modifiés**.
+   Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
 

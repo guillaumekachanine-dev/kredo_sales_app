@@ -37,15 +37,18 @@ function formatMeetingTime(startsAt: string, allDay: boolean) {
 function formatHeroDate(generatedAt: string | undefined) {
   if (!generatedAt) return null
 
-  const formattedDate = new Intl.DateTimeFormat("fr-FR", {
+  const dateParts = new Intl.DateTimeFormat("fr-FR", {
     timeZone: AGENDA_V1_TIMEZONE,
     weekday: "long",
     day: "2-digit",
     month: "long",
-    year: "numeric",
-  }).format(new Date(generatedAt))
+  }).formatToParts(new Date(generatedAt))
 
-  return `${formattedDate.charAt(0).toUpperCase()}${formattedDate.slice(1)}`
+  return dateParts.map((part) => (
+    part.type === "weekday" || part.type === "month"
+      ? `${part.value.charAt(0).toUpperCase()}${part.value.slice(1)}`
+      : part.value
+  )).join("")
 }
 
 function HomeRail({ children, label }: { children: ReactNode; label: string }) {

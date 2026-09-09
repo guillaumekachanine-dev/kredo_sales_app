@@ -25,15 +25,15 @@ export function CockpitPrioritiesModule({ snapshot }: { snapshot: CockpitMobileS
 
   if (items.length === 0) return <p className="cockpit-sheet-empty">Aucune priorité active pour cette semaine.</p>
 
-  return <ul className="cockpit-sheet-list">{items.map((item) => {
+  return <ul className="cockpit-sheet-list cockpit-week-modal__priority-list">{items.map((item) => {
     const narrative = narrativeByTitle.get(item.title)
     const key = getCockpitPriorityKey(item)
-    return <li key={key} className="cockpit-action-card">
-      <div className="flex items-start justify-between gap-3"><h3 className="text-sm font-bold text-heading">{item.title}</h3><StatusPill label={TIER_LABEL[item.tier]} variant={TIER_VARIANT[item.tier]} /></div>
+    return <li key={key} className="cockpit-action-card cockpit-week-modal__priority" data-tier={item.tier}>
+      <div className="flex items-start justify-between gap-3"><h3 className="text-sm font-bold text-heading">{item.title}</h3><StatusPill label={TIER_LABEL[item.tier]} variant={TIER_VARIANT[item.tier]} className="cockpit-week-modal__priority-level" /></div>
       <p className="text-xs leading-relaxed text-body">{narrative?.whyNow ?? item.reason}</p>
-      <p className="text-xs font-semibold text-primary">Action : {narrative?.recommendedAction ?? item.recommendedAction}</p>
+      <p className="cockpit-week-modal__recommended-action">{narrative?.recommendedAction ?? item.recommendedAction}</p>
       {narrative?.expectedImpact ? <p className="text-xs text-muted">Impact attendu : {narrative.expectedImpact}</p> : null}
-      {entityLabel(item.entityType) ? <p className="text-[11px] text-muted">Entité : {entityLabel(item.entityType)}</p> : null}
+      {entityLabel(item.entityType) ? <p className="cockpit-week-modal__entity">{entityLabel(item.entityType)}</p> : null}
       <WeeklyManagerItemActions title={item.title} description={narrative?.expectedImpact} dueDate={null} taskPriority={TASK_PRIORITY[item.tier]} entityType={item.entityType} entityId={item.entityId} sourceType={item.sourceType} sourceId={item.sourceId} weekIso={snapshot.weeklyBrief?.facts.period.weekIso ?? ""} isMobile onDismissed={() => setDismissedKeys((current) => new Set(current).add(key))} />
     </li>
   })}</ul>
