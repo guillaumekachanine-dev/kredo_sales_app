@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 4 — Synthèse Desktop
 Lot courant                   : aucun
 Prochain lot                  : Lot 5 — Data/detail Besoins & staffing
-Dernier SHA connu origin/main : __LOT4_SHA__   (2026-09-09, commit Lot 4)
+Dernier SHA connu origin/main : 19f4ccad   (2026-09-09, commit Lot 4)
 ```
 
 ## Table des lots
@@ -26,7 +26,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `2f106d70` + `570306a0` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ✅ techniquement livré | `653eb736` | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). Props `list` / `main` / `details?` / `detailsEmpty?` / `ariaLabel?` / `className?`. Rail droit → `<aside aria-hidden />` si `details` absent. **Aucun consommateur ce lot** (chapitres = Lots 6/7/9). |
 | 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `606cbbb4` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
-| 4 | Synthèse Desktop | ✅ techniquement livré | `__LOT4_SHA__` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
+| 4 | Synthèse Desktop | ✅ techniquement livré | `19f4ccad` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
 | 5 | Data/detail Besoins & staffing | ⬜ todo | — | Réutilise loaders existants, évite les doubles queries. |
 | 6 | Migration UI Besoins & staffing | ⬜ todo | — | Liste │ Détail │ « Staffing en cours ». **Résout PRODUCT-02/03/04, NAVIGATION-02, LEGACY-05.** Parité prouvée. |
 | 7 | Avant-vente (structure + `EmptyState` V1) | ⬜ todo | — | Aucune fausse donnée. PRODUCT-05 reste ouverte. |
@@ -317,7 +317,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
 - **QA visuelle** : réservée à Guillaume — **non réalisée** par l'agent (§ 20.3).
   La densité, la lisibilité des 3 figures et le toggle restent à valider.
 
-- **Commit** : `__LOT4_SHA__` — `feat(opportunities): Synthèse Desktop (Lot 4)`.
+- **Commit** : `19f4ccad` — `feat(opportunities): Synthèse Desktop (Lot 4)`.
 - **NEXT LOT** : Lot 5 — Data/detail Besoins & staffing.
 
 ### Reprise Lot 4 — constats avant code (2026-09-09)
