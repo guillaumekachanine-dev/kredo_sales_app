@@ -1378,3 +1378,56 @@ Supprimer les 4 montages inutiles de `SectionNavBarSlot` dans les layouts où le
 
 ### Verdict
 - **Lot 6.1 — ✅ techniquement livré.**
+
+---
+
+## 32. Clôture du Lot 6.2 — Shell Consultants + Consultants Lot 14
+
+### Objectif
+Finaliser l'intégration du workspace Consultants au Shell V2 : supprimer le dernier `SectionNavBarSlot` Consultants (`consultants/(tabbed)/layout.tsx`) et le route group `(tabbed)`, préserver les deep-links historiques `/consultants/activite-conges` et `/consultants/pool-competences` par des redirections permanentes déplacées via `git mv`, retirer `useSidebarCollapse` de `ConsultantsDesktopShell`, intégrer Consultants dans le groupe `CRM` du menu principal (`mainMenuItems`) en supprimant l'ancien libellé « Équipe », l'entrée globale « Recrutement » et le groupe vide « Ressources », et sécuriser le contrat Mobile `getMobileTabsForPath("/consultants")` via `CONSULTANTS_SECTIONS` (5 destinations canoniques).
+
+### Baseline
+`02c316e0` (`refactor(shell-0018): remove no-op section nav slots`), `main` synchronisé avec `origin/main`.
+
+### Fichiers modifiés / déplacés
+- `src/app/(app)/consultants/(tabbed)/layout.tsx` — **supprimé** (dernier `SectionNavBarSlot` du workspace et route group `(tabbed)` éliminés).
+- `src/app/(app)/consultants/activite-conges/page.tsx` — **déplacé via `git mv`** (redirection permanente vers `/consultants?section=activite-conges` préservée).
+- `src/app/(app)/consultants/pool-competences/page.tsx` — **déplacé via `git mv`** (redirection permanente vers `/consultants?section=pool-competences` préservée).
+- `src/features/consultants/desktop/ConsultantsDesktopShell.tsx` — suppression de `useSidebarCollapse` et du hook `useEffect` (`requestCollapse/requestRestore`).
+- `src/lib/navigation/main-menu.config.ts` — renommage du groupe `Commerce` en `CRM`, renommage `CRM - Comptes` en `Comptes & contacts`, déplacement de `Consultants` sous `CRM` (sans `tabs`, icône `equipe`), suppression de l'entrée globale `Recrutement` et du groupe `Ressources` vide, ajout de la résolution explicite mobile pour `/consultants` via `CONSULTANTS_SECTIONS`.
+- `src/features/consultants/navigation/consultants-sections.test.ts` — remplacement des tests d'invariants obsolètes par la validation de l'absence de `SectionNavBarSlot`, de la suppression de `(tabbed)`, de la persistance des 2 routes legacy redirigeant canoniquement, et de l'absence de `useSidebarCollapse`.
+- `src/lib/navigation/main-menu.config.test.ts` — assertions validant le groupe `CRM`, l'absence de `Ressources` et de `Recrutement`, l'absence de `tabs` sur `Consultants`, et les 5 destinations mobiles.
+- `src/features/consultants/recruitment-deprecation.test.ts` — mise à jour de l'assertion menu (NAV-3 résolue).
+- `src/features/consultants/activity/activity.test.ts` — mise à jour du chemin de la route historique `activite-conges/page.tsx`.
+- `src/app/(app)/consultants/layout.tsx` — mise à jour du commentaire d'en-tête (alignement SHELL 6.2).
+
+### Coordination Consultants Workspace Lot 14
+- Décision C-34 actée dans `00-REFERENCE-CHANTIER-CONSULTANTS.md`.
+- Résolution définitive de NAV-3 (retrait Recrutement menu global) et NAV-4 (Consultants sous CRM).
+- Résolution de LEGACY-3 (suppression de `(tabbed)/layout.tsx`).
+- Recadrage du Lot 15 Consultants sur le nettoyage métier orphelin et rapport de clôture `02-CLOSURE-AUDIT.md`.
+
+### Gates exécutées
+- `npm run typecheck` : **passé** (après purge `.next` des routes déplacées)
+- `npm test -- ...` (tests ciblés) : **38/38 passés**
+- `npm run check:server-boundary` : **passé**
+- `npx eslint` ciblé : **passé** (0 erreur, 0 warning)
+- `npm test` (**suite complète**) : **292 fichiers / 2 891 tests passés (0 échec)**
+- `npm run build` : **passé** (Turbopack, 42/42 pages générées, routes `/consultants`, `/consultants/activite-conges`, `/consultants/pool-competences` compilées)
+- `git diff --check` : **passé**
+
+### Recherches statiques
+- `SectionNavBarSlot` dans `src/app/(app)/consultants` et `src/features/consultants` : **0 occurrence applicative**
+- `useSidebarCollapse` dans `src/features/consultants` : **0 occurrence**
+- `label: "Recrutement"` dans le menu principal `mainMenuItems` : **0 entrée globale**
+- `consultants/(tabbed)` dans `src` : **0 occurrence applicative**
+
+### Limites et dettes restantes
+- `SectionNavBarSlot` reste présent uniquement pour `missions/(tabbed)` (réservé Lot 6.3).
+- QA visuelle : réservée à Guillaume.
+
+### Prochain lot
+- **SHELL 6.3** — Missions historiques + Opportunities Lot 11 (routes tabbed, useSidebarCollapse).
+
+### Verdict
+- **Lot 6.2 — ✅ techniquement livré.**

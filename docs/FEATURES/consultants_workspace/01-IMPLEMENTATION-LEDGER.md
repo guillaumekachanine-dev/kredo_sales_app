@@ -9,10 +9,10 @@ Chantier                 : Consultants Workspace
 Statut global            : en cours
 Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
-Dernier lot livré        : Synthèse — Double voie (refonte post-Lot 13)
+Dernier lot livré        : Lot 14 — Intégration Shell global / CRM
 Lot courant              : —
-Prochain lot             : Lot 14 — Intégration Shell global / CRM
-Dernier SHA connu origin/main : 67aa1859   (2026-09-09, Synthèse Double voie)
+Prochain lot             : Lot 15 — Nettoyage et clôture
+Dernier SHA connu origin/main : 02c316e0   (2026-09-09, Baseline SHELL 6.2)
 ```
 
 ## Table des lots
@@ -38,8 +38,42 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `d50c77e2` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
 | 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `d91a49c8` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
 | 13.1 | Synthèse — Double voie | ✅ techniquement livré | `67aa1859` | C-33. Ratio supprimé ; collaborateurs + candidats rattachés + recrutés YTD par practice. Desktop = panneau principal + rail vertical processus/intercontrat. Mobile = liste dédiée. Aucun nouveau fetch, migration ou dépendance. Correction à la reprise : assertion Mobile stale (`Pipeline de recrutement` → `Processus actifs par étape`). |
-| 14 | Intégration Shell global / CRM | ⬜ todo | — | **Dépend de SHELL-0018 Phase 6 (Lot 6.2).** Résoudre NAV-3/4. |
+| 14 | Intégration Shell global / CRM | ✅ techniquement livré | à renseigner | Coordonné SHELL-0018 Lot 6.2. Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources ». Suppression SectionNavBarSlot et (tabbed)/layout.tsx, deep-links déplacés par git mv, useSidebarCollapse retiré de ConsultantsDesktopShell. Mobile sécurisé via CONSULTANTS_SECTIONS. C-34, NAV-3/NAV-4/LEGACY-3 résolues. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
+
+### Lot 14 — Intégration Shell global / CRM — ✅ techniquement livré (2026-09-09)
+
+- **Coordonné avec** : SHELL-0018 Phase 6 (Lot 6.2).
+- **Baseline** : `02c316e0` (main synchronisé avec origin/main).
+- **Objectif** : finaliser l'intégration du workspace Consultants au Shell V2, supprimer son dernier `SectionNavBarSlot` et le route group `(tabbed)`, préserver les deep-links historiques par `git mv`, retirer `useSidebarCollapse` de `ConsultantsDesktopShell`, intégrer Consultants dans le groupe `CRM` du menu principal (`mainMenuItems`), retirer le doublon « Recrutement » et le groupe vide « Ressources », et sécuriser le contrat mobile `getMobileTabsForPath("/consultants")` via `CONSULTANTS_SECTIONS`.
+- **Fichiers modifiés / déplacés** :
+  - `src/app/(app)/consultants/(tabbed)/layout.tsx` — **supprimé** (dernier `SectionNavBarSlot` du workspace et route group `(tabbed)` éliminés).
+  - `src/app/(app)/consultants/activite-conges/page.tsx` — **déplacé via `git mv`** (redirection permanente vers `/consultants?section=activite-conges` préservée).
+  - `src/app/(app)/consultants/pool-competences/page.tsx` — **déplacé via `git mv`** (redirection permanente vers `/consultants?section=pool-competences` préservée).
+  - `src/features/consultants/desktop/ConsultantsDesktopShell.tsx` — suppression de `useSidebarCollapse` et du hook `useEffect` (`requestCollapse/requestRestore`).
+  - `src/lib/navigation/main-menu.config.ts` — renommage du groupe `Commerce` en `CRM`, renommage `CRM - Comptes` en `Comptes & contacts`, déplacement de `Consultants` sous `CRM` (sans `tabs`, icône `equipe`), suppression de l'entrée globale `Recrutement` et du groupe `Ressources` vide, ajout de la résolution explicite mobile pour `/consultants` via `CONSULTANTS_SECTIONS`.
+  - `src/features/consultants/navigation/consultants-sections.test.ts` — remplacement des tests d'invariants obsolètes par la validation de l'absence de `SectionNavBarSlot`, de la suppression de `(tabbed)`, de la persistance des 2 routes legacy redirigeant canoniquement, et de l'absence de `useSidebarCollapse`.
+  - `src/lib/navigation/main-menu.config.test.ts` — assertions validant le groupe `CRM`, l'absence de `Ressources` et de `Recrutement`, l'absence de `tabs` sur `Consultants`, et les 5 destinations mobiles.
+  - `src/features/consultants/recruitment-deprecation.test.ts` — mise à jour de l'assertion menu (NAV-3 résolue).
+  - `src/features/consultants/activity/activity.test.ts` — mise à jour du chemin de la route historique `activite-conges/page.tsx`.
+- **Décisions** : C-34 (NAV-3, NAV-4 et LEGACY-3 résolues).
+- **Invariants protégés** : `/consultants` reste la route canonique avec ses 5 sections in-shell ; deep-links historiques préservés ; Mobile préservé avec 5 destinations canoniques sans sur-ingénierie ; 0 logique métier modifiée ; 0 migration DB ; 0 n8n ; aucun composant CRM refactoré.
+- **Gates exécutées** :
+  - `npm run typecheck` → PASS (après purge `.next`)
+  - `npm test -- ...` (tests ciblés) → PASS (38/38 tests)
+  - `npm run check:server-boundary` → PASS
+  - `npx eslint` (fichiers touchés) → PASS (0 erreur, 0 warning)
+  - `npm test` (**suite complète**) → PASS (292 fichiers / 2 891 tests, 0 échec)
+  - `npm run build` → PASS (Turbopack, 42/42 pages générées, routes `/consultants`, `/consultants/activite-conges`, `/consultants/pool-competences` compilées)
+  - `git diff --check` → PASS (0 whitespace error)
+- **Recherches statiques** :
+  - `SectionNavBarSlot` dans `consultants` : 0 occurrence applicative
+  - `useSidebarCollapse` dans `src/features/consultants` : 0 occurrence
+  - `label: "Recrutement"` dans `mainMenuItems` : 0 entrée globale
+  - `consultants/(tabbed)` dans `src` : 0 occurrence applicative
+- **QA visuelle** : réservée exclusivement à Guillaume (aucun Playwright / agent-browser lancé).
+- **Commit** : à renseigner.
+- **NEXT LOT** : Lot 15 — Nettoyage et clôture.
 
 ### Synthèse — Double voie — ✅ techniquement livré (2026-09-09)
 
@@ -113,6 +147,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | C-31 | Arbitrage UI Production & Congés et résolution PRODUCT-4 : Desktop conserve le chapitre analytique global Activités & congés et expose Production & Congés comme module transverse dans contextualModules (lazy-loaded via ?module=production-conges) ; Mobile utilise Production & Congés comme vue adaptée du chapitre Activité (?section=activite-conges), éliminant définitivement le rendu du dashboard Desktop dense sur Mobile. Distribution serveur stricte : jamais les deux loaders pour le même device. | 12 |
 | C-32 | Projection profil → besoins compatibles et résolution PRODUCT-1 : Le module « Matching profil » du workspace Consultants est profil-centrique (Collaborateur ou Candidat → besoins compatibles). Il constitue une projection inverse en lecture des résultats déjà calculés et persistés dans `match_scores` (filtrés par `person_id`) par le moteur unique existant (`src/lib/staffing-matching/`). Aucun second moteur n'est créé. L'absence de ligne dans `match_scores` n'est jamais assimilée à un score 0 ou à une incompatibilité (taux de couverture explicite exposé). Le recalcul éventuel reste strictement besoin-centrique via `runOpportunityMatching(opportunityId)` unitaire (aucun batch global d'opportunités). | 13 |
 | C-33 | Synthèse « Double voie » : collaborateurs et candidats rattachés rendus simultanément par practice ; colonne ratio remplacée par recrutés YTD (`hired` + `closed_at` année civile), rattachement `job_profile → candidate → Autre`. Desktop main + rail droit (processus actifs vertical, intercontrat), Mobile vertical dédié. | post-13 |
+| C-34 | Intégration Shell global CRM & Clôture navigation : Consultants sous CRM, suppression « Équipe »/« Recrutement »/groupe « Ressources », suppression SectionNavBarSlot et (tabbed)/layout.tsx, routes legacy déplacées par git mv, useSidebarCollapse retiré, contrat Mobile CONSULTANTS_SECTIONS. (NAV-3, NAV-4, LEGACY-3 résolues) | 14 |
 
 ## Questions ouvertes en cours
 
@@ -132,12 +167,12 @@ Détail et classement (DATA / PRODUCT / NAVIGATION / LEGACY) dans le doc canoniq
 | PRODUCT-3 | Valeurs métier du sélecteur lifecycle candidat en UI | 7-8 | ✅ résolue (C-26) — whitelist `src/lib/recruitment/candidate-lifecycle.ts` ; convergence des 3 copies legacy = dette CAND-3 |
 | PRODUCT-4 | Chevauchement Synthèse Mobile / module Production & Congés (planning) | 3 / 12 | ✅ résolue (C-31) — Desktop conserve Activité global et charge Production & Congés à la demande ; Mobile utilise ProductionLeaveMobile sur activite-conges. Aucun chevauchement ni double chargement. |
 | NAV-1 | `?section=` confirmé vs pathname après audit code réel Lot 1 | 1 | ✅ résolue (Lot 1) |
-| NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ✅ résolue — `activite-conges` (C-24) + `pool-competences` (C-25) = `permanentRedirect` ; suppression des fichiers de route + `(tabbed)/layout.tsx` + `SectionNavBarSlot` = Lot 15 |
-| NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ⚠️ partiellement résolue (C-29) — volet dépréciation et redirection canonique résolu Lot 10 ; retrait global du menu principal = Lot 14 (coord. SHELL-0018 Phase 6) |
-| NAV-4 | Consultants sous `CRM` ou `Ressources` dans SHELL-0018 Phase 6 | 14 | ouverte |
-| LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; global = Phase 6) |
+| NAV-2 | Redirections routes historiques `(tabbed)` — type et calendrier | 5-6 / 15 | ✅ résolue — `activite-conges` (C-24) + `pool-competences` (C-25) = `permanentRedirect` ; suppression des fichiers de route + `(tabbed)/layout.tsx` + `SectionNavBarSlot` = Lot 14 (C-34) |
+| NAV-3 | Calendrier exact redirect `/recruitment` + retrait module menu | 10 / 14 | ✅ résolue (C-29, C-34) — dépréciation Lot 10, retrait physique du menu principal Lot 14 |
+| NAV-4 | Consultants sous `CRM` ou `Ressources` dans SHELL-0018 Phase 6 | 14 | ✅ résolue (C-34) — Consultants sous CRM, Ressources supprimé |
+| LEGACY-1 | Retrait `SectionNavBarSlot` du layout consultants : ici (Lot 1) ou SHELL-0018 ? | 1 / 14 | ✅ résolue (Lot 1, retrait local ; Lot 14 suppression définitive) |
 | LEGACY-2 | `components/recruitment/dashboard/*` morts — confirmer et supprimer | 9 / 15 | ✅ résolue (C-28) — orphelins confirmés (0 import repo), suppression au Lot 15 |
-| LEGACY-3 | `consultants/(tabbed)/layout.tsx` passthrough — supprimer après migration | 15 | ouverte |
+| LEGACY-3 | `consultants/(tabbed)/layout.tsx` passthrough — supprimer après migration | 15 | ✅ résolue (C-34) — supprimé au Lot 14 avec le route group (tabbed) |
 | LEGACY-4 | `ConsultantsSyntheseDesktop` calcule « en mission » depuis `missions.status` — réconcilier avec C-16 | 4 | ✅ résolue (C-23) |
 
 ## Baseline technique constatée (2026-09-08, `064b6c02`)

@@ -49,7 +49,7 @@ describe("ActivityDashboard", () => {
 describe("route historique /consultants/activite-conges", () => {
   it("redirige de façon permanente vers ?section=activite-conges", () => {
     const source = readFileSync(
-      resolve(root, "src/app/(app)/consultants/(tabbed)/activite-conges/page.tsx"),
+      resolve(root, "src/app/(app)/consultants/activite-conges/page.tsx"),
       "utf8",
     )
     expect(source).toContain("permanentRedirect")

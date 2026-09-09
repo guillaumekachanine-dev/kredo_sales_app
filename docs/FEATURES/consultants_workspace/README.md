@@ -1,6 +1,6 @@
 # Consultants Workspace — hub du chantier
 
-> **Statut global : en cours (Lots 0-13 livrés)**
+> **Statut global : en cours (Lots 0-14 livrés)**
 > **Branche de travail unique : `main`**
 > **Baseline de cadrage : `064b6c025fa24d0978b3c0959a3f640a5763f43b`**
 
@@ -51,7 +51,7 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 14 — Intégration Shell global / CRM** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 14).
+➡️ **Lot 15 — Nettoyage et clôture** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 15).
 
 - Lot 1 : shell `/consultants` sur `SectionRail` V2, navigation `?section=`, `SectionNavBarSlot` descendu.
 - Lot 2 : view-model unique `getConsultantsSynthese()` — DATA-1/2/3/7 résolus (C-16→C-20).
@@ -66,6 +66,7 @@ par l'absence de QA visuelle.
 - Lot 11 : contrat de données Production & Congés — granularité mensuelle `1 collaborateur × 1 mois` (C-30, DATA-5 résolu), CRA source du réalisé, ventilation absences datées sans planning journalier fictif (C-08), TACI non double-compté, RLS financière respectée, builder pur testé (22 tests + sentinelles) + loader `server-only` (`src/features/consultants/modules/production-leave/data/`). Aucune UI.
 - Lot 12 : UI Module Production & Congés (Desktop + Mobile) — déclaration dans SectionRail (`contextualModules`), lazy-loading via `?module=production-conges`, résolution PRODUCT-4 via vue dédiée `ProductionLeaveMobile` sur `activite-conges` (C-31), dataviz SVG maison Desktop et barres HTML Mobile, masquage RLS `null` sans 0 €, distinction `hasActivityData` (zéro vs données absentes), aucun calendrier journalier.
 - Lot 13 : Module Matching profil (Desktop + Mobile) — projection profil-centrique en lecture seule sur le cache `match_scores` du moteur existant (C-09 / C-32, PRODUCT-1 résolu), absence de score ≠ incompatibilité (couverture affichée), parsing défensif JSONB, modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6 (« Ouvrir le besoin » + « Relancer le matching de ce besoin »), branche Mobile contextuelle `ProfileMatchingMobile` accessible depuis les profils/drawers (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 second moteur, 0 LLM/n8n.
+- Lot 14 : intégration Shell global / CRM (SHELL 6.2) — rattachement Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources », suppression du dernier SectionNavBarSlot et du route group (tabbed), préservation des deep-links historiques par git mv, retrait useSidebarCollapse, résolution NAV-3 et NAV-4 (C-34).
 
 
 > ⚠️ Travail parallèle non commité dans l'arbre (cockpit mobile, veille, `design-lab/`) : stager les chemins consultants explicitement, ne jamais `git add -A`.

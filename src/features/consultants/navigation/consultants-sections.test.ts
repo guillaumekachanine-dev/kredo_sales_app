@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -193,7 +193,7 @@ describe("consultants-sections — modules contextuels", () => {
   })
 })
 
-describe("Consultants Workspace — invariants de code", () => {
+describe("Consultants Workspace — invariants de code (SHELL 6.2 / Lot 14)", () => {
   const pageSource = readFileSync(
     resolve(root, "src/app/(app)/consultants/page.tsx"),
     "utf8",
@@ -202,23 +202,51 @@ describe("Consultants Workspace — invariants de code", () => {
     resolve(root, "src/app/(app)/consultants/layout.tsx"),
     "utf8",
   )
-  const tabbedLayoutSource = readFileSync(
-    resolve(root, "src/app/(app)/consultants/(tabbed)/layout.tsx"),
+  const desktopShellSource = readFileSync(
+    resolve(root, "src/features/consultants/desktop/ConsultantsDesktopShell.tsx"),
     "utf8",
   )
+  const activiteCongesPath = resolve(
+    root,
+    "src/app/(app)/consultants/activite-conges/page.tsx",
+  )
+  const poolCompetencesPath = resolve(
+    root,
+    "src/app/(app)/consultants/pool-competences/page.tsx",
+  )
+  const tabbedDir = resolve(root, "src/app/(app)/consultants/(tabbed)")
 
   it("la page résout la section depuis l'URL, pas depuis un useState", () => {
     expect(pageSource).toContain("parseConsultantsSection")
     expect(pageSource).not.toContain("useState")
   })
 
-  it("le layout racine n'importe ni ne rend plus SectionNavBarSlot", () => {
-    expect(layoutSource).not.toContain("import { SectionNavBarSlot }")
-    expect(layoutSource).not.toContain("<SectionNavBarSlot")
+  it("aucun layout Consultants n'utilise SectionNavBarSlot", () => {
+    expect(layoutSource).not.toContain("SectionNavBarSlot")
   })
 
-  it("le layout (tabbed) conserve SectionNavBarSlot pour les routes historiques", () => {
-    expect(tabbedLayoutSource).toContain("import { SectionNavBarSlot }")
-    expect(tabbedLayoutSource).toContain("<SectionNavBarSlot")
+  it("le dossier (tabbed) est définitivement supprimé", () => {
+    expect(existsSync(tabbedDir)).toBe(false)
+  })
+
+  it("les deux routes legacy existent toujours hors (tabbed) et redirigent canoniquement", () => {
+    expect(existsSync(activiteCongesPath)).toBe(true)
+    expect(existsSync(poolCompetencesPath)).toBe(true)
+
+    const activiteCongesContent = readFileSync(activiteCongesPath, "utf8")
+    const poolCompetencesContent = readFileSync(poolCompetencesPath, "utf8")
+
+    expect(activiteCongesContent).toContain(
+      'permanentRedirect("/consultants?section=activite-conges")',
+    )
+    expect(poolCompetencesContent).toContain(
+      'permanentRedirect("/consultants?section=pool-competences")',
+    )
+  })
+
+  it("ConsultantsDesktopShell n'importe ni n'utilise useSidebarCollapse", () => {
+    expect(desktopShellSource).not.toContain("useSidebarCollapse")
+    expect(desktopShellSource).not.toContain("requestCollapse")
+    expect(desktopShellSource).not.toContain("requestRestore")
   })
 })

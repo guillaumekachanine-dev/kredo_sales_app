@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, type ReactNode } from "react"
-import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
+import type { ReactNode } from "react"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailEntry } from "@/lib/navigation/section-rail"
 import {
@@ -28,8 +27,8 @@ import { ProfileMatchingDesktop } from "../modules/profile-matching/desktop/Prof
 import type { ProfileMatchingViewModel } from "../modules/profile-matching/data/profile-matching.types"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Shell Desktop du Consultants Workspace — chrome uniquement (repli sidebar +
-//  navigation secondaire verticale `SectionRail` + header). Le contenu de la
+//  Shell Desktop du Consultants Workspace — chrome uniquement (navigation
+//  secondaire verticale `SectionRail` + header). Le contenu de la
 //  section active est composé côté serveur et passé en `children`.
 //
 //  SHELL-0018 V2 : chapeau navy = titre de page (« Consultants ») ; le header
@@ -62,12 +61,6 @@ export function ConsultantsDesktopShell({
   initialPersonId,
   children,
 }: ConsultantsDesktopShellProps) {
-  // Repli automatique de la sidebar principale (même pattern que /missions, /reports).
-  useEffect(() => {
-    useSidebarCollapse.getState().requestCollapse()
-    return () => useSidebarCollapse.getState().requestRestore()
-  }, [])
-
   const chapters: SectionRailEntry[] = CONSULTANTS_SECTIONS.map((entry) => ({
     key: entry.key,
     label: entry.label,

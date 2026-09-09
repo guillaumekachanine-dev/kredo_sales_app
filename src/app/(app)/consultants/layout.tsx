@@ -1,12 +1,9 @@
 // Layout commun au module Consultants.
 //
-// SHELL-0018 V2 — chantier Consultants Workspace, Lot 1 :
-// la barre d'onglets horizontale (`SectionNavBarSlot`) est descendue dans
-// `(tabbed)/layout.tsx`. La page racine `/consultants` porte désormais le shell
-// Consultants (navigation secondaire verticale `SectionRail`), qui doublonnerait
-// la barre horizontale. Les sous-routes `(tabbed)` (Activités & congés, Pool de
-// compétences) conservent la barre via leur propre layout jusqu'à leur migration
-// vers `/consultants?section=…` (Lots 5-6).
+// SHELL-0018 V2 — chantier Consultants Workspace (Lot 14 / SHELL 6.2) :
+// La page racine `/consultants` porte le shell Consultants (navigation
+// secondaire verticale `SectionRail`). Aucun composant d'onglets horizontaux
+// n'est monté et le route group historique a été supprimé.
 
 export default function ConsultantsLayout({
   children,

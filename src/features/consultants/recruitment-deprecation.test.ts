@@ -34,12 +34,13 @@ describe("Lot 10 — Dépréciation de la route /recruitment", () => {
     expect(recruitmentTab?.href).toBe("/consultants?section=candidats")
   })
 
-  it("le menu principal pointe l'entrée Recrutement vers /consultants?section=candidats", () => {
-    const ressources = mainMenuItems.find((section) => section.label === "Ressources")
-    const recruitmentItem = ressources?.items?.find((item) => item.label === "Recrutement")
-
-    expect(recruitmentItem).toBeDefined()
-    expect(recruitmentItem?.href).toBe("/consultants?section=candidats")
+  it("le menu principal ne comporte plus d'entrée Recrutement autonome (Lot 14 / NAV-3)", () => {
+    const allItems = mainMenuItems.flatMap((section) => [
+      ...(section.items ?? []),
+      section,
+    ])
+    const recruitmentItem = allItems.find((item) => item.label === "Recrutement")
+    expect(recruitmentItem).toBeUndefined()
   })
 
   it("les liens d'entités candidat du brief hebdomadaire pointent vers /consultants?section=candidats", () => {

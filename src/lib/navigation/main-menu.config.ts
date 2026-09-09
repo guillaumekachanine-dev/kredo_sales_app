@@ -7,6 +7,8 @@
 //  La bottom nav mobile dérive des modules marqués `primary: true`.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { CONSULTANTS_SECTIONS } from "@/features/consultants/navigation/consultants-sections"
+
 export type SectionTab = {
   label: string
   shortLabel?: string
@@ -129,6 +131,13 @@ export function getMobileTabsForPath(pathname: string): SectionTab[] {
     return getSectionTabsForPath(pathname)
   }
 
+  if (pathname === "/consultants" || pathname.startsWith("/consultants/") || pathname.startsWith("/consultants?")) {
+    return CONSULTANTS_SECTIONS.map((section) => ({
+      label: section.label,
+      href: section.href,
+    }))
+  }
+
   if (pathname.startsWith("/missions/opps") || pathname.startsWith("/recruitment")) {
     return [
       { label: "Besoins & Staffing", shortLabel: "Besoins", href: "/missions/opps?scope=needs" },
@@ -177,12 +186,12 @@ export const mainMenuItems: MainMenuItem[] = [
     icon: "calendar",
   },
 
-  // ── Commerce ────────────────────────────────────────────────────────────
+  // ── CRM ─────────────────────────────────────────────────────────────────
   {
-    label: "Commerce",
+    label: "CRM",
     items: [
       {
-        label: "CRM - Comptes",
+        label: "Comptes & contacts",
         shortLabel: "CRM",
         href: "/prospection/accounts",
         icon: "crm",
@@ -205,6 +214,12 @@ export const mainMenuItems: MainMenuItem[] = [
           { label: "Missions",   shortLabel: "Missions",  href: "/missions/actives" },
           { label: "Projets",    shortLabel: "Projets",    href: "/missions/projets" },
         ],
+      },
+      {
+        label: "Consultants",
+        shortLabel: "Consultants",
+        href: "/consultants",
+        icon: "equipe",
       },
     ],
   },
@@ -236,29 +251,6 @@ export const mainMenuItems: MainMenuItem[] = [
         shortLabel: "Veille",
         href: "/veille",
         icon: "veille",
-      },
-    ],
-  },
-
-  // ── Ressources ──────────────────────────────────────────────────────────
-  {
-    label: "Ressources",
-    items: [
-      {
-        label: "Équipe",
-        shortLabel: "Équipe",
-        href: "/consultants",
-        icon: "equipe",
-        tabs: [
-          { label: "Synthèse",            shortLabel: "Synthèse",    href: "/consultants" },
-          { label: "Pool de compétences", shortLabel: "Compétences", href: "/consultants/pool-competences" },
-          { label: "Activité & congés",   shortLabel: "Activité",    href: "/consultants/activite-conges" },
-        ],
-      },
-      {
-        label: "Recrutement",
-        href: "/consultants?section=candidats",
-        icon: "recrutement",
       },
     ],
   },
