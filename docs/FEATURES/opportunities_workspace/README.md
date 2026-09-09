@@ -104,12 +104,15 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 2 — Primitive/layout 3 panneaux `OpportunitiesTriPanel`** (voir
-`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 2).
+➡️ **Lot 3 — Data Contract Synthèse** (view-model serveur unique, résout DATA-01 ;
+voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 3). ⚠️ le doc canonique évoque
+« OPP-17 » pour DATA-01 mais OPP-17/OPP-18 ont été pris au Lot 1 — le Lot 3
+prendra le prochain ID libre (OPP-19+).
 
-Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
-`?section=`, compat `?scope=`, sortie de `(tabbed)`). Chapitre `besoins` = workspace
-legacy monté tel quel ; `synthese`/`avant-vente`/`planning` = EmptyState provisoire.
+- Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
+  `?section=`, compat `?scope=`, sortie de `(tabbed)`).
+- Lot 2 livré : primitive `OpportunitiesTriPanel` (Liste │ Main │ Détails), locale à
+  la feature, pas encore consommée (chapitres = Lots 6/7/9).
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`
