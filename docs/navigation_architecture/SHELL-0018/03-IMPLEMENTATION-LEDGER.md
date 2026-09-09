@@ -98,11 +98,18 @@ QA minimale :
 | **6.1** | Retrait des `SectionNavBarSlot` no-op | ✅ techniquement livré | 4 layouts nettoyés ; build blocker CSS préexistant corrigé (`e6550db8`) ; QA visuelle réservée à Guillaume |
 | **6.2** | Shell Consultants + Consultants Lot 14 | ✅ techniquement livré | `(tabbed)` supprimé, `Consultants` sous CRM, commit `50f1a31e` ; QA visuelle réservée à Guillaume |
 | **6.3** | Missions historiques + Opportunities Lot 11 | ✅ techniquement livré | `missions/(tabbed)` supprimé, `MissionsTabbedShell` supprimé, `SectionNavBarSlot` 0 consommateur, CRM `Opportunités`, `/staffing` redirect permanent |
-| **6.4** | Retrait définitif `SectionNavBarSlot` + `SectionNavBar` | ⬜ todo (prochain lot) | suppression après preuve 0 consommateur atteinte au 6.3 |
-| **6.x** | Refonte Shell global (lots 6.5 à 6.7) | ⬜ todo | sidebar / useSidebarCollapse / Cockpit Intelligence |
-| **8.x** | Nettoyage / clôture | ⬜ todo | suppression legacy prouvée sûre |
+| **6.3R** | Rebaseline architecture cible finale de navigation | ✅ livré (documentaire) | document `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` ; supersède les anciennes cibles ; 0 code applicatif |
+| **6.4A** | Démantèlement navigation horizontale **legacy** (technique) | ⬜ todo (**prochain lot**) | `SectionNavBarSlot`, `SectionNavBar`, `SectionTab`, `getModuleTabs`, `getSectionTabsForPath`, `section-tab-styles.ts`, styles/tests legacy — après preuve 0 consommateur (atteinte au 6.3) |
+| **6.4B** | Alignement **navigation principale Desktop** (produit) | ⬜ todo | applique NAV-TARGET-03/04/05 : Accueil, Agenda, CRM (+ Finance), Intelligence, Outils (+ Paramètres), Bac à sable séparé. **Ne jamais mélanger avec 6.4A.** |
+| **6.5** | Stabilisation `DesktopSidebar` / collapse | ⬜ todo | réduction de `useSidebarCollapse`, auto-repli Shell |
+| **6.6** | Intégration Shell global ↔ Cockpit Intelligence | ⬜ todo | interface sidebar ↔ IntelligencePanel minimale |
+| **6.7** | Audit de clôture Phase 6 | ⬜ todo | inventaire de clôture, 0 legacy Shell |
+| **Phase 7** | Alignement fonctionnel des workspaces (7.0 → 7.10) | ⬜ todo | voir §34 — chapitres/modules par workspace, cible = document `09-…` |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)**
+>
+> **Cible canonique de navigation : `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`** (Lot 6.3R).
+> Menu principal + architecture interne des workspaces. Supersède les anciennes cibles lorsqu'elles divergent.
 
 ## 5. Journal des décisions de rebaseline
 
@@ -1512,3 +1519,107 @@ Finaliser l'intégration du workspace Consultants au Shell V2 : supprimer le der
 ### Verdict
 - **Lot 6.3 — ✅ techniquement livré.**
 - **Commit coordonné :** `12ea8166` (`refactor(shell-0018): finalize missions and opportunities navigation`)
+
+---
+
+## 34. Lot 6.3R — Rebaseline architecture cible finale de navigation
+
+> **Nature :** documentaire uniquement. **Aucun fichier applicatif modifié.**
+> **Baseline Git :** `972c647b` (`main` = `origin/main`, non avancé).
+
+### Objet
+
+Figer la nouvelle architecture cible de navigation KREDO (décidée après SHELL 6.2 + Consultants
+Lot 14 et SHELL 6.3 + Opportunities Lot 11) comme **source de vérité canonique**, et superséder
+explicitement les anciennes cibles lorsqu'elles divergent.
+
+### Livrables
+
+- **Créé :** `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` — cible canonique :
+  - Partie A : navigation principale Desktop (menu global) ;
+  - Partie B : architecture interne de 11 workspaces (chapitres / modules) ;
+  - Partie C : matrice exhaustive CURRENT → TARGET (colonnes Workspace / Niveau / Current /
+    Target / Traitement / Preuve code / Lot futur ; valeurs `KEEP` `RENAME` `MOVE` `REUSE`
+    `TRANSFORM` `NEW/FUTURE` `REMOVE`) ;
+  - Partie D : décisions figées **NAV-TARGET-01 → NAV-TARGET-10** ;
+  - Parties E/F/G : roadmap révisée, suspension des nettoyages, invariants.
+- **Mis à jour :** `README.md` (ordre de lecture + règle de vérité), `08-…` (bandeau de
+  supersession partielle), ce ledger (table des lots + Phase 7 + §34).
+- **Anciennes cibles supersédées (jamais supprimées, jamais réécrites) :**
+  `04-CURRENT-NAVIGATION-INVENTORY.md`, `07-HANDOFF-PHASE-6-REPRISE-CHANTIER.md`, `08-…` §8
+  (taxonomie de menu), `docs/adr/ADR-0018-refonte-shell-navigation-desktop.md`.
+  **Non supersédés :** `01-ADR-0018-SHELL-NAVIGATION-V2.md`, `02-SECONDARY-RAIL-STANDARD.md`.
+
+### Audit factuel minimal (preuve de dépôt, lecture seule)
+
+| Fichier inspecté | Constat retenu |
+|---|---|
+| `src/lib/navigation/main-menu.config.ts` | Cockpit/Agenda racines ; groupes CRM (Comptes & contacts, Opportunités, Engagements, Consultants), Intelligence (BI, Prospection, Rapports & Rédaction, Veille & Actualités), **Finance autonome**, Outils (Knowledge Hub, Automatisations) ; **Paramètres racine**. `SectionTab`/`getModuleTabs`/`getSectionTabsForPath` présents, **0 entrée `tabs`**. Groupe « Ressources » / « Équipe » / « Recrutement » **absents**. |
+| `src/components/layout/DesktopSidebar.tsx` | Logo → `/cockpit` ; groupes = `item.items`, entrées plates sinon ; **Bac à sable** = bouton codé en dur, badge « Legacy », `useLegacySandboxStore`. |
+| `src/features/opportunities/navigation/opportunities-sections.ts` + `…/modules/opportunities-modules.ts` | Chapitres `synthese`/`besoins`/`avant-vente`/`planning` ; modules `matching`/`simulation`/`post-mortem`. |
+| `src/components/missions/engagements/EngagementsDesktopView.tsx` | Vues `synthese`/`missions-at`/`projets`/`activite-conges`/`planning-at` (`?vue=`) ; **aucun module contextuel**. |
+| `src/features/consultants/navigation/consultants-sections.ts` | Chapitres `synthese`/`collaborateurs`/`activite-conges`/`candidats`/`pool-competences` ; modules `production-conges`/`matching-profil`. |
+| `src/components/finance/FinanceLocalNavigation.tsx` | Chapitres `synthesis`/`profitability` (« Rentabilité missions »)/`forecast` ; `contextualModules: undefined`. |
+| `src/features/business-intelligence/navigation/business-intelligence-chapters.ts` + `…/BusinessIntelligenceLocalNavigation.tsx` | 6 chapitres ; modules `studies`/`playbooks` (conditionnels). |
+| `src/features/prospection-intelligence/desktop/ProspectionIntelligenceLocalNavigation.tsx` | Chapitres `strategy`(Brief)/`chapter_1`(Fenêtres d'opportunités)/`chapter_2`(Approches commerciales)/`chapter_3`(Playbooks) ; `contextualModules: undefined`. |
+| `src/components/reports/ReportsLocalNavigation.tsx` | Chapitres `documents`(Bibliothèque)/`knowledge`(Connaissances)/`generation` ; module `knowledge-management` (conditionnel). |
+| `src/components/veille/VeilleLocalNavigation.tsx` | Chapitres `news`/`watched-accounts`/`strategic-analysis`/`history` ; module `source-management` (conditionnel). |
+| `src/features/knowledge-hub/knowledge-hub-shell-data.ts` | Domaines `clients-markets`/`expertise-kredo`/`talents`/`delivery-feedback`/`ao-proposals`/`internal-resources` ; modules Ateliers (`workshops`) + RAG. |
+| `src/components/automations/AutomationsLocalNavigation.tsx` | Chapitres `journal`/`sante`(Santé des workflows)/`couts` ; `contextualModules: undefined`. |
+
+### Replanification
+
+- **Phase 6 révisée :** 6.3R → **6.4A** (technique legacy) → **6.4B** (menu principal) → 6.5
+  (DesktopSidebar/collapse) → 6.6 (Shell ↔ Cockpit Intelligence) → 6.7 (audit de clôture).
+  **6.4A et 6.4B ne sont jamais mélangés.**
+- **Phase 7 — Alignement fonctionnel des workspaces (nouvelle) :**
+
+  | Lot | Objet |
+  |---|---|
+  | 7.0 | Audit global CURRENT → TARGET (revalidation Partie C contre `origin/main`) |
+  | 7.1 | Opportunités — puis **Opportunities Lot 12** (nettoyage & clôture) |
+  | 7.2 | Consultants (`pool-competences` chapitre → module) — puis **Consultants Lot 15** |
+  | 7.3 | **Engagements + Finance** (lot coordonné — voir ci-dessous) |
+  | 7.4 | Business Intelligence |
+  | 7.5 | Prospection |
+  | 7.6 | Rapports & Rédaction |
+  | 7.7 | Veille & Actualités |
+  | 7.8 | Knowledge Hub |
+  | 7.9 | Automatisations |
+  | 7.10 | Audit final architecture interne |
+
+  **Engagements + Finance ensemble (7.3) :** le déplacement de la « rentabilité des missions »
+  (Finance → chapitre « Rentabilité des engagements » d'Engagements) impose un lot coordonné
+  pour éviter duplication Data, second calcul de marge et duplication UI. Une seule source de
+  vérité (`missions.gross_margin_pct`, `v_collaborator_activity_summary`, `pnl_monthly`).
+
+### Nettoyages suspendus
+
+- **Opportunities Lot 12** et **Consultants Lot 15** → `DEFERRED UNTIL TARGET-ALIGNMENT`
+  (respectivement après Phase 7.1 et Phase 7.2). Lots **non annulés**. Motif : des composants
+  aujourd'hui legacy peuvent être réutilisés / transformés par la cible interne.
+
+### Décisions de rebaseline
+
+### 2026-09-09 — R-09
+Le document `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` est la **cible canonique** de
+navigation (NAV-TARGET-01). Menu Desktop final = Accueil, Agenda, CRM, Intelligence, Outils +
+Bac à sable legacy séparé (NAV-TARGET-03). Finance → module de CRM sans changement de pathname
+(NAV-TARGET-04). Paramètres → dernier module d'Outils (NAV-TARGET-05). Pathnames conservés par
+défaut (NAV-TARGET-02, NAV-TARGET-10). Toute capacité absente du code = `NEW/FUTURE`, jamais de
+bouton mort (NAV-TARGET-07). Transformations internes des workspaces = Phase 7 (NAV-TARGET-08).
+
+### Gates
+
+- `git diff --check` : **passé**
+- `git diff --name-only` : **documents Markdown uniquement** (0 fichier applicatif)
+- Pas de `build` / `test` / `typecheck` : aucun code modifié (lot documentaire).
+
+### Prochain lot
+
+- **SHELL 6.4A — Démantèlement navigation horizontale legacy** (et **non** Opportunities Lot 12
+  ni Consultants Lot 15).
+
+### Verdict
+
+- **Lot 6.3R — ✅ livré (documentaire).**

@@ -1,5 +1,12 @@
 # SHELL-0018 — Audit d'entrée Phase 6 & Architecture cible
 
+> ⚠️ **Partiellement supersédé (2026-09-09, Lot 6.3R).** La **taxonomie du menu principal** et la
+> **structure interne des workspaces** (chapitres / modules) sont désormais fixées par
+> `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` (cible canonique). Ce document **08** reste la
+> référence pour l'**ownership technique** de la Phase 6 : `useSidebarCollapse`, bus sidebar,
+> `SectionNavBarSlot` / `SectionNavBar`, collapse/expand, intégration Cockpit Intelligence.
+> En cas de divergence sur un libellé ou une organisation de menu, **le document 09 fait foi.**
+
 > **Lot :** 6.0 — Audit d'entrée & architecture cible du Shell global Desktop
 > **Date :** 2026-09-09
 > **Baseline Git :** `e0cab6f5` (main, synchronisé avec origin/main)

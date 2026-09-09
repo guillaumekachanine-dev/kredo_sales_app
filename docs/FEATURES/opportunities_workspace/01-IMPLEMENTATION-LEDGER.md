@@ -322,7 +322,25 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
   - QA visuelle : réservée à Guillaume.
 
 - **Commit** : `12ea8166` (`refactor(shell-0018): finalize missions and opportunities navigation`)
-- **NEXT LOT** : Lot 12 — Nettoyage et clôture (rapport `02-CLOSURE-AUDIT.md`).
+- **NEXT LOT** : ~~Lot 12 — Nettoyage et clôture~~ → **`DEFERRED UNTIL TARGET-ALIGNMENT`** (voir note ci-dessous).
+
+---
+
+### Note 2026-09-09 — SHELL 6.3R : Lot 12 différé
+
+La cible de navigation canonique de KREDO est désormais
+`docs/navigation_architecture/SHELL-0018/09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`
+(décision SHELL 6.3R, NAV-TARGET-09).
+
+- **Lot 12 (Nettoyage et clôture) n'est pas annulé** : son statut de prochaine exécution
+  devient **`DEFERRED UNTIL TARGET-ALIGNMENT`** — il s'exécute **après Phase 7.1 Opportunités**
+  (alignement des chapitres/modules sur la cible : Synthèse → Vue d'ensemble, Avant-vente →
+  Avant-vente Projets, Planning → Planning & Échéances ; modules Matching profils / Simulation
+  financière / Revue post-mortem).
+- **Motif :** les dettes legacy listées ci-dessous (`OpportunitiesDesktopView.tsx`,
+  `src/components/staffing/`, `src/components/needs-staffing/`) peuvent être **réutilisées ou
+  transformées** par la cible interne. Aucune suppression prématurée.
+- Le **NEXT LOT SHELL-0018** est **6.4A — Démantèlement navigation horizontale legacy**.
 
 ### Lot 10 — Modules contextuels — ✅ techniquement livré (2026-09-09)
 

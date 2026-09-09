@@ -11,7 +11,7 @@ Branche                  : main (branche unique — aucune feature branch)
 Baseline initiale        : 064b6c025fa24d0978b3c0959a3f640a5763f43b
 Dernier lot livré        : Lot 14 — Intégration Shell global / CRM
 Lot courant              : —
-Prochain lot             : Lot 15 — Nettoyage et clôture
+Prochain lot             : Lot 15 — Nettoyage et clôture — DEFERRED UNTIL TARGET-ALIGNMENT (après Phase 7.2)
 Dernier SHA connu origin/main : 02c316e0   (2026-09-09, Baseline SHELL 6.2)
 ```
 
@@ -73,7 +73,24 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
   - `consultants/(tabbed)` dans `src` : 0 occurrence applicative
 - **QA visuelle** : réservée exclusivement à Guillaume (aucun Playwright / agent-browser lancé).
 - **Commit** : `50f1a31e`.
-- **NEXT LOT** : Lot 15 — Nettoyage et clôture.
+- **NEXT LOT** : ~~Lot 15 — Nettoyage et clôture~~ → **`DEFERRED UNTIL TARGET-ALIGNMENT`** (voir note ci-dessous).
+
+---
+
+### Note 2026-09-09 — SHELL 6.3R : Lot 15 différé
+
+La cible de navigation canonique de KREDO est désormais
+`docs/navigation_architecture/SHELL-0018/09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`
+(décision SHELL 6.3R, NAV-TARGET-09).
+
+- **Lot 15 (Nettoyage et clôture) n'est pas annulé** : son statut de prochaine exécution devient
+  **`DEFERRED UNTIL TARGET-ALIGNMENT`** — il s'exécute **après Phase 7.2 Consultants**
+  (alignement sur la cible : Synthèse → Vue d'ensemble, Candidats → Vivier Candidats, et surtout
+  **Pool de compétences : chapitre → module** `TRANSFORM`).
+- **Motif :** les dettes legacy consignées au ledger (`src/components/recruitment/dashboard/*`
+  orphelins, routes `(tabbed)` résiduelles, `pool-competences-data.ts`) peuvent être
+  **réutilisées ou transformées** par la cible interne. Aucune suppression prématurée.
+- Le **NEXT LOT SHELL-0018** est **6.4A — Démantèlement navigation horizontale legacy**.
 
 ### Synthèse — Double voie — ✅ techniquement livré (2026-09-09)
 

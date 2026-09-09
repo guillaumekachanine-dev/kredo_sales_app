@@ -12,6 +12,14 @@ synchronisation avec `origin/main`. Aucune branche dédiée au chantier ne doit 
 
 Les anciens documents SHELL-0018 datés d'août 2026 restent dans le dépôt à titre historique. Ils **ne doivent plus être utilisés comme cible d'implémentation** sans vérification contre ce dossier et le code réel.
 
+> **Cible canonique de navigation : `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`** (Lot 6.3R).
+> Ce document fixe la **destination fonctionnelle et informationnelle finale** (menu principal
+> Desktop + architecture interne des workspaces : chapitres, modules) et **supersède les anciennes
+> cibles lorsqu'elles divergent** — notamment `04-CURRENT-NAVIGATION-INVENTORY.md`,
+> `07-HANDOFF-PHASE-6-REPRISE-CHANTIER.md`, `08-…` §8 (taxonomie de menu) et
+> `docs/adr/ADR-0018-refonte-shell-navigation-desktop.md`. `01-ADR-0018-SHELL-NAVIGATION-V2.md`
+> et `02-SECONDARY-RAIL-STANDARD.md` **ne sont pas supersédés** (loi de la primitive `SectionRail`).
+
 ## Ordre de lecture
 
 1. `00-CURRENT-STATE-AUDIT-2026-09-07.md`
@@ -19,6 +27,8 @@ Les anciens documents SHELL-0018 datés d'août 2026 restent dans le dépôt à 
 3. `02-SECONDARY-RAIL-STANDARD.md`
 4. `03-IMPLEMENTATION-LEDGER.md`
 5. `04-CURRENT-NAVIGATION-INVENTORY.md`
+6. `08-PHASE-6-ENTRY-AUDIT-AND-TARGET-ARCHITECTURE.md` (ownership technique Phase 6)
+7. **`09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` — cible canonique (menu + workspaces)**
 
 ## Directives produit normatives
 
@@ -51,7 +61,9 @@ En cas de divergence :
 1. le code réel ;
 2. les décisions de `01-ADR-0018-SHELL-NAVIGATION-V2.md` ;
 3. le standard de `02-SECONDARY-RAIL-STANDARD.md` ;
-4. le ledger courant ;
-5. les documents historiques.
+4. la **cible canonique `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`** (taxonomie de
+   menu, chapitres et modules des workspaces) ;
+5. le ledger courant ;
+6. les documents historiques (dont les anciennes cibles supersédées).
 
 Toute divergence découverte doit être inscrite dans le ledger avant modification du code concerné.

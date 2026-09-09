@@ -51,7 +51,19 @@ par l'absence de QA visuelle.
 
 ## Prochain lot
 
-➡️ **Lot 15 — Nettoyage et clôture** (voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 15).
+➡️ **Lot 15 — Nettoyage et clôture — `DEFERRED UNTIL TARGET-ALIGNMENT` (reporté après Phase 7.2 Consultants).**
+
+> **Supersession / dépendance :** la cible de navigation canonique est désormais
+> `docs/navigation_architecture/SHELL-0018/09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`
+> (décision SHELL 6.3R). Elle prévoit pour ce workspace : `RENAME` de chapitres
+> (Synthèse → Vue d'ensemble, Candidats → Vivier Candidats), et surtout la **transformation
+> structurelle** du chapitre **Pool de compétences → Module** (`TRANSFORM`), traitée en
+> **Phase 7.2**. Le **Lot 15 n'est pas annulé** : il est **différé jusqu'après Phase 7.2**, car
+> des composants aujourd'hui classés legacy (dashboards recrutement orphelins
+> `src/components/recruitment/dashboard/*`, routes `(tabbed)` résiduelles) peuvent être
+> réutilisés ou transformés par la cible. **Aucune suppression prématurée.**
+
+Contenu inchangé du Lot 15 quand il s'exécutera : voir `00-REFERENCE-CHANTIER-CONSULTANTS.md` § Lot 15.
 
 - Lot 1 : shell `/consultants` sur `SectionRail` V2, navigation `?section=`, `SectionNavBarSlot` descendu.
 - Lot 2 : view-model unique `getConsultantsSynthese()` — DATA-1/2/3/7 résolus (C-16→C-20).

@@ -104,7 +104,21 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 12 — Nettoyage et clôture** (audit exhaustif, parité, code mort, suppressions prouvées sûres, rapport `02-CLOSURE-AUDIT.md` ; voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 12).
+➡️ **Lot 12 — Nettoyage et clôture — `DEFERRED UNTIL TARGET-ALIGNMENT` (reporté après Phase 7.1 Opportunités).**
+
+> **Supersession / dépendance :** la cible de navigation canonique est désormais
+> `docs/navigation_architecture/SHELL-0018/09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md`
+> (décision SHELL 6.3R). Elle prévoit pour ce workspace des `RENAME` de chapitres
+> (Synthèse → Vue d'ensemble, Avant-vente → Avant-vente Projets, Planning → Planning & Échéances)
+> et de modules (Matching profils, Simulation financière, Revue post-mortem), traités en
+> **Phase 7.1**. Le **Lot 12 n'est pas annulé** : il est **différé jusqu'après Phase 7.1**, car
+> des composants aujourd'hui classés legacy (`OpportunitiesDesktopView.tsx`,
+> `src/components/staffing/`, `src/components/needs-staffing/`) peuvent être réutilisés ou
+> transformés par la cible. **Aucune suppression prématurée.**
+
+Contenu inchangé du Lot 12 quand il s'exécutera : audit exhaustif, parité, code mort,
+suppressions prouvées sûres, rapport `02-CLOSURE-AUDIT.md` ; voir
+`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 12.
 
 - Lot 11 livré : Legacy / compatibilité / navigation globale (coordonné SHELL-0018 Lot 6.3) —
   renommage CRM « Opportunités », retrait tabs Desktop Engagements, redirection canonique
