@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 3 — Data Contract Synthèse
 Lot courant                   : aucun
 Prochain lot                  : Lot 4 — Synthèse Desktop
-Dernier SHA connu origin/main : __LOT3_SHA__   (2026-09-09, commit Lot 3)
+Dernier SHA connu origin/main : 606cbbb4   (2026-09-09, commit Lot 3)
 ```
 
 ## Table des lots
@@ -25,7 +25,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 0 | Cadrage documentaire | ✅ techniquement livré | `e7f0f79f` | Dossier `docs/FEATURES/opportunities_workspace/` + doc de référence + ledger + inventaire code/Data (§ 15) + roadmap 0→12 + DECISION LOG OPP-01→OPP-16 + OPEN QUESTIONS (DATA/PRODUCT/NAVIGATION/LEGACY/CROSS-FEATURE). **Aucun code applicatif.** |
 | 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `2f106d70` + `570306a0` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ✅ techniquement livré | `653eb736` | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). Props `list` / `main` / `details?` / `detailsEmpty?` / `ariaLabel?` / `className?`. Rail droit → `<aside aria-hidden />` si `details` absent. **Aucun consommateur ce lot** (chapitres = Lots 6/7/9). |
-| 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `__LOT3_SHA__` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
+| 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `606cbbb4` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
 | 4 | Synthèse Desktop | ⬜ todo | — | KPI + graphique pipe + compétences + processus + 5 échéances. SVG maison. |
 | 5 | Data/detail Besoins & staffing | ⬜ todo | — | Réutilise loaders existants, évite les doubles queries. |
 | 6 | Migration UI Besoins & staffing | ⬜ todo | — | Liste │ Détail │ « Staffing en cours ». **Résout PRODUCT-02/03/04, NAVIGATION-02, LEGACY-05.** Parité prouvée. |
@@ -324,7 +324,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
   - `npm run build` — ✅ « Compiled successfully ».
 - **QA visuelle** : réservée à Guillaume (§ 20.3).
 
-- **Commit** : `__LOT3_SHA__` — `feat(opportunities): data contract Synthèse (Lot 3)`.
+- **Commit** : `606cbbb4` — `feat(opportunities): data contract Synthèse (Lot 3)`.
 - **NEXT LOT** : Lot 4 — Synthèse Desktop (KPI + graphiques SVG maison + tableau échéances).
 
 ### Lot 2 — Primitive/layout 3 panneaux — ✅ techniquement livré (2026-09-09)
