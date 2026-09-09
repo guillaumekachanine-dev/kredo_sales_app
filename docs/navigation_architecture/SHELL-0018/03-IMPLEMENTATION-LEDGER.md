@@ -94,9 +94,9 @@ QA minimale :
 | **4.5** | URLisation Prospection Intelligence | ✅ techniquement livré | `?section=` Desktop ; `strategy` canonique sans paramètre ; suppression de `useState` Desktop ; QA visuelle réservée à Guillaume |
 | **4.6** | URLisation Knowledge Hub | ✅ techniquement livré | `?domain=` + `?section=` Desktop ; racine `/knowledge` ; QA visuelle réservée à Guillaume |
 | **4.7** | Audit & clôture Phase 4 | ✅ techniquement livré | audit exhaustif des 9 surfaces ; aucune navigation secondaire Desktop client-state résiduelle |
-| **5.1** | Migration Finance / horizontal → SectionRail + URL | ✅ techniquement livré | commit `dc87b572` ; `FinanceLocalNavigation` ; suppression de `FinanceTabs` ; URL source de vérité ; QA visuelle réservée à Guillaume |
-| **6.x** | Refonte Shell global | ⬜ todo | sidebar / ancien mécanisme / Cockpit Intelligence |
-| **7.x** | Architecture menu principal | ⬜ todo | chantier produit séparé |
+| **6.0** | Audit d'entrée & architecture cible Phase 6 | ✅ livré | document `08-PHASE-6-ENTRY-AUDIT-AND-TARGET-ARCHITECTURE.md` |
+| **6.1** | Retrait des `SectionNavBarSlot` no-op | ✅ techniquement livré | 4 layouts nettoyés ; build blocker CSS préexistant corrigé (`e6550db8`) ; QA visuelle réservée à Guillaume |
+| **6.x** | Refonte Shell global (lots 6.2 à 6.7) | ⬜ todo | sidebar / routes tabbed legacy / Cockpit Intelligence |
 | **8.x** | Nettoyage / clôture | ⬜ todo | suppression legacy prouvée sûre |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)**
@@ -1338,3 +1338,43 @@ docs/navigation_architecture/SHELL-0018/08-PHASE-6-ENTRY-AUDIT-AND-TARGET-ARCHIT
 ### Verdict
 - **Lot 6.0 — ✅ livré.** Architecture de démantèlement suffisamment sûre pour lancer SHELL 6.1 sans nouvel audit général.
 
+## 30. Clôture du Lot 6.1 — Retrait des `SectionNavBarSlot` no-op
+
+### Objectif
+Supprimer les 4 montages inutiles de `SectionNavBarSlot` dans les layouts où le composant retournait déjà `null` au runtime, sans toucher aux consommateurs réels ni aux composants legacy.
+
+### Baseline
+`6199487a` (`docs(shell-0018): audit phase 6 global shell architecture`), complété par le commit `e6550db8` (`fix(ui): avoid turbopack parsing failure on account drawer shadow`) pour le build blocker CSS préexistant.
+
+### Fichiers modifiés
+- `src/app/(app)/automations/layout.tsx`
+- `src/app/(app)/knowledge/layout.tsx`
+- `src/app/(app)/finance/layout.tsx`
+- `src/app/(app)/prospection/layout.tsx`
+
+### Preuve des no-ops
+- `src/components/layout/SectionNavBarSlot.tsx` délègue à `SectionNavBar` qui lit `getSectionTabsForPath()` depuis `main-menu.config.ts`.
+- `main-menu.config.ts` ne définit de `tabs` que pour `/missions` et `/consultants`.
+- Pour `/automations`, `/knowledge`, `/finance` et `/prospection`, `getSectionTabsForPath()` retournait `[]` et `SectionNavBar` retournait `null`.
+- Aucun changement fonctionnel, structurel, CSS ou URL.
+
+### Build blocker préexistant identifié & résolu séparément
+- Erreur de parsing Turbopack CSS : `Parsing CSS source code failed ./src/app/globals.css:13036 Unexpected token Delim('!')`.
+- Cause : parsing d'une valeur arbitraire complexe Tailwind `shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(255,152,0,0.24)]` dans `CompanyIdentityDrawer.tsx`.
+- Résolution : classe CSS dédiée `.kredo-company-identity-cta-shadow` dans `globals.css` et `CompanyIdentityDrawer.tsx`.
+- Livré dans un commit dédié préalable : `e6550db8`.
+
+### Gates exécutées
+- `npm run typecheck` : **passé** (0 erreur)
+- `npm run check:server-boundary` : **passé**
+- `npx eslint` ciblé sur les 4 layouts : **passé** (0 erreur, 0 warning)
+- `npm run build` : **passé** (Turbopack, 42/42 pages générées)
+- `git diff --check` : **passé**
+
+### Limites et dettes restantes
+- `SectionNavBarSlot` et `SectionNavBar` restent présents dans le codebase pour les sous-routes historiques `missions/(tabbed)` et `consultants/(tabbed)`.
+- Ces consommateurs et composants seront démantelés dans les lots 6.2, 6.3 et 6.4.
+- QA visuelle : réservée à Guillaume.
+
+### Verdict
+- **Lot 6.1 — ✅ techniquement livré.**
