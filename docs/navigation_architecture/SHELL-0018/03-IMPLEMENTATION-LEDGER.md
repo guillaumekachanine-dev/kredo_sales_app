@@ -1908,4 +1908,4 @@ n'utilisaient déjà pas d'émetteur — la politique Shell (`/finance`, `/autom
 
 ### Verdict
 
-- **Lot 6.5 — ✅ techniquement livré.** Commit : _(renseigné après push)_.
+- **Lot 6.5 — ✅ techniquement livré.** Commit : `c10c5589` (`refactor(shell-0018): centralize desktop sidebar collapse`).
