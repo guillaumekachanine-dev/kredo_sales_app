@@ -1261,3 +1261,80 @@ La standardisation du menu secondaire et l'URLisation des navigations secondaire
 3. Retrait définitif de `SectionNavBarSlot`, `SectionNavBar` et simplification de `useSidebarCollapse` ;
 4. Intégration globale avec Cockpit Intelligence.
 
+---
+
+## 31. Lot 6.0 — Audit d'entrée & architecture cible du Shell global Desktop
+
+> **Date :** 2026-09-09
+> **Baseline :** `e0cab6f5` (main, synchronisé avec origin/main)
+> **Objectif :** Auditer le Shell global Desktop réel, reconstruire tous les inventaires depuis le code de HEAD, définir l'architecture cible, produire la roadmap Phase 6 exécutable.
+> **Code applicatif modifié :** 0
+
+### Résultat de l'audit
+
+**Document canonique produit :**
+```
+docs/navigation_architecture/SHELL-0018/08-PHASE-6-ENTRY-AUDIT-AND-TARGET-ARCHITECTURE.md
+```
+
+### Inventaires reconstruits depuis le code de HEAD
+
+#### `useSidebarCollapse` — 12 fichiers, 11 consommateurs uniques
+- 1 récepteur : `DesktopSidebar.tsx`
+- 2 émetteurs légitimes : `IntelligencePanel.tsx`, `CrmTabbedShell.tsx`
+- 8 émetteurs historiques (pattern `useEffect requestCollapse/requestRestore` au montage) : `ConsultantsDesktopShell`, `OpportunitiesDesktopShell`, `EngagementsDesktopView`, `ReportsDesktopView`, `BusinessIntelligenceDesktop`, `KnowledgeHubDesktop`, `VeilleActualitesDesktop`, `ProspectionIntelligenceDesktop`
+- 1 lecteur marginal : `ProspectionIntelligenceHeader` (lit `isCollapsed` pour un séparateur visuel)
+
+> **Évolution depuis le handoff Phase 4 :** +2 émetteurs (`ConsultantsDesktopShell`, `OpportunitiesDesktopShell`) ajoutés par les chantiers Consultants Workspace et Opportunities Workspace.
+
+#### `SectionNavBarSlot` — 6 montages dans les layouts
+- 4 no-ops runtime : `automations`, `knowledge`, `finance`, `prospection`
+- 2 consommateurs fonctionnels réels : `missions/(tabbed)`, `consultants/(tabbed)`
+
+> Pas de changement depuis le handoff Phase 4 pour ces deux listes — seulement le layout `consultants/layout.tsx` a été restructuré (SectionNavBarSlot descendu dans `(tabbed)` par le chantier Consultants Workspace Lot 1).
+
+#### `SectionNavBar` — 1 consommateur unique (`SectionNavBarSlot.tsx`)
+
+#### `main-menu.config.ts` tabs — 2 entrées :
+- `Engagements` (`/missions`) : 3 tabs
+- `Équipe` (`/consultants`) : 3 tabs
+
+### Architecture cible définie
+
+- Le Shell global (`AppShell` / `DesktopSidebar`) possède le collapse/expand
+- Les workspaces ne pilotent plus directement la sidebar (suppression des 8 usages historiques)
+- IntelligencePanel et CrmTabbedShell restent les 2 seuls émetteurs légitimes
+- Contrats URL intégralement préservés
+- Aucune nouvelle couche créée
+
+### Ordre Phase 6 retenu
+
+```
+6.1 — Retrait SectionNavBarSlot no-op (automations, knowledge, finance, prospection)
+6.2 — Shell Consultants + Consultants Lot 14 (routes tabbed, useSidebarCollapse)
+6.3 — Missions historiques + Opportunities Lot 11 (routes tabbed, useSidebarCollapse)
+6.4 — Retrait définitif SectionNavBarSlot + SectionNavBar + configs legacy
+6.5 — Stabilisation DesktopSidebar + démantèlement useSidebarCollapse
+6.6 — Intégration Shell ↔ Cockpit Intelligence
+6.7 — Audit et clôture Phase 6
+```
+
+6.2 et 6.3 sont parallélisables. 6.4 dépend de 6.1+6.2+6.3. 6.5 dépend de 6.4.
+
+### Invariants protégés
+- Aucun contrat URL modifié
+- Aucune feature métier modifiée
+- Aucun composant SectionRail touché
+- Mobile intégralement protégé
+
+### Gates exécutées
+- `git diff --check` : **passé** (0 modification applicative)
+- Recherches statiques exhaustives (`grep`) pour prouver les inventaires
+
+### Limites
+- QA visuelle : réservée à Guillaume
+- Lot purement documentaire — aucun gate applicatif exécuté (aucun code modifié)
+
+### Verdict
+- **Lot 6.0 — ✅ livré.** Architecture de démantèlement suffisamment sûre pour lancer SHELL 6.1 sans nouvel audit général.
+
