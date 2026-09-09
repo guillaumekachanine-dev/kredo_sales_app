@@ -731,15 +731,15 @@ restent hors du rail (Cockpit Intelligence).
 
 | Module | Rendu dans le rail | Portée |
 |---|---|---|
-| Matching profil | **✅ Lot 10** (`OPP-30`) | chapitres `besoins` / `planning` uniquement (contexte `?opp=`) |
-| Simulation devis | **✅ Lot 10** (`OPP-30`) | tous les chapitres ; l'action par-ligne du rail Staffing (Lot 6) **n'est pas retirée** |
-| Post-Mortem | **✅ Lot 10** (`OPP-30`) | tous les chapitres (mission trimestrielle, sans opportunité) |
+| Matching profil | **✅ Lot 10** (`OPP-30`) | **tous les chapitres** ; contexte `?opp=` transmis s'il existe, sinon écran d'aiguillage vers la liste des besoins |
+| Simulation devis | **✅ Lot 10** (`OPP-30`) | **tous les chapitres** ; préset opportunité si `?opp=`, flash nu sinon. L'action par-ligne du rail Staffing (Lot 6) **n'est pas retirée** |
+| Post-Mortem | **✅ Lot 10** (`OPP-30`) | **tous les chapitres** (mission trimestrielle, sans opportunité) |
 | Modélisation de CA | — jamais | Future capability, non déclarée (OPP-11) |
 
-Lots 1→9 : `contextualModules: undefined`. Depuis le Lot 10, la section « Modules » est
-toujours rendue (≥ 2 entrées), restreinte par `opportunitiesModulesForSection` (§ 13).
-Contrat URL : `?module=matching|simulation|post-mortem`, orthogonal à `?section=` / `?opp=`,
-retiré au changement de chapitre.
+Lots 1→9 : `contextualModules: undefined`. Depuis le Lot 10, la section « Modules » rend
+**les 3 modules, identiques sur tous les chapitres** — ils ne dépendent jamais de l'onglet
+consulté. Contrat URL : `?module=matching|simulation|post-mortem`, orthogonal à `?section=` /
+`?opp=`, retiré au changement de chapitre.
 
 ---
 
@@ -876,7 +876,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 | **OPP-29** | **Planning V1 = milestone planning, pas Gantt projet.** Une lane par opportunité ouverte et au plus un jalon canonique `OpportunityDeadline`. Les vues Mois/Année partagent la même timeline et adaptent uniquement la résolution ; la source est distinguée par forme + couleur. Aucune durée, dépendance, baseline, progression, WBS, date synthétique ou édition par drag. La sélection Liste/Planning/Détails est URL-addressable `?opp=` ; l'échelle et la période sont des états d'exploration éphémères. | Le contrat Lot 8 porte des échéances ponctuelles (`dueAt`) et aucune durée. Cette grammaire conserve la vérité métier tout en offrant une lecture temporelle professionnelle. | Actée (Lot 9) |
 
-| **OPP-30** | **Modules contextuels (Lot 10) = câblage REUSE-only.** Contrat `?module=matching\|simulation\|post-mortem` orthogonal à `?section=`/`?opp=`, retiré au changement de chapitre (`LEGACY_NEEDS_STAFFING_QUERY_KEYS`). **CROSS-01** : Matching = `MatchingDialog` besoin-centrique (`src/components/staffing/matching/`) monté tel quel — moteur unique `staffing-matching`, aucun recalcul `match_scores`, **aucun launcher partagé nouveau** ; déclaré seulement sur `besoins`/`planning`, contexte pris du détail **déjà chargé** par le chapitre (`selectedNeedDetail` / `selectedOpportunityDetail`). **CROSS-02** : Post-Mortem = `MissionComposerDesktop` + `POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG` dans un `AppDialog dataTheme="cockpit"` — aucune nouvelle mission / workflow n8n / trigger. **CROSS-03** : Simulation devis = `FinancialModelingDesktopDialog` **toujours** déclarée ; préset (`mode:"full"`) si contexte opportunité, flash nu sinon. `opportunitiesModulesForSection` restreint le rail (§ 13, aucun bouton mort). `Modélisation de CA` absente de l'union `OpportunitiesModule` (OPP-11). Wrappers dans `src/features/opportunities/modules/`, dialogs en `next/dynamic`. | § 13 exige des points d'entrée fins vers des capacités existantes ; le workspace est besoin-centrique (Matching → besoin), la simulation et le post-mortem sont autonomes. | Actée (Lot 10) |
+| **OPP-30** | **Modules contextuels (Lot 10) = câblage REUSE-only, les 3 constamment visibles sur tous les chapitres** (ils ne dépendent jamais de l'onglet consulté). Contrat `?module=matching\|simulation\|post-mortem` orthogonal à `?section=`/`?opp=`, retiré au changement de chapitre (`LEGACY_NEEDS_STAFFING_QUERY_KEYS`). **CROSS-01** : Matching = `MatchingDialog` besoin-centrique (`src/components/staffing/matching/`) monté tel quel — moteur unique `staffing-matching`, aucun recalcul `match_scores`, **aucun launcher partagé nouveau** ; le contexte opportunité vient du détail **déjà chargé** par le chapitre (`selectedNeedDetail` / `selectedOpportunityDetail`) quand il existe, sinon écran d'aiguillage vers la liste (jamais un bouton mort). **CROSS-02** : Post-Mortem = `MissionComposerDesktop` + `POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG` dans un `AppDialog dataTheme="cockpit"` — aucune nouvelle mission / workflow n8n / trigger. **CROSS-03** : Simulation devis = `FinancialModelingDesktopDialog` toujours déclarée ; préset (`mode:"full"`) si contexte opportunité, flash nu sinon. `Modélisation de CA` absente de l'union `OpportunitiesModule` (OPP-11). Wrappers dans `src/features/opportunities/modules/`, dialogs en `next/dynamic`. | § 13 exige des points d'entrée fins vers des capacités existantes ; les 3 modules sont des outils du workspace, pas des fonctions de chapitre — leur disponibilité est constante. | Actée (Lot 10) |
 
 > Décisions à ajouter pendant l'audit des lots : **OPP-31+** (ex. legacy / navigation globale).
 
@@ -932,7 +932,7 @@ Traitements : `KEEP` · `MOVE` · `REUSE` · `REFACTOR` · `DEPRECATE` · `REMOV
 
 | ID | Question | Lot cible | Statut |
 |---|---|---|---|
-| **CROSS-01** | Quel **point d'entrée partagé** expose proprement « Matching profil » (contexte `opportunityId` optionnel) sans dupliquer le composant Consultants ni le moteur ? Extraire un launcher commun ou monter `MatchingDialog` existant ? | **10** | ✅ **tranché (OPP-30)** — `MatchingDialog` existant monté tel quel ; module visible sur `besoins`/`planning` (contexte `?opp=`) ; aucun launcher commun extrait |
+| **CROSS-01** | Quel **point d'entrée partagé** expose proprement « Matching profil » (contexte `opportunityId` optionnel) sans dupliquer le composant Consultants ni le moteur ? Extraire un launcher commun ou monter `MatchingDialog` existant ? | **10** | ✅ **tranché (OPP-30)** — `MatchingDialog` existant monté tel quel ; module **visible sur tous les chapitres**, contexte `?opp=` transmis s'il existe, sinon écran d'aiguillage ; aucun launcher commun extrait |
 | **CROSS-02** | Quel **launcher officiel** ouvre `post-mortem-commercial` depuis un module contextuel (`MissionComposerDesktop` en dialog, ou launcher dédié) ? | **10** | ✅ **tranché (OPP-30)** — `MissionComposerDesktop` + config `post_mortem_pipeline` dans un `AppDialog` thémé cockpit |
 | **CROSS-03** | Le module « Simulation devis » doit-il se lancer sans contexte (choix opportunité dans la modale) quand aucun besoin n'est sélectionné, ou n'apparaître qu'avec contexte ? | **10** | ✅ **tranché (OPP-30)** — toujours disponible ; préset appliqué si contexte, sinon flash nu |
 

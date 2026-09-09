@@ -13,8 +13,8 @@ import {
 } from "../navigation/opportunities-sections"
 import {
   buildOpportunitiesModuleHref,
+  OPPORTUNITIES_MODULE_KEYS,
   OPPORTUNITIES_MODULE_LABELS,
-  opportunitiesModulesForSection,
   parseOpportunitiesModule,
   type OpportunitiesModule,
 } from "../modules/opportunities-modules"
@@ -40,7 +40,7 @@ import {
 //  chapitre en préservant les query params tiers.
 //
 //  Lot 10 : section « Modules » = Matching profil · Simulation devis · Post-Mortem,
-//  restreinte aux modules actionnables sur le chapitre courant (§ 13). `?module=`.
+//  constamment visible sur tous les chapitres (indépendante de l'onglet). `?module=`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ICON_BY_SECTION: Record<OpportunitiesSection, ReactNode> = {
@@ -88,13 +88,11 @@ export function OpportunitiesDesktopShell({
     active: entry.key === activeSection,
   }))
 
-  // Modules contextuels (Lot 10) : seulement ceux réellement actionnables sur le
-  // chapitre courant (§ 13 — aucun bouton mort). `?module=` orthogonal à
+  // Modules contextuels (Lot 10) : les 3 sont **constamment visibles sur tous les
+  // chapitres** — ils ne dépendent jamais de l'onglet. `?module=` orthogonal à
   // `?section=` / `?opp=`.
-  const activeModule = parseOpportunitiesModule(currentSearchParams, activeSection)
-  const contextualModules: SectionRailEntry[] = opportunitiesModulesForSection(
-    activeSection,
-  ).map((key) => ({
+  const activeModule = parseOpportunitiesModule(currentSearchParams)
+  const contextualModules: SectionRailEntry[] = OPPORTUNITIES_MODULE_KEYS.map((key) => ({
     key,
     label: OPPORTUNITIES_MODULE_LABELS[key],
     icon: ICON_BY_MODULE[key],

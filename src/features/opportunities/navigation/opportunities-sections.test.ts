@@ -199,23 +199,27 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
     expect(render("besoins")).toContain("border-l-edito-brass")
   })
 
-  it("rend la section Modules (Lot 10) — Post-Mortem + Simulation partout, Matching sur besoins/planning", () => {
-    const synthese = render("synthese")
-    expect(synthese).toContain(">Modules<")
-    expect(synthese).toContain("Simulation devis")
-    expect(synthese).toContain("Post-Mortem")
-    expect(synthese).not.toContain("Matching profil")
-    expect(synthese).toContain('href="/missions/opps?module=simulation"')
+  it("rend la section Modules (Lot 10) — les 3 modules sur TOUS les chapitres", () => {
+    for (const section of ["synthese", "besoins", "avant-vente", "planning"] as const) {
+      const markup = render(section)
+      expect(markup).toContain(">Modules<")
+      expect(markup).toContain("Matching profil")
+      expect(markup).toContain("Simulation devis")
+      expect(markup).toContain("Post-Mortem")
+    }
+  })
 
-    const besoins = render("besoins", "opp=need-1")
-    expect(besoins).toContain("Matching profil")
-    expect(besoins).toContain('href="/missions/opps?opp=need-1&amp;module=matching"')
+  it("les href de module préservent la query courante (section + opp + tiers)", () => {
+    const markup = render("besoins", "section=besoins&opp=need-1&debug=1")
+    expect(markup).toContain(
+      'href="/missions/opps?section=besoins&amp;opp=need-1&amp;debug=1&amp;module=matching"',
+    )
   })
 
   it("marque le module actif avec aria-current=page", () => {
-    const markup = render("besoins", "opp=need-1&module=matching")
+    const markup = render("synthese", "module=post-mortem")
     expect(markup).toContain('aria-current="page"')
-    expect(markup).toContain("Matching profil")
+    expect(markup).toContain("Post-Mortem")
   })
 })
 

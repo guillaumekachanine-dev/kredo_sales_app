@@ -141,7 +141,8 @@ voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 11).
 - Lot 10 livré : modules contextuels (`src/features/opportunities/modules/`) — contrat
   `?module=matching|simulation|post-mortem` + 3 wrappers REUSE-only (`MatchingDialog` ·
   `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) +
-  `OpportunitiesModulesHost` (dialogs lazy). Rail « Modules » restreint par chapitre.
+  `OpportunitiesModulesHost` (dialogs lazy). **Les 3 modules constamment visibles sur tous
+  les chapitres** (indépendants de l'onglet) ; contexte `?opp=` transmis s'il existe.
   **CROSS-01/02/03 → OPP-30**. `Modélisation de CA` non affichée. Mobile inchangé.
   **QA visuelle Guillaume en attente.**
 

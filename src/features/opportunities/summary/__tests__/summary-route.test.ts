@@ -160,11 +160,19 @@ describe("Synthèse route device and section isolation", () => {
     expect(host.props.closeHref).toBe("/missions/opps?section=planning&opp=o1")
   })
 
-  it("?module=matching on synthèse is ignored (not applicable) — no host", async () => {
+  it("?module=matching on synthèse mounts the host too (modules ne dépendent pas de l'onglet)", async () => {
     const page = await Page({
       searchParams: Promise.resolve({ section: "synthese", module: "matching" }),
     })
-    const children = page.props.children as unknown[]
-    expect(Array.isArray(children) ? children[1] : null).toBeNull()
+    const [chapter, host] = page.props.children as [
+      ReactElement,
+      ReactElement<{ activeModule: string; context: unknown }>,
+    ]
+    expect(chapter.type).toBe(SummaryDesktop)
+    expect(host.type).toBe(OpportunitiesModulesHost)
+    expect(host.props.activeModule).toBe("matching")
+    // Pas de sélection d'opportunité sur la Synthèse → contexte null (le host
+    // rendra l'écran d'aiguillage, pas un bouton mort).
+    expect(host.props.context).toBeNull()
   })
 })

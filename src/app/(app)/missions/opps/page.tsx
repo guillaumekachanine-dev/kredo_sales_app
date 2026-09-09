@@ -101,7 +101,7 @@ export default async function OpportunitesPage({
 
   // ── Desktop : shell SHELL-0018 V2 + contenu du chapitre actif ───────────────
   const searchParamsString = searchParamsToString(resolvedSearchParams)
-  const activeModule = parseOpportunitiesModule(resolvedSearchParams, activeSection)
+  const activeModule = parseOpportunitiesModule(resolvedSearchParams)
 
   // Contenu du chapitre + contexte opportunité pour les modules (Lot 10) — le
   // contexte est extrait du détail DÉJÀ chargé par le chapitre, jamais requêté à part.
