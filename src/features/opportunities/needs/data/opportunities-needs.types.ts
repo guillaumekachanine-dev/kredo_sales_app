@@ -13,7 +13,10 @@
 //  Lot 6 (NAVIGATION-02) ; ici on se contente de **parser** la sélection.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { NeedsCoverageSnapshot } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
+import type {
+  NeedsCoverageSnapshot,
+  OpenNeedOption,
+} from "@/app/(app)/missions/_data/get-needs-staffing-shared"
 import type { OpportunityDetailData } from "@/app/(app)/missions/_data/get-opportunity-detail"
 import type { StaffingListRow } from "@/app/(app)/staffing/_data/get-staffings-list"
 import type {
@@ -60,6 +63,8 @@ export interface NeedsListItem {
 
 export interface NeedsChapterData {
   items: NeedsListItem[]
+  /** Besoins ouverts (`getNeedsStaffingSharedData.openNeeds`) — alimente `NewStaffingButton`. */
+  openNeeds: OpenNeedOption[]
   selectedNeedId: string | null
   /** Détail du **seul** besoin sélectionné (un seul chemin de chargement). */
   selectedNeedDetail: OpportunityDetailData | null

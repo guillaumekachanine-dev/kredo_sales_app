@@ -104,9 +104,9 @@ lecture du dépôt seul** :
 
 ## Prochain lot
 
-➡️ **Lot 6 — Migration UI Besoins & staffing** (chapitre Besoins sur
-`OpportunitiesTriPanel` : Liste │ Détail │ « Staffing en cours » ; voir
-`00-REFERENCE-CHANTIER-OPPORTUNITES.md` § Lot 6).
+➡️ **Lot 7 — Avant-vente** (chapitre sur `OpportunitiesTriPanel` avec de vrais
+`EmptyState`, aucune donnée fictive ; voir `00-REFERENCE-CHANTIER-OPPORTUNITES.md`
+§ Lot 7).
 
 - Lot 1 livré : shell `/missions/opps` SHELL-0018 V2 (`SectionRail` inline, 4 chapitres
   `?section=`, compat `?scope=`, sortie de `(tabbed)`).
@@ -121,6 +121,11 @@ lecture du dépôt seul** :
 - Lot 5 livré : Data contract Besoins & staffing (`src/features/opportunities/needs/data/`)
   — `buildNeedsList` / `resolveSelectedNeedId` (purs) + `getNeedsChapterData` (loader,
   détail du seul besoin sélectionné). Sélection `?opp=` → **OPP-23**. Data-only.
+- Lot 6 livré : chapitre Besoins Desktop (`NeedsDesktop` sur `OpportunitiesTriPanel`) —
+  rail Liste + `OpportunityDetailView` inline + rail « Staffing en cours ». Kanban non
+  repris (**OPP-25**), détail inline (**OPP-24**), contrat URL `?opp=`+filtres (**OPP-26**),
+  chapitre sans HEX (**OPP-27**). `NeedsStaffingWorkspace` Desktop retiré (Mobile inchangé).
+  **QA visuelle Guillaume en attente.**
 
 > ⚠️ Travail parallèle non commité possible dans l'arbre (cockpit mobile, veille, `design-lab/`,
 > `docs/FEATURES/cockpit_intelligence_mobile_actions_contextuelles/07_HANDOFF_CLOTURE_LOTS_A_J.md`

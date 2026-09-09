@@ -107,11 +107,11 @@ describe("opportunities-sections — contrat de navigation", () => {
       ).toBe("/missions/opps?theme=dark")
     })
 
-    it("retire les params métier legacy (scope/view/stage/priority/practice/sort/direction) au changement de chapitre", () => {
+    it("retire les params d'état de chapitre (scope/view/stage/priority/practice/sort/direction/opp) au changement de chapitre", () => {
       expect(
         buildOpportunitiesSectionHref(
           OPPORTUNITIES_CANONICAL_PATH,
-          sp("scope=staffing&view=kanban&stage=gagne&priority=haute&practice=Data&sort=acv&direction=desc&keep=1"),
+          sp("scope=staffing&view=kanban&stage=gagne&priority=haute&practice=Data&sort=acv&direction=desc&opp=need-1&keep=1"),
           "planning",
         ),
       ).toBe("/missions/opps?keep=1&section=planning")

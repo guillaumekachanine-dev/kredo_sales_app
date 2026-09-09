@@ -38,10 +38,10 @@ export const OPPORTUNITIES_SECTION_KEYS = [
 const SECTION_KEY_SET = new Set<string>(OPPORTUNITIES_SECTION_KEYS)
 
 /**
- * Paramètres métier de l'ancien workspace « Besoins & staffing »
- * (`src/lib/needs-staffing/url-state.ts`). Ils décrivent l'état interne d'UN
- * chapitre (Besoins) : au changement de chapitre ils sont retirés de l'URL
- * (état du chapitre frère, non pertinent sur le chapitre cible). → OPP-17.
+ * Paramètres décrivant l'état interne d'UN chapitre : au changement de chapitre
+ * ils sont retirés de l'URL (état du chapitre frère, non pertinent sur la cible).
+ * → OPP-17 (filtres legacy `NeedsStaffingWorkspace`), OPP-23/OPP-26 (`opp` =
+ * besoin sélectionné du chapitre Besoins).
  */
 export const LEGACY_NEEDS_STAFFING_QUERY_KEYS = [
   "scope",
@@ -51,6 +51,7 @@ export const LEGACY_NEEDS_STAFFING_QUERY_KEYS = [
   "practice",
   "sort",
   "direction",
+  "opp",
 ] as const
 
 /** Libellé affiché dans le header de la zone principale (jamais dans le chapeau). */

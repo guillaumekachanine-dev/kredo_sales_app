@@ -66,6 +66,7 @@ export async function getNeedsChapterData(
 
   return {
     items,
+    openNeeds: shared.openNeeds,
     selectedNeedId,
     selectedNeedDetail,
     selectedNeedDetailError,

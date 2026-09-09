@@ -9,10 +9,10 @@ Chantier                      : Opportunities Workspace  (nom produit affiché :
 Statut global                 : cadré
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 5 — Data/detail Besoins & staffing
+Dernier lot livré             : Lot 6 — Migration UI Besoins & staffing
 Lot courant                   : aucun
-Prochain lot                  : Lot 6 — Migration UI Besoins & staffing
-Dernier SHA connu origin/main : bad25af3   (2026-09-09, commit Lot 5)
+Prochain lot                  : Lot 7 — Avant-vente (structure + EmptyState V1)
+Dernier SHA connu origin/main : __LOT6_SHA__   (2026-09-09, commit Lot 6)
 ```
 
 ## Table des lots
@@ -28,7 +28,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `606cbbb4` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
 | 4 | Synthèse Desktop | ✅ techniquement livré | `19f4ccad` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
 | 5 | Data/detail Besoins & staffing | ✅ techniquement livré | `bad25af3` | `src/features/opportunities/needs/data/` : types + `buildNeedsList`/`resolveSelectedNeedId` (purs) + `parseNeedsSelection` (`?opp=` + filtres via `parseNeedsStaffingUrlState`) + loader `getNeedsChapterData` composant 4 loaders existants — **détail chargé pour le seul besoin sélectionné** (OPP-23). 18 tests. Aucune UI, aucune migration. |
-| 6 | Migration UI Besoins & staffing | ⬜ todo | — | Liste │ Détail │ « Staffing en cours ». **Résout PRODUCT-02/03/04, NAVIGATION-02, LEGACY-05.** Parité prouvée. |
+| 6 | Migration UI Besoins & staffing | ✅ techniquement livré | `__LOT6_SHA__` | Chapitre Besoins Desktop sur `OpportunitiesTriPanel` : `NeedsListPanel` (rail gauche, filtres + `?opp=` + `NewOpportunityButton` + `StageQuickEditorDialog`) │ `NeedsDetailPanel` (`OpportunityDetailView` inline) │ `StaffingInProgressRail` (positionnements actifs, drawer unique, `NewStaffingButton`, simulation par ligne). `page.tsx` `besoins` → `getNeedsChapterData` + `NeedsDesktop`. **Résout PRODUCT-02 (OPP-25), PRODUCT-04 (OPP-24), NAVIGATION-02 (OPP-26), LEGACY-05 (OPP-27).** `NeedsStaffingWorkspace` Desktop plus monté (Mobile inchangé). SVG/tokens `@theme`, aucun HEX. |
 | 7 | Avant-vente (structure + `EmptyState` V1) | ⬜ todo | — | Aucune fausse donnée. PRODUCT-05 reste ouverte. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ⬜ todo | — | **Résout DATA-03.** Partagé Synthèse + Planning (OPP-10). |
 | 9 | Planning Desktop | ⬜ todo | — | Liste │ Planning mois/année │ Détails. Adapte le moteur existant. |
@@ -63,6 +63,10 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | OPP-21 | PRODUCT-01 (affichage) : 5 buckets `identifie/propose/envoye_client/entretien/retenu` superposés à `stages.ts`, jamais fusionnés (OPP-09) ; terminaux négatifs hors entonnoir. Aucune écriture DB. | 3 |
 | OPP-22 | Échéances Synthèse provisoires : `next_action_at` sinon `target_close_date` (jamais `start_date`), futures, tri ASC, LIMIT 5. `calendar_events` + concept canonique `OpportunityDeadline` = Lot 8 (DATA-03). | 3 |
 | OPP-23 | Chapitre Besoins : sélection d'entité `?opp=<id>` (PRODUCT-03) — parsée par `parseNeedsSelection`, résolue par `resolveSelectedNeedId` (id demandé s'il est dans la liste filtrée, sinon 1er, sinon `null`). Le **détail** (`getOpportunityDetail`) n'est chargé que pour le besoin sélectionné, jamais par ligne. Le contrat de href/navigation (`?view=`, strip de `opp` au changement de chapitre) reste au Lot 6 (NAVIGATION-02). | 5 |
+| OPP-24 | PRODUCT-04 : détail besoin = `OpportunityDetailView` **inline** (réemploi tel quel `{data, device:"desktop"}`), aucun modèle dupliqué. Route `/missions/opps/[id]` conservée pour le deep-link. | 6 |
+| OPP-25 | PRODUCT-02 : Kanban (`?view=kanban`) **non repris** dans le chapitre Besoins V2 ; changement d'étape conservé via `StageQuickEditorDialog` (action de ligne). Composants legacy retirés au Lot 12. | 6 |
+| OPP-26 | NAVIGATION-02 : contrat URL Besoins = `?section=besoins&opp=&stage=&priority=&practice=&sort=&direction=` (builder pur `buildNeedsHref`). `?scope`/`?view` abandonnés (compat `scope` d'entrée conservée). `buildOpportunitiesSectionHref` strippe `opp`. | 6 |
+| OPP-27 | LEGACY-05 : chapitre Besoins V2 **sans HEX** (`getOpportunityStageColor` = `var(--color-*)`, tokens `@theme`). Les HEX de `NeedsStaffingWorkspace.tsx` sont dans les toggles Kanban/Planning non repris → retirés au Lot 12. | 6 |
 
 ## Questions ouvertes en cours
 
@@ -78,18 +82,18 @@ canonique § 17.
 | ~~DATA-04~~ | Fusion `stage` + `opportunity_candidates.status` dans le graphique Processus ? | 0 | ✅ tranché (OPP-09) — non |
 | ~~DATA-05~~ | Taxonomie d'étape commerciale | 0 | ✅ tranché (OPP-08) — `stages.ts` |
 | PRODUCT-01 | Représentation unifiée `stage` + `status` (buckets de progression) | 3 | ✅ **volet affichage tranché (OPP-21)** — 5 buckets ; unification *stockée* hors périmètre |
-| PRODUCT-02 | Quelles capacités Kanban survivent après la refonte | 6 | **ouverte** |
-| PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 5 / 6 / 9 | ✅ **volet parsing/résolution tranché (OPP-23, Lot 5)** — `?opp=<id>`, `parseNeedsSelection` + `resolveSelectedNeedId`. Reste au Lot 6 : href builder + strip au changement de chapitre ; au Lot 9 : partage avec Planning |
-| PRODUCT-04 | Forme du détail besoin (inline / drawer / `OpportunityDetailView`) | 6 | **ouverte** |
+| PRODUCT-02 | Quelles capacités Kanban survivent après la refonte | 6 | ✅ **tranché (OPP-25)** — Kanban non repris ; changement d'étape conservé (`StageQuickEditorDialog`) |
+| PRODUCT-03 | Sélection d'entité URL-addressable (`?opp=`) partagée Liste/Planning/Détails | 5 / 6 / 9 | ✅ **Lot 5 (OPP-23) + Lot 6 (OPP-26, `buildNeedsHref` + strip)** — reste au Lot 9 : partage avec Planning |
+| PRODUCT-04 | Forme du détail besoin (inline / drawer / `OpportunityDetailView`) | 6 | ✅ **tranché (OPP-24)** — `OpportunityDetailView` inline |
 | PRODUCT-05 | Relation opportunité ↔ projet avant-vente ↔ mission/projet gagné | 7 / futur | **ouverte** — bloque le contenu métier Avant-vente |
 | NAVIGATION-01 | Conversion des deep-links `scope` vers `?section=` | 1 / 11 | ✅ **volet parsing résolu (Lot 1)** — `parseOpportunitiesSection` ; redirections dures `/staffing` + `main-menu` mobile → Lot 11 |
-| NAVIGATION-02 | Sort du contrat `?view=` / `?stage` / `?priority` / `?practice` | 6 | **ouverte** |
+| NAVIGATION-02 | Sort du contrat `?view=` / `?stage` / `?priority` / `?practice` | 6 | ✅ **tranché (OPP-26)** — filtres gardés + `?opp=` ; `?scope`/`?view` abandonnés |
 | ~~NAVIGATION-03~~ | `?section=` vs pathname | 0 | ✅ tranché (OPP-04) — **implémenté au Lot 1** (`?section=`, patron Engagements `?vue=`) |
 | LEGACY-01 | Consommateurs restants de `missions/(tabbed)` bloquant le retrait de `SectionNavBarSlot` | 11 | **partiellement audité** — `actives` + `projets` restent ; retrait global = Phase 6 |
 | LEGACY-02 | `OpportunitiesDesktopView.tsx` orphelin — suppression | 12 | **ouverte** |
 | LEGACY-03 | Composants `src/components/staffing/` encore montés après migration | 6 / 12 | **ouverte** |
 | LEGACY-04 | `OpportunitiesKpiSection.tsx` (`getWeightedValue`) — réconcilier ou déprécier | 3 | ✅ **réconcilié (OPP-19)** — sa formule devient le contrat canonique ; composant déprécié au Lot 6/12 |
-| LEGACY-05 | HEX en dur dans `NeedsStaffingWorkspace.tsx` → variables `@theme` | 6 | **ouverte** |
+| LEGACY-05 | HEX en dur dans `NeedsStaffingWorkspace.tsx` → variables `@theme` | 6 | ✅ **traité (OPP-27)** — chapitre V2 sans HEX ; HEX legacy dans les toggles non repris, retrait au Lot 12 |
 | CROSS-01 | Point d'entrée partagé propre pour « Matching profil » | 10 | **ouverte** |
 | CROSS-02 | Launcher officiel de `post-mortem-commercial` depuis un module contextuel | 10 | **ouverte** |
 | CROSS-03 | « Simulation devis » disponible sans contexte ou seulement avec contexte | 10 | **ouverte** — reco : toujours dispo |
@@ -258,6 +262,84 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 6 — Migration UI Besoins & staffing — ✅ techniquement livré (2026-09-09)
+
+- **Objectif** : chapitre Besoins Desktop sur `OpportunitiesTriPanel` (Lot 2), alimenté
+  par `getNeedsChapterData` (Lot 5). Parité des actions, sort explicite du Kanban / des
+  contrats `?scope`/`?view` / des HEX legacy (OPP-15).
+
+- **Fichiers créés** — `src/features/opportunities/needs/` :
+  - `navigation/needs-url.ts` — **pur** : `buildNeedsHref(searchParamsString, patch)` →
+    `?section=besoins` toujours posé, `?scope`/`?view` retirés, `?opp=` + filtres
+    appliqués/retirés, params tiers préservés. + `__tests__/needs-url.test.ts` (4 cas).
+  - `NeedsDesktop.tsx` — Server Component : compose `OpportunitiesTriPanel`
+    (`list` / `main` / `details?`). `details` absent (→ `<aside aria-hidden />`) tant
+    qu'aucun besoin n'est sélectionné. + `__tests__/needs-desktop.test.ts` (3 cas).
+  - `NeedsListPanel.tsx` — `"use client"` : rail gauche. Toolbar (`NewOpportunityButton` +
+    3 filtres select natifs + toggle tri ACV + reset), liste de cartes besoin (client +
+    logo, étape colorée via `getOpportunityStageColor` = `var(--color-*)`, montant,
+    barre de couverture), pencil « Étape » → `StageQuickEditorDialog`. Sélection &
+    filtres → `router.replace(buildNeedsHref(...), {scroll:false})` / `<Link replace>`.
+    **Pas de `useSearchParams`** (prop `searchParamsString`, patron OPP-18).
+  - `NeedsDetailPanel.tsx` — Server Component : `OpportunityDetailView` **inline**
+    (OPP-24) dans un conteneur scrollable, ou message centré (erreur / rien sélectionné).
+  - `StaffingInProgressRail.tsx` — `"use client"` : rail droit « Staffing en cours ».
+    `NewStaffingButton` (openNeeds), cartes des positionnements **actifs** du besoin
+    (Lot 5) → `openStaffingDrawer(id)` (drawer unique), action « Simuler la marge » →
+    `getFinancialModelForStaffingAction` + `FinancialModelingDesktopDialog` (OPP-13,
+    aucune deuxième modale ; rationalisation module = Lot 10).
+
+- **Fichiers modifiés** :
+  - `src/app/(app)/missions/opps/page.tsx` — branche `besoins` (desktop) →
+    `getNeedsChapterData(parseNeedsSelection(...))` + `<NeedsDesktop>`. Retrait des
+    imports `get-opportunities-planning` / `get-staffings-planning` / `getStaffingsList`
+    (plus utilisés). **Mobile inchangé** (`NeedsStaffingWorkspace` mobile).
+  - `src/features/opportunities/navigation/opportunities-sections.ts` — `opp` ajouté à
+    `LEGACY_NEEDS_STAFFING_QUERY_KEYS` (strip au changement de chapitre). Test mis à jour.
+  - `src/features/opportunities/needs/data/opportunities-needs.types.ts` +
+    `get-needs-chapter-data.ts` — `openNeeds: OpenNeedOption[]` ajouté à `NeedsChapterData`
+    (déjà lu depuis `getNeedsStaffingSharedData`, alimente `NewStaffingButton`).
+  - `src/features/opportunities/summary/__tests__/summary-route.test.ts` — réécrit pour
+    le nouveau câblage `besoins` (mock `getNeedsChapterData` + `NeedsDesktop`).
+
+- **Décisions** : **OPP-24** (PRODUCT-04 — détail inline), **OPP-25** (PRODUCT-02 — Kanban
+  non repris), **OPP-26** (NAVIGATION-02 — contrat URL), **OPP-27** (LEGACY-05 — HEX).
+
+- **Parité des capacités (OPP-15)** :
+  - Création opportunité → `NewOpportunityButton` (toolbar rail Liste). ✅
+  - Création staffing → `NewStaffingButton` (rail « Staffing en cours »). ✅
+  - Édition rapide d'étape → `StageQuickEditorDialog` (action de ligne du rail Liste). ✅
+  - Simulation financière par positionnement → action « Simuler la marge » (rail droit),
+    même dialog que le legacy. ✅
+  - Filtres étape/priorité/practice + tri ACV → conservés (`buildNeedsHref`). ✅
+  - Détail besoin complet → `OpportunityDetailView` (header, pipeline, onglets
+    overview/staffing/timeline/finance), drawer unique. ✅
+  - **Non repris** : Kanban besoins/staffing (OPP-25), bascule `?scope=` (staffing = rail
+    droit), vues Planning (chapitre dédié, Lot 9). Composants legacy conservés → Lot 12.
+
+- **Dettes / suites** :
+  - `NeedsStaffingWorkspace.tsx` : plus monté sur Desktop, **encore monté sur Mobile**
+    (`page.tsx` branche `device==="mobile"`). Retrait complet (+ HEX, + `OpportunitiesKanbanView`
+    / `StaffingKanbanView` / vues Planning legacy) = **Lot 12**, après migration Mobile.
+  - `?scope=needs\|staffing` continue de résoudre `besoins` (OPP-16) — redirection dure de
+    `/staffing` + liens `main-menu` mobiles = **Lot 11**.
+  - Simulation par ligne : câblée pour la parité ; relocalisation dans le module
+    « Simulation devis » = **Lot 10**.
+
+- **Gates réellement exécutées** (toutes vertes) :
+  - `npm run typecheck` — ✅.
+  - `npm test` (**suite complète** — contrat partagé `opportunities-sections` touché) —
+    ✅ **283 fichiers / 2829 tests**.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` sur les fichiers touchés — ✅ 0 problème.
+  - `npm run build` — ✅ « Compiled successfully », route `ƒ /missions/opps` (pas de
+    déopt `useSearchParams`).
+- **QA visuelle** : réservée à Guillaume — **non réalisée**. Densité des rails,
+  `OpportunityDetailView` dans un conteneur étroit, les 3 actions de ligne : à valider.
+
+- **Commit** : `__LOT6_SHA__` — `feat(opportunities): chapitre Besoins & staffing Desktop (Lot 6)`.
+- **NEXT LOT** : Lot 7 — Avant-vente (structure 3 panneaux + `EmptyState` V1).
 
 ### Lot 5 — Data/detail Besoins & staffing — ✅ techniquement livré (2026-09-09)
 
