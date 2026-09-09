@@ -7,6 +7,14 @@
 > **Autorité :** ce document + le ledger `01-IMPLEMENTATION-LEDGER.md`. En cas de doute,
 > le **code réel sur `origin/main`** et le standard `docs/navigation_architecture/SHELL-0018/` priment.
 
+> ⚠️ **KANBAN-001 (2026-09-09 — [ADR-0023](../../adr/ADR-0023-suppression-kanban.md)) :** le paradigme
+> Kanban est retiré globalement de KREDO. Les mentions ci-dessous de `OpportunitiesKanbanView`,
+> `StaffingKanbanView`, du mode `?view=kanban`, du flip besoin↔candidat et de l'alias
+> `OPPORTUNITY_KANBAN_STAGES` sont **caduques** : ces composants et cet alias sont supprimés ;
+> les chapitres concernés retombent sur la Liste. `OPPORTUNITY_STAGES` /
+> `OPPORTUNITY_ACTIVE_STAGES` / `OPPORTUNITY_PIPELINE_STAGES` et le pipeline commercial sont
+> inchangés. Aucune migration, aucune vue de remplacement (cf. OPP-25).
+
 Table des matières :
 
 1. [Intention et périmètre](#1-intention-et-périmètre)

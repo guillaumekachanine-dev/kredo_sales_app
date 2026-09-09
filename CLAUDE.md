@@ -239,7 +239,7 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 #### Domaine Recrutement — Process
 | Table | Rows | Description |
 |---|---|---|
-| `candidate_hiring_processes` | 29 | Une tentative de recrutement interne (`current_step` aligné `HIRING_KANBAN_STAGES`, Session 13) — un candidat peut avoir plusieurs process (relances) |
+| `candidate_hiring_processes` | 29 | Une tentative de recrutement interne (`current_step` aligné `HIRING_PROCESS_STAGES`, Session 13 ; renommé depuis `HIRING_KANBAN_STAGES` — ADR-0023) — un candidat peut avoir plusieurs process (relances) |
 | `candidate_hiring_milestones` | 115 | Jalons d'un process (plusieurs possibles par étape : reports, retries) |
 
 #### Domaine Sales

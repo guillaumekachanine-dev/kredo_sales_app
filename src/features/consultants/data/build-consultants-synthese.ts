@@ -12,7 +12,7 @@ import {
   type OfferPracticeSlug,
 } from "@/lib/config/practices"
 import {
-  HIRING_KANBAN_STAGES,
+  HIRING_PROCESS_STAGES,
   RECRUITMENT_TERMINAL_STATUSES,
 } from "@/lib/recruitment/recruitment-stages"
 import type {
@@ -315,7 +315,7 @@ export function buildConsultantsSynthese(
     if (!p.current_step) continue
     activeCountByStep.set(p.current_step, (activeCountByStep.get(p.current_step) ?? 0) + 1)
   }
-  const byStep: RecruitmentPipelineStep[] = HIRING_KANBAN_STAGES.map((stage) => ({
+  const byStep: RecruitmentPipelineStep[] = HIRING_PROCESS_STAGES.map((stage) => ({
     step: stage.key,
     label: stage.label,
     count: activeCountByStep.get(stage.key) ?? 0,

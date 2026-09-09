@@ -17,19 +17,13 @@ import { StaffingDrawer } from "@/components/staffing/StaffingDrawer"
 import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-recruitment-workspace"
-import { updateHiringStep } from "@/app/(app)/recruitment/_actions/update-hiring-step"
 import { openReportGeneration } from "@/lib/reports/report-generation"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { RecruitmentListView } from "./RecruitmentListView"
-import { RecruitmentKanbanView } from "./RecruitmentKanbanView"
 import { RecruitmentPlanningView, type PlanningScale } from "./RecruitmentPlanningView"
-import {
-  HIRING_KANBAN_STAGES,
-  RECRUITMENT_TERMINAL_STATUSES,
-  type HiringKanbanStageKey,
-} from "@/lib/recruitment/recruitment-stages"
+import { RECRUITMENT_TERMINAL_STATUSES } from "@/lib/recruitment/recruitment-stages"
 
-type RecruitmentViewMode = "list" | "kanban" | "planning"
+type RecruitmentViewMode = "list" | "planning"
 type PeriodDisplay = "week" | "month" | "quarter" | "year"
 
 interface RecruitmentWorkspaceProps {
@@ -135,66 +129,6 @@ function RecruitmentMobileCards({
             </div>
           </SurfaceCard>
         ))}
-      </div>
-    )
-  }
-
-  if (viewMode === "kanban") {
-    return (
-      <div className="flex flex-col gap-3">
-        {HIRING_KANBAN_STAGES.map((stage) => {
-          const stageRows = rows.filter((row) => (row.hiringCurrentStep ?? "prequalification") === stage.key)
-          return (
-            <SurfaceCard key={stage.key} className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-bold" style={{ color: stage.color }}>
-                  {stage.label}
-                </h3>
-                <span className="text-xs font-semibold text-muted">{stageRows.length}</span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {stageRows.length === 0 ? (
-                  <p className="text-xs text-muted">Aucun profil.</p>
-                ) : (
-                  stageRows.map((row) => (
-                    <div
-                      key={row.id}
-                      className="cursor-pointer rounded-xl border border-border/60 bg-canvas/30 p-3"
-                      onClick={() => openStaffingDrawer(row.id)}
-                    >
-                      <p className="text-xs font-bold text-heading">{row.candidateName}</p>
-                      <p className="mt-0.5 text-[11px] text-body">{row.currentTitle || "Profil"}</p>
-                      <p className="mt-2 text-[10px] text-muted">
-                        {row.clientName} · {row.opportunityTitle}
-                      </p>
-                      <div className="mt-3">
-                        <ContextualCommunicationButton
-                          intent="candidate_feedback"
-                          origin="opportunity"
-                          label="Feedback"
-                          fullWidth
-                          className="h-11 min-h-11 text-xs"
-                          candidateId={row.candidateId}
-                          candidateName={row.candidateName}
-                          opportunityId={row.opportunityId}
-                          opportunityTitle={row.opportunityTitle}
-                          companyId={row.companyId}
-                          companyName={row.clientName}
-                          primaryEntity={{ type: "candidate", id: row.candidateId }}
-                          mustInclude={[
-                            `Candidat: ${row.candidateName}`,
-                            `Étape: ${stage.label}`,
-                            `Besoin: ${row.opportunityTitle}`,
-                          ].filter(Boolean).join("\n")}
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </SurfaceCard>
-          )
-        })}
       </div>
     )
   }
@@ -323,14 +257,13 @@ export function RecruitmentWorkspace({
   isMobile,
 }: RecruitmentWorkspaceProps) {
   const router = useRouter()
-  const [rows, setRows] = useState(initialRows)
+  const [rows] = useState(initialRows)
   const [viewMode, setViewMode] = useState<RecruitmentViewMode>("list")
   const [stageFilter, setStageFilter] = useState("all")
   const [hiringFilter, setHiringFilter] = useState("all")
   const [periodDisplay, setPeriodDisplay] = useState<PeriodDisplay>("month")
   const [practiceFilter, setPracticeFilter] = useState("all")
   const [planningScale, setPlanningScale] = useState<PlanningScale>("month")
-  const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"candidates" | "opportunities">("candidates")
   const [newCandidateDrawerOpen, setNewCandidateDrawerOpen] = useState(false)
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
@@ -401,23 +334,6 @@ export function RecruitmentWorkspace({
     setEventDrawerOpen(true)
   }
 
-  // ── Kanban move: hiring step ──────────────────────────────────────────────────
-  const handleMoveHiringStep = async (itemId: string, step: HiringKanbanStageKey) => {
-    const row = rows.find((r) => r.id === itemId)
-    if (!row?.hiringProcessId) return
-
-    const previousRows = rows
-    setRows((current) =>
-      current.map((r) => r.id === itemId ? { ...r, hiringCurrentStep: step } : r),
-    )
-
-    const result = await updateHiringStep(row.hiringProcessId, step)
-    if (result.error) {
-      console.error("[recruitment] Failed to update hiring step:", result.error)
-      setRows(previousRows)
-    }
-  }
-
   // ── Period selector shown in header subtitle ────────────────────────────────
   const headerSubtitle = (
     <PeriodSelector period={periodDisplay} onChange={setPeriodDisplay} />
@@ -464,60 +380,6 @@ export function RecruitmentWorkspace({
           })),
         ]}
       />
-    </>
-  )
-
-  const kanbanFilters = (
-    <>
-      <PageFilterSelect
-        id="recruitment-kanban-practice-filter"
-        label="Practice"
-        value={practiceFilter}
-        onChange={setPracticeFilter}
-        defaultValue="all"
-        className="sm:min-w-[9rem]"
-        options={[
-          { value: "all", label: "Practice" },
-          ...practiceOptions.map((practice) => ({
-            value: practice,
-            label: practice,
-          })),
-        ]}
-      />
-      {/* Basculer candidat ↔ opportunité — identique à la page Opportunités kanban */}
-      <button
-        type="button"
-        onClick={() =>
-          setKanbanDisplayMode((current) =>
-            current === "candidates" ? "opportunities" : "candidates",
-          )
-        }
-        className="inline-flex cursor-pointer select-none items-center gap-2 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 py-1.5 text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95"
-        title={
-          kanbanDisplayMode === "candidates"
-            ? "Afficher les infos opportunités"
-            : "Afficher les infos candidats"
-        }
-      >
-        <svg
-          className="size-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-          <path d="M21 3v5h-5" />
-          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-          <path d="M8 16H3v5" />
-        </svg>
-        <span className="text-xs font-semibold">
-          {kanbanDisplayMode === "candidates" ? "Candidats" : "Opportunités"}
-        </span>
-      </button>
     </>
   )
 
@@ -589,7 +451,6 @@ export function RecruitmentWorkspace({
                 <PageViewSelector
                   items={[
                     { value: "list", label: "Liste" },
-                    { value: "kanban", label: "Kanban" },
                     { value: "planning", label: "Planning" },
                   ]}
                   value={viewMode}
@@ -599,7 +460,6 @@ export function RecruitmentWorkspace({
               }
             >
               {viewMode === "list" && listFilters}
-              {viewMode === "kanban" && kanbanFilters}
               {viewMode === "planning" && planningFilters}
             </PageFilterBar>
 
@@ -664,22 +524,9 @@ export function RecruitmentWorkspace({
         onViewModeChange={(mode) => setViewMode(mode as RecruitmentViewMode)}
         activeFilterCount={activeFilterCount}
         onResetFilters={resetFilters}
-        filters={
-          viewMode === "list"
-            ? listFilters
-            : viewMode === "kanban"
-              ? kanbanFilters
-              : planningFilters
-        }
+        filters={viewMode === "list" ? listFilters : planningFilters}
         secondaryActions={null}
         listView={<RecruitmentListView rows={filteredRows} />}
-        kanbanView={
-          <RecruitmentKanbanView
-            rows={filteredRows}
-            onMoveRow={handleMoveHiringStep}
-            displayMode={kanbanDisplayMode}
-          />
-        }
         planningView={<RecruitmentPlanningView rows={filteredRows} scale={planningScale} />}
       />
 

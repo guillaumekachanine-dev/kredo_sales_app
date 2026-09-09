@@ -53,6 +53,13 @@ par l'absence de QA visuelle.
 
 ➡️ **Lot 15 — Nettoyage et clôture — `UNBLOCKED / READY`** (Phase 7.2 Consultants livrée).
 
+> **KANBAN-001 livré (2026-09-09 — [ADR-0023](../../adr/ADR-0023-suppression-kanban.md))** :
+> le paradigme Kanban est retiré globalement. Côté Vivier Candidats, `CandidatesKanbanDesktop`
+> et le sélecteur Tableau/Kanban du Lot 9 sont supprimés — la vue Desktop est directement la
+> `StructuredList` ; drawer, création, éditions lifecycle / étape process, filtres et rapports
+> sont conservés. Les six étapes métier restent identiques, renommées `HIRING_PROCESS_STAGES`
+> (ex-`HIRING_KANBAN_STAGES`). Aucune migration, aucune vue de remplacement.
+
 > **Phase 7.2 livrée (2026-09-09)** : libellés cible appliqués (Synthèse → « Vue d'ensemble »,
 > Candidats → « Vivier Candidats », « Activités & congés » → « Activité & Congés », module
 > « Matching profil » → « Matching Profil ») ; le chapitre **Pool de compétences** est devenu un

@@ -12,7 +12,7 @@ describe("buildPlanningHref", () => {
   it("retire l'état des chapitres frères sans perdre les paramètres tiers", () => {
     expect(
       buildPlanningHref(
-        "section=besoins&scope=needs&view=kanban&stage=qualification&theme=dark",
+        "section=besoins&scope=needs&view=planning&stage=qualification&theme=dark",
         "o1",
       ),
     ).toBe("/missions/opps?section=planning&theme=dark&opp=o1")

@@ -1,4 +1,4 @@
-import { getRecruitmentStatusLabel, HIRING_KANBAN_STAGES, normalizeRecruitmentKey } from "@/lib/recruitment/recruitment-stages"
+import { getRecruitmentStatusLabel, HIRING_PROCESS_STAGES, normalizeRecruitmentKey } from "@/lib/recruitment/recruitment-stages"
 import { asNumber, parseDate } from "./shared"
 
 export const FUNNEL_STATIC_SNAPSHOT_CAVEAT =
@@ -124,7 +124,7 @@ export function buildAnalyzeFunnel(input: BuildAnalyzeFunnelInput): AnalyzeFunne
     if (step) hiringCounts.set(step, (hiringCounts.get(step) ?? 0) + 1)
   }
 
-  const hiringFunnel = HIRING_KANBAN_STAGES.map<FunnelStep>((stage) => {
+  const hiringFunnel = HIRING_PROCESS_STAGES.map<FunnelStep>((stage) => {
     const count = hiringCounts.get(stage.key) ?? 0
     return {
       step: stage.key,

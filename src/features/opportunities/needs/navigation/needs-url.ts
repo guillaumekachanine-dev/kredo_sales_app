@@ -8,7 +8,7 @@
 //      &sort=acv &direction=asc|desc       ← tri ACV
 //
 //  Abandonnés : `?scope=` (le staffing devient le rail droit, plus une bascule)
-//  et `?view=` (Kanban retiré — OPP-25 ; Planning = chapitre dédié, Lot 9). La
+//  et `?view=` (bascule de vue retirée — OPP-25 ; Planning = chapitre dédié, Lot 9). La
 //  compat d'entrée `?scope=needs|staffing → besoins` reste portée par
 //  `parseOpportunitiesSection` (OPP-16).
 //

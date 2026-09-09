@@ -58,7 +58,7 @@ describe("opportunities-sections — contrat de navigation", () => {
       expect(parseOpportunitiesSection({ scope: "needs" })).toBe("besoins")
       expect(parseOpportunitiesSection({ scope: "staffing" })).toBe("besoins")
       expect(parseOpportunitiesSection(sp("scope=needs"))).toBe("besoins")
-      expect(parseOpportunitiesSection(sp("scope=staffing&view=kanban"))).toBe("besoins")
+      expect(parseOpportunitiesSection(sp("scope=staffing&view=planning"))).toBe("besoins")
     })
 
     it("un scope inconnu ne déclenche pas la compat", () => {
@@ -111,7 +111,7 @@ describe("opportunities-sections — contrat de navigation", () => {
       expect(
         buildOpportunitiesSectionHref(
           OPPORTUNITIES_CANONICAL_PATH,
-          sp("scope=staffing&view=kanban&stage=gagne&priority=haute&practice=Data&sort=acv&direction=desc&opp=need-1&module=matching&keep=1"),
+          sp("scope=staffing&view=planning&stage=gagne&priority=haute&practice=Data&sort=acv&direction=desc&opp=need-1&module=matching&keep=1"),
           "planning",
         ),
       ).toBe("/missions/opps?keep=1&section=planning")

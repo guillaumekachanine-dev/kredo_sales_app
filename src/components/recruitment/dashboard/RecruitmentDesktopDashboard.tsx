@@ -239,7 +239,7 @@ export function RecruitmentDesktopDashboard({
         </div>
       </div>
 
-      {/* Kanban Board Row */}
+      {/* Pipeline Candidats Row */}
       <div className="flex flex-col gap-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted select-none">
           Pipeline Candidats

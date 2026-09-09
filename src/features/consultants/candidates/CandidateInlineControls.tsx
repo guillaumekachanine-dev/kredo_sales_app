@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Select } from "@/components/ui/Select"
 import { updateCandidateStatus } from "@/app/(app)/recruitment/_actions/update-candidate-status"
 import { updateHiringStep } from "@/app/(app)/recruitment/_actions/update-hiring-step"
-import { HIRING_KANBAN_STAGES } from "@/lib/recruitment/recruitment-stages"
+import { HIRING_PROCESS_STAGES } from "@/lib/recruitment/recruitment-stages"
 import {
   LIFECYCLE_EDIT_OPTIONS,
   LIFECYCLE_LABEL,
@@ -83,7 +83,7 @@ function HiringStepSelect({
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const current = step ?? HIRING_KANBAN_STAGES[0].key
+  const current = step ?? HIRING_PROCESS_STAGES[0].key
   const [optimistic, setOptimistic] = useOptimistic(current)
 
   return (
@@ -104,7 +104,7 @@ function HiringStepSelect({
           })
         }}
       >
-        {HIRING_KANBAN_STAGES.map((stage) => (
+        {HIRING_PROCESS_STAGES.map((stage) => (
           <option key={stage.key} value={stage.key}>
             {stage.label}
           </option>

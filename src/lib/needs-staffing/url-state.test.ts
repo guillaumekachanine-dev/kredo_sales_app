@@ -36,7 +36,7 @@ describe("needs staffing url state", () => {
   it("round-trips supported filters through URLSearchParams", () => {
     const params = writeNeedsStaffingUrlState({
       scope: "needs",
-      view: "kanban",
+      view: "planning",
       stage: "qualification",
       priority: "normale",
       practice: "Cloud",
@@ -46,7 +46,7 @@ describe("needs staffing url state", () => {
 
     expect(parseNeedsStaffingUrlState(params)).toEqual({
       scope: "needs",
-      view: "kanban",
+      view: "planning",
       stage: "qualification",
       priority: "normale",
       practice: "Cloud",
@@ -55,9 +55,14 @@ describe("needs staffing url state", () => {
     })
   })
 
+  it("degrades the removed legacy view=kanban parameter to the list view", () => {
+    expect(parseNeedsStaffingUrlState(new URLSearchParams("view=kanban")).view).toBe("list")
+    expect(parseNeedsStaffingUrlState({ view: "kanban" }).view).toBe("list")
+  })
+
   it("redirects /staffing to canonical /missions/opps?section=besoins without scope/view (Opportunities Lot 11)", () => {
     const url = resolveLegacyStaffingRedirect({
-      view: "kanban",
+      view: "planning",
       stage: "preselectionne",
       priority: "haute",
       practice: "Digital",

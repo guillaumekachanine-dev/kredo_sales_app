@@ -2,14 +2,11 @@
 
 import { useId, useMemo, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
 import type { NeedsStaffingSharedData } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
 import type { StaffingListRow, MobileStaffingRow } from "@/app/(app)/staffing/_data/get-staffings-list"
 import type { StaffingPlanningData } from "@/app/(app)/staffing/_data/get-staffings-planning"
-import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
-import { OpportunitiesKanbanView } from "@/components/missions/kanban/OpportunitiesKanbanView"
 import { OpportunitiesPlanningView } from "@/components/missions/planning/OpportunitiesPlanningView"
 import {
   FinancialModelingDesktopDialog,
@@ -43,7 +40,6 @@ import { cn } from "@/lib/utils"
 import { NeedsListView } from "./NeedsListView"
 import { NewStaffingButton } from "./NewStaffingButton"
 import { StaffingListWorkspaceView } from "./StaffingListWorkspaceView"
-import { StaffingKanbanView } from "@/components/staffing/StaffingKanbanView"
 import { StaffingPlanningView } from "@/components/staffing/StaffingPlanningView"
 import { UnifiedPlanningView } from "@/components/needs-staffing/UnifiedPlanningView"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
@@ -454,14 +450,11 @@ export function NeedsStaffingWorkspace({
   mobileStaffingRows,
 }: NeedsStaffingWorkspaceProps) {
   const isMobile = device === "mobile"
-  const router = useRouter()
   const { state, setScope, setView, setStage, setPriority, setPractice, setSort, resetFilters } =
     useNeedsStaffingUrlState()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [mobileSearch, setMobileSearch] = useState("")
   const mobileSearchId = useId()
-  // Kanban flip: "besoin" = face avant, "candidat" = face arrière
-  const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"besoin" | "candidat">("besoin")
   // Planning layer cycle: besoin → staffing → both
   const [planningLayer, setPlanningLayer] = useState<"besoin" | "staffing" | "both">("both")
   // Planning scale cycle: month → quarter → year → week
@@ -588,46 +581,12 @@ export function NeedsStaffingWorkspace({
     setSort(next.sort, next.direction)
   }
 
-  const handleMoveOpportunity = async (opportunityId: string, newStage: string) => {
-    const result = await updateOpportunity({
-      id: opportunityId,
-      stage: newStage as Parameters<typeof updateOpportunity>[0]["stage"],
-    })
-
-    if (result.error) {
-      console.error("Failed to update opportunity stage:", result.error)
-      return
-    }
-
-    router.refresh()
-  }
-
   const createAction = (
     <NewOpportunityButton
       fullWidth={false}
       iconOnly={isMobile}
       className={isMobile ? "h-9 w-9 rounded-[var(--radius-medium)] px-0 text-base" : undefined}
     />
-  )
-
-  // Bouton flip kanban
-  const kanbanFlipButton = (
-    <button
-      type="button"
-      onClick={() => setKanbanDisplayMode((m) => m === "besoin" ? "candidat" : "besoin")}
-      className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-medium)] border px-3 text-[length:var(--font-size-label-sm)] font-semibold transition-colors hover:opacity-85 active:scale-95 cursor-pointer select-none"
-      style={{
-        borderColor: kanbanDisplayMode === "besoin" ? "#FFC107" : "#9C27B0",
-        backgroundColor: kanbanDisplayMode === "besoin" ? "rgba(255, 193, 7, 0.08)" : "rgba(156, 39, 176, 0.08)",
-        color: kanbanDisplayMode === "besoin" ? "#D8A400" : "#9C27B0",
-      }}
-      title="Alterner entre la vue Besoin et la vue Candidat"
-    >
-      <svg className="size-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M2 5h12M2 11h12M11 2l3 3-3 3M5 8l-3 3 3 3" />
-      </svg>
-      <span className="capitalize">{kanbanDisplayMode === "besoin" ? "besoin" : "candidat"}</span>
-    </button>
   )
 
   // Boutons planning : couche (cycle) + période (cycle)
@@ -814,16 +773,14 @@ export function NeedsStaffingWorkspace({
                 ariaLabel="Mode d'affichage Besoins & Staffing"
                 items={[
                   { value: "list", label: "Liste" },
-                  { value: "kanban", label: "Kanban" },
                   { value: "planning", label: "Planning" },
                 ]}
                 value={state.view}
-                onChange={(value) => setView(value as "list" | "kanban" | "planning")}
+                onChange={(value) => setView(value as "list" | "planning")}
               />
             )}
           >
             {state.view === "list" && desktopFilters}
-            {state.view === "kanban" && kanbanFlipButton}
             {state.view === "planning" && planningLayerButtons}
           </PageFilterBar>
 
@@ -836,12 +793,6 @@ export function NeedsStaffingWorkspace({
               onToggleAcvSort={handleToggleAcvSort}
               onLaunchFinancialSimulation={handleLaunchFinancialSimulation}
               onEditStage={handleEditStage}
-            />
-          ) : state.view === "kanban" ? (
-            <OpportunitiesKanbanView
-              opportunities={filteredNeedsPlanning}
-              onMoveOpportunity={handleMoveOpportunity}
-              displayMode={kanbanDisplayMode === "candidat" ? "consultants" : "opportunities"}
             />
           ) : (
             // Planning : afficher selon la couche active

@@ -14,8 +14,6 @@ import { MissionsMobileListView } from "@/components/missions/MissionsMobileList
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { OpportunitiesPlanningView } from "@/components/missions/planning/OpportunitiesPlanningView"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
-import { OpportunitiesKanbanView } from "@/components/missions/kanban/OpportunitiesKanbanView"
-import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import { Button } from "@/components/ui/Button"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Select } from "@/components/ui/Select"
@@ -35,7 +33,6 @@ import {
   getOpportunityStageLabel,
   isTerminalOpportunityStage,
   OPPORTUNITY_STAGES,
-  type SalesStage,
 } from "@/lib/opportunities/stages"
 
 function StagePill({ stage, label }: { stage: string; label: string }) {
@@ -116,7 +113,7 @@ export function OpportunitiesDesktopView({
     setPlanningData(initialPlanning)
   }, [initialPlanning])
 
-  const [viewMode, setViewMode] = useState<"list" | "kanban" | "planning">("list")
+  const [viewMode, setViewMode] = useState<"list" | "planning">("list")
   const [planningScale, setPlanningScale] = useState<"year" | "quarter" | "month" | "week">("month")
   const [stageFilter, setStageFilter]       = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
@@ -176,9 +173,6 @@ export function OpportunitiesDesktopView({
       }
     })
   }
-
-  // Kanban display mode ("opportunities" or "consultants")
-  const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"opportunities" | "consultants">("opportunities")
 
   // Staffing Modal States
   const [isStaffingModalOpen, setIsStaffingModalOpen] = useState(false)
@@ -275,30 +269,6 @@ export function OpportunitiesDesktopView({
         setIsStaffingModalOpen(false)
       }
     })
-  }
-
-  const handleMoveOpportunity = async (opportunityId: string, newStage: string) => {
-    const previousOpps = opps
-    const previousPlanning = planningData
-
-    // Optimistic UI updates
-    setOpps((prev) =>
-      prev.map((o) => (o.entityId === opportunityId ? { ...o, stage: newStage } : o))
-    )
-    setPlanningData((prev) =>
-      prev.map((o) => (o.id === opportunityId ? { ...o, stage: newStage } : o))
-    )
-
-    const res = await updateOpportunity({
-      id: opportunityId,
-      stage: newStage as SalesStage,
-    })
-
-    if (res.error) {
-      console.error("Failed to update opportunity stage:", res.error)
-      setOpps(previousOpps)
-      setPlanningData(previousPlanning)
-    }
   }
 
   const filteredPlanningData = useMemo(() => {
@@ -564,6 +534,18 @@ export function OpportunitiesDesktopView({
               >
                 Créer un événement
               </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenStaffingModal}
+                leftIcon={
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                }
+              >
+                Créer staffing
+              </Button>
               <div className="flex items-center gap-1.5 select-none">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">
                   Échelle
@@ -581,46 +563,6 @@ export function OpportunitiesDesktopView({
                   <option value="year">Année</option>
                 </Select>
               </div>
-            </>
-          ) : viewMode === "kanban" ? (
-            <>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleOpenStaffingModal}
-                leftIcon={
-                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                }
-              >
-                Créer staffing
-              </Button>
-              <button
-                type="button"
-                onClick={() => setKanbanDisplayMode((mode) => (mode === "opportunities" ? "consultants" : "opportunities"))}
-                className="inline-flex cursor-pointer select-none items-center gap-2 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95"
-                title={`Basculer vers ${kanbanDisplayMode === "opportunities" ? "Consultants" : "Opportunités"}`}
-              >
-                <svg
-                  className={cn("size-3.5 transition-transform duration-500", kanbanDisplayMode === "consultants" && "rotate-180")}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                  <path d="M8 16H3v5" />
-                </svg>
-                <span className="text-xs font-semibold">
-                  {kanbanDisplayMode === "opportunities" ? "Opportunités" : "Consultants"}
-                </span>
-              </button>
             </>
           ) : null
         }
@@ -640,13 +582,6 @@ export function OpportunitiesDesktopView({
             }
             ariaLabel="Liste des opportunités"
             emptyState="Aucune opportunité ne correspond aux filtres."
-          />
-        }
-        kanbanView={
-          <OpportunitiesKanbanView
-            opportunities={filteredPlanningData}
-            onMoveOpportunity={handleMoveOpportunity}
-            displayMode={kanbanDisplayMode}
           />
         }
         planningView={<OpportunitiesPlanningView opportunities={filteredPlanningData} scale={planningScale} />}

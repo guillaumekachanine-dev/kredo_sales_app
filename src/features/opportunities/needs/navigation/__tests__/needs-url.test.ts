@@ -4,7 +4,7 @@ import { buildNeedsHref } from "../needs-url"
 describe("buildNeedsHref — contrat URL du chapitre Besoins", () => {
   it("pose toujours section=besoins et retire scope/view", () => {
     expect(buildNeedsHref("")).toBe("/missions/opps?section=besoins")
-    expect(buildNeedsHref("scope=staffing&view=kanban")).toBe("/missions/opps?section=besoins")
+    expect(buildNeedsHref("scope=staffing&view=planning")).toBe("/missions/opps?section=besoins")
     expect(buildNeedsHref("section=synthese")).toBe("/missions/opps?section=besoins")
   })
 

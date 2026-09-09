@@ -134,8 +134,6 @@ export const OPPORTUNITY_TERMINAL_STAGES = OPPORTUNITY_STAGES.filter(
   (stage) => stage.isTerminal,
 )
 
-export const OPPORTUNITY_KANBAN_STAGES = OPPORTUNITY_PIPELINE_STAGES
-
 export function isOpportunityStage(value: string | null | undefined): value is SalesStage {
   if (!value) return false
   return value in OPPORTUNITY_STAGE_BY_VALUE

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest"
 import {
-  HIRING_KANBAN_STAGES,
-  type HiringKanbanStageKey,
+  HIRING_PROCESS_STAGES,
+  type HiringProcessStageKey,
 } from "@/lib/recruitment/recruitment-stages"
 import type { ConsultantsCandidateRow } from "@/features/consultants/candidates/data/consultants-candidates.types"
 
 function makeMockCandidateRow(
   candidateId: string,
-  hiringStep?: HiringKanbanStageKey,
+  hiringStep?: HiringProcessStageKey,
   status: string = "active",
 ): ConsultantsCandidateRow {
   return {
@@ -48,10 +48,10 @@ function makeMockCandidateRow(
   }
 }
 
-describe("CandidatesKanban — logique de filtrage et répartition des étapes", () => {
-  it("les colonnes du kanban correspondent exactement aux 6 étapes HIRING_KANBAN_STAGES", () => {
-    expect(HIRING_KANBAN_STAGES).toHaveLength(6)
-    expect(HIRING_KANBAN_STAGES.map((s) => s.key)).toEqual([
+describe("Candidats — logique de filtrage et répartition des étapes de recrutement", () => {
+  it("les 6 étapes métier HIRING_PROCESS_STAGES restent inchangées", () => {
+    expect(HIRING_PROCESS_STAGES).toHaveLength(6)
+    expect(HIRING_PROCESS_STAGES.map((s) => s.key)).toEqual([
       "prequalification",
       "entretien_manager",
       "tests_techniques",
@@ -77,7 +77,7 @@ describe("CandidatesKanban — logique de filtrage et répartition des étapes",
     expect(activeRows.map((r) => r.candidateId)).toEqual(["1", "2"])
   })
 
-  it("répartit correctement les candidats par colonne d'étape de recrutement", () => {
+  it("répartit correctement les candidats par étape de recrutement", () => {
     const rows: ConsultantsCandidateRow[] = [
       makeMockCandidateRow("1", "prequalification"),
       makeMockCandidateRow("2", "prequalification"),
@@ -88,7 +88,7 @@ describe("CandidatesKanban — logique de filtrage et répartition des étapes",
     ]
 
     const groupedByStep = new Map<string, number>()
-    for (const stage of HIRING_KANBAN_STAGES) {
+    for (const stage of HIRING_PROCESS_STAGES) {
       groupedByStep.set(stage.key, 0)
     }
 

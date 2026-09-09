@@ -249,9 +249,12 @@ Menu principal
   groupe « Commerce »
   module « Recrutement »
 
-NOTE : HIRING_KANBAN_STAGES est CONSERVÉ (consommé par ActivityRecruitmentReportView
-       et recruitment-margin-rules). L'avancement d'étape passe du drag à un
-       contrôle inline, livré dans le même lot que la suppression du Kanban.
+NOTE : les 6 étapes du process de recrutement sont CONSERVÉES (consommées par
+       ActivityRecruitmentReportView, recruitment-margin-rules, build-consultants-synthese,
+       CandidateInlineControls...). KANBAN-001 (ADR-0023) a livré la suppression globale
+       du Kanban : les vues EntityKanbanView / *KanbanView listées plus haut sont
+       supprimées, l'avancement d'étape passe par les contrôles inline, et le symbole
+       HIRING_KANBAN_STAGES est renommé HIRING_PROCESS_STAGES.
 
 NOTE : les 22 routes orphelines ne sont PAS supprimées. Elles restent accessibles
        par URL directe, hors navigation, jusqu'à arbitrage.

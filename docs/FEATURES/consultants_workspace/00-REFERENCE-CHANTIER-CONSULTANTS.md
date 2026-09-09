@@ -7,6 +7,14 @@
 > **Autorité :** ce document + le ledger `01-IMPLEMENTATION-LEDGER.md`. En cas de doute,
 > le code réel sur `origin/main` et le standard `docs/navigation_architecture/SHELL-0018/` priment.
 
+> ⚠️ **KANBAN-001 (2026-09-09 — [ADR-0023](../../adr/ADR-0023-suppression-kanban.md)) :** le paradigme
+> Kanban est retiré globalement de KREDO. Les mentions ci-dessous de `CandidatesKanbanDesktop`,
+> `RecruitmentKanbanView`, `EntityKanbanView`, du sélecteur « Tableau / Kanban » et du mode
+> `?view=kanban` sont **caduques** : ces composants sont supprimés, la vue Desktop du Vivier
+> Candidats est directement la `StructuredList`. Les six étapes métier sont inchangées, le
+> symbole `HIRING_KANBAN_STAGES` est renommé `HIRING_PROCESS_STAGES`. Aucune migration,
+> aucune vue de remplacement.
+
 ---
 
 ## 1. Intention et périmètre

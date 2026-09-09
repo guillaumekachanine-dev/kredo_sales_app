@@ -7,7 +7,7 @@
 //
 //  `scope` et `view` de l'ancien contrat sont **ignorés** ici : le chapitre
 //  Besoins n'a plus de bascule `scope` (le staffing devient le rail droit) ;
-//  `view` (kanban/planning) est arbitré au Lot 6 (PRODUCT-02 / NAVIGATION-02).
+//  `view` est arbitré au Lot 6 (PRODUCT-02 / NAVIGATION-02).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { parseNeedsStaffingUrlState } from "@/lib/needs-staffing/url-state"

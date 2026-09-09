@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import { formatDate } from "@/lib/formatters"
 import type { ActivityRecruitmentContent } from "@/app/(app)/reports/_data/reports-types"
-import { HIRING_KANBAN_STAGES, RECRUITMENT_STAGES } from "@/lib/recruitment/recruitment-stages"
+import { HIRING_PROCESS_STAGES, RECRUITMENT_STAGES } from "@/lib/recruitment/recruitment-stages"
 
 function BlockHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -27,7 +27,7 @@ function Metric({ label, value, hint }: { label: string; value: string; hint?: s
 }
 
 const HIRING_STEP_LABELS: Record<string, string> = Object.fromEntries(
-  HIRING_KANBAN_STAGES.map((s) => [s.key, s.label])
+  HIRING_PROCESS_STAGES.map((s) => [s.key, s.label])
 )
 const POSITIONING_STATUS_LABELS: Record<string, string> = Object.fromEntries(
   RECRUITMENT_STAGES.flatMap((s) => s.statuses.map((status) => [status, s.label]))

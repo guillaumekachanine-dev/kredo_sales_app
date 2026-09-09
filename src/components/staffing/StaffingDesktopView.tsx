@@ -1,14 +1,12 @@
 "use client"
 
-import React, { useMemo, useState, useTransition } from "react"
+import { useMemo, useState, useTransition } from "react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { Select } from "@/components/ui/Select"
 import { StaffingListView } from "./StaffingListView"
-import { StaffingKanbanView } from "./StaffingKanbanView"
 import { StaffingPlanningView } from "./StaffingPlanningView"
 import { mapDbStatusToStaffingStage } from "@/lib/staffing/stages"
 import type { StaffingListRow } from "@/app/(app)/staffing/_data/get-staffings-list"
@@ -42,10 +40,10 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
   const [, startTransition] = useTransition()
 
   const [planningScale, setPlanningScale] = useState<"year" | "quarter" | "month" | "week">("week")
-  const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"candidat" | "opportunite">("candidat")
 
   // 1. Sync states with URL search parameters
-  const viewMode = (searchParams.get("view") || "list") as "list" | "kanban" | "planning"
+  const rawView = searchParams.get("view")
+  const viewMode: "list" | "planning" = rawView === "planning" ? "planning" : "list"
   const stageFilter = searchParams.get("stage") || "all"
   const priorityFilter = searchParams.get("priority") || "all"
   const practiceFilter = searchParams.get("practice") || "all"
@@ -117,7 +115,6 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
 
   const VIEW_ITEMS = [
     { value: "list", label: "Liste" },
-    { value: "kanban", label: "Kanban" },
     { value: "planning", label: "Planning" },
   ]
 
@@ -162,39 +159,6 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
           </>
         )}
 
-        {viewMode === "kanban" && (
-          <button
-            type="button"
-            onClick={() => setKanbanDisplayMode((m) => m === "candidat" ? "opportunite" : "candidat")}
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-medium)] border transition-all active:scale-95 cursor-pointer select-none"
-            style={{
-              borderColor: kanbanDisplayMode === "candidat" ? "#9C27B0" : "#FFC107",
-              backgroundColor: kanbanDisplayMode === "candidat" ? "rgba(156, 39, 176, 0.08)" : "rgba(255, 193, 7, 0.08)",
-              color: kanbanDisplayMode === "candidat" ? "#9C27B0" : "#D8A400",
-            }}
-            title={`Basculer vers ${kanbanDisplayMode === "candidat" ? "Besoins" : "Candidats"}`}
-          >
-            <svg
-              className={cn("size-3.5 transition-transform duration-500", kanbanDisplayMode === "opportunite" && "rotate-180")}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M8 16H3v5" />
-            </svg>
-            <span className="text-xs font-semibold capitalize">
-              {kanbanDisplayMode === "candidat" ? "candidat" : "besoin"}
-            </span>
-          </button>
-        )}
-
         {viewMode === "planning" && (
           <>
             <button
@@ -230,7 +194,6 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
       {/* Main view distribution */}
       <div className="mt-2">
         {viewMode === "list" && <StaffingListView rows={filteredStaffings} />}
-        {viewMode === "kanban" && <StaffingKanbanView rows={filteredStaffings} displayMode={kanbanDisplayMode} />}
         {viewMode === "planning" && <StaffingPlanningView planningData={filteredPlanning} scale={planningScale} />}
       </div>
     </div>

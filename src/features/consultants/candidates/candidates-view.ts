@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { StatusPillVariant } from "@/components/ui/StatusPill"
-import { HIRING_KANBAN_STAGES } from "@/lib/recruitment/recruitment-stages"
+import { HIRING_PROCESS_STAGES } from "@/lib/recruitment/recruitment-stages"
 import { CANDIDATE_LIFECYCLE_STATUSES } from "@/lib/recruitment/candidate-lifecycle"
 import type {
   CandidateAvailabilityBucket,
@@ -32,7 +32,7 @@ export const AVAILABILITY_BUCKET_META: Record<
 }
 
 export const HIRING_STEP_LABEL: Record<string, string> = Object.fromEntries(
-  HIRING_KANBAN_STAGES.map((stage) => [stage.key, stage.label]),
+  HIRING_PROCESS_STAGES.map((stage) => [stage.key, stage.label]),
 )
 
 /** Options du sélecteur inline de lifecycle — aligné sur le legacy `RecruitmentListView`. */

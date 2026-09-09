@@ -7,7 +7,7 @@ import {
   type PageViewSelectorItem,
 } from "@/components/ui/PageViewSelector"
 
-export type EntityWorkspaceViewMode = "list" | "kanban" | "planning"
+export type EntityWorkspaceViewMode = "list" | "planning"
 
 export interface EntityWorkspaceTemplateProps {
   title: string
@@ -18,7 +18,6 @@ export interface EntityWorkspaceTemplateProps {
   viewMode: EntityWorkspaceViewMode
   onViewModeChange: (viewMode: EntityWorkspaceViewMode) => void
   listView: React.ReactNode
-  kanbanView?: React.ReactNode
   planningView?: React.ReactNode
   mobileView?: React.ReactNode
   isMobile?: boolean
@@ -32,7 +31,6 @@ export interface EntityWorkspaceTemplateProps {
 
 const DEFAULT_VIEW_ITEMS = [
   { value: "list", label: "Liste" },
-  { value: "kanban", label: "Kanban" },
   { value: "planning", label: "Planning" },
 ] as const
 
@@ -45,7 +43,6 @@ export function EntityWorkspaceTemplate({
   viewMode,
   onViewModeChange,
   listView,
-  kanbanView,
   planningView,
   mobileView,
   isMobile = false,
@@ -56,12 +53,7 @@ export function EntityWorkspaceTemplate({
   controlsClassName,
   viewItems = [...DEFAULT_VIEW_ITEMS],
 }: EntityWorkspaceTemplateProps) {
-  const activeView =
-    viewMode === "kanban"
-      ? kanbanView
-      : viewMode === "planning"
-        ? planningView
-        : listView
+  const activeView = viewMode === "planning" ? planningView : listView
 
   return (
     <EntityWorkspacePage>

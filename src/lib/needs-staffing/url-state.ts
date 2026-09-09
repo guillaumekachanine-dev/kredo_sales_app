@@ -1,5 +1,5 @@
 export type NeedsStaffingScope = "needs" | "staffing"
-export type NeedsStaffingView = "list" | "kanban" | "planning"
+export type NeedsStaffingView = "list" | "planning"
 export type NeedsStaffingSortField = "acv" | null
 export type NeedsStaffingDirection = "asc" | "desc" | null
 
@@ -54,7 +54,8 @@ export function parseNeedsStaffingUrlState(params: RawSearchParams): NeedsStaffi
 
   return {
     scope: scope === "staffing" ? "staffing" : "needs",
-    view: view === "kanban" || view === "planning" ? view : "list",
+    // Any removed/unknown legacy view value degrades to the list view.
+    view: view === "planning" ? "planning" : "list",
     stage: normalizeOptionalValue(readParam(params, "stage")),
     priority: normalizeOptionalValue(readParam(params, "priority")),
     practice: normalizeOptionalValue(readParam(params, "practice")),
