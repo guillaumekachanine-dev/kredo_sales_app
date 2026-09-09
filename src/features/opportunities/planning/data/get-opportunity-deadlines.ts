@@ -74,12 +74,19 @@ export async function getOpportunityDeadlines(
     .filter((opportunity) => !isTerminalOpportunityStage(opportunity.stage))
     .map((opportunity) => opportunity.id)
   const openIdsFilter = openIds.length > 0 ? openIds : [NONE]
+  const referenceDayStart = new Date(
+    Date.UTC(
+      referenceDate.getUTCFullYear(),
+      referenceDate.getUTCMonth(),
+      referenceDate.getUTCDate(),
+    ),
+  )
 
   const { data: eventRows } = await supabase
     .from("calendar_events")
     .select("opportunity_id, event_type, status, starts_at")
     .in("opportunity_id", openIdsFilter)
-    .gte("starts_at", referenceDate.toISOString())
+    .gte("starts_at", referenceDayStart.toISOString())
 
   const calendarEvents: RawDeadlineCalendarEvent[] = (
     (eventRows ?? []) as {

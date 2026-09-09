@@ -10,13 +10,15 @@ import {
   searchParamsToString,
 } from "@/features/opportunities/navigation/opportunities-sections"
 import { OpportunitiesDesktopShell } from "@/features/opportunities/desktop/OpportunitiesDesktopShell"
-import { OpportunitiesChapterPlaceholder } from "@/features/opportunities/desktop/OpportunitiesChapterPlaceholder"
 import { getOpportunitiesSynthese } from "@/features/opportunities/data/get-opportunities-synthese"
 import { SummaryDesktop } from "@/features/opportunities/summary/SummaryDesktop"
 import { getNeedsChapterData } from "@/features/opportunities/needs/data/get-needs-chapter-data"
 import { parseNeedsSelection } from "@/features/opportunities/needs/data/needs-selection"
 import { NeedsDesktop } from "@/features/opportunities/needs/NeedsDesktop"
 import { PresalesDesktop } from "@/features/opportunities/presales/PresalesDesktop"
+import { getPlanningChapterData } from "@/features/opportunities/planning/data/get-planning-chapter-data"
+import { parsePlanningSelection } from "@/features/opportunities/planning/data/planning-selection"
+import { PlanningDesktop } from "@/features/opportunities/planning/PlanningDesktop"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Opportunities Workspace — orchestrateur de la route `/missions/opps`
@@ -34,7 +36,7 @@ import { PresalesDesktop } from "@/features/opportunities/presales/PresalesDeskt
 //   - `besoins`     → `getNeedsChapterData` (Lot 5) + `NeedsDesktop` sur
 //                     `OpportunitiesTriPanel` (Lot 6) — sélection `?opp=` ;
 //   - `avant-vente` → `PresalesDesktop` — structure 3 panneaux + `EmptyState` (Lot 7) ;
-//   - `planning`    → `EmptyState` provisoire (Lot 9).
+//   - `planning`    → milestone planning Mois / Année (Lot 9).
 //
 //  Mobile INCHANGÉ : la branche `device === "mobile"` rend le Mobile legacy
 //  (`NeedsStaffingWorkspace` mobile), le shell V2 n'est jamais monté sur Mobile.
@@ -101,10 +103,12 @@ export default async function OpportunitesPage({
     )
   }
 
-  // planning → EmptyState provisoire (Lot 9)
+  const planningData = await getPlanningChapterData(
+    parsePlanningSelection(resolvedSearchParams),
+  )
   return (
     <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
-      <OpportunitiesChapterPlaceholder section={activeSection} />
+      <PlanningDesktop data={planningData} searchParamsString={searchParamsString} />
     </OpportunitiesDesktopShell>
   )
 }

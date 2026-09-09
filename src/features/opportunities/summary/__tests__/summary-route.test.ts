@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   needs: vi.fn(),
   mobileStaffing: vi.fn(),
   needsChapter: vi.fn(),
+  planningChapter: vi.fn(),
 }))
 
 vi.mock("@/lib/dashboard/dashboard-device", () => ({ getDashboardDevice: mocks.device }))
@@ -17,14 +18,17 @@ vi.mock("@/app/(app)/missions/_data/get-needs-staffing-shared", () => ({ getNeed
 vi.mock("@/app/(app)/missions/_data/get-opportunities-list", () => ({ getOpportunitiesList: mocks.needs }))
 vi.mock("@/app/(app)/staffing/_data/get-staffings-list", () => ({ getMobileStaffingsList: mocks.mobileStaffing }))
 vi.mock("@/features/opportunities/needs/data/get-needs-chapter-data", () => ({ getNeedsChapterData: mocks.needsChapter }))
+vi.mock("@/features/opportunities/planning/data/get-planning-chapter-data", () => ({ getPlanningChapterData: mocks.planningChapter }))
 vi.mock("@/components/needs-staffing/NeedsStaffingWorkspace", () => ({ NeedsStaffingWorkspace: () => null }))
 vi.mock("@/features/opportunities/desktop/OpportunitiesDesktopShell", () => ({ OpportunitiesDesktopShell: () => null }))
 vi.mock("@/features/opportunities/needs/NeedsDesktop", () => ({ NeedsDesktop: () => null }))
+vi.mock("@/features/opportunities/planning/PlanningDesktop", () => ({ PlanningDesktop: () => null }))
 
 import Page from "@/app/(app)/missions/opps/page"
 import { SummaryDesktop } from "../SummaryDesktop"
 import { NeedsStaffingWorkspace } from "@/components/needs-staffing/NeedsStaffingWorkspace"
 import { NeedsDesktop } from "@/features/opportunities/needs/NeedsDesktop"
+import { PlanningDesktop } from "@/features/opportunities/planning/PlanningDesktop"
 
 const vm = buildOpportunitiesSynthese({
   referenceDate: new Date("2026-09-09T00:00:00Z"),
@@ -48,11 +52,21 @@ const needsData = {
   dataNotes: [],
 }
 
+const planningData = {
+  items: [],
+  selectedOpportunityId: null,
+  selectedOpportunityDetail: null,
+  selectedOpportunityDetailError: null,
+  referenceDateIso: "2026-09-09T12:00:00.000Z",
+  dataNotes: [],
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
   mocks.device.mockResolvedValue("desktop")
   mocks.synthese.mockResolvedValue(vm)
   mocks.needsChapter.mockResolvedValue(needsData)
+  mocks.planningChapter.mockResolvedValue(planningData)
   mocks.shared.mockResolvedValue({ kpis: {} })
   mocks.needs.mockResolvedValue([])
   mocks.mobileStaffing.mockResolvedValue([])
@@ -98,8 +112,17 @@ describe("Synthèse route device and section isolation", () => {
     expect(mocks.synthese).not.toHaveBeenCalled()
   })
 
-  it.each(["avant-vente", "planning"])("renders the structural %s chapter without loading anything", async (section) => {
-    await Page({ searchParams: Promise.resolve({ section }) })
+  it("renders the structural avant-vente chapter without loading anything", async () => {
+    await Page({ searchParams: Promise.resolve({ section: "avant-vente" }) })
+    expect(mocks.synthese).not.toHaveBeenCalled()
+    expect(mocks.needsChapter).not.toHaveBeenCalled()
+    expect(mocks.planningChapter).not.toHaveBeenCalled()
+  })
+
+  it("mounts PlanningDesktop and restores ?opp= through the planning loader", async () => {
+    const page = await Page({ searchParams: Promise.resolve({ section: "planning", opp: "o1" }) })
+    expect(page.props.children.type).toBe(PlanningDesktop)
+    expect(mocks.planningChapter).toHaveBeenCalledWith("o1")
     expect(mocks.synthese).not.toHaveBeenCalled()
     expect(mocks.needsChapter).not.toHaveBeenCalled()
   })
