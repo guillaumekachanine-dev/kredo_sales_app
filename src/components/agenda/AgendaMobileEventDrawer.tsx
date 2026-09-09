@@ -5,15 +5,14 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Select } from "@/components/ui/Select"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { AgendaEventTypePicker } from "./AgendaEventTypePicker"
+import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 import {
-  AGENDA_EVENT_TYPES,
-  getCategoryForType,
-  PROSPECTION_TYPES,
-  CLIENT_ACTIF_TYPES,
-  RECRUTEMENT_TYPES,
-  MANAGEMENT_TYPES,
-  INTERNE_TYPES,
-} from "@/lib/agenda/agenda-config"
+  buildContextPayloadFields,
+  getContextRule,
+  pruneContextValues,
+  validateAgendaEventForm,
+  type AgendaEventFormValues,
+} from "@/lib/agenda/agenda-event-form"
 import { addOneHourToTime, normalizeTimeToQuarterHour } from "@/lib/agenda/agenda-time-utils"
 import type {
   AgendaEvent,
@@ -63,7 +62,7 @@ interface FormState {
 
 const INITIAL_FORM: FormState = {
   title: "",
-  event_type: "rdv_client_suivi",
+  event_type: "",
   date: "",
   start_time: "09:00",
   end_time: "10:00",
@@ -95,6 +94,27 @@ const CATEGORY_LABELS: Record<string, string> = {
   interne: "Interne",
 }
 
+/** Sous-ensemble du state consommé par la validation pure. */
+function toFormValues(form: FormState): AgendaEventFormValues {
+  return {
+    title: form.title,
+    event_type: form.event_type,
+    date: form.date,
+    start_time: form.start_time,
+    end_time: form.end_time,
+    company: form.company ? { id: form.company.id } : null,
+    contact_id: form.contact_id,
+    opportunity_id: form.opportunity_id,
+    candidate_id: form.candidate_id,
+    collaborator_id: form.collaborator_id,
+    mission_id: form.mission_id,
+    create_task: form.create_task,
+    task_title: form.task_title,
+    task_date: form.task_date,
+    task_time: form.task_time,
+  }
+}
+
 export function AgendaMobileEventDrawer({
   open,
   onOpenChange,
@@ -102,7 +122,6 @@ export function AgendaMobileEventDrawer({
   onSaved,
 }: AgendaMobileEventDrawerProps) {
   const [mode, setMode] = useState<"create" | "view" | "edit">("create")
-  const [step, setStep] = useState<1 | 2>(1)
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [contacts, setContacts] = useState<AgendaSelectContact[]>([])
@@ -119,7 +138,6 @@ export function AgendaMobileEventDrawer({
   const syncDrawerState = useEffectEvent(() => {
     setErrors({})
     setServerError(null)
-    setStep(1)
 
     if (event) {
       setMode("view")
@@ -231,6 +249,16 @@ export function AgendaMobileEventDrawer({
     })
   }
 
+  const handleEndTimeChange = (value: string) => {
+    setForm((prev) => ({ ...prev, end_time: value }))
+    setErrors((prev) => {
+      if (!prev.end_time) return prev
+      const next = { ...prev }
+      delete next.end_time
+      return next
+    })
+  }
+
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) {
@@ -249,54 +277,16 @@ export function AgendaMobileEventDrawer({
     }, 50)
   }
 
-  function validateStep1() {
-    const errs: Record<string, string> = {}
-    if (!form.title.trim()) errs.title = "L'objet de l'événement est obligatoire."
-    if (!form.event_type) errs.event_type = "La nature est obligatoire."
-    if (!form.date) errs.date = "La date est obligatoire."
-    if (!form.start_time) errs.start_time = "L'heure de début est obligatoire."
-    if (!form.end_time) errs.end_time = "L'heure de fin est obligatoire."
-    if (form.date && form.start_time && form.end_time) {
-      const s = new Date(`${form.date}T${form.start_time}`)
-      const e = new Date(`${form.date}T${form.end_time}`)
-      if (e <= s) errs.end_time = "L'heure de fin doit être postérieure au début."
-    }
-
-    const currentCategory = getCategoryForType(form.event_type)
-    if (currentCategory === "management" && !form.collaborator_id) {
-      errs.collaborator_id = "Le collaborateur est obligatoire."
-    }
-
+  function validateForm() {
+    const errs = validateAgendaEventForm(toFormValues(form))
     setErrors(errs)
     const ok = Object.keys(errs).length === 0
     if (!ok) scrollToError()
     return ok
   }
 
-  function validateStep2() {
-    const errs: Record<string, string> = {}
-    if (form.create_task) {
-      if (!form.task_title.trim()) errs.task_title = "L'intitulé est obligatoire."
-      if (!form.task_date) errs.task_date = "La date est obligatoire."
-      if (form.date && form.start_time && form.task_date) {
-        const eventStart = new Date(`${form.date}T${form.start_time}`)
-        const taskDue = new Date(`${form.task_date}T${form.task_time || "08:30"}`)
-        if (taskDue >= eventStart)
-          errs.task_date = "La tâche doit expirer avant le début de l'événement."
-      }
-    }
-    setErrors((prev) => ({ ...prev, ...errs }))
-    const ok = Object.keys(errs).length === 0
-    if (!ok) scrollToError()
-    return ok
-  }
-
-  function handleNext() {
-    if (validateStep1()) setStep(2)
-  }
-
   function handleSave() {
-    if (!validateStep1() || !validateStep2()) return
+    if (!validateForm()) return
     setServerError(null)
 
     startTransition(async () => {
@@ -306,11 +296,18 @@ export function AgendaMobileEventDrawer({
         ? new Date(`${form.task_date}T${form.task_time || "08:30"}`).toISOString()
         : ""
 
-      const currentCategory = getCategoryForType(form.event_type)
-      const isProspection = currentCategory === "prospection"
-      const isClientActif = currentCategory === "client_actif"
-      const isRecrutement = currentCategory === "recrutement"
-      const isManagement = currentCategory === "management"
+      const contextFields = buildContextPayloadFields(
+        form.event_type,
+        {
+          company_id: form.company?.id || null,
+          contact_id: form.contact_id,
+          opportunity_id: form.opportunity_id,
+          candidate_id: form.candidate_id,
+          collaborator_id: form.collaborator_id,
+          mission_id: form.mission_id,
+        },
+        opportunities,
+      )
 
       const payload: AgendaEventFormInput = {
         id: event?.id,
@@ -319,16 +316,7 @@ export function AgendaMobileEventDrawer({
         starts_at: startsAt,
         ends_at: endsAt,
         description: form.description.trim(),
-        company_id: isRecrutement
-          ? (opportunities.find((o) => o.id === form.opportunity_id)?.company_id || null)
-          : (isProspection || isClientActif)
-            ? (form.company?.id || null)
-            : null,
-        contact_id: (isProspection || isClientActif) ? (form.contact_id || null) : null,
-        opportunity_id: isRecrutement ? (form.opportunity_id || null) : null,
-        candidate_id: isRecrutement ? (form.candidate_id || null) : null,
-        collaborator_id: isManagement ? (form.collaborator_id || null) : null,
-        mission_id: isManagement ? (form.mission_id || null) : null,
+        ...contextFields,
         create_task: form.create_task,
         task_title: form.task_title.trim(),
         task_due_date: taskDueIso,
@@ -372,14 +360,16 @@ export function AgendaMobileEventDrawer({
   }
 
   const isView = mode === "view"
-  const category = getCategoryForType(form.event_type)
-  const isProspection = category === "prospection"
-  const isClientActif = category === "client_actif"
-  const isCommerce = isProspection || isClientActif
-  const isRecrutement = category === "recrutement"
-  const isManagement = category === "management"
-  const isInterne = category === "interne"
-  const currentTypeConfig = AGENDA_EVENT_TYPES[form.event_type]
+  const currentTypeConfig = form.event_type ? AGENDA_EVENT_TYPES[form.event_type] : undefined
+  const contextRule = getContextRule(form.event_type)
+  const showCompany = contextRule.fields.includes("company")
+  const showContact = contextRule.fields.includes("contact")
+  const showOpportunity = contextRule.fields.includes("opportunity")
+  const showCandidate = contextRule.fields.includes("candidate")
+  const showCollaborator = contextRule.fields.includes("collaborator")
+  const showMission = contextRule.fields.includes("mission")
+  const collaboratorRequired = contextRule.requiredFields.includes("collaborator")
+  const showContextBlock = !!form.event_type && contextRule.fields.length > 0
 
   const isTaskCompleted = event?.preparatory_task
     ? ["completed", "done"].includes(event.preparatory_task.status)
@@ -391,21 +381,17 @@ export function AgendaMobileEventDrawer({
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         value={form.event_type}
-        onChange={(v) => {
-          const oldCat = getCategoryForType(form.event_type)
-          const newCat = getCategoryForType(v)
-
+        onChange={(nextType) => {
           setForm((prev) => {
-            const next = { ...prev, event_type: v }
-            if (oldCat !== newCat) {
-              next.company = null
-              next.contact_id = ""
-              next.opportunity_id = ""
-              next.candidate_id = ""
-              next.collaborator_id = ""
-              next.mission_id = ""
-            }
-            return next
+            const pruned = pruneContextValues<AccountValue>(nextType, {
+              company: prev.company,
+              contact_id: prev.contact_id,
+              opportunity_id: prev.opportunity_id,
+              candidate_id: prev.candidate_id,
+              collaborator_id: prev.collaborator_id,
+              mission_id: prev.mission_id,
+            })
+            return { ...prev, ...pruned, event_type: nextType }
           })
           setErrors((prev) => {
             const next = { ...prev }
@@ -420,22 +406,11 @@ export function AgendaMobileEventDrawer({
         open={open}
         onOpenChange={onOpenChange}
         side="bottom"
+        className="kredo-agenda-event-drawer"
         dirty={isFormDirty && !isView}
         onRequestClose={handleRequestClose}
-        title={
-          isView
-            ? "Détails"
-            : mode === "edit"
-              ? `Modifier (${step}/2)`
-              : `Créer (${step}/2)`
-        }
-        subtitle={
-          isView
-            ? event?.title
-            : step === 1
-              ? "Étape 1 : Informations de base"
-              : "Étape 2 : Contexte & Tâches"
-        }
+        title={isView ? "Détails" : mode === "edit" ? "Modifier l'événement" : "Créer un événement"}
+        subtitle={isView ? event?.title : undefined}
         footer={
           <div className="flex w-full items-center justify-between gap-3">
             {isView ? (
@@ -448,15 +423,6 @@ export function AgendaMobileEventDrawer({
                   Supprimer
                 </button>
               )
-            ) : step === 2 ? (
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                disabled={isPending}
-                className="px-4 py-2.5 text-xs font-semibold text-muted hover:text-heading transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                Retour
-              </button>
             ) : (
               <button
                 type="button"
@@ -486,14 +452,6 @@ export function AgendaMobileEventDrawer({
                     Modifier
                   </button>
                 </>
-              ) : step === 1 ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="px-5 py-2.5 text-xs font-bold rounded-md bg-primary text-primary-fg hover:bg-primary/95 cursor-pointer shadow-sm"
-                >
-                  Suivant
-                </button>
               ) : (
                 <button
                   type="button"
@@ -641,299 +599,328 @@ export function AgendaMobileEventDrawer({
             </div>
           )}
 
-          {/* ── EDIT / CREATE MODE ────────────────────────────────────────── */}
+          {/* ── EDIT / CREATE MODE — page unique scrollable ───────────────── */}
           {!isView && (
-            <div className="flex flex-col gap-4">
-              {/* STEP 1 */}
-              {step === 1 && (
-                <div className="flex flex-col gap-3.5">
-                  {/* Type picker trigger */}
-                  <div>
-                    <label className="block text-xs font-bold text-heading mb-1">
-                      Nature de l&apos;événement&nbsp;<span className="text-danger">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setPickerOpen(true)}
-                      disabled={isPending}
-                      className={cn(
-                        "w-full rounded-md border px-3 py-2.5 text-xs font-medium text-left flex items-center justify-between gap-2 cursor-pointer transition-all",
-                        currentTypeConfig
-                          ? currentTypeConfig.colorClasses
-                          : "bg-canvas border-border text-muted",
-                        "hover:opacity-90 focus:outline-none focus:ring-1 focus:ring-primary/50"
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className={currentTypeConfig ? "font-semibold" : "text-muted"}>
-                          {currentTypeConfig ? (
-                            `${CATEGORY_LABELS[currentTypeConfig.category] || currentTypeConfig.category} - ${currentTypeConfig.label}`
-                          ) : "Sélectionner le type…"}
-                        </span>
-                      </span>
-                      <svg className="size-4 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                      </svg>
-                    </button>
-                    {errors.event_type && <p className="mt-1 text-[10px] text-danger">{errors.event_type}</p>}
-                  </div>
+            <div className="flex flex-col gap-5">
+              {/* ── Bloc 1 · Identification ── */}
+              <div className="flex flex-col gap-3.5">
+                {/* Objet */}
+                <div data-error-field={errors.title ? "true" : "false"}>
+                  <label className="block text-xs font-bold text-heading mb-1">
+                    Objet&nbsp;<span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.title}
+                    onChange={(e) => setField("title", e.target.value)}
+                    disabled={isPending}
+                    placeholder="ex. Point hebdomadaire"
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 focus:ring-1 focus:ring-primary/50 outline-none"
+                  />
+                  {errors.title && <p className="mt-1 text-[10px] text-danger">{errors.title}</p>}
+                </div>
 
-                  {/* Title */}
-                  <div data-error-field={errors.title ? "true" : "false"}>
+                {/* Nature de l'événement */}
+                <div data-error-field={errors.event_type ? "true" : "false"}>
+                  <label className="block text-xs font-bold text-heading mb-1">
+                    Nature de l&apos;événement&nbsp;<span className="text-danger">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen(true)}
+                    disabled={isPending}
+                    className={cn(
+                      "w-full rounded-md border px-3 py-2.5 text-xs font-medium text-left flex items-center justify-between gap-2 cursor-pointer transition-all min-h-11",
+                      currentTypeConfig
+                        ? currentTypeConfig.colorClasses
+                        : "bg-canvas border-border text-muted",
+                      "hover:opacity-90 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className={currentTypeConfig ? "font-semibold" : "text-muted"}>
+                        {currentTypeConfig
+                          ? `${CATEGORY_LABELS[currentTypeConfig.category] || currentTypeConfig.category} - ${currentTypeConfig.label}`
+                          : "Choisir un scénario…"}
+                      </span>
+                    </span>
+                    <svg className="size-4 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                  {errors.event_type && <p className="mt-1 text-[10px] text-danger">{errors.event_type}</p>}
+                </div>
+              </div>
+
+              {/* ── Bloc 2 · Date et horaire ── */}
+              <div className="flex flex-col gap-3.5">
+                <div data-error-field={errors.date ? "true" : "false"}>
+                  <label className="block text-xs font-bold text-heading mb-1">
+                    Date&nbsp;<span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => {
+                      setField("date", e.target.value)
+                      if (!form.task_date) setField("task_date", e.target.value)
+                    }}
+                    disabled={isPending}
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none"
+                  />
+                  {errors.date && <p className="mt-1 text-[10px] text-danger">{errors.date}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div data-error-field={errors.start_time ? "true" : "false"}>
                     <label className="block text-xs font-bold text-heading mb-1">
-                      Objet&nbsp;<span className="text-danger">*</span>
+                      Heure de début&nbsp;<span className="text-danger">*</span>
                     </label>
                     <input
-                      type="text"
-                      value={form.title}
-                      onChange={(e) => setField("title", e.target.value)}
+                      type="time"
+                      value={form.start_time}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
                       disabled={isPending}
-                      placeholder="ex. Point hebdomadaire"
-                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 focus:ring-1 focus:ring-primary/50 outline-none"
+                      step="900"
+                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none cursor-pointer"
                     />
-                    {errors.title && <p className="mt-1 text-[10px] text-danger">{errors.title}</p>}
+                    {errors.start_time && <p className="mt-1 text-[10px] text-danger">{errors.start_time}</p>}
                   </div>
 
-                  {/* Date & Horaire */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div data-error-field={errors.date ? "true" : "false"}>
+                  <div data-error-field={errors.end_time ? "true" : "false"}>
+                    <label className="block text-xs font-bold text-heading mb-1">
+                      Heure de fin&nbsp;<span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={form.end_time}
+                      onChange={(e) => handleEndTimeChange(e.target.value)}
+                      disabled={isPending}
+                      step="900"
+                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none cursor-pointer"
+                    />
+                    {errors.end_time && <p className="mt-1 text-[10px] text-danger">{errors.end_time}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Bloc 3 · Contexte métier — piloté par la nature ── */}
+              {showContextBlock && (
+                <div className="flex flex-col gap-3.5 rounded-lg border border-border/70 bg-canvas/20 p-3">
+                  <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
+                    Contexte
+                    {currentTypeConfig ? ` · ${CATEGORY_LABELS[currentTypeConfig.category] || currentTypeConfig.category}` : ""}
+                  </p>
+
+                  {showCompany && (
+                    <div>
+                      <label className="block text-xs font-bold text-heading mb-1">Compte client</label>
+                      <AccountCombobox value={form.company} onChange={(val) => setField("company", val)} />
+                    </div>
+                  )}
+
+                  {showContact && form.company && (
+                    <div>
                       <label className="block text-xs font-bold text-heading mb-1">
-                        Date&nbsp;<span className="text-danger">*</span>
+                        Contact {loadingContacts && <span className="text-[10px] text-muted">(chargement…)</span>}
                       </label>
-                      <input
-                        type="date"
-                        value={form.date}
+                      <Select
+                        value={form.contact_id}
+                        onChange={(e) => setField("contact_id", e.target.value)}
+                        disabled={isPending || loadingContacts}
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                      >
+                        <option value="">Aucun contact lié</option>
+                        {contacts.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.full_name} {c.job_title ? `— ${c.job_title}` : ""}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+
+                  {showOpportunity && (
+                    <div>
+                      <label className="block text-xs font-bold text-heading mb-1">Besoin associé</label>
+                      <Select
+                        value={form.opportunity_id}
+                        onChange={(e) => setField("opportunity_id", e.target.value)}
+                        disabled={isPending}
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                      >
+                        <option value="">Aucun besoin sélectionné</option>
+                        {opportunities.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.title}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+
+                  {showCandidate && (
+                    <div>
+                      <label className="block text-xs font-bold text-heading mb-1">Candidat lié</label>
+                      <Select
+                        value={form.candidate_id}
+                        onChange={(e) => setField("candidate_id", e.target.value)}
+                        disabled={isPending}
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                      >
+                        <option value="">Aucun candidat sélectionné</option>
+                        {candidates.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.full_name}{c.status ? ` (${c.status})` : ""}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+
+                  {showMission && (
+                    <div>
+                      <label className="block text-xs font-bold text-heading mb-1">Mission associée</label>
+                      <Select
+                        value={form.mission_id}
                         onChange={(e) => {
-                          setField("date", e.target.value)
-                          if (!form.task_date) setField("task_date", e.target.value)
+                          const missionId = e.target.value
+                          setField("mission_id", missionId)
+                          const selectedMission = missions.find((m) => m.id === missionId)
+                          if (selectedMission?.collaborator_id) {
+                            setField("collaborator_id", selectedMission.collaborator_id)
+                          }
                         }}
                         disabled={isPending}
-                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none"
-                      />
-                      {errors.date && <p className="mt-1 text-[10px] text-danger">{errors.date}</p>}
-                    </div>
-
-                    <div data-error-field={errors.start_time ? "true" : "false"}>
-                      <label className="block text-xs font-bold text-heading mb-1">
-                        Horaire&nbsp;<span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        value={form.start_time}
-                        onChange={(e) => handleStartTimeChange(e.target.value)}
-                        disabled={isPending}
-                        step="900"
-                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none cursor-pointer"
-                      />
-                      {errors.start_time && <p className="mt-1 text-[10px] text-danger">{errors.start_time}</p>}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {step === 2 && (
-                <div className="flex flex-col gap-4">
-                  {/* Account & Contact CRM fields */}
-                  {(isProspection || isClientActif) && (
-                    <>
-                      <div>
-                        <label className="block text-xs font-bold text-heading mb-1">Compte client</label>
-                        <AccountCombobox value={form.company} onChange={(val) => setField("company", val)} />
-                      </div>
-
-                      {form.company && (
-                        <div>
-                          <label className="block text-xs font-bold text-heading mb-1">
-                            Contact {loadingContacts && <span className="text-[10px] text-muted">(chargement…)</span>}
-                          </label>
-                          <Select
-                            value={form.contact_id}
-                            onChange={(e) => setField("contact_id", e.target.value)}
-                            disabled={isPending || loadingContacts}
-                            className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                          >
-                            <option value="">Aucun contact lié</option>
-                            {contacts.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.full_name} {c.job_title ? `— ${c.job_title}` : ""}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* Recrutement Candidate & Opportunity fields */}
-                  {isRecrutement && (
-                    <>
-                      <div>
-                        <label className="block text-xs font-bold text-heading mb-1">Besoin associé</label>
-                        <Select
-                          value={form.opportunity_id}
-                          onChange={(e) => setField("opportunity_id", e.target.value)}
-                          disabled={isPending}
-                          className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                        >
-                          <option value="">Aucun besoin sélectionné</option>
-                          {opportunities.map((o) => (
-                            <option key={o.id} value={o.id}>
-                              {o.title}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-heading mb-1">Candidat lié</label>
-                        <Select
-                          value={form.candidate_id}
-                          onChange={(e) => setField("candidate_id", e.target.value)}
-                          disabled={isPending}
-                          className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                        >
-                          <option value="">Aucun candidat sélectionné</option>
-                          {candidates.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.full_name}{c.status ? ` (${c.status})` : ""}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Management Collaborator & Mission fields */}
-                  {isManagement && (
-                    <>
-                      <div>
-                        <label className="block text-xs font-bold text-heading mb-1">Mission associée</label>
-                        <Select
-                          value={form.mission_id}
-                          onChange={(e) => {
-                            const missionId = e.target.value
-                            setField("mission_id", missionId)
-                            const selectedMission = missions.find(m => m.id === missionId)
-                            if (selectedMission?.collaborator_id) {
-                              setField("collaborator_id", selectedMission.collaborator_id)
-                            }
-                          }}
-                          disabled={isPending}
-                          className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                        >
-                          <option value="">Aucune mission sélectionnée</option>
-                          {missions.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.title}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-
-                      <div data-error-field={errors.collaborator_id ? "true" : "false"}>
-                        <label className="block text-xs font-bold text-heading mb-1">
-                          Collaborateur&nbsp;<span className="text-danger">*</span>
-                        </label>
-                        <Select
-                          value={form.collaborator_id}
-                          onChange={(e) => setField("collaborator_id", e.target.value)}
-                          disabled={isPending}
-                          className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                        >
-                          <option value="">Sélectionner un collaborateur…</option>
-                          {collaborators.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.full_name}
-                            </option>
-                          ))}
-                        </Select>
-                        {errors.collaborator_id && <p className="mt-1 text-[10px] text-danger">{errors.collaborator_id}</p>}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Notes */}
-                  <div>
-                    <label className="block text-xs font-bold text-heading mb-1">Détails</label>
-                    <textarea
-                      value={form.description}
-                      onChange={(e) => setField("description", e.target.value)}
-                      disabled={isPending}
-                      rows={2}
-                      placeholder="Points clés à aborder, ordre du jour..."
-                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 focus:ring-1 focus:ring-primary/50 resize-y outline-none"
-                    />
-                  </div>
-
-                  {/* Tâche préparatoire */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="mobile_create_task_chk"
-                        checked={form.create_task}
-                        onChange={(e) => setField("create_task", e.target.checked)}
-                        className="rounded border-border text-primary focus:ring-primary/50 h-4 w-4 cursor-pointer"
-                      />
-                      <label
-                        htmlFor="mobile_create_task_chk"
-                        className="text-xs font-bold text-heading select-none cursor-pointer"
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
                       >
-                        Définir une tâche
-                      </label>
+                        <option value="">Aucune mission sélectionnée</option>
+                        {missions.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.title}
+                          </option>
+                        ))}
+                      </Select>
                     </div>
+                  )}
 
-                    {form.create_task && (
-                      <div className="rounded-lg border border-border bg-canvas/30 p-3 flex flex-col gap-3">
-                        <div data-error-field={errors.task_title ? "true" : "false"}>
-                          <label className="block text-[11px] font-bold text-heading mb-1">
-                            Intitulé&nbsp;<span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={form.task_title}
-                            onChange={(e) => setField("task_title", e.target.value)}
-                            disabled={isPending}
-                            placeholder="ex. Relire le cahier des charges"
-                            className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
-                          />
-                          {errors.task_title && <p className="mt-1 text-[10px] text-danger">{errors.task_title}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div data-error-field={errors.task_date ? "true" : "false"}>
-                            <label className="block text-[11px] font-bold text-heading mb-1">
-                              Échéance&nbsp;<span className="text-danger">*</span>
-                            </label>
-                            <input
-                              type="date"
-                              value={form.task_date}
-                              onChange={(e) => setField("task_date", e.target.value)}
-                              disabled={isPending}
-                              className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-heading mb-1">Priorité</label>
-                            <Select
-                              value={form.task_priority}
-                              onChange={(e) => setField("task_priority", e.target.value)}
-                              disabled={isPending}
-                              className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                            >
-                              {PRIORITY_OPTIONS.map((p) => (
-                                <option key={p.value} value={p.value}>{p.label}</option>
-                              ))}
-                            </Select>
-                          </div>
-                        </div>
-                        {errors.task_date && <p className="text-[10px] text-danger -mt-1">{errors.task_date}</p>}
-                      </div>
-                    )}
-                  </div>
+                  {showCollaborator && (
+                    <div data-error-field={errors.collaborator_id ? "true" : "false"}>
+                      <label className="block text-xs font-bold text-heading mb-1">
+                        Collaborateur{collaboratorRequired && <>&nbsp;<span className="text-danger">*</span></>}
+                      </label>
+                      <Select
+                        value={form.collaborator_id}
+                        onChange={(e) => setField("collaborator_id", e.target.value)}
+                        disabled={isPending}
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                      >
+                        <option value="">Sélectionner un collaborateur…</option>
+                        {collaborators.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.full_name}
+                          </option>
+                        ))}
+                      </Select>
+                      {errors.collaborator_id && <p className="mt-1 text-[10px] text-danger">{errors.collaborator_id}</p>}
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* ── Bloc 4 · Description ── */}
+              <div>
+                <label className="block text-xs font-bold text-heading mb-1">Détails</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setField("description", e.target.value)}
+                  disabled={isPending}
+                  rows={2}
+                  placeholder="Points clés à aborder, ordre du jour..."
+                  className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 focus:ring-1 focus:ring-primary/50 resize-y outline-none"
+                />
+              </div>
+
+              {/* ── Bloc 5 · Tâche préparatoire ── */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="mobile_create_task_chk"
+                    checked={form.create_task}
+                    onChange={(e) => setField("create_task", e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary/50 h-4 w-4 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="mobile_create_task_chk"
+                    className="text-xs font-bold text-heading select-none cursor-pointer"
+                  >
+                    Définir une tâche
+                  </label>
+                </div>
+
+                {form.create_task && (
+                  <div className="rounded-lg border border-border bg-canvas/30 p-3 flex flex-col gap-3">
+                    <div data-error-field={errors.task_title ? "true" : "false"}>
+                      <label className="block text-[11px] font-bold text-heading mb-1">
+                        Intitulé&nbsp;<span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.task_title}
+                        onChange={(e) => setField("task_title", e.target.value)}
+                        disabled={isPending}
+                        placeholder="ex. Relire le cahier des charges"
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
+                      />
+                      {errors.task_title && <p className="mt-1 text-[10px] text-danger">{errors.task_title}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div data-error-field={errors.task_date ? "true" : "false"}>
+                        <label className="block text-[11px] font-bold text-heading mb-1">
+                          Échéance&nbsp;<span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={form.task_date}
+                          onChange={(e) => setField("task_date", e.target.value)}
+                          disabled={isPending}
+                          className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-heading mb-1">Horaire</label>
+                        <input
+                          type="time"
+                          value={form.task_time}
+                          onChange={(e) => setField("task_time", e.target.value)}
+                          disabled={isPending}
+                          step="900"
+                          className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-heading mb-1">Priorité</label>
+                      <Select
+                        value={form.task_priority}
+                        onChange={(e) => setField("task_priority", e.target.value)}
+                        disabled={isPending}
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                      >
+                        {PRIORITY_OPTIONS.map((p) => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    {errors.task_date && <p className="text-[10px] text-danger -mt-1">{errors.task_date}</p>}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
