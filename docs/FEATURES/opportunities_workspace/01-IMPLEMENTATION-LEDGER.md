@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 1 — Socle Opportunities Workspace
 Lot courant                   : aucun
 Prochain lot                  : Lot 2 — Primitive/layout 3 panneaux
-Dernier SHA connu origin/main : __LOT1_SHA__   (2026-09-09, commit Lot 1)
+Dernier SHA connu origin/main : 570306a0   (2026-09-09, Lot 1 — socle : 2f106d70)
 ```
 
 ## Table des lots
@@ -23,7 +23,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | Lot | Objet | Statut | Commit | Notes |
 |---|---|---|---|---|
 | 0 | Cadrage documentaire | ✅ techniquement livré | `e7f0f79f` | Dossier `docs/FEATURES/opportunities_workspace/` + doc de référence + ledger + inventaire code/Data (§ 15) + roadmap 0→12 + DECISION LOG OPP-01→OPP-16 + OPEN QUESTIONS (DATA/PRODUCT/NAVIGATION/LEGACY/CROSS-FEATURE). **Aucun code applicatif.** |
-| 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `__LOT1_SHA__` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
+| 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `2f106d70` + `570306a0` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ⬜ todo | — | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). |
 | 3 | Data Contract Synthèse (view-model serveur unique) | ⬜ todo | — | **Résout DATA-01 → OPP-17.** Réutilise `getNeedsStaffingSharedData` pour KPI 1 & 2. Aucune migration. |
 | 4 | Synthèse Desktop | ⬜ todo | — | KPI + graphique pipe + compétences + processus + 5 échéances. SVG maison. |
@@ -329,7 +329,13 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
 
 - **QA visuelle** : réservée à Guillaume — non réalisée par l'agent (protocole § 20.3).
 
-- **Commit** : `__LOT1_SHA__` — `feat(opportunities): socle Opportunities Workspace (Lot 1)`.
+- **Commits** :
+  - `2f106d70` — socle du Lot 1 (les 6 fichiers), bundlé par une automation parallèle
+    avec du WIP cockpit (`git add -A` non souhaité — cf. § Divergences). Cet état était
+    **rouge au `typecheck`** (TS2769 : `OpportunitiesDesktopShell` exigeait `children`
+    alors que le test le passe en 3ᵉ argument de `React.createElement`).
+  - `570306a0` — `feat(opportunities): finalize Lot 1 shell — typecheck fix + ledger` :
+    `children?: ReactNode` (typecheck vert), finalisation ledger + doc canonique.
 - **NEXT LOT** : Lot 2 — Primitive/layout 3 panneaux `OpportunitiesTriPanel`.
 
 ### Lot 0 — Cadrage documentaire — ✅ techniquement livré (2026-09-09)
