@@ -1703,4 +1703,4 @@ de `mainMenuItems`, `SectionRail`, les navigations de workspaces, `useSidebarCol
 
 ### Verdict
 
-- **Lot 6.4A — ✅ techniquement livré.** Commit : `417775de` (`refactor(shell-0018): remove legacy section navigation`).
+- **Lot 6.4A — ✅ techniquement livré.** Commit : `48a3a343` (`refactor(shell-0018): remove legacy section navigation`).
