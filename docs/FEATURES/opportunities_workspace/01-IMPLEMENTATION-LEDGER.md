@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 6 — Migration UI Besoins & staffing
 Lot courant                   : aucun
 Prochain lot                  : Lot 7 — Avant-vente (structure + EmptyState V1)
-Dernier SHA connu origin/main : __LOT6_SHA__   (2026-09-09, commit Lot 6)
+Dernier SHA connu origin/main : b769623f   (2026-09-09, commit Lot 6)
 ```
 
 ## Table des lots
@@ -28,7 +28,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 3 | Data Contract Synthèse (view-model serveur unique) | ✅ techniquement livré | `606cbbb4` | Builder pur `buildOpportunitiesSynthese` + loader mince `getOpportunitiesSynthese` + types + 48 tests ciblés. **Résout DATA-01 (OPP-19), DATA-02b (OPP-20), PRODUCT-01 affichage (OPP-21), échéances provisoires (OPP-22).** KPI 1 & 2 repris de `getNeedsStaffingSharedData`. Aucune migration. Pas d'UI. |
 | 4 | Synthèse Desktop | ✅ techniquement livré | `19f4ccad` | Surface analytique pleine largeur : 3 `KpiCard` + `PipeBreakdownChart` (client, toggle Clients/Practices) + `SkillsComparisonChart` + `ProcessFlowChart` + `DeadlinesTable` + footer `dataNotes`. SVG maison, tokens `@theme` only. `page.tsx` branche `synthese` → `getOpportunitiesSynthese()`. Mobile inchangé. 20 tests (2 fichiers). |
 | 5 | Data/detail Besoins & staffing | ✅ techniquement livré | `bad25af3` | `src/features/opportunities/needs/data/` : types + `buildNeedsList`/`resolveSelectedNeedId` (purs) + `parseNeedsSelection` (`?opp=` + filtres via `parseNeedsStaffingUrlState`) + loader `getNeedsChapterData` composant 4 loaders existants — **détail chargé pour le seul besoin sélectionné** (OPP-23). 18 tests. Aucune UI, aucune migration. |
-| 6 | Migration UI Besoins & staffing | ✅ techniquement livré | `__LOT6_SHA__` | Chapitre Besoins Desktop sur `OpportunitiesTriPanel` : `NeedsListPanel` (rail gauche, filtres + `?opp=` + `NewOpportunityButton` + `StageQuickEditorDialog`) │ `NeedsDetailPanel` (`OpportunityDetailView` inline) │ `StaffingInProgressRail` (positionnements actifs, drawer unique, `NewStaffingButton`, simulation par ligne). `page.tsx` `besoins` → `getNeedsChapterData` + `NeedsDesktop`. **Résout PRODUCT-02 (OPP-25), PRODUCT-04 (OPP-24), NAVIGATION-02 (OPP-26), LEGACY-05 (OPP-27).** `NeedsStaffingWorkspace` Desktop plus monté (Mobile inchangé). SVG/tokens `@theme`, aucun HEX. |
+| 6 | Migration UI Besoins & staffing | ✅ techniquement livré | `b769623f` | Chapitre Besoins Desktop sur `OpportunitiesTriPanel` : `NeedsListPanel` (rail gauche, filtres + `?opp=` + `NewOpportunityButton` + `StageQuickEditorDialog`) │ `NeedsDetailPanel` (`OpportunityDetailView` inline) │ `StaffingInProgressRail` (positionnements actifs, drawer unique, `NewStaffingButton`, simulation par ligne). `page.tsx` `besoins` → `getNeedsChapterData` + `NeedsDesktop`. **Résout PRODUCT-02 (OPP-25), PRODUCT-04 (OPP-24), NAVIGATION-02 (OPP-26), LEGACY-05 (OPP-27).** `NeedsStaffingWorkspace` Desktop plus monté (Mobile inchangé). SVG/tokens `@theme`, aucun HEX. |
 | 7 | Avant-vente (structure + `EmptyState` V1) | ⬜ todo | — | Aucune fausse donnée. PRODUCT-05 reste ouverte. |
 | 8 | Data Contract Planning (builder unique `OpportunityDeadline`) | ⬜ todo | — | **Résout DATA-03.** Partagé Synthèse + Planning (OPP-10). |
 | 9 | Planning Desktop | ⬜ todo | — | Liste │ Planning mois/année │ Détails. Adapte le moteur existant. |
@@ -338,7 +338,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
 - **QA visuelle** : réservée à Guillaume — **non réalisée**. Densité des rails,
   `OpportunityDetailView` dans un conteneur étroit, les 3 actions de ligne : à valider.
 
-- **Commit** : `__LOT6_SHA__` — `feat(opportunities): chapitre Besoins & staffing Desktop (Lot 6)`.
+- **Commit** : `b769623f` — `feat(opportunities): chapitre Besoins & staffing Desktop (Lot 6)`.
 - **NEXT LOT** : Lot 7 — Avant-vente (structure 3 panneaux + `EmptyState` V1).
 
 ### Lot 5 — Data/detail Besoins & staffing — ✅ techniquement livré (2026-09-09)
