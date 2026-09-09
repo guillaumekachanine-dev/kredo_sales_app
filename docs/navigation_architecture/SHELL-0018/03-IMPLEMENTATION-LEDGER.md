@@ -1511,4 +1511,4 @@ Finaliser l'intégration du workspace Consultants au Shell V2 : supprimer le der
 
 ### Verdict
 - **Lot 6.3 — ✅ techniquement livré.**
-- **Commit coordonné :** `PENDING`
+- **Commit coordonné :** `12ea8166` (`refactor(shell-0018): finalize missions and opportunities navigation`)

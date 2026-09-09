@@ -321,7 +321,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
   - Retrait physique de `SectionNavBarSlot.tsx` et `SectionNavBar.tsx` → réservé SHELL 6.4.
   - QA visuelle : réservée à Guillaume.
 
-- **Commit** : coordonné avec SHELL 6.3
+- **Commit** : `12ea8166` (`refactor(shell-0018): finalize missions and opportunities navigation`)
 - **NEXT LOT** : Lot 12 — Nettoyage et clôture (rapport `02-CLOSURE-AUDIT.md`).
 
 ### Lot 10 — Modules contextuels — ✅ techniquement livré (2026-09-09)
