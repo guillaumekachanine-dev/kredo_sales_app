@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 2 — Primitive/layout 3 panneaux
 Lot courant                   : aucun
 Prochain lot                  : Lot 3 — Data Contract Synthèse
-Dernier SHA connu origin/main : __LOT2_SHA__   (2026-09-09, commit Lot 2)
+Dernier SHA connu origin/main : 653eb736   (2026-09-09, commit Lot 2)
 ```
 
 ## Table des lots
@@ -24,7 +24,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 |---|---|---|---|---|
 | 0 | Cadrage documentaire | ✅ techniquement livré | `e7f0f79f` | Dossier `docs/FEATURES/opportunities_workspace/` + doc de référence + ledger + inventaire code/Data (§ 15) + roadmap 0→12 + DECISION LOG OPP-01→OPP-16 + OPEN QUESTIONS (DATA/PRODUCT/NAVIGATION/LEGACY/CROSS-FEATURE). **Aucun code applicatif.** |
 | 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ✅ techniquement livré | `2f106d70` + `570306a0` | Root = `synthese` sans paramètre. `contextualModules` absent. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. Ancienne route `(tabbed)/opps/page.tsx` retirée (OPP-18). `besoins` = `NeedsStaffingWorkspace` legacy tel quel. |
-| 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ✅ techniquement livré | `__LOT2_SHA__` | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). Props `list` / `main` / `details?` / `detailsEmpty?` / `ariaLabel?` / `className?`. Rail droit → `<aside aria-hidden />` si `details` absent. **Aucun consommateur ce lot** (chapitres = Lots 6/7/9). |
+| 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ✅ techniquement livré | `653eb736` | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). Props `list` / `main` / `details?` / `detailsEmpty?` / `ariaLabel?` / `className?`. Rail droit → `<aside aria-hidden />` si `details` absent. **Aucun consommateur ce lot** (chapitres = Lots 6/7/9). |
 | 3 | Data Contract Synthèse (view-model serveur unique) | ⬜ todo | — | **Résout DATA-01 → OPP-17.** Réutilise `getNeedsStaffingSharedData` pour KPI 1 & 2. Aucune migration. |
 | 4 | Synthèse Desktop | ⬜ todo | — | KPI + graphique pipe + compétences + processus + 5 échéances. SVG maison. |
 | 5 | Data/detail Besoins & staffing | ⬜ todo | — | Réutilise loaders existants, évite les doubles queries. |
@@ -288,7 +288,7 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
   - `npm run build` — ✅ « Compiled successfully ».
 - **QA visuelle** : réservée à Guillaume — non réalisée par l'agent (§ 20.3).
 
-- **Commit** : `__LOT2_SHA__` — `feat(opportunities): primitive layout 3 panneaux OpportunitiesTriPanel (Lot 2)`.
+- **Commit** : `653eb736` — `feat(opportunities): primitive layout 3 panneaux OpportunitiesTriPanel (Lot 2)`.
 - **NEXT LOT** : Lot 3 — Data Contract Synthèse (view-model serveur unique, résout DATA-01).
 
 ### Lot 1 — Socle Opportunities Workspace — ✅ techniquement livré (2026-09-09)
