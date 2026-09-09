@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Lot 0 — Cadrage documentaire
 Lot courant                   : aucun
 Prochain lot                  : Lot 1 — Socle Opportunities Workspace
-Dernier SHA connu origin/main : 61aba08ee1b35f848d223f96e08a1e1a624545ec   (2026-09-09)
+Dernier SHA connu origin/main : e7f0f79ffed19d8a33323f37024d063eb1148fd5   (2026-09-09, commit Lot 0)
 ```
 
 ## Table des lots
@@ -22,7 +22,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 
 | Lot | Objet | Statut | Commit | Notes |
 |---|---|---|---|---|
-| 0 | Cadrage documentaire | ✅ techniquement livré | _(à compléter au commit)_ | Dossier `docs/FEATURES/opportunities_workspace/` + doc de référence + ledger + inventaire code/Data (§ 15) + roadmap 0→12 + DECISION LOG OPP-01→OPP-16 + OPEN QUESTIONS (DATA/PRODUCT/NAVIGATION/LEGACY/CROSS-FEATURE). **Aucun code applicatif.** |
+| 0 | Cadrage documentaire | ✅ techniquement livré | `e7f0f79f` | Dossier `docs/FEATURES/opportunities_workspace/` + doc de référence + ledger + inventaire code/Data (§ 15) + roadmap 0→12 + DECISION LOG OPP-01→OPP-16 + OPEN QUESTIONS (DATA/PRODUCT/NAVIGATION/LEGACY/CROSS-FEATURE). **Aucun code applicatif.** |
 | 1 | Socle Opportunities Workspace (`SectionRail` V2, `?section=`, 4 chapitres, header actif, compat `scope`, sortie de `(tabbed)`) | ⬜ todo | — | Root = `synthese` sans paramètre. `contextualModules: undefined`. Mobile inchangé. `missions/(tabbed)/layout.tsx` non modifié. |
 | 2 | Primitive/layout 3 panneaux `OpportunitiesTriPanel` | ⬜ todo | — | Local à `src/features/opportunities/desktop/`. Pas de design system global (OPP-06). |
 | 3 | Data Contract Synthèse (view-model serveur unique) | ⬜ todo | — | **Résout DATA-01 → OPP-17.** Réutilise `getNeedsStaffingSharedData` pour KPI 1 & 2. Aucune migration. |
@@ -237,5 +237,5 @@ canonique § 17.
   (numérotation, liens, cohérence main-only, absence de règle QA navigateur, `Modélisation de
   CA` non rendue comme disponible).
 - **Code applicatif modifié** : **non**.
-- **Commit** : _(à compléter)_ — `docs(opportunities): bootstrap Opportunities Workspace roadmap`.
+- **Commit** : `e7f0f79ffed19d8a33323f37024d063eb1148fd5` — `docs(opportunities): bootstrap Opportunities Workspace roadmap`.
 - **NEXT LOT** : Lot 1 — Socle Opportunities Workspace.
