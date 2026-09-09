@@ -113,6 +113,18 @@ export function getNavigationIcon(
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
         </svg>
       )
+    case "home":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.955-8.955a1.125 1.125 0 011.59 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75" />
+        </svg>
+      )
     case "cockpit":
       return (
         <svg

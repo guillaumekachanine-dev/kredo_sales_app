@@ -196,8 +196,8 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
                 "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
                 isCollapsed ? "px-1 justify-center" : "px-1",
               )}
-              aria-label="Retour au cockpit"
-              title={isCollapsed ? "Cockpit" : undefined}
+              aria-label="Retour à l'accueil"
+              title={isCollapsed ? "Accueil" : undefined}
             >
               <Image
                 src="/icon-512.png"

@@ -100,8 +100,8 @@ QA minimale :
 | **6.3** | Missions historiques + Opportunities Lot 11 | ✅ techniquement livré | `missions/(tabbed)` supprimé, `MissionsTabbedShell` supprimé, `SectionNavBarSlot` 0 consommateur, CRM `Opportunités`, `/staffing` redirect permanent |
 | **6.3R** | Rebaseline architecture cible finale de navigation | ✅ livré (documentaire) | document `09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09.md` ; supersède les anciennes cibles ; 0 code applicatif |
 | **6.4A** | Démantèlement navigation horizontale **legacy** (technique) | ✅ techniquement livré | `SectionNavBar.tsx` + `SectionNavBarSlot.tsx` supprimés ; `getModuleTabs`, `getSectionTabsForPath`, `MainMenuItem.tabs`, type `SectionTab` de `main-menu.config` supprimés ; type Mobile explicite `MobileNavigationTab` ; `getMobileTabsForPath` découplé. `section-tab-styles.ts` + `SectionTabBar` **conservés**. Voir §35 |
-| **6.4B** | Alignement **navigation principale Desktop** (produit) | ⬜ todo (**prochain lot**) | applique NAV-TARGET-03/04/05 : Accueil, Agenda, CRM (+ Finance), Intelligence, Outils (+ Paramètres), Bac à sable séparé. **Ne jamais mélanger avec 6.4A.** |
-| **6.5** | Stabilisation `DesktopSidebar` / collapse | ⬜ todo | réduction de `useSidebarCollapse`, auto-repli Shell |
+| **6.4B** | Alignement **navigation principale Desktop** (produit) | ✅ techniquement livré | `Cockpit` → `Accueil` (icône `home`, pathname `/cockpit` conservé) ; Finance déplacée sous CRM (5ᵉ) ; Paramètres déplacé sous Outils (3ᵉ) ; groupes `Finance`/`Ressources` racines supprimés ; logo `aria-label` « Retour à l'accueil ». 0 pathname modifié, 0 workspace touché, 0 Mobile. Voir §36 |
+| **6.5** | Stabilisation `DesktopSidebar` / collapse | ⬜ todo (**prochain lot**) | réduction de `useSidebarCollapse`, auto-repli Shell |
 | **6.6** | Intégration Shell global ↔ Cockpit Intelligence | ⬜ todo | interface sidebar ↔ IntelligencePanel minimale |
 | **6.7** | Audit de clôture Phase 6 | ⬜ todo | inventaire de clôture, 0 legacy Shell |
 | **Phase 7** | Alignement fonctionnel des workspaces (7.0 → 7.10) | ⬜ todo | voir §34 — chapitres/modules par workspace, cible = document `09-…` |
@@ -1704,3 +1704,76 @@ de `mainMenuItems`, `SectionRail`, les navigations de workspaces, `useSidebarCol
 ### Verdict
 
 - **Lot 6.4A — ✅ techniquement livré.** Commit : `48a3a343` (`refactor(shell-0018): remove legacy section navigation`).
+
+---
+
+## 36. Lot 6.4B — Alignement de la navigation principale Desktop
+
+> **Nature :** lot produit — applique la taxonomie de menu du document canonique `09-…`.
+> N'a **pas** touché aux chapitres/modules des workspaces, à `SectionRail`, au collapse, à
+> Cockpit Intelligence, ni au Mobile. **Baseline Git :** `a2046809`.
+
+### Taxonomie — avant / après
+
+| | Avant (`a2046809`) | Après (6.4B) |
+|---|---|---|
+| Premier niveau | Cockpit · Agenda · **CRM** · Intelligence · **Finance** · Outils · **Paramètres** | **Accueil** · Agenda · **CRM** · Intelligence · **Outils** |
+| CRM | Comptes & contacts · Opportunités · Engagements · Consultants | **Comptes & Contacts** · Opportunités · Engagements · Consultants · **Finance** |
+| Intelligence | BI · Prospection · Rapports & Rédaction · Veille & Actualités | *(inchangé)* |
+| Outils | Knowledge Hub · Automatisations | Knowledge Hub · Automatisations · **Paramètres** |
+| Groupe `Finance` racine | présent (1 entrée) | **supprimé** |
+| `Paramètres` racine | présent | **supprimé** (déplacé sous Outils) |
+
+### Changements
+
+| Élément | Traitement | Détail |
+|---|---|---|
+| **Accueil** | `RENAME` | `label` « Cockpit » → « Accueil » ; `icon` « cockpit » → **`home`** ; `href` **`/cockpit` conservé** ; `primary: true` conservé. Aucune route `/home` ni `/accueil`, aucune redirection. |
+| **Comptes & Contacts** | `RENAME` | casse du libellé uniquement ; `href` `/prospection/accounts` + `icon` `crm` inchangés. Pas de route `/crm`. |
+| **Finance** | `MOVE` | entrée déplacée telle quelle dans `CRM.items` en 5ᵉ position ; groupe autonome supprimé ; `href` `/finance`, `icon` `finance`, `primary: true` conservés. Contenu de la page Finance **non touché**. |
+| **Paramètres** | `MOVE` | entrée racine → `Outils.items` en 3ᵉ (dernière) position ; `href` `/settings`, `icon` `settings` conservés. |
+| **Icône `home`** | `NEW` | `navigation-icons.tsx` : nouveau `case "home"` (SVG inline heroicons-style — toit + corps de maison + porte ; `fill="none"`, `stroke="currentColor"`, `strokeWidth={strokeWidthOverride ?? 2}`, `baseClasses`). `case "cockpit"` **conservé intact** (consommé ailleurs). |
+| **Logo KREDO** | libellés a11y | `DesktopSidebar.tsx` : `aria-label` « Retour au cockpit » → « Retour à l'accueil » ; `title` (collapsed) « Cockpit » → « Accueil ». `href="/cockpit"`, dimensions, layout, bouton collapse, cookie sidebar, comportement visuel **inchangés**. |
+
+### Non touché (vérifié)
+
+- **Pathnames** : tous conservés (`/cockpit`, `/agenda`, `/prospection/accounts`, `/missions/opps`, `/missions`, `/consultants`, `/finance`, `/intelligence`, `/prospection-intelligence`, `/reports`, `/veille`, `/knowledge`, `/automations`, `/settings`).
+- **`primary: true`** : aucun retrait (contrat conservé — refonte éventuelle = lot ultérieur).
+- **`getActiveModuleHref`** : logique inchangée ; test dédié prouvant que le regroupement visuel ne change aucun contrat URL.
+- **Mobile** : `MobileNavigationMenu`, `MobileBottomNav` (hardcode `Cockpit`/`cockpit-mobile`, ne lit pas `mainMenuItems`), `MobileNav`, `MobileSectionRail`, `getMobileTabsForPath` — **0 modification**. Audit statique : aucun consommateur Mobile de `mainMenuItems` cassé.
+- **Symboles internes `Cockpit*`** (`CockpitPage`, `CockpitDesktopDashboard`, `cockpit-data`, Cockpit Intelligence, CSS `cockpit-*`) : aucun renommage.
+- **`breadcrumb.ts`** : `ROOT` reste `{ label: "KREDO", href: "/cockpit" }` ; `/cockpit` est court-circuité avant l'index → pas d'incohérence. Warning pré-existant `prettify` **non corrigé** (hors périmètre).
+- **`intelligence-registry.ts`** (`PAGE_COCKPIT_CONFIGS`, labels « Cockpit » / « Comptes & contacts` » dupliqués statiquement) : hors périmètre (Cockpit Intelligence — Phase 7 / lot dédié).
+
+### Fichiers modifiés
+
+- `src/lib/navigation/main-menu.config.ts` — `mainMenuItems` réordonné (Accueil, Finance sous CRM, Paramètres sous Outils, groupes racines supprimés).
+- `src/components/layout/navigation-icons.tsx` — `case "home"`.
+- `src/components/layout/DesktopSidebar.tsx` — 2 libellés a11y du logo.
+- `src/lib/navigation/main-menu.config.test.ts` — describe « taxonomie cible (SHELL 6.4B) » : premier niveau exact, CRM (5), Intelligence (4), Outils (3), absence Cockpit/Finance/Ressources/Paramètres racine, `getActiveModuleHref` 8 cas, `getNavigationIcon("home")` → SVG.
+- `docs/navigation_architecture/SHELL-0018/03-IMPLEMENTATION-LEDGER.md` — table des lots + §36.
+
+### Preuves de sortie
+
+- `rg 'label: "Cockpit"' src/lib/navigation src/components/layout` → **0**.
+- `rg 'label: "Finance"' src/lib/navigation/main-menu.config.ts` → **1**, dans `CRM.items`.
+- `rg 'label: "Paramètres"' src/lib/navigation/main-menu.config.ts` → **1**, dans `Outils.items`.
+- `rg 'label: "Ressources"' src/lib/navigation/main-menu.config.ts` → **0**.
+
+### Gates
+
+- `npm run typecheck` : **passé** (après purge `.next`).
+- Tests ciblés (`main-menu.config`, `recruitment-deprecation`, `business-intelligence-migration`, `MobileBottomNav`, `intelligence-registry`, `src/lib/navigation`) : **60/60 passés**.
+- `npm run check:server-boundary` : **passé**.
+- `npx eslint` (fichiers touchés) : **0 erreur, 0 warning**.
+- `npm run build` : **passé** (Next.js 16.2.7 Turbopack, 42/42 pages).
+- `npm test` (**suite complète**) : **292 fichiers / 2 902 tests passés (0 échec)**.
+- `git diff --check` : **passé**.
+
+### Prochain lot
+
+- **SHELL 6.5 — Stabilisation `DesktopSidebar` / `useSidebarCollapse`**.
+
+### Verdict
+
+- **Lot 6.4B — ✅ techniquement livré.** Commit : _(renseigné après push)_.

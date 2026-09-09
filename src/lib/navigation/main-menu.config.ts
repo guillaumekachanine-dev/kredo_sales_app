@@ -126,12 +126,15 @@ export function getMobileTabsForPath(pathname: string): MobileNavigationTab[] {
 //  Menu principal
 // ─────────────────────────────────────────────────────────────────────────────
 
+//  Taxonomie cible SHELL 6.4B (document 09-TARGET-NAVIGATION-ARCHITECTURE-2026-09-09) :
+//  premier niveau = Accueil · Agenda · CRM · Intelligence · Outils.
+//  Le Bac à sable reste hors de cette liste (zone dédiée de DesktopSidebar).
 export const mainMenuItems: MainMenuItem[] = [
   // ── Général ─────────────────────────────────────────────────────────────
   {
-    label: "Cockpit",
+    label: "Accueil",
     href: "/cockpit",
-    icon: "cockpit",
+    icon: "home",
     primary: true,
   },
   {
@@ -145,7 +148,7 @@ export const mainMenuItems: MainMenuItem[] = [
     label: "CRM",
     items: [
       {
-        label: "Comptes & contacts",
+        label: "Comptes & Contacts",
         shortLabel: "CRM",
         href: "/prospection/accounts",
         icon: "crm",
@@ -169,6 +172,12 @@ export const mainMenuItems: MainMenuItem[] = [
         shortLabel: "Consultants",
         href: "/consultants",
         icon: "equipe",
+      },
+      {
+        label: "Finance",
+        href: "/finance",
+        icon: "finance",
+        primary: true,
       },
     ],
   },
@@ -204,19 +213,6 @@ export const mainMenuItems: MainMenuItem[] = [
     ],
   },
 
-  // ── Finance ─────────────────────────────────────────────────────────────
-  {
-    label: "Finance",
-    items: [
-      {
-        label: "Finance",
-        href: "/finance",
-        icon: "finance",
-        primary: true,
-      },
-    ],
-  },
-
   // ── Outils ──────────────────────────────────────────────────────────────
   {
     label: "Outils",
@@ -231,13 +227,11 @@ export const mainMenuItems: MainMenuItem[] = [
         href: "/automations",
         icon: "automations",
       },
+      {
+        label: "Paramètres",
+        href: "/settings",
+        icon: "settings",
+      },
     ],
-  },
-
-  // ── Paramètres ──────────────────────────────────────────────────────────
-  {
-    label: "Paramètres",
-    href: "/settings",
-    icon: "settings",
   },
 ]

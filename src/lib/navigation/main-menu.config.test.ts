@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest"
 import {
+  getActiveModuleHref,
   getMobileTabsForPath,
   mainMenuItems,
   type MainMenuItem,
 } from "./main-menu.config"
+import { getNavigationIcon } from "@/components/layout/navigation-icons"
 
 describe("navigation de section — legacy démantelé (SHELL 6.4A)", () => {
   it("aucune entrée de menu ne porte de navigation secondaire Desktop (`tabs`)", () => {
@@ -66,45 +68,100 @@ describe("navigation de section — legacy démantelé (SHELL 6.4A)", () => {
   })
 })
 
-describe("menu principal — intégration CRM, Opportunités et Consultants (SHELL 6.2/6.3)", () => {
-  it("contient le groupe CRM avec ses entrées canoniques dont Opportunités", () => {
-    const crmGroup = mainMenuItems.find((group) => group.label === "CRM")
-    expect(crmGroup).toBeDefined()
-    expect(crmGroup?.items?.map((item) => item.label)).toEqual([
-      "Comptes & contacts",
+describe("menu principal Desktop — taxonomie cible (SHELL 6.4B)", () => {
+  const groupLabels = () => mainMenuItems.map((item) => item.label)
+  const itemsOf = (label: string) =>
+    mainMenuItems.find((group) => group.label === label)?.items?.map((i) => i.label)
+  const flat = () => mainMenuItems.flatMap((group) => group.items ?? [group])
+  const entry = (label: string) => flat().find((item) => item.label === label)
+
+  it("le premier niveau est exactement Accueil · Agenda · CRM · Intelligence · Outils", () => {
+    expect(groupLabels()).toEqual(["Accueil", "Agenda", "CRM", "Intelligence", "Outils"])
+  })
+
+  it("Accueil remplace Cockpit sans changer de pathname et porte l'icône home", () => {
+    const accueil = mainMenuItems.find((item) => item.label === "Accueil")
+    expect(accueil).toBeDefined()
+    expect(accueil?.href).toBe("/cockpit")
+    expect(accueil?.icon).toBe("home")
+    expect(accueil?.primary).toBe(true)
+    expect(mainMenuItems.some((item) => item.label === "Cockpit")).toBe(false)
+  })
+
+  it("Agenda est inchangé", () => {
+    const agenda = mainMenuItems.find((item) => item.label === "Agenda")
+    expect(agenda?.href).toBe("/agenda")
+    expect(agenda?.icon).toBe("calendar")
+  })
+
+  it("CRM contient exactement Comptes & Contacts, Opportunités, Engagements, Consultants, Finance", () => {
+    expect(itemsOf("CRM")).toEqual([
+      "Comptes & Contacts",
       "Opportunités",
       "Engagements",
       "Consultants",
+      "Finance",
+    ])
+    expect(entry("Comptes & Contacts")?.href).toBe("/prospection/accounts")
+    expect(entry("Comptes & Contacts")?.icon).toBe("crm")
+    expect(entry("Opportunités")?.href).toBe("/missions/opps")
+    expect(entry("Opportunités")?.icon).toBe("staffing")
+    expect(entry("Engagements")?.href).toBe("/missions")
+    expect(entry("Consultants")?.href).toBe("/consultants")
+    expect(entry("Finance")?.href).toBe("/finance")
+    expect(entry("Finance")?.icon).toBe("finance")
+  })
+
+  it("Intelligence est inchangé", () => {
+    expect(itemsOf("Intelligence")).toEqual([
+      "Business Intelligence",
+      "Prospection",
+      "Rapports & Rédaction",
+      "Veille & Actualités",
     ])
   })
 
-  it("ne contient plus de groupe Ressources", () => {
-    const ressourcesGroup = mainMenuItems.find((group) => group.label === "Ressources")
-    expect(ressourcesGroup).toBeUndefined()
+  it("Outils contient exactement Knowledge Hub, Automatisations, Paramètres", () => {
+    expect(itemsOf("Outils")).toEqual([
+      "Knowledge Hub",
+      "Automatisations",
+      "Paramètres",
+    ])
+    expect(entry("Paramètres")?.href).toBe("/settings")
+    expect(entry("Paramètres")?.icon).toBe("settings")
   })
 
-  it("intègre Consultants sous CRM sans tabs Desktop legacy", () => {
-    const crmGroup = mainMenuItems.find((group) => group.label === "CRM")
-    const consultantsItem = crmGroup?.items?.find((item) => item.label === "Consultants")
-
-    expect(consultantsItem).toBeDefined()
-    expect(consultantsItem?.href).toBe("/consultants")
-    expect(consultantsItem?.icon).toBe("equipe")
-    expect(consultantsItem).not.toHaveProperty("tabs")
-  })
-
-  it("intègre Engagements sous CRM sans tabs Desktop legacy (SHELL 6.3)", () => {
-    const crmGroup = mainMenuItems.find((group) => group.label === "CRM")
-    const engagementsItem = crmGroup?.items?.find((item) => item.label === "Engagements")
-
-    expect(engagementsItem).toBeDefined()
-    expect(engagementsItem?.href).toBe("/missions")
-    expect(engagementsItem?.icon).toBe("engagements")
-    expect(engagementsItem).not.toHaveProperty("tabs")
+  it("Finance et Paramètres ne sont plus des entrées / groupes racines", () => {
+    expect(mainMenuItems.some((group) => group.label === "Finance")).toBe(false)
+    expect(mainMenuItems.some((group) => group.label === "Ressources")).toBe(false)
+    expect(mainMenuItems.some((item) => item.label === "Paramètres" && item.href)).toBe(false)
   })
 
   it("ne comporte plus d'entrée globale Recrutement", () => {
-    const allItems = mainMenuItems.flatMap((group) => group.items ?? [group])
-    expect(allItems.find((item) => item.label === "Recrutement")).toBeUndefined()
+    expect(flat().find((item) => item.label === "Recrutement")).toBeUndefined()
+  })
+
+  it("le déplacement visuel de Finance et Paramètres ne change aucun contrat URL", () => {
+    const cases: Array<[string, string]> = [
+      ["/cockpit", "/cockpit"],
+      ["/prospection/accounts", "/prospection/accounts"],
+      ["/missions/opps", "/missions/opps"],
+      ["/missions", "/missions"],
+      ["/consultants", "/consultants"],
+      ["/finance", "/finance"],
+      ["/intelligence", "/intelligence"],
+      ["/settings", "/settings"],
+    ]
+    for (const [pathname, expected] of cases) {
+      expect(getActiveModuleHref(pathname)).toBe(expected)
+    }
+  })
+})
+
+describe("pictogramme Accueil", () => {
+  it("getNavigationIcon(\"home\") retourne un SVG", () => {
+    const icon = getNavigationIcon("home")
+    expect(icon).not.toBeNull()
+    expect(icon).toMatchObject({ type: "svg" })
   })
 })
