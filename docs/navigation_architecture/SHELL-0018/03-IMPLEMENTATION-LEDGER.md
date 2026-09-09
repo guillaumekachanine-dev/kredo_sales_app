@@ -1431,3 +1431,4 @@ Finaliser l'intégration du workspace Consultants au Shell V2 : supprimer le der
 
 ### Verdict
 - **Lot 6.2 — ✅ techniquement livré.**
+- **Commit coordonné :** `50f1a31e`

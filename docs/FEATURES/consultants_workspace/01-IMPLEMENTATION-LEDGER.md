@@ -38,7 +38,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 12.1 | Harmonisation visuelle Production & Congés (`IntelligenceSplitModalShell`) | ✅ techniquement livré | `d50c77e2` | Remplacement du shell modal custom par le composant canonique `IntelligenceSplitModalShell` ; suppression backdrop/dialog/escape custom ; harmonisation surfaces sombres analytiques (#0f122c) ; zéro changement Data ou Mobile. |
 | 13 | Module Matching profil (UI vers moteur existant) | ✅ techniquement livré | `d91a49c8` | Projection profil-centrique en lecture seule sur `match_scores` du moteur unique existant (C-09 / C-32, PRODUCT-1 résolu). Couverture explicite (absence score ≠ incompatible), modal Desktop `IntelligenceSplitModalShell` avec liste profils + filtres et détail C1-C6, branche Mobile `ProfileMatchingMobile` contextuelle depuis fiches/drawers profil (touch target ≥ 44px), lazy-loading strict sous ADR-0006, 0 migration, 0 LLM/n8n. |
 | 13.1 | Synthèse — Double voie | ✅ techniquement livré | `67aa1859` | C-33. Ratio supprimé ; collaborateurs + candidats rattachés + recrutés YTD par practice. Desktop = panneau principal + rail vertical processus/intercontrat. Mobile = liste dédiée. Aucun nouveau fetch, migration ou dépendance. Correction à la reprise : assertion Mobile stale (`Pipeline de recrutement` → `Processus actifs par étape`). |
-| 14 | Intégration Shell global / CRM | ✅ techniquement livré | à renseigner | Coordonné SHELL-0018 Lot 6.2. Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources ». Suppression SectionNavBarSlot et (tabbed)/layout.tsx, deep-links déplacés par git mv, useSidebarCollapse retiré de ConsultantsDesktopShell. Mobile sécurisé via CONSULTANTS_SECTIONS. C-34, NAV-3/NAV-4/LEGACY-3 résolues. |
+| 14 | Intégration Shell global / CRM | ✅ techniquement livré | `50f1a31e` | Coordonné SHELL-0018 Lot 6.2. Consultants sous CRM, suppression « Équipe », « Recrutement » et groupe « Ressources ». Suppression SectionNavBarSlot et (tabbed)/layout.tsx, deep-links déplacés par git mv, useSidebarCollapse retiré de ConsultantsDesktopShell. Mobile sécurisé via CONSULTANTS_SECTIONS. C-34, NAV-3/NAV-4/LEGACY-3 résolues. |
 | 15 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → techniquement close. |
 
 ### Lot 14 — Intégration Shell global / CRM — ✅ techniquement livré (2026-09-09)
@@ -72,7 +72,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
   - `label: "Recrutement"` dans `mainMenuItems` : 0 entrée globale
   - `consultants/(tabbed)` dans `src` : 0 occurrence applicative
 - **QA visuelle** : réservée exclusivement à Guillaume (aucun Playwright / agent-browser lancé).
-- **Commit** : à renseigner.
+- **Commit** : `50f1a31e`.
 - **NEXT LOT** : Lot 15 — Nettoyage et clôture.
 
 ### Synthèse — Double voie — ✅ techniquement livré (2026-09-09)
