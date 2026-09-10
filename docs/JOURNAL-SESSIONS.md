@@ -13,6 +13,109 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 63 — Account Intelligence : audit live, invalidation de la thèse V4, corpus de cadrage (2026-09-10)
+
+Chantier documenté dans **`docs/FEATURES/cockpit_intelligence_features/account_intelligence/`**
+(9 fichiers, corpus **NORMATIF**). Les 10 documents de `account_knowledge/` passent en **ARCHIVE**
+avec bandeau. Commits `b5ccdf47` + `02afc051`. **Aucun code, aucune migration, aucun workflow.**
+
+**Point de départ.** Cadrage de la refonte de l'acquisition de connaissance compte, à partir d'une
+requête produit (4 niveaux d'analyse modulables, point d'entrée unique, double format
+base/rapport) et d'un rapport d'audit externe. Le rapport externe s'est révélé **factuellement
+exact** — tous ses compteurs vérifiés un par un contre la base live correspondent au chiffre près
+— mais il a audité **l'intention du code, jamais le comportement des runs**.
+
+**Le fait qui invalide sa thèse centrale.** Il conclut « la V4 est le prototype technique du moteur
+cible ». Les runs disent autre chose :
+
+| Mesure | Valeur relevée le 2026-09-10 |
+|---|---|
+| `intel-030` V4 — succès | **4 / 12 (33 %)** |
+| `external_pages_fetched` sur les 4 succès | **0, 0, 0, 0** |
+| Sources par run | 6 — **5 agrégats internes**, 1 registre légal |
+| Durées des succès | **425 s · 408 s · 404 s** (+ un à 98 s) |
+| Plafond task runner n8n | **300 s** — 2 échecs exactement là |
+| `intel-030` toutes versions | 23 succès / 22 échecs |
+| Télémétrie de coût | **0 sur tous les runs** |
+
+**Aucune page externe n'a jamais été lue par la V4 en production.** Le nœud `V4 Fetch Selected
+Pages` tente bien le fetch (6 requêtes parallèles, `timeout: 6000`), échoue intégralement contre
+Cloudflare/paywalls/coquilles JS, calcule `externalResearchStatus = 'external_research_degraded'`
+— **et le pipeline continue**. Le run est publié `succeeded`, et le statut dégradé part dans le
+`contextSnapshot` du callback, absent de `content_json`, que **personne ne rend** (le renderer V4
+n'existe pas : `ClientIntelligenceCompanyTab` rend V1/V2/V3 uniquement).
+
+Résultat sur le run Tournaire `a7bdbeb7` : 13 497 caractères de prose qualité FOLIO, citant Motion
+Equity Partners, Vincent Monziols, le PPWR du 12/08/2026, un objectif de 80 M€ — **rien de tout
+cela n'a été lu sur une page**. Ratio d'ancrage externe : **4 statements sur 21**, tous sur le seul
+registre légal.
+
+**Le défaut de fond — la qualification valide la forme, jamais la substance.** Le garde-fou V4
+(« toute affirmation non `hypothesis` sans référence autorisée est rétrogradée ») fonctionne
+mécaniquement : les 3 `hypothesis` portent 0 référence, les 18 autres en portent 1. Mais
+`allowedSources` contient les 5 agrégats internes (`internal:folio:`, `internal:facts:`…). Les
+10 statements `declared` citent donc un **seau**, pas un document : une étude FOLIO de deux ans
+blanchie en affirmation fraîche et sourcée, avec une puce « Source » affichant « Études FOLIO
+historiques ». D'où **INV-1/INV-2** dans le corpus.
+
+Corollaire visible : `guardFigures()` remplace tout chiffre absent du dossier par « un ordre de
+grandeur à confirmer ». Le dossier étant vide de pages, la locution atterrit **en pleine phrase**
+de la synthèse (*« un chiffre d'affaires net déclaré de un ordre de grandeur à confirmer en
+2023 »*). Intention juste, exécution au niveau du token.
+
+**Catalogue de sources — le socle est bâti pour un autre métier.** `source_catalog` : 62 sources,
+**58 jamais sondées (94 %)**, **4 mortes sur 14 sondées (29 %)**, `usage_scopes` = `study` 27 /
+`news` 27 / `account_watch` 7, **aucun scope Account Intelligence**. Les sondes existantes
+(ADR-0022 §2.2) valident un **flux RSS**, pas la récupérabilité d'une page. Et
+`v_source_effectiveness_30d` mesure `items_retained` / `productive_run_rate` — c'est-à-dire le
+rendement d'une moisson de veille : **l'utiliser pour classer des sources d'analyse compte est une
+erreur de catégorie**, une source à 25 pouvant être un registre parfait. Exclu du ranking.
+
+**Décisions structurantes du corpus.**
+- **A2** — rien n'est publié comme « su » sans avoir été lu ; le compteur d'ancrage vit dans
+  l'artefact, pas dans un `contextSnapshot`.
+- **INV-1 / INV-2** — un `established` exige ≥ 1 source externe ancrée ; un agrégat n'est jamais
+  une `source_ref`. Seule exception : K7 (historique KREDO), déterministe par nature.
+- **INTEL-035 est le lot fondateur, pas une extension.** Preflight qui découvre, **fetch
+  réellement, extrait et cache** ; ne propose que ce qu'il a lu. Règle trois problèmes d'un coup :
+  mode dégradé silencieux, plafond 300 s (le fetch sort du run d'analyse), validation humaine
+  porteuse de matière. Un preflight limité aux métadonnées aurait été un **gain négatif** — il
+  aurait fait valider une liste de sources dont aucune n'est lue.
+- **Point d'entrée UX unique, moteurs internes distincts.** INTEL-010 (classification atomique via
+  `apply_account_classification()`), 031, 032, 033, 034 et la Master Study gardent leur propriété
+  canonique. « Scan rapide » et « account knowledge » disparaissent du **langage produit**, pas de
+  l'architecture.
+- **`epistemicMode` est un filtre de restitution, pas un paramètre de run** — sinon un run par
+  mode, et plus de comparaison possible.
+- **Une seule migration sur tout le chantier** : `account_source_documents` (`intelligence_sources`
+  n'a que `evidence_excerpt`, un extrait, pas un corps de page de 14 000 caractères).
+- **Le niveau atteint se lit, il ne se stocke pas.** Pas de `companies.analysis_level` ; et surtout
+  ne pas réutiliser `companies.depth_level`, qui porte le lifecycle du compte (ADR-0019), pas la
+  profondeur des recherches. La couverture se dérive de `account_facts`
+  (`is_current`/`expires_at`/`verified_at`) — une vue, pas une table.
+- **Gate G0 bloquante** avant tout renderer, niveau ou centre de contrôle : succès ≥ 80 %, ancrage
+  ≥ 3 documents sur 90 % des runs, p95 < 240 s, télémétrie non nulle.
+
+**Piège corrigé, propagé par les cadrages précédents.** Le rapport externe affirme que le plumbing
+`includedSubjects` est disponible et n'a qu'à être « assaini ». Faux : il transite jusqu'à
+`Validate Entity`, mais **seuls `V3 Assemble Draft Prompt` et `V3 Merge Segments` le consomment**.
+**Les 18 nœuds V4 l'ignorent totalement**, et le mapping V3 repose sur des libellés d'interface
+français (`'Fiche d'identité'`, `'Enjeux'`…). La modularité est à **construire**.
+
+**INTEL-034 n'est pas une brique disponible.** Un seul run à ce jour, **`failed`**, le 14/08/2026.
+Patron méthodologique valide (deux canaux, exclusion de la source initiale, rétrogradation d'une
+confirmation sans preuve secondaire, aucune mutation automatique du statut), implémentation non
+prouvée. Le lot de vérification commence par le faire tourner une fois.
+
+**Ordre des lots (inversion assumée par rapport au rapport externe).** Le renderer V4 passe en
+**Lot 1, après** le Lot 0 de réparation de la collecte : le construire d'abord donnerait une
+autorité visuelle — badges « Établi », puces « Source » — à un contenu dont on vient d'établir
+qu'il n'est adossé à rien.
+
+**Prochain focus : Lot 0.** INTEL-035, migration `account_source_documents`, sortie du fetch hors
+d'INTEL-030, `anchoring` dans `content_json`, séparation des seaux internes, réparation de la
+télémétrie de coût, correction de `guardFigures`. Puis gate G0.
+
 ### Session 62 — Audit performance data & chargement des pages, Lots 0→5 (2026-09-10)
 
 Chantier documenté dans **`docs/performance-data-audit/`** (8 fichiers). Le ledger `06-AUDIT-LEDGER.md`

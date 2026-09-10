@@ -68,7 +68,7 @@ python3 scripts/audit-master-study.py docs/MASTER-STUDY/registre/<run>/   # gate
 **Ajouter `test:n8n` dès qu'un fichier de `n8n/workflows/` est touché** — `vitest` n'inclut que
 `src/**/*.test.ts`, donc `npm test` reste vert même quand un workflow est cassé.
 
-Quatre pièges récurrents, tous documentés au prix d'une session perdue :
+Cinq pièges récurrents, tous documentés au prix d'une session perdue :
 - **`tsc` ne voit pas tout.** Un composant client important une *valeur* (pas un type) depuis un
   module `server-only` passe le typecheck et casse `next build`. Seul le build le révèle.
 - **`.next/` périmé** produit de faux `TS6200`/`TS2300` : purger avant de conclure à une régression.
@@ -79,6 +79,13 @@ Quatre pièges récurrents, tous documentés au prix d'une session perdue :
   `$workflow`, `$env`…) fait sauter toutes les assertions restantes. `intel-020` et `intel-040`
   ont vécu ainsi avec 117 assertions muettes. Toujours lire le compteur final, jamais le seul
   code de sortie.
+- **Un workflow n8n « réussi » peut n'avoir rien collecté.** Le task runner coupe un nœud Code à
+  **300 s** (`N8N_RUNNERS_TASK_TIMEOUT`) — mais un pipeline qui échoue *partiellement* ne s'arrête
+  pas pour autant. `intel-030` V4 a publié quatre runs `succeeded` avec
+  **`external_pages_fetched: 0`** : les six fetch avaient échoué, le code l'avait détecté
+  (`external_research_degraded`), et le rapport est sorti quand même. **Un budget d'exécution est
+  une contrainte de conception, pas un réglage** : vérifier la durée ET les compteurs de collecte
+  d'un run, jamais son seul statut.
 
 ---
 
@@ -339,6 +346,21 @@ les items. Invariants assertés par `supabase/tests/069_sector_knowledge_resolut
 
 **Surface (ADR-0008/0012)** : Hub `/prospection/accounts/[companyId]` en 5 étapes (Connaissance→Secteur→Enjeux→Stratégie→Roadmap, ADR-0012) lit `content_json` + fallback `companies.metadata` ; drawer `CompanyIdentityDrawer` = Quick View.
 
+> 🔴 **Règle d'ancrage — une source est une preuve, pas un contexte.** Une `source_ref` désigne
+> **une ligne** (`account_facts.id`, `intelligence_sources.id`, `account_signals.id`) ou **une URL
+> datée effectivement récupérée**. Jamais un agrégat (`internal:facts:<companyId>`,
+> `internal:folio:<companyId>`…), jamais un snippet de moteur de recherche, jamais une URL
+> sélectionnée mais non lue. Un `established` exige ≥ 1 source externe ancrée — seule exception,
+> l'historique KREDO, déterministe par nature.
+>
+> **Pourquoi c'est une règle et pas un conseil** : le garde-fou V4 (« toute affirmation non
+> `hypothesis` sans référence autorisée est rétrogradée ») est satisfait en citant un seau, parce
+> que les agrégats internes figurent dans `allowedSources`. Il valide donc la **forme** de la
+> provenance et jamais sa **substance** — sur le run Tournaire `a7bdbeb7`, les 10 statements
+> `declared` citent pour l'essentiel une étude FOLIO de deux ans, présentée à l'utilisateur comme
+> une affirmation fraîche et sourcée. Détail et invariants opposables :
+> `docs/FEATURES/cockpit_intelligence_features/account_intelligence/04-CONTRAT-EPISTEMIQUE-ET-SOURCES.md`.
+
 #### Domaine Intelligence — Enrichissement & Sources
 | Table | Rows | Description |
 |---|---|---|
@@ -586,6 +608,8 @@ Utiliser EXCLUSIVEMENT les variables de couleurs du projet.
 | Workflows n8n (JSON + SETUP) | `n8n/workflows/` |
 | **Production de la connaissance commerciale** | **`docs/MASTER-STUDY/`** — source unique |
 | **Missions d'intelligence** (moteur déclaratif ADR-0020) | **`docs/FEATURES/intelligence_missions/07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md`** — point de reprise autoportant, à lire AVANT l'ADR. Les handoffs `05` et `06` sont de l'historique |
+| **Connaissance compte (Account Intelligence)** | **`docs/FEATURES/cockpit_intelligence_features/account_intelligence/`** — corpus NORMATIF, commencer par son `README.md`. `02` = propriété canonique, `05` = lot fondateur, `07` = état mesuré et gates |
+| Account Knowledge V1→V4 (historique) | `docs/FEATURES/cockpit_intelligence_features/account_knowledge/` — **ARCHIVE**, bandeau sur chaque fichier |
 | Étude sectorielle (matière brute, archives) | `docs/FEATURES/sector_intelligence/` |
 
 > 🔴 **`docs/MASTER-STUDY/` fait autorité sur tout ce qui concerne la production de
@@ -685,6 +709,7 @@ de la base.
 
 | Chantier | État | Où |
 |---|---|---|
+| **Account Intelligence — refonte de l'acquisition de connaissance compte** | **Cadrage livré (2026-09-10, commits `b5ccdf47`+`02afc051`)** — corpus normatif de 9 fichiers, aucun code. **L'audit live invalide la thèse « la V4 est le moteur cible »** : 4 runs réussis sur 12, `external_pages_fetched: 0` sur les 4, durées 404-425 s contre un plafond de 300 s, télémétrie de coût morte, renderer V4 inexistant. **Prochain : Lot 0** — INTEL-035 (preflight qui fetch, extrait et cache), migration `account_source_documents` (**seule du chantier**), sortie du fetch hors d'INTEL-030, `anchoring` dans `content_json`. **Gate G0 bloquante** avant tout renderer ou niveau | `docs/FEATURES/cockpit_intelligence_features/account_intelligence/` — **commencer par le `README.md`** |
 | **ADR-0020 — Missions d'intelligence** (moteur déclaratif : le métier IA en TypeScript, n8n en exécuteur sans métier) | **L0 → L5 livrés et prouvés (2026-08-20)** — contrats, catalogue, garde M-4, 3 providers de corpus, budget déterministe, résolveur, branche `missionSlug` dans `/api/n8n/trigger`, workflow générique `mission-001-run`, callback validé (`MissionReportV1`, `resultType`/`phase` imposés, enum `mission_report`), **composeur UX L4** (commit `08482338`) et **pilote L5 validé en production** (run `581e4732…`). Catalogue = **1 mission**. **Prochain : L6** — mission `rentabilite-portefeuille`, cadrée, à implémenter. Elle ne demande **ni JSON n8n ni import VPS** : `mission-001-run.json` ne porte aucune référence à la veille | `docs/FEATURES/intelligence_missions/07-HANDOFF-L6-RENTABILITE-PORTEFEUILLE.md` — **autoportant, commencer par le §2** |
 | **ADR-0018 — refonte shell navigation desktop** (rail de section, 12 modules) | Proposé, en cours | `docs/adr/ADR-0018-*.md` + ledger `docs/FEATURES/dynamic_content_generator(redaction assistee)/SHELL-0018-implementation-ledger.md` — **commencer par le ledger** |
 | **Taxonomie sectorielle + classification comptes** | Figé en migration (commit `a0338ab9`) | 98/98 comptes classifiés, 53 fiches `sector_intelligence` (15 macro + 38 segment) |
