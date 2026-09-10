@@ -149,7 +149,7 @@ Questions factuelles, réponses mesurées :
 
 | Lot | État | Gate | Commit |
 |---|---|---|---|
-| Corpus documentaire | ✅ Livré le 10/09/2026 | — | *(à renseigner)* |
+| Corpus documentaire | ✅ Livré le 10/09/2026 | — | `b5ccdf47` |
 | Lot 0 — Collecte fiable | ⬜ À faire | G0 | |
 | Lot 1 — Restitution V4 | ⬜ Bloqué par G0 | | |
 | Lot 2 — Niveaux | ⬜ | | |
