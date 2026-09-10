@@ -130,13 +130,18 @@ async function throughPrompt(registry) {
   await runCode("V4 Assemble Prompt", registry, {}, rows)
 }
 
-function llmArtifact(sourceId) {
+function llmArtifact(sourceId, internalFolioId = "internal:folio:" + COMPANY) {
   const keys = ["synthesis","identity","business_and_offering","customers_and_market","competition_and_positioning","value_chain_and_dependencies","history_ambitions_and_news","implications_for_kredo"]
   return {
     schema_version: 4, entity_resolution: {}, sources: [], knowledge_gaps: [], coverage: {}, generated_at: "2026-09-07T10:00:00Z",
     sections: keys.map((key) => ({ key, title: key, narrative: [`Narration ${key}.`], source_refs: [sourceId], statements: key === "competition_and_positioning" ? [
-      { text: "WrongCo réalise 9999 € de chiffre d'affaires.", qualification: "established", source_refs: [sourceId], confidence: 0.8, entity: { kind: "competitor", name: "WrongCo" } },
+      // Une preoccupation par statement — le fixture d'origine melait chiffre non ancre et
+      // concurrent hors dossier dans la meme phrase, ce qui rendait les deux gardes
+      // indiscernables des que l'une supprimait le statement.
+      { text: "WrongCo est un concurrent direct sur le segment premium.", qualification: "established", source_refs: [sourceId], confidence: 0.8, entity: { kind: "competitor", name: "WrongCo" } },
       { text: "Une consolidation paraît possible.", qualification: "inferred", source_refs: [], confidence: 0.6 },
+      { text: "Le marché pèse 9999 € selon les estimations.", qualification: "established", source_refs: [sourceId], confidence: 0.8 },
+      { text: "Le groupe a annoncé un partenariat stratégique.", qualification: "declared", source_refs: [internalFolioId], confidence: 0.7 },
     ] : [{ text: `Fait ${key}.`, qualification: "established", source_refs: [sourceId], confidence: 0.8 }] })),
   }
 }
@@ -343,9 +348,26 @@ async function main() {
   await runCode("V4 Parse & Guard", full)
   const guarded = full["V4 Parse & Guard"]
   const compStatements = guarded.accountKnowledge.sections[4].statements
-  check("Chiffre absent du dossier est neutralisé et signalé", !/9999/.test(compStatements[0].text) && guarded.qaFlags.some((f) => f.check === "unsourced_figure"))
   check("Concurrent absent du dossier est rétrogradé en hypothèse", compStatements[0].qualification === "hypothesis" && guarded.qaFlags.some((f) => f.check === "competitor_domain_mismatch"))
   check("Déduction sans source est rétrogradée", compStatements[1].qualification === "hypothesis" && guarded.qaFlags.some((f) => f.check === "unsourced_statement"))
+
+  // ── Lot 0 — guardFigures retire la PHRASE, jamais un placeholder dans la phrase ──
+  check("Aucun chiffre non ancré ne survit dans un statement", !compStatements.some((s) => /9999/.test(s.text)) && guarded.qaFlags.some((f) => f.check === "unsourced_figure"))
+  check("Aucun placeholder « ordre de grandeur » ne pollue la prose", !guarded.accountKnowledge.sections.some((s) => (s.narrative || []).some((p) => /ordre de grandeur à confirmer/.test(p)) || (s.statements || []).some((st) => /ordre de grandeur à confirmer/.test(st.text))))
+  check("Un statement vidé par le retrait de phrase disparaît au lieu de survivre en moignon", compStatements.every((s) => s.text.trim().length > 0))
+
+  // ── Lot 0 — INV-1 : un seau interne n'ancre ni `established` ni `declared` ──
+  const folioBacked = compStatements.find((s) => /partenariat stratégique/.test(s.text))
+  check("INV-1 : un `declared` adossé au seul seau FOLIO est rétrogradé", folioBacked && folioBacked.qualification === "inferred" && guarded.qaFlags.some((f) => f.check === "internal_only_anchor"))
+  check("INV-1 : un `established` cite toujours au moins une source externe", guarded.accountKnowledge.sections.every((s) => (s.statements || []).every((st) => st.qualification !== "established" || st.source_refs.some((id) => !String(id).startsWith("internal:")))))
+
+  // ── Lot 0 — A2 : l'ancrage vit dans l'artefact ──
+  const anchoring = guarded.accountKnowledge.anchoring
+  check("L'artefact porte un bloc anchoring complet", Boolean(anchoring) && ["external_documents_used", "statements_total", "statements_externally_anchored", "anchoring_ratio", "research_status"].every((k) => k in anchoring))
+  check("anchoring_ratio est cohérent avec ses compteurs", anchoring.statements_externally_anchored <= anchoring.statements_total && anchoring.anchoring_ratio >= 0 && anchoring.anchoring_ratio <= 1)
+  check("research_status prend une des trois valeurs du contrat", ["nominal", "degraded", "internal_only"].includes(anchoring.research_status))
+  check("Les statements ancrés ne comptent que les sources externes", anchoring.statements_externally_anchored === guarded.accountKnowledge.sections.flatMap((s) => s.statements).filter((st) => st.source_refs.some((id) => !String(id).startsWith("internal:"))).length)
+  check("Un qaFlag anchoring est émis", guarded.qaFlags.some((f) => f.check === "anchoring"))
   await runCode("V4 Validate Artifact", full)
   check("Artefact gardé passe le validateur n8n V4", full["V4 Validate Artifact"].accountKnowledge.schema_version === 4)
   await runCode("V4 Prepare Callback", full)

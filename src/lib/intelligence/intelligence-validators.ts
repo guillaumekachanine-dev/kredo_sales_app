@@ -1014,8 +1014,21 @@ const V4_ROOT_KEYS = new Set([
   "sources",
   "knowledge_gaps",
   "coverage",
+  // Lot 0 (A2) — optionnel : les 4 artefacts V4 antérieurs n'en portent pas. Ne PAS
+  // l'exiger reviendrait à rejeter au callback des artefacts déjà en base ; ne pas
+  // l'autoriser ferait échouer tout artefact produit après le Lot 0, la validation
+  // rejetant les clés inconnues.
+  "anchoring",
   "generated_at",
 ])
+const V4_ANCHORING_KEYS = new Set([
+  "external_documents_used",
+  "statements_total",
+  "statements_externally_anchored",
+  "anchoring_ratio",
+  "research_status",
+])
+const V4_RESEARCH_STATUSES = new Set(["nominal", "degraded", "internal_only"])
 const V4_SECTION_KEYS_ALLOWED = new Set(["key", "title", "narrative", "statements", "source_refs"])
 const V4_STATEMENT_KEYS = new Set(["text", "qualification", "source_refs", "confidence", "entity"])
 const V4_SOURCE_KEYS = new Set(["id", "label", "source_type", "url", "consulted_at"])
@@ -1313,6 +1326,40 @@ export function validateAccountKnowledgeV4(
     }
     if (!Number.isInteger(raw.coverage.external_pages_fetched) || typeof raw.coverage.external_pages_fetched !== "number" || raw.coverage.external_pages_fetched < 0) {
       issues.push({ path: "$.coverage.external_pages_fetched", message: "Entier positif ou nul requis." })
+    }
+  }
+
+  // Lot 0 — le bloc d'ancrage est facultatif, mais s'il est présent il est VÉRIFIÉ.
+  // Un producteur qui annonce un ancrage incohérent avec ses propres statements est
+  // exactement le mode d'échec que ce lot corrige : on ne le laisse pas passer.
+  if (raw.anchoring !== undefined) {
+    if (!isRecord(raw.anchoring)) {
+      issues.push({ path: "$.anchoring", message: "Bloc d'ancrage invalide." })
+    } else {
+      issues.push(...checkAllowedKeys(raw.anchoring, V4_ANCHORING_KEYS, "$.anchoring"))
+      for (const key of ["external_documents_used", "statements_total", "statements_externally_anchored"] as const) {
+        const value = raw.anchoring[key]
+        if (!Number.isInteger(value) || typeof value !== "number" || value < 0) {
+          issues.push({ path: `$.anchoring.${key}`, message: "Entier positif ou nul requis." })
+        }
+      }
+      const total = raw.anchoring.statements_total
+      const anchored = raw.anchoring.statements_externally_anchored
+      if (typeof total === "number" && typeof anchored === "number" && anchored > total) {
+        issues.push({ path: "$.anchoring.statements_externally_anchored", message: "Ne peut excéder statements_total." })
+      }
+      const ratio = raw.anchoring.anchoring_ratio
+      if (typeof ratio !== "number" || Number.isNaN(ratio) || ratio < 0 || ratio > 1) {
+        issues.push({ path: "$.anchoring.anchoring_ratio", message: "Nombre entre 0 et 1 requis." })
+      }
+      if (typeof raw.anchoring.research_status !== "string" || !V4_RESEARCH_STATUSES.has(raw.anchoring.research_status)) {
+        issues.push({ path: "$.anchoring.research_status", message: "Doit valoir nominal, degraded ou internal_only." })
+      }
+      // A2 — un artefact qui déclare avoir lu des pages mais n'ancre aucun statement,
+      // ou l'inverse, ment sur sa propre collecte.
+      if (raw.anchoring.research_status === "nominal" && raw.anchoring.external_documents_used === 0) {
+        issues.push({ path: "$.anchoring", message: "research_status nominal exige au moins un document externe cité." })
+      }
     }
   }
   if (!isIsoDateString(raw.generated_at)) {

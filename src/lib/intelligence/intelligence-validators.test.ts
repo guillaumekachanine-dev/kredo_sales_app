@@ -1142,6 +1142,95 @@ function accountKnowledgeV4Partial() {
   }
 }
 
+describe("AccountKnowledge V4 — bloc d'ancrage (Lot 0)", () => {
+  function withAnchoring(anchoring: unknown) {
+    return { ...accountKnowledgeV4Dense(), anchoring }
+  }
+
+  it("accepte un artefact SANS anchoring : les 4 artefacts V4 antérieurs n'en portent pas", () => {
+    expect(validateAccountKnowledgeV4(accountKnowledgeV4Dense()).valid).toBe(true)
+  })
+
+  it("accepte un bloc d'ancrage bien formé", () => {
+    expect(validateAccountKnowledgeV4(withAnchoring({
+      external_documents_used: 3,
+      statements_total: 8,
+      statements_externally_anchored: 5,
+      anchoring_ratio: 0.63,
+      research_status: "nominal",
+    })).valid).toBe(true)
+  })
+
+  it("accepte `degraded` avec zéro document : c'est précisément l'état à signaler", () => {
+    expect(validateAccountKnowledgeV4(withAnchoring({
+      external_documents_used: 0,
+      statements_total: 8,
+      statements_externally_anchored: 0,
+      anchoring_ratio: 0,
+      research_status: "degraded",
+    })).valid).toBe(true)
+  })
+
+  it("rejette un `nominal` qui ne cite aucun document externe", () => {
+    const result = validateAccountKnowledgeV4(withAnchoring({
+      external_documents_used: 0,
+      statements_total: 8,
+      statements_externally_anchored: 0,
+      anchoring_ratio: 0,
+      research_status: "nominal",
+    }))
+    expect(result.valid).toBe(false)
+    if (!result.valid) {
+      expect(result.issues.some((issue) => issue.path === "$.anchoring")).toBe(true)
+    }
+  })
+
+  it("rejette un ancrage qui excède son propre total", () => {
+    const result = validateAccountKnowledgeV4(withAnchoring({
+      external_documents_used: 3,
+      statements_total: 4,
+      statements_externally_anchored: 9,
+      anchoring_ratio: 1,
+      research_status: "nominal",
+    }))
+    expect(result.valid).toBe(false)
+    if (!result.valid) {
+      expect(result.issues.some((issue) => issue.path === "$.anchoring.statements_externally_anchored")).toBe(true)
+    }
+  })
+
+  it("rejette un ratio hors bornes", () => {
+    expect(validateAccountKnowledgeV4(withAnchoring({
+      external_documents_used: 1,
+      statements_total: 4,
+      statements_externally_anchored: 2,
+      anchoring_ratio: 1.5,
+      research_status: "nominal",
+    })).valid).toBe(false)
+  })
+
+  it("rejette un research_status hors contrat", () => {
+    expect(validateAccountKnowledgeV4(withAnchoring({
+      external_documents_used: 1,
+      statements_total: 4,
+      statements_externally_anchored: 2,
+      anchoring_ratio: 0.5,
+      research_status: "presque_bon",
+    })).valid).toBe(false)
+  })
+
+  it("rejette une clé inconnue dans le bloc d'ancrage", () => {
+    expect(validateAccountKnowledgeV4(withAnchoring({
+      external_documents_used: 1,
+      statements_total: 4,
+      statements_externally_anchored: 2,
+      anchoring_ratio: 0.5,
+      research_status: "nominal",
+      confiance_globale: 0.9,
+    })).valid).toBe(false)
+  })
+})
+
 describe("AccountKnowledge V4", () => {
   it("accepte un artefact dense : prose, structure et quatre niveaux coexistent", () => {
     const result = validateAccountKnowledgeV4(accountKnowledgeV4Dense())

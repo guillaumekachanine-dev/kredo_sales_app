@@ -38,6 +38,25 @@
   --color-brand-ember: #D97020;
   --color-brand-ink: #1A2540;
 
+  /* ── Page identity · permanent module color code ─────────────
+     Identité chromatique permanente des grands espaces KREDO.
+     Usage cible principal : headers / page identification.
+     Ces tokens NE représentent PAS des états fonctionnels.
+     Ne pas les remplacer par cat-*, status-*, domain-* ou dataviz-*. */
+  --color-page-home: #244078;
+  --color-page-agenda: #FF9800;
+
+  --color-page-accounts-contacts: #1E5E99;
+  --color-page-opportunities: #00C853;
+  --color-page-engagements: #B37D53;
+  --color-page-consultants: #9C27B0;
+  --color-page-finance: #8FBED8;
+
+  --color-page-business-intelligence: #FFC107;
+  --color-page-prospection: #FF5252;
+  --color-page-watch-news: #1A4D59;
+  --color-page-reports-writing: #607D8B;
+
   /* ── Cockpit Intelligence · cobalt identity & mobile palette ──
      Déclarés dans @theme pour générer les utilitaires Tailwind v4.
      Les redéclarations contextuelles seules ne créent pas de classes. */
