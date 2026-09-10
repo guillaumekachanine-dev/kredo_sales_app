@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/Button"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import type { VeilleDigest } from "@/app/(app)/veille/_data/veille-data"
-import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
 import type { DigestLaunchOptions } from "@/features/veille/digest/data/get-digest-launch-options"
 import { DigestLaunchDialogDesktop } from "@/features/veille/digest/components/DigestLaunchDialogDesktop"
 import {
@@ -17,13 +16,11 @@ import { GlobalWatchSettingsDialog } from "./GlobalWatchSettingsDialog"
 export function VeilleHeaderActions({
   initialSettings,
   initialHealth,
-  sourceManagementSnapshot,
   launchOptions,
 }: {
   initialSettings: GlobalWatchSettings
   initialHealth: GlobalWatchWorkflowHealth
   latestDigest?: VeilleDigest | null
-  sourceManagementSnapshot: SourceManagementSnapshot
   launchOptions: DigestLaunchOptions
 }) {
   const router = useRouter()
@@ -125,12 +122,15 @@ export function VeilleHeaderActions({
         disabled={isBlocked}
       />
 
-      <GlobalWatchSettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        initialSettings={settings}
-        sourceManagementSnapshot={sourceManagementSnapshot}
-      />
+      {/* Monté seulement à l'ouverture : il charge lui-même le socle de sources
+          (constat F-3c), qui n'est donc plus tiré au rendu de /veille. */}
+      {settingsOpen ? (
+        <GlobalWatchSettingsDialog
+          open
+          onOpenChange={setSettingsOpen}
+          initialSettings={settings}
+        />
+      ) : null}
     </>
   )
 }

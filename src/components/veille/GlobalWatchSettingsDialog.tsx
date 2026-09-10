@@ -17,7 +17,8 @@ import {
 import { CompactCorpusImport } from "@/components/intelligence/CompactCorpusImport"
 import { saveGlobalWatchSettingsAction } from "@/app/(app)/veille/_actions/veille-actions"
 import type { GlobalWatchSettings } from "./veille-desktop-contracts"
-import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
+import { loadSourceManagementSnapshot } from "@/features/source-management/actions/source-management-actions"
+import { useModuleSnapshot } from "@/components/intelligence/modules/use-module-snapshot"
 
 const GLOBAL_WATCH_STEPS = [
   { id: "type", label: "Type de veille" },
@@ -61,14 +62,12 @@ export interface GlobalWatchSettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialSettings: GlobalWatchSettings
-  sourceManagementSnapshot: SourceManagementSnapshot
 }
 
 export function GlobalWatchSettingsDialog({
   open,
   onOpenChange,
   initialSettings,
-  sourceManagementSnapshot,
 }: GlobalWatchSettingsDialogProps) {
   const router = useRouter()
   const [stepIndex, setStepIndex] = useState(0)
@@ -83,7 +82,16 @@ export function GlobalWatchSettingsDialog({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  const corpus = sourceManagementSnapshot.sectorCorpora.find(c => c.slug === "socle-sources-editoriales")
+  // Le socle éditorial n'est plus reçu en prop : il est chargé à l'ouverture de
+  // ce dialogue (constat F-3c). Tant qu'il n'est pas arrivé, `corpus` est
+  // `undefined` — exactement l'état que le code ci-dessous traitait déjà quand
+  // le corpus était absent du snapshot.
+  // Ce dialogue n'est monté QUE lorsqu'il est ouvert (cf. VeilleHeaderActions) :
+  // le socle est donc chargé à l'ouverture, pas au rendu de /veille.
+  const sourceSnapshotState = useModuleSnapshot(loadSourceManagementSnapshot)
+  const corpus = sourceSnapshotState.status === "ready"
+    ? sourceSnapshotState.data.sectorCorpora.find((c) => c.slug === "socle-sources-editoriales")
+    : undefined
   const sourcesByFamily: Record<string, string[]> = {}
   
   if (corpus) {

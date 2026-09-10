@@ -32,7 +32,7 @@ import { AddToListDialogDesktop } from "@/features/content-collections/component
 import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"
 import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
-import { SourceManagementDialogDesktop } from "@/features/source-management/components/SourceManagementDialogDesktop"
+import { SourceManagementShell } from "@/features/source-management/components/SourceManagementShell"
 import { WatchAnalysisMissionModule } from "@/features/veille/modules/WatchAnalysisMissionModule"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
 import {
@@ -57,7 +57,6 @@ import {
   isManualCustomWatchAnalysis,
 } from "@/features/watch-analysis/domain/watch-analysis-presentation"
 import type { WatchAnalysisEvidenceRef } from "@/lib/n8n/types"
-import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
 import {
   VeilleAdvancedSearchPopover,
   DEFAULT_ADVANCED_SEARCH,
@@ -85,7 +84,6 @@ interface VeilleActualitesDesktopProps {
   latestAnalysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
   monthlyGeneration: MonthlyWatchGenerationContext
-  sourceManagementSnapshot: SourceManagementSnapshot
 }
 
 export function getCategoryColorClass(category?: string) {
@@ -1401,7 +1399,6 @@ export function VeilleActualitesDesktop({
   latestAnalysis,
   analysisHistory,
   monthlyGeneration,
-  sourceManagementSnapshot,
 }: VeilleActualitesDesktopProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -1649,7 +1646,6 @@ export function VeilleActualitesDesktop({
             initialSettings={globalWatchSettings}
             initialHealth={globalWatchHealth}
             latestDigest={pastDigests[0] ?? digest}
-            sourceManagementSnapshot={sourceManagementSnapshot}
             launchOptions={launchOptions}
           />
         </header>
@@ -1746,10 +1742,12 @@ export function VeilleActualitesDesktop({
         />
       ) : null}
       <ManageCollectionsDesktop open={manageListsOpen} onOpenChange={setManageListsOpen} />
-      <SourceManagementDialogDesktop
+      {/* Le socle de sources est chargé à l'ouverture, pas au rendu de /veille
+          (constat F-3c) : 5 requêtes et ~107 Ko retirés du chemin critique. */}
+      <SourceManagementShell
+        variant="desktop"
         open={sourceManagementOpen}
         onOpenChange={setSourceManagementOpen}
-        snapshot={sourceManagementSnapshot}
       />
       <WatchAnalysisComposerDesktop
         open={composerOpen}

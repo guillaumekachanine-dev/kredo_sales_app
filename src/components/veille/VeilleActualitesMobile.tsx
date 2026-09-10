@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { SourceManagementLauncher } from "@/features/source-management/components/SourceManagementLauncher"
-import type { SourceManagementSnapshot } from "@/features/source-management/domain/source-management-contracts"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
 import { cn } from "@/lib/utils"
@@ -59,7 +58,6 @@ interface VeilleActualitesMobileProps {
   companies: CompanyContextStats[]
   watchedSignals: WatchedAccountSignal[]
   analyses: StrategicWatchAnalysis[]
-  sourceManagementSnapshot: SourceManagementSnapshot
   initialTab?: VeilleTab
   initialCompanyId?: string
   initialAnalysisId?: string
@@ -76,7 +74,6 @@ export function VeilleActualitesMobile({
   companies,
   watchedSignals,
   analyses,
-  sourceManagementSnapshot,
   initialTab = "actualites",
   initialCompanyId,
   initialAnalysisId,
@@ -303,7 +300,7 @@ export function VeilleActualitesMobile({
         <MobilePageHeader
           title="Veille & actualités"
           className="gap-0 [&_h1]:text-[26px] [&_h1]:font-bold [&_h1]:leading-8"
-          actions={<SourceManagementLauncher variant="mobile" snapshot={sourceManagementSnapshot} />}
+          actions={<SourceManagementLauncher variant="mobile" />}
         />
       </div>
 

@@ -4,9 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/Button"
 import { IconButton } from "@/components/ui/IconButton"
-import { SourceManagementDialogDesktop } from "./SourceManagementDialogDesktop"
-import { SourceManagementDrawerMobile } from "./SourceManagementDrawerMobile"
-import type { SourceManagementSnapshot } from "../domain/source-management-contracts"
+import { SourceManagementShell } from "./SourceManagementShell"
 
 function SourceParametersIcon({ className = "size-4" }: { className?: string }) {
   return (
@@ -16,14 +14,13 @@ function SourceParametersIcon({ className = "size-4" }: { className?: string }) 
 
 export interface SourceManagementLauncherProps {
   variant: "desktop" | "mobile"
-  snapshot: SourceManagementSnapshot
 }
 
 /**
  * Trigger partagé « Gérer les sources ». Ne monte jamais les deux shells à la fois :
  * `variant` décide, à la construction du render, lequel des deux composants est rendu.
  */
-export function SourceManagementLauncher({ variant, snapshot }: SourceManagementLauncherProps) {
+export function SourceManagementLauncher({ variant }: SourceManagementLauncherProps) {
   const [open, setOpen] = useState(false)
 
   if (variant === "desktop") {
@@ -32,7 +29,7 @@ export function SourceManagementLauncher({ variant, snapshot }: SourceManagement
         <Button variant="secondary" size="sm" onClick={() => setOpen(true)} leftIcon={<SourceParametersIcon />}>
           Gérer les sources
         </Button>
-        <SourceManagementDialogDesktop open={open} onOpenChange={setOpen} snapshot={snapshot} />
+        <SourceManagementShell variant="desktop" open={open} onOpenChange={setOpen} />
       </>
     )
   }
@@ -47,7 +44,7 @@ export function SourceManagementLauncher({ variant, snapshot }: SourceManagement
       >
         <SourceParametersIcon className="size-5" />
       </IconButton>
-      <SourceManagementDrawerMobile open={open} onOpenChange={setOpen} snapshot={snapshot} />
+      <SourceManagementShell variant="mobile" open={open} onOpenChange={setOpen} />
     </>
   )
 }

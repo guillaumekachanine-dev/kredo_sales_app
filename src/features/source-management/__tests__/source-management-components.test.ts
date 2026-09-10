@@ -10,16 +10,24 @@ describe("SourceManagementLauncher — no double mount of Desktop/Mobile shells"
     expect(source).toContain('if (variant === "desktop") {')
   })
 
-  it("desktop variant renders only the Desktop dialog", () => {
+  // Le choix Desktop/Mobile a migré dans `SourceManagementShell` (chargement du
+  // socle à l'ouverture, constat F-3c). L'invariant ADR-0006 est inchangé : une
+  // seule shell montée. Il est asserté ici sur le lanceur, et ci-dessous sur la
+  // shell elle-même — là où le branchement vit désormais.
+  it("desktop variant delegates to the desktop shell only", () => {
     const desktopBranch = source.slice(source.indexOf('if (variant === "desktop")'), source.lastIndexOf("return ("))
-    expect(desktopBranch).toContain("<SourceManagementDialogDesktop")
-    expect(desktopBranch).not.toContain("<SourceManagementDrawerMobile")
+    expect(desktopBranch).toContain('<SourceManagementShell variant="desktop"')
+    expect(desktopBranch).not.toContain('variant="mobile"')
   })
 
-  it("mobile branch (after the desktop return) renders only the Mobile drawer", () => {
+  it("mobile branch (after the desktop return) delegates to the mobile shell only", () => {
     const mobileBranch = source.slice(source.lastIndexOf("return ("))
-    expect(mobileBranch).toContain("<SourceManagementDrawerMobile")
-    expect(mobileBranch).not.toContain("<SourceManagementDialogDesktop")
+    expect(mobileBranch).toContain('<SourceManagementShell variant="mobile"')
+    expect(mobileBranch).not.toContain('variant="desktop"')
+  })
+
+  it("never receives the snapshot as a prop — it is loaded on open", () => {
+    expect(source).not.toContain("snapshot")
   })
 
   it("uses the source_parameters.png asset that exists in public/icons_set", () => {
@@ -169,10 +177,52 @@ describe("Thematic corpora display in Desktop and Mobile shells", () => {
   })
 })
 
+describe("SourceManagementShell — chargement à l'ouverture et invariant adaptatif", () => {
+  const source = read("src/features/source-management/components/SourceManagementShell.tsx")
+
+  it("ne monte rien — donc ne charge rien — tant que le panneau est fermé", () => {
+    // Garde-fou du constat F-3c : /veille chargeait 5 requêtes (~107 Ko) à chaque
+    // rendu de page pour trois dialogues qui ne s'ouvrent que sur clic.
+    // Le montage conditionnel est CE qui diffère le chargement : un état interne
+    // ne suffirait pas, `useModuleSnapshot` se déclenche au montage.
+    expect(source).toContain("if (!open) return null")
+    expect(source).toContain("useModuleSnapshot(loadSourceManagementSnapshot)")
+  })
+
+  it("ne reçoit jamais le socle en prop", () => {
+    expect(source).not.toContain("snapshot:")
+  })
+
+  it("rend l'échec de chargement, jamais un panneau vide silencieux", () => {
+    expect(source).toContain('state.status === "error"')
+    expect(source).toContain("isError=")
+  })
+
+  it("ne monte qu'une seule shell — ADR-0006", () => {
+    const branch = source.slice(source.indexOf('return variant === "desktop"'))
+    expect(branch).toContain("<SourceManagementDialogDesktop")
+    expect(branch).toContain("<SourceManagementDrawerMobile")
+    // Ternaire strict : les deux ne peuvent pas être rendues simultanément.
+    expect(branch).toMatch(/variant === "desktop" \? \(/)
+  })
+
+  it("le dialogue de réglages de veille est lui aussi monté à l'ouverture seulement", () => {
+    const header = read("src/components/veille/VeilleHeaderActions.tsx")
+    expect(header).toContain("{settingsOpen ? (")
+    expect(header).not.toContain("sourceManagementSnapshot")
+  })
+
+  it("/veille ne charge plus le socle de sources au rendu de page", () => {
+    const page = read("src/app/(app)/veille/page.tsx")
+    expect(page).not.toContain("getSourceManagementSnapshot")
+  })
+})
+
 describe("Desktop/Mobile shells stay two distinct components (ADR-0006 adaptive)", () => {
-  it("VeilleActualitesDesktop mounts the desktop dialog, not the mobile drawer", () => {
+  it("VeilleActualitesDesktop mounts the desktop shell, not the mobile drawer", () => {
     const source = read("src/components/veille/VeilleActualitesDesktop.tsx")
-    expect(source).toContain("<SourceManagementDialogDesktop")
+    // Insensible au formatage : ce qui compte est la shell et sa variante.
+    expect(source).toMatch(/<SourceManagementShell\s+variant="desktop"/)
     expect(source).not.toContain("<SourceManagementDrawerMobile")
   })
 
