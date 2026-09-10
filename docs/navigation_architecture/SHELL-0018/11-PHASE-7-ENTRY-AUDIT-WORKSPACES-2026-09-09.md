@@ -587,7 +587,7 @@ renommer en `admin-resources` sans migration de la nav contextuelle).
 > **Livré :** 2 RENAME de titres Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs techniques
 > inchangés (`expertise-kredo`, `internal-resources`) ; Mobile synchronisé (`LABEL SYNC` sur les 2 mêmes
 > libellés) ; module `Ateliers` conservé (`KEEP`) ; module RAG classifié `DEFERRED / NEW-FUTURE` (non exposé
-> au rail Desktop) ; URL-0 ; DATA-0. Gates : `typecheck` / `test` / `check:server-boundary` / `lint` / `build` = **PASS**.
+> au rail Desktop) ; URL-0 ; DATA-0. Gates : `typecheck` / `test` / `check:server-boundary` / `lint` / `build` = **PASS**. Commit `e49a4a9e` (`refactor(knowledge-hub): align workspace target navigation`).
 
 ---
 
@@ -869,7 +869,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **Objectif :** 2 RENAME de `title` (`expertise-kredo`, `internal-resources`).
 - **Data :** DATA-0. **Routing :** URL-0. **Mobile :** `LABEL SYNC`.
 - **DoD :** `title` alignés ; **`id` de domaine inchangés** ; module Ateliers conservé (`KEEP`) ; module RAG reclassifié `DEFERRED / NEW-FUTURE` (non exposé au rail Desktop car capacité ask non fonctionnelle).
-- **✅ Livré (2026-09-10) :** `domains` / `mobileDomains` labels `Expertises KREDO` et `Ressources admin` ; IDs techniques `expertise-kredo` et `internal-resources` inchangés ; `workshops` / `mobileWorkshops` `mobilizedKnowledge` synchronisés ; `KredoExpertiseDesktop` / `KredoExpertiseMobile` / `KredoExpertiseNavigation` synchronisés ; 0 changement d'URL ; 0 changement Data.
+- **✅ Livré (2026-09-10) :** `domains` / `mobileDomains` labels `Expertises KREDO` et `Ressources admin` ; IDs techniques `expertise-kredo` et `internal-resources` inchangés ; `workshops` / `mobileWorkshops` `mobilizedKnowledge` synchronisés ; `KredoExpertiseDesktop` / `KredoExpertiseMobile` / `KredoExpertiseNavigation` synchronisés ; 0 changement d'URL ; 0 changement Data. Commit `e49a4a9e` (`refactor(knowledge-hub): align workspace target navigation`).
 
 ### 7.9 — Automatisations
 - **Objectif :** RENAME `sante` → « Fiabilité des workflows » (clé `sante` conservée).
