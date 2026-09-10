@@ -878,7 +878,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **Objectif :** RENAME `sante` → « Fiabilité des workflows » (clé `sante` conservée) ; wiring des modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`).
 - **Data :** DATA-0. **Routing :** URL-0. **Mobile :** `NO IMPACT`.
 - **DoD :** label aligné ; `?run=` préservé ; modules `Métriques` / `Simulateur de cadence` exposés via `SectionRail` et reliés à `AutomationMetricsModal` / `VeilleSimulatorModal` ; suppression des boutons redondants locaux.
-- **✅ Livré (2026-09-10) :** Chapitre `sante` renommé en `Fiabilité des workflows` ; clés techniques inchangées ; `contextualModules` intègre `Métriques` et `Simulateur de cadence` sans bouton mort ; état actif synchronisé ; actions d'en-tête redondantes nettoyées ; DATA-0 / URL-0.
+- **✅ Livré (2026-09-10) :** Chapitre `sante` renommé en `Fiabilité des workflows` ; clés techniques inchangées ; `contextualModules` intègre `Métriques` et `Simulateur de cadence` sans bouton mort ; état actif synchronisé ; actions d'en-tête redondantes nettoyées ; DATA-0 / URL-0. Commit `fab5d06f` (`refactor(automations): align workspace target navigation`).
 
 ### 7.10 — Audit final architecture interne
 - **Objectif :** revalider chaque workspace contre 09 §B/C ; recenser les `NEW/FUTURE` restants et
@@ -901,7 +901,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | **7.6** | Rapports | LOW | DATA-0 | 1 label + extraction composant | NO IMPACT | — | Non | **YES** |
 | **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + module REUSE | LABEL SYNC | 7.6 | Non | YES (après 7.6) |
 | **7.8** | Knowledge Hub | LOW | DATA-0 | 2 labels | LABEL SYNC | — | Non | ✅ **IMPLEMENTED / PASS** (`e49a4a9e`) |
-| **7.9** | Automatisations | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** |
+| **7.9** | Automatisations | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`fab5d06f`) |
 
 **Go 7.1 :** `YES AFTER REBASELINE` — attendre l'intégration de la refonte Synthèse Opportunités
 dans `main`, ou un rebaseline explicite du chantier. Les 6 renames indépendants de 7.1 pourraient

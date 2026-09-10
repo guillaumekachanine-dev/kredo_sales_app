@@ -112,7 +112,7 @@ QA minimale :
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
 | **7.5 → 7.7** | Prospection · Rapports · Veille | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.8** | Alignement Knowledge Hub | ✅ techniquement livré (`e49a4a9e`) | 2 RENAME Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs/URLs/Data inchangés ; Mobile LABEL SYNC ; Ateliers KEEP ; RAG DEFERRED/NEW-FUTURE. Voir §43 |
-| **7.9** | Alignement Automatisations | ✅ techniquement livré | 1 RENAME Desktop (`Fiabilité des workflows`, clé `sante` conservée) ; 2 modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression des boutons redondants locaux ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §44 |
+| **7.9** | Alignement Automatisations | ✅ techniquement livré (`fab5d06f`) | 1 RENAME Desktop (`Fiabilité des workflows`, clé `sante` conservée) ; 2 modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression des boutons redondants locaux ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §44 |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)** · **Phase 6 — ✅ CLOSED (Lot 6.7, doc `10-*`)**
@@ -2446,4 +2446,4 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 ### Verdict
 
-- **Lot 7.9 — ✅ livré.** Commit : `refactor(automations): align workspace target navigation`. Push sur `origin/main`.
+- **Lot 7.9 — ✅ livré.** Commit : `fab5d06f` — `refactor(automations): align workspace target navigation`. Push sur `origin/main`.
