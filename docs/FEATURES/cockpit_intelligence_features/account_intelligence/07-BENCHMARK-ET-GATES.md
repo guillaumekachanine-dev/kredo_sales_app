@@ -51,15 +51,31 @@ grandeur à confirmer** en 2023 »* (`04` §6).
 | Sondées et **mortes** | **4 / 14 (29 %)** |
 | `usage_scopes` | `study` 27 · `news` 27 · `account_watch` 7 — **aucun scope Account Intelligence** |
 
-### Observabilité
+### Observabilité — le coût EST mesurable
 
 | Mesure | Valeur |
 |---|---|
-| `total_cost_estimate` | **0 sur tous les runs** |
-| `total_tokens_input` / `output` | **0 sur tous les runs** |
+| Runs `succeeded` avec coût calculé (`v_ai_run_costs`) | **187 / 387 (48 %)** |
+| `has_tokens_gap` | 10 runs |
+| `has_pricing_gap` | 2 runs |
+| Coût moyen, tous types de runs | **0,049 $** |
+| **Coût d'un run `intel-030` V4** | **0,278 $ · 0,280 $ · 0,283 $** — aucun gap |
 
-> **La dimension « efficience » du benchmark est aujourd'hui non mesurable.** C'est un livrable
-> du Lot 0, sans quoi la décision de bascule se prendrait au ressenti.
+> ⚠️ **Correction d'une erreur du premier jet de ce corpus.** Les colonnes
+> `ai_intelligence_runs.total_cost_estimate` / `total_tokens_*` sont à zéro, mais **c'est
+> volontaire** : ce sont des rollups morts, et le modèle de coût est **entièrement porté par les
+> vues** `v_ai_run_costs` / `v_ai_result_costs`, alimentées par `ai_model_pricing` et les tokens
+> stockés sur `ai_intelligence_results`. Décision prise et documentée dans une session antérieure
+> (`docs/JOURNAL-SESSIONS.md`, Session 55).
+>
+> **La dimension « efficience » est donc mesurable dès aujourd'hui**, et elle l'est parfaitement
+> sur le workflow qui nous intéresse : les trois runs V4 réussis ont leurs tokens, leur modèle et
+> leur coût, sans aucun gap. **Il n'y a rien à réparer.** Le seul devoir du Lot 0 est que le
+> nouveau workflow INTEL-035 émette lui aussi `tokensInput` / `tokensOutput` / `modelUsed` dans
+> son callback, faute de quoi il apparaîtrait en `has_tokens_gap`.
+>
+> Les 48 % s'expliquent par les workflows qui n'envoient pas ces champs — dette réelle mais
+> **hors périmètre de ce chantier**.
 
 ### Stock de connaissance disponible
 
@@ -87,7 +103,7 @@ franchie.**
 | **G0.4** | `anchoring` présent dans `content_json` | **100 %** | 0 % |
 | **G0.5** | Aucun run `succeeded` avec `research_status = "degraded"` non signalé | **0** | 4 / 4 |
 | **G0.6** | Statements citant un agrégat interne (INV-2) | **0** | ~14 / 21 |
-| **G0.7** | `total_cost_estimate` non nul sur les runs réussis | **100 %** | 0 % |
+| **G0.7** | Runs INTEL-035 et INTEL-030 sans `has_tokens_gap` dans `v_ai_run_costs` | **100 %** | INTEL-030 ✅ · INTEL-035 n'existe pas |
 | **G0.8** | Occurrences de « un ordre de grandeur à confirmer » en prose | **0** | ≥ 2 |
 
 ---
@@ -191,8 +207,10 @@ select origin::text, validation_status, count(*),
        count(*) filter (where last_verified_at is not null) as verified
 from source_catalog group by 1,2 order by 3 desc;
 
--- Télémétrie de coût (doit cesser d'être à zéro après le Lot 0)
-select run_type, count(*), sum(total_cost_estimate) as cost,
-       sum(total_tokens_input + total_tokens_output) as tokens
-from ai_intelligence_runs where status = 'succeeded' group by 1 order by 2 desc;
+-- Coût réel : TOUJOURS via la vue, jamais via les colonnes rollup (mortes par décision)
+select run_type, count(*),
+       count(*) filter (where cost_estimate is not null) as with_cost,
+       count(*) filter (where has_tokens_gap) as tokens_gap,
+       round(sum(cost_estimate)::numeric, 4) as cost_usd
+from v_ai_run_costs where status = 'succeeded' group by 1 order by 2 desc;
 ```

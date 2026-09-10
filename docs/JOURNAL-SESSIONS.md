@@ -36,7 +36,7 @@ cible ». Les runs disent autre chose :
 | Durées des succès | **425 s · 408 s · 404 s** (+ un à 98 s) |
 | Plafond task runner n8n | **300 s** — 2 échecs exactement là |
 | `intel-030` toutes versions | 23 succès / 22 échecs |
-| Télémétrie de coût | **0 sur tous les runs** |
+| Coût d'un run V4 (`v_ai_run_costs`) | **0,278–0,283 $**, sans gap |
 
 **Aucune page externe n'a jamais été lue par la V4 en production.** Le nœud `V4 Fetch Selected
 Pages` tente bien le fetch (6 requêtes parallèles, `timeout: 6000`), échoue intégralement contre
@@ -94,7 +94,7 @@ erreur de catégorie**, une source à 25 pouvant être un registre parfait. Excl
   profondeur des recherches. La couverture se dérive de `account_facts`
   (`is_current`/`expires_at`/`verified_at`) — une vue, pas une table.
 - **Gate G0 bloquante** avant tout renderer, niveau ou centre de contrôle : succès ≥ 80 %, ancrage
-  ≥ 3 documents sur 90 % des runs, p95 < 240 s, télémétrie non nulle.
+  ≥ 3 documents sur 90 % des runs, p95 < 240 s, INTEL-035 mesurable sans `has_tokens_gap`.
 
 **Piège corrigé, propagé par les cadrages précédents.** Le rapport externe affirme que le plumbing
 `includedSubjects` est disponible et n'a qu'à être « assaini ». Faux : il transite jusqu'à
@@ -114,7 +114,18 @@ qu'il n'est adossé à rien.
 
 **Prochain focus : Lot 0.** INTEL-035, migration `account_source_documents`, sortie du fetch hors
 d'INTEL-030, `anchoring` dans `content_json`, séparation des seaux internes, réparation de la
-télémétrie de coût, correction de `guardFigures`. Puis gate G0.
+correction de `guardFigures`. Puis gate G0.
+
+**Correction apportée en cours de Lot 0 (à ma charge).** Le premier jet du corpus annonçait une
+« télémétrie de coût morte » sur la foi des colonnes `ai_intelligence_runs.total_cost_estimate` /
+`total_tokens_*`, à zéro. **C'est faux et c'était déjà documenté** : ces rollups sont morts **par
+décision** (Session 55, journal ci-dessous), le modèle de coût étant entièrement porté par
+`v_ai_run_costs` / `v_ai_result_costs` via `ai_model_pricing`. La vue fonctionne et donne
+**0,278 / 0,280 / 0,283 $** pour les trois runs V4 réussis, `has_tokens_gap = false`. La dimension
+« efficience » du benchmark était donc mesurable depuis le début, et l'item « réparer la
+télémétrie » du Lot 0 est **sans objet** — remplacé par « INTEL-035 doit émettre ses tokens ».
+Corrigé dans `06` §4/§5 et `07` §1/§2. Rappel de méthode : greper le journal avant de qualifier
+quelque chose de cassé.
 
 ### Session 62 — Audit performance data & chargement des pages, Lots 0→5 (2026-09-10)
 

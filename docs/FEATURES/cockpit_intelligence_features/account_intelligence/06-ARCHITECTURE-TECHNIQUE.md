@@ -112,7 +112,7 @@ Vérifié le 10/09/2026. **Ce tableau est la garde contre l'erreur du cadrage V4
 | `includedSubjects` côté V4 | ❌ **Ignoré.** Seuls `Validate Entity`, `V3 Assemble Draft Prompt` et `V3 Merge Segments` le lisent |
 | `externalResearchStatus` dans `content_json` | ❌ Présent seulement dans `contextSnapshot` du callback |
 | `AccountAnalysisHub` | ✅ 326 lignes — base exploitable du futur centre de contrôle |
-| Télémétrie de coût | ❌ **Morte** — `total_cost_estimate`, `total_tokens_input/output` à 0 sur tous les runs |
+| Télémétrie de coût | ✅ **Fonctionnelle via `v_ai_run_costs`** — un run V4 coûte ~0,28 $, sans gap. Les colonnes rollup `ai_intelligence_runs.total_*` sont mortes **par décision** (Session 55) : le modèle de coût vit dans les vues |
 | INTEL-034 | ⚠️ 1 run, `failed` |
 
 ---
@@ -133,7 +133,9 @@ reste est décoratif.
 4. **Remonter `anchoring` dans `content_json`** (`04` §2.3) et appliquer A2 : plus de publication
    `succeeded` silencieuse sur zéro page.
 5. **Séparer les seaux internes des sources** — appliquer INV-1 et INV-2 (`04` §2.2).
-6. **Réparer la télémétrie de coût**, sans quoi le benchmark du `07` est non mesurable.
+6. **Émettre `tokensInput` / `tokensOutput` / `modelUsed` dans le callback d'INTEL-035**, pour
+   qu'il soit mesurable par `v_ai_run_costs` comme l'est déjà INTEL-030. ⚠️ *Il n'y a pas de
+   télémétrie à réparer — le premier jet de ce corpus se trompait, voir `07` §1.*
 7. **Corriger `guardFigures`** (`04` §6).
 
 **Gate G0 obligatoire avant le lot suivant** — voir `07` §2.
