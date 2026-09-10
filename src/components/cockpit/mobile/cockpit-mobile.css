@@ -205,55 +205,6 @@
 .cockpit-week-modal .cockpit-inline-action--primary { border-color: var(--color-edito-navy); background: var(--color-edito-navy); color: var(--color-edito-surface); }
 .cockpit-week-modal :is(button, a, summary):focus-visible { outline: 2px solid var(--color-edito-brass); outline-offset: 2px; }
 
-/* Homepage mobile v2 — composition validée : hero 258px, surface à y=198px. */
-.cockpit-home {
-  width: 100%;
-  min-height: 100dvh;
-  margin-top: calc(-1 * var(--space-3));
-  overflow-x: clip;
-  background: var(--color-cockpit-home-petrol);
-  color: var(--color-heading);
-}
-
-.cockpit-home__hero {
-  position: relative;
-  height: 258px;
-  overflow: hidden;
-  background: var(--color-cockpit-home-petrol);
-}
-
-.cockpit-home__hero::before {
-  position: absolute;
-  top: 29px;
-  right: -11px;
-  z-index: 0;
-  width: 260px;
-  height: 219px;
-  border-radius: 44% 23% 41% 48% / 34% 24% 69% 64%;
-  background: var(--color-cockpit-home-petrol-shape);
-  content: "";
-  transform: rotate(-7deg);
-}
-
-.cockpit-home__logo {
-  position: absolute;
-  top: 5px;
-  left: 0;
-  z-index: 2;
-  width: 92px;
-  height: 92px;
-}
-
-.cockpit-home__hero-illustration {
-  position: absolute;
-  top: -20px;
-  right: 8px;
-  z-index: 1;
-  width: 316px;
-  height: 237px;
-  object-fit: contain;
-}
-
 .cockpit-home__hero-date {
   position: absolute;
   bottom: 72px;
@@ -286,17 +237,6 @@
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
-}
-
-.cockpit-home__surface {
-  position: relative;
-  z-index: 4;
-  width: min(calc(100% - 38px), 352px);
-  min-height: calc(100dvh - 198px);
-  margin: -60px auto 0;
-  padding: 21px 24px calc(var(--layout-mobile-content-bottom-offset) + var(--space-6));
-  border-radius: 28px 28px 0 0;
-  background: var(--color-edito-surface);
 }
 
 .cockpit-home__section + .cockpit-home__section { margin-top: 14px; }

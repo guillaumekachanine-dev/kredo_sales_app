@@ -1,0 +1,91 @@
+.shell {
+  --mobile-overview-page-color: var(--color-page-home);
+
+  width: 100%;
+  min-height: 100dvh;
+  margin-top: calc(-1 * var(--space-3));
+  overflow-x: clip;
+  background: var(--mobile-overview-page-color);
+  color: var(--color-heading);
+}
+
+.shell[data-tone="agenda"] { --mobile-overview-page-color: var(--color-page-agenda); }
+.shell[data-tone="accounts-contacts"] { --mobile-overview-page-color: var(--color-page-accounts-contacts); }
+.shell[data-tone="opportunities"] { --mobile-overview-page-color: var(--color-page-opportunities); }
+.shell[data-tone="engagements"] { --mobile-overview-page-color: var(--color-page-engagements); }
+.shell[data-tone="consultants"] { --mobile-overview-page-color: var(--color-page-consultants); }
+.shell[data-tone="finance"] { --mobile-overview-page-color: var(--color-page-finance); }
+.shell[data-tone="business-intelligence"] { --mobile-overview-page-color: var(--color-page-business-intelligence); }
+.shell[data-tone="prospection"] { --mobile-overview-page-color: var(--color-page-prospection); }
+.shell[data-tone="watch-news"] { --mobile-overview-page-color: var(--color-page-watch-news); }
+.shell[data-tone="reports-writing"] { --mobile-overview-page-color: var(--color-page-reports-writing); }
+
+.hero {
+  position: relative;
+  height: 258px;
+  overflow: hidden;
+  background: var(--mobile-overview-page-color);
+}
+
+.decorativeShape {
+  position: absolute;
+  top: 29px;
+  right: -11px;
+  z-index: 0;
+  width: 260px;
+  height: 219px;
+  border-radius: 44% 23% 41% 48% / 34% 24% 69% 64%;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--mobile-overview-page-color) 82%, white),
+    color-mix(in srgb, var(--mobile-overview-page-color) 88%, white)
+  );
+  transform: rotate(-7deg);
+}
+
+.icon {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+}
+
+.icon > * {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.artwork {
+  position: absolute;
+  top: -20px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  width: 316px;
+  height: 237px;
+  place-items: center;
+}
+
+.artwork > * {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.surface {
+  position: relative;
+  z-index: 4;
+  width: min(calc(100% - 38px), 352px);
+  min-height: calc(100dvh - 198px);
+  margin: -60px auto 0;
+  padding: 21px 24px calc(var(--layout-mobile-content-bottom-offset) + var(--space-6));
+  border-radius: 28px 28px 0 0;
+  background: var(--color-edito-surface);
+}

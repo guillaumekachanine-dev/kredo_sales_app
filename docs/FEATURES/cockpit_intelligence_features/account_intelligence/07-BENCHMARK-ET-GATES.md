@@ -111,9 +111,14 @@ franchie.**
 > placeholder — et prouvés par 85 assertions du harnais V4 et 8 tests de validateur. Ils ne
 > deviendront mesurables **en production** qu'après réimport du workflow sur le VPS.
 >
-> **G0.1, G0.2, G0.3 et G0.5 restent bloqués sur les sous-lots 0.6 et 0.7.** Tant que le
-> fetch vit dans INTEL-030, ni le taux de succès, ni l'ancrage réel, ni la durée ne bougent :
-> ce sont les deux sous-lots qui portent la réparation de la collecte elle-même.
+> **Le code du Lot 0 est complet au 11/09/2026.** G0.1, G0.2, G0.3 et G0.5 dépendent
+> désormais uniquement de la **mise en production** : déploiement de l'application, puis
+> import d'INTEL-035 et réimport d'INTEL-030 sur le VPS. Elles se mesurent sur les
+> 20 runs consécutifs qui suivront, avec les requêtes du §7.
+>
+> **Ce que le code garantit déjà, structurellement :** INTEL-030 ne peut plus produire un
+> rapport en ayant lu zéro page, **puisqu'il n'a plus la capacité de lire**. Le mode
+> dégradé silencieux n'est plus un risque à surveiller, c'est une impossibilité.
 
 ---
 
@@ -175,14 +180,14 @@ Questions factuelles, réponses mesurées :
 | Lot | État | Gate | Commit |
 |---|---|---|---|
 | Corpus documentaire | ✅ Livré le 10/09/2026 | — | `b5ccdf47` |
-| **Lot 0 — Collecte fiable** | 🟡 **5 sous-lots sur 7** | G0 | voir ci-dessous |
+| **Lot 0 — Collecte fiable** | ✅ **7 sous-lots sur 7 livrés** | G0 à mesurer en prod | voir ci-dessous |
 | ↳ 0.1 migration `account_source_documents` | ✅ | — | `19cadaf0` |
 | ↳ 0.2 contrats ancrage / modules / SourcePlan | ✅ | — | `8c1f4453` |
 | ↳ 0.3 `anchoring` + INV-1/INV-2 + `guardFigures` | ✅ | — | `fe0597e5` |
 | ↳ 0.4 portail d'ingestion du plan | ✅ | — | `74b146ec` |
 | ↳ 0.5 câblage callback `account_source_plan` | ✅ | — | `afdc976f` |
-| ↳ 0.6 **workflow INTEL-035** | ⬜ **reste à faire** | — | |
-| ↳ 0.7 **sortie du fetch hors d'INTEL-030** | ⬜ **reste à faire** (dépend de 0.6) | — | |
+| ↳ 0.6 workflow INTEL-035 | ✅ 20 nœuds, 60 assertions | — | `a436d04b` |
+| ↳ 0.7 sortie du fetch hors d'INTEL-030 | ✅ 4 nœuds retirés, 2 ajoutés | — | *(ce commit)* |
 | Lot 1 — Restitution V4 | ⬜ Bloqué par G0 | | |
 | Lot 2 — Niveaux | ⬜ | | |
 | Lot 3 — Centre de contrôle | ⬜ | | |

@@ -107,10 +107,10 @@ Vérifié le 10/09/2026. **Ce tableau est la garde contre l'erreur du cadrage V4
 | Validateur V4 | ✅ `intelligence-validators.ts` |
 | Ingest V4 | ✅ `account-knowledge-ingest.ts` |
 | Chargement `accountKnowledgeV4` | ✅ `intelligence-data.ts` |
-| Branche V4 dans le workflow | ✅ 18 nœuds |
+| Branche V4 dans le workflow | ✅ **16 nœuds** — les 4 nœuds de collecte retirés au Lot 0.7, 2 nœuds de lecture de corpus ajoutés |
 | **Renderer V4** | ❌ **N'EXISTE PAS.** `ClientIntelligenceCompanyTab` rend V1 (`AccountKnowledgeBlocks`), V2 (`AccountKnowledgeV2Blocks`), V3 (`folio-v3/AccountKnowledgeV3Desktop`) |
-| `includedSubjects` côté V4 | ❌ **Ignoré.** Seuls `Validate Entity`, `V3 Assemble Draft Prompt` et `V3 Merge Segments` le lisent |
-| `externalResearchStatus` dans `content_json` | ❌ Présent seulement dans `contextSnapshot` du callback |
+| `includedSubjects` côté V4 | ❌ **Ignoré.** Seuls `Validate Entity`, `V3 Assemble Draft Prompt` et `V3 Merge Segments` le lisent. La modularité V4 passe par `sourceDocumentIds` (Lot 0.7) puis `includedModules` (Lot 2) |
+| `anchoring` dans `content_json` | ✅ Livré au Lot 0.3, avec `research_status` à trois états |
 | `AccountAnalysisHub` | ✅ 326 lignes — base exploitable du futur centre de contrôle |
 | Télémétrie de coût | ✅ **Fonctionnelle via `v_ai_run_costs`** — un run V4 coûte ~0,28 $, sans gap. Les colonnes rollup `ai_intelligence_runs.total_*` sont mortes **par décision** (Session 55) : le modèle de coût vit dans les vues |
 | INTEL-034 | ⚠️ 1 run, `failed` |

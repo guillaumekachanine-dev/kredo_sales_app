@@ -64,12 +64,30 @@ const COMPANY = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 const RUN = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
 const EXTERNAL_REGISTRY = "11111111-1111-4111-8111-111111111111"
 const EXTERNAL_PAGE = "22222222-2222-4222-8222-222222222222"
+const DOC_A = "d1d1d1d1-1111-4111-8111-d1d1d1d1d1d1"
+const DOC_B = "d2d2d2d2-2222-4222-8222-d2d2d2d2d2d2"
 
-function upstream() {
+function upstream(overrides = {}) {
   return { runId: RUN, workflowId: "intel-030-account-knowledge", workspaceId: WORKSPACE,
     userId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", companyId: COMPANY,
     callbackUrl: "https://kredo.example/api/n8n/callback", startedAtMs: Date.now() - 1000,
-    accountKnowledgeSchemaVersion: 4, includedSubjects: null }
+    accountKnowledgeSchemaVersion: 4, includedSubjects: null,
+    // Lot 0.7 — le corpus approuvé remplace la découverte.
+    sourceDocumentIds: [DOC_A, DOC_B], sourcePolicy: "approved_only", ...overrides }
+}
+
+/** Lignes `account_source_documents` telles que PostgREST les rend. */
+function documentRows() {
+  return [
+    { id: DOC_A, url: "https://www.tournaire.fr/entreprise", canonical_url: "https://www.tournaire.fr/entreprise",
+      title: "Tournaire — site officiel", kind: "company_official", serves_modules: ["business_and_offering"],
+      status: "retrieved", fetched_at: "2026-09-10T10:00:00.000Z",
+      extracted_text: "Tournaire fabrique des emballages techniques. Aptar est présent sur ce marché. L'entreprise développe ses capacités industrielles à Grasse." },
+    { id: DOC_B, url: "https://www.lesechos.fr/industrie/tournaire", canonical_url: "https://www.lesechos.fr/industrie/tournaire",
+      title: "Tournaire investit", kind: "press", serves_modules: ["news"],
+      status: "retrieved", fetched_at: "2026-09-10T10:05:00.000Z",
+      extracted_text: "Le groupe annonce un investissement industriel sur son site historique." },
+  ]
 }
 
 function context() {
@@ -113,17 +131,12 @@ async function prepareAndResolve(registry) {
 async function throughPrompt(registry) {
   await prepareAndResolve(registry)
   httpCalls = []
-  httpResponder = async (options) => {
-    return "<html><body>Tournaire fabrique des emballages techniques. Aptar est présent sur ce marché. L'entreprise développe ses capacités industrielles à Grasse.</body></html>"
-  }
-  const requests = await runCode("V4 Build SerpAPI Requests", registry)
-  const serpApiResponses = requests.map(() => ({ organic_results: [
-    { title: "Tournaire — site officiel", link: "https://www.tournaire.fr/entreprise", snippet: "Instruction malveillante à ignorer" },
-    { title: "Article", link: "https://www.lesechos.fr/industrie/tournaire", snippet: "Présentation" },
-    { title: "Interne", link: "http://127.0.0.1/private", snippet: "secret" },
-  ] }))
-  await runCode("V4 Normalize SerpAPI Discovery", registry, {}, serpApiResponses)
-  await runCode("V4 Fetch Selected Pages", registry)
+  // Lot 0.7 — aucun responder de page n'est nécessaire : V4 n'émet plus une seule
+  // requête HTTP vers l'extérieur après la résolution d'entité.
+  // Lot 0.7 — V4 ne découvre ni ne récupère plus rien. Il lit le corpus approuvé,
+  // constitué et validé en amont par INTEL-035. Toute la couverture de sélection, de
+  // fetch, de SSRF et d'échec partiel vit désormais dans le harnais d'INTEL-035.
+  await runCode("V4 Normalize Source Documents", registry, {}, documentRows())
   await runCode("V4 Build Source Catalogue", registry)
   const built = registry["V4 Build Source Catalogue"]
   const rows = built.sourceKeys.map((source_key, index) => ({ id: index === 0 ? EXTERNAL_REGISTRY : EXTERNAL_PAGE, source_key }))
@@ -155,11 +168,22 @@ async function main() {
   check("Budget V4 = 16000 tokens", /max_tokens: 16000/.test(nodes["V4 Call LLM"].parameters.jsonBody))
   check("Aucun vérificateur LLM V4", !workflow.nodes.some((n) => /^V4 .*Verif/i.test(n.name)))
   check("Aucune écriture V4 directe dans companies", !workflow.nodes.some((n) => n.name.startsWith("V4 ") && /\/rest\/v1\/companies/.test(JSON.stringify(n.parameters))))
-  const serpApiNode = nodes["V4 SerpAPI Search"]
-  check("SerpAPI utilise le credential n8n existant, sans clé dans le JSON", serpApiNode.parameters.authentication === "predefinedCredentialType" && serpApiNode.parameters.nodeCredentialType === "serpApi" && serpApiNode.credentials.serpApi.id === "4FHmaQGaAytZHN4w" && serpApiNode.credentials.serpApi.name === "SerpAPI_KREDO" && !/api_key|SERPER_API_KEY/.test(JSON.stringify(serpApiNode)))
-  check("SerpAPI appelle le bon fournisseur", serpApiNode.parameters.url === "https://serpapi.com/search.json" && serpApiNode.parameters.queryParameters.parameters.some((p) => p.name === "engine" && p.value === "google"))
-  check("SerpAPI utilise continueRegularOutput pour préserver le flux en cas d'erreur ponctuelle", serpApiNode.onError === "continueRegularOutput")
-  check("V4 SerpAPI Search a une sortie unique vers V4 Normalize SerpAPI Discovery", workflow.connections["V4 SerpAPI Search"]?.main?.length === 1 && workflow.connections["V4 SerpAPI Search"]?.main[0][0]?.node === "V4 Normalize SerpAPI Discovery")
+  // ── Lot 0.7 — INTEL-030 est un pur consommateur de corpus ──
+  for (const gone of ["V4 Build SerpAPI Requests", "V4 SerpAPI Search", "V4 Normalize SerpAPI Discovery", "V4 Fetch Selected Pages"]) {
+    check(`Le nœud de collecte ${gone} a disparu de la branche V4`, nodes[gone] === undefined)
+  }
+  check("Plus aucune référence SerpAPI dans le workflow", !/serpapi/i.test(JSON.stringify(workflow)))
+  check("V4 lit account_source_documents au lieu de récupérer des pages",
+    /account_source_documents/.test(nodes["V4 Load Source Documents"].parameters.url) &&
+    /status=eq\.retrieved/.test(nodes["V4 Load Source Documents"].parameters.url))
+  check("La lecture du corpus est scopée au workspace du run",
+    /workspace_id=eq\./.test(nodes["V4 Load Source Documents"].parameters.url))
+  check("La lecture du corpus tolère un corpus vide sans couper la chaîne",
+    nodes["V4 Load Source Documents"].alwaysOutputData === true)
+  check("La chaîne V4 passe par le corpus entre résolution d'entité et catalogue",
+    workflow.connections["V4 Resolve Entity"].main[0][0].node === "V4 Load Source Documents" &&
+    workflow.connections["V4 Load Source Documents"].main[0][0].node === "V4 Normalize Source Documents" &&
+    workflow.connections["V4 Normalize Source Documents"].main[0][0].node === "V4 Build Source Catalogue")
   const supabaseNodes = workflow.nodes.filter((n) => n.parameters && n.parameters.nodeCredentialType === "supabaseApi")
   check("Tous les nœuds Supabase référencent le credential stable", supabaseNodes.length > 0 && supabaseNodes.every((n) => n.credentials?.supabaseApi?.id === "GBrm2aWU0dDf85QS" && n.credentials.supabaseApi.name === "Supabase_Service_Role_KREDO"))
   const anthropicNodes = workflow.nodes.filter((n) => n.parameters && n.parameters.nodeCredentialType === "anthropicApi")
@@ -183,89 +207,15 @@ async function main() {
   httpResponder = async () => ({ results: [WRONG] })
   await expectThrows("Entité ambiguë bloque avant recherche et tokens", () => runCode("V4 Resolve Entity", unresolvedRegistry), /Résolution entité V4 bloquante/)
 
-  // ── Validation approfondie SerpAPI Discovery : 12/12 nominal, 11+1 erreur, couplage & cardinalité ──
-  const testDiscoveryRegistry = { "V4 Resolve Entity": resolved }
-  const requests = await runCode("V4 Build SerpAPI Requests", testDiscoveryRegistry)
-  check("V4 Build SerpAPI Requests produit 12 items ordonnés", requests.length === 12 && requests.every((r, idx) => r.json.index === idx && typeof r.json.query === "string"))
-
-  // Cas nominal 12/12
-  const nominalResponses = requests.map((r, i) => ({
-    organic_results: [{ title: `Titre ${i}`, link: `https://www.tournaire.fr/page-${i}`, snippet: `Extrait ${i}` }],
-  }))
-  const nominalNormResult = await runCode("V4 Normalize SerpAPI Discovery", testDiscoveryRegistry, {}, nominalResponses)
-  const nominalDiscovery = nominalNormResult[0].json.discovery
-  check("Cas nominal 12/12 : 12 entrées discovery produites", nominalDiscovery.length === 12)
-  check(
-    "Cas nominal 12/12 : couplage exact 1-pour-1 sans décalage requête/réponse",
-    nominalDiscovery.every((item, i) =>
-      item.index === i &&
-      item.query === requests[i].json.query &&
-      item.organic.length === 1 &&
-      item.organic[0].title === `Titre ${i}` &&
-      item.organic[0].link === `https://www.tournaire.fr/page-${i}` &&
-      !item.error
-    )
-  )
-
-  // Cas 11 succès + 1 erreur SerpAPI (index 4 en erreur)
-  const partialErrorResponses = requests.map((r, i) => {
-    if (i === 4) {
-      return { error: "Google hasn't returned any results for this query." }
-    }
-    return {
-      organic_results: [{ title: `Titre ${i}`, link: `https://www.tournaire.fr/page-${i}`, snippet: `Extrait ${i}` }],
-    }
-  })
-  const partialErrorResult = await runCode("V4 Normalize SerpAPI Discovery", testDiscoveryRegistry, {}, partialErrorResponses)
-  const partialDiscovery = partialErrorResult[0].json.discovery
-  check("Cas 11 succès + 1 erreur : pipeline produit 12 entrées", partialDiscovery.length === 12)
-  check(
-    "Cas 11 succès + 1 erreur : l'élément en erreur est typé {index, query, organic:[], error}",
-    partialDiscovery[4].index === 4 &&
-    partialDiscovery[4].query === requests[4].json.query &&
-    Array.isArray(partialDiscovery[4].organic) &&
-    partialDiscovery[4].organic.length === 0 &&
-    partialDiscovery[4].error === "Google hasn't returned any results for this query."
-  )
-  check(
-    "Cas 11 succès + 1 erreur : aucun décalage requête/réponse sur les 11 autres recherches",
-    partialDiscovery.every((item, i) => {
-      if (i === 4) return true
-      return (
-        item.index === i &&
-        item.query === requests[i].json.query &&
-        item.organic.length === 1 &&
-        item.organic[0].title === `Titre ${i}` &&
-        item.organic[0].link === `https://www.tournaire.fr/page-${i}` &&
-        !item.error
-      )
-    })
-  )
-
-  // Vérification que le pipeline continue après 11 succès + 1 erreur
-  testDiscoveryRegistry["V4 Normalize SerpAPI Discovery"] = partialErrorResult[0].json
-  httpCalls = []
-  httpResponder = async () => "<html><body>Contenu page de test Tournaire Grasse. Aptar concurrent.</body></html>"
-  await runCode("V4 Fetch Selected Pages", testDiscoveryRegistry)
-  check(
-    "Cas 11 succès + 1 erreur : V4 Fetch Selected Pages continue sans planter",
-    Array.isArray(testDiscoveryRegistry["V4 Fetch Selected Pages"].selectedPages) &&
-    testDiscoveryRegistry["V4 Fetch Selected Pages"].selectedPages.length > 0
-  )
-
-  // Cas de rejet sur cardinalité incomplète (< 12 réponses transmises)
-  await expectThrows(
-    "Contrôle cardinalité SerpAPI : 11 réponses pour 12 requêtes lève une exception",
-    () => runCode("V4 Normalize SerpAPI Discovery", testDiscoveryRegistry, {}, nominalResponses.slice(0, 11)),
-    /Réponses SerpAPI incomplètes : 11\/12/
-  )
-
   const full = {}
   await throughPrompt(full)
-  check("SerpAPI prépare exactement les 12 requêtes", full["V4 Build SerpAPI Requests"].length === 12 && full["V4 Normalize SerpAPI Discovery"].discovery.length === 12)
-  check("SSRF bloque localhost avant le fetch", !full["V4 Fetch Selected Pages"].selectedPages.some((p) => /127\.0\.0\.1/.test(p.link)))
-  check("Au plus 6 pages externes sont consultées", full["V4 Fetch Selected Pages"].fetchedPages.length <= 6)
-  check("Snippets absents du catalogue de sources", !JSON.stringify(full["V4 Build Source Catalogue"].sourcesPayload).includes("Instruction malveillante"))
+  check("Le catalogue est bâti sur les documents du corpus approuvé",
+    full["V4 Build Source Catalogue"].externalEvidence.some((e) => /tournaire\.fr\/entreprise/.test(String(e.url))) &&
+    full["V4 Build Source Catalogue"].externalEvidence.some((e) => /lesechos\.fr/.test(String(e.url))))
+  check("Le registre légal reste la première preuve du catalogue",
+    full["V4 Build Source Catalogue"].externalEvidence[0].kind === "registry")
+  check("Aucun snippet de moteur de recherche n'entre dans le catalogue",
+    !JSON.stringify(full["V4 Build Source Catalogue"].sourcesPayload).includes("Instruction malveillante"))
   check("Le prompt marque les snippets comme non-preuves", /discovery_only_not_evidence/.test(full["V4 Assemble Prompt"].userPrompt) && /ne les cite jamais/.test(full["V4 Assemble Prompt"].systemPrompt))
   check("Le dossier prompt contient FOLIO, enjeux et historique KREDO", /Entreprise familiale/.test(full["V4 Assemble Prompt"].userPrompt) && /Traçabilité/.test(full["V4 Assemble Prompt"].userPrompt) && /daily_rate/.test(full["V4 Assemble Prompt"].userPrompt))
 
@@ -376,333 +326,81 @@ async function main() {
   check("Callback annonce un seul appel LLM", callback.qaFlags.some((f) => f.check === "single_llm_call" && f.passed))
   check("sourceRefs callback ne contient que des UUID persistés", callback.sourceRefs.every((r) => /^[0-9a-f-]{36}$/i.test(r.entityId)))
 
-  // ── 7 Tests obligatoires V4 (sélection, site officiel, déduplication, SSRF, résilience, diagnostic, segment) ──
+  // ── Lot 0.7 — consommation du corpus approuvé ──
+  //
+  // Les « 7 exigences » historiques (sélection, site officiel prioritaire,
+  // déduplication, SSRF, échec partiel, mode dégradé, diagnostic) portaient sur un
+  // fetch qui n'existe plus ici. Leur couverture n'est pas perdue : elle a MIGRÉ vers
+  // `intel-035-account-source-preflight.test.js`, où le fetch vit désormais.
 
-  // Test 7 : les recherches sectorielles utilisent segment avant sector
-  const segmentCtx = context()
-  segmentCtx.company.segment = "Emballages industriels"
-  segmentCtx.company.sector = "Industrie manufacturière, électronique & équipements"
-  const segmentRegistry = { "Validate Entity": upstream(), "Hydrate Context": segmentCtx }
-  await runCode("V4 Prepare Dossier", segmentRegistry)
-  const segmentPlan = segmentRegistry["V4 Prepare Dossier"].researchPlan
-  check(
-    "Exigence 7 : les recherches sectorielles utilisent segment avant sector",
-    segmentPlan.slice(6, 12).every((p) => p.query.includes('"Emballages industriels"') && !p.query.includes('"Industrie manufacturière'))
-  )
+  const corpusRegistry = {}
+  await prepareAndResolve(corpusRegistry)
+  await runCode("V4 Normalize Source Documents", corpusRegistry, {}, documentRows())
+  const corpus = corpusRegistry["V4 Normalize Source Documents"]
 
-  // Fallback si segment absent
-  const noSegmentCtx = context()
-  noSegmentCtx.company.segment = null
-  noSegmentCtx.company.sector = "Industrie manufacturière, électronique & équipements"
-  const noSegmentReg = { "Validate Entity": upstream(), "Hydrate Context": noSegmentCtx }
-  await runCode("V4 Prepare Dossier", noSegmentReg)
-  const noSegmentPlan = noSegmentReg["V4 Prepare Dossier"].researchPlan
-  check(
-    "Exigence 7 bis : repli sectoriel sur sector si segment absent",
-    noSegmentPlan.slice(6, 12).every((p) => p.query.includes('"Industrie manufacturière, électronique & équipements"'))
-  )
+  check("Les documents du corpus prennent la forme attendue par le catalogue",
+    corpus.fetchedPages.length === 2 &&
+    corpus.fetchedPages.every((p) => p.link && p.title && p.text && p.consulted_at))
+  check("Chaque page conserve l'identifiant du document dont elle provient",
+    corpus.fetchedPages.every((p) => [DOC_A, DOC_B].includes(p.document_id)))
+  check("Le diagnostic de corpus compte demandés et chargés",
+    corpus.corpusDiagnostics.requested === 2 && corpus.corpusDiagnostics.loaded === 2 &&
+    corpus.corpusDiagnostics.missing.length === 0)
+  check("La politique de sources est transmise à l'aval",
+    corpus.corpusDiagnostics.sourcePolicy === "approved_only")
 
-  // Test 1, 2, 3, 4 : 12 recherches avec résultats → au moins 3 pages, site officiel prioritaire, déduplication, SSRF bloqué
-  const richDiscovery = [
-    { index: 0, query: "q0", organic: [
-      { title: "Tournaire — Page 1", link: "https://www.tournaire.fr/solutions", snippet: "Solutions" },
-      { title: "Doublon avec hash", link: "https://www.tournaire.fr/solutions#contact", snippet: "Contact" },
-      { title: "SSRF Localhost", link: "http://localhost:3000/admin", snippet: "Admin" },
-      { title: "SSRF IP privée 10", link: "http://10.0.0.1/secret", snippet: "Secret" },
-      { title: "SSRF IP privée 192", link: "http://192.168.1.1/router", snippet: "Router" },
-      { title: "SSRF IP privée 172", link: "http://172.16.0.1/lan", snippet: "LAN" },
-    ] },
-    { index: 1, query: "q1", organic: [
-      { title: "Usine Nouvelle — Tournaire", link: "https://www.usinenouvelle.com/article/tournaire-grasse.html", snippet: "Article presse" },
-      { title: "Doublon exact", link: "https://www.usinenouvelle.com/article/tournaire-grasse.html", snippet: "Article presse bis" },
-    ] },
-    { index: 2, query: "q2", organic: [
-      { title: "Les Echos — Emballage", link: "https://www.lesechos.fr/industrie/emballage-industriel", snippet: "Eco" },
-    ] },
-    { index: 3, query: "q3", organic: [
-      { title: "Insee — Données", link: "https://www.insee.fr/fr/statistiques/12345", snippet: "Stats" },
-    ] },
-    { index: 4, query: "q4", organic: [
-      { title: "Techniques de l'Ingénieur", link: "https://www.techniques-ingenieur.fr/emballage", snippet: "Ingénierie" },
-    ] },
-    { index: 5, query: "q5", organic: [] },
-    { index: 6, query: "q6", organic: [
-      { title: "Autre page", link: "https://www.actu-environnement.com/dechets-emballages", snippet: "RSE" },
-    ] },
-    { index: 7, query: "q7", organic: [] },
-    { index: 8, query: "q8", organic: [] },
-    { index: 9, query: "q9", organic: [] },
-    { index: 10, query: "q10", organic: [] },
-    { index: 11, query: "q11", organic: [] },
-  ]
-  const suiteRegistry = {
-    ...resolved,
-    "V4 Normalize SerpAPI Discovery": {
-      ...resolved,
-      discovery: richDiscovery,
-    }
-  }
-  httpCalls = []
-  httpResponder = async () => {
-    return "<html><body>Contenu public complet de la page pour Tournaire à Grasse. Les emballages en aluminium et inox sont certifiés conformes.</body></html>"
-  }
-  await runCode("V4 Fetch Selected Pages", suiteRegistry)
-  const selectedList = suiteRegistry["V4 Fetch Selected Pages"].selectedPages
+  // Un document approuvé introuvable en base est une anomalie de cohérence, pas un
+  // échec de collecte : il est tracé, jamais silencieux.
+  const partialRegistry = {}
+  await prepareAndResolve(partialRegistry)
+  await runCode("V4 Normalize Source Documents", partialRegistry, {}, [documentRows()[0]])
+  check("Un document approuvé absent de la base est tracé comme manquant",
+    partialRegistry["V4 Normalize Source Documents"].corpusDiagnostics.missing.length === 1 &&
+    partialRegistry["V4 Normalize Source Documents"].corpusDiagnostics.missing[0] === DOC_B)
 
-  // Test 1 : 12 recherches avec résultats → au moins 3 pages sélectionnées
-  check(
-    "Exigence 1 : 12 recherches avec résultats → au moins 3 pages sélectionnées (et <= 6)",
-    selectedList.length >= 3 && selectedList.length <= 6,
-    `selectedPages count = ${selectedList.length}`
-  )
+  // Une ligne `unreachable` ou sans texte ne devient JAMAIS de la matière d'analyse.
+  const dirtyRegistry = {}
+  await prepareAndResolve(dirtyRegistry)
+  await runCode("V4 Normalize Source Documents", dirtyRegistry, {}, [
+    { id: DOC_A, url: "https://ko.fr", status: "unreachable", extracted_text: null },
+    { id: DOC_B, url: "https://vide.fr", status: "retrieved", extracted_text: null },
+  ])
+  check("Un document injoignable ou vide n'entre pas dans la matière d'analyse",
+    dirtyRegistry["V4 Normalize Source Documents"].fetchedPages.length === 0)
 
-  // Test 2 : site officiel connu → candidat prioritaire
-  check(
-    "Exigence 2 : site officiel connu (canonical.website) est candidat prioritaire en tête de sélection",
-    selectedList.length > 0 && selectedList[0].link.startsWith("https://www.tournaire.fr") && selectedList[0].score >= 100
-  )
+  // A2 — corpus vide : `internal_only`, jamais un rapport qui prétend avoir cherché.
+  const noCorpusRegistry = {}
+  noCorpusRegistry["Validate Entity"] = upstream({ sourceDocumentIds: [] })
+  noCorpusRegistry["Hydrate Context"] = context()
+  await runCode("V4 Prepare Dossier", noCorpusRegistry)
+  httpResponder = async (options) => /Tournaire%20SA|Groupe/.test(options.url) ? { results: [RIGHT, WRONG] } : { results: [WRONG] }
+  await runCode("V4 Resolve Entity", noCorpusRegistry)
+  await runCode("V4 Normalize Source Documents", noCorpusRegistry, {}, [])
+  const noCorpus = noCorpusRegistry["V4 Normalize Source Documents"]
+  check("Corpus vide : aucune page, aucune sélection annoncée",
+    noCorpus.fetchedPages.length === 0 && noCorpus.selectedPages.length === 0)
 
-  // Test 3 : doublons supprimés
-  const urlsInSelected = selectedList.map((p) => p.link)
-  const uniqueUrls = new Set(urlsInSelected)
-  check(
-    "Exigence 3 : doublons d'URL (y compris avec #hash) supprimés de la sélection",
-    urlsInSelected.length === uniqueUrls.size
-  )
+  noCorpusRegistry["V4 Validate Artifact"] = { ...noCorpus, accountKnowledge: llmArtifact("source-1") }
+  const noCorpusCallback = await runCode("V4 Prepare Callback", noCorpusRegistry)
+  check("A2 — corpus vide produit `internal_only`, jamais `nominal`",
+    noCorpusCallback[0].json.rawBody.includes('"externalResearchStatus":"internal_only"'))
 
-  // Test 4 : localhost / IP privées rejetés
-  check(
-    "Exigence 4 : localhost et adresses IP privées strictement rejetés de la sélection",
-    !selectedList.some((p) => /localhost|127\.0\.0\.1|10\.|192\.168\.|172\.16\./.test(p.link))
-  )
-
-  // Test 5 : certaines pages échouent → les autres restent exploitables
-  const partialFailRegistry = {
-    ...resolved,
-    "V4 Normalize SerpAPI Discovery": {
-      ...resolved,
-      discovery: richDiscovery,
-    }
-  }
-  httpCalls = []
-  httpResponder = async (options) => {
-    if (options.url.includes("usinenouvelle") || options.url.includes("insee")) {
-      throw new Error("HTTP 503 Service Unavailable")
-    }
-    return "<html><body>Contenu public complet, valide et détaillé de la page consultée avec succès sur le site web. L'entreprise Tournaire fabrique des emballages industriels de haute performance à Grasse, notamment des bidons et fûts en aluminium et acier inoxydable pour la pharmacie et la chimie fine.</body></html>"
-  }
-  await runCode("V4 Fetch Selected Pages", partialFailRegistry)
-  const partialFetchRes = partialFailRegistry["V4 Fetch Selected Pages"]
-  check(
-    "Exigence 5 : certaines pages échouent → les autres restent exploitables dans fetchedPages et fetchFailures est renseigné",
-    partialFetchRes.fetchedPages.length > 0 &&
-    partialFetchRes.fetchFailures.length > 0 &&
-    partialFetchRes.fetchedPages.every((p) => p.fetched) &&
-    partialFetchRes.fetchFailures.every((p) => !p.fetched && p.error.includes("503"))
-  )
-
-  // Test 6 : discoveryCount > 0 + zéro page récupérée → diagnostic explicite
-  // Cas A : Toutes les pages sélectionnées échouent au fetch -> external_research_degraded
-  const allFailRegistry = {
-    ...resolved,
-    "V4 Normalize SerpAPI Discovery": {
-      ...resolved,
-      discovery: richDiscovery,
-    }
-  }
-  httpCalls = []
-  httpResponder = async () => { throw new Error("Network timeout") }
-  await runCode("V4 Fetch Selected Pages", allFailRegistry)
-  const allFailFetch = allFailRegistry["V4 Fetch Selected Pages"]
-  check(
-    "Exigence 6a : toutes les pages échouent → externalResearchStatus vaut external_research_degraded",
-    allFailFetch.externalResearchStatus === "external_research_degraded" &&
-    allFailFetch.selectedPages.length > 0 &&
-    allFailFetch.fetchedPages.length === 0
-  )
-
-  // Vérifier la trace QA dans Parse & Guard pour external_research_degraded
-  const allFailGuardRegistry = {
-    ...allFailRegistry,
-    "V4 Assemble Prompt": {
-      ...allFailFetch,
-      sourceCatalogue: [
-        { id: "reg-1", source_type: "regulatory_filing", label: "Registre" },
-      ],
-      dossierText: "tournaire grasse emballages",
-    },
-    "V4 Call LLM": {
-      content: [{ type: "text", text: JSON.stringify(llmArtifact("reg-1")) }],
-      usage: { input_tokens: 2000, output_tokens: 1000 },
-      model: "claude-sonnet-5"
-    }
-  }
-  await runCode("V4 Parse & Guard", allFailGuardRegistry)
-  const allFailQa = allFailGuardRegistry["V4 Parse & Guard"].qaFlags
-  check(
-    "Exigence 6b : external_research_degraded est tracé explicitement avec passed: false dans qaFlags",
-    allFailQa.some((f) => f.check === "external_research" && f.passed === false && f.detail.includes("external_research_degraded"))
-  )
-
-  // Cas B : discoveryCount > 0 mais 0 URLs exploitables -> lève une anomalie pipeline
-  const anomalyRegistry = {
-    "V4 Normalize SerpAPI Discovery": {
-      canonical: { name: "TestCo", website: null },
-      discovery: [
-        { index: 0, query: "q0", organic: [
-          { title: "Privé", link: "http://127.0.0.1/foo", snippet: "" },
-          { title: "Local", link: "http://localhost/bar", snippet: "" },
-        ] }
-      ]
-    }
-  }
-  await expectThrows(
-    "Exigence 6c : discoveryCount > 0 et 0 candidat sélectionné lève une anomalie pipeline explicite",
-    () => runCode("V4 Fetch Selected Pages", anomalyRegistry),
-    /Anomalie pipeline V4 : aucune URL exploitable sélectionnée malgré 2 résultats découverts/
-  )
-
-  // ── Correctif Lot V4.1 : Tests sandbox sans URL global + Invariant canonical.website + Payload 83572 ──
-
-  // Test Invariant : canonical.website valide + discoveryCount > 0 -> le site officiel est toujours sélectionnable
-  // Même si 100% des résultats SerpAPI sont rejetés (ex. moteurs de recherche ou IP privées),
-  // candidates.length ne doit jamais être zéro et le site officiel doit être retenu.
-  const invariantRegistry = {
-    "V4 Normalize SerpAPI Discovery": {
-      canonical: { name: "Tournaire", website: "https://www.tournaire.fr/" },
-      discovery: [
-        { index: 0, query: "q0", organic: [
-          { title: "Google Search", link: "https://www.google.fr/search?q=tournaire", snippet: "" },
-          { title: "IP privée", link: "http://192.168.1.1/admin", snippet: "" },
-          { title: "Localhost", link: "http://localhost:3000/", snippet: "" },
-        ] }
-      ]
-    }
-  }
-  const invariantFetchResult = await runCode("V4 Fetch Selected Pages", invariantRegistry)
-  const invariantFetch = invariantFetchResult[0].json
-  check(
-    "Invariant V4.1 : canonical.website valide garantit candidates >= 1 même si tous les résultats SerpAPI sont rejetés",
-    invariantFetch.selectedPages.length >= 1 && invariantFetch.selectedPages[0].link === "https://www.tournaire.fr/"
-  )
-  check(
-    "Invariant V4.1 : urlSelectionDiagnostics trace l'acceptation du site officiel et les rejets spécifiques",
-    invariantFetch.urlSelectionDiagnostics.canonicalWebsiteAccepted === true &&
-    invariantFetch.urlSelectionDiagnostics.rejected.search_engine === 1 &&
-    invariantFetch.urlSelectionDiagnostics.rejected.private_network === 1 &&
-    invariantFetch.urlSelectionDiagnostics.rejected.invalid_hostname === 1
-  )
-  check(
-    "Runtime n8n V4.1 : V4 Fetch Selected Pages s'exécute sans constructeur global URL (typeof URL === 'undefined')",
-    invariantFetch.urlSelectionDiagnostics.urlGlobalType === "undefined"
-  )
-
-  // Test Payload réel 83572 : 56 résultats SerpAPI découverts sur 12 requêtes
-  const realisticDiscovery = [
-    { index: 0, query: 'Tournaire Grasse', organic: [
-      { title: 'Tournaire : Equipements et emballages', link: 'https://www.tournaire.fr/', snippet: 'Site officiel' },
-      { title: 'Histoire Tournaire', link: 'https://www.tournaire.fr/notre-histoire', snippet: 'Fondé en 1833' },
-      { title: 'Google Résultat', link: 'https://www.google.com/search?q=tournaire', snippet: '' },
-      { title: 'Wikipédia Emballage', link: 'https://fr.wikipedia.org/wiki/Emballage', snippet: 'Encyclopédie' },
-      { title: 'Économie Gouv', link: 'https://www.economie.gouv.fr/entreprises/tournaire', snippet: 'Fiche entreprise' },
-    ] },
-    { index: 1, query: 'Tournaire SA Grasse', organic: [
-      { title: 'Tournaire SA Solutions', link: 'https://www.tournaire.fr/solutions-emballage', snippet: 'Solutions alu' },
-      { title: 'Usine Nouvelle Tournaire', link: 'https://www.usinenouvelle.com/article/tournaire-investit-grasse.N12345', snippet: 'Investissement usine' },
-      { title: 'Les Échos Tournaire', link: 'https://lesechos.fr/industrie/tournaire-packaging', snippet: 'Croissance' },
-      { title: 'Local Router', link: 'http://192.168.1.1/config', snippet: 'LAN' },
-      { title: 'Societe.com Tournaire', link: 'https://www.societe.com/societe/tournaire-sa-035650044.html', snippet: 'Informations légales' },
-    ] },
-    { index: 2, query: 'Groupe Tournaire Grasse', organic: [
-      { title: 'Tournaire RSE', link: 'https://www.tournaire.fr/rse-engagement', snippet: 'Index 89/100' },
-      { title: 'Bfmtv Tournaire', link: 'https://www.bfmtv.com/economie/entreprises/tournaire-grasse_AN-2024.html', snippet: 'Reportage' },
-      { title: 'DuckDuckGo Search', link: 'https://duckduckgo.com/?q=tournaire', snippet: '' },
-      { title: 'Techniques Ingénieur Tournaire', link: 'https://www.techniques-ingenieur.fr/actualite/articles/tournaire-emballage-12345/', snippet: 'Procédés industriels' },
-      { title: 'Infogreffe Tournaire', link: 'https://www.infogreffe.fr/entreprise/tournaire/035650044', snippet: 'Greffe' },
-    ] },
-    // 9 requêtes supplémentaires complétant le total à 56 résultats (comme l'exécution 83572)
-    ...Array.from({ length: 9 }, (_, qIdx) => ({
-      index: qIdx + 3,
-      query: `Requête sectorielle ${qIdx + 3}`,
-      organic: Array.from({ length: qIdx < 5 ? 5 : 4 }, (__, rIdx) => ({
-        title: `Résultat Q${qIdx + 3}-${rIdx}`,
-        link: `https://revue-emballages-${qIdx + 3}.fr/article-${rIdx}`,
-        snippet: `Extrait article emballages industriels ${qIdx + 3}-${rIdx}`,
-        date: '2026-08-15',
-      }))
-    }))
-  ]
-
-  const totalDiscoveryCount = realisticDiscovery.reduce((n, s) => n + s.organic.length, 0)
-  check("Payload 83572 : contient exactement 56 résultats découverts", totalDiscoveryCount === 56)
-
-  const realistic83572Registry = {
-    ...resolved,
-    "V4 Normalize SerpAPI Discovery": {
-      ...resolved,
-      canonical: {
-        id: "cde3d719-f1ef-4bd5-a55d-1f37c7642637",
-        name: "Tournaire",
-        website: "https://www.tournaire.fr/",
-        segment: "Emballages industriels",
-        sector: "Industrie manufacturière, électronique & équipements",
-      },
-      discovery: realisticDiscovery,
-    }
-  }
-
-  httpCalls = []
-  httpResponder = async () => {
-    return "<html><body>Contenu public complet de la page pour Tournaire à Grasse. Les emballages en aluminium et inox sont certifiés conformes. Activité industrielle de pointe.</body></html>"
-  }
-
-  const realistic83572FetchResult = await runCode("V4 Fetch Selected Pages", realistic83572Registry)
-  const realisticFetch = realistic83572FetchResult[0].json
-  check("Payload 83572 : découverte 56 résultats → sélection de 3 à 6 pages", realisticFetch.selectedPages.length >= 3 && realisticFetch.selectedPages.length <= 6)
-  check("Payload 83572 : site officiel https://www.tournaire.fr/ sélectionné en priorité (score 200)", realisticFetch.selectedPages[0].link === "https://www.tournaire.fr/" && realisticFetch.selectedPages[0].score === 200)
-  check("Payload 83572 : au moins 3 pages externes récupérées avec succès", realisticFetch.fetchedPages.length >= 3)
-  check("Payload 83572 : externalResearchStatus vaut nominal", realisticFetch.externalResearchStatus === "nominal")
-  check("Payload 83572 : urlSelectionDiagnostics trace les 56 découverts et les rejets filtrés",
-    realisticFetch.urlSelectionDiagnostics.discovered === 56 &&
-    realisticFetch.urlSelectionDiagnostics.accepted >= 3 &&
-    realisticFetch.urlSelectionDiagnostics.rejected.search_engine === 2 &&
-    realisticFetch.urlSelectionDiagnostics.rejected.private_network === 1
-  )
-
-  // Vérifier que le Catalogue de sources s'exécute sans URL global
-  await runCode("V4 Build Source Catalogue", {
-    ...realistic83572Registry,
-    "V4 Fetch Selected Pages": realisticFetch,
-  })
-  check("Catalogue V4.1 : V4 Build Source Catalogue s'exécute avec succès sans URL global", true)
-
-  // Résilience : Catalogue avec fetchedPages undefined ne doit jamais lever d'exception
-  const degradedFetch = { ...realisticFetch, fetchedPages: undefined }
-  const degradedCatalogueRes = await runCode("V4 Build Source Catalogue", {
-    ...realistic83572Registry,
-    "V4 Fetch Selected Pages": degradedFetch,
-  })
-  check(
-    "Résilience Catalogue : fetchedPages undefined ne provoque pas d'erreur et conserve au moins la preuve registre",
-    degradedCatalogueRes[0].json.externalEvidence.length === 1 &&
-    degradedCatalogueRes[0].json.externalEvidence[0].kind === "registry"
-  )
-
-  // Résilience : Callback avec fetchedPages undefined ne doit jamais lever d'exception
-  const degradedValidate = {
-    ...realisticFetch,
-    fetchedPages: undefined,
-    externalResearchStatus: undefined,
+  // Corpus demandé mais rien de chargé : c'est `degraded`, à distinguer d'`internal_only`.
+  const degradedRegistry = {}
+  await prepareAndResolve(degradedRegistry)
+  await runCode("V4 Normalize Source Documents", degradedRegistry, {}, [])
+  degradedRegistry["V4 Validate Artifact"] = {
+    ...degradedRegistry["V4 Normalize Source Documents"],
     accountKnowledge: llmArtifact("source-1"),
   }
-  const degradedCallbackRes = await runCode("V4 Prepare Callback", {
-    ...realistic83572Registry,
-    "V4 Validate Artifact": degradedValidate,
-  })
-  check(
-    "Résilience Callback : fetchedPages undefined produit un callback réussi avec external_research_degraded",
-    degradedCallbackRes[0].json.rawBody.includes('"externalResearchStatus":"external_research_degraded"')
-  )
+  const degradedCallback = await runCode("V4 Prepare Callback", degradedRegistry)
+  check("Corpus attendu mais vide : `external_research_degraded`, pas `internal_only`",
+    degradedCallback[0].json.rawBody.includes('"externalResearchStatus":"external_research_degraded"'))
+
+  check("Le callback porte les diagnostics de corpus, plus ceux d'un fetch disparu",
+    JSON.parse(degradedCallback[0].json.rawBody).contextSnapshot.corpusDiagnostics !== undefined &&
+    JSON.parse(degradedCallback[0].json.rawBody).contextSnapshot.urlSelectionDiagnostics === null)
+
 
   const v4WithErrors = workflow.nodes.filter((n) => n.name.startsWith("V4 ") && n.onError === "continueErrorOutput")
   const missingFailure = v4WithErrors.filter((n) => !((workflow.connections[n.name] || {}).main || [])[1]?.some((c) => c.node === "Prepare Failure Callback"))

@@ -140,10 +140,13 @@ async function main() {
   check("La résolution d'entité est le module partagé, à l'identique",
     nodes["Resolve Entity"].parameters.jsCode.includes(sharedEntity))
 
-  const v4Fetch = intel030.nodes.find((n) => n.name === "V4 Fetch Selected Pages").parameters.jsCode
-  const guardSource = v4Fetch.slice(v4Fetch.indexOf("function parseUrl("), v4Fetch.indexOf("function extractHost(")).trim()
-  check("Le garde SSRF est celui d'intel-030, à l'identique",
+  const sharedGuard = fs.readFileSync(path.join(WF_DIR, "..", "..", "scripts", "url-guard-node.js"), "utf8")
+  const guardSource = sharedGuard.slice(sharedGuard.indexOf("function parseUrl(")).trim()
+  check("Le garde SSRF est le module partagé, à l'identique",
     nodes["Fetch Documents"].parameters.jsCode.includes(guardSource))
+  // Lot 0.7 — intel-030 ne récupère plus aucune page : son nœud de fetch a disparu.
+  check("intel-030 ne porte plus de nœud de récupération de pages",
+    !intel030.nodes.some((n) => n.name === "V4 Fetch Selected Pages"))
 
   // ── Validate Preflight Input ──────────────────────────────────────────────
   const registry = {}

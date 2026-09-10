@@ -14,8 +14,8 @@ Deux blocs sont RÉUTILISÉS, jamais recopiés à la main :
     de vérité transcrite de `src/lib/intelligence/entity-resolution.ts`. C'est
     l'axiome A1 : mieux vaut une étude partielle de la bonne entreprise qu'une étude
     parfaite d'un homonyme ;
-  * le garde SSRF `parseUrl`, extrait du nœud `V4 Fetch Selected Pages` d'intel-030,
-    qui a été durci et testé (IPv4 privées, .local/.internal, moteurs de recherche).
+  * le garde SSRF `parseUrl` (`scripts/url-guard-node.js`), durci et testé (IPv4
+    privées, .local/.internal, moteurs de recherche, aucun recours au global `URL`).
 
 Les extraire à l'exécution plutôt que les dupliquer garantit qu'ils ne divergent
 jamais ; le harnais asserte cette identité.
@@ -34,6 +34,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INTEL_030 = ROOT / "n8n" / "workflows" / "intel-030-account-knowledge.json"
 ENTITY_MODULE = ROOT / "scripts" / "entity-resolution-node.js"
+URL_GUARD_MODULE = ROOT / "scripts" / "url-guard-node.js"
 TARGET = ROOT / "n8n" / "workflows" / "intel-035-account-source-preflight.json"
 
 SUPABASE_URL = "https://jvzgmhvwirsbdkjpmvla.supabase.co"
@@ -42,17 +43,10 @@ SERPAPI_CRED = {"serpApi": {"id": "4FHmaQGaAytZHN4w", "name": "SerpAPI_KREDO"}}
 HMAC_SECRET = "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET"
 
 
-def extract_url_guard() -> str:
-    """Le garde SSRF d'intel-030, verbatim. Toute divergence serait une régression."""
-    workflow = json.loads(INTEL_030.read_text(encoding="utf-8"))
-    node = next(n for n in workflow["nodes"] if n["name"] == "V4 Fetch Selected Pages")
-    code = node["parameters"]["jsCode"]
-    start = code.index("function parseUrl(")
-    end = code.index("function extractHost(")
-    return code[start:end].rstrip()
-
-
-URL_GUARD = extract_url_guard()
+# Le garde SSRF vit dans son propre module partagé depuis le Lot 0.7 : son nœud
+# d'origine (`V4 Fetch Selected Pages`) a été supprimé quand INTEL-030 a cessé de
+# récupérer des pages, mais le code reste la référence — durci et testé.
+URL_GUARD = URL_GUARD_MODULE.read_text(encoding="utf-8").rstrip()
 ENTITY_RESOLUTION = ENTITY_MODULE.read_text(encoding="utf-8").rstrip()
 
 

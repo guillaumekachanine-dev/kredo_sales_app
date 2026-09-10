@@ -234,26 +234,67 @@ npx vitest run src/lib/intelligence/account-knowledge-v3-workflow.test.ts  # str
 Le harnais Node V2 (`intel-030-account-knowledge.test.js`, 76 assertions) doit **rester vert** :
 la branche V2 n'est pas modifiée.
 
-## 10. Branche V4 — moteur de compréhension (Lot 3, 2026-09-07)
+## 10. Branche V4 — moteur de compréhension (Lot 3, réécrit au Lot 0.7)
 
-La V4 est la version active des déclencheurs applicatifs, via
-`input.accountKnowledgeSchemaVersion: 4`. Elle hydrate la RPC
-`get_account_understanding_context`, résout l'entité légale avant toute recherche,
-lance 12 requêtes SerpAPI de découverte (dont 6 requêtes sectorielles recentrées
-sur le segment précis : `marketAnchor = canonical.segment || canonical.sector || canonical.name`),
-injecte le site officiel `canonical.website` en candidat prioritaire (score 200),
-sélectionne 3 à 6 pages externes pertinentes, les consulte réellement avec des
-headers navigateurs réalistes, puis produit les 8 sections éditoriales avec un
-seul appel LLM. Les snippets SerpAPI ne sont jamais des preuves ; seuls le
-registre, les pages effectivement consultées et les sources internes du dossier
-peuvent être cités.
+> 🔴 **Depuis le Lot 0.7 (11/09/2026), la V4 ne découvre ni ne récupère plus rien.**
+> Les quatre nœuds de collecte — `V4 Build SerpAPI Requests`, `V4 SerpAPI Search`,
+> `V4 Normalize SerpAPI Discovery`, `V4 Fetch Selected Pages` — ont été **supprimés**.
+> Le corpus est constitué en amont par **INTEL-035**, validé par l'utilisateur, et lu
+> ici tel quel.
 
-### 10.1 Garde qualité recherche externe
-- **Parsing d'URL sans global `URL` :** le runtime de sandbox n8n des nœuds Code n'expose pas le constructeur global `URL` (`typeof URL === "undefined"`). Un helper déterministe `parseUrl` extrait le protocole, le hostname (sans www), supprime les fragments et applique les gardes SSRF/sécurité sans jamais appeler `new URL()`.
-- **Diagnostic de sélection traçable :** `urlSelectionDiagnostics` consigne le nombre de résultats découverts, acceptés, ainsi que la ventilation des rejets (`missing_url`, `invalid_protocol`, `invalid_hostname`, `private_network`, `search_engine`, `duplicate`, `parser_error`). Ce diagnostic est conservé dans `contextSnapshot.urlSelectionDiagnostics`.
-- **Invariant site officiel :** `canonical.website` est validé et injecté avec un score de 200, garantissant qu'un compte avec site officiel valide ne produit jamais 0 candidat, même en cas de rejet des résultats SerpAPI.
-- **Sélection vide anormale :** si `discoveryCount > 0` et qu'aucune URL n'est sélectionnable (compte sans site et 100% de résultats invalides), le nœud `V4 Fetch Selected Pages` lève une exception explicite d'anomalie pipeline incluant le JSON de `urlSelectionDiagnostics` pour un audit immédiat.
-- **Échec global de fetch :** si des pages ont été sélectionnées mais ont toutes échoué au fetch réseau (ex: 403, 500, timeout), l'état `external_research_degraded` est consigné dans `contextSnapshot.externalResearchStatus` et le drapeau QA `external_research: passed=false` est inscrit dans `qaFlags`.
+La V4 reste la version active des déclencheurs applicatifs, via
+`input.accountKnowledgeSchemaVersion: 4`. Elle hydrate `get_account_understanding_context`,
+résout l'entité légale, **charge les documents approuvés** depuis
+`account_source_documents`, puis produit les 8 sections éditoriales avec un seul appel LLM.
+
+**Pourquoi ce changement.** Les runs V4 réussis mesuraient 404–425 s contre un task
+runner n8n qui coupe à **300 s** ; deux runs sont morts exactement là. Le fetch était le
+poste lourd. Sorti du run d'analyse, il repasse largement sous le plafond — ce qui
+débloque L3 et L4. Et surtout : V4 ne peut plus produire un rapport en ayant lu zéro
+page, puisqu'il n'a plus la capacité de lire.
+
+### 10.1 Contrat d'entrée
+
+```jsonc
+"input": {
+  "accountKnowledgeSchemaVersion": 4,
+  "sourceDocumentIds": ["uuid", "…"],   // documents APPROUVÉS du plan INTEL-035
+  "sourcePolicy": "approved_only"       // | "allow_gap_discovery"
+}
+```
+
+Une liste vide **n'est pas une erreur** : c'est une analyse sur base interne seule, que
+l'artefact déclare honnêtement en `research_status: "internal_only"`.
+
+### 10.2 Les trois états d'ancrage
+
+| `externalResearchStatus` | Quand |
+|---|---|
+| `nominal` | au moins un document du corpus a été chargé et cité |
+| `external_research_degraded` | des documents étaient approuvés, **aucun** n'a pu être chargé |
+| `internal_only` | aucun document n'était approuvé — choix de niveau, pas échec |
+
+Les confondre est exactement ce qui rendait le défaut invisible avant ce lot.
+
+### 10.3 Lecture du corpus
+
+- `V4 Load Source Documents` interroge `account_source_documents` filtré sur
+  `status=eq.retrieved` **et** `workspace_id` du run — un document d'un autre tenant est
+  inatteignable même en service-role.
+- La liste d'ids vide est envoyée comme UUID sentinelle plutôt qu'un `in.()` — que
+  PostgREST refuse. Le nœud porte `alwaysOutputData` : un corpus vide ne coupe pas la
+  chaîne (piège « zéro item » documenté au §5.1).
+- `V4 Normalize Source Documents` reconstruit la forme `fetchedPages` historique, de
+  sorte que `V4 Build Source Catalogue` reste inchangé dans sa logique — seule la
+  provenance de la matière change.
+- Un document approuvé introuvable en base est tracé dans
+  `contextSnapshot.corpusDiagnostics.missing` : anomalie de cohérence, jamais silencieuse.
+
+### 10.4 Garde d'URL
+
+Le helper `parseUrl` (SSRF, absence de global `URL`) vit désormais dans
+`scripts/url-guard-node.js` et sert INTEL-035. Il a quitté ce workflow avec le nœud de
+fetch. Les harnais assertent que le bloc injecté est identique au module partagé.
 
 Configuration additionnelle lors du réimport manuel :
 

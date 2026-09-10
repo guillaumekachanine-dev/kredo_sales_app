@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { MobileOverviewShell } from "@/components/layout/MobileOverviewShell"
 import { getNavigationIcon } from "@/components/layout/navigation-icons"
 import { AGENDA_V1_TIMEZONE } from "@/lib/agenda/agenda-thresholds"
 import type {
@@ -127,11 +128,13 @@ export function CockpitMobileHome({ snapshot, onOpenModule, onQuickActionsOpen }
   const heroDate = formatHeroDate(snapshot?.generatedAt)
 
   return (
-    <section className="cockpit-home">
-      <section className="cockpit-home__hero" aria-label="Accueil KREDO">
-        <h1 className="sr-only">Accueil KREDO</h1>
+    <MobileOverviewShell
+      tone="home"
+      heroLabel="Accueil KREDO"
+      surfaceLabel="Contenu de la homepage mobile"
+      className="cockpit-home"
+      icon={(
         <Image
-          className="cockpit-home__logo"
           src="/logo_app.png"
           alt="KREDO"
           width={500}
@@ -139,8 +142,9 @@ export function CockpitMobileHome({ snapshot, onOpenModule, onQuickActionsOpen }
           priority
           sizes="92px"
         />
+      )}
+      artwork={(
         <Image
-          className="cockpit-home__hero-illustration"
           src="/images/design-lab/kredo-home-mobile-v2-hero-final.png"
           alt=""
           width={1200}
@@ -148,75 +152,78 @@ export function CockpitMobileHome({ snapshot, onOpenModule, onQuickActionsOpen }
           sizes="316px"
           priority
         />
-        {heroDate && snapshot?.generatedAt ? (
-          <time className="cockpit-home__hero-date" dateTime={snapshot.generatedAt}>
-            {heroDate}
-          </time>
-        ) : null}
-        <button type="button" className="cockpit-home__quick-action" onClick={onQuickActionsOpen} aria-label="Créer nouveau">
-          <span aria-hidden="true">+</span>
-        </button>
+      )}
+      heroContent={(
+        <>
+          <h1 className="sr-only">Accueil KREDO</h1>
+          {heroDate && snapshot?.generatedAt ? (
+            <time className="cockpit-home__hero-date" dateTime={snapshot.generatedAt}>
+              {heroDate}
+            </time>
+          ) : null}
+          <button type="button" className="cockpit-home__quick-action" onClick={onQuickActionsOpen} aria-label="Créer nouveau">
+            <span aria-hidden="true">+</span>
+          </button>
+        </>
+      )}
+    >
+      <section className="cockpit-home__section" aria-labelledby="cockpit-home-week-title">
+        <HomeSectionHeading><span id="cockpit-home-week-title">Ma semaine</span></HomeSectionHeading>
+        <HomeRail label="Modules de la semaine">
+          {weekTiles.map((tile) => (
+            <button
+              key={tile.id}
+              type="button"
+              className="cockpit-home__week-tile"
+              data-tone={tile.tone}
+              onClick={(event) => onOpenModule(tile.id, event.currentTarget)}
+            >
+              <TileIcon icon={tile.icon} />
+              <strong>{tile.title.split("\n").map((line) => <span key={line}>{line}</span>)}</strong>
+              <span>{tile.detail}</span>
+            </button>
+          ))}
+        </HomeRail>
       </section>
 
-      <section className="cockpit-home__surface" aria-label="Contenu de la homepage mobile">
-        <section className="cockpit-home__section" aria-labelledby="cockpit-home-week-title">
-          <HomeSectionHeading><span id="cockpit-home-week-title">Ma semaine</span></HomeSectionHeading>
-          <HomeRail label="Modules de la semaine">
-            {weekTiles.map((tile) => (
-              <button
-                key={tile.id}
-                type="button"
-                className="cockpit-home__week-tile"
-                data-tone={tile.tone}
-                onClick={(event) => onOpenModule(tile.id, event.currentTarget)}
-              >
-                <TileIcon icon={tile.icon} />
-                <strong>{tile.title.split("\n").map((line) => <span key={line}>{line}</span>)}</strong>
-                <span>{tile.detail}</span>
-              </button>
-            ))}
+      <section className="cockpit-home__section" aria-labelledby="cockpit-home-meetings-title">
+        <HomeSectionHeading
+          action={(
+            <Link href="/agenda" className="cockpit-home__agenda-shortcut" aria-label="Ouvrir l’agenda">
+              <IconChevron />
+            </Link>
+          )}
+        >
+          <span id="cockpit-home-meetings-title">Mes RDV</span>
+        </HomeSectionHeading>
+        {meetings.length === 0 ? (
+          <p className="cockpit-home__meeting-empty">Aucun rendez-vous aujourd’hui</p>
+        ) : (
+          <HomeRail label="Rendez-vous commerciaux du jour">
+            {meetings.map((meeting) => {
+              const context = [meeting.companyName, meeting.contactName].filter(Boolean).join(" · ")
+              return (
+                <article key={meeting.id} className="cockpit-home__meeting-tile">
+                  <time>{formatMeetingTime(meeting.startsAt, meeting.allDay)}</time>
+                  <strong>{meeting.title}</strong>
+                  {context ? <span>{context}</span> : null}
+                </article>
+              )
+            })}
           </HomeRail>
-        </section>
-
-        <section className="cockpit-home__section" aria-labelledby="cockpit-home-meetings-title">
-          <HomeSectionHeading
-            action={(
-              <Link href="/agenda" className="cockpit-home__agenda-shortcut" aria-label="Ouvrir l’agenda">
-                <IconChevron />
-              </Link>
-            )}
-          >
-            <span id="cockpit-home-meetings-title">Mes RDV</span>
-          </HomeSectionHeading>
-          {meetings.length === 0 ? (
-            <p className="cockpit-home__meeting-empty">Aucun rendez-vous aujourd’hui</p>
-          ) : (
-            <HomeRail label="Rendez-vous commerciaux du jour">
-              {meetings.map((meeting) => {
-                const context = [meeting.companyName, meeting.contactName].filter(Boolean).join(" · ")
-                return (
-                  <article key={meeting.id} className="cockpit-home__meeting-tile">
-                    <time>{formatMeetingTime(meeting.startsAt, meeting.allDay)}</time>
-                    <strong>{meeting.title}</strong>
-                    {context ? <span>{context}</span> : null}
-                  </article>
-                )
-              })}
-            </HomeRail>
-          )}
-        </section>
-
-        <section className="cockpit-home__section" aria-labelledby="cockpit-home-news-title">
-          <HomeSectionHeading><span id="cockpit-home-news-title">Mes actualités</span></HomeSectionHeading>
-          {newsItems.length === 0 ? (
-            <p className="cockpit-home__meeting-empty">Aucune actualité récente</p>
-          ) : (
-            <HomeRail label="Actualités récentes">
-              {newsItems.map((item) => <NewsTile key={`${item.kind}-${item.id}`} item={item} />)}
-            </HomeRail>
-          )}
-        </section>
+        )}
       </section>
-    </section>
+
+      <section className="cockpit-home__section" aria-labelledby="cockpit-home-news-title">
+        <HomeSectionHeading><span id="cockpit-home-news-title">Mes actualités</span></HomeSectionHeading>
+        {newsItems.length === 0 ? (
+          <p className="cockpit-home__meeting-empty">Aucune actualité récente</p>
+        ) : (
+          <HomeRail label="Actualités récentes">
+            {newsItems.map((item) => <NewsTile key={`${item.kind}-${item.id}`} item={item} />)}
+          </HomeRail>
+        )}
+      </section>
+    </MobileOverviewShell>
   )
 }

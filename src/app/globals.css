@@ -43,7 +43,7 @@
      Usage cible principal : headers / page identification.
      Ces tokens NE représentent PAS des états fonctionnels.
      Ne pas les remplacer par cat-*, status-*, domain-* ou dataviz-*. */
-  --color-page-home: #244078;
+  --color-page-home: #1A417C;
   --color-page-agenda: #FF9800;
 
   --color-page-accounts-contacts: #1E5E99;
@@ -63,7 +63,7 @@
   --color-cockpit-cobalt: var(--color-brand-primary);
   --color-cockpit-cobalt-deep: var(--color-brand-primary-deep);
   --color-cockpit-cobalt-soft: #EAF0FB;
-  --color-cockpit-home-petrol: #1A417C;
+  --color-cockpit-home-petrol: var(--color-page-home);
   --color-cockpit-home-petrol-shape: #3F6288;
   --color-cockpit-intelligence: #173D89;
   --color-cockpit-intelligence-border: #4567A1;
