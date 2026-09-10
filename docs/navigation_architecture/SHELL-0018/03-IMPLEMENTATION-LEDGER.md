@@ -108,7 +108,7 @@ QA minimale :
 | **7.0** | Audit global CURRENT → TARGET des workspaces | ✅ livré | audit sur `HEAD` (`f477f736`) ; 10 workspaces revalidés contre 09 §B/C ; impact Data/Routing/Desktop/Mobile ; blockers ; sous-lots 7.3A/B/C ; séquence Phase 7 ; `MISSION_CATALOG` = 7 specs (framework mission réutilisable) ; duplication rentabilité Finance↔Engagements confirmée. Document `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md`. Voir §40 |
 | **7.1** | Alignement Opportunités | ⬜ todo | `YES AFTER REBASELINE` — attend l'intégration de la refonte Synthèse Opportunités parallèle |
 | **7.2** | Alignement Consultants | ✅ techniquement livré (`bb2a3a4d`) | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
-| **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
+| **7.3** | Engagements + Finance (coordonné) | 🔵 en cours | **7.3A ✅ livré** (`refactor(finance): unify mission profitability data`) — contrat canonique `src/lib/finance/mission-profitability.ts`, builder pur partagé, **0 migration / 0 RLS / 0 n8n** ; Finance + Engagements consomment le même calcul ; 19 tests de contrat + non-divergence. Doc `12-PHASE-7.3A-PROFITABILITY-DATA-CONTRACT-2026-09-10.md`. Voir §48. → **7.3B `UNBLOCKED`**, puis 7.3C |
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
 | **7.5** | Alignement Prospection | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.6** | Alignement Rapports & Rédaction | ✅ techniquement livré (`958515e3`) | 1 RENAME Desktop (`Connaissance`, clé `knowledge` conservée) ; 2 modules contextuels `Gestion de la connaissance` et `Analyse transverse` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression de l'accès header redondant ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §45 |
@@ -2609,3 +2609,73 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 - **Lot 7.1 — ✅ livré.** Commit : `0458ed42` — `refactor(opportunities): align workspace target navigation`.
 - **Opportunities Lot 12 — ✅ livré / fermé.** `Opportunities Workspace → TECHNICALLY CLOSED`.
+
+---
+
+## 48. Lot 7.3A — Contrat Data canonique de rentabilité mission
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `4e573c1b` (`HEAD == origin/main`).
+> Cible : `09-*` §B.2 / §B.4. Plan d'exécution : `11-*` §6.3 / §19 (§7.3A).
+> Décision d'architecture : **builder pur partagé** (option B) — vue Supabase écartée.
+> Document dédié : `12-PHASE-7.3A-PROFITABILITY-DATA-CONTRACT-2026-09-10.md`.
+
+### Problème résolu
+
+Deux chaînes recalculaient indépendamment la rentabilité mission sur des tables qui se
+recoupent (`11-*` §6.3) : `getFinanceDashboardData()` (formule inline + fallback contractuel +
+`marginPct` hybride + année = `max(pnl_monthly)`) et `getEngagementsActivityAnalytics()`
+(`computeRealMarginPct` réutilisé mais `computeTheoreticalMarginPct` ré-implémenté localement,
+agrégats en moyenne naïve, année = `now`).
+
+### Portée livrée
+
+| Fichier | Changement |
+|---|---|
+| `src/lib/finance/mission-profitability.ts` | **créé** — contrat canonique pur (sans React / Supabase / `server-only`) : primitives `theoreticalMarginPct` / `realRevenue` / `realCost` / `realMarginPct` + `buildMissionProfitability()` + `summarizeMissionProfitability()` (agrégat **pondéré valeur**) |
+| `src/lib/finance/__tests__/mission-profitability.test.ts` | **créé** — 19 tests : cas §17 (1→7) + test de non-divergence §18 |
+| `src/components/missions/mission-detail/mission-detail-utils.ts` | `computeTotalRevenue` / `computeRealMarginPct` / `computeTheoreticalMarginPct` **délèguent** au contrat — API publique inchangée, 6 consommateurs (`MissionFinancialTab`, `MissionSynthesisTab`, `MissionOverviewDesktop`, `MissionActivityTab`, `MissionDetailsRail`, tests) **non modifiés** |
+| `src/lib/finance/finance-data.ts` | `missionProfitability` construit via `buildMissionProfitability(...)` ; formule inline + fallback mort supprimés ; `MissionProfitabilityRow` (shape) et sémantique de `marginPct` **préservées** (`effectiveMarginPct ?? 0`) ; période = année civile courante |
+| `src/components/missions/engagements/engagements-activity-utils.ts` | `theoreticalMarginPct` local + `toActivityReport` + `reportsByMission` supprimés ; `marginReality.items` via le contrat ; `marginReality.{theoretical,real,gap}Avg` via `summarizeMissionProfitability` (**pondéré valeur** — corrige la moyenne naïve, cf. §17/§18 du cadrage) ; `EngagementsActivityAnalytics` (shape) inchangé |
+
+### Architecture
+
+- **Deux vérités séparées** : `real` (snapshots CRA **seuls**, `null` si pas de CA — pas de marge inventée) / `theoretical` (`gross_margin_pct` sinon `(TJM−CJM)/TJM`, `source` tracé). `effectiveMarginPct = real ?? theoretical` est **le seul** endroit où ce repli est défini.
+- **Risque TACI** (`financial-modeling-contract.md`) : le contrat ne réapplique **jamais** un taux d'activité — `cjm_snapshot × billable_days`, sans seconde pondération.
+- **Période explicite** : `period` (`civil-year` défaut / `lifetime`) + `referenceYear` toujours portés par le résultat.
+- **Agrégat pondéré valeur** partout (`ΣmargeValeur / ΣCA`), jamais `average(marginPct)`.
+- Direction des imports : `components → lib` (correct) ; `mission-profitability.ts` est un module feuille.
+
+### Décision builder vs vue
+
+`DATA SCHEMA = 0 / RLS = 0 / migration = 0`. Aucun critère justifiant une vue (§8 du cadrage) rempli :
+volume trivial (33 missions / ~152 CRA), primitives TS déjà testées, loaders lisant déjà ces tables,
+2 consommateurs à projections distinctes. Impact réel = **DATA-1** (l'audit prévoyait DATA-2 au pire).
+
+### Non mutualisé (volontairement)
+
+`pnl_monthly` (consolidé, pas de granularité mission) · `finance-mobile-model.ts` (revenue-only, aucune
+marge mission) · pipe / funnel / alertes Finance · `client_closures` / productivité / `sick_days`
+Engagements · moteur `financial-model-v1`. **Dette identifiée** : `engagements-portfolio-utils.ts`
+(Atlas du portefeuille) recalcule inline — réconciliation → **7.3B**.
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-0**.
+- **Supabase** : **0** — schéma, RLS, vue, RPC, migration : aucun.
+- **n8n** : **0**.
+- **Mobile** : **0** — `finance-mobile-*` / `EngagementsMobileShell` non touchés ; primitives `mission-detail-utils` inchangées en surface (aucune branche Mobile impactée).
+- **UI produit** : 0 changement structurel. **1 changement numérique assumé** : les 3 moyennes du bloc « Rentabilité théorique vs réelle » d'Engagements passent de moyenne naïve à pondérée valeur (exigé §17/§18 ; sans effet tant que les CA missions sont proches).
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (295 fichiers / 3075 tests)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers touchés) → **PASS** (5 `no-explicit-any` de `finance-data.ts:166-170` **préexistants** sur `origin/main`, non aggravés)
+- `npm run build` → **PASS**
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.3A — ✅ livré.** `Profitability Data Contract → CANONICAL`.
+- **7.3B Engagements → `UNBLOCKED`.** **7.3C Finance → `UNBLOCKED`** (après 7.3B, séquence `11-*` §18).

@@ -4,6 +4,11 @@ import type {
   MissionCompensation,
   MissionDetailTabId,
 } from "./mission-detail-types"
+import {
+  realRevenue,
+  realMarginPct,
+  theoreticalMarginPct,
+} from "@/lib/finance/mission-profitability"
 
 // ─── Seuils métier centralisés ────────────────────────────────────────────────
 
@@ -84,9 +89,14 @@ export function isEndingSoon(endDate: string | null, daysThreshold = 30): boolea
 
 // ─── Calculs financiers (depuis les CRA) ─────────────────────────────────────
 
-/** CA réel depuis le début de la mission (billable_days × tjm_snapshot par CRA) */
+/**
+ * CA réel depuis le début de la mission (billable_days × tjm_snapshot par CRA).
+ * Délègue au contrat canonique de rentabilité (SHELL-0018 Lot 7.3A).
+ */
 export function computeTotalRevenue(reports: MissionActivityReport[]): number {
-  return reports.reduce((sum, r) => sum + r.billable_days * r.tjm_snapshot, 0)
+  return realRevenue(
+    reports.map((r) => ({ billableDays: r.billable_days, tjmSnapshot: r.tjm_snapshot })),
+  )
 }
 
 /** CA YTD : CRA de l'année civile en cours */
@@ -97,15 +107,19 @@ export function computeYtdRevenue(reports: MissionActivityReport[]): number {
     .reduce((sum, r) => sum + r.billable_days * r.tjm_snapshot, 0)
 }
 
-/** Marge réelle calculée sur les snapshots des CRA (ne jamais utiliser TJM/CJM actuel) */
+/**
+ * Marge réelle calculée sur les snapshots des CRA (ne jamais utiliser TJM/CJM
+ * actuel). Délègue au contrat canonique de rentabilité (SHELL-0018 Lot 7.3A) —
+ * cette fonction reste la façade historique du domaine `mission-detail`.
+ */
 export function computeRealMarginPct(reports: MissionActivityReport[]): number | null {
-  const totalRevenue = computeTotalRevenue(reports)
-  if (totalRevenue <= 0) return null
-  const totalCost = reports.reduce(
-    (sum, r) => sum + r.billable_days * r.cjm_snapshot,
-    0
+  return realMarginPct(
+    reports.map((r) => ({
+      billableDays: r.billable_days,
+      tjmSnapshot: r.tjm_snapshot,
+      cjmSnapshot: r.cjm_snapshot,
+    })),
   )
-  return Math.round(((totalRevenue - totalCost) / totalRevenue) * 100 * 100) / 100
 }
 
 /** Jours facturables totaux depuis le début */
@@ -193,11 +207,16 @@ export function computeAnnualContractValueThroughYearEnd(
   return workingDaysEstimate * mission.tjm
 }
 
-/** Marge théorique depuis les champs courants (pour comparaison avec la marge réelle) */
+/**
+ * Marge théorique depuis les champs courants (pour comparaison avec la marge
+ * réelle). Délègue au contrat canonique de rentabilité (SHELL-0018 Lot 7.3A).
+ */
 export function computeTheoreticalMarginPct(mission: MissionSummary): number | null {
-  if (mission.gross_margin_pct !== null) return mission.gross_margin_pct
-  if (mission.tjm <= 0) return null
-  return Math.round(((mission.tjm - mission.cjm) / mission.tjm) * 100 * 100) / 100
+  return theoreticalMarginPct({
+    tjm: mission.tjm,
+    cjm: mission.cjm,
+    grossMarginPct: mission.gross_margin_pct,
+  }).marginPct
 }
 
 /** Salaire mensuel estimé (admin : gross_annual ; fallback : heuristique CJM) */

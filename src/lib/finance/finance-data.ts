@@ -2,6 +2,7 @@ import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
 import { formatEuroCompact, formatPct } from "@/lib/formatters"
+import { buildMissionProfitability } from "./mission-profitability"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Finance — couche données enrichie
@@ -242,37 +243,38 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
     executiveTone = "danger"
   }
 
-  // 3. Rentabilité missions (jointures en mémoire)
+  // 3. Rentabilité missions — contrat canonique partagé avec Engagements
+  //    (SHELL-0018 Lot 7.3A). Période : année civile courante (sémantique des
+  //    colonnes « CA YTD » / « MCO YTD » de la table). `marginPct` = marge
+  //    réelle constatée dès qu'un CA existe, sinon marge théorique
+  //    contractuelle — repli défini une seule fois (`effectiveMarginPct`).
   const companyMap = new Map(companies.map((c) => [c.id, c.name]))
   const collabMap = new Map(collaborators.map((c) => [c.id, c]))
+
+  const profitabilityByMission = new Map(
+    buildMissionProfitability(
+      missions.map((m) => ({
+        id: m.id,
+        tjm: Number(m.tjm ?? 0),
+        cjm: Number(m.cjm ?? 0),
+        grossMarginPct: m.gross_margin_pct == null ? null : Number(m.gross_margin_pct),
+      })),
+      reports.map((r) => ({
+        missionId: r.mission_id,
+        periodStart: String(r.period_start).slice(0, 10),
+        billableDays: Number(r.billable_days ?? 0),
+        tjmSnapshot: Number(r.tjm_snapshot ?? 0),
+        cjmSnapshot: Number(r.cjm_snapshot ?? 0),
+      })),
+      { period: "civil-year", referenceYear: new Date().getFullYear() },
+    ).map((row) => [row.missionId, row]),
+  )
 
   const missionProfitability: MissionProfitabilityRow[] = missions.map((m) => {
     const clientName = companyMap.get(m.company_id) || "Client Inconnu"
     const collab = collabMap.get(m.collaborator_id)
     const consultantName = collab ? getPersonName(pickOne(collab.persons)) : "Consultant Inconnu"
-
-    // Filtre des CRA de la mission pour l'année courante
-    const missionReports = reports.filter(
-      (r) => r.mission_id === m.id && new Date(r.period_start).getFullYear() === currentYear
-    )
-
-    const billableDays = missionReports.reduce((sum, r) => sum + (r.billable_days ?? 0), 0)
-    let revenue = 0
-    let cost = 0
-
-    if (billableDays > 0) {
-      revenue = missionReports.reduce(
-        (sum, r) => sum + (r.billable_days ?? 0) * (r.tjm_snapshot ?? m.tjm),
-        0
-      )
-      cost = missionReports.reduce(
-        (sum, r) => sum + (r.billable_days ?? 0) * (r.cjm_snapshot ?? m.cjm),
-        0
-      )
-    }
-
-    const marginValue = revenue - cost
-    const marginPct = revenue > 0 ? (marginValue / revenue) * 100 : m.gross_margin_pct ?? 0
+    const profitability = profitabilityByMission.get(m.id)
 
     return {
       id: m.id,
@@ -283,10 +285,10 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
       status: m.status,
       tjm: m.tjm,
       cjm: m.cjm,
-      billableDays,
-      revenue,
-      marginValue,
-      marginPct,
+      billableDays: profitability?.real.billableDays ?? 0,
+      revenue: profitability?.real.revenue ?? 0,
+      marginValue: profitability?.real.marginValue ?? 0,
+      marginPct: profitability?.effectiveMarginPct ?? 0,
       startDate: m.start_date,
       endDate: m.end_date,
     }

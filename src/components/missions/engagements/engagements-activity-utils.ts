@@ -1,11 +1,9 @@
-import type { MissionActivityReport } from "@/components/missions/mission-detail/mission-detail-types"
+import { ACTIVITY_THRESHOLDS } from "@/components/missions/mission-detail/mission-detail-utils"
 import {
-  ACTIVITY_THRESHOLDS,
-  computeRealMarginPct,
-} from "@/components/missions/mission-detail/mission-detail-utils"
+  buildMissionProfitability,
+  summarizeMissionProfitability,
+} from "@/lib/finance/mission-profitability"
 import type {
-  ActivityMissionSource,
-  ActivityReportSource,
   EngagementsActivityAnalytics,
   EngagementsActivitySources,
   MarginRealityItem,
@@ -42,36 +40,6 @@ function average(values: number[]): number | null {
   return values.reduce((sum, value) => sum + value, 0) / values.length
 }
 
-/**
- * Marge théorique courante d'une mission — logique canonique de
- * `computeTheoreticalMarginPct` (mission-detail-utils) : `gross_margin_pct`
- * généré en priorité, sinon `(TJM − CJM) / TJM`. Jamais recalculée à partir des
- * CRA (c'est le rôle de la marge réelle).
- */
-function theoreticalMarginPct(mission: ActivityMissionSource): number | null {
-  if (mission.grossMarginPct !== null) return mission.grossMarginPct
-  if (mission.tjm <= 0) return null
-  return Math.round(((mission.tjm - mission.cjm) / mission.tjm) * 100 * 100) / 100
-}
-
-/** Adapte une source CRA à la forme attendue par les helpers mission-detail. */
-function toActivityReport(report: ActivityReportSource): MissionActivityReport {
-  return {
-    id: report.id,
-    period_start: report.periodStart,
-    period_end: report.periodEnd,
-    status: report.status,
-    billable_days: report.billableDays,
-    non_billable_days: report.nonBillableDays,
-    business_days: report.businessDays,
-    pto_days: report.ptoDays,
-    sick_days: report.sickDays,
-    activity_rate_percent: report.activityRatePercent,
-    tjm_snapshot: report.tjmSnapshot,
-    cjm_snapshot: report.cjmSnapshot,
-  }
-}
-
 export function buildEngagementsActivityAnalytics(
   sources: EngagementsActivitySources,
 ): EngagementsActivityAnalytics {
@@ -81,12 +49,6 @@ export function buildEngagementsActivityAnalytics(
   const todayIso = now.toISOString().slice(0, 10)
 
   const missionById = new Map(missions.map((mission) => [mission.id, mission]))
-  const reportsByMission = new Map<string, ActivityReportSource[]>()
-  for (const report of reports) {
-    const bucket = reportsByMission.get(report.missionId)
-    if (bucket) bucket.push(report)
-    else reportsByMission.set(report.missionId, [report])
-  }
 
   // ── Bloc 1 — Productivité globale ─────────────────────────────────────────
   const monthly: ProductivityMonthPoint[] = MONTH_LABELS.map((label, monthIndex) => {
@@ -141,48 +103,65 @@ export function buildEngagementsActivityAnalytics(
     })
 
   // ── Bloc 3 — Rentabilité théorique vs réelle ─────────────────────────────
+  //  Contrat canonique partagé avec Finance (SHELL-0018 Lot 7.3A). Marge réelle
+  //  = snapshots CRA de l'année civile ; marge théorique = `gross_margin_pct`.
+  //  Les moyennes portefeuille sont pondérées EN VALEUR (CA réel), jamais une
+  //  moyenne naïve des pourcentages.
+  const profitability = buildMissionProfitability(
+    missions.map((mission) => ({
+      id: mission.id,
+      tjm: mission.tjm,
+      cjm: mission.cjm,
+      grossMarginPct: mission.grossMarginPct,
+    })),
+    reports.map((report) => ({
+      missionId: report.missionId,
+      periodStart: report.periodStart,
+      billableDays: report.billableDays,
+      tjmSnapshot: report.tjmSnapshot,
+      cjmSnapshot: report.cjmSnapshot,
+    })),
+    { period: "civil-year", referenceYear: year },
+  )
+  const profitabilityByMission = new Map(profitability.map((row) => [row.missionId, row]))
+
   const marginItems: MarginRealityItem[] = missions
-    .map((mission) => {
-      const missionReports = reportsByMission.get(mission.id) ?? []
-      if (missionReports.length === 0) return null
-
-      const realPct = computeRealMarginPct(missionReports.map(toActivityReport))
-      const theoPct = theoreticalMarginPct(mission)
-      if (realPct === null || theoPct === null) return null
-
-      const billableDays = missionReports.reduce(
-        (sum, report) => sum + report.billableDays,
-        0,
-      )
-      if (billableDays <= 0) return null
+    .map((mission): MarginRealityItem | null => {
+      const row = profitabilityByMission.get(mission.id)
+      if (!row || !row.real.available || row.real.marginPct === null) return null
+      if (row.theoretical.marginPct === null) return null
+      if (row.real.billableDays <= 0) return null
 
       return {
         missionId: mission.id,
         title: mission.title,
         companyName: mission.companyName,
         collaboratorName: mission.collaboratorName,
-        theoreticalPct: roundOne(theoPct),
-        realPct: roundOne(realPct),
-        gapPoints: roundOne(realPct - theoPct),
-        billableDays: roundOne(billableDays),
+        theoreticalPct: roundOne(row.theoretical.marginPct),
+        realPct: roundOne(row.real.marginPct),
+        gapPoints: roundOne(row.real.marginPct - row.theoretical.marginPct),
+        billableDays: roundOne(row.real.billableDays),
       }
     })
     .filter((item): item is MarginRealityItem => item !== null)
     .sort((a, b) => a.gapPoints - b.gapPoints)
 
+  const eligibleForPortfolio = new Set(marginItems.map((item) => item.missionId))
+  const portfolio = summarizeMissionProfitability(
+    profitability.filter((row) => eligibleForPortfolio.has(row.missionId)),
+  )
+
   const marginReality = {
     theoreticalAvg:
-      marginItems.length > 0
-        ? roundOne(average(marginItems.map((item) => item.theoreticalPct)) ?? 0)
-        : null,
+      portfolio.weightedTheoreticalMarginPct === null
+        ? null
+        : roundOne(portfolio.weightedTheoreticalMarginPct),
     realAvg:
-      marginItems.length > 0
-        ? roundOne(average(marginItems.map((item) => item.realPct)) ?? 0)
-        : null,
+      portfolio.weightedRealMarginPct === null
+        ? null
+        : roundOne(portfolio.weightedRealMarginPct),
     gapAvg:
-      marginItems.length > 0
-        ? roundOne(average(marginItems.map((item) => item.gapPoints)) ?? 0)
-        : null,
+      portfolio.weightedGapPoints === null ? null : roundOne(portfolio.weightedGapPoints),
     items: marginItems,
   }
 

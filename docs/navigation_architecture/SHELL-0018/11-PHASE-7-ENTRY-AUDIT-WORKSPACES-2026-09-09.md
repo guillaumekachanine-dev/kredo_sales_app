@@ -349,6 +349,11 @@ un seul moteur de calcul, pas de duplication UI**.
 
 **Recommandation : découper 7.3 en sous-lots.**
 
+> **✅ 7.3A livré (2026-09-10)** — décision : **builder pur partagé** (`src/lib/finance/mission-profitability.ts`),
+> vue Supabase écartée. `DATA-1` en réalité (0 migration / 0 RLS / 0 n8n). Finance et Engagements
+> consomment le même `buildMissionProfitability()`. Doc `12-PHASE-7.3A-PROFITABILITY-DATA-CONTRACT-2026-09-10.md` ·
+> ledger §48. **7.3B `UNBLOCKED`.**
+
 | Sous-lot | Objet | Data | UI |
 |---|---|---|---|
 | **7.3A** | Contrat Data unique de rentabilité mission/engagement | **DATA-2** — soit une vue `v_mission_profitability` (préférée, aligne `missions.gross_margin_pct` déjà GENERATED + `v_collaborator_activity_summary` migration 025), soit un builder pur partagé consommé par les deux loaders. **Décision Data requise.** | — |
@@ -377,7 +382,8 @@ un seul moteur de calcul, pas de duplication UI**.
 | Finance | Module | — | Atlas du portefeuille | NEW/FUTURE | — | — | FUTURE | §17 | différé |
 | Finance | Module | — | Mission : analyse des marges | NEW/FUTURE (framework REUSE) | DATA-1 | `MissionComposerDesktop` | FUTURE | §18 | différé |
 
-**Statut : `NEEDS DATA DECISION`** (7.3A : vue vs builder partagé). Complexité **HIGH**.
+**Statut : 7.3A ✅ `IMPLEMENTED / PASS` (2026-09-10)** — builder pur partagé retenu, 0 migration.
+**7.3B / 7.3C : `UNBLOCKED`**, à faire dans l'ordre. Complexité **HIGH**.
 Sous-lots **7.3A → 7.3B → 7.3C** obligatoires dans cet ordre.
 
 ---
@@ -791,15 +797,20 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
   (`AppDialog`) ; libellés Desktop + Mobile alignés ; 0 pathname / 0 redirect / 0 Data.
   Consultants Lot 15 → `UNBLOCKED / READY`.
 
-### 7.3A — Contrat Data rentabilité (préalable)
+### 7.3A — Contrat Data rentabilité (préalable) — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** une seule source de vérité rentabilité mission/engagement.
-- **Data :** **DATA-2** — créer `v_mission_profitability` (recommandé) OU un builder pur partagé
-  `src/lib/finance/build-mission-profitability.ts` consommé par `getFinanceDashboardData()` **et**
-  `getEngagementsActivityAnalytics()`. `missions.gross_margin_pct` (GENERATED) reste la source de
-  marge ; aucun 2ᵉ calcul.
-- **DoD :** les deux loaders consomment le même contrat ; `MissionProfitabilityRow` unifié ; tests
-  de parité (même mission → mêmes chiffres des deux côtés).
-- **Dependencies :** décision Data (vue vs builder) — **NEEDS DATA DECISION**.
+- **Data :** **DATA-1** (revu à la baisse) — **builder pur partagé** `src/lib/finance/mission-profitability.ts`
+  (`buildMissionProfitability` / `summarizeMissionProfitability`), pas de vue. `missions.gross_margin_pct`
+  reste la marge théorique ; marge réelle = snapshots CRA seuls. **0 migration / 0 RLS / 0 n8n.**
+- **DoD :** ✅ les deux loaders consomment le même contrat ; `MissionProfitabilityRow` (shape) préservé ;
+  19 tests de contrat + non-divergence (`src/lib/finance/__tests__/mission-profitability.test.ts`).
+- **Décision Data :** builder vs vue → **builder** (aucun critère justifiant une vue : volume trivial,
+  primitives déjà testées, loaders lisant déjà les tables). Doc `12-*` · ledger §48.
+- **✅ Livré :** contrat canonique créé ; `computeRealMarginPct` / `computeTheoreticalMarginPct`
+  (mission-detail-utils) délèguent au contrat sans changer d'API ; `finance-data.ts` et
+  `engagements-activity-utils.ts` recâblés (formule inline + fallback mort + `theoreticalMarginPct`
+  local supprimés) ; agrégats Engagements passés en pondération valeur. Gates `typecheck` / `test`
+  (3075) / `check:server-boundary` / `lint` / `build` / `diff --check` = **PASS**.
 
 ### 7.3B — Engagements
 - **Objectif :** `activite-conges` → « Rentabilité des engagements » (contenu 7.3A) ; `planning-at`
@@ -885,8 +896,8 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 |---|---|---|---|---|---|---|---|---|
 | **7.1** | Opportunités | LOW | DATA-0 | 7 labels | NO IMPACT | refonte Synthèse parallèle | Non (levé) | ✅ **IMPLEMENTED / PASS** |
 | **7.2** | Consultants | MEDIUM | DATA-0 (cœur) | 3 labels + 1 TRANSFORM | SEPARATE IMPL. (pool) | — | Non | ✅ **IMPLEMENTED / PASS** (`bb2a3a4d`) |
-| **7.3A** | Rentabilité Data | HIGH | **DATA-2** | — | — | décision vue/builder | Non | **NO — DECISION REQUIRED** |
-| **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A | Non | NO (après 7.3A) |
+| **7.3A** | Rentabilité Data | HIGH | **DATA-1** (builder) | — | — | ✅ builder retenu | Non | ✅ **IMPLEMENTED / PASS** (`12-*`, §48) |
+| **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A ✅ | Non | **UNBLOCKED** (après 7.3A) |
 | **7.3C** | Finance | MEDIUM | DATA-1 | 2 RENAME + 1 module | LABEL SYNC | 7.3A, 7.3B | Non | NO (après 7.3B) |
 | **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`a9ac0d36`) |
 | **7.5** | Prospection | HIGH | DATA-1+ | REMOVE + RENAME + TRANSFORM (coquilles vides) | FUTURE | **décision produit** | Non | **NO — DECISION REQUIRED** |
@@ -918,7 +929,9 @@ exécutable** si 7.1 reste bloqué.
 
 1. **`MISSION_CATALOG` = 7 specs** — `CLAUDE.md` (« ADR-0020… Catalogue = 1 mission ») est **périmé**.
    À corriger lors d'une prochaine révision de `CLAUDE.md` (hors SHELL-0018).
-2. **Duplication de lecture rentabilité** Finance ↔ Engagements (§6.3) — résorbée par 7.3A.
+2. **Duplication de lecture rentabilité** Finance ↔ Engagements (§6.3) — ✅ **résorbée par 7.3A**
+   (2026-09-10, builder pur `src/lib/finance/mission-profitability.ts`). Reste `engagements-portfolio-utils.ts`
+   (Atlas du portefeuille) à réconcilier en 7.3B (doc `12-*` §11).
 3. **Prospection = workspace coquille** — `chapter_1/2/3` vides. La cible 09 §B.6 est de la
    construction, pas de l'alignement. À arbitrer produit avant 7.5.
 4. **Prospection Mobile = placeholder statique** — pas d'implémentation. Décider du périmètre Mobile.
@@ -937,7 +950,9 @@ exécutable** si 7.1 reste bloqué.
   ✅ **CLOSED (2026-09-10)** (workspace techniquement clos).
 - ~~**Phase 7.1 — Alignement Opportunités**~~ → ✅ **livré (2026-09-10)**. Opportunities Lot 12 →
   **UNBLOCKED / READY**.
-- Suite Phase 7 : `7.3A → 7.3B → 7.3C → 7.5 → 7.10`.
+- ~~**Phase 7.3A — Contrat Data rentabilité**~~ → ✅ **livré (2026-09-10)** (builder pur, 0 migration).
+  Doc `12-PHASE-7.3A-PROFITABILITY-DATA-CONTRACT-2026-09-10.md` · ledger §48.
+- Suite Phase 7 : `7.3B → 7.3C → 7.5 → 7.10`.
 
 Opportunities Lot 12 : **UNBLOCKED / READY** (après 7.1). Consultants Lot 15 :
 **CLOSED** (workspace techniquement clos).
