@@ -112,7 +112,7 @@ QA minimale :
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
 | **7.5** | Alignement Prospection | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.6** | Alignement Rapports & Rédaction | ✅ techniquement livré (`958515e3`) | 1 RENAME Desktop (`Connaissance`, clé `knowledge` conservée) ; 2 modules contextuels `Gestion de la connaissance` et `Analyse transverse` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression de l'accès header redondant ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §45 |
-| **7.7** | Alignement Veille & Actualités | ✅ techniquement livré | 2 RENAME Desktop (`Actualités thématiques`, `Veille Ciblée`) ; 4 modules contextuels `Gestion des sources`, `Gestion de la connaissance`, `Analyse transverse`, `Mission : analyse de la veille` reliés au `SectionRail` ; Mobile LABEL SYNC ; DATA-0 / URL-0. Voir §46 |
+| **7.7** | Alignement Veille & Actualités | ✅ techniquement livré (`6ba72734`) | 2 RENAME Desktop (`Actualités thématiques`, `Veille Ciblée`) ; 4 modules contextuels `Gestion des sources`, `Gestion de la connaissance`, `Analyse transverse`, `Mission : analyse de la veille` reliés au `SectionRail` ; Mobile LABEL SYNC ; DATA-0 / URL-0. Voir §46 |
 | **7.8** | Alignement Knowledge Hub | ✅ techniquement livré (`e49a4a9e`) | 2 RENAME Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs/URLs/Data inchangés ; Mobile LABEL SYNC ; Ateliers KEEP ; RAG DEFERRED/NEW-FUTURE. Voir §43 |
 | **7.9** | Alignement Automatisations | ✅ techniquement livré (`fab5d06f`) | 1 RENAME Desktop (`Fiabilité des workflows`, clé `sante` conservée) ; 2 modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression des boutons redondants locaux ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §44 |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
@@ -2559,4 +2559,4 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 ### Verdict
 
-- **Lot 7.7 — ✅ livré.** Refactor navigation cible Veille & Actualités validé.
+- **Lot 7.7 — ✅ livré.** Commit : `6ba72734` — `refactor(veille): align workspace target navigation`. Push sur `origin/main`.
