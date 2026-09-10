@@ -554,6 +554,151 @@ export type Database = {
           },
         ]
       }
+      account_source_documents: {
+        Row: {
+          canonical_url: string | null
+          collection_method: string | null
+          company_id: string
+          content_hash: string | null
+          created_at: string
+          domain: string
+          extracted_chars: number | null
+          extracted_text: string | null
+          failure_reason: string | null
+          fetched_at: string | null
+          http_status: number | null
+          id: string
+          kind: string
+          origin: string
+          published_at: string | null
+          reason: string | null
+          run_id: string
+          serves_modules: string[]
+          source_catalog_id: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          collection_method?: string | null
+          company_id: string
+          content_hash?: string | null
+          created_at?: string
+          domain: string
+          extracted_chars?: number | null
+          extracted_text?: string | null
+          failure_reason?: string | null
+          fetched_at?: string | null
+          http_status?: number | null
+          id?: string
+          kind: string
+          origin: string
+          published_at?: string | null
+          reason?: string | null
+          run_id: string
+          serves_modules?: string[]
+          source_catalog_id?: string | null
+          status: string
+          title?: string | null
+          updated_at?: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          canonical_url?: string | null
+          collection_method?: string | null
+          company_id?: string
+          content_hash?: string | null
+          created_at?: string
+          domain?: string
+          extracted_chars?: number | null
+          extracted_text?: string | null
+          failure_reason?: string | null
+          fetched_at?: string | null
+          http_status?: number | null
+          id?: string
+          kind?: string
+          origin?: string
+          published_at?: string | null
+          reason?: string | null
+          run_id?: string
+          serves_modules?: string[]
+          source_catalog_id?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_source_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_run_costs"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "source_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_source_catalog_id_fkey"
+            columns: ["source_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "v_corpus_news_sources"
+            referencedColumns: ["source_id"]
+          },
+          {
+            foreignKeyName: "account_source_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_watch_settings: {
         Row: {
           cadence: string
@@ -8434,6 +8579,10 @@ export type Database = {
           p_company_id: string
           p_workspace_id: string
         }
+        Returns: Json
+      }
+      get_account_understanding_context: {
+        Args: { p_company_id: string; p_workspace_id: string }
         Returns: Json
       }
       get_activity_commercial_facts: {
