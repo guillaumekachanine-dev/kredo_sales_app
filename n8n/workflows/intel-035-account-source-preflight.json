@@ -1,0 +1,750 @@
+{
+  "name": "INTEL-035 — Account Source Preflight",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intel-035-account-source-preflight",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "webhook-preflight",
+      "name": "Webhook — Source Preflight",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        300
+      ],
+      "webhookId": "intel-035-account-source-preflight"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ JSON.stringify($json.body) }}",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "verify-signature",
+      "name": "Verify Signature",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lot 0 — validation d'entrée. Toute incohérence est rejetée AVANT la moindre\n// écriture ou le moindre appel externe, exactement comme intel-030.\nconst item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'entityId', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error('Champ requis manquant dans le payload : ' + field);\n}\nif (body.entityType !== 'company') {\n  throw new Error('intel-035-account-source-preflight requiert entityType=\"company\"');\n}\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nfor (const field of ['runId', 'entityId', 'workspaceId']) {\n  if (!UUID.test(String(body[field]))) throw new Error('UUID invalide pour ' + field);\n}\n\nconst input = body.input || {};\n\n// Les 20 modules canoniques — MÊME liste que `src/lib/intelligence/account-intelligence-modules.ts`.\n// Un libellé d'interface n'est jamais accepté : c'est la régression V3 (SUBJECT_TO_SEGMENTS\n// indexé sur des chaînes françaises) qu'on refuse de rejouer.\nconst MODULES = ['entity_resolution','identity','size_and_financials','ownership','business_and_offering',\n  'business_model','customers_and_market','history','news','ambitions','sector_dynamics','competition',\n  'value_chain','technology_trends','regulatory','organisation','dependencies','it_intensity',\n  'kredo_relation','issues'];\n\nconst targetLevel = [1, 2, 3, 4].includes(Number(input.targetLevel)) ? Number(input.targetLevel) : 2;\n\nconst requestedModules = Array.isArray(input.includedModules)\n  ? input.includedModules.filter((m) => MODULES.includes(m))\n  : [];\nif (Array.isArray(input.includedModules) && input.includedModules.length > 0 && requestedModules.length === 0) {\n  // On ne retombe PAS silencieusement sur « tous les modules » : un vocabulaire non\n  // reconnu est une erreur d'appelant, pas une raison de rechercher plus large.\n  throw new Error('Aucun module canonique reconnu dans includedModules');\n}\n\n// URL ajoutées à la main par l'utilisateur. Elles sont fetchées comme les autres :\n// si elles sont inaccessibles, elles apparaissent `unreachable`. Aucune exception.\nconst additionalUrls = Array.isArray(input.additionalUrls)\n  ? input.additionalUrls.filter((u) => typeof u === 'string' && u.trim().length > 0).slice(0, 20)\n  : [];\n\nconst corpusIds = Array.isArray(input.corpusIds)\n  ? input.corpusIds.filter((id) => UUID.test(String(id))).slice(0, 10)\n  : [];\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workflowId: body.workflowId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    companyId: body.entityId,\n    callbackUrl: body.callbackUrl,\n    startedAtMs: Date.now(),\n    targetLevel,\n    requestedModules,\n    additionalUrls,\n    corpusIds,\n  }\n}];"
+      },
+      "id": "validate-preflight-input",
+      "name": "Validate Preflight Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs?id=eq.{{ $json.runId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'running', started_at: new Date().toISOString(), current_phase: 1 }) }}",
+        "options": {
+          "timeout": 20000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "update-run-status",
+      "name": "Update Run Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/rpc/get_account_understanding_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "public"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_workspace_id: $('Validate Preflight Input').first().json.workspaceId, p_company_id: $('Validate Preflight Input').first().json.companyId }) }}",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "hydrate-context",
+      "name": "Hydrate Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Inventaire de l'ACQUIS avant toute recherche : ce que KREDO sait déjà n'est pas\n// racheté (axiome A7). Le contexte vient de `get_account_understanding_context`,\n// la même RPC que la V4 d'intel-030 — aucune nouvelle hydratation à maintenir.\nconst validated = $('Validate Preflight Input').first().json;\nconst raw = $input.first().json;\nconst ctx = (Array.isArray(raw) ? raw[0] : raw) || {};\nconst company = ctx.company || {};\n\nconst canonical = {\n  name: company.name || null,\n  legal_name: company.legal_name || null,\n  website: company.website || null,\n  siren: company.siren || null,\n  naf_code: company.naf_code || null,\n  hq_location: company.hq_location || company.city || null,\n  sector: company.sector_name || null,\n  segment: company.segment_name || null,\n  employee_count: company.employee_count || null,\n  description: company.description || null,\n};\nif (!canonical.name) throw new Error('Compte sans raison sociale : préflight impossible');\n\n// Faits COURANTS et non périmés uniquement. Un fait expiré ne compte pas comme acquis :\n// c'est précisément ce qu'il faut re-chercher.\nconst nowMs = Date.now();\nconst currentFacts = (ctx.facts || []).filter((f) => {\n  if (!f || f.is_current === false) return false;\n  if (!f.expires_at) return true;\n  return new Date(f.expires_at).getTime() > nowMs;\n});\n\nreturn [{ json: {\n  ...validated,\n  canonical,\n  currentFacts,\n  existingSignals: ctx.signals || [],\n  sectorContext: ctx.sector || null,\n  dataCutoffAt: new Date().toISOString(),\n} }];"
+      },
+      "id": "prepare-dossier",
+      "name": "Prepare Dossier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Résolution d'entité légale — transcription partagée pour nœuds Code n8n ──\n//\n// GÉNÉRÉ À LA MAIN, PAS AUTOMATIQUEMENT. Transcription de\n// `src/lib/intelligence/entity-resolution.ts`, qui est la SOURCE DE VÉRITÉ et porte\n// les tests. Toute évolution se fait là-bas d'abord, puis ici, puis on rejoue les\n// scripts de patch (`patch-intel-030-entity-resolution.py`,\n// `patch-intel-010-entity-resolution.py`).\n//\n// Ce fichier n'est jamais exécuté tel quel : il est INJECTÉ dans les nœuds Code des\n// workflows n8n, qui n'ont pas d'imports. Les harnais\n// `n8n/workflows/__tests__/intel-0*.test.js` vérifient que les deux workflows portent\n// bien les mêmes invariants (seuils, garde de nom).\n\nconst LEGAL_FORM_TOKENS = new Set(['sa','sas','sasu','sarl','eurl','snc','sci','scs','sca','scop','scic','selas','selarl','selafa','sel','sem','spl','gie','gip','eirl','ei','societe','ste','cie','compagnie','etablissements','ets','ltd','limited','llc','inc','gmbh','ag','bv','nv','spa','srl','plc','et','de','du','des','la','le','les','aux']);\nconst HOLDING_LIKE_NAF = new Set(['70.10Z','70.22Z','64.20Z','82.99Z','74.90B','94.99Z']);\nconst SECTOR_TO_NAF_SECTIONS = {\n  'Aéronautique, Spatial & Défense': ['C','M','H','J'],\n  'Banque, Finance & Assurance': ['K'],\n  'BTP, Construction & Immobilier': ['F','L','G','M'],\n  'Commerce, Distribution & Services spécialisés': ['G','N','S','C'],\n  'EHPAD & Résidences Seniors': ['Q'],\n  'Énergie, Pétrochimie & Environnement': ['B','C','D','E','M'],\n  'Industrie manufacturière, électronique & équipements': ['C'],\n  'Logiciels, SaaS & Services numériques': ['J','M'],\n  'Nutraceutique, Santé Naturelle & Compléments Alimentaires': ['C','G','Q'],\n  'Parfumerie, Arômes & Cosmétique': ['C','G'],\n  'Santé, MedTech & Médico-social': ['Q','C','M'],\n  'Secteur public, Enseignement supérieur & Recherche': ['O','P','M','S'],\n  'Tourisme, Hôtellerie & Loisirs': ['I','N','R'],\n  'Transport & Mobilité régionale': ['H','N'],\n};\nconst TRANCHE_MIDPOINT = { '00':0,'01':2,'02':4,'03':7,'11':15,'12':35,'21':75,'22':150,'31':225,'32':375,'41':750,'42':1500,'51':3500,'52':7500 };\nconst WEIGHTS = { name: 3, geography: 3, activity_section: 1, known_naf: 2.5, size: 0.8, administrative_state: 1, known_siren: 10 };\nconst NAME_GATE_MIN = 0.4;\nconst RESOLVED_MIN_SCORE = 4;\nconst RESOLVED_MIN_NAME_SCORE = 0.65;\nconst RESOLVED_MIN_MARGIN = 1.5;\nconst CANDIDATE_MIN_SCORE = 2;\nconst REGISTRY_PER_PAGE = 10;\nconst AUDIT_CANDIDATE_LIMIT = 5;\n\nfunction erNormalize(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\n}\nfunction erTokens(v) { const n = erNormalize(v); return n.length > 0 ? n.split(' ') : []; }\nfunction erCore(v) { return erTokens(v).filter((t) => !LEGAL_FORM_TOKENS.has(t) && t.length > 1); }\nfunction erVariants() {\n  const out = [];\n  for (const value of Array.prototype.slice.call(arguments)) {\n    if (typeof value !== 'string' || value.trim().length === 0) continue;\n    const raw = value.trim();\n    out.push(raw);\n    const withoutParens = raw.replace(/\\([^)]*\\)/g, ' ').trim();\n    if (withoutParens.length > 0) out.push(withoutParens);\n    const inner = raw.match(/\\(([^)]+)\\)/g) || [];\n    for (const m of inner) { const t = m.slice(1, -1).trim(); if (t.length > 0) out.push(t); }\n    for (const part of raw.split('/')) { const t = part.trim(); if (t.length > 0) out.push(t); }\n  }\n  const seen = new Set(); const uniq = [];\n  for (const v of out) { const k = erNormalize(v); if (k.length === 0 || seen.has(k)) continue; seen.add(k); uniq.push(v); }\n  return uniq;\n}\nfunction erScoreNamePair(left, right) {\n  const a = erCore(left); const b = erCore(right);\n  if (a.length === 0 || b.length === 0) return 0;\n  if (a.join(' ') === b.join(' ')) return 1;\n  const shorter = a.length <= b.length ? a : b;\n  const longer = a.length <= b.length ? b : a;\n  if (shorter.length > 0 && shorter.length < longer.length && shorter.every((t, i) => t === longer[i])) return 0.8;\n  const longerSet = new Set(longer);\n  if (shorter.every((t) => longerSet.has(t))) return (longer.length - shorter.length > 2) ? 0.5 : 0.65;\n  const shared = shorter.filter((t) => longerSet.has(t)).length;\n  return (shared / shorter.length) >= 0.5 ? 0.4 : 0;\n}\nfunction erScoreName(acc, cand) {\n  const left = erVariants(acc.legalName, acc.name);\n  const right = erVariants.apply(null, [cand.legalName].concat(cand.alternateNames || []));\n  let best = 0;\n  for (const l of left) for (const r of right) { const s = erScoreNamePair(l, r); if (s > best) best = s; if (best === 1) return 1; }\n  return best;\n}\nfunction erParseLocation(value) {\n  if (typeof value !== 'string' || value.trim().length === 0) return { postalCode: null, department: null, tokens: [] };\n  const m = String(value).match(/\\b(\\d{5})\\b/);\n  const postalCode = m ? m[1] : null;\n  return { postalCode: postalCode, department: postalCode ? postalCode.slice(0, 2) : null, tokens: erTokens(value).filter((t) => !/^\\d+$/.test(t) && t.length > 2) };\n}\nfunction erGeography(acc, cand) {\n  const parsed = erParseLocation(acc.hqLocation);\n  const commune = erNormalize(cand.hqCommune);\n  const address = erNormalize(cand.hqAddress);\n  const dept = cand.hqDepartment || (cand.hqPostalCode ? cand.hqPostalCode.slice(0, 2) : null);\n  if (parsed.tokens.length === 0 && !parsed.postalCode) return { value: 0, detail: 'Siège inconnu au CRM — signal neutre.' };\n  if (parsed.postalCode && cand.hqPostalCode && parsed.postalCode === cand.hqPostalCode) return { value: 1, detail: 'Code postal identique (' + parsed.postalCode + ').' };\n  const communeTokens = commune.length > 0 ? commune.split(' ') : [];\n  const matches = communeTokens.length > 0 && (communeTokens.every((t) => parsed.tokens.indexOf(t) !== -1) || parsed.tokens.some((t) => communeTokens.indexOf(t) !== -1));\n  if (matches) return { value: 1, detail: 'Commune du siège concordante (' + cand.hqCommune + ').' };\n  if (address.length > 0 && parsed.tokens.some((t) => address.indexOf(t) !== -1)) return { value: 0.8, detail: \"Le lieu connu au CRM apparaît dans l'adresse du siège.\" };\n  if (parsed.department && dept) {\n    if (parsed.department === dept) return { value: 0.5, detail: 'Même département (' + parsed.department + '), commune différente.' };\n    return { value: -1, detail: 'Département incompatible : CRM ' + parsed.department + ', registre ' + dept + ' (' + (cand.hqCommune || '?') + ').' };\n  }\n  if (parsed.tokens.length > 0 && commune.length > 0) return { value: -0.5, detail: 'Lieu du CRM (' + acc.hqLocation + ') et commune du registre (' + cand.hqCommune + ') divergents, sans code postal pour arbitrer.' };\n  return { value: 0, detail: 'Géographie non comparable (aucun code postal au CRM).' };\n}\nfunction erActivity(acc, cand) {\n  if (cand.nafCode && HOLDING_LIKE_NAF.has(cand.nafCode)) return { value: 0, detail: 'NAF de holding ou de support (' + cand.nafCode + ') — signal neutre.' };\n  const expected = acc.sector ? SECTOR_TO_NAF_SECTIONS[acc.sector] : null;\n  if (!expected || !cand.nafSection) return { value: 0, detail: 'Secteur ou section NAF inconnu — signal neutre.' };\n  if (expected.indexOf(cand.nafSection) !== -1) return { value: 1, detail: 'Section NAF ' + cand.nafSection + ' cohérente avec « ' + acc.sector + ' ».' };\n  return { value: -1, detail: 'Section NAF ' + cand.nafSection + ' inattendue pour « ' + acc.sector + ' ».' };\n}\nfunction erKnownNaf(acc, cand) {\n  const known = erNormalize(acc.knownNafCode).replace(/\\s/g, '');\n  const found = erNormalize(cand.nafCode).replace(/\\s/g, '');\n  if (known.length === 0 || found.length === 0) return null;\n  if (known === found) return { value: 1, detail: 'Code NAF identique au CRM (' + cand.nafCode + ').' };\n  if (known.slice(0, 2) === found.slice(0, 2)) return { value: 0.6, detail: 'Même division NAF (' + found.slice(0, 2) + ').' };\n  return { value: -1, detail: 'Code NAF incompatible : CRM ' + acc.knownNafCode + ', registre ' + cand.nafCode + '.' };\n}\nfunction erSize(acc, cand) {\n  const crm = acc.employeeCount;\n  const mid = Object.prototype.hasOwnProperty.call(TRANCHE_MIDPOINT, String(cand.employeeTrancheCode || '')) ? TRANCHE_MIDPOINT[String(cand.employeeTrancheCode)] : null;\n  if (typeof crm !== 'number' || !isFinite(crm) || crm <= 0 || mid === null || mid <= 0) return { value: 0, detail: 'Effectif non comparable — signal neutre.' };\n  const ratio = crm > mid ? crm / mid : mid / crm;\n  if (ratio <= 3) return { value: 1, detail: 'Effectifs du même ordre (CRM ' + crm + ', tranche ≈ ' + mid + ').' };\n  if (ratio <= 10) return { value: -0.4, detail: 'Effectifs éloignés (CRM ' + crm + ', tranche ≈ ' + mid + ').' };\n  return { value: -1, detail: \"Effectifs d'ordres différents (CRM \" + crm + ', tranche ≈ ' + mid + ').' };\n}\nfunction erScoreCandidate(acc, cand) {\n  const signals = [];\n  const nameScore = erScoreName(acc, cand);\n  signals.push({ key: 'name', weight: WEIGHTS.name, value: nameScore, detail: 'Proximité de raison sociale : ' + nameScore.toFixed(2) + '.', blocking: nameScore < NAME_GATE_MIN });\n  const geo = erGeography(acc, cand);\n  signals.push({ key: 'geography', weight: WEIGHTS.geography, value: geo.value, detail: geo.detail, blocking: geo.value <= -1 });\n  const knownNaf = erKnownNaf(acc, cand);\n  if (knownNaf) signals.push({ key: 'known_naf', weight: WEIGHTS.known_naf, value: knownNaf.value, detail: knownNaf.detail, blocking: knownNaf.value < 0 });\n  else { const act = erActivity(acc, cand); signals.push({ key: 'activity_section', weight: WEIGHTS.activity_section, value: act.value, detail: act.detail, blocking: false }); }\n  const size = erSize(acc, cand);\n  signals.push({ key: 'size', weight: WEIGHTS.size, value: size.value, detail: size.detail, blocking: false });\n  const ceased = cand.administrativeState === 'C';\n  signals.push({ key: 'administrative_state', weight: WEIGHTS.administrative_state, value: ceased ? -1 : 0, detail: ceased ? 'Entité cessée au registre.' : 'Entité active.', blocking: ceased });\n  let score = 0;\n  for (const s of signals) score += s.weight * s.value;\n  score = Math.round(score * 100) / 100;\n  return { candidate: cand, score: score, nameScore: nameScore, signals: signals, blockers: signals.filter((s) => s.blocking).map((s) => s.detail) };\n}\nfunction erSiren(value) { if (typeof value !== 'string') { if (typeof value === 'number') value = String(value); else return null; } const d = value.replace(/\\D/g, ''); return d.length === 9 ? d : null; }\nfunction erNormalizeResult(raw) {\n  const siren = erSiren(raw && raw.siren);\n  if (!siren) return null;\n  const siege = (raw.siege && typeof raw.siege === 'object') ? raw.siege : {};\n  const str = (v) => (typeof v === 'string' && v.trim().length > 0) ? v.trim() : (typeof v === 'number' && isFinite(v) ? String(v) : null);\n  const enseignes = Array.isArray(siege.liste_enseignes) ? siege.liste_enseignes.map(str).filter(Boolean) : [];\n  let revenueEur = null; let revenueYear = null;\n  if (raw.finances && typeof raw.finances === 'object') {\n    const years = Object.keys(raw.finances).filter((y) => /^\\d{4}$/.test(y)).sort();\n    const last = years[years.length - 1];\n    if (last && raw.finances[last] && typeof raw.finances[last].ca === 'number') { revenueEur = raw.finances[last].ca; revenueYear = last; }\n  }\n  const postal = str(siege.code_postal);\n  return {\n    siren: siren,\n    legalName: str(raw.nom_raison_sociale) || str(raw.nom_complet),\n    alternateNames: [str(raw.nom_complet), str(raw.sigle), str(siege.nom_commercial)].concat(enseignes).filter(Boolean),\n    nafCode: str(raw.activite_principale) || str(siege.activite_principale),\n    nafSection: str(raw.section_activite_principale),\n    hqCommune: str(siege.libelle_commune),\n    hqPostalCode: postal,\n    hqDepartment: str(siege.departement) || (postal ? postal.slice(0, 2) : null),\n    hqAddress: str(siege.adresse),\n    employeeTrancheCode: str(raw.tranche_effectif_salarie) || str(siege.tranche_effectif_salarie),\n    companyCategory: str(raw.categorie_entreprise),\n    createdOn: str(raw.date_creation),\n    administrativeState: str(raw.etat_administratif) || str(siege.etat_administratif),\n    revenueEur: revenueEur,\n    revenueYear: revenueYear,\n  };\n}\nfunction erResolve(acc, candidates) {\n  const empty = (reasons) => ({ decision: 'unresolved', method: 'none', chosen: null, score: 0, margin: null, signals: [], blockers: [], reasons: reasons, candidates: [], canPropose: false });\n  const known = erSiren(acc.knownSiren);\n  if (known) {\n    const exact = candidates.filter((c) => erSiren(c.siren) === known)[0];\n    if (!exact) return empty(['Le compte porte le SIREN ' + known + \", absent des résultats du registre — appariement par nom refusé.\"]);\n    const scored = erScoreCandidate(acc, exact);\n    const contradicted = scored.blockers.length > 0 || scored.signals.some((s) => ['geography','known_naf','activity_section'].indexOf(s.key) !== -1 && s.value <= -0.5);\n    return { decision: 'resolved', method: 'crm_siren', chosen: exact, score: Math.round((WEIGHTS.known_siren + scored.score) * 100) / 100, margin: null, signals: scored.signals, blockers: scored.blockers, reasons: [contradicted ? 'Entité imposée par le SIREN du CRM, mais des signaux la contredisent — à contrôler.' : 'Entité imposée par le SIREN déjà enregistré au CRM.'], candidates: [scored], canPropose: !contradicted };\n  }\n  const eligible = candidates.map((c) => erScoreCandidate(acc, c)).filter((s) => s.nameScore >= NAME_GATE_MIN)\n    .sort((a, b) => (b.score - a.score) || (a.candidate.siren < b.candidate.siren ? -1 : 1));\n  if (eligible.length === 0) return empty([\"Aucun candidat ne porte un nom assez proche de celui du compte.\"]);\n  const best = eligible[0];\n  const runnerUp = eligible[1] || null;\n  const margin = runnerUp ? Math.round((best.score - runnerUp.score) * 100) / 100 : null;\n  const shortlist = eligible.slice(0, AUDIT_CANDIDATE_LIMIT);\n  if (best.score < CANDIDATE_MIN_SCORE) {\n    const r = empty(['Meilleur score ' + best.score + ' sous le seuil de candidature ' + CANDIDATE_MIN_SCORE + '.']);\n    r.candidates = shortlist; return r;\n  }\n  const failures = best.blockers.slice();\n  if (best.nameScore < RESOLVED_MIN_NAME_SCORE) failures.push('Proximité de nom insuffisante (' + best.nameScore.toFixed(2) + ').');\n  if (best.score < RESOLVED_MIN_SCORE) failures.push('Score global insuffisant (' + best.score + ' < ' + RESOLVED_MIN_SCORE + ').');\n  if (margin !== null && margin < RESOLVED_MIN_MARGIN) failures.push('Appariement ambigu : ' + best.candidate.siren + ' et ' + runnerUp.candidate.siren + ' séparés de ' + margin + ' seulement.');\n  const geo = best.signals.filter((s) => s.key === 'geography')[0];\n  const kn = best.signals.filter((s) => s.key === 'known_naf')[0];\n  if (!((geo && geo.value > 0) || (kn && kn.value >= 0.6))) failures.push(\"Aucune confirmation indépendante du nom : ni la commune du siège ni le code NAF connu n'étayent l'appariement.\");\n  if (failures.length > 0) return { decision: 'needs_human_confirmation', method: 'registry_match', chosen: best.candidate, score: best.score, margin: margin, signals: best.signals, blockers: best.blockers, reasons: failures, candidates: shortlist, canPropose: false };\n  return { decision: 'resolved', method: 'registry_match', chosen: best.candidate, score: best.score, margin: margin, signals: best.signals, blockers: [], reasons: ['Appariement net : score ' + best.score + '.'], candidates: shortlist, canPropose: true };\n}\n\nconst data = $('Prepare Dossier').first().json;\nconst c = data.canonical;\nconst variants = erVariants(c.legal_name, c.name);\nif (c.siren) variants.unshift(c.siren);\nconst urls = Array.from(new Set(variants.slice(0, 4))).map((q) =>\n  'https://recherche-entreprises.api.gouv.fr/search?q=' + encodeURIComponent(q) + '&per_page=' + REGISTRY_PER_PAGE\n);\nconst responses = await Promise.all(urls.map(async (url) => {\n  try { return await this.helpers.httpRequest({ method: 'GET', url, json: true, timeout: 20000 }); }\n  catch (error) { return { results: [], _error: String(error.message || error) }; }\n}));\nconst rawCandidates = responses.flatMap((r) => Array.isArray(r && r.results) ? r.results : []);\nconst candidates = [];\nconst seen = new Set();\nfor (const raw of rawCandidates) {\n  const normalized = erNormalizeResult(raw);\n  if (normalized && !seen.has(normalized.siren)) { seen.add(normalized.siren); candidates.push(normalized); }\n}\nconst resolution = erResolve({\n  name: c.name, legalName: c.legal_name, hqLocation: c.hq_location, sector: c.sector,\n  segment: c.segment, employeeCount: c.employee_count, knownSiren: c.siren, knownNafCode: c.naf_code,\n}, candidates);\n\n// A1 — sans entité résolue, on ne cherche PAS. Une recherche sur un homonyme coûte\n// autant qu'une bonne et produit un corpus entièrement faux : c'est l'incident\n// Tournaire, où V3 a étudié une société de construction lyonnaise homonyme.\nif (resolution.decision !== 'resolved') {\n  throw new Error('Entité non résolue (' + resolution.decision + ') — préflight interrompu avant toute recherche');\n}\n\nreturn [{ json: { ...data, entityResolution: resolution, resolvedSiren: resolution.siren || c.siren } }];"
+      },
+      "id": "resolve-entity",
+      "name": "Resolve Entity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dérivation des gaps : on ne cherche QUE ce qui manque ou a périmé.\n// C'est ici que la modulation par niveau devient réelle plutôt que déclarative.\nconst data = $('Resolve Entity').first().json;\n\n// Modules par niveau — miroir de `modulesForLevel()` côté TypeScript.\nconst LEVEL_MODULES = {\n  1: ['entity_resolution','identity','size_and_financials','kredo_relation'],\n  2: ['business_and_offering','business_model','customers_and_market','history','news','ambitions','ownership'],\n  3: ['sector_dynamics','competition','value_chain','technology_trends'],\n  4: ['regulatory','organisation','dependencies','it_intensity','issues'],\n};\nfunction modulesForLevel(level) {\n  const out = [];\n  for (let l = 1; l <= level; l++) for (const m of LEVEL_MODULES[l]) if (!out.includes(m)) out.push(m);\n  return out;\n}\n\nconst requested = data.requestedModules && data.requestedModules.length > 0\n  ? data.requestedModules\n  : modulesForLevel(data.targetLevel);\n\n// A7 — ces modules lisent la connaissance KREDO existante avant le web. Si le compte\n// porte un segment documenté, ils ne déclenchent AUCUNE recherche externe : dix comptes\n// d'un même secteur n'achètent pas dix analyses de marché.\nconst INTERNAL_FIRST = ['sector_dynamics','competition','value_chain','regulatory'];\nconst hasSectorKnowledge = Boolean(data.sectorContext && (data.sectorContext.segment_id || data.sectorContext.slug));\n\n// `kredo_relation` est purement relationnel : jamais de recherche.\nconst NEVER_SEARCHED = ['kredo_relation','entity_resolution'];\n\nconst factTypes = new Set((data.currentFacts || []).map((f) => String(f.fact_type || '')));\n// Un module déjà couvert par un fait courant non périmé n'est pas re-cherché.\nconst COVERED_BY_FACT = {\n  identity: ['legal_id','legal_form','headquarters'],\n  size_and_financials: ['employee_count','revenue'],\n  ownership: ['ownership','shareholder'],\n};\n\nconst company = data.canonical.name;\nconst QUERIES = {\n  identity: [company + ' siège social société'],\n  size_and_financials: [company + ' chiffre d\\'affaires effectif'],\n  ownership: [company + ' actionnaire capital rachat'],\n  business_and_offering: [company + ' métiers produits', company + ' site officiel'],\n  business_model: [company + ' modèle économique activité'],\n  customers_and_market: [company + ' clients marchés secteurs'],\n  history: [company + ' histoire création'],\n  news: [company + ' actualité'],\n  ambitions: [company + ' stratégie ambitions investissements'],\n  sector_dynamics: [company + ' secteur marché tendances'],\n  competition: [company + ' concurrents'],\n  value_chain: [company + ' fournisseurs chaîne de valeur'],\n  technology_trends: [company + ' technologies numérique'],\n  regulatory: [company + ' réglementation conformité'],\n  organisation: [company + ' organisation direction DSI'],\n  dependencies: [company + ' dépendances risques'],\n  it_intensity: [company + ' recrutement informatique SI', company + ' transformation digitale'],\n  issues: [company + ' enjeux défis'],\n};\n\nconst gaps = [];\nconst skipped = [];\nfor (const moduleId of requested) {\n  if (NEVER_SEARCHED.includes(moduleId)) { skipped.push({ module: moduleId, reason: 'module_interne' }); continue; }\n  if (INTERNAL_FIRST.includes(moduleId) && hasSectorKnowledge) {\n    skipped.push({ module: moduleId, reason: 'connaissance_sectorielle_disponible' });\n    continue;\n  }\n  const coveringTypes = COVERED_BY_FACT[moduleId] || [];\n  if (coveringTypes.length > 0 && coveringTypes.every((t) => factTypes.has(t))) {\n    skipped.push({ module: moduleId, reason: 'faits_courants_suffisants' });\n    continue;\n  }\n  for (const query of (QUERIES[moduleId] || [])) gaps.push({ module: moduleId, query });\n}\n\n// Budget de recherche borné par niveau : L1 reste volontairement léger.\nconst MAX_QUERIES = { 1: 2, 2: 8, 3: 10, 4: 14 };\nconst budget = MAX_QUERIES[data.targetLevel] || 8;\nconst plannedQueries = gaps.slice(0, budget);\n\nreturn [{ json: {\n  ...data,\n  requestedModules: requested,\n  plannedQueries,\n  skippedModules: skipped,\n  hasSectorKnowledge,\n} }];"
+      },
+      "id": "derive-research-gaps",
+      "name": "Derive Research Gaps",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-gaps",
+              "leftValue": "={{ $json.plannedQueries.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "gaps-to-search",
+      "name": "Gaps To Search?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Derive Research Gaps').first().json;\nreturn data.plannedQueries.map((entry, index) => ({\n  json: { ...data, query: entry.query, module: entry.module, index, gl: 'fr', hl: 'fr', num: 10 }\n}));"
+      },
+      "id": "build-serpapi-requests",
+      "name": "Build SerpAPI Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "serpApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "gl",
+              "value": "={{ $json.gl }}"
+            },
+            {
+              "name": "hl",
+              "value": "={{ $json.hl }}"
+            },
+            {
+              "name": "num",
+              "value": "={{ $json.num }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "serpapi-search",
+      "name": "SerpAPI Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        200
+      ],
+      "credentials": {
+        "serpApi": {
+          "id": "4FHmaQGaAytZHN4w",
+          "name": "SerpAPI_KREDO"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agrège les réponses SerpAPI en une liste plate de candidats, en conservant le\n// module qui a motivé chaque requête : c'est ce qui permettra de dire, document par\n// document, à quoi il sert (`serves_modules`).\nconst items = $input.all().map((i) => i.json);\nconst requests = [];\ntry { requests.push(...$('Build SerpAPI Requests').all().map((i) => i.json)); } catch (_) {}\nconst base = $('Derive Research Gaps').first().json;\n\nconst discovery = items.map((res, i) => {\n  const req = requests[i] || {};\n  const organic = Array.isArray(res && res.organic_results) ? res.organic_results : [];\n  return {\n    query: req.query || (res && res.search_parameters && res.search_parameters.q) || '',\n    module: req.module || null,\n    index: i,\n    organic: organic.map((r) => ({ link: r.link || r.url || '', title: r.title || '', snippet: r.snippet || '', date: r.date || null })),\n  };\n});\n\nreturn [{ json: { ...base, discovery } }];"
+      },
+      "id": "normalize-discovery",
+      "name": "Normalize Discovery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aucun gap à couvrir : le plan se construit sur les seules URL manuelles éventuelles.\n// Ce n'est PAS un échec — c'est le cas nominal d'un L3 sur un segment déjà documenté,\n// ou d'un L1 sur un compte bien renseigné.\nconst data = $('Derive Research Gaps').first().json;\nreturn [{ json: { ...data, discovery: [] } }];"
+      },
+      "id": "skip-discovery",
+      "name": "Skip Discovery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        420
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Le cœur d'INTEL-035 : on ne propose que ce qu'on a LU ────────────────────\n//\n// Le défaut que ce nœud corrige : `V4 Fetch Selected Pages` d'intel-030 tentait\n// 6 requêtes parallèles à timeout 6000 ms, échouait intégralement contre Cloudflare\n// et les paywalls, et le pipeline CONTINUAIT en produisant un rapport. Sur les\n// 4 runs V4 réussis en production, `external_pages_fetched` valait 0.\n//\n// Trois changements décisifs :\n//   1. timeout porté à 15 s — 6 s ne suffit pas à un site corporate français ;\n//   2. chaque échec porte un MOTIF, transmis au plan et affiché à l'utilisateur,\n//      au lieu d'être avalé dans un tableau que personne ne lit ;\n//   3. le nœud ne masque jamais une collecte vide : c'est l'application qui refuse\n//      de publier un plan sans matière (A2).\n\nfunction parseUrl(value) {\n  if (!value || typeof value !== 'string') {\n    return { valid: false, reason: 'missing_url' };\n  }\n  let v = value.trim();\n  if (v.length === 0) {\n    return { valid: false, reason: 'missing_url' };\n  }\n\n  if (v.startsWith('//')) {\n    v = 'https:' + v;\n  } else if (!/^https?:\\/\\//i.test(v)) {\n    if (/^[a-z0-9.-]+\\.[a-z]{2,}/i.test(v)) {\n      v = 'https://' + v;\n    } else {\n      return { valid: false, reason: 'invalid_protocol' };\n    }\n  }\n\n  const match = v.match(/^(https?):\\/\\/([^/?#:]+)(?::(\\d+))?([^#]*)(?:#.*)?$/i);\n  if (!match) {\n    return { valid: false, reason: 'parser_error' };\n  }\n\n  const protocol = match[1].toLowerCase() + ':';\n  let hostname = match[2].toLowerCase();\n  const port = match[3] ? Number(match[3]) : null;\n  let pathnameAndSearch = match[4] || '/';\n  if (!pathnameAndSearch.startsWith('/')) {\n    pathnameAndSearch = '/' + pathnameAndSearch;\n  }\n\n  if (protocol !== 'http:' && protocol !== 'https:') {\n    return { valid: false, reason: 'invalid_protocol' };\n  }\n\n  if (hostname.endsWith('.')) {\n    hostname = hostname.slice(0, -1);\n  }\n\n  if (!hostname || !hostname.includes('.')) {\n    return { valid: false, reason: 'invalid_hostname' };\n  }\n\n  if (!/^[a-z0-9.-]+$/i.test(hostname) || hostname.startsWith('.') || hostname.endsWith('.')) {\n    return { valid: false, reason: 'invalid_hostname' };\n  }\n\n  if (\n    hostname === 'localhost' ||\n    hostname.endsWith('.localhost') ||\n    hostname.endsWith('.local') ||\n    hostname.endsWith('.internal') ||\n    hostname.endsWith('.lan') ||\n    hostname.endsWith('.home') ||\n    hostname.endsWith('.invalid')\n  ) {\n    return { valid: false, reason: 'invalid_hostname' };\n  }\n\n  const ipv4Match = hostname.match(/^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$/);\n  if (ipv4Match) {\n    const octets = [Number(ipv4Match[1]), Number(ipv4Match[2]), Number(ipv4Match[3]), Number(ipv4Match[4])];\n    if (octets.some((o) => isNaN(o) || o < 0 || o > 255)) {\n      return { valid: false, reason: 'invalid_hostname' };\n    }\n    const [a, b] = octets;\n    if (a === 0 || a === 10 || a === 127) return { valid: false, reason: 'private_network' };\n    if (a === 169 && b === 254) return { valid: false, reason: 'private_network' };\n    if (a === 172 && b >= 16 && b <= 31) return { valid: false, reason: 'private_network' };\n    if (a === 192 && b === 168) return { valid: false, reason: 'private_network' };\n    if (a >= 224) return { valid: false, reason: 'private_network' };\n  }\n\n  if (\n    hostname === '::1' ||\n    hostname === '[::1]' ||\n    hostname.startsWith('fe80:') ||\n    hostname.startsWith('[fe80:')\n  ) {\n    return { valid: false, reason: 'private_network' };\n  }\n\n  if (/(?:^|\\.)(?:google|bing|yahoo|duckduckgo|qwant|ecosia|yandex|baidu)\\./i.test(hostname)) {\n    return { valid: false, reason: 'search_engine' };\n  }\n\n  const portPart = port ? ':' + port : '';\n  const clean = protocol + '//' + hostname + portPart + pathnameAndSearch;\n  const hostWithoutWww = hostname.replace(/^www\\./i, '');\n\n  return {\n    valid: true,\n    clean,\n    hostname,\n    hostWithoutWww,\n    protocol,\n  };\n}\n\n// Hash de contenu non cryptographique (FNV-1a 64 bits, rendu en hex). Suffisant pour\n// la déduplication et la détection de page inchangée — et surtout DISPONIBLE : le\n// sandbox des nœuds Code n8n n'expose pas `crypto` de façon fiable, et une dépendance\n// absente ferait sauter toutes les assertions suivantes sans erreur lisible.\nfunction contentHash(text) {\n  let h1 = 0x811c9dc5, h2 = 0x01000193;\n  for (let i = 0; i < text.length; i++) {\n    const c = text.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (c + i), 0x85ebca6b) >>> 0;\n  }\n  return ('00000000' + h1.toString(16)).slice(-8) + ('00000000' + h2.toString(16)).slice(-8);\n}\n\nfunction extractText(raw) {\n  const html = typeof raw === 'string' ? raw : JSON.stringify(raw);\n  return html\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<nav[\\s\\S]*?<\\/nav>/gi, ' ')\n    .replace(/<footer[\\s\\S]*?<\\/footer>/gi, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;/gi, \"'\")\n    .replace(/&[a-z]+;/gi, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 14000);\n}\n\nfunction classifyKind(host) {\n  if (/\\.gouv\\.fr$|insee\\.fr$|societe\\.com$|pappers\\.fr$/.test(host)) return 'registry';\n  if (/europa\\.eu$|legifrance\\.gouv\\.fr$/.test(host)) return 'regulatory';\n  if (/welcometothejungle|indeed|apec\\.fr|linkedin\\.com\\/jobs/.test(host)) return 'job_board';\n  if (/lesechos|usinenouvelle|latribune|bfmtv|lemonde|reuters|afp|challenges|lefigaro|journaldunet/.test(host)) return 'press';\n  if (/xerfi|statista|gartner|idc\\.com/.test(host)) return 'specialised_study';\n  return 'company_official';\n}\n\nconst data = $input.first().json;\nconst canonical = data.canonical || {};\nconst officialHost = (() => { const p = parseUrl(canonical.website || ''); return p.valid ? p.hostWithoutWww : ''; })();\n\nconst candidates = [];\nconst seenUrls = new Set();\nconst rejected = [];\n\nfunction addCandidate(entry) {\n  const parsed = parseUrl(entry.url);\n  if (!parsed.valid) { rejected.push({ url: entry.url, reason: 'URL écartée : ' + parsed.reason }); return; }\n  if (seenUrls.has(parsed.clean)) {\n    const existing = candidates.find((c) => c.url === parsed.clean);\n    if (existing && entry.module && !existing.serves_modules.includes(entry.module)) existing.serves_modules.push(entry.module);\n    return;\n  }\n  seenUrls.add(parsed.clean);\n  const host = parsed.hostWithoutWww;\n  let score = entry.baseScore || 10;\n  if (officialHost && (host === officialHost || host.endsWith('.' + officialHost))) score += 100;\n  if (/\\.gouv\\.fr$|insee\\.fr$|europa\\.eu$/.test(host)) score += 70;\n  if (/lesechos|usinenouvelle|latribune|lemonde|reuters|challenges|lefigaro/.test(host)) score += 40;\n  candidates.push({\n    url: parsed.clean, domain: host, title: entry.title || null, published_at: entry.date || null,\n    kind: entry.kind || classifyKind(host), origin: entry.origin,\n    serves_modules: entry.module ? [entry.module] : [], reason: entry.reason, score,\n  });\n}\n\n// 1. Site officiel — priorité absolue, il est la source déclarative de référence.\nif (canonical.website) {\n  addCandidate({ url: canonical.website, origin: 'discovered', kind: 'company_official', baseScore: 200,\n    title: canonical.name + ' — site officiel', module: 'business_and_offering',\n    reason: 'Site officiel du compte' });\n}\n\n// 2. Registre légal — A4, subsidiarité : l'identité vient d'une source déterministe.\nif (data.resolvedSiren) {\n  addCandidate({ url: 'https://annuaire-entreprises.data.gouv.fr/entreprise/' + data.resolvedSiren,\n    origin: 'discovered', kind: 'registry', baseScore: 190, title: 'Annuaire des entreprises',\n    module: 'identity', reason: 'Registre légal — identité et activité déclarée' });\n}\n\n// 3. URL ajoutées à la main : fetchées comme les autres, sans passe-droit.\nfor (const url of (data.additionalUrls || [])) {\n  addCandidate({ url, origin: 'manual', baseScore: 150, reason: 'Ajoutée manuellement pour cette analyse' });\n}\n\n// 4. Items de corpus éventuels.\nfor (const item of (data.corpusItems || [])) {\n  if (item && item.url) addCandidate({ url: item.url, origin: 'corpus', baseScore: 120,\n    title: item.label || null, reason: 'Issue du corpus « ' + (item.corpus_label || 'sectoriel') + ' »' });\n}\n\n// 5. Découverte web sur les gaps.\nfor (const search of (data.discovery || [])) {\n  for (const result of (search.organic || [])) {\n    addCandidate({ url: result.link, origin: 'discovered', title: result.title, date: result.date,\n      module: search.module, reason: 'Trouvée pour « ' + search.query + ' »' });\n  }\n}\n\ncandidates.sort((a, b) => b.score - a.score || a.url.localeCompare(b.url));\nconst MAX_DOCUMENTS = { 1: 3, 2: 8, 3: 10, 4: 12 };\nconst selected = candidates.slice(0, MAX_DOCUMENTS[data.targetLevel] || 8);\n\nconst documents = await Promise.all(selected.map(async (candidate) => {\n  const shared = {\n    url: candidate.url, canonical_url: candidate.url, domain: candidate.domain,\n    title: candidate.title, published_at: candidate.published_at, kind: candidate.kind,\n    serves_modules: candidate.serves_modules, reason: candidate.reason, origin: candidate.origin,\n    collection_method: 'http_get',\n  };\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'GET', url: candidate.url, timeout: 15000, returnFullResponse: true,\n      headers: {\n        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',\n        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',\n        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',\n      },\n    });\n    const status = (response && response.statusCode) || 200;\n    const text = extractText(response && response.body !== undefined ? response.body : response);\n    if (text.length < 200) {\n      return { ...shared, status: 'unreachable', http_status: status,\n        failure_reason: 'Contenu trop court ou vide (' + text.length + ' caractères) — page probablement rendue en JavaScript' };\n    }\n    return { ...shared, status: 'retrieved', http_status: status,\n      fetched_at: new Date().toISOString(), content_hash: contentHash(text),\n      extracted_text: text, extracted_chars: text.length };\n  } catch (error) {\n    const message = String((error && error.message) || error);\n    const httpMatch = message.match(/\\b(4\\d\\d|5\\d\\d)\\b/);\n    return { ...shared, status: 'unreachable',\n      http_status: httpMatch ? Number(httpMatch[1]) : null,\n      failure_reason: /timeout|ETIMEDOUT|ESOCKETTIMEDOUT/i.test(message)\n        ? 'Délai dépassé (15 s)'\n        : message.slice(0, 200) };\n  }\n}));\n\nconst retrieved = documents.filter((d) => d.status === 'retrieved');\n\nreturn [{ json: {\n  ...data,\n  sourceDocuments: documents,\n  preflightDiagnostics: {\n    candidates: candidates.length,\n    selected: selected.length,\n    retrieved: retrieved.length,\n    unreachable: documents.length - retrieved.length,\n    rejectedUrls: rejected,\n    skippedModules: data.skippedModules || [],\n  },\n} }];"
+      },
+      "id": "fetch-documents",
+      "name": "Fetch Documents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Le workflow transmet ce qu'il a lu. Il n'écrit RIEN en base : c'est\n// `ingestAccountSourcePlan` qui applique la frontière tenant, déduplique et publie\n// le plan canonique avec les identifiants réels des documents.\nconst data = $input.first().json;\nconst diagnostics = data.preflightDiagnostics || {};\nconst documents = data.sourceDocuments || [];\nconst retrieved = documents.filter((d) => d.status === 'retrieved').length;\n\nconst qaFlags = [\n  { check: 'entity_resolution', passed: true,\n    detail: 'SIREN ' + (data.resolvedSiren || '') + ' — score ' + ((data.entityResolution && data.entityResolution.score) || 0) },\n  { check: 'documents_retrieved', passed: retrieved > 0,\n    detail: retrieved + ' document(s) récupéré(s) sur ' + documents.length + ' tenté(s)' },\n];\nfor (const skipped of (diagnostics.skippedModules || [])) {\n  qaFlags.push({ check: 'module_skipped', passed: true, detail: skipped.module + ' — ' + skipped.reason });\n}\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_source_plan',\n  status: 'succeeded',\n  title: 'Plan de sources — ' + ((data.canonical && data.canonical.name) || 'Compte'),\n  contentJson: {\n    schema_version: 1,\n    scope: { target_level: data.targetLevel, modules: data.requestedModules },\n    entity_resolution: data.entityResolution,\n    corpora: data.corpora || [],\n  },\n  // Transmis à part de contentJson : ce ne sont pas des données du plan, ce sont les\n  // documents à écrire. L'application construit `entries[]` à partir des lignes créées.\n  sourceDocuments: documents,\n  contextSnapshot: {\n    preflightDiagnostics: diagnostics,\n    plannedQueries: data.plannedQueries || [],\n    hasSectorKnowledge: data.hasSectorKnowledge || false,\n    dataCutoffAt: data.dataCutoffAt,\n  },\n  qaFlags,\n  durationMs: data.startedAtMs ? Date.now() - data.startedAtMs : null,\n  // G0.7 — sans ces trois champs le run apparaîtrait en `has_tokens_gap` dans\n  // v_ai_run_costs. INTEL-035 n'appelle aucun LLM : les compteurs sont donc à zéro,\n  // ce qui est une information, pas une absence.\n  modelProvider: 'none',\n  modelUsed: 'deterministic',\n  tokensInput: 0,\n  tokensOutput: 0,\n};\n\nreturn [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+      },
+      "id": "prepare-callback",
+      "name": "Prepare Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2140,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "sign-callback",
+      "name": "Sign Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare Callback').first().json.callbackUrl }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Callback').first().json.rawBody }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "callback",
+      "name": "Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Toute sortie d'erreur rejoint ce nœud : un run ne reste JAMAIS en `running`.\nconst error = $input.first().json.error || $input.first().json;\nlet validated = {};\ntry { validated = $('Validate Preflight Input').first().json || {}; } catch (_) {}\nconst message = String((error && (error.message || error.description)) || error || 'Erreur inconnue');\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: validated.runId || null,\n  phase: 1,\n  resultType: 'account_source_plan',\n  status: 'failed',\n  contentJson: {},\n  errorMessage: message.slice(0, 2000),\n};\nreturn [{ json: { callbackUrl: validated.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+      },
+      "id": "prepare-failure-callback",
+      "name": "Prepare Failure Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2140,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "sign-failure-callback",
+      "name": "Sign Failure Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare Failure Callback').first().json.callbackUrl }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Failure Callback').first().json.rawBody }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "callback-failure",
+      "name": "Callback (Failure)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2540,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook — Source Preflight": {
+      "main": [
+        [
+          {
+            "node": "Verify Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Signature": {
+      "main": [
+        [
+          {
+            "node": "Validate Preflight Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Preflight Input": {
+      "main": [
+        [
+          {
+            "node": "Update Run Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Status": {
+      "main": [
+        [
+          {
+            "node": "Hydrate Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hydrate Context": {
+      "main": [
+        [
+          {
+            "node": "Prepare Dossier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Dossier": {
+      "main": [
+        [
+          {
+            "node": "Resolve Entity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Entity": {
+      "main": [
+        [
+          {
+            "node": "Derive Research Gaps",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gaps To Search?": {
+      "main": [
+        [
+          {
+            "node": "Build SerpAPI Requests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Discovery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Derive Research Gaps": {
+      "main": [
+        [
+          {
+            "node": "Gaps To Search?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SerpAPI Requests": {
+      "main": [
+        [
+          {
+            "node": "SerpAPI Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI Search": {
+      "main": [
+        [
+          {
+            "node": "Normalize Discovery",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Discovery": {
+      "main": [
+        [
+          {
+            "node": "Fetch Documents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Discovery": {
+      "main": [
+        [
+          {
+            "node": "Fetch Documents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Documents": {
+      "main": [
+        [
+          {
+            "node": "Prepare Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Callback": {
+      "main": [
+        [
+          {
+            "node": "Sign Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Callback": {
+      "main": [
+        [
+          {
+            "node": "Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Failure Callback": {
+      "main": [
+        [
+          {
+            "node": "Sign Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Failure Callback": {
+      "main": [
+        [
+          {
+            "node": "Callback (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
