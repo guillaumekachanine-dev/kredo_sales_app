@@ -2607,4 +2607,4 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 
 ### Verdict
 
-- **Lot 7.1 — ✅ livré.**
+- **Lot 7.1 — ✅ livré.** Commit : `0458ed42` — `refactor(opportunities): align workspace target navigation`.

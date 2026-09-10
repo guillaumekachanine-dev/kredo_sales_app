@@ -12,7 +12,7 @@ Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
 Dernier lot livré             : Phase 7.1 — Alignement fonctionnel Opportunities Workspace
 Lot courant                   : aucun
 Prochain lot                  : Lot 12 — Nettoyage et clôture (UNBLOCKED / READY)
-Dernier SHA connu origin/main : 0f0254af
+Dernier SHA connu origin/main : 0458ed42
 ```
 
 ## Table des lots
@@ -34,7 +34,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 9 | Planning Desktop | ✅ techniquement livré | `d94a1b16` | `OpportunitiesTriPanel` : liste des opportunités ouvertes │ milestone planning central `Mois \| Année` │ détail contextuel. Builder `OpportunityDeadline` unique, sélection `?opp=`, ligne Aujourd’hui, formes + couleurs par source, navigation de période. **OPP-29.** Mobile inchangé. |
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ✅ techniquement livré | `a965a94c` + correction | `src/features/opportunities/modules/` : contrat `?module=` + 3 wrappers REUSE-only (`MatchingDialog` · `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) + `OpportunitiesModulesHost` (dialogs lazy). **Les 3 modules sont constamment visibles sur tous les chapitres** (indépendants de l'onglet). **Résout CROSS-01/02/03 → OPP-30.** `Modélisation de CA` non affichée (OPP-11). Aucune Data, aucune migration. |
 | 11 | Legacy / compatibilité / navigation globale | ✅ techniquement livré | coordonné SHELL 6.3 | Redirection `/staffing` vers `?section=besoins`, `main-menu` « Opportunités », retrait tabs Desktop Engagements, deep-links canoniques `/missions?vue=`, retrait `useSidebarCollapse` dans OpportunitiesDesktopShell. **Coord. SHELL-0018 Phase 6.3.** |
-| 7.1 | Phase 7.1 — Alignement fonctionnel Opportunities Workspace | ✅ techniquement livré | à venir | 7 renames : Synthèse → Vue d'ensemble, Besoins & staffing → Besoins & Staffing, Avant-vente → Avant-vente Projets, Planning → Planning & Échéances, Matching profil → Matching profils, Simulation devis → Simulation financière, Post-Mortem → Revue post-mortem. DATA-0, URL-0, Mobile NO IMPACT. Synthèse Desktop déjà intégrée (Lot 4). Blocker levé. |
+| 7.1 | Phase 7.1 — Alignement fonctionnel Opportunities Workspace | ✅ techniquement livré | `0458ed42` | 7 renames : Synthèse → Vue d'ensemble, Besoins & staffing → Besoins & Staffing, Avant-vente → Avant-vente Projets, Planning → Planning & Échéances, Matching profil → Matching profils, Simulation devis → Simulation financière, Post-Mortem → Revue post-mortem. DATA-0, URL-0, Mobile NO IMPACT. Synthèse Desktop déjà intégrée (Lot 4). Blocker levé. |
 | 12 | Nettoyage et clôture | ⬜ unblocked / ready | — | UNBLOCKED / READY suite à la livraison du Lot 7.1. Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
 
 ## Décisions actées (miroir du DECISION LOG — détail dans le doc canonique § 16)
