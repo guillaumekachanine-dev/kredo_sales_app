@@ -134,6 +134,8 @@ export interface EngagementsActivityAnalytics {
     theoreticalAvg: number | null
     realAvg: number | null
     gapAvg: number | null
+    /** CA réel constaté (€) sur les missions comparées — contrat canonique 7.3A. */
+    observedRevenue: number
     items: MarginRealityItem[]
   }
   unplannedAbsences: {

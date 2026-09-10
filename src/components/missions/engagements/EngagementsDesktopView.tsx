@@ -1,32 +1,47 @@
 "use client"
 
 import { type ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { SectionRail } from "@/components/layout/SectionRail"
+import type { SectionRailEntry } from "@/lib/navigation/section-rail"
+import { ProductionLeaveDesktop } from "@/features/consultants/modules/production-leave/desktop/ProductionLeaveDesktop"
+import type { ProductionLeaveViewModel } from "@/features/consultants/modules/production-leave/data/production-leave.types"
+import { PortfolioAtlasDialog } from "@/components/missions/dashboard/PortfolioAtlasDialog"
+import type { EngagementsPortfolioViewModel } from "@/components/missions/dashboard/engagements-portfolio-types"
+import {
+  buildEngagementsModuleHref,
+  buildEngagementsViewHref,
+  ENGAGEMENTS_MODULE_LABELS,
+  ENGAGEMENTS_VIEW_LABELS,
+  ENGAGEMENTS_VIEWS,
+  type EngagementsContextualModule,
+  type EngagementsView,
+} from "./engagements-navigation"
 import {
   ActivityIcon,
   BriefcaseIcon,
   CalendarRangeIcon,
   ChartBarIcon,
   LayoutGridIcon,
+  UserRoundIcon,
+  WalletCardsIcon,
 } from "./engagement-icons"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Shell Desktop d'Engagements — chrome uniquement (thème + repli sidebar + nav
-//  secondaire verticale + header). Le contenu (Synthèse, Missions AT, Projets,
-//  Activité & congés, ou Planning des engagements) est composé côté serveur et
-//  passé en `children`.
+//  secondaire verticale `SectionRail` + header). Le contenu du chapitre actif
+//  (Synthèse, Missions AT, Projets, Rentabilité des engagements, Planning &
+//  Échéances) est composé côté serveur et passé en `children`.
 //
-//  SHELL-0018 V2 : le rail local est remplacé par la primitive canonique
-//  `SectionRail`. Le titre de page principal reste dans le chapeau ; le header
-//  de la zone principale affiche toujours le nom exact de l'onglet actif.
+//  SHELL-0018 V2 : le titre de page reste dans le chapeau ; le header de la zone
+//  principale affiche toujours le nom exact du chapitre actif.
+//
+//  Phase 7.3B : ajout des modules contextuels REUSE (« Production & Congés »,
+//  « Atlas du portefeuille »), montés en overlay et pilotés par `?module=`.
+//  L'état reste entièrement reconstructible depuis l'URL.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type EngagementsView =
-  | "synthese"
-  | "missions-at"
-  | "projets"
-  | "activite-conges"
-  | "planning-at"
+export type { EngagementsView } from "./engagements-navigation"
 
 export interface NavEntry {
   view: EngagementsView
@@ -34,30 +49,54 @@ export interface NavEntry {
   icon: ReactNode
 }
 
-export const NAV_ENTRIES: NavEntry[] = [
-  { view: "synthese", label: "Synthèse", icon: <LayoutGridIcon /> },
-  { view: "missions-at", label: "Missions AT", icon: <ActivityIcon /> },
-  { view: "projets", label: "Projets", icon: <BriefcaseIcon /> },
-  { view: "activite-conges", label: "Activité & congés", icon: <ChartBarIcon /> },
-  { view: "planning-at", label: "Planning des engagements", icon: <CalendarRangeIcon /> },
-]
+const ICON_BY_VIEW: Record<EngagementsView, ReactNode> = {
+  synthese: <LayoutGridIcon />,
+  "missions-at": <ActivityIcon />,
+  projets: <BriefcaseIcon />,
+  "activite-conges": <ChartBarIcon />,
+  "planning-at": <CalendarRangeIcon />,
+}
+
+export const NAV_ENTRIES: NavEntry[] = ENGAGEMENTS_VIEWS.map((view) => ({
+  view,
+  label: ENGAGEMENTS_VIEW_LABELS[view],
+  icon: ICON_BY_VIEW[view],
+}))
+
+export const HEADER_TITLE_BY_VIEW: Record<EngagementsView, string> = ENGAGEMENTS_VIEW_LABELS
+
+const MODULE_ICON: Record<EngagementsContextualModule, ReactNode> = {
+  "production-conges": <UserRoundIcon />,
+  "atlas-portefeuille": <WalletCardsIcon />,
+}
 
 interface EngagementsDesktopViewProps {
   activeView: EngagementsView
+  activeModule?: EngagementsContextualModule | null
+  productionLeaveVm?: ProductionLeaveViewModel | null
+  portfolioOverview?: EngagementsPortfolioViewModel | null
   children: ReactNode
 }
 
-export const HEADER_TITLE_BY_VIEW: Record<EngagementsView, string> = {
-  synthese: "Synthèse",
-  "missions-at": "Missions AT",
-  projets: "Projets",
-  "activite-conges": "Activité & congés",
-  "planning-at": "Planning des engagements",
-}
+export function EngagementsDesktopView({
+  activeView,
+  activeModule = null,
+  productionLeaveVm = null,
+  portfolioOverview = null,
+  children,
+}: EngagementsDesktopViewProps) {
+  const router = useRouter()
+  const closeHref = buildEngagementsViewHref(activeView)
 
-export function EngagementsDesktopView({ activeView, children }: EngagementsDesktopViewProps) {
-  // Le repli de la sidebar principale est décidé par le Shell selon le pathname
-  // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
+  const contextualModules: SectionRailEntry[] = (
+    Object.keys(ENGAGEMENTS_MODULE_LABELS) as EngagementsContextualModule[]
+  ).map((moduleKey) => ({
+    key: moduleKey,
+    label: ENGAGEMENTS_MODULE_LABELS[moduleKey],
+    icon: MODULE_ICON[moduleKey],
+    href: buildEngagementsModuleHref(activeView, moduleKey),
+    active: activeModule === moduleKey,
+  }))
 
   return (
     <div
@@ -72,9 +111,10 @@ export function EngagementsDesktopView({ activeView, children }: EngagementsDesk
           key: entry.view,
           label: entry.label,
           icon: entry.icon,
-          href: `/missions?vue=${entry.view}`,
+          href: buildEngagementsViewHref(entry.view),
           active: activeView === entry.view,
         }))}
+        contextualModules={contextualModules}
       />
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -86,6 +126,22 @@ export function EngagementsDesktopView({ activeView, children }: EngagementsDesk
 
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </section>
+
+      {/* Module REUSE « Production & Congés » (src/features/consultants/modules/production-leave/) */}
+      {activeModule === "production-conges" && productionLeaveVm ? (
+        <ProductionLeaveDesktop vm={productionLeaveVm} closeHref={closeHref} />
+      ) : null}
+
+      {/* Module REUSE « Atlas du portefeuille » (PortfolioAtlasDialog + getEngagementsOverview) */}
+      {activeModule === "atlas-portefeuille" && portfolioOverview ? (
+        <PortfolioAtlasDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) router.push(closeHref)
+          }}
+          overview={portfolioOverview}
+        />
+      ) : null}
     </div>
   )
 }

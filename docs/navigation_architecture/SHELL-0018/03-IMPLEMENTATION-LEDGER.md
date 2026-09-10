@@ -108,7 +108,7 @@ QA minimale :
 | **7.0** | Audit global CURRENT → TARGET des workspaces | ✅ livré | audit sur `HEAD` (`f477f736`) ; 10 workspaces revalidés contre 09 §B/C ; impact Data/Routing/Desktop/Mobile ; blockers ; sous-lots 7.3A/B/C ; séquence Phase 7 ; `MISSION_CATALOG` = 7 specs (framework mission réutilisable) ; duplication rentabilité Finance↔Engagements confirmée. Document `11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md`. Voir §40 |
 | **7.1** | Alignement Opportunités | ⬜ todo | `YES AFTER REBASELINE` — attend l'intégration de la refonte Synthèse Opportunités parallèle |
 | **7.2** | Alignement Consultants | ✅ techniquement livré (`bb2a3a4d`) | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
-| **7.3** | Engagements + Finance (coordonné) | 🔵 en cours | **7.3A ✅ livré** (`refactor(finance): unify mission profitability data`) — contrat canonique `src/lib/finance/mission-profitability.ts`, builder pur partagé, **0 migration / 0 RLS / 0 n8n** ; Finance + Engagements consomment le même calcul ; 19 tests de contrat + non-divergence. Doc `12-PHASE-7.3A-PROFITABILITY-DATA-CONTRACT-2026-09-10.md`. Voir §48. → **7.3B `UNBLOCKED`**, puis 7.3C |
+| **7.3** | Engagements + Finance (coordonné) | 🔵 en cours | **7.3A ✅ livré** (§48, doc `12-*`) — contrat canonique `src/lib/finance/mission-profitability.ts`. **7.3B ✅ livré** (§49, doc `13-*`) — 5 chapitres cibles (`activite-conges` → « Rentabilité des engagements », `planning-at` → « Planning & Échéances », clés conservées) ; modules REUSE « Production & Congés » + « Atlas du portefeuille » (`?module=`) ; « Mission : analyse des marges » = NEW/FUTURE (pas de bouton mort) ; `engagements-portfolio-utils` réconcilié sur le contrat 7.3A ; **0 migration / 0 RLS / 0 n8n**. → **7.3C `UNBLOCKED`** |
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
 | **7.5** | Alignement Prospection | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.6** | Alignement Rapports & Rédaction | ✅ techniquement livré (`958515e3`) | 1 RENAME Desktop (`Connaissance`, clé `knowledge` conservée) ; 2 modules contextuels `Gestion de la connaissance` et `Analyse transverse` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression de l'accès header redondant ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §45 |
@@ -2679,3 +2679,61 @@ Engagements · moteur `financial-model-v1`. **Dette identifiée** : `engagements
 
 - **Lot 7.3A — ✅ livré.** `Profitability Data Contract → CANONICAL`.
 - **7.3B Engagements → `UNBLOCKED`.** **7.3C Finance → `UNBLOCKED`** (après 7.3B, séquence `11-*` §18).
+
+---
+
+## 49. Lot 7.3B — Alignement du workspace Engagements
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `a92a05b9` (`HEAD == origin/main`, Lot 7.3A présent).
+> Cible : `09-*` §B.2. Plan : `11-*` §6 / §19 (§7.3B). Document dédié :
+> `13-PHASE-7.3B-ENGAGEMENTS-ALIGNMENT-2026-09-10.md`.
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre | `activite-conges` « Activité & congés » | **Rentabilité des engagements** | TRANSFORM label (clé `activite-conges` conservée) — libellé rail + header + `<h1>` + sous-titre ; contenu déjà rentabilité (4 blocs) + `StatCell` « CA observé » (contrat 7.3A) |
+| Chapitre | `planning-at` « Planning des engagements » | **Planning & Échéances** | RENAME (clé `planning-at` conservée) |
+| Chapitres `synthese` / `missions-at` / `projets` | — | inchangés | KEEP |
+| Module | — | **Production & Congés** | REUSE — `ProductionLeaveDesktop` + `getProductionLeave()`, `?module=production-conges` |
+| Module | — | **Atlas du portefeuille** | REUSE (Cas A) — `PortfolioAtlasDialog` + `getEngagementsOverview()`, `?module=atlas-portefeuille` |
+| Module | — | Mission : analyse des marges | **NEW/FUTURE** — aucune capacité module branchable (seule l'action Cockpit `analyze_margins`) ; non exposé, aucun bouton mort |
+
+### Architecture
+
+- **Contrat de navigation** : `src/components/missions/engagements/engagements-navigation.ts` (nouveau) — `ENGAGEMENTS_VIEWS` / `ENGAGEMENTS_VIEW_LABELS` / `parseEngagementsView` (fallback racine + compat `planning-engagements`) / `ENGAGEMENTS_CONTEXTUAL_MODULES` / `parseEngagementsModule` / `buildEngagements{View,Module}Href`.
+- **`EngagementsDesktopView`** : `SectionRail` gagne `contextualModules` ; overlays `?module=` montés en sibling, fermeture via `router.push(closeHref)`. `NAV_ENTRIES` / `HEADER_TITLE_BY_VIEW` dérivés de `ENGAGEMENTS_VIEW_LABELS`.
+- **`missions/page.tsx`** : `pickView`/`VIEWS` inline supprimés (→ `parseEngagementsView`) ; `activeModule` résolu ; données modules lues uniquement si demandées (`getProductionLeave` / `getEngagementsOverview`) ; `{...shellModuleProps}` passé aux 5 branches Desktop.
+- **Réutilisation contrat 7.3A** : `engagements-portfolio-utils.ts` (Atlas) réconcilié — `buildPortfolioPoints` / `buildMarginBridge` / `productionFacts` délèguent à `realRevenue` / `realCost` / `realMarginPct` ; plus aucune multiplication `billableDays × snapshot` en dur (assertée par test). Restent propres à l'Atlas : fenêtre d'éligibilité (`validated` + `periodEnd <= today`), mélange AT + projets forfait, rollups.
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-1** — pathname `/missions` stable ; `?vue=` clés inchangées ; ajout `?module=production-conges|atlas-portefeuille` ; compat `planning-engagements` préservée ; 0 `permanentRedirect` nouveau.
+- **Data** : **DATA-0 nouveau contrat** — consomme le contrat 7.3A + loaders existants. 0 table / vue / RPC / RLS / migration.
+- **n8n** : **0**.
+- **Mobile** : **NO IMPACT** — les 2 chapitres renommés et les modules ne sont pas exposés sur Mobile (`EngagementsMobileShell` a ses propres libellés).
+- **Invariant `SectionRail`** : respecté (11.5rem, chapeau, Chapitres, Modules).
+
+### Tests
+
+- `engagements-navigation.test.ts` (**créé**, 7 tests).
+- `engagements-desktop-ui.test.ts` : libellés cibles.
+- `engagements-activity-utils.test.ts` : +1 (`observedRevenue`).
+- `engagements-portfolio-utils.test.ts` : +3 (parité primitives canoniques + assertion « plus de formule concurrente »).
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (296 fichiers / 3086 tests)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers touchés) → **PASS**
+- `npm run build` → **PASS**
+- `git diff --check` → **PASS**
+
+### Dettes
+
+Double affordance Atlas (bouton Synthèse + module rail) · `buildClientExposure` rollup pondéré depuis les % · « Mission : analyse des marges » NEW/FUTURE · commentaires code résiduels « Activité & congés ».
+
+### Verdict
+
+- **Lot 7.3B — ✅ livré.** **7.3C Finance → `UNBLOCKED`.**

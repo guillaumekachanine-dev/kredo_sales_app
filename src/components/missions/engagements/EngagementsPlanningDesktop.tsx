@@ -79,7 +79,7 @@ export function EngagementsPlanningDesktop({ rows }: { rows: MissionPlanningRow[
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading text-xl font-black tracking-tight text-heading">
-            Planning des engagements
+            Planning &amp; Échéances
           </h1>
           <p className="mt-0.5 text-[11px] text-muted">
             {atRows.length} mission{atRows.length > 1 ? "s" : ""} d’assistance technique ·{" "}

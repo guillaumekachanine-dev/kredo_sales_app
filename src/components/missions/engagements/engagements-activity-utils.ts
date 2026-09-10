@@ -162,6 +162,8 @@ export function buildEngagementsActivityAnalytics(
         : roundOne(portfolio.weightedRealMarginPct),
     gapAvg:
       portfolio.weightedGapPoints === null ? null : roundOne(portfolio.weightedGapPoints),
+    // CA réel constaté sur les missions comparées (contrat canonique 7.3A).
+    observedRevenue: roundEuro(portfolio.totalRealRevenue),
     items: marginItems,
   }
 

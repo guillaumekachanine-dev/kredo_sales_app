@@ -369,11 +369,11 @@ un seul moteur de calcul, pas de duplication UI**.
 | Engagements | Chapitre | `synthese` | Synthèse | KEEP | DATA-0 | — | NO IMPACT | — | 7.3B |
 | Engagements | Chapitre | `missions-at` | Missions AT | KEEP | DATA-0 | — | NO IMPACT | — | 7.3B |
 | Engagements | Chapitre | `projets` | Projets | KEEP | DATA-0 | — | NO IMPACT | — | 7.3B |
-| Engagements | Chapitre | `activite-conges` « Activité & congés » | Rentabilité des engagements | TRANSFORM + REUSE | **DATA-2** (7.3A) | contenu + label + `?vue=` (garder la clé `activite-conges` ou alias) | SEPARATE IMPLEMENTATION | 7.3A | 7.3B |
-| Engagements | Chapitre | `planning-at` « Planning des engagements » | Planning & Échéances | RENAME | DATA-0 | label | LABEL SYNC | — | 7.3B |
-| Engagements | Module | — | Atlas du portefeuille | NEW/FUTURE | DATA-1/2 | nouveau `contextualModule` | FUTURE | §17 transverse | 7.3B / différé |
-| Engagements | Module | — | Production & Congés | REUSE | DATA-0 | monter `production-leave/desktop/` | REUSE `production-leave/mobile/` | Consultants module | 7.3B |
-| Engagements | Module | — | Mission : analyse des marges | NEW/FUTURE (framework REUSE) | DATA-1 | `MissionComposerDesktop` | FUTURE | §18 | 7.3B / différé |
+| Engagements | Chapitre | `activite-conges` « Activité & congés » | Rentabilité des engagements | ✅ TRANSFORM label (clé `activite-conges` conservée) | DATA-0 (contrat 7.3A) | libellé + `<h1>` + `StatCell` CA observé | NO IMPACT | 7.3A ✅ | ✅ 7.3B |
+| Engagements | Chapitre | `planning-at` « Planning des engagements » | Planning & Échéances | ✅ RENAME (clé conservée) | DATA-0 | label + `<h1>` | NO IMPACT | — | ✅ 7.3B |
+| Engagements | Module | — | Atlas du portefeuille | ✅ REUSE (Cas A) | DATA-0 (contrat 7.3A) | `PortfolioAtlasDialog` + `getEngagementsOverview()`, `?module=atlas-portefeuille` | NO IMPACT | — | ✅ 7.3B |
+| Engagements | Module | — | Production & Congés | ✅ REUSE | DATA-0 | `ProductionLeaveDesktop` + `getProductionLeave()`, `?module=production-conges` | NO IMPACT | Consultants module | ✅ 7.3B |
+| Engagements | Module | — | Mission : analyse des marges | **NEW/FUTURE** (confirmé : aucune capacité module, seule l'action Cockpit `analyze_margins`) | — | non exposé, aucun bouton mort | FUTURE | §18 | différé |
 | Finance | Chapitre | `synthesis` | Synthèse | KEEP | DATA-0 | — | NO IMPACT | — | 7.3C |
 | Finance | Chapitre | `profitability` « Rentabilité missions » | Rentabilité P&L | RENAME + contenu MOVE vers Engagements | **DATA-2** (7.3A) | recentrage P&L | LABEL SYNC | 7.3A | 7.3C |
 | Finance | Chapitre | `forecast` « Prévision & simulation » | Forecast | RENAME | DATA-0 | label | LABEL SYNC | — | 7.3C |
@@ -382,9 +382,9 @@ un seul moteur de calcul, pas de duplication UI**.
 | Finance | Module | — | Atlas du portefeuille | NEW/FUTURE | — | — | FUTURE | §17 | différé |
 | Finance | Module | — | Mission : analyse des marges | NEW/FUTURE (framework REUSE) | DATA-1 | `MissionComposerDesktop` | FUTURE | §18 | différé |
 
-**Statut : 7.3A ✅ `IMPLEMENTED / PASS` (2026-09-10)** — builder pur partagé retenu, 0 migration.
-**7.3B / 7.3C : `UNBLOCKED`**, à faire dans l'ordre. Complexité **HIGH**.
-Sous-lots **7.3A → 7.3B → 7.3C** obligatoires dans cet ordre.
+**Statut : 7.3A ✅ + 7.3B ✅ `IMPLEMENTED / PASS` (2026-09-10)** — builder pur partagé (7.3A) ;
+5 chapitres cibles + 2 modules REUSE + Atlas réconcilié sur le contrat (7.3B, doc `13-*`), 0 migration.
+**7.3C : `UNBLOCKED`.** Complexité **HIGH**. Ordre **7.3A → 7.3B → 7.3C** respecté.
 
 ---
 
@@ -628,7 +628,7 @@ TARGET : **Journal d'exécution · Fiabilité des workflows · Coûts** ; module
 | **Simulation financière** | Opportunités (existe), Finance | `@/features/financial-modeling` — `FinancialModelingDesktopDialog` | `financial_models`, `v_financial_model_*` | Oui, monté tel quel (test `opportunities-modules-reuse`) | **REUSE EXISTING** — Finance monte le même dialog en 7.3C |
 | **Matching Profil** | Opportunités (existe), Consultants (existe) | `MatchingDialog` (`@/components/staffing/matching/`) + moteur `src/lib/staffing-matching/` ; module Consultants `profile-matching/` | `match_scores`, `person_skills`, `opportunity_skills` | Oui — moteur unique déjà | **SHARED COMPONENT** (déjà le cas) |
 | **Production & Congés** | Consultants (existe), Engagements | `src/features/consultants/modules/production-leave/` (Desktop **+** Mobile, builder pur `build-production-leave.ts`) | `mission_activity_reports`, `collaborator_absences`, `collaborator_compensation` | Oui — contrat mensuel isolé, UI Desktop+Mobile | **SHARED COMPONENT** — Engagements l'importe en 7.3B |
-| **Atlas du portefeuille** | Engagements, Finance | **Aucun module de rail.** Voisin : type/action intelligence `account_portfolio` (« Revue de portefeuille comptes », enum `intelligence_document_type`) | `companies`, `account_score_*` (neutralisé runtime), `v_crm_account_list` | Partiellement — pas de composant module | **FUTURE SHARED MODULE** — `NEW/FUTURE` ; décision Data (quelle lecture portefeuille ?) |
+| **Atlas du portefeuille** | Engagements (✅ 7.3B), Finance | `PortfolioAtlasDialog` (`src/components/missions/dashboard/`, 4 vues) + `getEngagementsOverview()` autoportant + `PortfolioAtlasModule` (Cockpit mobile) | `missions`, `mission_activity_reports`, `projects` (via `engagements-portfolio-utils`, réconcilié sur le contrat 7.3A) | **Oui — capacité UI réelle** | **SHARED COMPONENT** — Engagements l'a monté en 7.3B (`?module=atlas-portefeuille`) ; Finance pourra le monter en 7.3C. Distinct du type doc `account_portfolio` (revue comptes). |
 | **Gestion de la connaissance** | Rapports (existe), Veille | `ManageCollectionsDesktop` (`src/features/content-collections/`) | content_collections | Oui (déjà partagé) | **SHARED COMPONENT** (déjà autonome et partagé) |
 | **Analyse transverse** | Rapports (existe), Veille | `WatchAnalysisComposerDesktop` (`src/features/watch-analysis/`) | watch analysis | Oui (déjà partagé) | **SHARED COMPONENT** (déjà autonome et partagé) |
 | **Playbook(s)** | BI (`playbooks` module, existe), Prospection (`chapter_3` vide → module) | BI : `playbooks` module conditionnel (`playbooksAvailable`) sur `sector_intelligence.playbook` | `sector_intelligence` (playbook JSONB), `v_sector_knowledge_resolved` | BI oui ; Prospection non (coquille vide) | **SHARED DATA + DISTINCT VIEW** — la Data playbook sectoriel existe ; la vue Prospection reste à créer |
@@ -812,17 +812,18 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
   local supprimés) ; agrégats Engagements passés en pondération valeur. Gates `typecheck` / `test`
   (3075) / `check:server-boundary` / `lint` / `build` / `diff --check` = **PASS**.
 
-### 7.3B — Engagements
-- **Objectif :** `activite-conges` → « Rentabilité des engagements » (contenu 7.3A) ; `planning-at`
-  → « Planning & Échéances » ; ajouter `contextualModules` (Production & Congés REUSE).
-- **Data :** DATA-1 (consomme 7.3A).
-- **Desktop :** `EngagementsDesktopView` (`NAV_ENTRIES`, `HEADER_TITLE_BY_VIEW`, ajout
-  `contextualModules`), `get-engagements-activity-analytics.ts`.
-- **Mobile :** `SEPARATE IMPLEMENTATION` — `EngagementsMobileShell` traité distinctement.
-- **Routing :** URL-1 (clé `activite-conges` conservée ou alias ; `?module=` ajouté).
-- **DoD :** chapitre renommé et alimenté par 7.3A ; module Production & Congés monté (Desktop+Mobile
-  réutilisés) ; 0 recalcul de marge ; `Atlas` / `Mission : analyse des marges` = `NEW/FUTURE` (pas
-  de bouton mort).
+### 7.3B — Engagements — ✅ IMPLEMENTED / PASS (2026-09-10)
+- **Objectif :** `activite-conges` → « Rentabilité des engagements » ; `planning-at` → « Planning & Échéances » ; `contextualModules` REUSE.
+- **Data :** DATA-0 nouveau contrat (consomme 7.3A + loaders existants).
+- **✅ Livré (doc `13-*`, ledger §49) :**
+  - 2 renames de chapitre (clés `activite-conges` / `planning-at` **conservées**), `<h1>` + sous-titre du chapitre Rentabilité, `StatCell` « CA observé » (contrat 7.3A) ;
+  - contrat de navigation extrait (`engagements-navigation.ts`) ; `EngagementsDesktopView` gagne `contextualModules` ;
+  - **Production & Congés** monté (`ProductionLeaveDesktop` + `getProductionLeave()`, `?module=production-conges`) ;
+  - **Atlas du portefeuille** monté (`PortfolioAtlasDialog` + `getEngagementsOverview()`, `?module=atlas-portefeuille`) — Cas A ;
+  - **Atlas réconcilié sur le contrat 7.3A** : `engagements-portfolio-utils.ts` délègue à `realRevenue`/`realCost`/`realMarginPct`, 0 formule de marge concurrente (assertée par test) ;
+  - **Mission : analyse des marges = NEW/FUTURE** (aucun module branchable, seule l'action Cockpit `analyze_margins`) — non exposé, aucun bouton mort ;
+  - **Mobile NO IMPACT** ; URL-1 (`?module=` ajouté, `?vue=` inchangé, compat `planning-engagements` préservée).
+  - Gates `typecheck` / `test` (3086) / `check:server-boundary` / `lint` / `build` / `diff --check` = **PASS**.
 
 ### 7.3C — Finance
 - **Objectif :** `profitability` → « Rentabilité P&L » (recentrage P&L, le détail mission vit
@@ -897,8 +898,8 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | **7.1** | Opportunités | LOW | DATA-0 | 7 labels | NO IMPACT | refonte Synthèse parallèle | Non (levé) | ✅ **IMPLEMENTED / PASS** |
 | **7.2** | Consultants | MEDIUM | DATA-0 (cœur) | 3 labels + 1 TRANSFORM | SEPARATE IMPL. (pool) | — | Non | ✅ **IMPLEMENTED / PASS** (`bb2a3a4d`) |
 | **7.3A** | Rentabilité Data | HIGH | **DATA-1** (builder) | — | — | ✅ builder retenu | Non | ✅ **IMPLEMENTED / PASS** (`12-*`, §48) |
-| **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A ✅ | Non | **UNBLOCKED** (après 7.3A) |
-| **7.3C** | Finance | MEDIUM | DATA-1 | 2 RENAME + 1 module | LABEL SYNC | 7.3A, 7.3B | Non | NO (après 7.3B) |
+| **7.3B** | Engagements | HIGH | DATA-0 (contrat 7.3A) | 2 RENAME + 2 modules REUSE | NO IMPACT | 7.3A ✅ | Non | ✅ **IMPLEMENTED / PASS** (`13-*`, §49) |
+| **7.3C** | Finance | MEDIUM | DATA-0 (contrat 7.3A) | 2 RENAME + 1 module | LABEL SYNC | 7.3A ✅, 7.3B ✅ | Non | **UNBLOCKED** |
 | **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`a9ac0d36`) |
 | **7.5** | Prospection | HIGH | DATA-1+ | REMOVE + RENAME + TRANSFORM (coquilles vides) | FUTURE | **décision produit** | Non | **NO — DECISION REQUIRED** |
 | **7.6** | Rapports | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`958515e3`) |
@@ -929,9 +930,9 @@ exécutable** si 7.1 reste bloqué.
 
 1. **`MISSION_CATALOG` = 7 specs** — `CLAUDE.md` (« ADR-0020… Catalogue = 1 mission ») est **périmé**.
    À corriger lors d'une prochaine révision de `CLAUDE.md` (hors SHELL-0018).
-2. **Duplication de lecture rentabilité** Finance ↔ Engagements (§6.3) — ✅ **résorbée par 7.3A**
-   (2026-09-10, builder pur `src/lib/finance/mission-profitability.ts`). Reste `engagements-portfolio-utils.ts`
-   (Atlas du portefeuille) à réconcilier en 7.3B (doc `12-*` §11).
+2. **Duplication de lecture rentabilité** Finance ↔ Engagements (§6.3) — ✅ **résorbée** :
+   7.3A (builder pur `src/lib/finance/mission-profitability.ts`) + 7.3B (Atlas `engagements-portfolio-utils.ts`
+   réconcilié sur le contrat, doc `13-*` §4). Plus aucune formule de marge concurrente dans Engagements.
 3. **Prospection = workspace coquille** — `chapter_1/2/3` vides. La cible 09 §B.6 est de la
    construction, pas de l'alignement. À arbitrer produit avant 7.5.
 4. **Prospection Mobile = placeholder statique** — pas d'implémentation. Décider du périmètre Mobile.
@@ -951,8 +952,10 @@ exécutable** si 7.1 reste bloqué.
 - ~~**Phase 7.1 — Alignement Opportunités**~~ → ✅ **livré (2026-09-10)**. Opportunities Lot 12 →
   **UNBLOCKED / READY**.
 - ~~**Phase 7.3A — Contrat Data rentabilité**~~ → ✅ **livré (2026-09-10)** (builder pur, 0 migration).
-  Doc `12-PHASE-7.3A-PROFITABILITY-DATA-CONTRACT-2026-09-10.md` · ledger §48.
-- Suite Phase 7 : `7.3B → 7.3C → 7.5 → 7.10`.
+  Doc `12-*` · ledger §48.
+- ~~**Phase 7.3B — Alignement Engagements**~~ → ✅ **livré (2026-09-10)** (5 chapitres, 2 modules REUSE,
+  Atlas réconcilié, 0 migration). Doc `13-PHASE-7.3B-ENGAGEMENTS-ALIGNMENT-2026-09-10.md` · ledger §49.
+- Suite Phase 7 : `7.3C → 7.5 → 7.10`.
 
 Opportunities Lot 12 : **UNBLOCKED / READY** (après 7.1). Consultants Lot 15 :
 **CLOSED** (workspace techniquement clos).

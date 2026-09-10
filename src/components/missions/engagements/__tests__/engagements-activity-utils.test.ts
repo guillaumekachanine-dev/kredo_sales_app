@@ -184,6 +184,18 @@ describe("buildEngagementsActivityAnalytics — rentabilité théorique vs réel
     expect(result.marginReality.realAvg).toBe(30)
   })
 
+  it("expose le CA réel observé (contrat canonique 7.3A) sur les missions comparées", () => {
+    const result = build({
+      missions: [mission({ id: "a", grossMarginPct: 30 }), mission({ id: "b", grossMarginPct: 30 })],
+      reports: [
+        report({ id: "a", missionId: "a", billableDays: 10, tjmSnapshot: 800, cjmSnapshot: 500 }),
+        report({ id: "b", missionId: "b", billableDays: 5, tjmSnapshot: 600, cjmSnapshot: 400 }),
+      ],
+    })
+    // 10×800 + 5×600 = 11 000
+    expect(result.marginReality.observedRevenue).toBe(11_000)
+  })
+
   it("écarte les missions sans CRA ou sans marge théorique exploitable", () => {
     const result = build({
       missions: [

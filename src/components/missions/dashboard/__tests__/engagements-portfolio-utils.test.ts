@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
+import { realCost, realMarginPct, realRevenue } from "@/lib/finance/mission-profitability"
 import type { BuildEngagementsPortfolioInput, PortfolioMissionSource, PortfolioProjectSource } from "../engagements-portfolio-types"
 import { buildClientExposure, buildMarginBridge, buildPortfolioPoints, buildProductionHeatmap, buildProjectsCockpit, buildRunway } from "../engagements-portfolio-utils"
 
@@ -15,4 +18,63 @@ describe("portfolio engagement calculations", () => {
   it("counts only invoiced milestones, remaining amount and overdue phases", () => { const result = buildProjectsCockpit(input({ projects: [{ ...project(), billingMilestones: [...project().billingMilestones, { label: "Non facturé", amount: 20_000, dueDate: "2026-07-01", invoicedAt: null }] }], projectPhases: [{ id: "phase", projectId: "p1", label: "Cadrage", status: "in_progress", startDate: "2026-05-01", endDate: "2026-07-01" }] })); expect(result[0]).toEqual(expect.objectContaining({ invoicedAmount: 30_000, remainingToInvoice: 70_000 })); expect(result[0].phaseCounts.overdue).toBe(1) })
   it("builds AT margin and project contribution bridges", () => { const result = buildMarginBridge(input()); expect(result.assistanceTechnique).toEqual({ revenue: 8_000, assistanceCosts: 5_000, projectCosts: 0, observedContribution: 3_000 }); expect(result.projects.observedContribution).toBe(10_000); expect(result.global.observedContribution).toBe(13_000) })
   it("deduplicates equivalent runway markers", () => { const result = buildRunway(input({ projectPhases: [{ id: "phase", projectId: "p1", label: "Livraison", status: "planned", startDate: null, endDate: "2026-08-01" }], calendarEvents: [{ id: "event", entityType: "project", entityId: "p1", title: "Livraison", eventType: "delivery", status: "scheduled", startsAt: "2026-08-01T09:00:00Z" }] })); expect(result.find((row) => row.id === "p1")?.markers.filter((marker) => marker.label === "Livraison")).toHaveLength(1) })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SHELL-0018 Lot 7.3B — Atlas ne possède plus de calcul de marge concurrent :
+//  CA réel / coût réel / marge réelle viennent du contrat canonique
+//  `src/lib/finance/mission-profitability.ts`.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("Atlas — réconciliation sur le contrat canonique de rentabilité (7.3B)", () => {
+  const rows = [
+    { billableDays: 12, tjmSnapshot: 820, cjmSnapshot: 540 },
+    { billableDays: 8, tjmSnapshot: 760, cjmSnapshot: 500 },
+  ]
+
+  it("buildPortfolioPoints (branche mission) = realRevenue / realMarginPct", () => {
+    const reports = rows.map((row, index) => ({
+      id: `r${index}`,
+      missionId: "m1",
+      collaboratorId: "collab-m1",
+      status: "validated",
+      periodStart: "2026-05-01",
+      periodEnd: "2026-05-31",
+      businessDays: 20,
+      ...row,
+    }))
+    const point = buildPortfolioPoints(input({ projects: [], reports }))[0]
+
+    expect(point.revenueYtd).toBe(realRevenue(rows))
+    expect(point.actualMarginPct).toBe(realMarginPct(rows))
+  })
+
+  it("buildMarginBridge (assistance technique) = realRevenue / realCost", () => {
+    const reports = rows.map((row, index) => ({
+      id: `r${index}`,
+      missionId: "m1",
+      collaboratorId: "collab-m1",
+      status: "validated",
+      periodStart: "2026-05-01",
+      periodEnd: "2026-05-31",
+      businessDays: 20,
+      ...row,
+    }))
+    const bridge = buildMarginBridge(input({ projects: [], reports }))
+
+    expect(bridge.assistanceTechnique.revenue).toBe(realRevenue(rows))
+    expect(bridge.assistanceTechnique.assistanceCosts).toBe(realCost(rows))
+    expect(bridge.assistanceTechnique.observedContribution).toBe(
+      realRevenue(rows) - realCost(rows),
+    )
+  })
+
+  it("le module source importe les primitives canoniques et ne somme plus billableDays × snapshot inline", () => {
+    const source = readFileSync(
+      fileURLToPath(new URL("../engagements-portfolio-utils.ts", import.meta.url)),
+      "utf8",
+    )
+    expect(source).toContain('from "@/lib/finance/mission-profitability"')
+    // Plus aucune multiplication `billableDays × (tjm|cjm)Snapshot` en dur.
+    expect(source).not.toMatch(/\.billableDays\s*\*\s*\w+\.(tjm|cjm)Snapshot/)
+  })
 })

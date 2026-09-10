@@ -9,11 +9,11 @@ import type { MissionPlanningRow } from "../../planning/mission-planning-types"
 import type { DBProjectResult } from "@/app/(app)/missions/_data/get-projects-list"
 
 describe("EngagementsDesktopView — header dynamique & navigation", () => {
-  it("affiche dans le header le nom exact de chaque onglet", () => {
+  it("affiche dans le header le nom exact de chaque onglet (libellés cibles SHELL-0018 §B.2)", () => {
     expect(HEADER_TITLE_BY_VIEW["missions-at"]).toBe("Missions AT")
     expect(HEADER_TITLE_BY_VIEW["projets"]).toBe("Projets")
-    expect(HEADER_TITLE_BY_VIEW["activite-conges"]).toBe("Activité & congés")
-    expect(HEADER_TITLE_BY_VIEW["planning-at"]).toBe("Planning des engagements")
+    expect(HEADER_TITLE_BY_VIEW["activite-conges"]).toBe("Rentabilité des engagements")
+    expect(HEADER_TITLE_BY_VIEW["planning-at"]).toBe("Planning & Échéances")
     expect(HEADER_TITLE_BY_VIEW["synthese"]).toBe("Synthèse")
   })
 
@@ -22,13 +22,13 @@ describe("EngagementsDesktopView — header dynamique & navigation", () => {
       { view: "synthese", label: "Synthèse" },
       { view: "missions-at", label: "Missions AT" },
       { view: "projets", label: "Projets" },
-      { view: "activite-conges", label: "Activité & congés" },
-      { view: "planning-at", label: "Planning des engagements" },
+      { view: "activite-conges", label: "Rentabilité des engagements" },
+      { view: "planning-at", label: "Planning & Échéances" },
     ])
   })
 })
 
-describe("Planning des engagements — sous-titre selon le type d'engagement", () => {
+describe("Planning & Échéances — sous-titre selon le type d'engagement", () => {
   it("formate le sous-titre pour une mission AT (Collaborateur · Client)", () => {
     const row: Partial<MissionPlanningRow> = {
       engagementType: "mission_at",

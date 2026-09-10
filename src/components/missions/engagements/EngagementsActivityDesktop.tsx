@@ -241,7 +241,7 @@ export function EngagementsActivityDesktop({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-heading text-xl font-black tracking-tight text-heading">
-              Activité &amp; congés
+              Rentabilité des engagements
             </h1>
             {data.status === "partial" ? (
               <span
@@ -253,7 +253,7 @@ export function EngagementsActivityDesktop({
             ) : null}
           </div>
           <p className="mt-0.5 text-[11px] text-muted">
-            Productivité CRA, rentabilité réelle et impact des absences sur les missions AT actives
+            Rentabilité réelle vs théorique, productivité CRA et impact des absences sur les missions AT actives
           </p>
         </div>
         <div className="flex items-center gap-4 rounded-full border border-border bg-surface px-4 py-1.5">
@@ -326,6 +326,14 @@ export function EngagementsActivityDesktop({
           note="Réel calculé sur les snapshots TJM / CJM des CRA"
         >
           <div className="mb-3 flex items-center gap-5 border-b border-border pb-3">
+            <StatCell
+              label="CA observé"
+              value={
+                marginReality.observedRevenue > 0
+                  ? formatEuroCompact(marginReality.observedRevenue)
+                  : "—"
+              }
+            />
             <StatCell
               label="Marge théo. moy."
               value={marginReality.theoreticalAvg === null ? "—" : formatPct(marginReality.theoreticalAvg)}

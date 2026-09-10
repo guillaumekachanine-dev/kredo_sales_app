@@ -11,10 +11,13 @@ import { getEngagementsActivityAnalytics } from "@/app/(app)/missions/_data/get-
 import { getEngagementsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
 import { getProjectsList } from "@/app/(app)/missions/_data/get-projects-list"
 import { getProjectDetail } from "@/app/(app)/missions/_data/get-project-detail"
+import { getProductionLeave } from "@/features/consultants/modules/production-leave/data/get-production-leave"
+import { EngagementsDesktopView } from "@/components/missions/engagements/EngagementsDesktopView"
 import {
-  EngagementsDesktopView,
-  type EngagementsView,
-} from "@/components/missions/engagements/EngagementsDesktopView"
+  parseEngagementsModule,
+  parseEngagementsView,
+  type EngagementsContextualModule,
+} from "@/components/missions/engagements/engagements-navigation"
 import { CurrentMissionsList } from "@/components/missions/engagements/CurrentMissionsList"
 import { MissionOverview } from "@/components/missions/engagements/MissionOverview"
 import { MissionDetailsRail } from "@/components/missions/engagements/MissionDetailsRail"
@@ -26,22 +29,8 @@ import { EngagementsPlanningDesktop } from "@/components/missions/engagements/En
 
 type SearchParams = Record<string, string | string[] | undefined>
 
-const VIEWS: readonly EngagementsView[] = [
-  "synthese",
-  "missions-at",
-  "projets",
-  "activite-conges",
-  "planning-at",
-]
-
 function pickParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value
-}
-
-function pickView(value: string | string[] | undefined): EngagementsView {
-  const raw = pickParam(value)
-  if (raw === "planning-engagements") return "planning-at"
-  return raw && VIEWS.includes(raw as EngagementsView) ? (raw as EngagementsView) : "synthese"
 }
 
 function SynthesisError() {
@@ -64,11 +53,12 @@ export default async function MissionsPage({
 }) {
   const device = await getDashboardDevice()
   const resolvedSearchParams = await searchParams
-  const view = pickView(resolvedSearchParams.vue)
+  const view = parseEngagementsView(resolvedSearchParams.vue)
 
   // ── Mobile : shell unifié Engagements (paradigme /reports) ─────────────────
   //  Synthèse + Missions AT livrés ; Projets réutilise ProjectsContent tel quel.
-  //  Les vues Activité & congés / Planning ne sont pas exposées sur Mobile.
+  //  Les vues Rentabilité des engagements / Planning & Échéances et les modules
+  //  contextuels ne sont pas exposés sur Mobile (implémentation séparée).
   if (device === "mobile") {
     const mobileView: EngagementsMobileView =
       view === "missions-at" || view === "projets" ? view : "synthese"
@@ -97,6 +87,27 @@ export default async function MissionsPage({
   }
 
   // ── Desktop : nouveau shell (paradigme /reports) ───────────────────────────
+  //  Modules contextuels REUSE (Phase 7.3B), pilotés par `?module=` et montés en
+  //  overlay au-dessus du chapitre courant. Leurs données ne sont lues que si le
+  //  module est réellement demandé (ADR-0006).
+  const activeModule: EngagementsContextualModule | null = parseEngagementsModule(
+    resolvedSearchParams.module,
+  )
+  const [productionLeaveVm, portfolioOverview] = await Promise.all([
+    activeModule === "production-conges"
+      ? getProductionLeave().catch((error) => {
+          console.error("[MissionsPage] module production-conges", error)
+          return null
+        })
+      : Promise.resolve(null),
+    activeModule === "atlas-portefeuille"
+      ? getEngagementsOverview().catch((error) => {
+          console.error("[MissionsPage] module atlas-portefeuille", error)
+          return null
+        })
+      : Promise.resolve(null),
+  ])
+  const shellModuleProps = { activeModule, productionLeaveVm, portfolioOverview }
 
   if (view === "synthese") {
     let overview: Awaited<ReturnType<typeof getEngagementsOverview>> | null = null
@@ -107,7 +118,7 @@ export default async function MissionsPage({
     }
 
     return (
-      <EngagementsDesktopView activeView="synthese">
+      <EngagementsDesktopView activeView="synthese" {...shellModuleProps}>
         <div className="engagements-scrollbar min-h-0 flex-1 overflow-y-auto bg-canvas">
           {overview ? <EngagementsOverviewDesktop overview={overview} /> : <SynthesisError />}
         </div>
@@ -121,7 +132,7 @@ export default async function MissionsPage({
     const detail = selectedId ? await getEngagementMissionDetail(selectedId) : null
 
     return (
-      <EngagementsDesktopView activeView="missions-at">
+      <EngagementsDesktopView activeView="missions-at" {...shellModuleProps}>
         {missions.length === 0 ? (
           <div className="flex min-h-0 flex-1 items-center justify-center bg-canvas px-8 text-center">
             <div className="max-w-sm">
@@ -156,7 +167,7 @@ export default async function MissionsPage({
     const detail = selectedId ? (await getProjectDetail(selectedId)).data : null
 
     return (
-      <EngagementsDesktopView activeView="projets">
+      <EngagementsDesktopView activeView="projets" {...shellModuleProps}>
         {listProjects.length === 0 ? (
           <div className="flex min-h-0 flex-1 items-center justify-center bg-canvas px-8 text-center">
             <div className="max-w-sm">
@@ -187,7 +198,7 @@ export default async function MissionsPage({
     const analytics = await getEngagementsActivityAnalytics()
 
     return (
-      <EngagementsDesktopView activeView="activite-conges">
+      <EngagementsDesktopView activeView="activite-conges" {...shellModuleProps}>
         <div className="engagements-scrollbar min-h-0 flex-1 overflow-y-auto bg-canvas">
           <EngagementsActivityDesktop data={analytics} />
         </div>
@@ -199,7 +210,7 @@ export default async function MissionsPage({
   const planningRows = await getEngagementsPlanning()
 
   return (
-    <EngagementsDesktopView activeView="planning-at">
+    <EngagementsDesktopView activeView="planning-at" {...shellModuleProps}>
       <div className="engagements-scrollbar min-h-0 flex-1 overflow-y-auto bg-canvas">
         <EngagementsPlanningDesktop rows={planningRows} />
       </div>

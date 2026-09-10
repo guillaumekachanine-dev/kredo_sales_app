@@ -1,3 +1,4 @@
+import { realCost, realMarginPct, realRevenue } from "@/lib/finance/mission-profitability"
 import type {
   BuildEngagementsPortfolioInput,
   ClientExposureItem,
@@ -7,6 +8,19 @@ import type {
   ProductionHeatmapRow,
   PortfolioActivityReportSource,
 } from "./engagements-portfolio-types"
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Atlas du portefeuille — projection Engagements « réalisé uniquement ».
+//
+//  SHELL-0018 Lot 7.3B : la vérité de rentabilité (CA réel, coût réel, marge
+//  réelle) vient du contrat canonique `src/lib/finance/mission-profitability.ts`
+//  (`realRevenue` / `realCost` / `realMarginPct`) — plus aucune formule de marge
+//  concurrente ici. Restent PROPRES à l'Atlas : la fenêtre d'éligibilité
+//  (`eligibleValidatedReports` : `status='validated'` ET `periodEnd <= today` ET
+//  exercice courant), le mélange missions AT + projets forfait, et les rollups
+//  d'exposition/pont de marge — ce sont des projections, pas des calculs de
+//  marge indépendants.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const DAY_MS = 86_400_000
 const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1)
@@ -50,9 +64,8 @@ export function buildPortfolioPoints(input: Pick<BuildEngagementsPortfolioInput,
   return [
     ...input.missions.map((mission) => {
       const rows = reportGroups.get(mission.id) ?? []
-      const revenueYtd = rows.reduce((sum, row) => sum + row.billableDays * row.tjmSnapshot, 0)
-      const cost = rows.reduce((sum, row) => sum + row.billableDays * row.cjmSnapshot, 0)
-      const actualMarginPct = revenueYtd > 0 ? roundOne(((revenueYtd - cost) / revenueYtd) * 100) : null
+      const revenueYtd = realRevenue(rows)
+      const actualMarginPct = realMarginPct(rows)
       return { id: mission.id, type: "mission" as const, title: mission.title, companyId: mission.companyId, companyName: label(mission.companyName, "Client non renseigné"), practice: mission.practice, revenueYtd, actualMarginPct, targetMarginPct: mission.grossMarginPct, marginGapPct: actualMarginPct !== null && mission.grossMarginPct !== null ? roundOne(actualMarginPct - mission.grossMarginPct) : null, startDate: dateOnly(mission.startDate), ...timing(mission.endDate) }
     }),
     ...input.projects.map((project) => {
@@ -86,7 +99,7 @@ function productionFacts(input: Pick<BuildEngagementsPortfolioInput, "now" | "mi
     const mission = missions.get(report.missionId)
     if (!mission) return []
     const compensation = input.compensations.filter((row) => row.collaboratorId === report.collaboratorId && row.effectiveFrom <= report.periodStart && (!row.effectiveTo || row.effectiveTo >= report.periodStart)).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
-    return [{ date: report.periodStart, revenue: report.billableDays * report.tjmSnapshot, client: label(mission.companyName, "Client non renseigné"), practice: label(mission.practice, "Non renseigné"), belowTarget: Boolean(compensation && report.businessDays > 0 && report.billableDays / report.businessDays < compensation.taci) }]
+    return [{ date: report.periodStart, revenue: realRevenue([report]), client: label(mission.companyName, "Client non renseigné"), practice: label(mission.practice, "Non renseigné"), belowTarget: Boolean(compensation && report.businessDays > 0 && report.billableDays / report.businessDays < compensation.taci) }]
   })
   const today = todayOnly(input.now)
   for (const project of input.projects) for (const milestone of project.billingMilestones) {
@@ -132,8 +145,8 @@ export function buildProjectsCockpit(input: Pick<BuildEngagementsPortfolioInput,
 
 export function buildMarginBridge(input: Pick<BuildEngagementsPortfolioInput, "now" | "missions" | "projects" | "reports">) {
   const reports = eligibleValidatedReports(input)
-  const atRevenue = reports.reduce((sum, row) => sum + row.billableDays * row.tjmSnapshot, 0)
-  const atCosts = reports.reduce((sum, row) => sum + row.billableDays * row.cjmSnapshot, 0)
+  const atRevenue = realRevenue(reports)
+  const atCosts = realCost(reports)
   const today = todayOnly(input.now)
   const projectRevenue = input.projects.reduce((sum, project) => sum + project.billingMilestones.reduce((inner, milestone) => {
     const invoicedAt = dateOnly(milestone.invoicedAt)
