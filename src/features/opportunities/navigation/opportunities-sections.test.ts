@@ -243,8 +243,28 @@ describe("Opportunities Workspace — invariants de code", () => {
     expect(pageSource).toContain('device === "mobile"')
   })
 
-  it("le chapitre besoins monte le NeedsStaffingWorkspace legacy (parité)", () => {
-    expect(pageSource).toContain("NeedsStaffingWorkspace")
+  it("NeedsStaffingWorkspace est définitivement absent du code applicatif (Lot 12)", () => {
+    expect(pageSource).not.toContain("NeedsStaffingWorkspace")
+    expect(
+      existsSync(
+        resolve(root, "src/components/needs-staffing/NeedsStaffingWorkspace.tsx"),
+      ),
+    ).toBe(false)
+  })
+
+  it("l'orchestrateur monte les 4 chapitres Desktop cibles et le host des modules", () => {
+    expect(pageSource).toContain("SummaryDesktop")
+    expect(pageSource).toContain("NeedsDesktop")
+    expect(pageSource).toContain("PresalesDesktop")
+    expect(pageSource).toContain("PlanningDesktop")
+    expect(pageSource).toContain("OpportunitiesModulesHost")
+  })
+
+  it("la branche mobile ne monte aucun composant Desktop et rend un EmptyState minimal", () => {
+    expect(pageSource).toContain("EmptyState")
+    const mobileBranch = pageSource.split('device === "mobile"')[1]?.split("return (")[1]?.split("</main>")[0]
+    expect(mobileBranch).toContain("<EmptyState")
+    expect(mobileBranch).not.toContain("OpportunitiesDesktopShell")
   })
 
   it("ne réintroduit pas la redirection serveur obligatoire sur ?scope=", () => {
@@ -263,6 +283,60 @@ describe("Opportunities Workspace — invariants de code", () => {
     expect(desktopShellSource).not.toContain("useSidebarCollapse")
     expect(desktopShellSource).not.toContain("requestCollapse")
     expect(desktopShellSource).not.toContain("requestRestore")
+  })
+})
+
+describe("Opportunities Workspace — suppression définitive du legacy (Lot 12)", () => {
+  const deadPaths = [
+    "src/components/needs-staffing/NeedsStaffingWorkspace.tsx",
+    "src/components/needs-staffing/NeedsListView.tsx",
+    "src/components/needs-staffing/StaffingListWorkspaceView.tsx",
+    "src/components/needs-staffing/UnifiedPlanningView.tsx",
+    "src/lib/needs-staffing/use-needs-staffing-url-state.ts",
+    "src/components/missions/OpportunitiesDesktopView.tsx",
+    "src/components/missions/OpportunitiesKpiSection.tsx",
+    "src/components/missions/OpportunitySkillsCloud.tsx",
+    "src/components/missions/planning/OpportunitiesPlanningView.tsx",
+    "src/app/(app)/missions/_data/get-opportunities-planning.ts",
+    "src/app/(app)/missions/_data/get-opportunity-skills-cloud.ts",
+    "src/components/staffing/StaffingDesktopDashboard.tsx",
+    "src/components/staffing/StaffingMobileDashboard.tsx",
+    "src/components/staffing/StaffingDesktopView.tsx",
+    "src/components/staffing/StaffingMobileView.tsx",
+    "src/components/staffing/StaffingListView.tsx",
+    "src/components/staffing/StaffingPlanningView.tsx",
+    "src/components/staffing/StaffingTabbedShell.tsx",
+    "src/components/staffing/StaffingSectionTabBar.tsx",
+    "src/components/staffing/StaffingEntityPanel.tsx",
+    "src/components/staffing/StaffingDrawer.tsx",
+    "src/components/staffing/index.tsx",
+    "src/app/(app)/staffing/_data/get-staffings-planning.ts",
+  ]
+
+  it.each(deadPaths)("le fichier legacy %s est supprimé", (relPath) => {
+    expect(existsSync(resolve(root, relPath))).toBe(false)
+  })
+
+  it("les briques protégées sont toujours présentes", () => {
+    const protectedPaths = [
+      "src/components/needs-staffing/StageQuickEditorDialog.tsx",
+      "src/components/needs-staffing/StageTimeline.tsx",
+      "src/components/needs-staffing/stage-timeline-config.ts",
+      "src/components/needs-staffing/NewStaffingButton.tsx",
+      "src/lib/needs-staffing/model.ts",
+      "src/lib/needs-staffing/coverage.ts",
+      "src/lib/needs-staffing/url-state.ts",
+      "src/components/staffing/AssistanceCaseDrawer.tsx",
+      "src/components/staffing/matching/MatchingDialog.tsx",
+      "src/app/(app)/missions/_data/get-needs-staffing-shared.ts",
+      "src/app/(app)/missions/_data/get-opportunities-list.ts",
+      "src/app/(app)/missions/_data/get-opportunity-detail.ts",
+      "src/app/(app)/staffing/_data/get-staffings-list.ts",
+    ]
+
+    for (const relPath of protectedPaths) {
+      expect(existsSync(resolve(root, relPath))).toBe(true)
+    }
   })
 })
 

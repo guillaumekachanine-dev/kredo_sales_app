@@ -2,7 +2,7 @@
 
 > **Nom canonique :** Opportunities Workspace
 > **Nom produit affiché :** Opportunités
-> **Statut global : en implémentation (Lots 1→11 + Phase 7.1 livrés ; Lot 12 UNBLOCKED / READY)**
+> **Statut global : ✅ TECHNICALLY CLOSED (Lots 1→12 livrés, BLOCKING = 0)**
 > **Branche de travail unique : `main`** (aucune feature branch)
 > **Baseline de cadrage : `61aba08ee1b35f848d223f96e08a1e1a624545ec`**
 
@@ -107,24 +107,17 @@ Un agent recevant « Exécute le Lot 12 du Opportunities Workspace » doit être
 7. réauditer le graphe réel des consommateurs avec `rg` avant chaque suppression ;
 8. protéger strictement tout chantier parallèle.
 
-## Prochain lot
+## Clôture du chantier
 
-➡️ **Lot 12 — Nettoyage et clôture — `UNBLOCKED / READY`.**
+➡️ **Lot 12 — Nettoyage et clôture — ✅ TECHNICALLY CLOSED.**
 
-Phase 7.1 est livrée. Le blocker historique lié à la Synthèse est levé.
-
-Le Lot 12 doit maintenant :
-
-- supprimer `NeedsStaffingWorkspace` volontairement ;
-- retirer ses dépendances exclusivement orphelines après preuve ;
-- supprimer les surfaces Desktop legacy réellement mortes (`OpportunitiesDesktopView`, `OpportunitiesKpiSection`, anciennes chaînes Staffing/Planning si orphelines) ;
-- préserver `getNeedsStaffingSharedData`, `StageQuickEditorDialog`, `StageTimeline`, `NewStaffingButton`, `src/lib/needs-staffing/model.ts`, `src/lib/needs-staffing/url-state.ts`, matching, drawers, routes et loaders encore actifs ;
-- conserver `/staffing` comme redirection de compatibilité ;
-- ne créer aucune nouvelle feature Mobile dans ce lot ;
-- créer `02-CLOSURE-AUDIT.md` ;
-- atteindre `BLOCKING = 0`.
-
-Résultat attendu :
+- `NeedsStaffingWorkspace` supprimé (REMOVE).
+- 23 fichiers legacy orphelins supprimés (vues, plannings, dashboards, loaders morts).
+- Dépendances actives protégées (`getNeedsStaffingSharedData`, `StageQuickEditorDialog`, `StageTimeline`, `NewStaffingButton`, `src/lib/needs-staffing/model.ts`, `src/lib/needs-staffing/url-state.ts`, matching, drawers, routes).
+- `/staffing` conservé comme redirection de compatibilité.
+- Mobile en état minimal provisoire `EmptyState` (`Opportunities Mobile V2 — DEFERRED PRODUCT`).
+- Rapport de clôture [`02-CLOSURE-AUDIT.md`](./02-CLOSURE-AUDIT.md) produit.
+- Quality Gates 100 % vertes.
 
 ```text
 Opportunities Workspace → ✅ TECHNICALLY CLOSED
@@ -134,5 +127,3 @@ Opportunities Mobile V2 → DEFERRED PRODUCT
 ```
 
 Après Lot 12, faire un rebaseline global avant de démarrer le chantier suivant, notamment avant Phase 7.3A car le chantier `performance-data-audit` peut avoir modifié les hypothèses Data.
-
-> ⚠️ Travail parallèle possible dans l'arbre (`docs/performance-data-audit/`, `src/lib/supabase/*`, `src/lib/intelligence/*`, etc.). Stager les chemins explicitement, jamais `git add -A`.

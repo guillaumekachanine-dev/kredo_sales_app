@@ -2594,7 +2594,7 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 - **Routing** : **URL-0**. Pathname canonique `/missions/opps` (racine `synthese` sans paramètre), `?section=besoins|avant-vente|planning`, `?module=matching|simulation|post-mortem`, sélection `?opp=`, compat d'entrée `?scope=needs|staffing` → `besoins`.
 - **Data** : **DATA-0**. Aucune modification de table, vue, loader, action, RPC, schéma Supabase ou workflow n8n.
 - **Invariant KANBAN-001** : 0 réintroduction Kanban.
-- **Opportunities Lot 12** : passe au statut **UNBLOCKED / READY**.
+- **Opportunities Lot 12** : **✅ TECHNICALLY CLOSED (BLOCKING = 0)** — `NeedsStaffingWorkspace` et 23 fichiers legacy purgés, rapport `02-CLOSURE-AUDIT.md`.
 
 ### Gates
 
@@ -2608,3 +2608,4 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 ### Verdict
 
 - **Lot 7.1 — ✅ livré.** Commit : `0458ed42` — `refactor(opportunities): align workspace target navigation`.
+- **Opportunities Lot 12 — ✅ livré / fermé.** `Opportunities Workspace → TECHNICALLY CLOSED`.

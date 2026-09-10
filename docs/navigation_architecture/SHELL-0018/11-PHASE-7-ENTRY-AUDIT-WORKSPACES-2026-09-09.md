@@ -189,7 +189,7 @@ Les 3 modules sont **déjà `REUSE` complet** — le lot 7.1 ne fait que **renom
 | Module | `simulation` « Simulation devis » | Simulation financière | RENAME | idem | DATA-0 | label | NO IMPACT | — | 7.1 |
 | Module | `post-mortem` « Post-Mortem » | Revue post-mortem | RENAME | idem | DATA-0 | label | NO IMPACT | — | 7.1 |
 
-**Statut : ✅ `IMPLEMENTED / PASS` (2026-09-10)** (7 renames livrés, DATA-0, URL-0, Mobile NO IMPACT, blocker levé, Synthèse Desktop intégrée au Lot 4, Opportunities Lot 12 UNBLOCKED / READY).
+**Statut : ✅ `IMPLEMENTED / PASS` (2026-09-10)** (7 renames livrés, DATA-0, URL-0, Mobile NO IMPACT, blocker levé, Synthèse Desktop intégrée au Lot 4 ; **Opportunities Lot 12 livré : `NeedsStaffingWorkspace` et 23 fichiers legacy supprimés, Opportunities Workspace TECHNICALLY CLOSED, BLOCKING = 0**).
 Complexité **LOW** (7 renames purs, 0 Data).
 
 ---

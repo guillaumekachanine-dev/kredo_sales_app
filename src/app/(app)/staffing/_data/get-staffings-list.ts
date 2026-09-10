@@ -49,18 +49,6 @@ export interface StaffingListRow {
   opportunityTargetDailyRate: number | null
 }
 
-export interface MobileStaffingRow {
-  id: string
-  opportunityId: string
-  status: string
-  candidateId: string
-  fullName: string
-  profileTitle: string | null
-  profilePractice: string | null
-  availableFrom: string | null
-  salary: number | null
-}
-
 export async function getStaffingsList(): Promise<StaffingListRow[]> {
   try {
     const supabase = await createClient()
@@ -133,38 +121,41 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
       return []
     }
 
-    const rows = (data ?? []).map((item: any) => {
-      const opportunity = item.opportunity
+    const rows = (data ?? []).map((rawItem) => {
+      const item = rawItem as Record<string, unknown>
+      const opportunity = item.opportunity as Record<string, unknown> | null
       const company = opportunity?.company
-      const companyRecord = Array.isArray(company) ? company[0] : company
-      const clientLogoPath = companyRecord?.meta_logo_path || null
+      const companyRecord = (Array.isArray(company) ? company[0] : company) as Record<string, unknown> | null
+      const clientLogoPath = (companyRecord?.meta_logo_path as string | null) || null
 
-      const candidate = item.candidate
-      const person = candidate?.person
-      const fullName = person?.full_name || `${person?.first_name || ""} ${person?.last_name || ""}`.trim() || "Profil sans nom"
+      const candidate = item.candidate as Record<string, unknown> | null
+      const person = candidate?.person as Record<string, unknown> | null
+      const fullName = (person?.full_name as string | null) || `${(person?.first_name as string | null) || ""} ${(person?.last_name as string | null) || ""}`.trim() || "Profil sans nom"
       
-      const collaborator = person?.collaborators?.[0]
+      const collaborators = person?.collaborators as Array<Record<string, unknown>> | undefined
+      const collaborator = collaborators?.[0]
       const isCollaborator = candidate?.source === "collaborateur" || !!collaborator
 
-      const activeCompensation = collaborator?.compensation?.find((c: any) => c.effective_to === null) || collaborator?.compensation?.[0]
+      const compensations = collaborator?.compensation as Array<{ effective_to: string | null; gross_annual: number | null; cjm: number | null }> | undefined
+      const activeCompensation = compensations?.find((c) => c.effective_to === null) || compensations?.[0]
       const grossAnnual = activeCompensation?.gross_annual || null
       const cjm = activeCompensation?.cjm || null
 
       // Resolve profile title
-      const profileTitle = candidate?.current_title || null
+      const profileTitle = (candidate?.current_title as string | null) || null
 
       // Resolve seniority
       const seniority = isCollaborator
-        ? (collaborator?.seniority || null)
-        : (candidate?.seniority || null)
+        ? ((collaborator?.seniority as string | null) || null)
+        : ((candidate?.seniority as string | null) || null)
 
       // Financials
-      const salary = isCollaborator ? grossAnnual : (candidate?.expected_salary || null)
+      const salary = isCollaborator ? grossAnnual : ((candidate?.expected_salary as number | null) || null)
       
       // Target TJM: expected rate for candidate, or opportunity rate for collaborator
-      const targetTjm = isCollaborator 
-        ? (opportunity?.target_daily_rate || null) 
-        : (candidate?.expected_daily_rate || null)
+      const targetTjm = isCollaborator
+        ? ((opportunity?.target_daily_rate as number | null) || null)
+        : ((candidate?.expected_daily_rate as number | null) || null)
 
       // Margin
       let marginPct: number | null = null
@@ -173,64 +164,64 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
       }
 
       // Resolve practice
-      const practices = candidate?.offer_practices
+      const practices = candidate?.offer_practices as { name?: string } | Array<{ name?: string }> | null
       const candidatePractice = practices
         ? (Array.isArray(practices) ? practices[0]?.name : practices.name)
         : null
 
       let profilePractice: string | null = null
       if (isCollaborator) {
-        profilePractice = collaborator?.practice || null
+        profilePractice = (collaborator?.practice as string | null) || null
       } else {
-        profilePractice = candidatePractice
+        profilePractice = candidatePractice || null
       }
       if (!profilePractice) {
-        profilePractice = opportunity?.practice || null
+        profilePractice = (opportunity?.practice as string | null) || null
       }
 
       // Resolve availability
-      const formattedAvailableFrom = candidate?.available_from ? formatDate(candidate.available_from) : null
-      const availableFrom = formattedAvailableFrom || candidate?.availability || "—"
+      const formattedAvailableFrom = candidate?.available_from ? formatDate(candidate.available_from as string) : null
+      const availableFrom = formattedAvailableFrom || (candidate?.availability as string | null) || "—"
 
       return {
-        id: item.id,
-        status: item.status,
-        proposedAt: item.proposed_at,
-        sentToClientAt: item.sent_to_client_at,
-        updatedAt: item.updated_at,
-        positioningOrigin: item.positioning_origin,
-        comment: item.comment,
-        nextAction: item.next_action,
+        id: item.id as string,
+        status: item.status as string,
+        proposedAt: (item.proposed_at as string | null) || null,
+        sentToClientAt: (item.sent_to_client_at as string | null) || null,
+        updatedAt: item.updated_at as string,
+        positioningOrigin: (item.positioning_origin as string | null) || null,
+        comment: (item.comment as string | null) || null,
+        nextAction: (item.next_action as string | null) || null,
         
-        personId: person?.id || "",
+        personId: (person?.id as string) || "",
         fullName,
         profileTitle,
         isCollaborator,
-        collaboratorId: collaborator?.id || null,
-        candidateId: candidate?.id || "",
-        availability: candidate?.availability || null,
+        collaboratorId: (collaborator?.id as string | null) || null,
+        candidateId: (candidate?.id as string) || "",
+        availability: (candidate?.availability as string | null) || null,
         availableFrom,
-        matchScore: candidate?.internal_score ?? null,
+        matchScore: (candidate?.internal_score as number | null) ?? null,
         
         salary,
         targetTjm,
         marginPct,
         
-        opportunityId: opportunity?.id || "",
-        opportunityTitle: opportunity?.title || "Besoin sans titre",
-        opportunityPriority: opportunity?.priority || "normale",
-        practice: opportunity?.practice || null,
+        opportunityId: (opportunity?.id as string) || "",
+        opportunityTitle: (opportunity?.title as string) || "Besoin sans titre",
+        opportunityPriority: (opportunity?.priority as string) || "normale",
+        practice: (opportunity?.practice as string | null) || null,
         profilePractice,
-        clientName: companyRecord?.name || "Client inconnu",
-        clientWebsite: companyRecord?.website || null,
+        clientName: (companyRecord?.name as string) || "Client inconnu",
+        clientWebsite: (companyRecord?.website as string | null) || null,
         clientLogoPath,
         seniority,
-        conviction: opportunity?.conviction || null,
-        acv: opportunity?.acv || null,
-        estimatedGain: opportunity?.estimated_gain || null,
-        startDate: opportunity?.start_date || null,
-        companyId: opportunity?.company_id || null,
-        opportunityTargetDailyRate: opportunity?.target_daily_rate || null,
+        conviction: (opportunity?.conviction as number | null) || null,
+        acv: (opportunity?.acv as number | null) || null,
+        estimatedGain: (opportunity?.estimated_gain as number | null) || null,
+        startDate: (opportunity?.start_date as string | null) || null,
+        companyId: (opportunity?.company_id as string | null) || null,
+        opportunityTargetDailyRate: (opportunity?.target_daily_rate as number | null) || null,
       }
     })
 
@@ -267,70 +258,6 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
     }))
   } catch (err) {
     console.error("Unhandled error in getStaffingsList:", err)
-    return []
-  }
-}
-
-export async function getMobileStaffingsList(): Promise<MobileStaffingRow[]> {
-  try {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase
-      .from("opportunity_candidates")
-      .select(`
-        id,
-        opportunity_id,
-        status,
-        candidate:candidates (
-          id,
-          current_title,
-          expected_salary,
-          available_from,
-          availability,
-          practice_id,
-          offer_practices (
-            name
-          ),
-          person:persons (
-            full_name
-          )
-        )
-      `)
-
-    if (error) {
-      console.error("Error fetching mobile staffing list:", error)
-      return []
-    }
-
-    const rows = (data ?? []).map((item: any) => {
-      const candidate = item.candidate
-      const person = candidate?.person
-      const fullName = person?.full_name || "Profil sans nom"
-      
-      const practices = candidate?.offer_practices
-      const practiceName = practices
-        ? (Array.isArray(practices) ? practices[0]?.name : practices.name)
-        : null
-
-      const formattedAvailableFrom = candidate?.available_from ? formatDate(candidate.available_from) : null
-      const availableFrom = formattedAvailableFrom || candidate?.availability || "—"
-
-      return {
-        id: item.id,
-        opportunityId: item.opportunity_id || "",
-        status: item.status,
-        candidateId: candidate?.id || "",
-        fullName,
-        profileTitle: candidate?.current_title || null,
-        profilePractice: practiceName || null,
-        availableFrom,
-        salary: candidate?.expected_salary || null,
-      }
-    })
-
-    return rows
-  } catch (err) {
-    console.error("Unhandled error in getMobileStaffingsList:", err)
     return []
   }
 }

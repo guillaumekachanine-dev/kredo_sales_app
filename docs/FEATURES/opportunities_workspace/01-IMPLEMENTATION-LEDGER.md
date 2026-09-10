@@ -6,13 +6,13 @@
 
 ```
 Chantier                      : Opportunities Workspace  (nom produit affiché : Opportunités)
-Statut global                 : cadré (Lots 1→11 livrés, Phase 7.1 livrée, Lot 12 unblocked)
+Statut global                 : ✅ TECHNICALLY CLOSED (Lots 1→12 livrés, BLOCKING = 0)
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Phase 7.1 — Alignement fonctionnel Opportunities Workspace
+Dernier lot livré             : Lot 12 — Nettoyage final, suppression du legacy et clôture technique
 Lot courant                   : aucun
-Prochain lot                  : Lot 12 — Nettoyage et clôture (UNBLOCKED / READY)
-Dernier SHA connu origin/main : 0458ed42
+Prochain lot                  : aucun (chantier clos — rebaseline global avant prochain chantier)
+Dernier SHA connu origin/main : 4fb31464
 ```
 
 ## Table des lots
@@ -35,7 +35,7 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ✅ techniquement livré | `a965a94c` + correction | `src/features/opportunities/modules/` : contrat `?module=` + 3 wrappers REUSE-only (`MatchingDialog` · `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) + `OpportunitiesModulesHost` (dialogs lazy). **Les 3 modules sont constamment visibles sur tous les chapitres** (indépendants de l'onglet). **Résout CROSS-01/02/03 → OPP-30.** `Modélisation de CA` non affichée (OPP-11). Aucune Data, aucune migration. |
 | 11 | Legacy / compatibilité / navigation globale | ✅ techniquement livré | coordonné SHELL 6.3 | Redirection `/staffing` vers `?section=besoins`, `main-menu` « Opportunités », retrait tabs Desktop Engagements, deep-links canoniques `/missions?vue=`, retrait `useSidebarCollapse` dans OpportunitiesDesktopShell. **Coord. SHELL-0018 Phase 6.3.** |
 | 7.1 | Phase 7.1 — Alignement fonctionnel Opportunities Workspace | ✅ techniquement livré | `0458ed42` | 7 renames : Synthèse → Vue d'ensemble, Besoins & staffing → Besoins & Staffing, Avant-vente → Avant-vente Projets, Planning → Planning & Échéances, Matching profil → Matching profils, Simulation devis → Simulation financière, Post-Mortem → Revue post-mortem. DATA-0, URL-0, Mobile NO IMPACT. Synthèse Desktop déjà intégrée (Lot 4). Blocker levé. |
-| 12 | Nettoyage et clôture | ⬜ unblocked / ready | — | UNBLOCKED / READY suite à la livraison du Lot 7.1. Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
+| 12 | Nettoyage et clôture | ✅ techniquement livré | `4fb31464` + lot courant | Rapport `02-CLOSURE-AUDIT.md`. Suppression `NeedsStaffingWorkspace` (REMOVE). 23 fichiers legacy supprimés. Loaders morts retirés. Mobile minimal EmptyState (`Opportunities Mobile V2 — DEFERRED PRODUCT`). BLOCKING = 0. |
 
 ## Décisions actées (miroir du DECISION LOG — détail dans le doc canonique § 16)
 
@@ -95,8 +95,8 @@ canonique § 17.
 | NAVIGATION-02 | Sort du contrat `?view=` / `?stage` / `?priority` / `?practice` | 6 | ✅ **tranché (OPP-26)** — filtres gardés + `?opp=` ; `?scope`/`?view` abandonnés |
 | ~~NAVIGATION-03~~ | `?section=` vs pathname | 0 | ✅ tranché (OPP-04) — **implémenté au Lot 1** (`?section=`, patron Engagements `?vue=`) |
 | LEGACY-01 | Consommateurs restants de `missions/(tabbed)` bloquant le retrait de `SectionNavBarSlot` | 11 | **partiellement audité** — `actives` + `projets` restent ; retrait global = Phase 6 |
-| LEGACY-02 | `OpportunitiesDesktopView.tsx` orphelin — suppression | 12 | **ouverte** |
-| LEGACY-03 | Composants `src/components/staffing/` encore montés après migration | 6 / 12 | **ouverte** |
+| LEGACY-02 | `OpportunitiesDesktopView.tsx` orphelin — suppression | 12 | ✅ **clôturé (Lot 12)** — composant orphelin supprimé |
+| LEGACY-03 | Composants `src/components/staffing/` encore montés après migration | 6 / 12 | ✅ **clôturé (Lot 12)** — composants morts purgés, briques partagées protégées |
 | LEGACY-04 | `OpportunitiesKpiSection.tsx` (`getWeightedValue`) — réconcilier ou déprécier | 3 | ✅ **réconcilié (OPP-19)** — sa formule devient le contrat canonique ; composant déprécié au Lot 6/12 |
 | LEGACY-05 | HEX en dur dans `NeedsStaffingWorkspace.tsx` → variables `@theme` | 6 | ✅ **traité (OPP-27)** — chapitre V2 sans HEX ; HEX legacy dans les toggles non repris, retrait au Lot 12 |
 | CROSS-01 | Point d'entrée partagé propre pour « Matching profil » | 10 | ✅ **tranché (OPP-30)** — `MatchingDialog` besoin-centrique monté tel quel ; module **visible sur tous les chapitres**, contexte `?opp=` transmis s'il existe (sinon aiguillage) ; aucun launcher partagé nouveau |
@@ -267,6 +267,32 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Lot 12 — Nettoyage final, suppression du legacy et clôture technique — ✅ techniquement livré (2026-09-10)
+
+- **Objectif** : supprimer définitivement le monolithe `NeedsStaffingWorkspace` et l'ensemble des chaînes legacy orphelines (composants, plannings, loaders, hooks), stabiliser la branche Mobile en état minimal `EmptyState`, et acter la clôture technique d'Opportunities Workspace (BLOCKING = 0).
+- **Décision produit clé** : `LOT12-DECISION-SUPPRESSION-LEGACY-MOBILE.md` appliquée : `NeedsStaffingWorkspace` = REMOVE ; perte temporaire de l'ancienne UI mobile acceptée ; reconstruction différée (`Opportunities Mobile V2 — DEFERRED PRODUCT`).
+- **Audit des consommateurs et nettoyage** :
+  - `src/components/needs-staffing/` : `NeedsStaffingWorkspace.tsx`, `NeedsListView.tsx`, `StaffingListWorkspaceView.tsx`, `UnifiedPlanningView.tsx` supprimés. Briques protégées actives conservées (`StageQuickEditorDialog.tsx`, `StageTimeline.tsx`, `stage-timeline-config.ts`, `NewStaffingButton.tsx`).
+  - `src/lib/needs-staffing/` : `use-needs-staffing-url-state.ts` supprimé. `model.ts`, `coverage.ts`, `url-state.ts`, `create-actions.ts` conservés.
+  - `src/components/missions/` : `OpportunitiesDesktopView.tsx`, `OpportunitiesKpiSection.tsx`, `OpportunitySkillsCloud.tsx`, `planning/OpportunitiesPlanningView.tsx` supprimés.
+  - `src/app/(app)/missions/_data/` : `get-opportunities-planning.ts`, `get-opportunity-skills-cloud.ts` supprimés. `get-needs-staffing-shared.ts`, `get-opportunities-list.ts`, `get-opportunity-detail.ts` conservés.
+  - `src/components/staffing/` : `StaffingDesktopDashboard.tsx`, `StaffingMobileDashboard.tsx`, `StaffingDesktopView.tsx`, `StaffingMobileView.tsx`, `StaffingListView.tsx`, `StaffingPlanningView.tsx`, `StaffingTabbedShell.tsx`, `StaffingSectionTabBar.tsx`, `StaffingEntityPanel.tsx`, `StaffingDrawer.tsx`, `index.tsx` supprimés. `AssistanceCaseDrawer.tsx` et tous ses sous-composants/modales conservés.
+  - `src/app/(app)/staffing/_data/` : `get-staffings-planning.ts` supprimé. `get-staffings-list.ts` épuré de `getMobileStaffingsList` et `MobileStaffingRow` (`getStaffingsList` et `StaffingListRow` conservés).
+- **Mobile** : `/missions/opps` rend une primitive `<EmptyState>` sans charger de dataset lourd.
+- **Rapport de clôture** : `docs/FEATURES/opportunities_workspace/02-CLOSURE-AUDIT.md`.
+- **Quality Gates** :
+  - `npm run typecheck` — ✅ 0 erreur.
+  - `npm run check:server-boundary` — ✅.
+  - `npx eslint` sur fichiers modifiés — ✅ 0 erreur.
+  - `npm run build` — ✅ 42/42 pages compilées.
+  - `git diff --check` — ✅.
+  - `npm test` — ✅ **294 fichiers / 3 056 tests passés (0 échec)**.
+- **Verdict** :
+  - `Opportunities Workspace → ✅ TECHNICALLY CLOSED`
+  - `Opportunities Lot 12 → ✅ CLOSED`
+  - `BLOCKING → 0`
+  - `Opportunities Mobile V2 → DEFERRED PRODUCT`
 
 ### Phase 7.1 — Alignement fonctionnel Opportunities Workspace — ✅ techniquement livré (2026-09-10)
 

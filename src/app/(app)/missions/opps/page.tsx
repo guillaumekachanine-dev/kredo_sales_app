@@ -2,10 +2,7 @@ import "server-only"
 
 import type { ReactNode } from "react"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { getNeedsStaffingSharedData } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
-import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
-import { getMobileStaffingsList } from "@/app/(app)/staffing/_data/get-staffings-list"
-import { NeedsStaffingWorkspace } from "@/components/needs-staffing/NeedsStaffingWorkspace"
+import { EmptyState } from "@/components/dashboard/widgets/EmptyState"
 import {
   parseOpportunitiesSection,
   searchParamsToString,
@@ -49,8 +46,8 @@ import type { OpportunityDetailData } from "@/app/(app)/missions/_data/get-oppor
 //   - `avant-vente` → `PresalesDesktop` — structure 3 panneaux + `EmptyState` (Lot 7) ;
 //   - `planning`    → milestone planning Mois / Année (Lot 9).
 //
-//  Mobile INCHANGÉ : la branche `device === "mobile"` rend le Mobile legacy
-//  (`NeedsStaffingWorkspace` mobile), le shell V2 n'est jamais monté sur Mobile.
+//  Mobile (Lot 12) : état minimal EmptyState sans fetch métier inutile.
+//  Reconstruction ultérieure : Opportunities Mobile V2 (DEFERRED PRODUCT).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SearchParams = Record<string, string | string[] | undefined>
@@ -81,21 +78,15 @@ export default async function OpportunitesPage({
 
   const activeSection = parseOpportunitiesSection(resolvedSearchParams)
 
-  // ── Mobile : inchangé — Mobile legacy « Besoins & Staffing » ────────────────
+  // ── Mobile (Lot 12) : état minimal provisoire (Opportunities Mobile V2 deferred) ──
   if (device === "mobile") {
-    const [sharedData, needsRows, mobileStaffingsRows] = await Promise.all([
-      getNeedsStaffingSharedData(),
-      getOpportunitiesList({ onlyStaffingNeeds: true }),
-      getMobileStaffingsList(),
-    ])
-
     return (
-      <NeedsStaffingWorkspace
-        device={device}
-        sharedData={sharedData}
-        needsData={{ rows: needsRows, planningData: [] }}
-        mobileStaffingRows={mobileStaffingsRows}
-      />
+      <main className="p-4">
+        <EmptyState
+          title="Opportunités Mobile"
+          description="La vue Opportunités Mobile est en cours de reconstruction (Opportunities Mobile V2)."
+        />
+      </main>
     )
   }
 
