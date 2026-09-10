@@ -101,6 +101,11 @@ export type N8nCallbackPayload = {
   contextSnapshot?: Record<string, unknown>
   sourceRefs?: CommunicationSourceRef[]
   qaFlags?: CommunicationQaFlag[]
+  // INTEL-035 (Account Intelligence Lot 0) — documents réellement récupérés par le
+  // preflight de sources. Transmis BRUTS : c'est l'application qui les écrit dans
+  // `account_source_documents`, applique la frontière tenant et construit le plan
+  // canonique. Le workflow n'écrit jamais ce store lui-même.
+  sourceDocuments?: Record<string, unknown>[]
   // Alerte échec workflow, Lot 0 (2026-07-18) — identifiants n8n internes
   // ($execution.id / $workflow.id), fusionnés dans ai_intelligence_runs.config
   // pour construire le lien "Ouvrir dans n8n" du drill-down /automations.

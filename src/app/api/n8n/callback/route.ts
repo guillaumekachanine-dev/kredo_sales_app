@@ -19,6 +19,8 @@ import { createClient } from "@supabase/supabase-js"
 import { saveResultAsDocumentWithSupabaseClient } from "@/components/accounts-contacts/intelligence/save-as-document"
 import { materializeAccountIssues } from "@/lib/intelligence/materialize-account-issues"
 import { ingestAccountKnowledgeArtifact } from "@/lib/intelligence/account-knowledge-ingest"
+import { ingestAccountSourcePlan } from "@/lib/intelligence/account-source-plan-ingest"
+import { ACCOUNT_SOURCE_PLAN_RESULT_TYPE } from "@/lib/intelligence/account-source-plan-contracts"
 import {
   ACCOUNT_ISSUES_MAP_RESULT_TYPE,
   ACCOUNT_KNOWLEDGE_RESULT_TYPE,
@@ -144,6 +146,64 @@ export async function POST(request: Request) {
     }
 
     persistedPayload = { ...payload, contentJson: ingest.content as unknown as N8nCallbackPayload["contentJson"] }
+  }
+
+  // ── 4 bis-2. Portail plan de sources INTEL-035 (Account Intelligence Lot 0) ──
+  // Le workflow transmet ce qu'il a LU ; c'est ici que les documents sont écrits, que
+  // la frontière tenant est appliquée et que le plan canonique est construit avec les
+  // identifiants réels. Un plan sans le moindre document exploitable n'est pas
+  // publiable : le run bascule en `failed` plutôt que de laisser croire qu'un corpus
+  // a été constitué — c'est A2 appliqué au lancement.
+  if (
+    status === "succeeded" &&
+    resultType === ACCOUNT_SOURCE_PLAN_RESULT_TYPE &&
+    !isMissionRunType(run.run_type)
+  ) {
+    if (!run.company_id) {
+      await updateRunStatus(runId, "failed", { phase, errorMessage: "Plan de sources sans compte rattaché." })
+      return NextResponse.json({ error: "Plan de sources sans compte rattaché." }, { status: 400 })
+    }
+
+    const scope = (contentJson.scope ?? {}) as Record<string, unknown>
+    const ingest = await ingestAccountSourcePlan(supabase, {
+      runId,
+      workspaceId: run.workspace_id,
+      companyId: run.company_id,
+      targetLevel: (typeof scope.target_level === "number" ? scope.target_level : 2) as 1 | 2 | 3 | 4,
+      requestedModules: (Array.isArray(scope.modules) ? scope.modules : []) as never,
+      entityResolution: contentJson.entity_resolution,
+      corpora: (Array.isArray(contentJson.corpora) ? contentJson.corpora : []) as never,
+      documents: payload.sourceDocuments ?? [],
+    })
+
+    if (!ingest.ok) {
+      const detail = ingest.rejected.map((r) => `${r.url}: ${r.reason}`).join(" | ")
+      console.error("[callback] account_source_plan rejeté:", ingest.error, detail)
+      try {
+        await updateRunStatus(runId, "failed", {
+          phase,
+          errorMessage: `${ingest.error}${detail ? ` — ${detail}` : ""}`.slice(0, 2000),
+        })
+      } catch (err) {
+        console.error("[callback] updateRunStatus(failed) after rejection failed:", err)
+      }
+      return NextResponse.json({ error: ingest.error, rejected: ingest.rejected }, { status: 400 })
+    }
+
+    // Les rejets non bloquants restent VISIBLES dans les qaFlags plutôt que d'être
+    // avalés : un document écarté est une information pour l'utilisateur.
+    persistedPayload = {
+      ...payload,
+      contentJson: ingest.content as unknown as N8nCallbackPayload["contentJson"],
+      qaFlags: [
+        ...(payload.qaFlags ?? []),
+        ...ingest.rejected.map((r) => ({
+          check: "source_document_rejected",
+          passed: false,
+          detail: `${r.url} — ${r.reason}`,
+        })),
+      ],
+    }
   }
 
   // ── 4 ter. Portail mission d'intelligence (ADR-0020 lot L3) ───────────────

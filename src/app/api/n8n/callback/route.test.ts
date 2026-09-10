@@ -19,6 +19,8 @@ type PersistedPayload = {
   resultType: string
   contentText?: string
   title?: string
+  // INTEL-035 — les documents écartés remontent en qaFlags plutôt que d'être avalés.
+  qaFlags?: Array<{ check: string; passed: boolean; detail: string }>
 }
 type SaveResultArgs = [string, string | null, string, string, PersistedPayload]
 type UpdateRunStatusArgs = [string, string, { phase?: number; errorMessage?: string }?]
@@ -141,9 +143,27 @@ const fakeSupabase = {
       return builder
     }
 
+    if (table === "account_source_documents") {
+      return {
+        insert: (rows: Record<string, unknown>[]) => {
+          INSERTED_SOURCE_DOCUMENTS.push(...rows)
+          return {
+            select: async () =>
+              SOURCE_DOCUMENT_INSERT_ERROR
+                ? { data: null, error: { message: SOURCE_DOCUMENT_INSERT_ERROR } }
+                : { data: rows.map((row, i) => ({ id: `doc-${i}`, url: row.url })), error: null },
+          }
+        },
+      }
+    }
+
     throw new Error(`Table inattendue interrogée par le callback : ${table}`)
   },
 }
+
+/** Lignes capturées par le faux client — vidées avant chaque test du plan de sources. */
+const INSERTED_SOURCE_DOCUMENTS: Record<string, unknown>[] = []
+let SOURCE_DOCUMENT_INSERT_ERROR: string | null = null
 
 const { POST } = await import("./route")
 
@@ -473,6 +493,139 @@ function missionCallbackRequest(rawOutput: string, resultType = "mission_report"
     body,
   })
 }
+
+describe("POST /api/n8n/callback — plan de sources INTEL-035", () => {
+  function sourceDoc(over: Record<string, unknown> = {}) {
+    return {
+      url: "https://tournaire.fr/metiers",
+      domain: "tournaire.fr",
+      kind: "company_official",
+      origin: "discovered",
+      status: "retrieved",
+      serves_modules: ["business_and_offering"],
+      reason: "Présentation officielle des activités",
+      fetched_at: "2026-09-10T10:00:00.000Z",
+      content_hash: "hash-a",
+      extracted_text: "Tournaire conçoit des emballages barrière haute performance.",
+      ...over,
+    }
+  }
+
+  function planRequest(documents: Record<string, unknown>[]) {
+    return new Request("https://kredo.example/api/n8n/callback", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-kredo-signature": "sha256=sig" },
+      body: JSON.stringify({
+        runId: RUN,
+        phase: 1,
+        resultType: "account_source_plan",
+        status: "succeeded",
+        contentJson: {
+          schema_version: 1,
+          scope: { target_level: 2, modules: ["business_and_offering", "competition"] },
+          entity_resolution: { siren: "415550110" },
+          corpora: [],
+        },
+        sourceDocuments: documents,
+      }),
+    })
+  }
+
+  function persistedPlan() {
+    const persisted = saveResult.mock.calls[0]?.[4]
+    if (!persisted) throw new Error("saveResult n'a pas été appelé")
+    return persisted
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    verifyHmac.mockReturnValue(true)
+    saveResult.mockResolvedValue("result-plan")
+    INSERTED_SOURCE_DOCUMENTS.length = 0
+    SOURCE_DOCUMENT_INSERT_ERROR = null
+  })
+
+  it("écrit les documents et publie un plan portant leurs identifiants réels", async () => {
+    const response = await POST(planRequest([sourceDoc()]))
+
+    expect(response.status).toBe(200)
+    expect(INSERTED_SOURCE_DOCUMENTS).toHaveLength(1)
+
+    const content = persistedPlan().contentJson as { entries: Array<{ id: string; status: string }> }
+    expect(content.entries).toHaveLength(1)
+    expect(content.entries[0].id).toBe("doc-0")
+    expect(content.entries[0].status).toBe("recommended")
+  })
+
+  it("reparente les documents sur le workspace et le compte du run", async () => {
+    await POST(planRequest([sourceDoc({ workspace_id: "autre", company_id: "autre" })]))
+    expect(INSERTED_SOURCE_DOCUMENTS[0]).toMatchObject({
+      workspace_id: WORKSPACE,
+      company_id: COMPANY,
+      run_id: RUN,
+    })
+  })
+
+  it("bascule le run en échec quand aucun document n'est exploitable (A2)", async () => {
+    const response = await POST(planRequest([sourceDoc({ extracted_text: null, content_hash: null })]))
+
+    expect(response.status).toBe(400)
+    expect(INSERTED_SOURCE_DOCUMENTS).toHaveLength(0)
+    expect(saveResult).not.toHaveBeenCalled()
+    expect(updateRunStatus).toHaveBeenCalledWith(RUN, "failed", expect.objectContaining({ phase: 1 }))
+  })
+
+  it("ne laisse jamais un run en cours quand le workflow ne transmet aucun document", async () => {
+    const response = await POST(planRequest([]))
+    expect(response.status).toBe(400)
+    expect(updateRunStatus).toHaveBeenCalledWith(RUN, "failed", expect.anything())
+  })
+
+  it("expose les documents écartés en qaFlags plutôt que de les avaler", async () => {
+    await POST(planRequest([sourceDoc(), sourceDoc({ url: "https://ko.fr/x", kind: "blog_perso" })]))
+
+    const qaFlags = persistedPlan().qaFlags ?? []
+    expect(
+      qaFlags.some((flag) => flag.check === "source_document_rejected" && /Type de source/.test(flag.detail)),
+    ).toBe(true)
+  })
+
+  it("remonte un échec d'écriture sans publier de plan", async () => {
+    SOURCE_DOCUMENT_INSERT_ERROR = "violation de contrainte asd_lu_ou_injoignable"
+    const response = await POST(planRequest([sourceDoc()]))
+
+    expect(response.status).toBe(400)
+    expect(saveResult).not.toHaveBeenCalled()
+    expect(updateRunStatus).toHaveBeenCalledWith(RUN, "failed", expect.anything())
+  })
+
+  it("conserve un document injoignable, visible et jamais exploitable", async () => {
+    await POST(
+      planRequest([
+        sourceDoc(),
+        sourceDoc({
+          url: "https://usinenouvelle.fr/a",
+          status: "unreachable",
+          extracted_text: null,
+          content_hash: null,
+          fetched_at: null,
+          failure_reason: "403 — accès refusé",
+        }),
+      ]),
+    )
+
+    const content = persistedPlan().contentJson as {
+      entries: Array<{ url: string; status: string; failure_reason: string | null }>
+      coverage: { modules_without_material: string[] }
+    }
+    const ko = content.entries.find((entry) => entry.url === "https://usinenouvelle.fr/a")
+    expect(ko?.status).toBe("unreachable")
+    expect(ko?.failure_reason).toBe("403 — accès refusé")
+    // Le module que rien n'alimente reste signalé : c'est ce que l'utilisateur doit voir
+    // AVANT de lancer l'analyse.
+    expect(content.coverage.modules_without_material).toContain("competition")
+  })
+})
 
 describe("POST /api/n8n/callback — mission d'intelligence", () => {
   beforeEach(() => {
