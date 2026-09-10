@@ -8,6 +8,7 @@ import {
   AutomationsLocalNavigation,
   buildAutomationsRailProps,
   getAutomationsDesktopChapterLabel,
+  type AutomationsActiveModule,
   type AutomationsTabKey,
 } from "./AutomationsLocalNavigation"
 
@@ -16,11 +17,17 @@ const root = process.cwd()
 function renderNavigation(options?: {
   activeTab?: AutomationsTabKey
   onTabChange?: (tab: AutomationsTabKey) => void
+  onMetricsClick?: () => void
+  onCadenceSimulatorClick?: () => void
+  activeModule?: AutomationsActiveModule
 }) {
   return renderToStaticMarkup(
     React.createElement(AutomationsLocalNavigation, {
       activeTab: options?.activeTab ?? "journal",
       onTabChange: options?.onTabChange ?? (() => {}),
+      onMetricsClick: options?.onMetricsClick,
+      onCadenceSimulatorClick: options?.onCadenceSimulatorClick,
+      activeModule: options?.activeModule,
     }),
   )
 }
@@ -49,14 +56,14 @@ describe("AutomationsLocalNavigation", () => {
   it("préserve les trois chapitres dans le bon ordre avec les clés journal, sante et couts", () => {
     expect(AUTOMATIONS_DESKTOP_CHAPTERS.map(({ key, label }) => ({ key, label }))).toEqual([
       { key: "journal", label: "Journal d'exécution" },
-      { key: "sante", label: "Santé des workflows" },
+      { key: "sante", label: "Fiabilité des workflows" },
       { key: "couts", label: "Coûts" },
     ])
 
     const model = buildAutomationsRailProps({ activeTab: "journal", onTabChange: () => {} })
     expect(model.chapters.map(({ key, label }) => ({ key, label }))).toEqual([
       { key: "journal", label: "Journal d'exécution" },
-      { key: "sante", label: "Santé des workflows" },
+      { key: "sante", label: "Fiabilité des workflows" },
       { key: "couts", label: "Coûts" },
     ])
   })
@@ -89,7 +96,7 @@ describe("AutomationsLocalNavigation", () => {
 
     const htmlSante = renderNavigation({ activeTab: "sante" })
     expect(htmlSante).toMatch(
-      /aria-current="page"[^>]*><span[^>]*>.*?<\/span><span[^>]*>Santé des workflows<\/span>/,
+      /aria-current="page"[^>]*><span[^>]*>.*?<\/span><span[^>]*>Fiabilité des workflows<\/span>/,
     )
 
     const modelCouts = buildAutomationsRailProps({
@@ -116,7 +123,7 @@ describe("AutomationsLocalNavigation", () => {
 
   it("dérive le libellé exact du chapitre actif pour le header principal", () => {
     expect(getAutomationsDesktopChapterLabel("journal")).toBe("Journal d'exécution")
-    expect(getAutomationsDesktopChapterLabel("sante")).toBe("Santé des workflows")
+    expect(getAutomationsDesktopChapterLabel("sante")).toBe("Fiabilité des workflows")
     expect(getAutomationsDesktopChapterLabel("couts")).toBe("Coûts")
 
     expect(desktopSource).toContain("const activeChapterTitle = getAutomationsDesktopChapterLabel(activeTab)")
@@ -124,12 +131,100 @@ describe("AutomationsLocalNavigation", () => {
     expect(desktopSource).toContain("Live Telemetry")
   })
 
-  it("omet la section Modules et ne contient aucun module artificiel", () => {
+  it("omet la section Modules et ne contient aucun module artificiel sans callback", () => {
     const model = buildAutomationsRailProps({ activeTab: "journal", onTabChange: () => {} })
     const html = renderNavigation()
 
     expect(model.contextualModules).toBeUndefined()
     expect(html).not.toContain(">Modules<")
+  })
+
+  it("expose les modules Métriques et Simulateur de cadence dans le bon ordre lorsque les callbacks sont fournis", () => {
+    const onMetricsClick = vi.fn()
+    const onCadenceSimulatorClick = vi.fn()
+
+    const model = buildAutomationsRailProps({
+      activeTab: "journal",
+      onTabChange: () => {},
+      onMetricsClick,
+      onCadenceSimulatorClick,
+      activeModule: null,
+    })
+
+    expect(model.contextualModules).toBeDefined()
+    expect(model.contextualModules?.map(({ key, label }) => ({ key, label }))).toEqual([
+      { key: "metrics", label: "Métriques" },
+      { key: "cadence-simulator", label: "Simulateur de cadence" },
+    ])
+    expect(model.contextualModules?.every((m) => Boolean(m.icon))).toBe(true)
+
+    // Déclenchement des callbacks
+    model.contextualModules?.[0]?.onSelect?.()
+    expect(onMetricsClick).toHaveBeenCalledOnce()
+
+    model.contextualModules?.[1]?.onSelect?.()
+    expect(onCadenceSimulatorClick).toHaveBeenCalledOnce()
+  })
+
+  it("gère fidèlement les états actifs des modules contextuels", () => {
+    const modelMetricsActive = buildAutomationsRailProps({
+      activeTab: "journal",
+      onTabChange: () => {},
+      onMetricsClick: () => {},
+      onCadenceSimulatorClick: () => {},
+      activeModule: "metrics",
+    })
+    expect(modelMetricsActive.contextualModules?.find((m) => m.key === "metrics")?.active).toBe(true)
+    expect(modelMetricsActive.contextualModules?.find((m) => m.key === "cadence-simulator")?.active).toBe(false)
+
+    const modelCadenceActive = buildAutomationsRailProps({
+      activeTab: "journal",
+      onTabChange: () => {},
+      onMetricsClick: () => {},
+      onCadenceSimulatorClick: () => {},
+      activeModule: "cadence-simulator",
+    })
+    expect(modelCadenceActive.contextualModules?.find((m) => m.key === "metrics")?.active).toBe(false)
+    expect(modelCadenceActive.contextualModules?.find((m) => m.key === "cadence-simulator")?.active).toBe(true)
+
+    const modelNoneActive = buildAutomationsRailProps({
+      activeTab: "journal",
+      onTabChange: () => {},
+      onMetricsClick: () => {},
+      onCadenceSimulatorClick: () => {},
+      activeModule: null,
+    })
+    expect(modelNoneActive.contextualModules?.every((m) => !m.active)).toBe(true)
+  })
+
+  it("évite les boutons morts si seul un des deux callbacks est disponible", () => {
+    const modelMetricsOnly = buildAutomationsRailProps({
+      activeTab: "journal",
+      onTabChange: () => {},
+      onMetricsClick: () => {},
+    })
+    expect(modelMetricsOnly.contextualModules?.map((m) => m.key)).toEqual(["metrics"])
+
+    const modelCadenceOnly = buildAutomationsRailProps({
+      activeTab: "journal",
+      onTabChange: () => {},
+      onCadenceSimulatorClick: () => {},
+    })
+    expect(modelCadenceOnly.contextualModules?.map((m) => m.key)).toEqual(["cadence-simulator"])
+  })
+
+  it("rend la section Modules et les libellés dans le markup statique avec callbacks", () => {
+    const html = renderNavigation({
+      activeTab: "journal",
+      onMetricsClick: () => {},
+      onCadenceSimulatorClick: () => {},
+      activeModule: "metrics",
+    })
+
+    expect(html).toContain(">Modules<")
+    expect(html).toContain("Métriques")
+    expect(html).toContain("Simulateur de cadence")
+    expect(html).toContain('aria-current="page"')
   })
 
   it("supprime les sémantiques locales role='tab' et aria-selected au profit du contrat canonique", () => {

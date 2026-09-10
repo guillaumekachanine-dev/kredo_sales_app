@@ -112,7 +112,7 @@ QA minimale :
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
 | **7.5 → 7.7** | Prospection · Rapports · Veille | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.8** | Alignement Knowledge Hub | ✅ techniquement livré (`e49a4a9e`) | 2 RENAME Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs/URLs/Data inchangés ; Mobile LABEL SYNC ; Ateliers KEEP ; RAG DEFERRED/NEW-FUTURE. Voir §43 |
-| **7.9** | Automatisations | ⬜ todo | voir doc `11-*` §19 |
+| **7.9** | Alignement Automatisations | ✅ techniquement livré | 1 RENAME Desktop (`Fiabilité des workflows`, clé `sante` conservée) ; 2 modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression des boutons redondants locaux ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §44 |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)** · **Phase 6 — ✅ CLOSED (Lot 6.7, doc `10-*`)**
@@ -2395,3 +2395,55 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 ### Verdict
 
 - **Lot 7.8 — ✅ livré.** Commit : `e49a4a9e` — `refactor(knowledge-hub): align workspace target navigation`. Push sur `origin/main`.
+
+---
+
+## 44. Lot 7.9 — Alignement Automatisations sur l'architecture cible
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `36e917b5` (`HEAD == origin/main`).
+> Cible : `09-*` §B.10 / §C.11. Plan d'exécution : `11-*` §12 / §19 (§7.9).
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre Desktop | `journal` « Journal d'exécution » | **Journal d'exécution** | KEEP |
+| Chapitre Desktop | `sante` « Santé des workflows » | **Fiabilité des workflows** | RENAME (clé technique `sante` conservée) |
+| Chapitre Desktop | `couts` « Coûts » | **Coûts** | KEEP |
+| Module Desktop | — | **Métriques** | **REUSE / EXISTING CAPABILITY** (`AutomationMetricsModal.tsx`) |
+| Module Desktop | — | **Simulateur de cadence** | **REUSE / EXISTING CAPABILITY** (`VeilleSimulatorModal.tsx`) |
+
+### Architecture
+
+- **Source unique de vérité Desktop** : `AUTOMATIONS_DESKTOP_CHAPTERS` (`src/components/automations/AutomationsLocalNavigation.tsx`) met à jour le libellé cible `Fiabilité des workflows` tout en conservant strictement la clé technique `sante`.
+- **Propagation automatique** : `getAutomationsDesktopChapterLabel(activeTab)` propage naturellement le nouveau titre au `SectionRail` et au header principal Desktop.
+- **Modules contextuels SectionRail** :
+  - `AutomationsLocalNavigationProps` étendu avec `onMetricsClick`, `onCadenceSimulatorClick` et `activeModule`.
+  - Construction ordonnée des modules : `Métriques` puis `Simulateur de cadence` avec leurs icônes dédiées et gestion fine des états actifs (`metricsOpen` / `simulatorModalOpen`).
+  - **Zero-dead-button** : les modules ne sont montés que lorsque leurs callbacks réels sont disponibles (`contextualModules` omet les entrées sans callback).
+- **Nettoyage des accès locaux redondants** :
+  - Les boutons du header (`Simuler la cadence n8n` et `Analytics`) de `AutomationsDesktopDashboard.tsx` ont été retirés, les modules étant désormais directement accessibles via le `SectionRail`.
+  - Imports inutilisés (`Button`, `Image`) supprimés.
+- **Réutilisation & Cockpit Intelligence** :
+  - `AutomationMetricsModal` et `VeilleSimulatorModal` sont réutilisés sans modification de leur logique interne.
+  - Consommation transverse Cockpit Intelligence inchangée.
+- **Mobile** : **NO IMPACT**. `AutomationsMobileDashboard` reste strictement découplé et inchangé.
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-0**. Les URLs restent strictement `/automations`, `/automations?section=sante`, `/automations?section=couts` (`?run=` préservé orthogonalement). `parseAutomationsSection` et `buildAutomationsSectionHref` inchangés.
+- **Data** : **DATA-0**. Aucune modification de contrat, table, vue (`v_workflow_health`, `v_workflow_cost_stats`, `v_ai_*_costs`), RPC, schéma Supabase ou workflow n8n.
+- **Invariant KANBAN-001** : 0 occurrence kanban dans la feature.
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (22 tests navigation Automatisations, 89 tests feature, suite complète)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers modifiés) → **PASS**
+- `npm run build` → **PASS** (42/42 pages)
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.9 — ✅ livré.** Commit : `refactor(automations): align workspace target navigation`. Push sur `origin/main`.

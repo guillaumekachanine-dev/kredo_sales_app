@@ -595,24 +595,27 @@ renommer en `admin-resources` sans migration de la nav contextuelle).
 
 **Preuves HEAD :** `src/components/automations/AutomationsLocalNavigation.tsx`
 (`AUTOMATIONS_DESKTOP_CHAPTERS`), `src/components/automations/index.tsx`,
-`src/components/automations/automations-desktop-navigation.ts`.
+`src/components/automations/automations-desktop-navigation.ts`,
+`src/features/automation-metrics/AutomationMetricsModal.tsx`,
+`src/components/automations/VeilleSimulatorModal.tsx`,
+`src/components/automations/AutomationsDesktopDashboard.tsx`,
+`src/components/intelligence/modules/CadenceSimulatorModule.tsx`.
 
 ### A/B/C
 `/automations` — `?section=journal|sante|couts` (`?run=` préservé pour le deep-link d'un run).
 CURRENT : `journal` « Journal d'exécution » · `sante` « Santé des workflows » · `couts` « Coûts ».
-**Modules : aucun** (`contextualModules: undefined`).
 TARGET : **Journal d'exécution · Fiabilité des workflows · Coûts** ; modules **Métriques**
-`NEW/FUTURE` · **Simulateur de cadence** `NEW/FUTURE`.
+(`REUSE / EXISTING CAPABILITY`) · **Simulateur de cadence** (`REUSE / EXISTING CAPABILITY`).
 
 ### D/E/F
 `automations/index.tsx` : `Promise.all([getDashboardDevice(), data])` → `AutomationsDesktopDashboard`
 / `AutomationsMobileDashboard` (adaptive plein). Data : vues `v_workflow_health`,
-`v_workflow_cost_stats`, `v_ai_*_costs` (CLAUDE.md). Aucune Data nouvelle pour le rename.
+`v_workflow_cost_stats`, `v_ai_*_costs` (CLAUDE.md). Aucune Data nouvelle pour le rename et le wiring des modules.
 
 ### Matrice — 1 RENAME (`sante` → « Fiabilité des workflows », **clé `sante` conservée**), 2 KEEP,
-2 modules `NEW/FUTURE`. **DATA-0 / URL-0.**
+2 modules `REUSE / EXISTING CAPABILITY` (`AutomationMetricsModal`, `VeilleSimulatorModal`). **DATA-0 / URL-0.**
 
-**Statut : `READY`.** Complexité **LOW**.
+**Statut : ✅ `IMPLEMENTED / PASS` (Lot 7.9).** Complexité **LOW**.
 
 ---
 
@@ -872,9 +875,10 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **✅ Livré (2026-09-10) :** `domains` / `mobileDomains` labels `Expertises KREDO` et `Ressources admin` ; IDs techniques `expertise-kredo` et `internal-resources` inchangés ; `workshops` / `mobileWorkshops` `mobilizedKnowledge` synchronisés ; `KredoExpertiseDesktop` / `KredoExpertiseMobile` / `KredoExpertiseNavigation` synchronisés ; 0 changement d'URL ; 0 changement Data. Commit `e49a4a9e` (`refactor(knowledge-hub): align workspace target navigation`).
 
 ### 7.9 — Automatisations
-- **Objectif :** RENAME `sante` → « Fiabilité des workflows » (clé `sante` conservée).
-- **Data :** DATA-0. **Routing :** URL-0.
-- **DoD :** label aligné ; `?run=` préservé ; `Métriques` / `Simulateur de cadence` = `NEW/FUTURE`.
+- **Objectif :** RENAME `sante` → « Fiabilité des workflows » (clé `sante` conservée) ; wiring des modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`).
+- **Data :** DATA-0. **Routing :** URL-0. **Mobile :** `NO IMPACT`.
+- **DoD :** label aligné ; `?run=` préservé ; modules `Métriques` / `Simulateur de cadence` exposés via `SectionRail` et reliés à `AutomationMetricsModal` / `VeilleSimulatorModal` ; suppression des boutons redondants locaux.
+- **✅ Livré (2026-09-10) :** Chapitre `sante` renommé en `Fiabilité des workflows` ; clés techniques inchangées ; `contextualModules` intègre `Métriques` et `Simulateur de cadence` sans bouton mort ; état actif synchronisé ; actions d'en-tête redondantes nettoyées ; DATA-0 / URL-0.
 
 ### 7.10 — Audit final architecture interne
 - **Objectif :** revalider chaque workspace contre 09 §B/C ; recenser les `NEW/FUTURE` restants et
@@ -896,8 +900,8 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | **7.5** | Prospection | HIGH | DATA-1+ | REMOVE + RENAME + TRANSFORM (coquilles vides) | FUTURE | **décision produit** | Non | **NO — DECISION REQUIRED** |
 | **7.6** | Rapports | LOW | DATA-0 | 1 label + extraction composant | NO IMPACT | — | Non | **YES** |
 | **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + module REUSE | LABEL SYNC | 7.6 | Non | YES (après 7.6) |
-| **7.8** | Knowledge Hub | LOW | DATA-0 | 2 labels | LABEL SYNC | — | Non | ✅ **IMPLEMENTED / PASS** |
-| **7.9** | Automatisations | LOW | DATA-0 | 1 label | NO IMPACT | — | Non | **YES** |
+| **7.8** | Knowledge Hub | LOW | DATA-0 | 2 labels | LABEL SYNC | — | Non | ✅ **IMPLEMENTED / PASS** (`e49a4a9e`) |
+| **7.9** | Automatisations | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** |
 
 **Go 7.1 :** `YES AFTER REBASELINE` — attendre l'intégration de la refonte Synthèse Opportunités
 dans `main`, ou un rebaseline explicite du chantier. Les 6 renames indépendants de 7.1 pourraient

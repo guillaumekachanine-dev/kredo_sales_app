@@ -583,8 +583,8 @@ Valeurs `Traitement` : `KEEP` · `RENAME` · `MOVE` · `REUSE` · `TRANSFORM` ·
 | Automatisations | Chapitre | Journal d'exécution (`journal`) | Journal d'exécution | KEEP | `AutomationsLocalNavigation.tsx` | 7.9 |
 | Automatisations | Chapitre | Santé des workflows (`sante`) | Fiabilité des workflows | RENAME | `AutomationsLocalNavigation.tsx` | 7.9 |
 | Automatisations | Chapitre | Coûts (`couts`) | Coûts | KEEP | `AutomationsLocalNavigation.tsx` | 7.9 |
-| Automatisations | Module | — (`contextualModules: undefined`) | Métriques | NEW/FUTURE | aucune implémentation | 7.9 |
-| Automatisations | Module | — | Simulateur de cadence | NEW/FUTURE | aucune implémentation | 7.9 |
+| Automatisations | Module | — (`contextualModules: undefined`) | Métriques | REUSE / EXISTING CAPABILITY | `AutomationMetricsModal.tsx` | 7.9 |
+| Automatisations | Module | — | Simulateur de cadence | REUSE / EXISTING CAPABILITY | `VeilleSimulatorModal.tsx` | 7.9 |
 
 ---
 
@@ -598,7 +598,7 @@ Valeurs `Traitement` : `KEEP` · `RENAME` · `MOVE` · `REUSE` · `TRANSFORM` ·
 | **NAV-TARGET-04** | **Finance** devient un **module du groupe CRM**, **sans changement de pathname** (`/finance`). |
 | **NAV-TARGET-05** | **Paramètres** devient le **dernier module du groupe Outils**, sans changement de pathname (`/settings`). |
 | **NAV-TARGET-06** | **Chapitre** et **Module** sont deux niveaux fonctionnels **distincts** (cf. Partie B). Un changement de menu global = Shell ; un changement chapitre/module = workspace. |
-| **NAV-TARGET-07** | Une **capacité cible absente du code** est marquée **`NEW/FUTURE`** et **n'est jamais matérialisée par un bouton mort**. Elle n'apparaît dans l'UI qu'à son lot d'implémentation réel. Concernés à date : *Mission : prévoir les disponibilités*, *Analyse transverse*, *Mission : analyse de la veille*, *Simulateur de cadence*, *Métriques* (Automatisations), *Campagne*, *Métriques Activité*, *Bibliothèque* (BI), *Business Review* (Finance), *Activité* (Prospection), *Atlas du portefeuille*. |
+| **NAV-TARGET-07** | Une **capacité cible absente du code** est marquée **`NEW/FUTURE`** et **n'est jamais matérialisée par un bouton mort**. Elle n'apparaît dans l'UI qu'à son lot d'implémentation réel. Concernés à date : *Mission : prévoir les disponibilités*, *Analyse transverse*, *Mission : analyse de la veille*, *Campagne*, *Métriques Activité*, *Bibliothèque* (BI), *Business Review* (Finance), *Activité* (Prospection), *Atlas du portefeuille*. |
 | **NAV-TARGET-08** | Les **transformations internes** des workspaces sont **reportées en Phase 7**. La Phase 6 ne touche que le Shell (6.4A technique, 6.4B menu principal). |
 | **NAV-TARGET-09** | **Opportunities Lot 12** et **Consultants Lot 15** (nettoyage / clôture) sont **différés** jusqu'après leur alignement cible respectif (Phase 7.1 et 7.2) : `DEFERRED UNTIL TARGET-ALIGNMENT`. Motif : des composants aujourd'hui considérés legacy peuvent être **réutilisés ou transformés** par la cible — aucune suppression prématurée. |
 | **NAV-TARGET-10** | **Label ≠ pathname.** Une évolution du nom produit ou du libellé de navigation **ne provoque pas** automatiquement une migration de route. |

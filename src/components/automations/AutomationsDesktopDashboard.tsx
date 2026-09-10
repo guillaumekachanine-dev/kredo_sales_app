@@ -2,11 +2,9 @@
 
 import { useMemo, useState } from "react"
 import dynamic from "next/dynamic"
-import Image from "next/image"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
-import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import {
   DataTable,
@@ -572,7 +570,13 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
   return (
     <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full min-h-0 min-w-0 overflow-hidden bg-canvas w-full">
       {/* ── Navigation latérale secondaire (Style Cockpit Intelligence / EDITO Bright) ── */}
-      <AutomationsLocalNavigation activeTab={activeTab} onTabChange={navigateSection} />
+      <AutomationsLocalNavigation
+        activeTab={activeTab}
+        onTabChange={navigateSection}
+        onMetricsClick={() => setMetricsOpen(true)}
+        onCadenceSimulatorClick={() => setSimulatorModalOpen(true)}
+        activeModule={metricsOpen ? "metrics" : simulatorModalOpen ? "cadence-simulator" : null}
+      />
 
       {/* ── Contenu principal scrollable ── */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -581,38 +585,6 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
             title={headerTitle}
             eyebrow=""
             maxWidth="wide"
-            actions={
-              <div className="flex items-center gap-3">
-                {activeTab === "couts" && (
-                  <button
-                    type="button"
-                    onClick={() => setSimulatorModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-edito-brass text-edito-ink text-xs font-bold shadow-sm hover:brightness-105 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Simuler la cadence n8n</span>
-                  </button>
-                )}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setMetricsOpen(true)}
-                  className="kredo-intelligence-toggle shadow-none cursor-pointer flex items-center gap-2 bg-edito-navy hover:bg-edito-navy/90 text-white"
-                >
-                  <Image
-                    src="/icons_set/agenda_metriques_activite.png"
-                    alt=""
-                    width={16}
-                    height={16}
-                    className="w-4 h-4"
-                    style={{ filter: "brightness(0) invert(1)" }}
-                  />
-                  Analytics
-                </Button>
-              </div>
-            }
             kpis={renderKpis()}
           >
             <AutomationsDataErrorBanner errors={data.dataErrors} />
@@ -731,7 +703,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
               </div>
             )}
 
-            {/* ── ONGLET 2 : SANTÉ DES WORKFLOWS ── */}
+            {/* ── ONGLET 2 : FIABILITÉ DES WORKFLOWS ── */}
             {activeTab === "sante" && (
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
                 {/* Section gauche : Grille des workflows */}
@@ -739,7 +711,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
                   <div className="flex items-center gap-2 border-b border-border/40 pb-2">
                     <span className="inline-flex size-2 bg-primary rounded-full" />
                     <h2 className="text-xs font-bold uppercase tracking-wider text-heading">
-                      Santé des workflows ({data.workflows.length})
+                      Fiabilité des workflows ({data.workflows.length})
                     </h2>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
