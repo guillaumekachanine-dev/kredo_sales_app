@@ -22,6 +22,7 @@ précieux — mais aucun ne décrit la cible).
 | **05** | `05-CONTRAT-SOURCE-PLAN-INTEL-035.md` | Le preflight de sources. **Lot fondateur.** |
 | **06** | `06-ARCHITECTURE-TECHNIQUE.md` | Workflows, contrats TypeScript, séquencement des lots |
 | **07** | `07-BENCHMARK-ET-GATES.md` | Les gates chiffrées qui autorisent le passage d'un lot au suivant |
+| **08** | `08-HANDOFF-LOT-0-CLOTURE.md` | **Point de reprise courant** — Lot 0 clos dans le code, mise en prod + Lot 1 à faire |
 
 **Si tu ne lis qu'un document avant de coder : `02`.** C'est celui qui empêche de créer une
 deuxième vérité. **Si tu ne lis qu'un document avant de décider : `07` §1** — l'état mesuré.
