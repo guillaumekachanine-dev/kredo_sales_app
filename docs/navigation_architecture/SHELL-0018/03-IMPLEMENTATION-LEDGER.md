@@ -110,7 +110,9 @@ QA minimale :
 | **7.2** | Alignement Consultants | ✅ techniquement livré (`bb2a3a4d`) | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
 | **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
-| **7.5 → 7.7** | Prospection · Rapports · Veille | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
+| **7.5** | Alignement Prospection | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
+| **7.6** | Alignement Rapports & Rédaction | ✅ techniquement livré | 1 RENAME Desktop (`Connaissance`, clé `knowledge` conservée) ; 2 modules contextuels `Gestion de la connaissance` et `Analyse transverse` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression de l'accès header redondant ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §45 |
+| **7.7** | Alignement Veille & Actualités | ⬜ todo | `UNBLOCKED / READY` — voir doc `11-*` §19 |
 | **7.8** | Alignement Knowledge Hub | ✅ techniquement livré (`e49a4a9e`) | 2 RENAME Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs/URLs/Data inchangés ; Mobile LABEL SYNC ; Ateliers KEEP ; RAG DEFERRED/NEW-FUTURE. Voir §43 |
 | **7.9** | Alignement Automatisations | ✅ techniquement livré (`fab5d06f`) | 1 RENAME Desktop (`Fiabilité des workflows`, clé `sante` conservée) ; 2 modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression des boutons redondants locaux ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §44 |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
@@ -2447,3 +2449,57 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 ### Verdict
 
 - **Lot 7.9 — ✅ livré.** Commit : `fab5d06f` — `refactor(automations): align workspace target navigation`. Push sur `origin/main`.
+
+---
+
+## 45. Lot 7.6 — Alignement Rapports & Rédaction sur l'architecture cible
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `bf4e84f8` (`HEAD == origin/main`).
+> Cible : `09-*` §B.7 / §C.8. Plan d'exécution : `11-*` §9 / §19 (§7.6).
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre Desktop | `documents` « Bibliothèque » | **Bibliothèque** | KEEP |
+| Chapitre Desktop | `knowledge` « Connaissances » | **Connaissance** | RENAME (clé technique `knowledge` conservée) |
+| Chapitre Desktop | `generation` « Génération » | **Génération** | KEEP |
+| Module Desktop | `knowledge-management` | **Gestion de la connaissance** | KEEP (`ManageCollectionsDesktop` de `src/features/content-collections/`) |
+| Module Desktop | — | **Analyse transverse** | **REUSE / EXISTING CAPABILITY** (`WatchAnalysisComposerDesktop` de `src/features/watch-analysis/`) |
+
+### Architecture
+
+- **Source unique de vérité Desktop** : `REPORTS_DESKTOP_CHAPTERS` (`src/components/reports/ReportsLocalNavigation.tsx`) met à jour le libellé cible `Connaissance` tout en conservant strictement la clé technique `knowledge`.
+- **Propagation automatique** : `getReportsDesktopChapterLabel(activeSection)` propage naturellement le nouveau titre au `SectionRail` et au header principal Desktop.
+- **Modules contextuels SectionRail** :
+  - `ReportsLocalNavigationProps` étendu avec `onOpenKnowledgeManagement`, `onOpenTransverseAnalysis` et `activeModule`.
+  - Construction ordonnée des modules : `Gestion de la connaissance` puis `Analyse transverse` avec leurs icônes dédiées et gestion fine des états actifs (`manageListsOpen` / `isAnalysisComposerOpen`).
+  - **Zero-dead-button** : les modules ne sont montés que lorsque leurs callbacks réels sont disponibles (`contextualModules` omet les entrées sans callback).
+  - Exclusion mutuelle gérée localement dans `ReportsDesktopView.tsx`.
+- **Nettoyage des accès locaux redondants** :
+  - Le bouton d'en-tête `Générer une analyse` de `ReportsDesktopView.tsx` a été retiré, le module étant désormais directement accessible via le `SectionRail`.
+- **Cockpit Intelligence & Déclenchement transverse** :
+  - L'écoute globale de `WATCH_ANALYSIS_COMPOSER_EVENT` est rigoureusement préservée dans `ReportsDesktopView.tsx` et `ReportsMobileView.tsx`.
+- **Composants partagés & Dépendance 7.7** :
+  - `ManageCollectionsDesktop` (`src/features/content-collections/`) et `WatchAnalysisComposerDesktop` (`src/features/watch-analysis/`) sont réutilisés sans duplication.
+  - Phase 7.7 déclarée `UNBLOCKED / READY`.
+- **Mobile** : **NO IMPACT**. `ReportsMobileView` conserve ses sections (`Documents`, `Connaissances`, `Générer`) et son état autonome (`Adaptive Design`).
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-0**. Les URLs restent strictement `/reports`, `/reports?section=knowledge`, `/reports?section=generation` (`?doc=`, `?page=`, filtres préservés orthogonalement). `parseReportsSection` et `buildReportsSectionHref` inchangés.
+- **Data** : **DATA-0**. Aucune modification de contrat, table, vue, loader, action, RPC, schéma Supabase ou workflow n8n.
+- **Invariant KANBAN-001** : 0 occurrence kanban dans la feature.
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (22 tests navigation Rapports, 82 tests features liées, suite complète)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers modifiés) → **PASS**
+- `npm run build` → **PASS**
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.6 — ✅ livré.** Commit : `refactor(reports): align workspace target navigation`. Push sur `origin/main`.

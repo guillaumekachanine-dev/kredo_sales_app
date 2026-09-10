@@ -50,6 +50,7 @@ import { DocumentVersionHistory } from "./DocumentVersionHistory"
 import {
   getReportsDesktopChapterLabel,
   ReportsLocalNavigation,
+  type ReportsContextualModule,
   type ReportsSection,
 } from "./ReportsLocalNavigation"
 import {
@@ -171,7 +172,7 @@ export function ReportsDesktopView({
   const viewerRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
   const activeSection = parseReportsSection(searchParams.get("section"))
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters] = useState(false)
 
   const navigateSection = (nextSection: ReportsSection) => {
     router.push(
@@ -188,17 +189,34 @@ export function ReportsDesktopView({
   const [zoomLevel, setZoomLevel] = useState(100)
   const [isAnalysisComposerOpen, setIsAnalysisComposerOpen] = useState(false)
 
+  const handleOpenKnowledgeManagement = () => {
+    setIsAnalysisComposerOpen(false)
+    setManageListsOpen(true)
+  }
+
+  const handleOpenTransverseAnalysis = () => {
+    setManageListsOpen(false)
+    setIsAnalysisComposerOpen(true)
+  }
+
   // Le repli de la sidebar principale est décidé par le Shell selon le pathname
   // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
 
   // Écoute de l'événement global pour ouvrir le compositeur d'analyse à la demande
   useEffect(() => {
     function handleOpen() {
+      setManageListsOpen(false)
       setIsAnalysisComposerOpen(true)
     }
     window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpen)
     return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpen)
   }, [])
+
+  const activeModule: ReportsContextualModule | null = manageListsOpen
+    ? "knowledge-management"
+    : isAnalysisComposerOpen
+      ? "transverse-analysis"
+      : null
 
   const activeFilterCount = countActiveFilters(filters)
   const activeDocType = filters.documentType || "all"
@@ -318,7 +336,9 @@ export function ReportsDesktopView({
       <ReportsLocalNavigation
         active={activeSection}
         onChange={navigateSection}
-        onOpenKnowledgeManagement={() => setManageListsOpen(true)}
+        activeModule={activeModule}
+        onOpenKnowledgeManagement={handleOpenKnowledgeManagement}
+        onOpenTransverseAnalysis={handleOpenTransverseAnalysis}
       />
 
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -326,16 +346,6 @@ export function ReportsDesktopView({
           <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
             {activeChapterTitle}
           </h1>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="brass"
-              size="sm"
-              onClick={() => setIsAnalysisComposerOpen(true)}
-              leftIcon={<IntelligenceIcon name="sparkle" className="size-4" preferVector />}
-            >
-              Générer une analyse
-            </Button>
-          </div>
         </header>
 
         {showFilters ? (
@@ -547,7 +557,7 @@ export function ReportsDesktopView({
         contentId={selectedDocument.id}
         onManageLists={() => {
           setAddToListOpen(false)
-          setManageListsOpen(true)
+          handleOpenKnowledgeManagement()
         }}
       />
     ) : null}

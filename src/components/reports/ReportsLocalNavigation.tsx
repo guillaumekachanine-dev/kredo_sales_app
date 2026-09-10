@@ -4,6 +4,7 @@ import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailEntry, SectionRailProps } from "@/lib/navigation/section-rail"
 
 export type ReportsSection = "documents" | "knowledge" | "generation"
+export type ReportsContextualModule = "knowledge-management" | "transverse-analysis"
 
 export {
   buildReportsSectionHref,
@@ -12,7 +13,7 @@ export {
 
 export const REPORTS_DESKTOP_CHAPTERS = [
   { key: "documents", label: "Bibliothèque" },
-  { key: "knowledge", label: "Connaissances" },
+  { key: "knowledge", label: "Connaissance" },
   { key: "generation", label: "Génération" },
 ] as const satisfies ReadonlyArray<{ key: ReportsSection; label: string }>
 
@@ -23,7 +24,7 @@ export function getReportsDesktopChapterLabel(section: ReportsSection): string {
 function ReportsSidebarIcon({
   name,
 }: {
-  name: ReportsSection | "knowledge-management"
+  name: ReportsSection | ReportsContextualModule
 }) {
   const commonProps = {
     className: "size-4 shrink-0",
@@ -63,6 +64,15 @@ function ReportsSidebarIcon({
       </svg>
     )
   }
+  if (name === "transverse-analysis") {
+    return (
+      <svg {...commonProps}>
+        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+        <polyline points="2 17 12 22 22 17" />
+        <polyline points="2 12 12 17 22 12" />
+      </svg>
+    )
+  }
   return (
     <svg {...commonProps}>
       <rect x="3" y="4" width="18" height="4" rx="1" />
@@ -75,24 +85,39 @@ function ReportsSidebarIcon({
 export interface ReportsLocalNavigationProps {
   active: ReportsSection
   onChange: (section: ReportsSection) => void
+  activeModule?: ReportsContextualModule | null
   onOpenKnowledgeManagement?: () => void
+  onOpenTransverseAnalysis?: () => void
 }
 
 export function buildReportsRailProps({
   active,
   onChange,
+  activeModule,
   onOpenKnowledgeManagement,
+  onOpenTransverseAnalysis,
 }: ReportsLocalNavigationProps): SectionRailProps {
-  const contextualModules: SectionRailEntry[] | undefined = onOpenKnowledgeManagement
-    ? [
-        {
-          key: "knowledge-management",
-          label: "Gestion de la connaissance",
-          icon: <ReportsSidebarIcon name="knowledge-management" />,
-          onSelect: onOpenKnowledgeManagement,
-        },
-      ]
-    : undefined
+  const availableModules: SectionRailEntry[] = []
+
+  if (onOpenKnowledgeManagement) {
+    availableModules.push({
+      key: "knowledge-management",
+      label: "Gestion de la connaissance",
+      icon: <ReportsSidebarIcon name="knowledge-management" />,
+      active: activeModule === "knowledge-management",
+      onSelect: onOpenKnowledgeManagement,
+    })
+  }
+
+  if (onOpenTransverseAnalysis) {
+    availableModules.push({
+      key: "transverse-analysis",
+      label: "Analyse transverse",
+      icon: <ReportsSidebarIcon name="transverse-analysis" />,
+      active: activeModule === "transverse-analysis",
+      onSelect: onOpenTransverseAnalysis,
+    })
+  }
 
   return {
     ariaLabel: "Navigation locale Rapports & rédaction",
@@ -105,7 +130,7 @@ export function buildReportsRailProps({
       active: active === chapter.key,
       onSelect: () => onChange(chapter.key),
     })),
-    contextualModules,
+    contextualModules: availableModules.length > 0 ? availableModules : undefined,
   }
 }
 

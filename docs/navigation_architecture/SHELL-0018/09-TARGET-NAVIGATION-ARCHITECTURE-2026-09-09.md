@@ -361,8 +361,8 @@ Le chapitre **`pool-competences`** doit **sortir des chapitres** et **devenir un
 
 | Actuel (code) | Cible | Traitement | Preuve / note |
 |---|---|---|---|
-| `knowledge-management` — « Gestion de la connaissance » (conditionnel `onOpenKnowledgeManagement`) | **Gestion de la connaissance** | `KEEP` | `ReportsLocalNavigation.tsx` |
-| *(absent)* | **Analyse transverse** | `NEW/FUTURE` | Aucune capacité réelle correspondante. |
+| `knowledge-management` — « Gestion de la connaissance » (conditionnel `onOpenKnowledgeManagement`) | **Gestion de la connaissance** | `KEEP` | `ManageCollectionsDesktop` (`src/features/content-collections/`) |
+| *(absent du rail)* | **Analyse transverse** | `REUSE / EXISTING CAPABILITY` | `WatchAnalysisComposerDesktop` (`src/features/watch-analysis/`) + `WATCH_ANALYSIS_COMPOSER_EVENT` |
 
 ## B.8. Veille & Actualités — `/veille`
 
@@ -547,8 +547,8 @@ Valeurs `Traitement` : `KEEP` · `RENAME` · `MOVE` · `REUSE` · `TRANSFORM` ·
 | Rapports & Rédaction | Chapitre | Bibliothèque (`documents`) | Bibliothèque | KEEP | `ReportsLocalNavigation.tsx` | 7.6 |
 | Rapports & Rédaction | Chapitre | Connaissances (`knowledge`) | Connaissance | RENAME | `ReportsLocalNavigation.tsx` | 7.6 |
 | Rapports & Rédaction | Chapitre | Génération (`generation`) | Génération | KEEP | `ReportsLocalNavigation.tsx` | 7.6 |
-| Rapports & Rédaction | Module | Gestion de la connaissance (`knowledge-management`) | Gestion de la connaissance | KEEP | `ReportsLocalNavigation.tsx` | 7.6 |
-| Rapports & Rédaction | Module | — | Analyse transverse | NEW/FUTURE | aucune capacité réelle | 7.6 |
+| Rapports & Rédaction | Module | Gestion de la connaissance (`knowledge-management`) | Gestion de la connaissance | KEEP | `ManageCollectionsDesktop` (`src/features/content-collections/`) | 7.6 |
+| Rapports & Rédaction | Module | — | Analyse transverse | REUSE / EXISTING CAPABILITY | `WatchAnalysisComposerDesktop` (`src/features/watch-analysis/`) | 7.6 |
 
 ## C.9. Veille & Actualités — `/veille`
 

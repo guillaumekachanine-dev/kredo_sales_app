@@ -488,25 +488,25 @@ la Data existe-t-elle ? Prospection Mobile est-il dans le périmètre ?). Comple
 
 ### A/B/C
 `/reports` — `?section=documents|knowledge|generation` (racine `documents`).
-CURRENT : `documents` « Bibliothèque » · `knowledge` « Connaissances » · `generation` « Génération ».
-Module : `knowledge-management` « Gestion de la connaissance » (conditionnel `onOpenKnowledgeManagement`).
+CURRENT : `documents` « Bibliothèque » · `knowledge` « Connaissance » · `generation` « Génération ».
+Modules : `knowledge-management` « Gestion de la connaissance » (conditionnel `onOpenKnowledgeManagement`) + `transverse-analysis` « Analyse transverse » (`REUSE / EXISTING CAPABILITY`).
 TARGET : **Bibliothèque · Connaissance · Génération** ; modules **Gestion de la connaissance** (KEEP)
-+ **Analyse transverse** `NEW/FUTURE`.
++ **Analyse transverse** (`REUSE / EXISTING CAPABILITY` via `WatchAnalysisComposerDesktop` + `WATCH_ANALYSIS_COMPOSER_EVENT`).
 
 ### D/E/F
 `reports/page.tsx` : `Promise.all([getDashboardDevice(), listResult, detailResult])` ;
 `device === "mobile"` → `ReportsMobileView`. Desktop → `ReportsDesktopView` (monte
-`ReportsLocalNavigation`, `onOpenKnowledgeManagement`). Adaptive plein.
+`ReportsLocalNavigation`, `onOpenKnowledgeManagement`, `onOpenTransverseAnalysis`). Adaptive plein.
 
 ### G/H
-`knowledge-management` = capacité **réelle** (module conditionnel branché). « Analyse transverse » :
-aucune capacité → `NEW/FUTURE`. **Le composant `knowledge-management` de Reports est la source du
-`REUSE` demandé par Veille (§10)** — ne pas le forker.
+`knowledge-management` = capacité **réelle** (`ManageCollectionsDesktop` de `@/features/content-collections/`). « Analyse transverse » :
+capacité réelle existante (`WatchAnalysisComposerDesktop` de `@/features/watch-analysis/`).
+Les deux capacités sont partagées avec Veille (§10) sans aucune duplication.
 
-### Matrice — 1 RENAME (`knowledge` → « Connaissance »), 2 KEEP, 1 module KEEP, 1 module NEW/FUTURE.
+### Matrice — 1 RENAME (`knowledge` → « Connaissance »), 2 KEEP, 2 modules REUSE/EXISTING.
 **DATA-0 / URL-0.**
 
-**Statut : `READY`.** Complexité **LOW**.
+**Statut : `IMPLEMENTED / PASS` (Phase 7.6 — 2026-09-10).** Complexité **LOW**.
 
 ---
 
@@ -529,10 +529,9 @@ Reports) · **Analyse transverse** `NEW/FUTURE` · **Mission : analyse de la vei
 `veille/page.tsx` : `device === "mobile"` → vue mobile dédiée (`initialMobileTab`). Adaptive plein.
 
 ### G. Réutilisation
-- **Gestion de la connaissance** : `REUSE` du composant Reports `knowledge-management` (§9). **Ne
-  pas dupliquer** — extraire le composant dans un emplacement partageable (`src/components/knowledge/`
-  ou `src/features/knowledge-management/`) consommé par Reports **et** Veille. Coordination 7.6 ↔ 7.7 :
-  idéalement l'extraction se fait en 7.6, la consommation en 7.7.
+- **Gestion de la connaissance** : `REUSE` direct du composant partagé `ManageCollectionsDesktop` (`@/features/content-collections/`). **Ne
+  pas dupliquer**.
+- **Analyse transverse** : `REUSE` direct du composant partagé `WatchAnalysisComposerDesktop` (`@/features/watch-analysis/`).
 - **Mission : analyse de la veille** : `MISSION_CATALOG` slug `veille-analyse-mensuelle` +
   `MissionComposerDesktop` → framework REUSE (§18).
 
@@ -545,11 +544,11 @@ Reports) · **Analyse transverse** `NEW/FUTURE` · **Mission : analyse de la vei
 | Chapitre | `strategic-analysis` « Analyses » | Analyses | KEEP | DATA-0 | — | NO IMPACT | — | 7.7 |
 | Chapitre | `history` « Archives » | Archives | KEEP | DATA-0 | — | NO IMPACT | — | 7.7 |
 | Module | `source-management` | Gestion des sources | KEEP | DATA-0 | — | NO IMPACT | — | 7.7 |
-| Module | — | Gestion de la connaissance | REUSE | DATA-0 | monter composant partagé | NO IMPACT | **extraction 7.6** | 7.7 |
-| Module | — | Analyse transverse | NEW/FUTURE | — | — | FUTURE | partagé Reports | différé |
+| Module | — | Gestion de la connaissance | REUSE | DATA-0 | monter composant partagé (`content-collections`) | NO IMPACT | 7.6 (prêt) | 7.7 |
+| Module | — | Analyse transverse | REUSE | DATA-0 | monter composant partagé (`watch-analysis`) | NO IMPACT | 7.6 (prêt) | 7.7 |
 | Module | — | Mission : analyse de la veille | NEW/FUTURE (framework REUSE) | DATA-1 | `MissionComposerDesktop` | FUTURE | §18 | 7.7 / différé |
 
-**Statut : `READY`** (dépend d'une extraction légère en 7.6). Complexité **MEDIUM**.
+**Statut : `UNBLOCKED / READY`** (composants partagés prêts). Complexité **MEDIUM**.
 
 ---
 
@@ -627,8 +626,8 @@ TARGET : **Journal d'exécution · Fiabilité des workflows · Coûts** ; module
 | **Matching Profil** | Opportunités (existe), Consultants (existe) | `MatchingDialog` (`@/components/staffing/matching/`) + moteur `src/lib/staffing-matching/` ; module Consultants `profile-matching/` | `match_scores`, `person_skills`, `opportunity_skills` | Oui — moteur unique déjà | **SHARED COMPONENT** (déjà le cas) |
 | **Production & Congés** | Consultants (existe), Engagements | `src/features/consultants/modules/production-leave/` (Desktop **+** Mobile, builder pur `build-production-leave.ts`) | `mission_activity_reports`, `collaborator_absences`, `collaborator_compensation` | Oui — contrat mensuel isolé, UI Desktop+Mobile | **SHARED COMPONENT** — Engagements l'importe en 7.3B |
 | **Atlas du portefeuille** | Engagements, Finance | **Aucun module de rail.** Voisin : type/action intelligence `account_portfolio` (« Revue de portefeuille comptes », enum `intelligence_document_type`) | `companies`, `account_score_*` (neutralisé runtime), `v_crm_account_list` | Partiellement — pas de composant module | **FUTURE SHARED MODULE** — `NEW/FUTURE` ; décision Data (quelle lecture portefeuille ?) |
-| **Gestion de la connaissance** | Rapports (existe), Veille | Module conditionnel `knowledge-management` de `ReportsLocalNavigation` / `ReportsDesktopView` | knowledge stores Reports | Oui, à condition d'**extraire** le composant hors `src/components/reports/` | **SHARED COMPONENT après extraction** (7.6 extrait, 7.7 consomme) |
-| **Analyse transverse** | Rapports, Veille | **Aucune** | — | Non | **NOT SHARED / FUTURE** — `NEW/FUTURE` partout |
+| **Gestion de la connaissance** | Rapports (existe), Veille | `ManageCollectionsDesktop` (`src/features/content-collections/`) | content_collections | Oui (déjà partagé) | **SHARED COMPONENT** (déjà autonome et partagé) |
+| **Analyse transverse** | Rapports (existe), Veille | `WatchAnalysisComposerDesktop` (`src/features/watch-analysis/`) | watch analysis | Oui (déjà partagé) | **SHARED COMPONENT** (déjà autonome et partagé) |
 | **Playbook(s)** | BI (`playbooks` module, existe), Prospection (`chapter_3` vide → module) | BI : `playbooks` module conditionnel (`playbooksAvailable`) sur `sector_intelligence.playbook` | `sector_intelligence` (playbook JSONB), `v_sector_knowledge_resolved` | BI oui ; Prospection non (coquille vide) | **SHARED DATA + DISTINCT VIEW** — la Data playbook sectoriel existe ; la vue Prospection reste à créer |
 | **Mission : analyse des marges** | Engagements, Finance | Framework `MissionComposerDesktop` + `MISSION_CATALOG` ; **pas de slug exact** (`rentabilite-portefeuille` proche) ; voisin `src/lib/intelligence/actions/analyze-margins.ts` + `AnalyzeMarginsResult.tsx` | `missions`, `mission_activity_reports` | Framework oui ; wiring non | **FUTURE SHARED MODULE** (§18) |
 | **Mission : prévoir les disponibilités** | Consultants | Framework + slug `capacite-staffing` (`MISSION_CATALOG`) | providers `staffing-horizon`, `hiring-period` | Framework oui ; wiring non | **FUTURE SHARED MODULE** (§18) |
@@ -853,20 +852,17 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **DoD :** aucun chapitre/module vide affiché ; `chapter_1` retiré du rail ; décision produit
   tracée.
 
-### 7.6 — Rapports & Rédaction
-- **Objectif :** RENAME `knowledge` → « Connaissance » ; **extraire** le composant
-  `knowledge-management` vers un emplacement partageable (préalable 7.7).
-- **Data :** DATA-0. **Routing :** URL-0.
-- **DoD :** label aligné ; composant `knowledge-management` extrait et consommé par Reports sans
-  régression ; `Analyse transverse` = `NEW/FUTURE`.
+### 7.6 — Rapports & Rédaction — ✅ IMPLEMENTED / PASS (2026-09-10)
+- **Objectif :** RENAME `knowledge` → « Connaissance » ; intégrer `Gestion de la connaissance` et `Analyse transverse` dans le `SectionRail` ; supprimer le bouton header redondant « Générer une analyse » ; préserver les listeners et contrats.
+- **Data :** DATA-0. **Routing :** URL-0. **Mobile :** `NO IMPACT`.
+- **DoD :** label aligné ; modules contextuels `Gestion de la connaissance` et `Analyse transverse` reliés aux composants réels (`ManageCollectionsDesktop` et `WatchAnalysisComposerDesktop`) ; exclusion mutuelle et états actifs gérés ; Cockpit Intelligence intact via `WATCH_ANALYSIS_COMPOSER_EVENT` ; suppression bouton header.
+- **✅ Livré (2026-09-10) :** Chapitre `knowledge` renommé en « Connaissance » ; clés techniques inchangées ; `contextualModules` intègre `knowledge-management` et `transverse-analysis` sans bouton mort ; état actif synchronisé ; action header redondante supprimée ; DATA-0 / URL-0.
 
-### 7.7 — Veille & Actualités
-- **Objectif :** 2 RENAME (`news`, `watched-accounts`) ; module « Gestion de la connaissance » REUSE
-  du composant extrait en 7.6 ; option module « Mission : analyse de la veille » (framework REUSE).
+### 7.7 — Veille & Actualités — UNBLOCKED / READY
+- **Objectif :** 2 RENAME (`news`, `watched-accounts`) ; modules « Gestion de la connaissance » (`ManageCollectionsDesktop`) et « Analyse transverse » (`WatchAnalysisComposerDesktop`) REUSE ; option module « Mission : analyse de la veille » (framework REUSE).
 - **Data :** DATA-0 (REUSE) / DATA-1 (mission).
-- **DoD :** labels alignés ; module KM monté **sans duplication** ; `Analyse transverse` +
-  `Mission : …` = `NEW/FUTURE` sauf si branchés proprement.
-- **Dependencies :** 7.6 (extraction).
+- **DoD :** labels alignés ; modules montés **sans duplication** ; `Mission : …` = `NEW/FUTURE` sauf si branché proprement.
+- **Dependencies :** 7.6 (prêt).
 
 ### 7.8 — Knowledge Hub — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** 2 RENAME de `title` (`expertise-kredo`, `internal-resources`).
@@ -898,8 +894,8 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | **7.3C** | Finance | MEDIUM | DATA-1 | 2 RENAME + 1 module | LABEL SYNC | 7.3A, 7.3B | Non | NO (après 7.3B) |
 | **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`a9ac0d36`) |
 | **7.5** | Prospection | HIGH | DATA-1+ | REMOVE + RENAME + TRANSFORM (coquilles vides) | FUTURE | **décision produit** | Non | **NO — DECISION REQUIRED** |
-| **7.6** | Rapports | LOW | DATA-0 | 1 label + extraction composant | NO IMPACT | — | Non | **YES** |
-| **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + module REUSE | LABEL SYNC | 7.6 | Non | YES (après 7.6) |
+| **7.6** | Rapports | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** |
+| **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + modules REUSE | LABEL SYNC | 7.6 | Non | **UNBLOCKED / READY** |
 | **7.8** | Knowledge Hub | LOW | DATA-0 | 2 labels | LABEL SYNC | — | Non | ✅ **IMPLEMENTED / PASS** (`e49a4a9e`) |
 | **7.9** | Automatisations | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`fab5d06f`) |
 
