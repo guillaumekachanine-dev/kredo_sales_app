@@ -1,5 +1,11 @@
 # Lot 1 — Résolution d'entité et arrêt de la contamination
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 **Statut :** livré le 2026-09-07. Code, tests et assainissement de la base faits.
 **Reste à la main de Guillaume :** réimport d'`intel-010` sur le VPS (celui d'`intel-030` est fait),
 vérification par un run réel (§6), et arbitrage de 10 comptes (§5).

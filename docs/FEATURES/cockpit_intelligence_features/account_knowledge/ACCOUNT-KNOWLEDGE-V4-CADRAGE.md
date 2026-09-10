@@ -1,5 +1,11 @@
 # Account Knowledge V4 — audit, arbitrages et plan de refonte
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 **Statut :** cadrage. Aucun code, aucune migration, aucun workflow modifié par ce document.
 **Date :** 2026-09-06. Tous les chiffres sont **relevés en base de production** ce jour, ou lus dans
 le code du dépôt à `HEAD` (`9a00995a`).

@@ -1,5 +1,11 @@
 # LOT 3 — Document de reprise (HANDOFF)
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 > **STATUT : LOT 3 TERMINÉ — EN ATTENTE DE VALIDATION HUMAINE**
 > Dernière mise à jour : 2026-08-05 CEST
 > Commit de départ (worktree local) : `4cfc16da` (Lot 2 committé en `7ad126f8`).

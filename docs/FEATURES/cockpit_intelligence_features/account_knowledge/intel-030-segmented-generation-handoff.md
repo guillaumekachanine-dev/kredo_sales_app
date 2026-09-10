@@ -1,5 +1,11 @@
 # Handoff : Génération Segmentée AccountKnowledge V3 (Workflow n8n INTEL-030)
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 ## Context & Problem
 Le premier run réel d'analyse d'entreprise sur la version V3 (Arkopharma) a échoué car le modèle `claude-sonnet-5` (Claude 3.7 Sonnet) a atteint sa limite de tokens de sortie (`stop_reason = max_tokens`). La génération de la totalité du rapport V3 en une seule invocation consommait la quasi-totalité du budget de sortie (16 000 tokens) sous forme de tokens de réflexion (*thinking tokens*), laissant moins de 2 000 tokens pour le texte du JSON final.
 

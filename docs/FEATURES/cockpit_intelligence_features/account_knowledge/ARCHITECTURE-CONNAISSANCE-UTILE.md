@@ -1,5 +1,11 @@
 # Architecture de la connaissance utile — un compte vu par un business developer ESN
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 **Statut :** rapport de cadrage. Aucun code, aucune migration, aucun workflow modifié par ce document.
 **Date :** 2026-08-26. Tous les chiffres ci-dessous sont **relevés en base de production** ce jour.
 **Périmètre :** ce que l'on doit savoir d'une entreprise pour lui vendre des prestations IT.

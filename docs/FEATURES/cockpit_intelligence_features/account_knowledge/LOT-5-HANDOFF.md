@@ -1,5 +1,11 @@
 # AccountKnowledge V3 — Lot 5 : Restitution Desktop et Mobile (Handoff)
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 ## Synthèse
 
 Le **Lot 5** de la refonte AccountKnowledge (V3) est implémenté et intègre les composants d'interface structurant la restitution de la connaissance entreprise en 7 rubriques, aussi bien pour le Desktop que pour le Mobile, tout en respectant l'Adaptive Design et le Design System `edito-bright-cockpit`.

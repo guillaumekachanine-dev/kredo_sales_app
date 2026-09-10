@@ -1,5 +1,11 @@
 # Handoff Codex — Account Knowledge V4, reprise après Lot 1
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 **Rédigé par :** Claude (Opus 5 → Sonnet 5), session du 2026-09-06/07.
 **Destinataire :** Codex, pour poursuivre le chantier.
 **État au moment de l'écriture :** Lot 1 livré et poussé (2 commits), Lot 2 non commencé.

@@ -1,5 +1,11 @@
 # INTEL-030 — Contrat fonctionnel définitif AccountKnowledge V3
 
+> ⚠️ **ARCHIVE — ne pas appliquer comme cadrage.**
+> Ce document décrit une génération antérieure d'Account Knowledge (V1→V4) et les raisons de ses
+> limites. Il conserve sa valeur historique — les échecs qu'il documente ont été payés au prix de
+> plusieurs sessions — mais il ne décrit pas la cible.
+> **Le corpus qui fait autorité est `../account_intelligence/`.** Commencer par son `README.md`.
+
 Statut : contrat fonctionnel gelé pour la future version V3 de l’onglet Entreprise.
 
 Portée du Lot 0 : documentation uniquement. Aucun type TypeScript V3, validateur, workflow n8n, callback, loader, RPC, schéma SQL ou composant UI n’est créé ou modifié par ce contrat.
