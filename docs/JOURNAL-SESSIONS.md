@@ -13,6 +13,90 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 62 — Audit performance data & chargement des pages, Lots 0→5 (2026-09-10)
+
+Chantier documenté dans **`docs/performance-data-audit/`** (8 fichiers). Le ledger `06-AUDIT-LEDGER.md`
+fait autorité sur ce qui a été mesuré, livré et **écarté**.
+
+**Le chiffre qui commande tout.** Mesuré côté Supabase (`edge_logs`, champ `response.origin_time`,
+7 416 requêtes REST sur 24 h) : **un aller-retour PostgREST coûte 108 ms en médiane et 575 ms au
+p95**, pour un temps SQL de 1 à 5 ms. Le pool PostgREST fait **10 connexions** (journal PostgREST),
+alors que `/cockpit` émet 14 requêtes simultanées et `/veille` 17. **C'est le nombre d'allers-retours
+qui fait la latence, pas leur contenu** — aucune requête SQL de KREDO n'est lente, la base tient en
+124 Mo et consomme moins de 3 % de son CPU.
+
+**Résultats mesurés** (build de production, session réelle, 3 passes, valeur à chaud) :
+
+| Route | requêtes | vagues | octets lus | total |
+|---|---|---|---|---|
+| `/prospection/accounts/[companyId]` | 33 → **31** | 5 → **3** | ~450 Ko → **92 Ko** | 1,14 s → **0,57 s** |
+| `/veille` | 42 → **23** | 7 → **5** | — → **455 Ko** | 0,89 s → **~0,50 s** |
+| `/reports` | 7 → **4** | — | — → **26 Ko** | 0,45 s → **~0,23 s** |
+| `/cockpit` | 14 | 2 | ~480 Ko → **151 Ko** | inchangé (gain de volume, pas de latence) |
+
+HTML **identique à l'octet près** sur la fiche compte et `/cockpit` — la meilleure preuve
+d'équivalence disponible. **Aucune migration sur tout le chantier.**
+
+**Ce qui a été livré, par cause racine :**
+- **Résolution d'identité** — `getRequestClient = cache(createClient)` exporté par
+  `supabase/server.ts` : un seul client par rendu, donc **un seul cache JWKS**. Mesuré :
+  `getClaims()` coûte 0,4 ms sur client partagé contre **77–184 ms sur client neuf**, et les
+  journaux montraient **427 appels/jour au JWKS**. `getCurrentProfile()` remonte `workspace_id`
+  **et** `role` en une lecture. Sur `/veille`, le préambule séquentiel de **306 ms a disparu**
+  (7 lectures de `profiles` → 1, zéro `/auth/v1/user`).
+- **Blob `companies.metadata`** — la fiche compte transférait **378 Ko pour extraire 0 octet**
+  (aucune des 112 lignes ne porte les clés d'alias, et aucun producteur n'existe). Corrigé par
+  **projection JSON PostgREST** (`meta_aliases:metadata->aliases`…), pas par colonnes générées :
+  `EXPLAIN` donne 1,4 ms / 14 buffers, le coût était le **transport**, pas le TOAST. **−99,2 %.**
+- **Lectures dupliquées** — deux loaders partagés mémoïsés (`account-company-row.ts`,
+  `sector-knowledge-resolved.ts`) : la ligne `companies` était lue **trois fois** par rendu et
+  `v_sector_knowledge_resolved` **deux fois**, avec des projections différentes donc non
+  dédupliquées par la mémoïsation `fetch` de Next.
+- **Jeux complets filtrés en JS** — `/cockpit` lisait 10 tables sans filtre ; le filtre applicatif
+  exact a été poussé en SQL. **La vue `v_active_account_signals` n'a PAS été substituée** : elle
+  diffère du filtre JS sur `expired`, `expires_at`, la fenêtre de 2 mois et les signaux FOLIO.
+  Les deux rendent 98 lignes aujourd'hui, mais c'est une coïncidence des données — basculer serait
+  un choix produit.
+- **`/reports`** — 4 comptages `head:true` → 1 requête ; `brief_json` rapatrié en entier pour une
+  chaîne → projection (**454 241 → 52 459 octets**).
+- **`/veille`** — le socle de sources n'est plus chargé au rendu de page mais **à l'ouverture** des
+  trois dialogues qui l'utilisent (motif `useModuleSnapshot` déjà en place pour le Cockpit).
+
+**Cinq recommandations de l'audit écartées par la mesure — c'est le principal enseignement :**
+1. **Migration `meta_aliases`** — inutile : les colonnes générées auraient été 100 % `NULL`.
+2. **Redirection `/agenda`** (F-9) — impact réel **~40 ms** (22 Ko en navigation client, pas 61 Ko
+   + 26 chunks comme annoncé) ; le correctif exigerait de dupliquer device + fuseau +
+   `toWorkingDay` + deux constructeurs de query string dans le middleware.
+3. **Hôtes de tiroirs conditionnels** (F-7) — **prémisse fausse**. Le correctif a été écrit
+   entièrement, mesuré à **+1 Ko**, puis une **borne haute** (`AppOverlayHosts` vidé) a donné
+   **~4 Ko gzip, 0,4 %** — pas 130 Ko. Le `grep` confondait les **stubs** de `next/dynamic` avec
+   les corps des composants. **Code reverté.** ⚠️ Leçon : chercher le nom d'un composant dans un
+   chunk ne dit pas si son code y est ; seul le poids des chunks référencés par les `<script>` de
+   la page servie tranche.
+4. **Comptage contacts seul** (F-6a) — gain nul tant que F-6b n'est pas fait.
+5. **Contacts par onglet** (F-6b) — **bloqué par conception** : `use-url-filters.ts` écrit l'onglet
+   via `history.replaceState`, **volontairement sans navigation** ; gater côté serveur donnerait un
+   onglet vide. Et `data.contacts` alimente aussi les filtres de l'onglet Comptes.
+
+**Deux décisions rendues à Guillaume, hors code :**
+- **F-10** — les redémarrages PostgREST (38/jour) sont **marginaux** : 52,6 s cumulées sur 86 400,
+  soit **0,06 % du temps**, 78 requêtes > 1 s sur 7 416. La cause n'est pas un DDL applicatif mais
+  un **recyclage de service plateforme** (le slot Realtime redémarre à la milliseconde près), et
+  l'organisation est sur le **plan Free** — donc pas de ticket support possible. Le vrai sujet est
+  le plancher de 108 ms et le pool de 10. À trancher par un essai mesuré d'un palier d'instance.
+- **F-13** — `@supabase/supabase-js` pèse **237 Ko, 18 % du socle** de 1 310 Ko. Il est maintenu
+  par un **unique canal Realtime monté dans `AppShell`** (`use-current-workflow-execution.ts:114`) :
+  convertir les ~20 autres modules clients ne rendrait rien. C'est une question de produit.
+
+**Instrumentation livrée, inerte hors `KREDO_PERF_TRACE=1`** : `src/lib/supabase/perf-trace.ts`
+trace chaque aller-retour PostgREST (table, offset d'émission, durée, octets). Protocole de
+reproduction en `00-BASELINE-AND-SCOPE.md` §5. ⚠️ `dur ≈ 0,2 ms` = requête **dédupliquée** par
+Next, pas requête rapide.
+
+**Validation** : `typecheck` ✓ · `vitest` **294 fichiers / 3 030 tests** (+7 gardes ajoutées : alias
+projetés, chargement du socle à l'ouverture) ✓ · frontière serveur/client ✓ · `eslint` 0 erreur ✓ ·
+`build` ✓, tableau de routes inchangé. QA visuelle réservée à Guillaume.
+
 ### Session 61 — SHELL-0018 Lot 3.1 : modules contextuels Desktop (2026-09-08)
 
 - Audit code réel des neuf rails Desktop `SectionRail` : Account Intelligence, Business

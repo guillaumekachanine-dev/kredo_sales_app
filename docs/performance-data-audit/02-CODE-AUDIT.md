@@ -7,6 +7,14 @@
 
 ## A. Résolution d'identité — le préambule payant
 
+> ✅ **TRAITÉ AU LOT 2 (2026-09-10).** Les trois constats de cette section sont corrigés pour le
+> chemin de rendu : `getRequestClient = cache(createClient)` exporté par `server.ts`,
+> `getCurrentProfile()` ajouté à `workspace.ts`, et les 3 consommateurs de rendu convertis.
+> Résultat mesuré sur `/veille` : préambule séquentiel de **306 ms supprimé**, 7 lectures de
+> `profiles` → 1, zéro appel `/auth/v1/user`. Détail au [ledger](06-AUDIT-LEDGER.md).
+> Le constat reste ici pour mémoire et pour le périmètre non converti (Server Actions, routes API —
+> exclusion délibérée).
+
 ### A-1. `getUser()` sur le chemin de rendu · **CONSTAT**
 
 `auth.getUser()` interroge l'API Auth Supabase par le réseau à **chaque** appel : 96,7 · 160,1 ·
@@ -25,8 +33,8 @@ Les 4 sites du chemin de rendu :
 
 | Fichier | Page servie |
 |---|---|
-| [`src/app/(app)/veille/page.tsx:43`](../../src/app/(app)/veille/page.tsx) | `/veille` |
-| [`src/app/(app)/veille/_data/veille-data.ts:26`](../../src/app/(app)/veille/_data/veille-data.ts) | `/veille` |
+| [`src/app/(app)/veille/page.tsx:43`](../../src/app/%28app%29/veille/page.tsx) | `/veille` |
+| [`src/app/(app)/veille/_data/veille-data.ts:26`](../../src/app/%28app%29/veille/_data/veille-data.ts) | `/veille` |
 | [`src/features/source-management/data/get-source-management-snapshot.ts:48`](../../src/features/source-management/data/get-source-management-snapshot.ts) | `/veille` |
 | [`src/lib/staffing-matching/collect-matching-input.ts:16`](../../src/lib/staffing-matching/collect-matching-input.ts) | matching (hors rendu de page) |
 
@@ -210,9 +218,9 @@ de la page la plus lourde de l'application. Effort : moyen (touche la navigation
 Risque : moyen — `AccountsContactsViews` est un composant de 2 726 lignes ; **la conversion doit
 être faite onglet par onglet, pas d'un bloc.**
 
-### B-4. `/reports` : 144 Ko de `brief_json` pour extraire une chaîne · **CONSTAT**
+### B-4. `/reports` : 144 Ko de `brief_json` pour extraire une chaîne · **CONSTAT** — ✅ traité au Lot 2
 
-[`get-reports-list.ts:541-544`](../../src/app/(app)/reports/_data/get-reports-list.ts) charge
+[`get-reports-list.ts:541-544`](../../src/app/%28app%29/reports/_data/get-reports-list.ts) charge
 `document_id, version_number, qa_flags, brief_json` pour **toutes les versions** des 24 documents
 listés — mesuré à **144 509 octets**.
 
@@ -277,9 +285,9 @@ forme. Le coût restant est la **profondeur** — 4 allers-retours en série, ~4
 Ne **pas** convertir en RPC : le gain (~200 ms) ne justifie pas de déplacer de la logique métier
 en SQL, contre la doctrine du projet.
 
-### C-3. `/reports` : 4 allers-retours pour 4 compteurs · **CONSTAT**
+### C-3. `/reports` : 4 allers-retours pour 4 compteurs · **CONSTAT** — ✅ traité au Lot 2
 
-[`get-reports-list.ts:446-481`](../../src/app/(app)/reports/_data/get-reports-list.ts) —
+[`get-reports-list.ts:446-481`](../../src/app/%28app%29/reports/_data/get-reports-list.ts) —
 `getKpis()` émet 4 requêtes `count: "exact", head: true` (total, drafts, ready, used-this-month),
 mesurées à 93,9 / 100,9 / 148,0 / 168,0 ms, **toutes renvoyant 0 octet de corps**.
 
@@ -294,22 +302,47 @@ croît. **Gain : −3 allers-retours, ~−150 ms.** Effort : trivial. Risque : n
 mesurée : la requête `/agenda` renvoie **200 OK avec 61 510 octets de squelette**, puis un
 `NEXT_REDIRECT 307` en fin de flux.
 
-Le navigateur a donc téléchargé 61 Ko de HTML et **amorcé le chargement des 26 chunks JS** pour un
-document jeté — à chaque clic sur « Agenda » dans la navigation.
+> 🔴 **CORRECTION DU 2026-09-10 (Lot 2) — ce constat était surestimé, lire avant de s'y fier.**
+> La rédaction initiale annonçait « 61 Ko et les 26 chunks JS **à chaque clic sur Agenda** ».
+> C'est vrai d'un **chargement dur** (signet, URL directe, démarrage PWA) — pas d'une navigation
+> interne, qui passe par `<Link>` et ne demande que la charge RSC. Mesuré :
+>
+> | Chemin | Coût réel du détour |
+> |---|---|
+> | Navigation client (en-tête `RSC: 1`) | **22 484 octets · 7,3–17,1 ms** |
+> | Chargement dur (document HTML) | 61 510 octets · 12,1 ms |
+>
+> Soit ~30 à 60 ms et 22–61 Ko par ouverture, aller-retour réseau compris.
 
-**Recommandation, par ordre de préférence :**
-1. Faire pointer le lien de navigation directement sur la route canonique (le plus simple).
-2. À défaut, remonter la normalisation **au-dessus** du `Suspense`, dans `page.tsx`, pour que le
-   307 parte avant tout streaming.
+**Recommandation : ne rien faire.** Les deux correctifs envisageables coûtent plus cher que le
+défaut, et le second est franchement dangereux :
+1. *Remonter la normalisation dans `page.tsx`* — sans effet : la redirection reste sous la
+   frontière Suspense de `(app)/loading.tsx`, le shell est flushé de toute façon.
+2. *Redirection en middleware ou lien de navigation canonique* — il faudrait dupliquer la détection
+   du device, `getTodayDateKey` avec fuseau, `toWorkingDay` (le mobile décale au jour ouvré) et
+   **deux** constructeurs de query string distincts (`view=week&date=…` en Desktop,
+   `mode=calendar&date=…&filters=commerce,recruitment` en Mobile). Toute divergence produit une
+   **double** redirection — pire que le défaut actuel.
 
-**Gain : un aller-retour complet supprimé sur chaque ouverture d'Agenda.** Effort : faible.
-Risque : faible — vérifier que les deep-links externes `/agenda` restent redirigés.
+**Décision : F-9 déclassé, non implémenté** (Lot 2, 2026-09-10). À rouvrir seulement si la
+canonisation de l'URL Agenda est refondue pour une autre raison.
 
 ---
 
 ## D. Frontière serveur/client et bundle
 
-### D-1. Les 8 hôtes de tiroirs sont chargés sur toutes les pages · **CONSTAT**
+### D-1. Les 8 hôtes de tiroirs sont chargés sur toutes les pages · ⛔ **CONSTAT FAUX**
+
+> 🔴 **INVALIDÉ par la mesure le 2026-09-10 (Lot 4). Ne pas agir sur ce qui suit.**
+> Le tableau ci-dessous recense des **symboles** trouvés par `grep` dans les chunks du socle. Ce
+> sont les **stubs de chargement** de `next/dynamic` (site d'appel `import()`, identifiant de
+> module), qui vivent nécessairement dans le chunk parent — **pas les corps des composants**, qui
+> étaient déjà dans des chunks paresseux séparés.
+> Borne haute mesurée (`AppOverlayHosts` vidé de ses 8 hôtes, build complet) : `/cockpit`
+> 1 548 → **1 541 Ko** bruts, 415 → **411 Ko gzip**. Soit **~4 Ko gzip, 0,4 %** — pas 130 Ko.
+> Le correctif a été écrit, mesuré à **+1 Ko**, puis **reverté**.
+> **`next/dynamic({ssr:false})` faisait correctement son travail depuis le début.**
+
 
 [`AppOverlayHosts.tsx`](../../src/components/layout/AppOverlayHosts.tsx) déclare 8 composants en
 `next/dynamic({ ssr: false })` — puis **les rend tous les huit, inconditionnellement**.
@@ -344,7 +377,17 @@ Effort : faible (8 gardes conditionnelles). Risque : **moyen** — vérifier que
 un lien profond fonctionne toujours ; certains hôtes s'abonnent peut-être à des événements au
 montage. À valider hôte par hôte.
 
-### D-2. `@supabase/supabase-js` complet dans le bundle navigateur — 237 Ko · **CONSTAT**
+### D-2. `@supabase/supabase-js` complet dans le bundle navigateur — 237 Ko · **CONFIRMÉ, mais bloqué**
+
+> ✅ **Chiffre confirmé au Lot 4** : 236,8 Ko dans les chunks réellement référencés, sur un socle
+> commun de 1 310 Ko en 20 chunks — **18 %**. Avec `react-dom` (227,2 Ko), ce sont les deux seuls
+> postes nommables ; les 18 autres chunks (~846 Ko) sont le shell applicatif.
+> 🔒 **Mais le chantier est bloqué**, et l'hypothèse ci-dessous ne tient pas : le SDK est requis par
+> le canal Realtime `use-current-workflow-execution.ts:114`, **monté dans `AppShell`**, donc sur
+> toutes les pages. Un seul consommateur suffit à le maintenir dans le socle — convertir les
+> ~20 autres modules en Server Actions ne rendrait rien. C'est devenu **une question de produit**
+> (l'indicateur doit-il vivre partout ?), pas un chantier technique.
+
 
 Le chunk `11b8--b8bsw1h.js` (237 Ko bruts) contient le SDK entier. 23 modules client l'importent,
 mais l'usage **temps réel** se limite à **3 canaux** :
