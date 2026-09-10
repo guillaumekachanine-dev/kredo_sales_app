@@ -410,7 +410,7 @@ compare **CURRENT vs TARGET** au niveau des domaines, sans modifier le modèle.
 | Actuel (code) | Cible | Traitement | Preuve |
 |---|---|---|---|
 | Ateliers (`workshops`) | **Ateliers** | `KEEP` | `KnowledgeHubModuleModal.tsx`, `KnowledgeHubMobileWorkshops.tsx` |
-| RAG (« Interroger le Corpus ») | **RAG** | `KEEP` | `KnowledgeHubModuleModal.tsx` (`isWorkshop ? … : "Interroger le Corpus"`) |
+| RAG (« Interroger le Corpus ») | **RAG** | `DEFERRED / NEW-FUTURE` | Capacité non fonctionnelle (« Bientôt disponible ») — non exposée dans le rail Desktop pour éviter un bouton mort (NAV-TARGET-07). Composant modal conservé pour compatibilité interne. |
 
 ## B.10. Automatisations — `/automations`
 
@@ -574,7 +574,7 @@ Valeurs `Traitement` : `KEEP` · `RENAME` · `MOVE` · `REUSE` · `TRANSFORM` ·
 | Knowledge Hub | Chapitre (domaine) | AO & Propositions (`ao-proposals`) | AO & Propositions | KEEP | `knowledge-hub-shell-data.ts` | 7.8 |
 | Knowledge Hub | Chapitre (domaine) | Ressources internes (`internal-resources`) | Ressources admin | RENAME | `knowledge-hub-shell-data.ts` | 7.8 |
 | Knowledge Hub | Module | Ateliers (`workshops`) | Ateliers | KEEP | `KnowledgeHubModuleModal.tsx` | 7.8 |
-| Knowledge Hub | Module | RAG (« Interroger le Corpus ») | RAG | KEEP | `KnowledgeHubModuleModal.tsx` | 7.8 |
+| Knowledge Hub | Module | RAG (« Interroger le Corpus ») | RAG | DEFERRED / NEW-FUTURE | `KnowledgeHubModuleModal.tsx` (non exposé au rail) | 7.8 |
 
 ## C.11. Automatisations — `/automations`
 

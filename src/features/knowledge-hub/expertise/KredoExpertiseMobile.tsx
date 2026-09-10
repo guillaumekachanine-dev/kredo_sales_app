@@ -42,7 +42,7 @@ export function KredoExpertiseMobile({
           ← Retour aux domaines
         </button>
         <h2 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
-          Expertise KREDO
+          Expertises KREDO
         </h2>
         {/* Empty placeholder for symmetrical spacing */}
         <div className="w-12" />

@@ -566,8 +566,9 @@ Domaines CURRENT (`domains[].id` / `.title`) : `clients-markets` « Clients & Ma
 `ao-proposals` « AO & Propositions » · `internal-resources` « Ressources internes ».
 TARGET : identiques **sauf** `Expertise KREDO` → **Expertises KREDO** et `Ressources internes` →
 **Ressources admin** (2 RENAME).
-Modules : `workshops` « Ateliers » (`KnowledgeHubModuleModal`) + RAG « Interroger le Corpus » —
-`KEEP` les deux.
+Modules : `workshops` « Ateliers » (`KnowledgeHubModuleModal`) `KEEP` + RAG « Interroger le Corpus »
+`DEFERRED / NEW-FUTURE` (capacité non fonctionnelle « Bientôt disponible » — non exposée dans le rail
+Desktop pour éviter un bouton mort, NAV-TARGET-07 ; composant modal conservé pour compatibilité interne).
 
 ### D
 `domains` = **données statiques TS** (`knowledge-hub-shell-data.ts`) — `id` technique séparé du
@@ -579,9 +580,14 @@ renommer en `admin-resources` sans migration de la nav contextuelle).
 `KnowledgeHubMobileWorkshops` (adaptive plein). Modules : `KnowledgeHubModuleModal` (Desktop),
 `KnowledgeHubMobileWorkshops` (Mobile).
 
-### Matrice — 2 RENAME (`title` uniquement), 4 KEEP, 2 modules KEEP. **DATA-0 / URL-0.**
+### Matrice — 2 RENAME (`title` uniquement), 4 KEEP, 1 module KEEP, 1 module DEFERRED/NEW-FUTURE. **DATA-0 / URL-0.**
 
-**Statut : `READY`.** Complexité **LOW** (2 libellés). Ne pas toucher les `id` de domaine.
+**Statut : `IMPLEMENTED / PASS` (Phase 7.8 — 2026-09-10).** Complexité **LOW** (2 libellés, 0 Data, IDs inchangés).
+
+> **Livré :** 2 RENAME de titres Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs techniques
+> inchangés (`expertise-kredo`, `internal-resources`) ; Mobile synchronisé (`LABEL SYNC` sur les 2 mêmes
+> libellés) ; module `Ateliers` conservé (`KEEP`) ; module RAG classifié `DEFERRED / NEW-FUTURE` (non exposé
+> au rail Desktop) ; URL-0 ; DATA-0. Gates : `typecheck` / `test` / `check:server-boundary` / `lint` / `build` = **PASS**.
 
 ---
 
@@ -859,10 +865,11 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
   `Mission : …` = `NEW/FUTURE` sauf si branchés proprement.
 - **Dependencies :** 7.6 (extraction).
 
-### 7.8 — Knowledge Hub
+### 7.8 — Knowledge Hub — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** 2 RENAME de `title` (`expertise-kredo`, `internal-resources`).
 - **Data :** DATA-0. **Routing :** URL-0. **Mobile :** `LABEL SYNC`.
-- **DoD :** `title` alignés ; **`id` de domaine inchangés** ; modules Ateliers/RAG inchangés.
+- **DoD :** `title` alignés ; **`id` de domaine inchangés** ; module Ateliers conservé (`KEEP`) ; module RAG reclassifié `DEFERRED / NEW-FUTURE` (non exposé au rail Desktop car capacité ask non fonctionnelle).
+- **✅ Livré (2026-09-10) :** `domains` / `mobileDomains` labels `Expertises KREDO` et `Ressources admin` ; IDs techniques `expertise-kredo` et `internal-resources` inchangés ; `workshops` / `mobileWorkshops` `mobilizedKnowledge` synchronisés ; `KredoExpertiseDesktop` / `KredoExpertiseMobile` / `KredoExpertiseNavigation` synchronisés ; 0 changement d'URL ; 0 changement Data.
 
 ### 7.9 — Automatisations
 - **Objectif :** RENAME `sante` → « Fiabilité des workflows » (clé `sante` conservée).
@@ -885,11 +892,11 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | **7.3A** | Rentabilité Data | HIGH | **DATA-2** | — | — | décision vue/builder | Non | **NO — DECISION REQUIRED** |
 | **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A | Non | NO (après 7.3A) |
 | **7.3C** | Finance | MEDIUM | DATA-1 | 2 RENAME + 1 module | LABEL SYNC | 7.3A, 7.3B | Non | NO (après 7.3B) |
-| **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** |
+| **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`a9ac0d36`) |
 | **7.5** | Prospection | HIGH | DATA-1+ | REMOVE + RENAME + TRANSFORM (coquilles vides) | FUTURE | **décision produit** | Non | **NO — DECISION REQUIRED** |
 | **7.6** | Rapports | LOW | DATA-0 | 1 label + extraction composant | NO IMPACT | — | Non | **YES** |
 | **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + module REUSE | LABEL SYNC | 7.6 | Non | YES (après 7.6) |
-| **7.8** | Knowledge Hub | LOW | DATA-0 | 2 labels | LABEL SYNC | — | Non | **YES** |
+| **7.8** | Knowledge Hub | LOW | DATA-0 | 2 labels | LABEL SYNC | — | Non | ✅ **IMPLEMENTED / PASS** |
 | **7.9** | Automatisations | LOW | DATA-0 | 1 label | NO IMPACT | — | Non | **YES** |
 
 **Go 7.1 :** `YES AFTER REBASELINE` — attendre l'intégration de la refonte Synthèse Opportunités

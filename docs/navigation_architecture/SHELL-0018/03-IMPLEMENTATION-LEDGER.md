@@ -110,7 +110,9 @@ QA minimale :
 | **7.2** | Alignement Consultants | ✅ techniquement livré (`bb2a3a4d`) | `pool-competences` chapitre Desktop → **Module Desktop** (composant + Data réutilisés) ; 4 chapitres Desktop + libellés cible ; Mobile inchangé (5 accès, `SEPARATE IMPLEMENTATION`) ; `resolveConsultantsDesktopEntry` pure ; 0 pathname / 0 redirect / 0 Data. Consultants Lot 15 → `UNBLOCKED / READY`. Voir §41 |
 | **7.3** | Engagements + Finance (coordonné) | ⬜ todo | sous-lots 7.3A (Data — `NEEDS DATA DECISION`) → 7.3B → 7.3C |
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
-| **7.5 → 7.9** | Prospection · Rapports · Veille · Knowledge Hub · Automatisations | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
+| **7.5 → 7.7** | Prospection · Rapports · Veille | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
+| **7.8** | Alignement Knowledge Hub | ✅ techniquement livré | 2 RENAME Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs/URLs/Data inchangés ; Mobile LABEL SYNC ; Ateliers KEEP ; RAG DEFERRED/NEW-FUTURE. Voir §43 |
+| **7.9** | Automatisations | ⬜ todo | voir doc `11-*` §19 |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
 
 > **Phase 4 — ✅ close techniquement (Lot 4.7)** · **Phase 6 — ✅ CLOSED (Lot 6.7, doc `10-*`)**
@@ -2343,3 +2345,53 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 ### Verdict
 
 - **Lot 7.4 — ✅ livré.** Commit : `a9ac0d36` — `refactor(business-intelligence): align workspace target navigation`. Push sur `origin/main`.
+
+---
+
+## 43. Lot 7.8 — Alignement Knowledge Hub sur l'architecture cible
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `4bcb0501` (`HEAD == origin/main`).
+> Cible : `09-*` §B.9 / §C.10. Plan d'exécution : `11-*` §11 / §19 (§7.8).
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre Desktop (domaine) | `clients-markets` « Clients & Marchés » | **Clients & Marchés** | KEEP |
+| Chapitre Desktop (domaine) | `expertise-kredo` « Expertise KREDO » | **Expertises KREDO** | RENAME (pluriel) |
+| Chapitre Desktop (domaine) | `talents` « Talents » | **Talents** | KEEP |
+| Chapitre Desktop (domaine) | `delivery-feedback` « Delivery & REX » | **Delivery & REX** | KEEP |
+| Chapitre Desktop (domaine) | `ao-proposals` « AO & Propositions » | **AO & Propositions** | KEEP |
+| Chapitre Desktop (domaine) | `internal-resources` « Ressources internes » | **Ressources admin** | RENAME |
+| Module Desktop | `workshop` « Ateliers » | **Ateliers** | KEEP (conditionnel `onOpenModal`) |
+| Module Desktop | `ask` « Interroger le Corpus » | **RAG** | **DEFERRED / NEW-FUTURE** (non exposé au rail Desktop car capacité non fonctionnelle) |
+
+### Architecture
+
+- **Source unique de vérité Desktop** : `domains` (`src/features/knowledge-hub/knowledge-hub-shell-data.ts`) met à jour les 2 libellés de domaine cibles (`Expertises KREDO`, `Ressources admin`) tout en conservant strictement les identifiants techniques (`expertise-kredo`, `internal-resources`).
+- **Synchronisation Mobile** : `mobileDomains` (`src/features/knowledge-hub/knowledge-hub-mobile-shell-data.ts`) synchronise les 2 mêmes libellés produit (`Expertises KREDO`, `Ressources admin`), sans modifier ses identifiants propres (`delivery-rex` préservé).
+- **Connaissances mobilisées & composants** :
+  - `workshops` / `mobileWorkshops` : `mobilizedKnowledge` synchronise `Expertises KREDO` et `Ressources admin` ;
+  - `KredoExpertiseDesktop.tsx` / `KredoExpertiseMobile.tsx` : titre `<h2>Expertises KREDO</h2>` ;
+  - `KredoExpertiseNavigation.tsx` : `aria-label="Onglets d'Expertises KREDO"`.
+- **Navigation contextuelle** : architecture Racine → Domaine → Section préservée à l'identique. `KnowledgeHubLocalNavigation` propage naturellement les titres canoniques au `SectionRail`.
+- **Modules contextuels** : seul `workshop` (« Ateliers ») est exposé comme module contextuel dans `SectionRail`. La capacité RAG (« Interroger le Corpus ») affichant une mention « Bientôt disponible » sans requête active, elle reste classée `DEFERRED / NEW-FUTURE` et n'est pas exposée dans le rail afin de respecter l'invariant NAV-TARGET-07 (aucun bouton mort). Le composant `KnowledgeHubModuleModal` conserve le support `"ask"` pour compatibilité interne.
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-0**. Les URLs restent strictement `/knowledge`, `/knowledge?domain=<id>`, `/knowledge?domain=<id>&section=<id>`. Aucune modification de contrat ni création de redirection.
+- **Data** : **DATA-0**. Aucune modification de tables, vues, RPC, schémas Supabase, embeddings pgvector ou workflows n8n.
+- **Invariant KANBAN-001** : 0 occurrence kanban dans la feature.
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (33 tests Knowledge Hub / suite complète)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers modifiés) → **PASS**
+- `npm run build` → **PASS** (42/42 pages)
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.8 — ✅ livré.**

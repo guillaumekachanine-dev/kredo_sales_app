@@ -21,7 +21,7 @@ export function KredoExpertiseDesktop({
       {/* Title */}
       <div className="border-b border-edito-border/50 pb-3">
         <h2 className="text-xl font-bold tracking-tight text-edito-navy">
-          Expertise KREDO
+          Expertises KREDO
         </h2>
       </div>
 

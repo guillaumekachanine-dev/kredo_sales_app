@@ -66,22 +66,39 @@ describe("KnowledgeHubLocalNavigation", () => {
     expect(onChangeView).toHaveBeenCalledWith({ type: "categories" })
   })
 
-  it("à la racine : présente l'ensemble des 6 domaines dans chapters dans le bon ordre avec leurs libellés et icônes", () => {
+  it("à la racine : présente l'ensemble des 6 domaines dans chapters dans le bon ordre avec leurs libellés et icônes cibles", () => {
     const model = buildKnowledgeHubRailProps({
       activeView: { type: "categories" },
       onChangeView: () => {},
     })
 
     expect(model.chapters).toHaveLength(domains.length)
-    expect(model.chapters.map((c) => ({ key: c.key, label: c.label }))).toEqual(
-      domains.map((d) => ({ key: d.id, label: d.title })),
-    )
+    expect(model.chapters.map((c) => ({ key: c.key, label: c.label }))).toEqual([
+      { key: "clients-markets", label: "Clients & Marchés" },
+      { key: "expertise-kredo", label: "Expertises KREDO" },
+      { key: "talents", label: "Talents" },
+      { key: "delivery-feedback", label: "Delivery & REX" },
+      { key: "ao-proposals", label: "AO & Propositions" },
+      { key: "internal-resources", label: "Ressources admin" },
+    ])
     expect(model.chapters.every((c) => Boolean(c.icon))).toBe(true)
 
     const html = renderNavigation({ activeView: { type: "categories" } })
     for (const domain of domains) {
       expect(html).toContain(domain.title.replace(/&/g, "&amp;"))
     }
+  })
+
+  it("vérifie les IDs et libellés du référentiel Mobile synchronisé", async () => {
+    const { mobileDomains } = await import("./knowledge-hub-mobile-shell-data")
+    expect(mobileDomains.map((d) => ({ id: d.id, title: d.title }))).toEqual([
+      { id: "clients-markets", title: "Clients & Marchés" },
+      { id: "expertise-kredo", title: "Expertises KREDO" },
+      { id: "talents", title: "Talents" },
+      { id: "delivery-rex", title: "Delivery & REX" },
+      { id: "ao-proposals", title: "AO & Propositions" },
+      { id: "internal-resources", title: "Ressources admin" },
+    ])
   })
 
   it("sélection d'un domaine à la racine applique la section par défaut appropriée", () => {
@@ -116,7 +133,7 @@ describe("KnowledgeHubLocalNavigation", () => {
     })
   })
 
-  it("dans Expertise KREDO : chapters devient uniquement les 4 sections exactes d'expertise", () => {
+  it("dans Expertises KREDO : chapters devient uniquement les 4 sections exactes d'expertise", () => {
     expect(EXPERTISE_CHAPTERS.map(({ id, label }) => ({ id, label }))).toEqual([
       { id: "practices", label: "Practices" },
       { id: "jobs", label: "Métiers" },

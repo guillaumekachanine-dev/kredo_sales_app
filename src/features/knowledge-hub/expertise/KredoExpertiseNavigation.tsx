@@ -27,7 +27,7 @@ export function KredoExpertiseNavigation({
 
   return (
     <div className="flex border-b border-edito-border/60 bg-edito-surface rounded-t-xl overflow-x-auto scrollbar-none">
-      <nav className="flex gap-1" aria-label="Onglets d'Expertise KREDO">
+      <nav className="flex gap-1" aria-label="Onglets d'Expertises KREDO">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
           return (
