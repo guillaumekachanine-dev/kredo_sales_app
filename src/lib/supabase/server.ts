@@ -3,6 +3,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
+import { createTracingFetch } from "./perf-trace";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -11,6 +12,8 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Diagnostic uniquement — `undefined` hors KREDO_PERF_TRACE=1 (cf. perf-trace.ts).
+      global: { fetch: createTracingFetch() },
       cookies: {
         getAll() {
           return cookieStore.getAll();
