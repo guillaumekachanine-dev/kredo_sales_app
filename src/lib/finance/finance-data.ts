@@ -74,6 +74,9 @@ export type MissionProfitabilityRow = {
   revenue: number
   marginValue: number
   marginPct: number
+  realMarginPct: number | null
+  theoreticalMarginPct: number | null
+  marginGapPoints: number | null
   startDate: string | null
   endDate: string | null
 }
@@ -276,6 +279,13 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
     const consultantName = collab ? getPersonName(pickOne(collab.persons)) : "Consultant Inconnu"
     const profitability = profitabilityByMission.get(m.id)
 
+    const realMarginPct = profitability?.real.available ? profitability.real.marginPct : null
+    const theoreticalMarginPct = profitability?.theoretical.marginPct ?? null
+    const marginGapPoints =
+      realMarginPct != null && theoreticalMarginPct != null
+        ? Number((realMarginPct - theoreticalMarginPct).toFixed(2))
+        : null
+
     return {
       id: m.id,
       clientName,
@@ -289,6 +299,9 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
       revenue: profitability?.real.revenue ?? 0,
       marginValue: profitability?.real.marginValue ?? 0,
       marginPct: profitability?.effectiveMarginPct ?? 0,
+      realMarginPct,
+      theoreticalMarginPct,
+      marginGapPoints,
       startDate: m.start_date,
       endDate: m.end_date,
     }

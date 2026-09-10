@@ -374,17 +374,16 @@ un seul moteur de calcul, pas de duplication UI**.
 | Engagements | Module | — | Atlas du portefeuille | ✅ REUSE (Cas A) | DATA-0 (contrat 7.3A) | `PortfolioAtlasDialog` + `getEngagementsOverview()`, `?module=atlas-portefeuille` | NO IMPACT | — | ✅ 7.3B |
 | Engagements | Module | — | Production & Congés | ✅ REUSE | DATA-0 | `ProductionLeaveDesktop` + `getProductionLeave()`, `?module=production-conges` | NO IMPACT | Consultants module | ✅ 7.3B |
 | Engagements | Module | — | Mission : analyse des marges | **NEW/FUTURE** (confirmé : aucune capacité module, seule l'action Cockpit `analyze_margins`) | — | non exposé, aucun bouton mort | FUTURE | §18 | différé |
-| Finance | Chapitre | `synthesis` | Synthèse | KEEP | DATA-0 | — | NO IMPACT | — | 7.3C |
-| Finance | Chapitre | `profitability` « Rentabilité missions » | Rentabilité P&L | RENAME + contenu MOVE vers Engagements | **DATA-2** (7.3A) | recentrage P&L | LABEL SYNC | 7.3A | 7.3C |
-| Finance | Chapitre | `forecast` « Prévision & simulation » | Forecast | RENAME | DATA-0 | label | LABEL SYNC | — | 7.3C |
-| Finance | Chapitre | — | Business Review | NEW/FUTURE | DATA-1/2 | nouveau chapitre | FUTURE | — | 7.3C / différé |
-| Finance | Module | — (`contextualModules: undefined`) | Simulation financière | REUSE | DATA-0 | `FinancialModelingDesktopDialog` | NO IMPACT | `@/features/financial-modeling` | 7.3C |
-| Finance | Module | — | Atlas du portefeuille | NEW/FUTURE | — | — | FUTURE | §17 | différé |
-| Finance | Module | — | Mission : analyse des marges | NEW/FUTURE (framework REUSE) | DATA-1 | `MissionComposerDesktop` | FUTURE | §18 | différé |
+| Finance | Chapitre | `synthesis` | Synthèse | KEEP | DATA-0 | — | NO IMPACT | — | ✅ 7.3C |
+| Finance | Chapitre | `profitability` « Rentabilité missions » | Rentabilité P&L | ✅ TRANSFORM label + recentrage P&L consolidé | DATA-0 (contrat 7.3A) | recentrage P&L + table distinction explicite réel/théo | NO IMPACT | 7.3A ✅ | ✅ 7.3C |
+| Finance | Chapitre | `forecast` « Prévision & simulation » | Forecast | ✅ RENAME (clé conservée) | DATA-0 | label + header | NO IMPACT | — | ✅ 7.3C |
+| Finance | Chapitre | — | Business Review | **NEW/FUTURE** | — | — | FUTURE | — | différé |
+| Finance | Module | — (`contextualModules: undefined`) | Simulation financière | ✅ REUSE | DATA-0 | `FinancialModelingDesktopDialog`, `?module=simulation` | NO IMPACT | `@/features/financial-modeling` | ✅ 7.3C |
+| Finance | Module | — | Atlas du portefeuille | **NEW/FUTURE** | — | — | FUTURE | §17 | différé |
+| Finance | Module | — | Mission : analyse des marges | **NEW/FUTURE** | — | — | FUTURE | §18 | différé |
 
-**Statut : 7.3A ✅ + 7.3B ✅ `IMPLEMENTED / PASS` (2026-09-10)** — builder pur partagé (7.3A) ;
-5 chapitres cibles + 2 modules REUSE + Atlas réconcilié sur le contrat (7.3B, doc `13-*`), 0 migration.
-**7.3C : `UNBLOCKED`.** Complexité **HIGH**. Ordre **7.3A → 7.3B → 7.3C** respecté.
+**Statut : Phase 7.3 ✅ `IMPLEMENTED / PASS` (2026-09-10)** — 7.3A (contrat Data canonique), 7.3B (Engagements aligné + Atlas + modules), 7.3C (Finance aligné + module Simulation + recentrage P&L + levée dette rentabilité). Docs `12-*`, `13-*`, `14-*`. 0 migration, 0 n8n.
+**Phase 7.3 (Engagements + Finance) : `CLOSED`.**
 
 ---
 

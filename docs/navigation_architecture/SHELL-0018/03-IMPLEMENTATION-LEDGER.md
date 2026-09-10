@@ -2737,3 +2737,54 @@ Double affordance Atlas (bouton Synthèse + module rail) · `buildClientExposure
 ### Verdict
 
 - **Lot 7.3B — ✅ livré.** **7.3C Finance → `UNBLOCKED`.**
+
+---
+
+## 50. Lot 7.3C — Alignement final du workspace Finance
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `5a6d5ce0` (`HEAD == origin/main`, Lots 7.3A et 7.3B présents).
+> Cible : `09-*` §B.4. Plan : `11-*` §6 / §19 (§7.3C). Document dédié :
+> `14-PHASE-7.3C-FINANCE-ALIGNMENT-2026-09-10.md`.
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre | `synthesis` « Synthèse » | **Synthèse** | KEEP |
+| Chapitre | `profitability` « Rentabilité missions » | **Rentabilité P&L** | TRANSFORM + RENAME — recentrage P&L consolidé (KPIs, Waterfall, Practice contribution) + table de rentabilité avec distinction explicite réel/théorique/écart + affordance vers pilotage opérationnel des engagements |
+| Chapitre | `forecast` « Prévision & simulation » | **Forecast** | RENAME |
+| Chapitre | — | Business Review | **NEW/FUTURE** — différé produit, 0 placeholder, 0 bouton mort |
+| Module | — | **Simulation financière** | REUSE — `FinancialModelingDesktopDialog` (`@/features/financial-modeling`), `?module=simulation` |
+| Modules futurs | — | Atlas du portefeuille / Mission analyse des marges | **NEW/FUTURE** — non montés, aucun bouton mort |
+
+### Levée de dette & Sémantique rentabilité
+
+- `MissionProfitabilityRow` expose désormais `realMarginPct: number | null`, `theoreticalMarginPct: number | null`, `marginGapPoints: number | null`.
+- `MissionProfitabilityTable` distingue explicitement les colonnes `Marge théo`, `Marge réelle` (€), `% Réel` (ou `Sans CRA`), `Écart` (pts).
+- La sémantique hybride temporaire de 7.3A est totalement levée dans l'UI.
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-1** — pathname `/finance` stable ; `?tab=synthesis|profitability|forecast` clés inchangées ; `?module=simulation` orthogonal à `?tab=` ; fermeture du module préserve `?tab=` ; 0 redirect nouveau.
+- **Data** : **DATA-0** — consomme le contrat 7.3A (`buildMissionProfitability`) et les agrégations existantes. 0 table / vue / RPC / RLS / migration.
+- **n8n** : **0**.
+- **Mobile** : **NO IMPACT** (`FinanceMobileDashboard` autonome).
+- **Invariant `SectionRail`** : respecté (11.5rem, chapeau, Chapitres, Modules).
+
+### Tests
+
+- `FinanceLocalNavigation.test.ts` (14 tests) — chapitres cibles, module Simulation, parsing URL, préservation `?tab=` à la fermeture, test sémantique `MissionProfitabilityTable` (non-confusion réel/théorique sans CRA).
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (296 fichiers / 3090 tests)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers touchés) → **PASS**
+- `npm run build` → **PASS**
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.3C — ✅ livré.**
+- **Phase 7.3 (Engagements + Finance) — ✅ CLOSED.**

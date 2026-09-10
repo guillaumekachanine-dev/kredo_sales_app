@@ -25,7 +25,7 @@ interface MissionProfitabilityTableProps {
   onAction?: (row: MissionProfitabilityRow) => void
 }
 
-export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabilityTableProps) {
+export function MissionProfitabilityTable({ rows }: MissionProfitabilityTableProps) {
   const [sort, setSort] = useState<DataTableSort | null>({ columnId: "revenue", direction: "desc" })
 
   const columns: DataTableColumn<MissionProfitabilityRow>[] = [
@@ -85,7 +85,7 @@ export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabili
       align: "center",
     },
     
-    // Groupe "TJM/CJM/% MCO" (Léger contraste gris/surface-raised)
+    // Groupe contractuel "TJM / CJM / Marge théo"
     {
       id: "tjm",
       header: "TJM",
@@ -107,24 +107,25 @@ export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabili
       headerClassName: "bg-surface-raised/50 font-bold",
     },
     {
-      id: "marginPct",
-      header: "% MCO",
+      id: "theoreticalMarginPct",
+      header: "Marge théo",
       cell: (row) => {
-        const isLow = row.marginPct < 25
+        const val = row.theoreticalMarginPct
+        if (val == null) return <span className="text-xs text-muted">—</span>
         return (
-          <span className={isLow ? "text-danger font-bold" : "text-success font-semibold"}>
-            {formatPct(row.marginPct, 1)}
+          <span className="text-xs font-mono font-medium text-body">
+            {formatPct(val, 1)}
           </span>
         )
       },
-      accessor: (row) => row.marginPct,
+      accessor: (row) => row.theoreticalMarginPct,
       sortable: true,
       align: "right",
       className: "bg-surface-raised/50",
       headerClassName: "bg-surface-raised/50 font-bold",
     },
 
-    // Groupe "jours/CA YTD/MCO YTD" (Léger contraste bleu/primary ultra-clair)
+    // Groupe réalisé "Jours / CA YTD / Marge réelle € / % Réel / Écart"
     {
       id: "billableDays",
       header: "Jours",
@@ -147,9 +148,49 @@ export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabili
     },
     {
       id: "marginValue",
-      header: "MCO YTD",
+      header: "Marge réelle",
       cell: (row) => <span className="text-body font-semibold">{formatEuroCompact(row.marginValue)}</span>,
       accessor: (row) => row.marginValue,
+      sortable: true,
+      align: "right",
+      className: "bg-primary/[0.02]",
+      headerClassName: "bg-primary/[0.02] font-bold",
+    },
+    {
+      id: "realMarginPct",
+      header: "% Réel",
+      cell: (row) => {
+        const val = row.realMarginPct
+        if (val == null) {
+          return <span className="text-[11px] text-muted italic">Sans CRA</span>
+        }
+        const isLow = val < 25
+        return (
+          <span className={isLow ? "text-danger font-bold" : "text-success font-semibold"}>
+            {formatPct(val, 1)}
+          </span>
+        )
+      },
+      accessor: (row) => row.realMarginPct,
+      sortable: true,
+      align: "right",
+      className: "bg-primary/[0.02]",
+      headerClassName: "bg-primary/[0.02] font-bold",
+    },
+    {
+      id: "marginGapPoints",
+      header: "Écart",
+      cell: (row) => {
+        const gap = row.marginGapPoints
+        if (gap == null) return <span className="text-xs text-muted">—</span>
+        const isNeg = gap < 0
+        return (
+          <span className={`text-xs font-mono font-semibold ${isNeg ? "text-danger" : "text-success"}`}>
+            {gap > 0 ? `+${gap.toFixed(1)}` : gap.toFixed(1)} pts
+          </span>
+        )
+      },
+      accessor: (row) => row.marginGapPoints,
       sortable: true,
       align: "right",
       className: "bg-primary/[0.02]",

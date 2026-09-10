@@ -1,6 +1,6 @@
 # SHELL-0018 — Hub canonique du chantier V2
 
-> **Statut : actif — Phase 6 (Shell global) ✅ CLOSED le 2026-09-09 ; Phase 7 en cours — livrés : 7.0, 7.1, 7.2, 7.3A, 7.3B, 7.4, 7.6, 7.7, 7.8, 7.9 ; reste 7.3C, 7.5, 7.10**
+> **Statut : actif — Phase 6 (Shell global) ✅ CLOSED le 2026-09-09 ; Phase 7 en cours — livrés : 7.0, 7.1, 7.2, 7.3A, 7.3B, 7.3C, 7.4, 7.6, 7.7, 7.8, 7.9 ; reste 7.5, 7.10**
 > **Baseline : 2026-09-07**  
 > **Branche de travail unique : `main`**
 > **Point de départ Git : `d9c7fc9edb9d35cc6d2fc889d9e251ad0fa311a1`**
@@ -31,7 +31,8 @@ Les anciens documents SHELL-0018 datés d'août 2026 restent dans le dépôt à 
 5. **`11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md` — plan d'exécution Phase 7 (CURRENT → TARGET, lots 7.1 → 7.10)**
 6. `12-PHASE-7.3A-PROFITABILITY-DATA-CONTRACT-2026-09-10.md` — décision + livraison du contrat Data de rentabilité mission (Lot 7.3A)
 7. `13-PHASE-7.3B-ENGAGEMENTS-ALIGNMENT-2026-09-10.md` — alignement du workspace Engagements (Lot 7.3B)
-8. `03-IMPLEMENTATION-LEDGER.md` — journal d'implémentation détaillé lot par lot
+8. `14-PHASE-7.3C-FINANCE-ALIGNMENT-2026-09-10.md` — alignement du workspace Finance (Lot 7.3C)
+9. `03-IMPLEMENTATION-LEDGER.md` — journal d'implémentation détaillé lot par lot
 
 **Historique (consultable, non normatif) :** `00-CURRENT-STATE-AUDIT-2026-09-07.md`,
 `04-CURRENT-NAVIGATION-INVENTORY.md`, `05-CONTEXTUAL-MODULES-MATRIX.md`,

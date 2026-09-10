@@ -26,8 +26,11 @@ import {
   FinanceLocalNavigation,
   getFinanceDesktopChapterLabel,
   parseFinanceTab,
+  parseFinanceModule,
   buildFinanceHref,
+  buildFinanceModuleHref,
   type FinanceTabId,
+  type FinanceModuleId,
 } from "./FinanceLocalNavigation"
 import { FinanceExecutiveHero } from "./FinanceExecutiveHero"
 import { FinanceWaterfallChart } from "./FinanceWaterfallChart"
@@ -68,13 +71,24 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
   const searchParams = useSearchParams()
 
   const activeTab = parseFinanceTab(searchParams.get("tab"))
+  const activeModule = parseFinanceModule(searchParams.get("module"))
 
   const handleTabChange = (tab: FinanceTabId) => {
     const nextHref = buildFinanceHref(pathname, searchParams, tab)
     router.push(nextHref)
   }
 
-  const [isSimulationOpen, setIsSimulationOpen] = useState(false)
+  const handleModuleSelect = (moduleId: FinanceModuleId) => {
+    const nextHref = buildFinanceModuleHref(pathname, searchParams, moduleId)
+    router.push(nextHref)
+  }
+
+  const handleCloseModule = () => {
+    const nextHref = buildFinanceModuleHref(pathname, searchParams, null)
+    router.push(nextHref)
+  }
+
+  const isSimulationOpen = activeModule === "simulation"
   const [activeAlert, setActiveAlert] = useState<FinanceAlert | null>(null)
 
   // Filtres P&L Combo Chart
@@ -118,7 +132,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
       label: "Simulation",
       variant: "secondary",
       icon: <IconSimulation />,
-      onClick: () => setIsSimulationOpen(true),
+      onClick: () => handleModuleSelect("simulation"),
     },
     {
       id: "direction-summary",
@@ -144,7 +158,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
     if (!activeAlert) return
     setActiveAlert(null)
     if (activeAlert.type === "margin" || activeAlert.type === "practice") {
-      setIsSimulationOpen(true)
+      handleModuleSelect("simulation")
     }
   }
 
@@ -223,7 +237,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
     </div>
   )
 
-  // Sidebar Rail pour Prévision & Simulation : Outil de simulation financière
+  // Sidebar Rail pour Forecast : Outil de simulation financière
   const forecastRailContent = (
     <div className="flex flex-col gap-4 mt-[60px]">
       <InsightCard
@@ -238,7 +252,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => setIsSimulationOpen(true)}
+                onClick={() => handleModuleSelect("simulation")}
                 className="cursor-pointer"
               >
                 Lancer une simulation
@@ -267,7 +281,12 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
   return (
     <>
       <div className="flex h-full min-h-0 w-full min-w-0 overflow-hidden bg-canvas">
-        <FinanceLocalNavigation active={activeTab} onChange={handleTabChange} />
+        <FinanceLocalNavigation
+          active={activeTab}
+          activeModule={activeModule}
+          onChange={handleTabChange}
+          onModuleSelect={handleModuleSelect}
+        />
 
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
           <DesktopAnalyticalPage
@@ -372,25 +391,103 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
           </div>
         )}
 
-        {/* 2. Onglet Rentabilité missions */}
+        {/* 2. Onglet Rentabilité P&L */}
         {activeTab === "profitability" && (
           <div className="flex flex-col gap-6">
-            {/* Table des missions */}
+            {/* Synthèse de rentabilité P&L */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <SurfaceCard padding="none" className="lg:col-span-1">
+                <div className="border-b border-border px-5 py-3">
+                  <h2 className="text-sm font-semibold text-heading">
+                    Consolidation P&L (YTD)
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted">
+                    Performance consolidée du centre de profit
+                  </p>
+                </div>
+                <div className="p-5 flex flex-col justify-around gap-4">
+                  <div>
+                    <span className="text-xs text-muted block font-medium uppercase">Chiffre d&apos;affaires</span>
+                    <span className="text-2xl font-bold text-heading mt-1 block">{formatEuroCompact(executive.revenueYtd)}</span>
+                  </div>
+                  <div className="border-t border-border pt-3">
+                    <span className="text-xs text-muted block font-medium uppercase">Marge brute</span>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-2xl font-bold text-success">{formatEuroCompact(executive.grossMarginYtd)}</span>
+                      <span className="text-xs font-semibold text-success font-mono">({executive.revenueYtd > 0 ? ((executive.grossMarginYtd / executive.revenueYtd) * 100).toFixed(1) : "0.0"} %)</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-border pt-3">
+                    <span className="text-xs text-muted block font-medium uppercase">Résultat opérationnel</span>
+                    <span className={`text-2xl font-bold mt-1 block ${executive.operatingProfitYtd >= 0 ? "text-primary" : "text-danger"}`}>
+                      {formatEuroCompact(executive.operatingProfitYtd)}
+                    </span>
+                  </div>
+                </div>
+              </SurfaceCard>
+
+              <div className="lg:col-span-2">
+                <SurfaceCard padding="none" className="h-full">
+                  <div className="border-b border-border px-5 py-3">
+                    <h2 className="text-sm font-semibold text-heading">
+                      Cascade de rentabilité P&L
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted">
+                      Répartition des coûts directs et structurels YTD
+                    </p>
+                  </div>
+                  <div className="p-5">
+                    <FinanceWaterfallChart
+                      revenue={executive.revenueYtd}
+                      salaries={monthlyPnl
+                        .filter((r) => new Date(r.period_month).getFullYear() === data.period.year)
+                        .reduce((sum, r) => sum + r.direct_costs_salaries, 0)}
+                      subcontracting={monthlyPnl
+                        .filter((r) => new Date(r.period_month).getFullYear() === data.period.year)
+                        .reduce((sum, r) => sum + r.direct_costs_subcontractors, 0)}
+                      structural={monthlyPnl
+                        .filter((r) => new Date(r.period_month).getFullYear() === data.period.year)
+                        .reduce((sum, r) => sum + (r.structural_costs_it + r.structural_costs_mgmt + r.structural_costs_rent), 0)}
+                      operatingProfit={executive.operatingProfitYtd}
+                    />
+                  </div>
+                </SurfaceCard>
+              </div>
+            </div>
+
+            {/* Contribution par Practice */}
+            <div className="flex flex-col gap-3">
+              <div className="px-1">
+                <h2 className="text-sm font-bold text-heading">Contribution par Practice</h2>
+                <p className="text-xs text-muted">Répartition du CA et marge brute par practice</p>
+              </div>
+              <PracticeContributionGrid metrics={practiceContribution} />
+            </div>
+
+            {/* Lecture analytique secondaire : Suivi de rentabilité par mission */}
             <SurfaceCard padding="none">
-              <div className="border-b border-border px-5 py-3">
-                <h2 className="text-sm font-semibold text-heading">
-                  Suivi de rentabilité par mission (YTD)
-                </h2>
-                <p className="mt-0.5 text-xs text-muted">
-                  Chiffres réels cumulés basés sur les comptes d&apos;activité (CRA) validés
-                </p>
+              <div className="border-b border-border px-5 py-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold text-heading">
+                    Détail analytique par mission (YTD)
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted">
+                    Lecture financière : marges théoriques contractuelles vs marges réelles constatées sur CRA
+                  </p>
+                </div>
+                <Link
+                  href="/missions?vue=activite-conges"
+                  className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                >
+                  Voir le pilotage opérationnel des engagements →
+                </Link>
               </div>
               <MissionProfitabilityTable rows={missionProfitability} />
             </SurfaceCard>
           </div>
         )}
 
-        {/* 3. Onglet Prévision & simulation */}
+        {/* 3. Onglet Forecast */}
         {activeTab === "forecast" && (
           <div className="flex flex-col gap-6">
             {/* Prévisions / Atterrissage */}
@@ -435,8 +532,6 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
                 <PipelineForecastChart stages={pipelineForecast} />
               </div>
             </SurfaceCard>
-
-
           </div>
         )}
           </DesktopAnalyticalPage>
@@ -491,7 +586,9 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
       {/* Boîte de dialogue de modélisation existante */}
       <FinancialModelingDesktopDialog
         open={isSimulationOpen}
-        onOpenChange={setIsSimulationOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCloseModule()
+        }}
       />
     </>
   )
