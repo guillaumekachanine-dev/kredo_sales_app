@@ -112,7 +112,7 @@ QA minimale :
 | **7.4** | Alignement Business Intelligence | ✅ techniquement livré (`a9ac0d36`) | 3 RENAME Desktop (`Calendrier Réglementaire`, `Chaîne de Valeur`, `Actualité sectorielle`) ; IDs/URLs/Data/Mobile inchangés ; Bibliothèque NEW/FUTURE. Voir §42 |
 | **7.5** | Alignement Prospection | ⬜ todo | voir doc `11-*` §19 — 7.5 Prospection `NEEDS PRODUCT DECISION` (workspace coquille) |
 | **7.6** | Alignement Rapports & Rédaction | ✅ techniquement livré (`958515e3`) | 1 RENAME Desktop (`Connaissance`, clé `knowledge` conservée) ; 2 modules contextuels `Gestion de la connaissance` et `Analyse transverse` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression de l'accès header redondant ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §45 |
-| **7.7** | Alignement Veille & Actualités | ⬜ todo | `UNBLOCKED / READY` — voir doc `11-*` §19 |
+| **7.7** | Alignement Veille & Actualités | ✅ techniquement livré | 2 RENAME Desktop (`Actualités thématiques`, `Veille Ciblée`) ; 4 modules contextuels `Gestion des sources`, `Gestion de la connaissance`, `Analyse transverse`, `Mission : analyse de la veille` reliés au `SectionRail` ; Mobile LABEL SYNC ; DATA-0 / URL-0. Voir §46 |
 | **7.8** | Alignement Knowledge Hub | ✅ techniquement livré (`e49a4a9e`) | 2 RENAME Desktop (`Expertises KREDO`, `Ressources admin`) ; IDs/URLs/Data inchangés ; Mobile LABEL SYNC ; Ateliers KEEP ; RAG DEFERRED/NEW-FUTURE. Voir §43 |
 | **7.9** | Alignement Automatisations | ✅ techniquement livré (`fab5d06f`) | 1 RENAME Desktop (`Fiabilité des workflows`, clé `sante` conservée) ; 2 modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`) reliés au `SectionRail` ; suppression des boutons redondants locaux ; DATA-0 / URL-0 / Mobile NO IMPACT. Voir §44 |
 | **7.10** | Audit final architecture interne | ⬜ todo | clôture Phase 7 |
@@ -2503,3 +2503,60 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 ### Verdict
 
 - **Lot 7.6 — ✅ livré.** Commit : `958515e3` — `refactor(reports): align workspace target navigation`. Push sur `origin/main`.
+
+---
+
+## 46. Lot 7.7 — Alignement Veille & Actualités sur l'architecture cible
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `cc12f496` (`HEAD == origin/main`).
+> Cible : `09-*` §B.8 / §C.9. Plan d'exécution : `11-*` §10 / §19 (§7.7).
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre Desktop | `news` « Actualités » | **Actualités thématiques** | RENAME (clé technique `news` conservée) |
+| Chapitre Desktop | `watched-accounts` « Veille ciblée » | **Veille Ciblée** | RENAME (casse, clé `watched-accounts` conservée) |
+| Chapitre Desktop | `strategic-analysis` « Analyses » | **Analyses** | KEEP |
+| Chapitre Desktop | `history` « Archives » | **Archives** | KEEP |
+| Module Desktop | `source-management` | **Gestion des sources** | KEEP (`SourceManagementDialogDesktop`) |
+| Module Desktop | — | **Gestion de la connaissance** | **REUSE / EXISTING CAPABILITY** (`ManageCollectionsDesktop` de `src/features/content-collections/`) |
+| Module Desktop | — | **Analyse transverse** | **REUSE / EXISTING CAPABILITY** (`WatchAnalysisComposerDesktop` de `src/features/watch-analysis/`) |
+| Module Desktop | — | **Mission : analyse de la veille** | **EXISTING MISSION + EXISTING FRAMEWORK + NEW LOCAL ENTRY POINT** (`veille-analyse-mensuelle` + `VEILLE_MISSION_COMPOSER_CONFIG` + `MissionComposerDesktop` via `WatchAnalysisMissionModule.tsx`) |
+
+### Architecture
+
+- **Source unique de vérité Desktop** : `VEILLE_DESKTOP_CHAPTERS` (`src/components/veille/VeilleLocalNavigation.tsx`) met à jour les 2 libellés cible (`Actualités thématiques`, `Veille Ciblée`) tout en conservant strictement les clés techniques (`news`, `watched-accounts`, `strategic-analysis`, `history`).
+- **Propagation automatique** : `getVeilleDesktopChapterLabel(section)` propage naturellement les nouveaux titres au `SectionRail` et au header principal Desktop.
+- **Modules contextuels SectionRail** :
+  - `VeilleLocalNavigationProps` étendu avec `activeModule`, `onOpenSourceManagement`, `onOpenKnowledgeManagement`, `onOpenTransverseAnalysis`, `onOpenWatchAnalysisMission`.
+  - Construction ordonnée des 4 modules : `Gestion des sources` (#1), `Gestion de la connaissance` (#2), `Analyse transverse` (#3), `Mission : analyse de la veille` (#4) avec leurs icônes dédiées et gestion fine des états actifs (`sourceManagementOpen`, `manageListsOpen`, `composerOpen`, `missionAnalysisOpen`).
+  - **Zero-dead-button** : les modules ne sont montés que lorsque leurs callbacks réels sont disponibles (`contextualModules` omet les entrées sans callback).
+  - Exclusion mutuelle gérée localement via `openWorkspaceModule` dans `VeilleActualitesDesktop.tsx`.
+- **Mission d'intelligence contextuelle** :
+  - `WatchAnalysisMissionModule.tsx` fin wrapper dialog cockpit montant `MissionComposerDesktop` avec `VEILLE_MISSION_COMPOSER_CONFIG` (`veille-analyse-mensuelle`).
+  - 0 nouveau workflow n8n, 0 nouvelle spec, 0 nouvelle table/Data.
+- **Cockpit Intelligence & Déclenchement transverse** :
+  - L'écoute globale de `WATCH_ANALYSIS_COMPOSER_EVENT` est rigoureusement préservée dans `VeilleActualitesDesktop.tsx` et `VeilleActualitesMobile.tsx`.
+- **Header opérationnel préservé** :
+  - `Configurer la veille` et `Générer un digest` conservés intacts dans `VeilleHeaderActions.tsx`.
+- **Mobile** : **LABEL SYNC**. `TABS` synchronisés vers `Actualités thématiques` et `Veille Ciblée` sans modification des identifiants (`actualites`, `veille`, `analyses`, `archives`) ni de l'arbre Mobile distinct (`Adaptive Design`).
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-0**. Les URLs restent strictement `/veille`, `/veille?section=watched-accounts`, `/veille?section=strategic-analysis`, `/veille?section=history` (`?digestId=`, `?topic=`, `?company=`, `?analysisId=` préservés). `parseVeilleSection` et `buildVeilleSectionHref` inchangés.
+- **Data** : **DATA-0**. Aucune modification de contrat, table, vue, loader, action, RPC, schéma Supabase ou workflow n8n.
+- **Invariant KANBAN-001** : 0 occurrence kanban dans la feature.
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (32 tests navigation Veille, 160 tests feature, suite complète)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers modifiés) → **PASS**
+- `npm run build` → **PASS**
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.7 — ✅ livré.** Refactor navigation cible Veille & Actualités validé.

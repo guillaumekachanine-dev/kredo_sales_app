@@ -381,10 +381,10 @@ Le chapitre **`pool-competences`** doit **sortir des chapitres** et **devenir un
 
 | Actuel (code) | Cible | Traitement | Preuve / note |
 |---|---|---|---|
-| `source-management` — « Gestion des sources » (conditionnel `onOpenSourceManagement`) | **Gestion des sources** | `KEEP` | `VeilleLocalNavigation.tsx` |
-| *(absent)* | **Gestion de la connaissance** | `REUSE` | Composant existant côté Rapports (`knowledge-management`). **Ne pas dupliquer** — privilégier le REUSE Phase 7.7. |
-| *(absent)* | **Analyse transverse** | `NEW/FUTURE` | — |
-| *(absent)* | **Mission : analyse de la veille** | `NEW/FUTURE` | — |
+| `source-management` — « Gestion des sources » (conditionnel `onOpenSourceManagement`) | **Gestion des sources** | `KEEP / EXISTING CAPABILITY` | `VeilleLocalNavigation.tsx` / `SourceManagementDialogDesktop.tsx` |
+| *(absent du rail)* | **Gestion de la connaissance** | `REUSE / EXISTING CAPABILITY` | `ManageCollectionsDesktop` (`src/features/content-collections/`). Direct reuse — aucune duplication. |
+| *(absent du rail)* | **Analyse transverse** | `REUSE / EXISTING CAPABILITY` | `WatchAnalysisComposerDesktop` (`src/features/watch-analysis/`) + `WATCH_ANALYSIS_COMPOSER_EVENT`. |
+| *(absent du rail)* | **Mission : analyse de la veille** | `EXISTING MISSION + EXISTING FRAMEWORK + NEW LOCAL ENTRY POINT` | Point d'entrée contextuel workspace vers mission existante `veille-analyse-mensuelle` (`VEILLE_MISSION_COMPOSER_CONFIG` / `MissionComposerDesktop` via `WatchAnalysisMissionModule.tsx`). Nouveau n8n : NON. Nouvelle Data : NON. |
 
 ## B.9. Knowledge Hub — `/knowledge`
 
@@ -555,13 +555,13 @@ Valeurs `Traitement` : `KEEP` · `RENAME` · `MOVE` · `REUSE` · `TRANSFORM` ·
 | Workspace | Niveau | Current | Target | Traitement | Preuve code | Lot futur |
 |---|---|---|---|---|---|---|
 | Veille & Actualités | Chapitre | Actualités (`news`) | Actualités thématiques | RENAME | `VeilleLocalNavigation.tsx` | 7.7 |
-| Veille & Actualités | Chapitre | Veille ciblée (`watched-accounts`) | Veille Ciblée | KEEP | `VeilleLocalNavigation.tsx` | 7.7 |
+| Veille & Actualités | Chapitre | Veille ciblée (`watched-accounts`) | Veille Ciblée | RENAME (casse) | `VeilleLocalNavigation.tsx` | 7.7 |
 | Veille & Actualités | Chapitre | Analyses (`strategic-analysis`) | Analyses | KEEP | `VeilleLocalNavigation.tsx` | 7.7 |
 | Veille & Actualités | Chapitre | Archives (`history`) | Archives | KEEP | `VeilleLocalNavigation.tsx` | 7.7 |
 | Veille & Actualités | Module | Gestion des sources (`source-management`) | Gestion des sources | KEEP | `VeilleLocalNavigation.tsx` | 7.7 |
-| Veille & Actualités | Module | — | Gestion de la connaissance | REUSE | composant Rapports `knowledge-management` (ne pas dupliquer) | 7.7 |
-| Veille & Actualités | Module | — | Analyse transverse | NEW/FUTURE | aucune capacité réelle | 7.7 |
-| Veille & Actualités | Module | — | Mission : analyse de la veille | NEW/FUTURE | aucune implémentation | 7.7 |
+| Veille & Actualités | Module | — | Gestion de la connaissance | REUSE / EXISTING CAPABILITY | `ManageCollectionsDesktop` (`src/features/content-collections/`) | 7.7 |
+| Veille & Actualités | Module | — | Analyse transverse | REUSE / EXISTING CAPABILITY | `WatchAnalysisComposerDesktop` (`src/features/watch-analysis/`) | 7.7 |
+| Veille & Actualités | Module | — | Mission : analyse de la veille | EXISTING MISSION + EXISTING FRAMEWORK + NEW LOCAL ENTRY POINT | `veille-analyse-mensuelle` + `VEILLE_MISSION_COMPOSER_CONFIG` + `MissionComposerDesktop` | 7.7 |
 
 ## C.10. Knowledge Hub — `/knowledge`
 

@@ -40,8 +40,8 @@ import type {
 type VeilleTab = "actualites" | "veille" | "analyses" | "archives"
 
 const TABS: Array<{ id: VeilleTab; label: string }> = [
-  { id: "actualites", label: "Actualités" },
-  { id: "veille", label: "Veille" },
+  { id: "actualites", label: "Actualités thématiques" },
+  { id: "veille", label: "Veille Ciblée" },
   { id: "analyses", label: "Analyses" },
   { id: "archives", label: "Archives" },
 ]

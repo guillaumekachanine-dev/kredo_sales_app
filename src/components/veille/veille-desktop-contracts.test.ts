@@ -170,8 +170,8 @@ describe("veille Desktop UI source contract", () => {
 
   it("préserve les quatre identifiants, libellés et leur ordre", () => {
     expect(VEILLE_DESKTOP_CHAPTERS.map(({ key, label }) => ({ key, label }))).toEqual([
-      { key: "news", label: "Actualités" },
-      { key: "watched-accounts", label: "Veille ciblée" },
+      { key: "news", label: "Actualités thématiques" },
+      { key: "watched-accounts", label: "Veille Ciblée" },
       { key: "strategic-analysis", label: "Analyses" },
       { key: "history", label: "Archives" },
     ])
@@ -210,31 +210,55 @@ describe("veille Desktop UI source contract", () => {
   it("dérive le titre principal exact depuis la configuration des chapitres", () => {
     expect(
       VEILLE_DESKTOP_CHAPTERS.map((chapter) => getVeilleDesktopChapterLabel(chapter.key)),
-    ).toEqual(["Actualités", "Veille ciblée", "Analyses", "Archives"])
+    ).toEqual(["Actualités thématiques", "Veille Ciblée", "Analyses", "Archives"])
     expect(desktop).toContain("const activeChapterTitle = getVeilleDesktopChapterLabel(section)")
     expect(desktop).toContain("{activeChapterTitle}")
   })
 
-  it("omet Modules sans callback et ne conserve que la gestion des sources contextuelle", () => {
+  it("omet Modules sans callback et expose les 4 capacités cibles dans l'ordre avec leur état actif", () => {
     const onOpenSourceManagement = vi.fn()
+    const onOpenKnowledgeManagement = vi.fn()
+    const onOpenTransverseAnalysis = vi.fn()
+    const onOpenWatchAnalysisMission = vi.fn()
+
     const withoutModule = buildVeilleRailProps({ active: "news", onChange: () => {} })
-    const withoutModuleHtml = renderNavigation()
-    const withModule = buildVeilleRailProps({
+    expect(withoutModule.contextualModules).toBeUndefined()
+
+    const withAllModules = buildVeilleRailProps({
       active: "news",
       onChange: () => {},
+      activeModule: "transverse-analysis",
       onOpenSourceManagement,
+      onOpenKnowledgeManagement,
+      onOpenTransverseAnalysis,
+      onOpenWatchAnalysisMission,
     })
-    const withModuleHtml = renderNavigation({ withSourceManagement: true })
 
-    expect(withoutModule.contextualModules).toBeUndefined()
-    expect(withoutModuleHtml).not.toContain(">Modules<")
-    expect(withModule.contextualModules?.map((module) => module.key)).toEqual(["source-management"])
-    expect(withModuleHtml).toContain(">Modules<")
-    expect(withModuleHtml).toContain("Gestion des sources")
-    expect(withModuleHtml).not.toContain("CRM Launcher")
-    expect(withModuleHtml).not.toContain("disabled")
-    withModule.contextualModules?.[0]?.onSelect?.()
+    expect(withAllModules.contextualModules?.map((m) => ({ key: m.key, label: m.label }))).toEqual([
+      { key: "source-management", label: "Gestion des sources" },
+      { key: "knowledge-management", label: "Gestion de la connaissance" },
+      { key: "transverse-analysis", label: "Analyse transverse" },
+      { key: "watch-analysis-mission", label: "Mission : analyse de la veille" },
+    ])
+
+    expect(withAllModules.contextualModules?.map((m) => m.active)).toEqual([
+      false,
+      false,
+      true,
+      false,
+    ])
+
+    withAllModules.contextualModules?.[0]?.onSelect?.()
     expect(onOpenSourceManagement).toHaveBeenCalledOnce()
+
+    withAllModules.contextualModules?.[1]?.onSelect?.()
+    expect(onOpenKnowledgeManagement).toHaveBeenCalledOnce()
+
+    withAllModules.contextualModules?.[2]?.onSelect?.()
+    expect(onOpenTransverseAnalysis).toHaveBeenCalledOnce()
+
+    withAllModules.contextualModules?.[3]?.onSelect?.()
+    expect(onOpenWatchAnalysisMission).toHaveBeenCalledOnce()
   })
 
   it("has the exact header actions and no page subtitle", () => {
@@ -255,13 +279,33 @@ describe("veille Desktop UI source contract", () => {
     expect(rail).toContain("Non détecté")
   })
 
-  it("keeps the server-side Mobile branch separate", () => {
+  it("keeps the server-side Mobile branch separate with synchronized labels", () => {
     const mobileBranch = distributor.indexOf('if (device === "mobile")')
     const desktopBranch = distributor.indexOf("<VeilleActualitesDesktop")
     expect(mobileBranch).toBeGreaterThan(-1)
     expect(desktopBranch).toBeGreaterThan(mobileBranch)
     expect(distributor.slice(mobileBranch, desktopBranch)).toContain("<VeilleActualitesMobile")
     expect(distributor.slice(mobileBranch, desktopBranch)).not.toContain("globalWatchHealth=")
+
+    const mobileFile = readFileSync(resolve(root, "src/components/veille/VeilleActualitesMobile.tsx"), "utf8")
+    expect(mobileFile).toContain('{ id: "actualites", label: "Actualités thématiques" }')
+    expect(mobileFile).toContain('{ id: "veille", label: "Veille Ciblée" }')
+    expect(mobileFile).toContain('{ id: "analyses", label: "Analyses" }')
+    expect(mobileFile).toContain('{ id: "archives", label: "Archives" }')
+  })
+
+  it("reutilises shared components without local duplication", () => {
+    const missionWrapper = readFileSync(
+      resolve(root, "src/features/veille/modules/WatchAnalysisMissionModule.tsx"),
+      "utf8",
+    )
+    expect(missionWrapper).toContain('import { MissionComposerDesktop } from "@/features/intelligence-missions/components/MissionComposerDesktop"')
+    expect(missionWrapper).toContain('import { VEILLE_MISSION_COMPOSER_CONFIG } from "@/features/intelligence-missions/components/mission-composer-model"')
+    expect(missionWrapper).toContain('config={VEILLE_MISSION_COMPOSER_CONFIG}')
+
+    expect(desktop).toContain('import { ManageCollectionsDesktop } from "@/features/content-collections/components/ManageCollectionsDesktop"')
+    expect(desktop).toContain('import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"')
+    expect(desktop).toContain('import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"')
   })
 
   it("keeps URL navigation structural and lets history digest links return naturally to news", () => {
@@ -281,7 +325,7 @@ describe("veille Desktop UI source contract", () => {
     expect(page).toContain('resolvedParams.tab === "veille" || resolvedParams.tab === "analyses"')
     expect(page).toContain("initialMobileTab={initialTab}")
     expect(page).toContain("initialMobileAnalysisId={initialAnalysisId}")
-    expect(desktop).toContain("onOpenSourceManagement={() => setSourceManagementOpen(true)}")
+    expect(desktop).toContain('onOpenSourceManagement={() => openWorkspaceModule("source-management")}')
     expect(navigation).toContain("contextualModules,")
   })
 })

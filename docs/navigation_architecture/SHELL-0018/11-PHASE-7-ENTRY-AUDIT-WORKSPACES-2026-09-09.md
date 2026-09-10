@@ -517,23 +517,20 @@ Les deux capacités sont partagées avec Veille (§10) sans aucune duplication.
 
 ### A/B/C
 `/veille` — `?section=news|watched-accounts|strategic-analysis|history` (racine `news`).
-CURRENT chapitres : `news` « Actualités » · `watched-accounts` « Veille ciblée » ·
+CURRENT chapitres : `news` « Actualités thématiques » · `watched-accounts` « Veille Ciblée » ·
 `strategic-analysis` « Analyses » · `history` « Archives ».
-CURRENT module : `source-management` « Gestion des sources » (conditionnel).
+CURRENT modules : `source-management` « Gestion des sources » · `knowledge-management` « Gestion de la connaissance » · `transverse-analysis` « Analyse transverse » · `watch-analysis-mission` « Mission : analyse de la veille ».
 TARGET chapitres : **Actualités thématiques · Veille Ciblée · Analyses · Archives**.
-TARGET modules : **Gestion des sources** (KEEP) · **Gestion de la connaissance** `REUSE` (composant
-Reports) · **Analyse transverse** `NEW/FUTURE` · **Mission : analyse de la veille** `NEW/FUTURE`
-(framework REUSE — spec `veille-analyse-mensuelle` dans `MISSION_CATALOG`, §18).
+TARGET modules : **Gestion des sources** (KEEP / EXISTING CAPABILITY) · **Gestion de la connaissance** (REUSE / EXISTING CAPABILITY — composant partagé `ManageCollectionsDesktop`) · **Analyse transverse** (REUSE / EXISTING CAPABILITY — `WatchAnalysisComposerDesktop`) · **Mission : analyse de la veille** (EXISTING MISSION + EXISTING FRAMEWORK + NEW LOCAL ENTRY POINT — spec `veille-analyse-mensuelle` dans `MISSION_CATALOG`, `VEILLE_MISSION_COMPOSER_CONFIG`, `MissionComposerDesktop`, wrapper `WatchAnalysisMissionModule.tsx`).
 
 ### D/E/F
-`veille/page.tsx` : `device === "mobile"` → vue mobile dédiée (`initialMobileTab`). Adaptive plein.
+`veille/page.tsx` : `device === "mobile"` → vue mobile dédiée (`initialMobileTab`). Adaptive plein. Labels synchronisés (`Actualités thématiques`, `Veille Ciblée`, `Analyses`, `Archives`).
 
 ### G. Réutilisation
-- **Gestion de la connaissance** : `REUSE` direct du composant partagé `ManageCollectionsDesktop` (`@/features/content-collections/`). **Ne
-  pas dupliquer**.
+- **Gestion de la connaissance** : `REUSE` direct du composant partagé `ManageCollectionsDesktop` (`@/features/content-collections/`). **Aucune duplication**.
 - **Analyse transverse** : `REUSE` direct du composant partagé `WatchAnalysisComposerDesktop` (`@/features/watch-analysis/`).
-- **Mission : analyse de la veille** : `MISSION_CATALOG` slug `veille-analyse-mensuelle` +
-  `MissionComposerDesktop` → framework REUSE (§18).
+- **Mission : analyse de la veille** : `MISSION_CATALOG` slug `veille-analyse-mensuelle` + `VEILLE_MISSION_COMPOSER_CONFIG` +
+  `MissionComposerDesktop` → wrapper contextuel fin `WatchAnalysisMissionModule.tsx`. Nouveau workflow n8n : NON. Nouvelle Data : NON.
 
 ### Matrice
 
@@ -544,11 +541,11 @@ Reports) · **Analyse transverse** `NEW/FUTURE` · **Mission : analyse de la vei
 | Chapitre | `strategic-analysis` « Analyses » | Analyses | KEEP | DATA-0 | — | NO IMPACT | — | 7.7 |
 | Chapitre | `history` « Archives » | Archives | KEEP | DATA-0 | — | NO IMPACT | — | 7.7 |
 | Module | `source-management` | Gestion des sources | KEEP | DATA-0 | — | NO IMPACT | — | 7.7 |
-| Module | — | Gestion de la connaissance | REUSE | DATA-0 | monter composant partagé (`content-collections`) | NO IMPACT | 7.6 (prêt) | 7.7 |
-| Module | — | Analyse transverse | REUSE | DATA-0 | monter composant partagé (`watch-analysis`) | NO IMPACT | 7.6 (prêt) | 7.7 |
-| Module | — | Mission : analyse de la veille | NEW/FUTURE (framework REUSE) | DATA-1 | `MissionComposerDesktop` | FUTURE | §18 | 7.7 / différé |
+| Module | — | Gestion de la connaissance | REUSE / EXISTING CAPABILITY | DATA-0 | monter composant partagé (`content-collections`) | NO IMPACT | 7.6 (prêt) | 7.7 |
+| Module | — | Analyse transverse | REUSE / EXISTING CAPABILITY | DATA-0 | monter composant partagé (`watch-analysis`) | NO IMPACT | 7.6 (prêt) | 7.7 |
+| Module | — | Mission : analyse de la veille | EXISTING MISSION + EXISTING FRAMEWORK + NEW LOCAL ENTRY POINT | DATA-0 | `WatchAnalysisMissionModule` (`MissionComposerDesktop`) | NO IMPACT | — | 7.7 |
 
-**Statut : `UNBLOCKED / READY`** (composants partagés prêts). Complexité **MEDIUM**.
+**Statut : `IMPLEMENTED / PASS`** (Lot 7.7 livré).
 
 ---
 

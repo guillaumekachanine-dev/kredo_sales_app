@@ -33,9 +33,11 @@ import { ManageCollectionsDesktop } from "@/features/content-collections/compone
 import { WATCH_ANALYSIS_COMPOSER_EVENT } from "@/lib/reports/watch-analysis-launcher"
 import { WatchAnalysisComposerDesktop } from "@/features/watch-analysis/components/WatchAnalysisComposerDesktop"
 import { SourceManagementDialogDesktop } from "@/features/source-management/components/SourceManagementDialogDesktop"
+import { WatchAnalysisMissionModule } from "@/features/veille/modules/WatchAnalysisMissionModule"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
 import {
   getVeilleDesktopChapterLabel,
+  type VeilleContextualModule,
   VeilleLocalNavigation,
 } from "./VeilleLocalNavigation"
 import { extractMatchedCompany, resolveOriginalSourceName } from "./veille-utils"
@@ -787,20 +789,14 @@ function StrategicAnalysisSection({
   analysis: initialAnalysis,
   analysisHistory,
   generation,
-  currentDigest,
-  currentDigestNumber,
-  pastDigests,
-  knownArticles,
   onAddToList,
+  onOpenComposer,
 }: {
   analysis: StrategicWatchAnalysis | null
   analysisHistory: StrategicWatchAnalysis[]
   generation: MonthlyWatchGenerationContext
-  currentDigest: VeilleDigest | null
-  currentDigestNumber: number | null
-  pastDigests: VeilleDigest[]
-  knownArticles: VeilleArticle[]
   onAddToList?: (analysisId: string) => void
+  onOpenComposer?: () => void
 }) {
   const router = useRouter()
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(
@@ -809,19 +805,6 @@ function StrategicAnalysisSection({
   const [run, setRun] = useState(generation.latestRun)
   const [pending, setPending] = useState(Boolean(generation.activeRun))
   const [error, setError] = useState<string | null>(generation.latestRun?.status === "failed" ? generation.latestRun.errorMessage : null)
-  const [composerOpen, setComposerOpen] = useState(false)
-
-  // L'action « Analyse transverse » du Cockpit Intelligence émet un événement
-  // global. Sur /veille, c'est CE composeur qui doit s'ouvrir — il a le digest
-  // courant, les digests passés et les articles résolus, là où l'hôte global
-  // n'aurait qu'une famille « digest » vide. Voir WATCH_ANALYSIS_LOCAL_OWNER_PATHS.
-  useEffect(() => {
-    function handleOpenComposer() {
-      setComposerOpen(true)
-    }
-    window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
-    return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
-  }, [])
 
   const [openSections, setOpenSections] = useState<Record<StrategicSectionKey, boolean>>({
     trends: false,
@@ -868,12 +851,6 @@ function StrategicAnalysisSection({
     },
   })
 
-  const handleAnalysisLaunched = (runId: string) => {
-    setRun({ id: runId, status: "queued", createdAt: new Date().toISOString(), errorMessage: null })
-    setPending(true)
-    setError(null)
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-3">
@@ -882,7 +859,7 @@ function StrategicAnalysisSection({
           <h2 className="mt-0.5 font-heading text-lg font-bold text-heading">Analyses stratégiques</h2>
           <p className="mt-0.5 text-xs text-muted">Analyses à la demande et synthèses mensuelles</p>
         </div>
-        <Button variant="brass" onClick={() => setComposerOpen(true)}>
+        <Button variant="brass" onClick={() => onOpenComposer?.()}>
           Générer une analyse
         </Button>
       </div>
@@ -1319,19 +1296,6 @@ function StrategicAnalysisSection({
           <p>La première synthèse mensuelle utilisera uniquement les digests et articles déjà collectés sur le mois civil précédent.</p>
         </EmptyState>
       )}
-
-      <WatchAnalysisComposerDesktop
-        open={composerOpen}
-        onClose={() => setComposerOpen(false)}
-        currentDigest={currentDigest}
-        currentDigestNumber={currentDigestNumber}
-        pastDigests={pastDigests}
-        knownArticles={knownArticles}
-        onLaunched={(runId) => {
-          handleAnalysisLaunched(runId)
-          setComposerOpen(false)
-        }}
-      />
     </div>
   )
 }
@@ -1450,14 +1414,56 @@ export function VeilleActualitesDesktop({
   const [advancedSearch, setAdvancedSearch] = useState<AdvancedSearchState>(DEFAULT_ADVANCED_SEARCH)
   const [resolvedCollectionArticleIds, setResolvedCollectionArticleIds] = useState<string[] | null>(null)
   const [sourceManagementOpen, setSourceManagementOpen] = useState(false)
+  const [manageListsOpen, setManageListsOpen] = useState(false)
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [missionAnalysisOpen, setMissionAnalysisOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [qualifyOpen, setQualifyOpen] = useState(false)
   const [opportunityOpen, setOpportunityOpen] = useState(false)
   const [addToListOpen, setAddToListOpen] = useState(false)
   const [addAnalysisToListOpen, setAddAnalysisToListOpen] = useState(false)
-  const [manageListsOpen, setManageListsOpen] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
+
+  // L'action « Analyse transverse » du Cockpit Intelligence émet un événement
+  // global. Sur /veille, c'est CE composeur qui doit s'ouvrir — il a le digest
+  // courant, les digests passés et les articles résolus, là où l'hôte global
+  // n'aurait qu'une famille « digest » vide. Voir WATCH_ANALYSIS_LOCAL_OWNER_PATHS.
+  useEffect(() => {
+    function handleOpenComposer() {
+      setSourceManagementOpen(false)
+      setManageListsOpen(false)
+      setMissionAnalysisOpen(false)
+      setComposerOpen(true)
+    }
+    window.addEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
+    return () => window.removeEventListener(WATCH_ANALYSIS_COMPOSER_EVENT, handleOpenComposer)
+  }, [])
+
+  const closeWorkspaceModules = () => {
+    setSourceManagementOpen(false)
+    setManageListsOpen(false)
+    setComposerOpen(false)
+    setMissionAnalysisOpen(false)
+  }
+
+  const openWorkspaceModule = (mod: VeilleContextualModule) => {
+    closeWorkspaceModules()
+    if (mod === "source-management") setSourceManagementOpen(true)
+    else if (mod === "knowledge-management") setManageListsOpen(true)
+    else if (mod === "transverse-analysis") setComposerOpen(true)
+    else if (mod === "watch-analysis-mission") setMissionAnalysisOpen(true)
+  }
+
+  const activeModule: VeilleContextualModule | null = sourceManagementOpen
+    ? "source-management"
+    : manageListsOpen
+      ? "knowledge-management"
+      : composerOpen
+        ? "transverse-analysis"
+        : missionAnalysisOpen
+          ? "watch-analysis-mission"
+          : null
 
   // Le repli de la sidebar principale est décidé par le Shell selon le pathname
   // (`shouldAutoCollapseDesktopSidebar` — SHELL 6.5) : ce workspace ne le pilote plus.
@@ -1575,11 +1581,8 @@ export function VeilleActualitesDesktop({
             analysis={latestAnalysis}
             analysisHistory={analysisHistory}
             generation={monthlyGeneration}
-            currentDigest={digest}
-            currentDigestNumber={digestNumber}
-            pastDigests={pastDigests}
-            knownArticles={knownArticlesForComposer}
             onAddToList={() => setAddAnalysisToListOpen(true)}
+            onOpenComposer={() => openWorkspaceModule("transverse-analysis")}
           />
         )
       : section === "history"
@@ -1621,7 +1624,11 @@ export function VeilleActualitesDesktop({
       <VeilleLocalNavigation
         active={section}
         onChange={navigateSection}
-        onOpenSourceManagement={() => setSourceManagementOpen(true)}
+        activeModule={activeModule}
+        onOpenSourceManagement={() => openWorkspaceModule("source-management")}
+        onOpenKnowledgeManagement={() => openWorkspaceModule("knowledge-management")}
+        onOpenTransverseAnalysis={() => openWorkspaceModule("transverse-analysis")}
+        onOpenWatchAnalysisMission={() => openWorkspaceModule("watch-analysis-mission")}
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -1723,7 +1730,6 @@ export function VeilleActualitesDesktop({
             contentId={selectedArticle.id}
             onManageLists={() => setManageListsOpen(true)}
           />
-          <ManageCollectionsDesktop open={manageListsOpen} onOpenChange={setManageListsOpen} />
           <CreateCommercialWindowDialog open={opportunityOpen} onOpenChange={setOpportunityOpen} article={selectedArticle} companyId={matchedCompany?.id} companyName={matchedCompany?.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage("Fenêtre commerciale créée avec succès.")} />
           {matchedCompany ? (
             <CreateAccountNoteDialog open={noteOpen} onOpenChange={setNoteOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Note ajoutée pour ${matchedCompany.name}.`)} />
@@ -1739,10 +1745,27 @@ export function VeilleActualitesDesktop({
           onManageLists={() => setManageListsOpen(true)}
         />
       ) : null}
+      <ManageCollectionsDesktop open={manageListsOpen} onOpenChange={setManageListsOpen} />
       <SourceManagementDialogDesktop
         open={sourceManagementOpen}
         onOpenChange={setSourceManagementOpen}
         snapshot={sourceManagementSnapshot}
+      />
+      <WatchAnalysisComposerDesktop
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        currentDigest={digest}
+        currentDigestNumber={digestNumber}
+        pastDigests={pastDigests}
+        knownArticles={knownArticlesForComposer}
+        onLaunched={() => {
+          setComposerOpen(false)
+          router.refresh()
+        }}
+      />
+      <WatchAnalysisMissionModule
+        open={missionAnalysisOpen}
+        onOpenChange={setMissionAnalysisOpen}
       />
     </div>
   )
