@@ -1,6 +1,7 @@
 import "server-only"
 
-import { createClient } from "@/lib/supabase/server"
+import { getRequestClient } from "@/lib/supabase/server"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import type { Database } from "@/types/database"
 import {
   GLOBAL_WATCH_WORKFLOW_ID,
@@ -21,16 +22,16 @@ export type VeilleArticle = Database["public"]["Tables"]["veille_articles"]["Row
 export type SectorNews = Database["public"]["Tables"]["sector_news"]["Row"]
 export type SectorEvent = Database["public"]["Tables"]["sector_events"]["Row"]
 
+// Résolution d'identité déléguée au résolveur partagé (`@/lib/supabase/workspace`).
+// Avant : `getUser()` (aller-retour réseau, 195 ms mesurés) puis une lecture de
+// `profiles` (102 ms), en série, AVANT la première donnée métier — soit 306 ms de
+// préambule bloquant sur /veille. Voir docs/performance-data-audit, constat F-3.
 async function getAuthenticatedWorkspace() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { supabase, workspaceId: null as string | null }
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .maybeSingle()
-  return { supabase, workspaceId: profile?.workspace_id ?? null }
+  const [supabase, workspaceId] = await Promise.all([
+    getRequestClient(),
+    resolveCurrentWorkspaceId(),
+  ])
+  return { supabase, workspaceId }
 }
 
 export async function getGlobalWatchSettings(): Promise<GlobalWatchSettings> {
@@ -199,7 +200,7 @@ export async function getMonthlyWatchGenerationContext(reference = new Date()): 
 }
 
 export async function getLatestVeilleDigest(topicKey?: string) {
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   let query = supabase
     .from("veille_digests")
     .select("*")
@@ -217,7 +218,7 @@ export async function getLatestVeilleDigest(topicKey?: string) {
 }
 
 export async function getVeilleArticles(digestId: string) {
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   const { data, error } = await supabase
     .from("veille_articles")
     .select("*")
@@ -229,7 +230,7 @@ export async function getVeilleArticles(digestId: string) {
 }
 
 export async function getAllVeilleArticles() {
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   const { data, error } = await supabase
     .from("veille_articles")
     .select("*")
@@ -249,7 +250,7 @@ export async function getAllVeilleArticles() {
 export async function getVeilleArticlesForDigests(digestIds: string[]) {
   if (digestIds.length === 0) return { data: [] as VeilleArticle[], error: null }
 
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   const { data, error } = await supabase
     .from("veille_articles")
     .select("*")
@@ -262,7 +263,7 @@ export async function getVeilleArticlesForDigests(digestIds: string[]) {
 }
 
 export async function getPastVeilleDigests(limit = 10, topicKey?: string) {
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   let query = supabase
     .from("veille_digests")
     .select("*")
@@ -280,7 +281,7 @@ export async function getPastVeilleDigests(limit = 10, topicKey?: string) {
 }
 
 export async function getSectorNews(limit = 5) {
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   const { data, error } = await supabase
     .from("sector_news")
     .select("*")
@@ -291,7 +292,7 @@ export async function getSectorNews(limit = 5) {
 }
 
 export async function getSectorEvents(limit = 5) {
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   const { data, error } = await supabase
     .from("sector_events")
     .select("*")
@@ -315,7 +316,7 @@ export type CompanyContextStats = {
 
 export async function getCompaniesContextStats(): Promise<{ data: CompanyContextStats[]; error: unknown }> {
   try {
-    const supabase = await createClient()
+    const supabase = await getRequestClient()
     
     // 1. Fetch companies
     const { data: companies, error: compError } = await supabase
@@ -412,7 +413,7 @@ export type WatchedAccountSignal = {
 }
 
 export async function getWatchedCompanyIds(): Promise<string[]> {
-  const supabase = await createClient()
+  const supabase = await getRequestClient()
   const { data, error } = await supabase
     .from("account_watch_settings")
     .select("company_id")
@@ -426,7 +427,7 @@ export async function getWatchedCompanyIds(): Promise<string[]> {
 
 export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccountSignal[]; error: unknown }> {
   try {
-    const supabase = await createClient()
+    const supabase = await getRequestClient()
 
     // 1. Get enabled watch settings
     const { data: watchSettings, error: watchError } = await supabase

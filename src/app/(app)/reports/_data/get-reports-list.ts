@@ -58,7 +58,17 @@ type LatestVersionRow = {
   document_id: string
   version_number: number
   qa_flags: unknown
-  brief_json: unknown
+  // `brief_json` n'est JAMAIS remonté en entier : seul le scénario en est extrait
+  // (cf. `extractScenarioLabel`). Le blob complet pesait 144 Ko pour 24 documents.
+  // PostgREST projette les trois formes acceptées côté serveur.
+  scenario_what: string | null
+  scenario_preset: string | null
+  scenario_root: string | null
+}
+
+type KpiStatusRow = {
+  status: string | null
+  last_used_at: string | null
 }
 
 type LinkRow = {
@@ -395,11 +405,11 @@ async function resolveEntityLabels(
 
 function extractScenarioLabel(version: LatestVersionRow | undefined): string | null {
   if (!version) return null
-  const raw = version.brief_json
-  if (!raw || typeof raw !== "object") return null
-  const brief = raw as Record<string, any>
-  // CommunicationBrief shape: brief.what.scenario
-  const scenario = brief.what?.scenario ?? brief.preset?.scenario ?? brief.scenario
+  // Mêmes trois formes qu'auparavant, dans le même ordre de priorité — mais
+  // projetées en SQL (`brief_json->what->>scenario` …) plutôt qu'extraites d'un
+  // blob rapatrié en entier : CommunicationBrief `what.scenario`, puis
+  // `preset.scenario`, puis `scenario` à la racine.
+  const scenario = version.scenario_what ?? version.scenario_preset ?? version.scenario_root
   if (typeof scenario !== "string" || !scenario) return null
   return SCENARIO_REGISTRY.find((item) => item.value === scenario)?.label ?? null
 }
@@ -449,37 +459,38 @@ async function getKpis(
   filters: ReportsFilterState,
   linkedDocumentIds: string[] | null
 ): Promise<ReportsKpis> {
-  const buildCountQuery = () =>
-    applyDocumentFilters(
-      supabase.from("intelligence_documents").select("id", {
-        count: "exact",
-        head: true,
-      }),
-      filters,
-      linkedDocumentIds,
-      { includeStatus: false }
-    )
-
+  // Une seule lecture pour les quatre compteurs. Auparavant : quatre requêtes
+  // `count:"exact", head:true` sur le même filtre (93,9 / 100,9 / 148,0 / 168,0 ms
+  // mesurés, corps vide à chaque fois) — soit trois allers-retours PostgREST pour
+  // rien, à ~116 ms de médiane l'unité. Le jeu rapatrié est deux colonnes courtes
+  // sur une table de l'ordre de la centaine de lignes ; le comptage en JS est
+  // strictement équivalent aux quatre filtres SQL qu'il remplace.
+  // Voir docs/performance-data-audit, constat F-8.
   const monthStart = getMonthStartIso()
 
-  const [totalResult, draftsResult, readyResult, usedThisMonthResult] = await Promise.all([
-    buildCountQuery(),
-    buildCountQuery().eq("status", "draft"),
-    buildCountQuery().eq("status", "ready"),
-    buildCountQuery().eq("status", "used").gte("last_used_at", monthStart),
-  ])
+  const statusesResult = await applyDocumentFilters(
+    supabase.from("intelligence_documents").select<KpiStatusRow>("status, last_used_at"),
+    filters,
+    linkedDocumentIds,
+    { includeStatus: false }
+  )
 
-  if (totalResult.error) throw new Error(totalResult.error.message)
-  if (draftsResult.error) throw new Error(draftsResult.error.message)
-  if (readyResult.error) throw new Error(readyResult.error.message)
-  if (usedThisMonthResult.error) throw new Error(usedThisMonthResult.error.message)
+  if (statusesResult.error) throw new Error(statusesResult.error.message)
 
-  return {
-    total: totalResult.count ?? 0,
-    drafts: draftsResult.count ?? 0,
-    ready: readyResult.count ?? 0,
-    usedThisMonth: usedThisMonthResult.count ?? 0,
+  const rows = statusesResult.data ?? []
+  let drafts = 0
+  let ready = 0
+  let usedThisMonth = 0
+
+  for (const row of rows) {
+    if (row.status === "draft") drafts += 1
+    else if (row.status === "ready") ready += 1
+    else if (row.status === "used" && row.last_used_at && row.last_used_at >= monthStart) {
+      usedThisMonth += 1
+    }
   }
+
+  return { total: rows.length, drafts, ready, usedThisMonth }
 }
 
 export async function getReportsList(input?: {
@@ -539,7 +550,9 @@ export async function getReportsList(input?: {
       documentIds.length
         ? supabase
             .from("intelligence_document_versions")
-            .select<LatestVersionRow>("document_id, version_number, qa_flags, brief_json")
+            .select<LatestVersionRow>(
+              "document_id, version_number, qa_flags, scenario_what:brief_json->what->>scenario, scenario_preset:brief_json->preset->>scenario, scenario_root:brief_json->>scenario"
+            )
             .in("document_id", documentIds)
             .order("version_number", { ascending: false })
         : Promise.resolve({

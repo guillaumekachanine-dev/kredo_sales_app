@@ -1,6 +1,7 @@
 import "server-only"
 
-import { createClient } from "@/lib/supabase/server"
+import { getRequestClient } from "@/lib/supabase/server"
+import { getCurrentProfile } from "@/lib/supabase/workspace"
 import type { Database } from "@/types/database"
 import {
   deriveCollectionMode,
@@ -44,16 +45,17 @@ function mapSource(row: SourceCatalogRow): SourceCatalogEntry {
   }
 }
 
-async function resolveWorkspace(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("workspace_id, role")
-    .eq("id", user.id)
-    .maybeSingle()
-  if (!profile?.workspace_id) return null
-  return { workspaceId: profile.workspace_id, isAdmin: profile.role === "owner" || profile.role === "admin" }
+// Identité résolue par le résolveur partagé : une seule lecture de `profiles` par
+// rendu, mutualisée avec tous les autres loaders de la page (constat F-3/F-4 de
+// docs/performance-data-audit). `getUser()` faisait ici un aller-retour réseau de
+// ~100-176 ms, redondant avec celui que /veille payait déjà deux fois par ailleurs.
+async function resolveWorkspace() {
+  const profile = await getCurrentProfile()
+  if (!profile) return null
+  return {
+    workspaceId: profile.workspaceId,
+    isAdmin: profile.role === "owner" || profile.role === "admin",
+  }
 }
 
 function extractCorpusName(corpus: SourceCorporaRow): string | null {
@@ -70,8 +72,7 @@ function extractCorpusName(corpus: SourceCorporaRow): string | null {
 }
 
 export async function getSourceManagementSnapshot(): Promise<SourceManagementSnapshot> {
-  const supabase = await createClient()
-  const workspace = await resolveWorkspace(supabase)
+  const [supabase, workspace] = await Promise.all([getRequestClient(), resolveWorkspace()])
   if (!workspace) return EMPTY_SOURCE_MANAGEMENT_SNAPSHOT
 
   const [sourcesResult, corporaResult, effectivenessResult] = await Promise.all([

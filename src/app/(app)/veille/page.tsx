@@ -1,7 +1,8 @@
 import "server-only"
 
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { createClient } from "@/lib/supabase/server"
+import { getRequestClient } from "@/lib/supabase/server"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import {
   getVeilleArticles,
   getVeilleArticlesForDigests,
@@ -23,7 +24,6 @@ import {
   type SectorEvent
 } from "./_data/veille-data"
 import { VeilleActualitesPage } from "@/components/veille/VeilleActualitesPage"
-import { getSourceManagementSnapshot } from "@/features/source-management/data/get-source-management-snapshot"
 import { getDigestLaunchOptions } from "@/features/veille/digest/data/get-digest-launch-options"
 
 export default async function VeillePage({
@@ -39,17 +39,12 @@ export default async function VeillePage({
   const initialCompanyId = resolvedParams.companyId || undefined
   const initialAnalysisId = resolvedParams.analysisId || undefined
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  let workspaceId = ""
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("workspace_id")
-      .eq("id", user.id)
-      .maybeSingle()
-    workspaceId = profile?.workspace_id ?? ""
-  }
+  // La résolution d'identité n'est PLUS un préambule séquentiel : elle part dans la
+  // même vague que les 11 autres chargements ci-dessous (cf. `launchOptions`).
+  // Avant : getUser() 195 ms puis profiles 102 ms, en série, avant la première donnée.
+  // `resolveCurrentWorkspaceId()` est mémoïsé par requête — les loaders de
+  // `veille-data.ts` qui l'appellent aussi ne repaient rien.
+  const supabase = await getRequestClient()
 
   const [
     device,
@@ -62,7 +57,6 @@ export default async function VeillePage({
     latestAnalysis,
     analysisHistory,
     monthlyGeneration,
-    sourceManagementSnapshot,
     launchOptions,
   ] = await Promise.all([
     getDashboardDevice(),
@@ -75,10 +69,12 @@ export default async function VeillePage({
     getLatestStrategicWatchAnalysis(),
     getStrategicWatchAnalysisHistory(12),
     getMonthlyWatchGenerationContext(),
-    getSourceManagementSnapshot(),
-    workspaceId
-      ? getDigestLaunchOptions(supabase, workspaceId)
-      : Promise.resolve({ topics: [], corpora: [], defaultSourcesCount: 0 }),
+    (async () => {
+      const workspaceId = await resolveCurrentWorkspaceId()
+      return workspaceId
+        ? getDigestLaunchOptions(supabase, workspaceId)
+        : { topics: [], corpora: [], defaultSourcesCount: 0 }
+    })(),
   ])
 
   const allPastDigests = pastDigestsResult.data || []
@@ -195,7 +191,6 @@ export default async function VeillePage({
         latestAnalysis={latestAnalysis}
         analysisHistory={analysisHistory}
         monthlyGeneration={monthlyGeneration}
-        sourceManagementSnapshot={sourceManagementSnapshot}
         initialMobileTab={initialTab}
         initialMobileCompanyId={initialCompanyId}
         initialMobileAnalysisId={initialAnalysisId}

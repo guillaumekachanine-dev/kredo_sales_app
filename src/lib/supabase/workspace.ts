@@ -1,7 +1,7 @@
 import "server-only"
 
 import { cache } from "react"
-import { createClient } from "@/lib/supabase/server"
+import { getRequestClient } from "@/lib/supabase/server"
 
 // Porte d'entrée unique pour « qui est l'utilisateur courant » et « quel est son
 // workspace » côté serveur. `private.current_workspace_id()` vit dans le schéma
@@ -27,27 +27,44 @@ import { createClient } from "@/lib/supabase/server"
 // sans conséquence ici, ces contextes n'appellent le résolveur qu'une fois,
 // mais ne pas bâtir de raisonnement sur une déduplication qui n'y a pas lieu.
 
-// Un seul client Supabase pour les deux résolveurs : sans cela, résoudre un
-// workspace en construisait deux (chacun avec son GoTrueClient, son
-// RealtimeClient et son listener onAuthStateChange) pour la même requête.
-const getSharedClient = cache(createClient)
+// Un seul client Supabase pour tous les résolveurs ET tous les loaders du rendu :
+// `getRequestClient` est le `cache(createClient)` exporté par `server.ts`. Sans ce
+// partage, chaque module construit son propre GoTrueClient — donc son propre cache
+// JWKS — et `getClaims()` repaie un aller-retour réseau complet (77-184 ms mesurés
+// le 2026-09-10, contre 0,4-1,0 ms sur client partagé).
 
 export const getCurrentUserId = cache(async (): Promise<string | null> => {
-  const supabase = await getSharedClient()
+  const supabase = await getRequestClient()
   const { data } = await supabase.auth.getClaims()
   return data?.claims?.sub ?? null
 })
 
-export const resolveCurrentWorkspaceId = cache(async (): Promise<string | null> => {
+export type CurrentProfile = {
+  workspaceId: string
+  /** `owner` · `admin` · `sales` · `recruiter` · `viewer` */
+  role: string | null
+}
+
+// Une seule lecture de `profiles` par rendu, pour TOUS les besoins d'identité.
+// `role` est remonté ici plutôt que relu séparément : les consommateurs qui gèrent
+// une capacité réservée aux admins (gestion des sources, rémunération) ajoutaient
+// sinon une seconde requête `select("workspace_id, role")`, distincte de celle-ci
+// et donc non dédupliquée par la mémoïsation `fetch` de Next.
+export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> => {
   const userId = await getCurrentUserId()
   if (!userId) return null
 
-  const supabase = await getSharedClient()
+  const supabase = await getRequestClient()
   const { data: profile } = await supabase
     .from("profiles")
-    .select("workspace_id")
+    .select("workspace_id, role")
     .eq("id", userId)
     .single()
 
-  return profile?.workspace_id ?? null
+  if (!profile?.workspace_id) return null
+  return { workspaceId: profile.workspace_id, role: profile.role ?? null }
+})
+
+export const resolveCurrentWorkspaceId = cache(async (): Promise<string | null> => {
+  return (await getCurrentProfile())?.workspaceId ?? null
 })
