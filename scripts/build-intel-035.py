@@ -135,15 +135,20 @@ const raw = $input.first().json;
 const ctx = (Array.isArray(raw) ? raw[0] : raw) || {};
 const company = ctx.company || {};
 
+// Noms de champs alignés sur `get_account_understanding_context` (`company.sector`,
+// `company.segment`, `accountFacts`, `sectorKnowledge`). Les lire sous d'autres noms
+// (`sector_name`, `facts`, `ctx.sector`) donnait `null` en silence — et sans `sector`,
+// `Resolve Entity` ne peut plus départager une société de son propre holding
+// homonyme et rend `needs_human_confirmation` (incident Tournaire, Étape B).
 const canonical = {
   name: company.name || null,
   legal_name: company.legal_name || null,
   website: company.website || null,
   siren: company.siren || null,
   naf_code: company.naf_code || null,
-  hq_location: company.hq_location || company.city || null,
-  sector: company.sector_name || null,
-  segment: company.segment_name || null,
+  hq_location: company.hq_location || null,
+  sector: company.sector || null,
+  segment: company.segment || null,
   employee_count: company.employee_count || null,
   description: company.description || null,
 };
@@ -152,7 +157,7 @@ if (!canonical.name) throw new Error('Compte sans raison sociale : préflight im
 // Faits COURANTS et non périmés uniquement. Un fait expiré ne compte pas comme acquis :
 // c'est précisément ce qu'il faut re-chercher.
 const nowMs = Date.now();
-const currentFacts = (ctx.facts || []).filter((f) => {
+const currentFacts = (ctx.accountFacts || []).filter((f) => {
   if (!f || f.is_current === false) return false;
   if (!f.expires_at) return true;
   return new Date(f.expires_at).getTime() > nowMs;
@@ -163,7 +168,7 @@ return [{ json: {
   canonical,
   currentFacts,
   existingSignals: ctx.signals || [],
-  sectorContext: ctx.sector || null,
+  sectorContext: ctx.sectorKnowledge || null,
   dataCutoffAt: new Date().toISOString(),
 } }];
 """
@@ -578,22 +583,36 @@ return [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbac
 
 PREPARE_FAILURE = r"""
 // Toute sortie d'erreur rejoint ce nœud : un run ne reste JAMAIS en `running`.
+//
+// `$('Validate Preflight Input')` n'est PAS accessible depuis une branche d'erreur
+// quand c'est un nœud AVAL qui a jeté (Resolve Entity…) : la référence lève, le
+// catch la ramène à `{}`, `callbackUrl` devient `undefined` et le nœud `Callback
+// (Failure)` échoue sur « URL parameter must be a string ». Résultat : le run KREDO
+// restait `running` indéfiniment, aucun échec jamais remonté (Étape B).
+//
+// Le nœud Webhook, lui, est le déclencheur : il est atteignable depuis n'importe où.
+// On lit d'abord la sortie validée si elle existe, sinon le corps brut du webhook —
+// `runId` et `callbackUrl` sont imposés par le contrat d'entrée KREDO.
 const error = $input.first().json.error || $input.first().json;
 let validated = {};
 try { validated = $('Validate Preflight Input').first().json || {}; } catch (_) {}
+let webhookBody = {};
+try { webhookBody = ($('Webhook — Source Preflight').first().json || {}).body || {}; } catch (_) {}
+const runId = validated.runId || webhookBody.runId || null;
+const callbackUrl = validated.callbackUrl || webhookBody.callbackUrl || null;
 const message = String((error && (error.message || error.description)) || error || 'Erreur inconnue');
 
 const callbackBody = {
   n8nExecutionId: $execution.id,
   n8nWorkflowId: $workflow.id,
-  runId: validated.runId || null,
+  runId,
   phase: 1,
   resultType: 'account_source_plan',
   status: 'failed',
   contentJson: {},
   errorMessage: message.slice(0, 2000),
 };
-return [{ json: { callbackUrl: validated.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];
+return [{ json: { callbackUrl, rawBody: JSON.stringify(callbackBody) } }];
 """
 
 

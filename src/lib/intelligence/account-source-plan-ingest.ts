@@ -87,6 +87,21 @@ function asInteger(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) ? value : null
 }
 
+/**
+ * `published_at` alimente une colonne `timestamptz`. Le workflow le tient de la
+ * découverte web (SerpAPI), qui renvoie aussi bien un ISO que « 8 juil. 2026 » ou
+ * « 2 days ago ». Une chaîne non datable ne doit pas faire échouer l'insert du lot
+ * entier (Postgres : `invalid input syntax for type timestamp`) : on la ramène à
+ * `null` — une date de publication est un confort, jamais une donnée requise.
+ */
+function asIsoDate(value: unknown): string | null {
+  const raw = asString(value)
+  if (!raw) return null
+  const ms = Date.parse(raw)
+  if (Number.isNaN(ms)) return null
+  return new Date(ms).toISOString()
+}
+
 function normalizeModules(value: unknown): AccountIntelligenceModule[] {
   if (!Array.isArray(value)) return []
   const seen = new Set<AccountIntelligenceModule>()
@@ -130,7 +145,7 @@ function normalizeDocument(
     canonical_url: asString(raw.canonical_url),
     domain,
     title: asString(raw.title),
-    published_at: asString(raw.published_at),
+    published_at: asIsoDate(raw.published_at),
     kind: kind as SourceKind,
     serves_modules: normalizeModules(raw.serves_modules),
     reason: asString(raw.reason),

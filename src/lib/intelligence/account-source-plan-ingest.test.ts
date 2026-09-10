@@ -147,6 +147,23 @@ describe("normalisation des documents entrants", () => {
     await ingestAccountSourcePlan(client, input([doc({ extracted_text: "x".repeat(50_000) })]))
     expect(inserted[0].extracted_chars).toBe(20_000)
   })
+
+  it("neutralise une date de publication non datable au lieu de casser l'insert", async () => {
+    // SerpAPI renvoie « 8 juil. 2026 » ou « 2 days ago » — une chaîne qui, passée
+    // telle quelle dans une colonne `timestamptz`, fait échouer l'insert du lot entier.
+    const { client, inserted } = fakeSupabase()
+    const result = await ingestAccountSourcePlan(
+      client,
+      input([
+        doc({ url: "https://a.fr/x", content_hash: "h-a", published_at: "8 juil. 2026" }),
+        doc({ url: "https://b.fr/y", content_hash: "h-b", published_at: "2026-07-08T00:00:00.000Z" }),
+      ]),
+    )
+    expect(result.ok).toBe(true)
+    expect(inserted).toHaveLength(2)
+    expect(inserted[0].published_at).toBeNull()
+    expect(inserted[1].published_at).toBe("2026-07-08T00:00:00.000Z")
+  })
 })
 
 describe("frontière tenant", () => {

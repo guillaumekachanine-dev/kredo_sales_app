@@ -98,9 +98,11 @@ function hydrated(overrides = {}) {
       sector: "Industrie", segment: "Emballage industriel", employee_count: 290,
       ...overrides.company,
     },
-    facts: overrides.facts ?? [],
+    // Noms alignés sur `get_account_understanding_context` : la RPC renvoie
+    // `accountFacts` et `sectorKnowledge`, pas `facts` / `sector`.
+    accountFacts: overrides.accountFacts ?? [],
     signals: [],
-    sector: overrides.sector ?? null,
+    sectorKnowledge: overrides.sectorKnowledge ?? null,
   }
 }
 
@@ -183,7 +185,7 @@ async function main() {
   const past = new Date(Date.now() - 86400000).toISOString()
   const future = new Date(Date.now() + 86400000).toISOString()
   await runCode("Prepare Dossier", registry, hydrated({
-    facts: [
+    accountFacts: [
       { fact_type: "legal_id", is_current: true, expires_at: null },
       { fact_type: "employee_count", is_current: true, expires_at: past },
       { fact_type: "revenue", is_current: true, expires_at: future },
@@ -195,6 +197,19 @@ async function main() {
   check("Un fait périmé ne compte pas comme acquis — c'est ce qu'il faut re-chercher",
     dossier.currentFacts.length === 2 &&
     dossier.currentFacts.every((f) => f.fact_type !== "employee_count" && f.fact_type !== "obsolete"))
+
+  // Régression Étape B : `sector`/`segment` doivent traverser jusqu'au canonical.
+  // Sans eux, `Resolve Entity` ne départage plus une société de son holding homonyme.
+  const sectorReg = { "Validate Preflight Input": registry["Validate Preflight Input"] }
+  await runCode("Prepare Dossier", sectorReg, hydrated({
+    accountFacts: [],
+    sectorKnowledge: { segment_id: "seg-1", slug: "emballage-industriel" },
+  }))
+  const dossierSector = sectorReg["Prepare Dossier"]
+  check("Le secteur et le segment alimentent le canonical (bug Étape B #1)",
+    dossierSector.canonical.sector === "Industrie" && dossierSector.canonical.segment === "Emballage industriel")
+  check("La connaissance sectorielle résolue est transmise au dossier",
+    dossierSector.sectorContext && dossierSector.sectorContext.segment_id === "seg-1")
 
   await expectThrows("Un compte sans raison sociale interrompt le préflight",
     () => runCode("Prepare Dossier", registry, hydrated({ company: { name: null } })),
@@ -381,6 +396,18 @@ async function main() {
   const failure = JSON.parse(registry["Prepare Failure Callback"].rawBody)
   check("Le callback d'échec porte le run et le statut failed",
     failure.runId === RUN && failure.status === "failed" && /Entité non résolue/.test(failure.errorMessage))
+
+  // Régression Étape B #2 : quand c'est un nœud AVAL qui jette, `$('Validate
+  // Preflight Input')` est inaccessible depuis la branche d'erreur. `runId` et
+  // `callbackUrl` doivent alors se rabattre sur le corps brut du webhook — sans
+  // quoi `Callback (Failure)` jette « URL must be a string » et le run KREDO
+  // reste `running` sans jamais remonter son échec.
+  const downstreamThrow = { "Webhook — Source Preflight": { body: webhookItem().body } }
+  await runCode("Prepare Failure Callback", downstreamThrow, { error: { message: "Entité non résolue (ambiguous)" } })
+  const orphanFailure = downstreamThrow["Prepare Failure Callback"]
+  const orphanBody = JSON.parse(orphanFailure.rawBody)
+  check("Callback d'échec depuis une branche aval : runId et callbackUrl viennent du webhook",
+    orphanBody.runId === RUN && typeof orphanFailure.callbackUrl === "string" && orphanFailure.callbackUrl.length > 0)
 
   // ── Skip Discovery ────────────────────────────────────────────────────────
   await runCode("Skip Discovery", sectorRegistry, {})
