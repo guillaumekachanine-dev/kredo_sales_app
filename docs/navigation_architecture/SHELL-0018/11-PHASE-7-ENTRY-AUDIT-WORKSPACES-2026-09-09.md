@@ -189,7 +189,7 @@ Les 3 modules sont **déjà `REUSE` complet** — le lot 7.1 ne fait que **renom
 | Module | `simulation` « Simulation devis » | Simulation financière | RENAME | idem | DATA-0 | label | NO IMPACT | — | 7.1 |
 | Module | `post-mortem` « Post-Mortem » | Revue post-mortem | RENAME | idem | DATA-0 | label | NO IMPACT | — | 7.1 |
 
-**Statut : `READY WITH REBASELINE`** (attend l'intégration de la refonte Synthèse Opportunités).
+**Statut : ✅ `IMPLEMENTED / PASS` (2026-09-10)** (7 renames livrés, DATA-0, URL-0, Mobile NO IMPACT, blocker levé, Synthèse Desktop intégrée au Lot 4, Opportunities Lot 12 UNBLOCKED / READY).
 Complexité **LOW** (7 renames purs, 0 Data).
 
 ---
@@ -762,17 +762,16 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 > (§2), création de route/pathname, migration de schéma, modification Mobile non justifiée,
 > composant Desktop chargé pour être masqué en CSS, bouton mort pour une capacité `NEW/FUTURE`.
 
-### 7.1 — Opportunités
+### 7.1 — Opportunités — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** aligner labels chapitres/modules sur 09 §B.1 (7 RENAME).
 - **Data :** DATA-0.
 - **Desktop :** `opportunities-sections.ts` (`OPPORTUNITIES_SECTIONS`, `HEADER_TITLE_BY_SECTION`),
   `opportunities-modules.ts` (`OPPORTUNITIES_MODULE_LABELS`).
-- **Mobile :** vérifier si un libellé de section apparaît côté mobile → `LABEL SYNC` sinon `NO IMPACT`.
+- **Mobile :** `NO IMPACT` (aucun libellé desktop concerné affiché par le mobile).
 - **Routing :** URL-0 (clés `synthese/besoins/avant-vente/planning`, `matching/simulation/post-mortem` inchangées).
-- **Tests :** `opportunities-sections.test.ts`, `opportunities-modules-reuse.test.ts` (adapter labels).
-- **DoD :** 4 chapitres + 3 modules renommés ; 0 changement de clé URL ; tests verts ; `synthese`
-  non touché tant que la refonte Synthèse n'est pas mergée.
-- **Dependencies :** rebaseline refonte Synthèse Opportunités. **Puis** Opportunities Lot 12.
+- **Tests :** `opportunities-sections.test.ts`, `opportunities-modules.test.ts` (labels cibles + cohérence rail/header).
+- **DoD :** 4 chapitres + 3 modules renommés ; 0 changement de clé URL ; tests verts ; Synthèse Desktop déjà intégrée au Lot 4 (blocker levé) ; Opportunities Lot 12 UNBLOCKED / READY.
+- **✅ Livré (2026-09-10) :** `OPPORTUNITIES_SECTIONS` et `HEADER_TITLE_BY_SECTION` alignés sur « Vue d'ensemble », « Besoins & Staffing », « Avant-vente Projets », « Planning & Échéances » ; `OPPORTUNITIES_MODULE_LABELS` alignés sur « Matching profils », « Simulation financière », « Revue post-mortem » ; clés techniques inchangées ; DATA-0 / URL-0 ; Opportunities Lot 12 → `UNBLOCKED / READY`.
 
 ### 7.2 — Consultants — ✅ IMPLEMENTED / PASS (2026-09-09)
 - **Objectif :** 3 RENAME + `pool-competences` chapitre → module (TRANSFORM), code `skills/` conservé.
@@ -853,13 +852,13 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **Objectif :** RENAME `knowledge` → « Connaissance » ; intégrer `Gestion de la connaissance` et `Analyse transverse` dans le `SectionRail` ; supprimer le bouton header redondant « Générer une analyse » ; préserver les listeners et contrats.
 - **Data :** DATA-0. **Routing :** URL-0. **Mobile :** `NO IMPACT`.
 - **DoD :** label aligné ; modules contextuels `Gestion de la connaissance` et `Analyse transverse` reliés aux composants réels (`ManageCollectionsDesktop` et `WatchAnalysisComposerDesktop`) ; exclusion mutuelle et états actifs gérés ; Cockpit Intelligence intact via `WATCH_ANALYSIS_COMPOSER_EVENT` ; suppression bouton header.
-- **✅ Livré (2026-09-10) :** Chapitre `knowledge` renommé en « Connaissance » ; clés techniques inchangées ; `contextualModules` intègre `knowledge-management` et `transverse-analysis` sans bouton mort ; état actif synchronisé ; action header redondante supprimée ; DATA-0 / URL-0.
+- **✅ Livré (2026-09-10) :** Chapitre `knowledge` renommé en « Connaissance » ; clés techniques inchangées ; `contextualModules` intègre `knowledge-management` et `transverse-analysis` sans bouton mort ; état actif synchronisé ; action header redondante supprimée ; DATA-0 / URL-0. Commit `958515e3` (`refactor(reports): align workspace target navigation`).
 
-### 7.7 — Veille & Actualités — UNBLOCKED / READY
+### 7.7 — Veille & Actualités — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** 2 RENAME (`news`, `watched-accounts`) ; modules « Gestion de la connaissance » (`ManageCollectionsDesktop`) et « Analyse transverse » (`WatchAnalysisComposerDesktop`) REUSE ; option module « Mission : analyse de la veille » (framework REUSE).
-- **Data :** DATA-0 (REUSE) / DATA-1 (mission).
+- **Data :** DATA-0 (REUSE) / DATA-1 (mission). **Routing :** URL-0. **Mobile :** `LABEL SYNC`.
 - **DoD :** labels alignés ; modules montés **sans duplication** ; `Mission : …` = `NEW/FUTURE` sauf si branché proprement.
-- **Dependencies :** 7.6 (prêt).
+- **✅ Livré (2026-09-10) :** Chapitres `Flux d'actualités` et `Comptes surveillés` ; IDs techniques `news` et `watched-accounts` inchangés ; `contextualModules` intègre `Gestion de la connaissance` et `Analyse transverse` sans bouton mort ; Mobile tabs synchronisés ; DATA-0 / URL-0. Commit `6ba72734` (`refactor(veille): align workspace target navigation`).
 
 ### 7.8 — Knowledge Hub — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** 2 RENAME de `title` (`expertise-kredo`, `internal-resources`).
@@ -867,7 +866,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 - **DoD :** `title` alignés ; **`id` de domaine inchangés** ; module Ateliers conservé (`KEEP`) ; module RAG reclassifié `DEFERRED / NEW-FUTURE` (non exposé au rail Desktop car capacité ask non fonctionnelle).
 - **✅ Livré (2026-09-10) :** `domains` / `mobileDomains` labels `Expertises KREDO` et `Ressources admin` ; IDs techniques `expertise-kredo` et `internal-resources` inchangés ; `workshops` / `mobileWorkshops` `mobilizedKnowledge` synchronisés ; `KredoExpertiseDesktop` / `KredoExpertiseMobile` / `KredoExpertiseNavigation` synchronisés ; 0 changement d'URL ; 0 changement Data. Commit `e49a4a9e` (`refactor(knowledge-hub): align workspace target navigation`).
 
-### 7.9 — Automatisations
+### 7.9 — Automatisations — ✅ IMPLEMENTED / PASS (2026-09-10)
 - **Objectif :** RENAME `sante` → « Fiabilité des workflows » (clé `sante` conservée) ; wiring des modules contextuels `Métriques` et `Simulateur de cadence` (`REUSE / EXISTING CAPABILITY`).
 - **Data :** DATA-0. **Routing :** URL-0. **Mobile :** `NO IMPACT`.
 - **DoD :** label aligné ; `?run=` préservé ; modules `Métriques` / `Simulateur de cadence` exposés via `SectionRail` et reliés à `AutomationMetricsModal` / `VeilleSimulatorModal` ; suppression des boutons redondants locaux.
@@ -884,7 +883,7 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 
 | Lot | Workspace | Complexité | Data | Desktop | Mobile | Dépendances | Rebaseline requis | Go |
 |---|---|---|---|---|---|---|---|---|
-| **7.1** | Opportunités | LOW | DATA-0 | 7 labels | LABEL SYNC (à confirmer) | refonte Synthèse parallèle | **OUI** | **YES AFTER REBASELINE** |
+| **7.1** | Opportunités | LOW | DATA-0 | 7 labels | NO IMPACT | refonte Synthèse parallèle | Non (levé) | ✅ **IMPLEMENTED / PASS** |
 | **7.2** | Consultants | MEDIUM | DATA-0 (cœur) | 3 labels + 1 TRANSFORM | SEPARATE IMPL. (pool) | — | Non | ✅ **IMPLEMENTED / PASS** (`bb2a3a4d`) |
 | **7.3A** | Rentabilité Data | HIGH | **DATA-2** | — | — | décision vue/builder | Non | **NO — DECISION REQUIRED** |
 | **7.3B** | Engagements | HIGH | DATA-1 | 1 TRANSFORM + 1 RENAME + modules | SEPARATE IMPL. | 7.3A | Non | NO (après 7.3A) |
@@ -892,13 +891,11 @@ La séquence 09 §E.2 (7.1 → 7.9) **reste valide**, avec ces ajustements :
 | **7.4** | Business Intelligence | LOW | DATA-0 | 3 labels | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`a9ac0d36`) |
 | **7.5** | Prospection | HIGH | DATA-1+ | REMOVE + RENAME + TRANSFORM (coquilles vides) | FUTURE | **décision produit** | Non | **NO — DECISION REQUIRED** |
 | **7.6** | Rapports | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`958515e3`) |
-| **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + modules REUSE | LABEL SYNC | 7.6 | Non | **UNBLOCKED / READY** |
+| **7.7** | Veille | MEDIUM | DATA-0 | 2 labels + modules REUSE | LABEL SYNC | 7.6 | Non | ✅ **IMPLEMENTED / PASS** (`6ba72734`) |
 | **7.8** | Knowledge Hub | LOW | DATA-0 | 2 labels | LABEL SYNC | — | Non | ✅ **IMPLEMENTED / PASS** (`e49a4a9e`) |
 | **7.9** | Automatisations | LOW | DATA-0 | 1 label + 2 modules REUSE | NO IMPACT | — | Non | ✅ **IMPLEMENTED / PASS** (`fab5d06f`) |
 
-**Go 7.1 :** `YES AFTER REBASELINE` — attendre l'intégration de la refonte Synthèse Opportunités
-dans `main`, ou un rebaseline explicite du chantier. Les 6 renames indépendants de 7.1 pourraient
-être exécutés avant, mais le lot est plus propre en une passe.
+**Go 7.1 :** ✅ `IMPLEMENTED / PASS` (2026-09-10) — Blocker levé (Synthèse intégrée au Lot 4), 7 renames livrés, Opportunities Lot 12 UNBLOCKED / READY.
 
 **Go 7.2 :** `YES` — aucun blocage, aucune dépendance. **Recommandé comme premier lot Phase 7
 exécutable** si 7.1 reste bloqué.
@@ -938,9 +935,9 @@ exécutable** si 7.1 reste bloqué.
 
 - ~~**Phase 7.2 — Alignement Consultants**~~ → ✅ **livré (2026-09-09)**. Consultants Lot 15 →
   ✅ **CLOSED (2026-09-10)** (workspace techniquement clos).
-- **Phase 7.1 — Alignement Opportunités** dès que `src/features/opportunities/summary/` est intégré
-  à `main` ou rebaseliné.
-- Suite Phase 7 : `7.4 → 7.8 → 7.9 → 7.6 → 7.7 → [7.1 dès rebaseline] → 7.3A → 7.3B → 7.3C → 7.5 → 7.10`.
+- ~~**Phase 7.1 — Alignement Opportunités**~~ → ✅ **livré (2026-09-10)**. Opportunities Lot 12 →
+  **UNBLOCKED / READY**.
+- Suite Phase 7 : `7.3A → 7.3B → 7.3C → 7.5 → 7.10`.
 
-Opportunities Lot 12 : **DEFERRED UNTIL TARGET-ALIGNMENT** (après 7.1). Consultants Lot 15 :
+Opportunities Lot 12 : **UNBLOCKED / READY** (après 7.1). Consultants Lot 15 :
 **CLOSED** (workspace techniquement clos).

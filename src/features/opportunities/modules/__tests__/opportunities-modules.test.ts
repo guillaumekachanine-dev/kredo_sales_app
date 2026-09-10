@@ -14,10 +14,12 @@ describe("modules — les 3 sont constamment disponibles (indépendants de l'ong
     expect([...OPPORTUNITIES_MODULE_KEYS]).toEqual(["matching", "simulation", "post-mortem"])
   })
 
-  it("chaque module a un libellé", () => {
-    for (const key of OPPORTUNITIES_MODULE_KEYS) {
-      expect(OPPORTUNITIES_MODULE_LABELS[key]).toBeTruthy()
-    }
+  it("chaque module a un libellé conforme à la cible", () => {
+    expect(OPPORTUNITIES_MODULE_LABELS).toEqual({
+      matching: "Matching profils",
+      simulation: "Simulation financière",
+      "post-mortem": "Revue post-mortem",
+    })
   })
 })
 

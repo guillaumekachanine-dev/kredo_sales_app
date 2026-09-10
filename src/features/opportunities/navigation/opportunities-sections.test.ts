@@ -135,16 +135,20 @@ describe("opportunities-sections — contrat de navigation", () => {
   })
 
   describe("OPPORTUNITIES_SECTIONS", () => {
-    it("liste les 4 chapitres dans l'ordre canonique", () => {
-      expect(OPPORTUNITIES_SECTIONS.map((entry) => entry.key)).toEqual(ALL_SECTIONS)
+    it("liste les 4 chapitres dans l'ordre canonique avec les labels cibles", () => {
+      expect(OPPORTUNITIES_SECTIONS.map(({ key, label }) => ({ key, label }))).toEqual([
+        { key: "synthese", label: "Vue d'ensemble" },
+        { key: "besoins", label: "Besoins & Staffing" },
+        { key: "avant-vente", label: "Avant-vente Projets" },
+        { key: "planning", label: "Planning & Échéances" },
+      ])
       expect([...OPPORTUNITIES_SECTION_KEYS]).toEqual(ALL_SECTIONS)
     })
 
-    it("expose un libellé de header pour chaque chapitre", () => {
-      for (const section of ALL_SECTIONS) {
-        expect(HEADER_TITLE_BY_SECTION[section]).toBeTruthy()
+    it("expose un libellé de header cohérent avec le rail pour chaque chapitre", () => {
+      for (const entry of OPPORTUNITIES_SECTIONS) {
+        expect(HEADER_TITLE_BY_SECTION[entry.key]).toBe(entry.label)
       }
-      expect(HEADER_TITLE_BY_SECTION.besoins).toBe("Besoins & staffing")
     })
 
     it("garde synthese comme racine canonique", () => {
@@ -174,10 +178,10 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
   })
 
   it("affiche dans le header le libellé exact du chapitre actif", () => {
-    expect(render("synthese")).toContain("Synthèse")
-    expect(render("besoins")).toContain("Besoins &amp; staffing")
-    expect(render("avant-vente")).toContain("Avant-vente")
-    expect(render("planning")).toContain("Planning")
+    expect(render("synthese")).toContain("Vue d&#x27;ensemble")
+    expect(render("besoins")).toContain("Besoins &amp; Staffing")
+    expect(render("avant-vente")).toContain("Avant-vente Projets")
+    expect(render("planning")).toContain("Planning &amp; Échéances")
   })
 
   it("rend les 4 chapitres avec leurs href ?section= (racine sans paramètre)", () => {
@@ -185,7 +189,7 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
     expect(markup).toContain('href="/missions/opps?section=besoins"')
     expect(markup).toContain('href="/missions/opps?section=avant-vente"')
     expect(markup).toContain('href="/missions/opps?section=planning"')
-    // Le chapitre racine « Synthèse » pointe vers /missions/opps sans ?section=
+    // Le chapitre racine « Vue d'ensemble » pointe vers /missions/opps sans ?section=
     expect(markup).toContain('href="/missions/opps"')
   })
 
@@ -203,9 +207,9 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
     for (const section of ["synthese", "besoins", "avant-vente", "planning"] as const) {
       const markup = render(section)
       expect(markup).toContain(">Modules<")
-      expect(markup).toContain("Matching profil")
-      expect(markup).toContain("Simulation devis")
-      expect(markup).toContain("Post-Mortem")
+      expect(markup).toContain("Matching profils")
+      expect(markup).toContain("Simulation financière")
+      expect(markup).toContain("Revue post-mortem")
     }
   })
 
@@ -219,7 +223,7 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
   it("marque le module actif avec aria-current=page", () => {
     const markup = render("synthese", "module=post-mortem")
     expect(markup).toContain('aria-current="page"')
-    expect(markup).toContain("Post-Mortem")
+    expect(markup).toContain("Revue post-mortem")
   })
 })
 

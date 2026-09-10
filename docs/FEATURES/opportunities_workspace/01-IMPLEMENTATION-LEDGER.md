@@ -6,13 +6,13 @@
 
 ```
 Chantier                      : Opportunities Workspace  (nom produit affiché : Opportunités)
-Statut global                 : cadré
+Statut global                 : cadré (Lots 1→11 livrés, Phase 7.1 livrée, Lot 12 unblocked)
 Branche                       : main   (branche unique — aucune feature branch)
 Baseline initiale             : 61aba08ee1b35f848d223f96e08a1e1a624545ec
-Dernier lot livré             : Lot 11 — Legacy / compatibilité / navigation globale
+Dernier lot livré             : Phase 7.1 — Alignement fonctionnel Opportunities Workspace
 Lot courant                   : aucun
-Prochain lot                  : Lot 12 — Nettoyage et clôture
-Dernier SHA connu origin/main : 04cbf1e6
+Prochain lot                  : Lot 12 — Nettoyage et clôture (UNBLOCKED / READY)
+Dernier SHA connu origin/main : 0f0254af
 ```
 
 ## Table des lots
@@ -34,7 +34,8 @@ Statuts autorisés : `⬜ todo` · `🟡 en cours` · `✅ techniquement livré`
 | 9 | Planning Desktop | ✅ techniquement livré | `d94a1b16` | `OpportunitiesTriPanel` : liste des opportunités ouvertes │ milestone planning central `Mois \| Année` │ détail contextuel. Builder `OpportunityDeadline` unique, sélection `?opp=`, ligne Aujourd’hui, formes + couleurs par source, navigation de période. **OPP-29.** Mobile inchangé. |
 | 10 | Modules existants (Matching profil, Simulation devis, Post-Mortem) | ✅ techniquement livré | `a965a94c` + correction | `src/features/opportunities/modules/` : contrat `?module=` + 3 wrappers REUSE-only (`MatchingDialog` · `FinancialModelingDesktopDialog` · `MissionComposerDesktop`/`post-mortem-commercial`) + `OpportunitiesModulesHost` (dialogs lazy). **Les 3 modules sont constamment visibles sur tous les chapitres** (indépendants de l'onglet). **Résout CROSS-01/02/03 → OPP-30.** `Modélisation de CA` non affichée (OPP-11). Aucune Data, aucune migration. |
 | 11 | Legacy / compatibilité / navigation globale | ✅ techniquement livré | coordonné SHELL 6.3 | Redirection `/staffing` vers `?section=besoins`, `main-menu` « Opportunités », retrait tabs Desktop Engagements, deep-links canoniques `/missions?vue=`, retrait `useSidebarCollapse` dans OpportunitiesDesktopShell. **Coord. SHELL-0018 Phase 6.3.** |
-| 12 | Nettoyage et clôture | ⬜ todo | — | Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
+| 7.1 | Phase 7.1 — Alignement fonctionnel Opportunities Workspace | ✅ techniquement livré | à venir | 7 renames : Synthèse → Vue d'ensemble, Besoins & staffing → Besoins & Staffing, Avant-vente → Avant-vente Projets, Planning → Planning & Échéances, Matching profil → Matching profils, Simulation devis → Simulation financière, Post-Mortem → Revue post-mortem. DATA-0, URL-0, Mobile NO IMPACT. Synthèse Desktop déjà intégrée (Lot 4). Blocker levé. |
+| 12 | Nettoyage et clôture | ⬜ unblocked / ready | — | UNBLOCKED / READY suite à la livraison du Lot 7.1. Rapport `02-CLOSURE-AUDIT.md`. Statut global → « techniquement close ». |
 
 ## Décisions actées (miroir du DECISION LOG — détail dans le doc canonique § 16)
 
@@ -266,6 +267,32 @@ Consignées **avant** modification du code, conformément au protocole § 20.1.
    Le chapitre `besoins` monte le même composant avec les mêmes données.
 
 ## Journal des lots
+
+### Phase 7.1 — Alignement fonctionnel Opportunities Workspace — ✅ techniquement livré (2026-09-10)
+
+- **Objectif** : aligner le workspace `/missions/opps` sur la cible canonique Phase 7 (SHELL-0018 09-TARGET § B.1) :
+  - Renommage des 4 chapitres Desktop :
+    - `synthese` : « Synthèse » → **« Vue d'ensemble »** ;
+    - `besoins` : « Besoins & staffing » → **« Besoins & Staffing »** ;
+    - `avant-vente` : « Avant-vente » → **« Avant-vente Projets »** ;
+    - `planning` : « Planning » → **« Planning & Échéances »**.
+  - Renommage des 3 modules contextuels Desktop :
+    - `matching` : « Matching profil » → **« Matching profils »** ;
+    - `simulation` : « Simulation devis » → **« Simulation financière »** ;
+    - `post-mortem` : « Post-Mortem » → **« Revue post-mortem »**.
+  - Cohérence garantie : `HEADER_TITLE_BY_SECTION[key] === entry.label` pour chaque chapitre.
+  - Immutabilité stricte des clés techniques (`OpportunitiesSection`, `OpportunitiesModule`), de la racine (`synthese`), des contrats URL (`?section=`, `?module=`, `?opp=`, compat `?scope=`).
+  - Aucun changement Data (DATA-0), aucun changement Supabase, aucun changement n8n.
+  - Mobile : aucun composant mobile modifié (`NO IMPACT`).
+  - Blocker Summary : levé (SummaryDesktop et getOpportunitiesSynthese intégrés au Lot 4).
+  - Lot 12 : passe au statut **UNBLOCKED / READY**.
+
+- **Fichiers modifiés** :
+  - `src/features/opportunities/navigation/opportunities-sections.ts` — labels chapitres et header.
+  - `src/features/opportunities/modules/opportunities-modules.ts` — labels modules contextuels.
+  - `src/features/opportunities/navigation/opportunities-sections.test.ts` — tests chapitres, labels header, rendu shell.
+  - `src/features/opportunities/modules/__tests__/opportunities-modules.test.ts` — tests labels modules.
+  - Documentation : `README.md`, `01-IMPLEMENTATION-LEDGER.md`, `docs/navigation_architecture/SHELL-0018/11-PHASE-7-ENTRY-AUDIT-WORKSPACES-2026-09-09.md`, `03-IMPLEMENTATION-LEDGER.md`.
 
 ### Lot 11 — Legacy / compatibilité / navigation globale — ✅ techniquement livré (2026-09-09)
 

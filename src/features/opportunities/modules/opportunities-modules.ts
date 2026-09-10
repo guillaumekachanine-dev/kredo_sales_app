@@ -46,9 +46,9 @@ export const OPPORTUNITIES_MODULE_KEYS = [
 const MODULE_KEY_SET = new Set<string>(OPPORTUNITIES_MODULE_KEYS)
 
 export const OPPORTUNITIES_MODULE_LABELS: Record<OpportunitiesModule, string> = {
-  matching: "Matching profil",
-  simulation: "Simulation devis",
-  "post-mortem": "Post-Mortem",
+  matching: "Matching profils",
+  simulation: "Simulation financière",
+  "post-mortem": "Revue post-mortem",
 }
 
 type RawSearchParams = URLSearchParams | Record<string, string | string[] | undefined>

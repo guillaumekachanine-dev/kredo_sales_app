@@ -2560,3 +2560,51 @@ Mobile stub (7.5) · clés de query non alignées sur les labels (ne pas renomme
 ### Verdict
 
 - **Lot 7.7 — ✅ livré.** Commit : `6ba72734` — `refactor(veille): align workspace target navigation`. Push sur `origin/main`.
+
+---
+
+## 47. Lot 7.1 — Alignement Opportunités sur l'architecture cible
+
+> **Statut : ✅ techniquement livré (2026-09-10).** Baseline `0f0254af` (`HEAD == origin/main`).
+> Cible : `09-*` §B.1 / §C.1. Plan d'exécution : `11-*` §4 / §19 (§7.1).
+
+### Portée livrée
+
+| Niveau | CURRENT | TARGET | Traitement |
+|---|---|---|---|
+| Chapitre Desktop | `synthese` « Synthèse » | **Vue d'ensemble** | RENAME (clé technique `synthese` conservée) |
+| Chapitre Desktop | `besoins` « Besoins & staffing » | **Besoins & Staffing** | RENAME (casse, clé `besoins` conservée) |
+| Chapitre Desktop | `avant-vente` « Avant-vente » | **Avant-vente Projets** | RENAME (clé `avant-vente` conservée) |
+| Chapitre Desktop | `planning` « Planning » | **Planning & Échéances** | RENAME (clé `planning` conservée) |
+| Module Desktop | `matching` « Matching profil » | **Matching profils** | RENAME (clé `matching` conservée) |
+| Module Desktop | `simulation` « Simulation devis » | **Simulation financière** | RENAME (clé `simulation` conservée) |
+| Module Desktop | `post-mortem` « Post-Mortem » | **Revue post-mortem** | RENAME (clé `post-mortem` conservée) |
+
+### Architecture
+
+- **Source unique de vérité chapitres** : `OPPORTUNITIES_SECTIONS` et `HEADER_TITLE_BY_SECTION` dans `src/features/opportunities/navigation/opportunities-sections.ts` alignés sur les 4 libellés cibles. Test d'isomorphisme strict garantissant `HEADER_TITLE_BY_SECTION[key] === entry.label`.
+- **Source unique de vérité modules** : `OPPORTUNITIES_MODULE_LABELS` dans `src/features/opportunities/modules/opportunities-modules.ts` aligné sur les 3 libellés cibles (`Matching profils`, `Simulation financière`, `Revue post-mortem`).
+- **Modules contextuels SectionRail** : `OpportunitiesDesktopShell` dérive les 3 modules constants sans altération de comportement ni duplication de composants.
+- **Réutilisation des capacités existantes** : `MatchingDialog` (`@/components/staffing/matching/MatchingDialog`), `FinancialModelingDesktopDialog` (`@/features/financial-modeling`), `MissionComposerDesktop` + `POST_MORTEM_PIPELINE_MISSION_COMPOSER_CONFIG`. 0 nouvelle modale, 0 composant dupliqué, 0 webhook n8n.
+- **Synthèse Desktop** : Composant `SummaryDesktop` et loader `getOpportunitiesSynthese` intacts, livrés au Lot 4. Blocker d'alignement formellement levé.
+- **Mobile** : **NO IMPACT**. Branche Mobile dédiée `NeedsStaffingWorkspace` isolée côté serveur via `getDashboardDevice()`. Aucun libellé Desktop concerné n'est rendu côté mobile.
+
+### Routing / Data / Invariants
+
+- **Routing** : **URL-0**. Pathname canonique `/missions/opps` (racine `synthese` sans paramètre), `?section=besoins|avant-vente|planning`, `?module=matching|simulation|post-mortem`, sélection `?opp=`, compat d'entrée `?scope=needs|staffing` → `besoins`.
+- **Data** : **DATA-0**. Aucune modification de table, vue, loader, action, RPC, schéma Supabase ou workflow n8n.
+- **Invariant KANBAN-001** : 0 réintroduction Kanban.
+- **Opportunities Lot 12** : passe au statut **UNBLOCKED / READY**.
+
+### Gates
+
+- `rm -rf .next && npm run typecheck` → **PASS**
+- `npm test` → **PASS** (18 fichiers / 150 tests sur Opportunities, suite complète)
+- `npm run check:server-boundary` → **PASS**
+- `npx eslint` (fichiers modifiés) → **PASS**
+- `npm run build` → **PASS**
+- `git diff --check` → **PASS**
+
+### Verdict
+
+- **Lot 7.1 — ✅ livré.**

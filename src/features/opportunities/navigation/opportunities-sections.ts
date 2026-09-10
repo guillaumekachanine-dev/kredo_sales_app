@@ -59,10 +59,10 @@ export const LEGACY_NEEDS_STAFFING_QUERY_KEYS = [
 
 /** Libellé affiché dans le header de la zone principale (jamais dans le chapeau). */
 export const HEADER_TITLE_BY_SECTION: Record<OpportunitiesSection, string> = {
-  synthese: "Synthèse",
-  besoins: "Besoins & staffing",
-  "avant-vente": "Avant-vente",
-  planning: "Planning",
+  synthese: "Vue d'ensemble",
+  besoins: "Besoins & Staffing",
+  "avant-vente": "Avant-vente Projets",
+  planning: "Planning & Échéances",
 }
 
 export interface OpportunitiesSectionEntry {
@@ -71,10 +71,10 @@ export interface OpportunitiesSectionEntry {
 }
 
 export const OPPORTUNITIES_SECTIONS: readonly OpportunitiesSectionEntry[] = [
-  { key: "synthese", label: "Synthèse" },
-  { key: "besoins", label: "Besoins & staffing" },
-  { key: "avant-vente", label: "Avant-vente" },
-  { key: "planning", label: "Planning" },
+  { key: "synthese", label: "Vue d'ensemble" },
+  { key: "besoins", label: "Besoins & Staffing" },
+  { key: "avant-vente", label: "Avant-vente Projets" },
+  { key: "planning", label: "Planning & Échéances" },
 ]
 
 type RawSearchParams = URLSearchParams | Record<string, string | string[] | undefined>

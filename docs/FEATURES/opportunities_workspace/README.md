@@ -31,12 +31,12 @@ C'est d'abord un **changement de workspace et de navigation**, pas une migration
 ```
 Chapeau : Opportunités                → /missions/opps
 Chapitres :
-  1. Synthèse           (racine, sans paramètre)   — surface analytique pleine largeur
-  2. Besoins & staffing (?section=besoins)          — Liste / Détail besoin / Staffing en cours
-  3. Avant-vente        (?section=avant-vente)      — Liste / Vue principale / Détails (EmptyState V1)
-  4. Planning           (?section=planning)         — Liste opps / Planning / Détails opp
+  1. Vue d'ensemble     (racine, sans paramètre)   — surface analytique pleine largeur
+  2. Besoins & Staffing (?section=besoins)          — Liste / Détail besoin / Staffing en cours
+  3. Avant-vente Projets (?section=avant-vente)      — Liste / Vue principale / Détails (EmptyState V1)
+  4. Planning & Échéances (?section=planning)       — Liste opps / Planning / Détails opp
 Modules (bas du SectionRail, uniquement si réellement disponibles) :
-  Matching profil · Simulation devis · Post-Mortem
+  Matching profils · Simulation financière · Revue post-mortem
   (Modélisation de CA : Future capability — NON affichée — OPP-11)
 ```
 
