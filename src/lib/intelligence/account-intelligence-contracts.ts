@@ -385,6 +385,35 @@ export type AccountKnowledgeCoverageV4 = {
   external_pages_fetched: number
 }
 
+/**
+ * Lot 0 — axiome A2 : « rien n'est publié comme *su* sans avoir été lu ».
+ *
+ * `nominal`       au moins un document externe a été réellement récupéré et cité ;
+ * `degraded`      des pages ont été sélectionnées, AUCUNE n'a pu être lue —
+ *                 c'est l'état des 4 runs V4 de production (external_pages_fetched = 0),
+ *                 publiés `succeeded` sans que rien à l'écran ne le signale ;
+ * `internal_only` aucune recherche externe n'était demandée (L1 sur compte renseigné).
+ *
+ * `degraded` et `internal_only` produisent le MÊME artefact structurellement, mais pas
+ * le même statut : le premier est un échec de collecte, le second un choix de niveau.
+ * Les confondre est exactement ce qui rendait le défaut invisible.
+ */
+export type AccountKnowledgeResearchStatusV4 =
+  | "nominal"
+  | "degraded"
+  | "internal_only"
+
+export type AccountKnowledgeAnchoringV4 = {
+  /** Documents externes réellement lus ET cités par au moins un statement. */
+  external_documents_used: number
+  statements_total: number
+  /** Statements dont au moins une source_ref désigne un document externe (INV-1). */
+  statements_externally_anchored: number
+  /** statements_externally_anchored / statements_total, 0 si aucun statement. */
+  anchoring_ratio: number
+  research_status: AccountKnowledgeResearchStatusV4
+}
+
 export interface AccountKnowledgeContentV4 {
   schema_version: 4
   entity_resolution: EntityResolutionSnapshot
@@ -392,7 +421,74 @@ export interface AccountKnowledgeContentV4 {
   sources: AccountKnowledgeSourceV4[]
   knowledge_gaps: AccountKnowledgeGapV4[]
   coverage: AccountKnowledgeCoverageV4
+  /**
+   * OPTIONNEL par nécessité, pas par tolérance : les 4 artefacts V4 produits avant le
+   * Lot 0 n'en portent pas. Ne jamais lire ce champ directement — passer par
+   * `resolveAccountKnowledgeAnchoring()`, qui reconstruit une valeur honnête pour le
+   * legacy au lieu de laisser l'appelant conclure « pas d'info = tout va bien ».
+   */
+  anchoring?: AccountKnowledgeAnchoringV4
   generated_at: string
+}
+
+/**
+ * Identifiants de sources internes agrégées — INV-2 du contrat épistémique.
+ *
+ * Ce ne sont PAS des sources : ce sont des seaux de contexte. `internal:facts:<companyId>`
+ * ne désigne aucun fait en particulier. Les citer ne prouve rien, et le garde-fou V4
+ * (« toute affirmation non-hypothesis sans référence autorisée est rétrogradée ») est
+ * satisfait en les citant — c'est ainsi que 10 statements `declared` du run Tournaire
+ * s'adossent à une étude FOLIO de deux ans en affichant une puce « Source ».
+ */
+export const INTERNAL_SOURCE_ID_PREFIX = "internal:" as const
+
+export function isInternalAggregateSourceId(sourceId: string): boolean {
+  return sourceId.startsWith(INTERNAL_SOURCE_ID_PREFIX)
+}
+
+/**
+ * Reconstruit l'ancrage d'un artefact V4, qu'il porte ou non le champ `anchoring`.
+ *
+ * Pour le legacy, la reconstruction est possible sans migration parce que
+ * `coverage.external_pages_fetched` existe depuis l'origine et que `sources[]` porte
+ * l'`url` : un artefact à 0 page lue est `degraded`, et ses statements ne peuvent être
+ * ancrés que sur des seaux internes — ce que la fonction compte réellement plutôt que
+ * de le supposer.
+ */
+export function resolveAccountKnowledgeAnchoring(
+  content: AccountKnowledgeContentV4
+): AccountKnowledgeAnchoringV4 {
+  if (content.anchoring) return content.anchoring
+
+  const externalSourceIds = new Set(
+    (content.sources ?? [])
+      .filter((source) => !isInternalAggregateSourceId(source.id) && Boolean(source.url))
+      .map((source) => source.id)
+  )
+
+  const statements = (content.sections ?? []).flatMap((section) => section.statements ?? [])
+  const anchored = statements.filter((statement) =>
+    (statement.source_refs ?? []).some((ref) => externalSourceIds.has(ref))
+  )
+
+  const citedExternalIds = new Set(
+    statements.flatMap((statement) =>
+      (statement.source_refs ?? []).filter((ref) => externalSourceIds.has(ref))
+    )
+  )
+
+  const pagesFetched = content.coverage?.external_pages_fetched ?? 0
+
+  return {
+    external_documents_used: citedExternalIds.size,
+    statements_total: statements.length,
+    statements_externally_anchored: anchored.length,
+    anchoring_ratio: statements.length === 0 ? 0 : anchored.length / statements.length,
+    // Un artefact legacy sans page lue est `degraded`, jamais `internal_only` : on ne
+    // peut pas savoir rétroactivement si la recherche externe avait été demandée, et
+    // l'hypothèse prudente est celle qui alerte.
+    research_status: pagesFetched > 0 ? "nominal" : "degraded",
+  }
 }
 
 /** Union de lecture — toujours discriminée par `schema_version`. */
