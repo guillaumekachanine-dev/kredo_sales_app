@@ -143,7 +143,33 @@ export type SectorCompanySource = {
   name: string
   legalName: string | null
   segment: string | null
-  metadata: unknown
+  /**
+   * Alias déclarés dans `companies.metadata`, **projetés en SQL** clé par clé
+   * plutôt que rapatriés sous forme de blob.
+   *
+   * Le blob complet pesait 318 Ko pour 10 comptes (14 Ko/ligne en moyenne) à
+   * chaque ouverture de fiche compte, pour alimenter uniquement les cinq champs
+   * ci-dessous — et aucune des 112 lignes de `companies` n'en porte un seul
+   * aujourd'hui (vérifié en base le 2026-09-10, aucun producteur non plus).
+   * La projection PostgREST ramène la même information en 2 Ko.
+   * Voir docs/performance-data-audit, constat F-2.
+   */
+  aliasSources: SectorCompanyAliasSources
+}
+
+export type SectorCompanyAliasSources = {
+  /** `metadata->aliases` — tableau ou valeur unique. */
+  aliases: unknown
+  /** `metadata->alternate_names` — repli historique de `aliases`. */
+  alternateNames: unknown
+  /** `metadata->>legal_name` */
+  legalName: string | null
+  /** `metadata->>company_name` */
+  companyName: string | null
+  /** `metadata->identite->>raison_sociale` */
+  raisonSociale: string | null
+  /** `metadata->identite->>nom` */
+  identiteNom: string | null
 }
 
 export type SectorPainPointSource = {
@@ -417,15 +443,15 @@ function mergeActors(actors: MutableActor[]): MutableActor[] {
   return [...byName.values()]
 }
 
-function metadataAliases(metadata: unknown): string[] {
-  const root = asRecord(metadata)
-  const identity = asRecord(root.identite ?? root.identity)
+// Mêmes cinq sources qu'auparavant, dans le même ordre de priorité — mais lues
+// sur des champs projetés en SQL au lieu d'un blob JSON rapatrié en entier.
+function metadataAliases(sources: SectorCompanyAliasSources): string[] {
   return uniqueText([
-    ...textList(root.aliases ?? root.alternate_names),
-    root.legal_name,
-    root.company_name,
-    identity.raison_sociale,
-    identity.nom,
+    ...textList(sources.aliases ?? sources.alternateNames),
+    sources.legalName,
+    sources.companyName,
+    sources.raisonSociale,
+    sources.identiteNom,
   ])
 }
 
@@ -437,7 +463,7 @@ export function matchKredoAccountsToActors(
   const result = actors.map((actor) => ({ ...actor, companyIds: [...actor.companyIds] }))
 
   for (const company of companies) {
-    const aliases = uniqueText([company.name, company.legalName, ...metadataAliases(company.metadata)])
+    const aliases = uniqueText([company.name, company.legalName, ...metadataAliases(company.aliasSources)])
       .map(normalizeEntityName)
       .filter(Boolean)
     const matchingIndexes = result.flatMap((actor, index) => aliases.includes(normalizeEntityName(actor.name)) ? [index] : [])
@@ -730,7 +756,14 @@ export function buildFolioFallbackSectorView(input: {
       name: input.companyName,
       legalName: null,
       segment: input.companySegment,
-      metadata: {},
+      aliasSources: {
+        aliases: null,
+        alternateNames: null,
+        legalName: null,
+        companyName: null,
+        raisonSociale: null,
+        identiteNom: null,
+      },
     }],
     painPoints: [],
     regulatoryItems: [],

@@ -1,19 +1,21 @@
 import "server-only"
 
-import { createClient } from "@/lib/supabase/server"
+import { getRequestClient } from "@/lib/supabase/server"
+import { getAccountCompanyRow } from "@/lib/intelligence/account-company-row"
 import { normalizeCompanyRelationType } from "@/lib/accounts-contacts/company-constants"
 import type { AccountIntelligenceHomeFinancials } from "@/lib/intelligence/account-intelligence-home-contract"
 
 export async function getAccountIntelligenceHomeFinancials(
   companyId: string,
 ): Promise<AccountIntelligenceHomeFinancials> {
-  const supabase = await createClient()
-
-  const { data: company, error: companyError } = await supabase
-    .from("companies")
-    .select("relation_type")
-    .eq("id", companyId)
-    .maybeSingle()
+  // Fiche compte mutualisée (constat F-1a) : `relation_type` faisait à lui seul
+  // un aller-retour isolé, une vague après tous les autres.
+  const [supabase, companyResult] = await Promise.all([
+    getRequestClient(),
+    getAccountCompanyRow(companyId),
+  ])
+  const company = companyResult.data
+  const companyError = companyResult.error
 
   if (companyError) {
     console.error("Unable to load Account Intelligence relation type:", companyError)

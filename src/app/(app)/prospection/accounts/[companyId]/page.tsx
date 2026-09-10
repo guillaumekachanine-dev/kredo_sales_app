@@ -15,11 +15,19 @@ export default async function ClientIntelligencePage({
 }) {
   const { companyId } = await params
 
-  const [device, result, panelResult, financialReference] = await Promise.all([
-    getDashboardDevice(),
+  // `getDashboardDevice()` est une lecture d'en-tête mémoïsée : zéro réseau.
+  // L'attendre en premier permet de faire partir les agrégats portefeuille dans
+  // la MÊME vague que le reste, au lieu d'une vague supplémentaire après coup
+  // (constat F-1a : c'était la 5e et dernière vague de la page).
+  const device = await getDashboardDevice()
+
+  const [result, panelResult, financialReference, homeFinancials] = await Promise.all([
     getClientIntelligence(companyId),
     getAccountIntelligencePanelData(companyId),
     getActiveFinancialReferenceByCompanyId(companyId),
+    // Les agrégats portefeuille servent uniquement au template desktop : ne pas
+    // charger ce read-model supplémentaire sur mobile.
+    device === "mobile" ? Promise.resolve(null) : getAccountIntelligenceHomeFinancials(companyId),
   ])
 
   if (!result.data) {
@@ -28,12 +36,6 @@ export default async function ClientIntelligencePage({
     }
     notFound()
   }
-
-  // Les agrégats portefeuille servent uniquement au template desktop : ne pas
-  // charger ce read-model supplémentaire sur mobile.
-  const homeFinancials = device === "mobile"
-    ? null
-    : await getAccountIntelligenceHomeFinancials(companyId)
 
   return (
     <>

@@ -22,8 +22,12 @@ const state = vi.hoisted(() => ({
   companiesByMacro: [] as Row[],
 }))
 
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({
+// `getRequestClient` est le `cache(createClient)` exporté par `server.ts` depuis
+// l'audit performance : le module sous test et `sector-knowledge-resolved` (qui
+// porte désormais la lecture de `v_sector_knowledge_resolved`, mutualisée) le
+// consomment tous les deux. Le double export garde le harnais aligné.
+vi.mock("@/lib/supabase/server", () => {
+  const makeClient = async () => ({
     from(table: string) {
       let eqColumn: string | null = null
       const resolveResult = () => {
@@ -43,14 +47,20 @@ vi.mock("@/lib/supabase/server", () => ({
           return builder
         },
         order: () => builder,
+        returns: () => builder,
         maybeSingle: async () => resolveResult(),
         then: (onOk: (value: unknown) => unknown, onErr?: (reason: unknown) => unknown) =>
           Promise.resolve(resolveResult()).then(onOk, onErr),
       }
       return builder
     },
-  })),
-}))
+  })
+
+  return {
+    createClient: vi.fn(makeClient),
+    getRequestClient: vi.fn(makeClient),
+  }
+})
 
 import { getSectorSnapshot, PEER_SEGMENT_MIN } from "./sector-snapshot-data"
 

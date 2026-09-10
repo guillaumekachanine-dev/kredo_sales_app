@@ -158,6 +158,19 @@ describe("toEffectiveSectorRow", () => {
     playbook: { personas: ["DSI"] },
     playbook_level: "macro",
     has_segment_knowledge: false,
+    // Colonnes ajoutées par la mutualisation de la lecture de
+    // `v_sector_knowledge_resolved` (constat F-1b) : `toEffectiveSectorRow` ne
+    // les lit pas, elles complètent seulement le type de ligne.
+    description: null,
+    attractiveness_score: null,
+    market_size_eur_bn: null,
+    market_growth_pct: null,
+    key_players_paca: null,
+    key_players_national: null,
+    description_level: "macro",
+    attractiveness_score_level: "macro",
+    market_size_eur_bn_level: "macro",
+    market_growth_pct_level: "macro",
     ...overrides,
   }) as Parameters<typeof toEffectiveSectorRow>[0]
 

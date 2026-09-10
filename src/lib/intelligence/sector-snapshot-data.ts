@@ -1,6 +1,7 @@
 import "server-only"
 
-import { createClient } from "@/lib/supabase/server"
+import { getRequestClient } from "@/lib/supabase/server"
+import { getSectorKnowledgeResolved } from "@/lib/intelligence/sector-knowledge-resolved"
 import {
   buildClientIntelligenceSectorView,
   type ClientIntelligenceSectorView,
@@ -45,29 +46,6 @@ export type SectorSnapshotRegulatoryItem = {
   resolvedLevel: SectorResolvedLevel
 }
 
-type SectorKnowledgeResolvedRow = {
-  segment_id: string
-  segment_name: string
-  segment_slug: string
-  segment_status: string
-  macro_id: string | null
-  macro_name: string | null
-  macro_slug: string | null
-  macro_status: string | null
-  description: string | null
-  attractiveness_score: number | string | null
-  market_size_eur_bn: number | string | null
-  market_growth_pct: number | string | null
-  key_players_paca: unknown
-  key_players_national: unknown
-  description_level: string
-  playbook_level: string
-  attractiveness_score_level: string
-  market_size_eur_bn_level: string
-  market_growth_pct_level: string
-  has_segment_knowledge: boolean
-}
-
 type SectorKnowledgeItemRow = {
   item_kind: string
   item_id: string
@@ -110,13 +88,45 @@ function toScalarLevel(value: string | null | undefined): SectorResolvedLevel {
   return value === "segment" || value === "locked" || value === "estimated" ? value : "macro"
 }
 
-function toCompanySources(rows: Array<{ id: string; name: string; legal_name: string | null; segment: string | null; metadata: unknown }> | null): SectorCompanySource[] {
+type SectorCompanyRow = {
+  id: string
+  name: string
+  legal_name: string | null
+  segment: string | null
+  meta_aliases: unknown
+  meta_alternate_names: unknown
+  meta_legal_name: string | null
+  meta_company_name: string | null
+  meta_raison_sociale: string | null
+  meta_identite_nom: string | null
+}
+
+// Projection PostgREST des seules clés de `metadata` que `metadataAliases()` lit.
+// Le blob entier (14 Ko/ligne) n'est plus rapatrié : mesuré le 2026-09-10 sur les
+// 10 comptes du macro-secteur témoin, 318 072 → 2 004 octets et 380 → 210 ms.
+const SECTOR_COMPANY_SELECT =
+  "id,name,legal_name,segment," +
+  "meta_aliases:metadata->aliases," +
+  "meta_alternate_names:metadata->alternate_names," +
+  "meta_legal_name:metadata->>legal_name," +
+  "meta_company_name:metadata->>company_name," +
+  "meta_raison_sociale:metadata->identite->>raison_sociale," +
+  "meta_identite_nom:metadata->identite->>nom"
+
+function toCompanySources(rows: SectorCompanyRow[] | null): SectorCompanySource[] {
   return (rows ?? []).map((row) => ({
     id: row.id,
     name: row.name,
     legalName: row.legal_name,
     segment: row.segment,
-    metadata: row.metadata,
+    aliasSources: {
+      aliases: row.meta_aliases,
+      alternateNames: row.meta_alternate_names,
+      legalName: row.meta_legal_name,
+      companyName: row.meta_company_name,
+      raisonSociale: row.meta_raison_sociale,
+      identiteNom: row.meta_identite_nom,
+    },
   }))
 }
 
@@ -129,15 +139,12 @@ export async function getSectorSnapshot(
   segmentId: string,
   options: SectorSnapshotOptions,
 ): Promise<SectorSnapshotView | null> {
-  const supabase = await createClient()
-
-  const { data: resolved } = await supabase
-    .from("v_sector_knowledge_resolved")
-    // Littéral d'un seul tenant : PostgREST infère le type de ligne en parsant
-    // cette chaîne, une concaténation la rendrait opaque.
-    .select("segment_id,segment_name,segment_slug,segment_status,macro_id,macro_name,macro_slug,macro_status,description,attractiveness_score,market_size_eur_bn,market_growth_pct,key_players_paca,key_players_national,description_level,playbook_level,attractiveness_score_level,market_size_eur_bn_level,market_growth_pct_level,has_segment_knowledge")
-    .eq("segment_id", segmentId)
-    .maybeSingle<SectorKnowledgeResolvedRow>()
+  // Lecture mutualisée avec `account-panel-data` : une seule interrogation de la
+  // vue par rendu (constat F-1b). Émise en parallèle du client, pas avant lui.
+  const [supabase, resolved] = await Promise.all([
+    getRequestClient(),
+    getSectorKnowledgeResolved(segmentId),
+  ])
 
   if (!resolved) return null
 
@@ -150,14 +157,16 @@ export async function getSectorSnapshot(
       .eq("segment_id", segmentId),
     supabase
       .from("companies")
-      .select("id,name,legal_name,segment,metadata")
+      .select(SECTOR_COMPANY_SELECT)
       .eq("segment_id", segmentId)
+      .returns<SectorCompanyRow[]>()
       .order("name", { ascending: true }),
     resolved.macro_id
       ? supabase
           .from("companies")
-          .select("id,name,legal_name,segment,metadata")
+          .select(SECTOR_COMPANY_SELECT)
           .eq("sector_id", resolved.macro_id)
+          .returns<SectorCompanyRow[]>()
           .order("name", { ascending: true })
       : Promise.resolve({ data: [], error: null }),
   ])

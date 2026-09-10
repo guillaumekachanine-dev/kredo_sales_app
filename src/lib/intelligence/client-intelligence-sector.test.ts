@@ -14,6 +14,18 @@ import {
   type SectorRegulatoryView,
 } from "./client-intelligence-sector"
 
+// Aucun compte de la base ne porte d'alias dans `metadata` (vérifié le 2026-09-10) ;
+// les fixtures reflètent ce cas nominal. Les cas non vides sont couverts par les
+// tests dédiés de `metadataAliases` ci-dessous s'il en existe.
+const EMPTY_ALIAS_SOURCES = {
+  aliases: null,
+  alternateNames: null,
+  legalName: null,
+  companyName: null,
+  raisonSociale: null,
+  identiteNom: null,
+}
+
 const NOW = new Date("2026-07-18T12:00:00.000Z")
 
 function source(overrides: Partial<ClientIntelligenceSectorSource> = {}): ClientIntelligenceSectorSource {
@@ -57,8 +69,8 @@ function source(overrides: Partial<ClientIntelligenceSectorSource> = {}): Client
       },
     },
     companies: [
-      { id: "company-current", name: "Robertet", legalName: "Robertet SA", segment: "Arômes", metadata: {} },
-      { id: "company-other", name: "Compte sans preuve", legalName: "Compte sans preuve SAS", segment: "Cosmétiques", metadata: {} },
+      { id: "company-current", name: "Robertet", legalName: "Robertet SA", segment: "Arômes", aliasSources: EMPTY_ALIAS_SOURCES },
+      { id: "company-other", name: "Compte sans preuve", legalName: "Compte sans preuve SAS", segment: "Cosmétiques", aliasSources: EMPTY_ALIAS_SOURCES },
     ],
     painPoints: [],
     regulatoryItems: [],
@@ -136,6 +148,44 @@ describe("rapprochement des comptes KREDO", () => {
   it("rapproche un compte via sa raison sociale normalisée exacte", () => {
     const result = matchKredoAccountsToActors([actor], source().companies.slice(0, 1), "company-current")
     expect(result[0]).toMatchObject({ isKredoAccount: true, isCurrentAccount: true, companyIds: ["company-current"] })
+  })
+
+  // Garde-fou du passage en projection SQL (constat F-2, 2026-09-10) : `metadata`
+  // n'est plus rapatrié en blob, ses cinq clés d'alias sont projetées une à une.
+  // Aucune ligne de `companies` n'en porte aujourd'hui — sans ce test, la
+  // capacité de rapprochement par alias pourrait disparaître sans que rien
+  // n'échoue.
+  it("rapproche un compte par un alias projeté depuis metadata", () => {
+    const companies = [{
+      id: "company-alias",
+      name: "Nom d'usage sans rapport",
+      legalName: null,
+      segment: "Arômes",
+      aliasSources: { ...EMPTY_ALIAS_SOURCES, aliases: ["Robertet SA"] },
+    }]
+    const result = matchKredoAccountsToActors([actor], companies, "company-alias")
+    expect(result[0]).toMatchObject({ isKredoAccount: true, companyIds: ["company-alias"] })
+  })
+
+  it("accepte les quatre autres sources d'alias projetées", () => {
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ["alternate_names", { alternateNames: ["Robertet SA"] }],
+      ["legal_name", { legalName: "Robertet SA" }],
+      ["company_name", { companyName: "Robertet SA" }],
+      ["identite.raison_sociale", { raisonSociale: "Robertet SA" }],
+      ["identite.nom", { identiteNom: "Robertet SA" }],
+    ]
+    for (const [label, overrides] of cases) {
+      const companies = [{
+        id: "company-alias",
+        name: "Nom d'usage sans rapport",
+        legalName: null,
+        segment: "Arômes",
+        aliasSources: { ...EMPTY_ALIAS_SOURCES, ...overrides },
+      }]
+      const result = matchKredoAccountsToActors([actor], companies, "company-alias")
+      expect(result[0], label).toMatchObject({ isKredoAccount: true, companyIds: ["company-alias"] })
+    }
   })
 
   it("place honnêtement un compte sans correspondance dans les non classés", () => {

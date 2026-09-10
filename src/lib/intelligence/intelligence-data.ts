@@ -51,6 +51,7 @@ import {
   type CompanyMarketPositioning,
   type CompanyOperationalSnapshot,
 } from "@/lib/intelligence/client-intelligence-company"
+import { getAccountCompanyRow } from "@/lib/intelligence/account-company-row"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Client Intelligence Hub — couche de lecture (ADR-0008)
@@ -588,28 +589,6 @@ function clean(value: string | null | undefined, fallback = "Non renseigné"): s
 
 // ─── Rows ─────────────────────────────────────────────────────────────────────
 
-type CompanyRow = {
-  id: string
-  name: string
-  legal_name: string | null
-  sector: string | null
-  sector_id: string | null
-  segment_id: string | null
-  segment: string | null
-  revenue: string | null
-  employee_count: number | null
-  size_band: string | null
-  priority: string
-  lifecycle_status: string
-  website: string | null
-  hq_location: string | null
-  description: string | null
-  metadata: unknown
-  siren: string | null
-  naf_code: string | null
-  depth_level: string
-  origin: string
-}
 
 type SummaryRow = {
   has_client_analysis: boolean | null
@@ -882,13 +861,9 @@ export async function getClientIntelligence(
     offersCatalogRows,
     offerPracticesCatalogRows,
   ] = await Promise.all([
-    supabase
-      .from("companies")
-      .select<CompanyRow>(
-        "id,name,legal_name,sector,sector_id,segment_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,website,hq_location,description,metadata,siren,naf_code,depth_level,origin",
-      )
-      .eq("id", companyId)
-      .maybeSingle(),
+    // Fiche compte mutualisée avec `account-panel-data` et
+    // `account-intelligence-home-financials` (constat F-1a).
+    getAccountCompanyRow(companyId),
     getCurrentCompanyFacts(companyId),
     supabase
       .from("v_ai_intelligence_summary")
@@ -1054,7 +1029,7 @@ export async function getClientIntelligence(
     workspaceId ? getOfferPracticesCatalog(workspaceId) : Promise.resolve([]),
   ])
 
-  if (companyResult.error) return { error: companyResult.error.message, data: null }
+  if (companyResult.error) return { error: companyResult.error, data: null }
   if (!companyResult.data) return { error: "Compte introuvable", data: null }
   if (accountWatchResult.error) {
     console.error("[intelligence] account watch settings query failed:", accountWatchResult.error.message, { companyId })

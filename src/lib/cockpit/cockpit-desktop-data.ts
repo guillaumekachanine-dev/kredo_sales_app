@@ -1,7 +1,7 @@
 import "server-only"
 
 import { getTrajectory2026 } from "@/app/(app)/missions/_data/get-trajectory-2026"
-import { createClient } from "@/lib/supabase/server"
+import { getRequestClient } from "@/lib/supabase/server"
 import { buildCockpitDesktopSnapshot, type CockpitDesktopSources } from "./cockpit-desktop-view-model"
 import type { CockpitDesktopSnapshot } from "./cockpit-desktop-types"
 
@@ -14,8 +14,33 @@ async function read<T>(label: string, query: PromiseLike<QueryResult<T>>): Promi
 }
 
 export async function getCockpitDesktopSnapshot(): Promise<CockpitDesktopSnapshot> {
-  const supabase = await createClient()
-  const now = new Date().toISOString()
+  const supabase = await getRequestClient()
+  const nowDate = new Date()
+  const now = nowDate.toISOString()
+
+  // ── Bornes des lectures, alignées sur ce que la vue affiche réellement ──────
+  //
+  // Le cockpit lisait 10 tables SANS filtre ni limite, puis triait et tronquait
+  // en JavaScript (`.slice(0,4)`, `.slice(0,5)`, `.slice(0,8)`, `.slice(0,3)`).
+  // Mesuré le 2026-09-10 : 843 signaux (295 Ko) et 548 événements (109 Ko)
+  // transférés pour produire 111 Ko de HTML. Voir docs/performance-data-audit,
+  // constat F-5.
+  //
+  // Les deux filtres ci-dessous transcrivent EXACTEMENT ce que le view model
+  // écartait déjà côté client — ils ne changent aucun affichage :
+  //  · signaux  : `isActionableSignal` (statut inactif, ou `expires_at` dépassé) ;
+  //  · agenda   : `dateKey(startsAt) === dateKey(now)`, c'est-à-dire le jour
+  //               courant en **UTC** (`dateKey` utilise `toISOString()`).
+  //
+  // Équivalence vérifiée en base : 843 → 98 signaux, soit exactement le compte
+  // de `v_active_account_signals` (0 divergence dans les deux sens). La vue n'est
+  // pourtant PAS substituée ici : ses clauses diffèrent (fenêtre de 2 mois,
+  // exclusion des signaux FOLIO, pas de filtre sur `expires_at`) et l'égalité
+  // constatée tient aux données du jour, pas à la sémantique. Basculer dessus
+  // serait un choix produit — masquer les signaux FOLIO et ceux de plus de deux
+  // mois — pas une optimisation.
+  const todayStartUtc = `${now.slice(0, 10)}T00:00:00.000Z`
+  const tomorrowStartUtc = new Date(Date.parse(todayStartUtc) + 86_400_000).toISOString()
 
   const [
     companies,
@@ -36,7 +61,7 @@ export async function getCockpitDesktopSnapshot(): Promise<CockpitDesktopSnapsho
     ),
     read<CockpitDesktopSources["signals"][number]>(
       "account signals",
-      supabase.from("account_signals").select("id,company_id,title,recommended_action,status,expires_at,urgency_score,detected_at").returns<Array<{ id: string; company_id: string; title: string; recommended_action: string | null; status: string; expires_at: string | null; urgency_score: number | null; detected_at: string }>>().then(({ data, error }) => ({ data: data?.map((row) => ({ id: row.id, companyId: row.company_id, title: row.title, recommendedAction: row.recommended_action, status: row.status, expiresAt: row.expires_at, urgencyScore: row.urgency_score, detectedAt: row.detected_at })) ?? null, error })),
+      supabase.from("account_signals").select("id,company_id,title,recommended_action,status,expires_at,urgency_score,detected_at").not("status", "in", "(dismissed,archived,expired)").or(`expires_at.is.null,expires_at.gte.${now}`).returns<Array<{ id: string; company_id: string; title: string; recommended_action: string | null; status: string; expires_at: string | null; urgency_score: number | null; detected_at: string }>>().then(({ data, error }) => ({ data: data?.map((row) => ({ id: row.id, companyId: row.company_id, title: row.title, recommendedAction: row.recommended_action, status: row.status, expiresAt: row.expires_at, urgencyScore: row.urgency_score, detectedAt: row.detected_at })) ?? null, error })),
     ),
     read<CockpitDesktopSources["issues"][number]>(
       "account issues",
@@ -64,7 +89,7 @@ export async function getCockpitDesktopSnapshot(): Promise<CockpitDesktopSnapsho
     ),
     read<CockpitDesktopSources["calendarEvents"][number]>(
       "calendar events",
-      supabase.from("calendar_events").select("id,title,starts_at,company_id,opportunity_id").returns<Array<{ id: string; title: string; starts_at: string; company_id: string | null; opportunity_id: string | null }>>().then(({ data, error }) => ({ data: data?.map((row) => ({ id: row.id, title: row.title, startsAt: row.starts_at, companyId: row.company_id, opportunityId: row.opportunity_id })) ?? null, error })),
+      supabase.from("calendar_events").select("id,title,starts_at,company_id,opportunity_id").gte("starts_at", todayStartUtc).lt("starts_at", tomorrowStartUtc).returns<Array<{ id: string; title: string; starts_at: string; company_id: string | null; opportunity_id: string | null }>>().then(({ data, error }) => ({ data: data?.map((row) => ({ id: row.id, title: row.title, startsAt: row.starts_at, companyId: row.company_id, opportunityId: row.opportunity_id })) ?? null, error })),
     ),
     read<CockpitDesktopSources["aiRuns"][number]>(
       "AI runs",

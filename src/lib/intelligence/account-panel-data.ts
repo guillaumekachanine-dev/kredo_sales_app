@@ -23,6 +23,8 @@ import {
   isLegacyPhase4RoadmapFallback,
   type IntelligenceResourceCategory,
 } from "./intelligence-resource-types"
+import { getSectorKnowledgeResolved, type SectorKnowledgeResolvedRow } from "@/lib/intelligence/sector-knowledge-resolved"
+import { getAccountCompanyRow } from "@/lib/intelligence/account-company-row"
 
 export const KEY_CONTACT_RELATIONSHIP_ROLES = [
   "dsi",
@@ -52,18 +54,6 @@ type LooseSupabaseClient = {
   from(table: string): ReadTable
 }
 
-type CompanyRow = {
-  id: string
-  name: string
-  sector: string | null
-  sector_id: string | null
-  segment_id: string | null
-  segment: string | null
-  priority: string
-  lifecycle_status: string
-  website: string | null
-  metadata: Json
-}
 
 export type PanelResultRow = {
   id: string
@@ -86,20 +76,6 @@ type SectorRow = {
   slug: string
   status: string
   playbook: Json
-}
-
-type SectorKnowledgeResolvedRow = {
-  segment_id: string
-  segment_name: string
-  segment_slug: string
-  segment_status: string
-  macro_id: string | null
-  macro_name: string | null
-  macro_slug: string | null
-  macro_status: string | null
-  playbook: Json
-  playbook_level: string
-  has_segment_knowledge: boolean
 }
 
 export type PanelContactRow = {
@@ -492,11 +468,9 @@ export async function getAccountIntelligencePanelData(
 
   const [companyResult, resultsResult, contactsResult, opportunitiesResult, eventsResult, runsResult] =
     await Promise.all([
-      supabase
-        .from("companies")
-        .select<CompanyRow>("id,name,sector,sector_id,segment_id,segment,priority,lifecycle_status,website,metadata")
-        .eq("id", companyId)
-        .maybeSingle(),
+      // Fiche compte mutualisée avec `intelligence-data` (constat F-1a) : la même
+      // ligne était lue deux fois par rendu, blob `metadata` compris.
+      getAccountCompanyRow(companyId),
       supabase
         .from("ai_intelligence_results")
         .select<PanelResultRow>("id,result_type,status,needs_review,phase,created_at,completed_at")
@@ -534,7 +508,7 @@ export async function getAccountIntelligencePanelData(
         .limit(5),
     ])
 
-  if (companyResult.error) return { data: null, error: companyResult.error.message }
+  if (companyResult.error) return { data: null, error: companyResult.error }
   if (!companyResult.data) return { data: null, error: "Compte introuvable" }
 
   const secondaryError = getErrorMessage([
@@ -552,20 +526,14 @@ export async function getAccountIntelligencePanelData(
   // Lot 0 — lecture par `segment_id` sur la vue de résolution, jamais par
   // `sector_id` sur la table brute : sinon le drapeau « playbook structuré »
   // resterait faux pour tout segment enrichi.
-  let sectorResult: SingleResult<SectorKnowledgeResolvedRow> = { data: null, error: null }
-  if (company.segment_id) {
-    sectorResult = await supabase
-      .from("v_sector_knowledge_resolved")
-      .select<SectorKnowledgeResolvedRow>(
-        "segment_id,segment_name,segment_slug,segment_status,macro_id,macro_name,macro_slug,macro_status,playbook,playbook_level,has_segment_knowledge",
-      )
-      .eq("segment_id", company.segment_id)
-      .maybeSingle()
-  }
-  if (sectorResult.error) return { data: null, error: sectorResult.error.message }
+  // Lecture mutualisée avec `sector-snapshot-data` : sur la fiche compte, les
+  // deux modules interrogeaient la même vue avec deux projections différentes,
+  // donc en deux allers-retours (constat F-1b).
+  const resolvedSector = company.segment_id
+    ? await getSectorKnowledgeResolved(company.segment_id)
+    : null
 
   const resources = buildPanelResourceCounts(resultsResult.data ?? [], metadata)
-  const resolvedSector = sectorResult.data
   const structuredSector = toEffectiveSectorRow(resolvedSector)
   const hasStructuredSector = hasStructuredSectorPlaybook(structuredSector)
   const hasLegacySectorAnalysis = hasMetadataValue(metadata, "sector_analysis")
