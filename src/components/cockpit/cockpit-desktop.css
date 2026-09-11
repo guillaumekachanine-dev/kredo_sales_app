@@ -591,14 +591,17 @@
 }
 
 .kredo-cockpit-desktop__frame {
+  position: relative;
   width: min(100%, 1280px);
   padding: 24px;
 }
 
 .kredo-cockpit-desktop__header {
-  display: grid;
-  grid-template-columns: minmax(210px, 1fr) clamp(190px, 24vw, 316px) minmax(320px, 1fr);
+  position: relative;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 20px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
@@ -637,17 +640,20 @@
   line-height: 16px;
 }
 .kredo-cockpit-desktop__header-artwork {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  right: clamp(-40px, -2.5vw, -16px);
   z-index: 0;
-  width: 100%;
+  width: clamp(360px, 43vw, 520px);
   aspect-ratio: 4 / 3;
   pointer-events: none;
+  transform: translateY(-50%);
 }
 .kredo-cockpit-desktop__header-artwork-shape {
   position: absolute;
   top: 15%;
   right: 2%;
-  z-index: -1;
+  z-index: 0;
   width: 82%;
   height: 80%;
   border-radius: 44% 23% 41% 48% / 34% 24% 69% 64%;
@@ -664,13 +670,21 @@
   display: block;
   width: 100%;
   height: auto;
+  opacity: .78;
+}
+.kredo-cockpit-desktop__header > .min-w-0,
+.kredo-cockpit-desktop__header-side {
+  position: relative;
+  z-index: 1;
 }
 .kredo-cockpit-desktop__header-side { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
 
-@media (max-width: 900px) {
-  .kredo-cockpit-desktop__header {
-    grid-template-columns: minmax(0, 1fr) clamp(150px, 24vw, 190px) minmax(260px, 1.2fr);
-  }
+.kredo-cockpit-desktop__chapter-rail,
+.kredo-cockpit-desktop__kpi-strip,
+.kredo-cockpit-desktop__primary-grid,
+.kredo-cockpit-desktop__secondary-grid {
+  position: relative;
+  z-index: 1;
 }
 
 .kredo-cockpit-desktop__diagnostic-status,

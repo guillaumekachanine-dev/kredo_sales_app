@@ -53,14 +53,14 @@ export function getNavigationIcon(
     case "veille":
       return (
         <svg
-          className={baseClasses}
+          className={className ?? "h-[18px] w-[18px] shrink-0 transition-colors"}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={strokeWidthOverride ?? 2}
+          strokeWidth={strokeWidthOverride ?? 1.65}
         >
-          <circle cx="12" cy="12" r="8" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6.25 7.5c1.5.9 3.55 1.5 5.75 1.5s4.25-.6 5.75-1.5M6.25 16.5c1.5-.9 3.55-1.5 5.75-1.5s4.25.6 5.75 1.5M12 4c2.25 2.15 3.5 4.95 3.5 8s-1.25 5.85-3.5 8M12 4c-2.25 2.15-3.5 4.95-3.5 8s1.25 5.85 3.5 8M3 9.5h18v5H3zM6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01" />
+          <circle cx="12" cy="12" r="7.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15M5.85 8.25h12.3M5.85 15.75h12.3M12 4.5c-2.1 2.05-3.25 4.7-3.25 7.5s1.15 5.45 3.25 7.5M12 4.5c2.1 2.05 3.25 4.7 3.25 7.5s-1.15 5.45-3.25 7.5" />
         </svg>
       )
     case "clipboard-mobile":
@@ -144,9 +144,10 @@ export function getNavigationIcon(
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={strokeWidthOverride ?? 2}
+          strokeWidth={strokeWidthOverride ?? 1.65}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+          <rect x="3.75" y="5.25" width="16.5" height="15" rx="2.25" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7.75 3.5v3.5M16.25 3.5v3.5M3.75 9.5h16.5M7.5 12.5h2.25M11.875 12.5h2.25M16.25 12.5h.25M7.5 16.25h2.25M11.875 16.25h2.25M16.25 16.25h.25" />
         </svg>
       )
     case "crm":
@@ -156,9 +157,9 @@ export function getNavigationIcon(
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={strokeWidthOverride ?? 2}
+          strokeWidth={strokeWidthOverride ?? 1.65}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18M6.34 6.34l11.32 11.32M6.34 17.66L17.66 6.34" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 20V4.25h13.5V20M3.5 20h17M9 8h.01M12 8h.01M15 8h.01M9 11.5h.01M12 11.5h.01M15 11.5h.01M9 15h.01M12 15h.01M15 15h.01M10.5 20v-2.75h3V20" />
         </svg>
       )
     case "sales":
@@ -176,7 +177,7 @@ export function getNavigationIcon(
     case "staffing":
       return (
         <svg
-          className={baseClasses}
+          className={className ?? "h-[18px] w-[18px] shrink-0 transition-colors"}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -188,13 +189,13 @@ export function getNavigationIcon(
     case "engagements":
       return (
         <svg
-          className={baseClasses}
+          className={className ?? "h-[18px] w-[18px] shrink-0 transition-colors"}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={strokeWidthOverride ?? 2}
+          strokeWidth={strokeWidthOverride ?? 1.65}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 8.25h16v11.25H4zM8.5 8.25v-2A1.25 1.25 0 019.75 5h4.5a1.25 1.25 0 011.25 1.25v2M4 12.5h16M9.5 12.5V14h5v-1.5" />
         </svg>
       )
     case "bi":
@@ -228,12 +229,12 @@ export function getNavigationIcon(
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={strokeWidthOverride ?? 2}
+          strokeWidth={strokeWidthOverride ?? 1.65}
         >
-          <circle cx="12" cy="7" r="2.75" />
-          <circle cx="6.75" cy="9.25" r="2" />
-          <circle cx="17.25" cy="9.25" r="2" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 19c0-3.25 2.7-5.5 6-5.5s6 2.25 6 5.5M2.75 19c0-2.2 1.8-3.75 4-3.75M21.25 19c0-2.2-1.8-3.75-4-3.75" />
+          <circle cx="12" cy="6.75" r="3.1" />
+          <circle cx="6.45" cy="8.9" r="2.25" />
+          <circle cx="17.55" cy="8.9" r="2.25" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 19.75v-1.1c0-3.25 3.05-5.5 6.75-5.5s6.75 2.25 6.75 5.5v1.1M2.75 18.75v-.55c0-2.4 1.7-4.15 4.2-4.15M21.25 18.75v-.55c0-2.4-1.7-4.15-4.2-4.15" />
         </svg>
       )
     case "recrutement":
@@ -251,13 +252,14 @@ export function getNavigationIcon(
     case "finance":
       return (
         <svg
-          className={baseClasses}
+          className={className ?? "h-[18px] w-[18px] shrink-0 transition-colors"}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={strokeWidthOverride ?? 2}
+          strokeWidth={strokeWidthOverride ?? 1.65}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 20h17M5 20v-6h4v6M10 20V10h4v10M15 20V5h4v15" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 8.5h16v11H3.5M3.5 12.75v.9M3.5 16.25v3.25M3.5 8.5l12.5-3.75v3.75M19.5 12.5h-3.25a2.75 2.75 0 000 5.5h3.25" />
+          <circle cx="16.5" cy="15.25" r=".55" fill="currentColor" stroke="none" />
         </svg>
       )
     case "settings":

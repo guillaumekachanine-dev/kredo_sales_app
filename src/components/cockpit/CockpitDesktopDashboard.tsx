@@ -69,7 +69,7 @@ export function CockpitDesktopDashboard({
               alt=""
               width={1200}
               height={900}
-              sizes="(max-width: 1180px) 24vw, 316px"
+              sizes="(max-width: 1180px) 43vw, 520px"
             />
           </div>
           <div className="kredo-cockpit-desktop__header-side">
