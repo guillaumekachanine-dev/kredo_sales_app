@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { DiagnosticSection } from "@/components/intelligence/diagnostic/DiagnosticSection"
 import { CockpitAccountsToAnimate } from "@/components/cockpit/desktop/CockpitAccountsToAnimate"
@@ -60,6 +61,16 @@ export function CockpitDesktopDashboard({
               <span className="kredo-cockpit-desktop__brass-rule" aria-hidden="true" />
             </div>
             <p className="kredo-cockpit-desktop__header-context" suppressHydrationWarning>{currentWeekLabel()}</p>
+          </div>
+          <div className="kredo-cockpit-desktop__header-artwork" aria-hidden="true">
+            <span className="kredo-cockpit-desktop__header-artwork-shape" />
+            <Image
+              src="/images/design-lab/kredo-home-mobile-v2-hero-final.png"
+              alt=""
+              width={1200}
+              height={900}
+              sizes="(max-width: 1180px) 24vw, 316px"
+            />
           </div>
           <div className="kredo-cockpit-desktop__header-side">
             <span className="kredo-cockpit-desktop__diagnostic-status">

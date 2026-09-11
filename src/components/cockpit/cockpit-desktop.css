@@ -596,6 +596,8 @@
 }
 
 .kredo-cockpit-desktop__header {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) clamp(190px, 24vw, 316px) minmax(320px, 1fr);
   align-items: center;
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -634,7 +636,42 @@
   font-weight: 500;
   line-height: 16px;
 }
-.kredo-cockpit-desktop__header-side { display: flex; align-items: center; gap: 16px; }
+.kredo-cockpit-desktop__header-artwork {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  pointer-events: none;
+}
+.kredo-cockpit-desktop__header-artwork-shape {
+  position: absolute;
+  top: 15%;
+  right: 2%;
+  z-index: -1;
+  width: 82%;
+  height: 80%;
+  border-radius: 44% 23% 41% 48% / 34% 24% 69% 64%;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-cockpit-home-petrol) 82%, white),
+    color-mix(in srgb, var(--color-cockpit-home-petrol) 88%, white)
+  );
+  transform: rotate(-7deg);
+}
+.kredo-cockpit-desktop__header-artwork > img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.kredo-cockpit-desktop__header-side { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+
+@media (max-width: 900px) {
+  .kredo-cockpit-desktop__header {
+    grid-template-columns: minmax(0, 1fr) clamp(150px, 24vw, 190px) minmax(260px, 1.2fr);
+  }
+}
 
 .kredo-cockpit-desktop__diagnostic-status,
 .kredo-cockpit-desktop__section-caption,
