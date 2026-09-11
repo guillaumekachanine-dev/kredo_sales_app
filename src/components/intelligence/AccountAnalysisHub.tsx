@@ -7,7 +7,6 @@ import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligen
 import { SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import { openReportGeneration } from "@/lib/reports/report-generation"
 import { triggerN8nWorkflow } from "@/lib/n8n/trigger-client"
-import { ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION } from "@/lib/n8n/types"
 import { returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
 import { cn } from "@/lib/utils"
 
@@ -39,15 +38,6 @@ const ACCOUNT_SUMMARY_AXES = [
   "Opportunités identifiées",
   "Pipe pondéré et CA réalisé",
   "Matrice des profils et des projets",
-]
-
-const INTELLIGENCE_SUMMARY_AXES = [
-  "Fiche d’identité",
-  "Métiers et chaîne de valeur",
-  "Concurrents",
-  "Tendances et positionnement marché",
-  "Enjeux",
-  "Échéances",
 ]
 
 const ANALYSIS_TYPES = [
@@ -115,7 +105,6 @@ function OptionButton({ selected, title, detail, onClick }: {
 
 export function AccountAnalysisHub({ company, onClose }: { company: CompanyContext; onClose: () => void }) {
   const [modal, setModal] = useState<{ section: HubSection; action: HubAction } | null>(null)
-  const [summaryType, setSummaryType] = useState<"account" | "intelligence">("account")
   const [selectedAxes, setSelectedAxes] = useState<string[]>(ACCOUNT_SUMMARY_AXES)
   const [showSummaryGenerator, setShowSummaryGenerator] = useState(false)
   const [analysisType, setAnalysisType] = useState<(typeof ANALYSIS_TYPES)[number]["id"]>("news")
@@ -123,7 +112,6 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
   const [runMessage, setRunMessage] = useState<string | null>(null)
   const [documents, setDocuments] = useState<"fiches" | "rapports" | null>(null)
 
-  const [confirmSummaryOpen, setConfirmSummaryOpen] = useState(false)
   const [confirmAnalysisOpen, setConfirmAnalysisOpen] = useState(false)
 
   function backToCockpit() {
@@ -133,40 +121,8 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
     returnToAccountCockpit()
   }
 
-  function selectSummaryType(next: "account" | "intelligence") {
-    setSummaryType(next)
-    setSelectedAxes(next === "account" ? ACCOUNT_SUMMARY_AXES : INTELLIGENCE_SUMMARY_AXES)
-  }
-
   function toggleAxis(axis: string) {
     setSelectedAxes((current) => current.includes(axis) ? current.filter((item) => item !== axis) : [...current, axis])
-  }
-
-  async function launchIntelligenceSummary() {
-    setRunStatus("running")
-    setRunMessage(null)
-    try {
-      const response = await fetch("/api/n8n/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workflowId: "intel-030-account-knowledge",
-          entityType: "company",
-          entityId: company.id,
-          companyId: company.id,
-          input: {
-            accountKnowledgeSchemaVersion: ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION,
-            includedSubjects: selectedAxes,
-          },
-        }),
-      })
-      if (!response.ok) throw new Error("Le workflow n’a pas pu être lancé.")
-      setRunStatus("done")
-      setRunMessage("La synthèse account intelligence est en cours de production.")
-    } catch (error) {
-      setRunStatus("error")
-      setRunMessage(error instanceof Error ? error.message : "Erreur inattendue.")
-    }
   }
 
   async function launchAnalysis() {
@@ -231,7 +187,7 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
         className="w-[min(calc(100vw-0.75rem),40rem)]"
       >
         <CockpitReturnButton onClick={backToCockpit} className="mb-2" />
-        {showSummaryGenerator && summaryType === "account" ? (
+        {showSummaryGenerator ? (
           <SummaryDrawerContent
             data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
             variant="mobile"
@@ -239,11 +195,11 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
           />
         ) : (
           <div className="space-y-4">
-            <OptionButton selected={summaryType === "account"} title="Synthèse du compte" detail="Tous les sujets qui impactent l’ESN et sa relation avec le compte." onClick={() => selectSummaryType("account")} />
-            <OptionButton selected={summaryType === "intelligence"} title="Synthèse account intelligence" detail="Identité, métiers, marché, concurrence, tendances, enjeux et échéances." onClick={() => selectSummaryType("intelligence")} />
+            <p className="text-sm font-bold text-heading">Synthèse du compte</p>
+            <p className="-mt-3 text-xs leading-5 text-muted">Tous les sujets qui impactent l’ESN et sa relation avec le compte.</p>
             <fieldset className="space-y-2">
               <legend className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-muted">Sujets inclus</legend>
-              {(summaryType === "account" ? ACCOUNT_SUMMARY_AXES : INTELLIGENCE_SUMMARY_AXES).map((axis) => (
+              {ACCOUNT_SUMMARY_AXES.map((axis) => (
                 <label key={axis} className="flex min-h-11 items-center gap-3 rounded border border-border px-3 text-sm text-body">
                   <input type="checkbox" checked={selectedAxes.includes(axis)} onChange={() => toggleAxis(axis)} className="size-4 accent-primary" />
                   {axis}
@@ -254,13 +210,7 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
             <button
               type="button"
               disabled={selectedAxes.length === 0 || runStatus === "running"}
-              onClick={() => {
-                if (summaryType === "account") {
-                  setShowSummaryGenerator(true)
-                } else {
-                  setConfirmSummaryOpen(true)
-                }
-              }}
+              onClick={() => setShowSummaryGenerator(true)}
               className="min-h-11 w-full rounded bg-primary px-4 text-sm font-bold text-primary-fg disabled:opacity-50 cursor-pointer"
             >
               {runStatus === "running" ? "Lancement…" : "Continuer et générer"}
@@ -268,15 +218,6 @@ export function AccountAnalysisHub({ company, onClose }: { company: CompanyConte
           </div>
         )}
       </AppDialog>
-
-      <WorkflowExecutionConfirmDialog
-        open={confirmSummaryOpen}
-        onOpenChange={setConfirmSummaryOpen}
-        actionLabel="Continuer et générer"
-        runType="intel-030-account-knowledge"
-        onConfirm={launchIntelligenceSummary}
-        pending={runStatus === "running"}
-      />
 
       <AppDialog
         open={modal?.section === "analyses"}

@@ -5,7 +5,7 @@ import type { RunJournalRow } from "../automations-data"
 
 function makeRun(overrides: Partial<RunJournalRow> & { id: string; createdAt: string }): RunJournalRow {
   return {
-    runType: "intel-030-account-knowledge",
+    runType: "intel-031-issues-map",
     runTypeLabel: "Connaissance compte",
     status: "queued",
     triggerSource: "ui",

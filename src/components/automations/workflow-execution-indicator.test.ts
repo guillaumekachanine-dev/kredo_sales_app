@@ -90,7 +90,6 @@ describe("1. resolveWorkflowResultHref — Résolution déterministe de livrable
   it("résout les workflows centrés sur un compte vers /prospection/accounts/[companyId]", () => {
     const accountTypes = [
       "intel-010-refresh",
-      "intel-030-account-knowledge",
       "intel-031-issues-map",
       "intel-032-strategy",
       "intel-033-account-watch-refresh",

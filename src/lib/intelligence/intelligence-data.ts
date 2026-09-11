@@ -5,7 +5,6 @@ import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import { getOffersCatalog } from "@/lib/reference-data/get-offers-catalog"
 import { getOfferPracticesCatalog } from "@/lib/reference-data/get-offer-practices-catalog"
 import {
-  ACCOUNT_KNOWLEDGE_RESULT_TYPE,
   SECTOR_SNAPSHOT_RESULT_TYPE,
   COMMERCIAL_STRATEGY_RESULT_TYPE,
   type AccountIssueCategory,
@@ -15,25 +14,10 @@ import {
   type CommercialStrategyContent,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import {
-  deriveAccountKnowledgeFields,
-  type AccountKnowledgeRenderableState,
-  type AccountKnowledgeV3State,
-  type AccountKnowledgeV4State,
-} from "@/lib/intelligence/account-knowledge-state"
-import {
-  collectAccountKnowledgeV2SourceIds,
-  collectAccountKnowledgeV3SourceIds,
-} from "@/lib/intelligence/account-knowledge-ingest"
-import {
-  collectAccountKnowledgeV4LookupSourceIds,
-  type AccountKnowledgeV4SourceEvidence,
-} from "@/lib/intelligence/account-knowledge-v4-view"
-export type {
-  AccountKnowledgeState,
-  AccountKnowledgeRenderableState,
-  AccountKnowledgeV3State,
-  AccountKnowledgeV4State,
-} from "@/lib/intelligence/account-knowledge-state"
+  getAccountStudyState,
+  type AccountStudyState,
+} from "@/features/account-research-studies/data/study-read"
+export type { AccountStudyState } from "@/features/account-research-studies/data/study-read"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 import { isAccountDepthLevel, type AccountDepthLevel } from "@/features/account-lifecycle/domain/depth-level"
 import {
@@ -246,24 +230,6 @@ export type ClientIntelligenceVeilleArticle = {
   createdAt: string
 }
 
-export type AccountKnowledgeCitedSource = {
-  id: string
-  name: string
-  type: string
-  url: string | null
-  publishedAt: string | null
-}
-
-type AccountKnowledgeSourceRow = {
-  id: string
-  source_name: string
-  source_type: string
-  canonical_url: string | null
-  source_url: string | null
-  published_at: string | null
-  evidence_excerpt: string | null
-}
-
 export type AccountRecentDocument = {
   id: string
   title: string
@@ -358,40 +324,10 @@ export type ClientIntelligenceData = {
   }
   presence: ClientIntelligencePresence
   client: { data: AnalyseClient; source: IntelligenceSource } | null
-  // ADR-0012 Lot 2 — contrat riche "Connaissance compte" (schema_version 1),
-  // distinct de `client` (forme FOLIO historique). null tant qu'aucun run
-  // account_knowledge n'a réussi (workflow intel-030 pas encore importé sur le
-  // VPS) — l'UI retombe alors sur `client` (FOLIO) exactement comme avant.
-  // Lot 1 : le dernier V2 réussi prime, sinon le dernier V1 réussi, sinon null
-  // (état vide). Aucune conversion silencieuse V1 → V2 : la version est portée
-  // explicitement et les consommateurs se branchent dessus.
-  //
-  // Lot 4 : volontairement restreint à l'état RESTITUABLE (V1/V2). Un artefact
-  // V3 n'atterrit jamais ici — il sortirait sur des lecteurs qui ne connaissent
-  // ni ses sept sections ni ses verdicts de vérification. Il est exposé à part
-  // dans `accountKnowledgeV3`, sans lecteur avant le Lot 5.
-  accountKnowledge: AccountKnowledgeRenderableState | null
-  // Dernier artefact V3 lu et typé. Aucun composant ne le consomme au Lot 4 :
-  // sa présence ne modifie donc rien à l'écran, elle rend seulement possible la
-  // restitution du Lot 5 sans nouvelle requête.
-  accountKnowledgeV3: AccountKnowledgeV3State | null
-  // Account Intelligence Lot 1 : restitué par `AccountKnowledgeV4Desktop` /
-  // `AccountKnowledgeV4Mobile` via `buildAccountKnowledgeV4View`.
-  accountKnowledgeV4: AccountKnowledgeV4State | null
-  // Date de l'artefact account_knowledge COURANT, quelle que soit sa version
-  // (V1, V2 ou V3). Distinct de `accountKnowledge?.createdAt` : ce dernier est
-  // `null` dès que V3 est l'artefact courant, ce qui ferait conclure à tort
-  // « jamais mis à jour » à un composant qui daterait la fiche sur ce seul
-  // champ (revue Lot 4). Le bandeau de mise à jour lit ce champ-ci.
-  accountKnowledgeLastUpdatedAt: string | null
-  // Sources citées par l'artefact V2, résolues pour l'affichage : un Claim n'est
-  // vérifiable à l'écran que si sa source est nommée et cliquable.
-  accountKnowledgeSources: AccountKnowledgeCitedSource[]
-  accountKnowledgeV3Sources: AccountKnowledgeCitedSource[]
-  // Complément des sources V4 qui désignent une ligne `intelligence_sources`
-  // (artefacts INTEL-030) : extrait de preuve et date de publication. Vide pour
-  // le canal externe, dont `sources[]` est self-contained (label/url/consulted_at).
-  accountKnowledgeV4SourceEvidence: AccountKnowledgeV4SourceEvidence[]
+  // Connaissance entreprise : études de recherche importées (ChatGPT Deep Research),
+  // converties sans perte. `current` = l'étude publiée la plus récente ; `null` ⇒ l'UI
+  // retombe sur l'affichage FOLIO (`client`, `companyProfile`, `companyPositioning`).
+  accountStudy: AccountStudyState
   // ADR-0012 Lot 3 — snapshot sectoriel déterministe (D-6, 0 token), lu live
   // depuis les vues de résolution `v_sector_knowledge_*`. Lot 0 : la lecture se
   // fait à la maille SEGMENT (`companies.segment_id`), avec héritage du macro
@@ -424,10 +360,6 @@ export type ClientIntelligenceData = {
   commercialStrategy: { data: CommercialStrategyContent; resultId: string } | null
   // Référentiel offres actives, pour résoudre les offer_id de la matrice.
   offersCatalog: ClientIntelligenceOfferRef[]
-  // id du dernier résultat account_knowledge réussi — cible des Server Actions
-  // de curation (confirmer/écarter/épingler un fait). null tant qu'aucun run
-  // n'a produit de account_knowledge (Lot 2 : workflow pas encore importé sur le VPS).
-  accountKnowledgeResultId: string | null
 }
 
 // ADR-0009 — historique des générations de pitch moteur (onglet Stratégie).
@@ -515,8 +447,8 @@ function parseAnalyseClient(raw: unknown): AnalyseClient | null {
 
 /**
  * ADR-0012 Lot 5 — parseur du contrat commercial_strategy (schema_version 1).
- * Même logique que parseAccountKnowledgeContent : discriminé par schema_version,
- * jamais fusionné avec un autre parseur (aucun artefact legacy équivalent —
+ * Parseur discriminé par schema_version, jamais fusionné avec un autre parseur
+ * (aucun artefact legacy équivalent —
  * le pitch legacy FOLIO/`pitches` n'a pas de mapping enjeu↔offre).
  */
 function parseCommercialStrategyContent(raw: unknown): CommercialStrategyContent | null {
@@ -870,6 +802,7 @@ export async function getClientIntelligence(
     accountIssuesResult,
     offersCatalogRows,
     offerPracticesCatalogRows,
+    accountStudy,
   ] = await Promise.all([
     // Fiche compte mutualisée avec `account-panel-data` et
     // `account-intelligence-home-financials` (constat F-1a).
@@ -882,8 +815,8 @@ export async function getClientIntelligence(
       )
       .eq("company_id", companyId)
       .maybeSingle(),
-    // Seuls 4 result_type sont jamais lus plus bas (account_knowledge,
-    // sector_snapshot, commercial_strategy, process_diagnostic) — filtrer ici
+    // Seuls 3 result_type sont jamais lus plus bas (sector_snapshot,
+    // commercial_strategy, process_diagnostic) — filtrer ici
     // évite de transporter le content_json (LLM, jusqu'à ~15 Ko/ligne) des
     // rapports/pitchs/etc. qui s'accumulent sur ce compte pour rien.
     supabase
@@ -892,7 +825,6 @@ export async function getClientIntelligence(
       .eq("company_id", companyId)
       .eq("status", "succeeded")
       .in("result_type", [
-        ACCOUNT_KNOWLEDGE_RESULT_TYPE,
         SECTOR_SNAPSHOT_RESULT_TYPE,
         COMMERCIAL_STRATEGY_RESULT_TYPE,
         "process_diagnostic",
@@ -1037,6 +969,8 @@ export async function getClientIntelligence(
     // le join se fait en JS via practice_id (cf. get-offers-catalog.ts).
     workspaceId ? getOffersCatalog(workspaceId) : Promise.resolve([]),
     workspaceId ? getOfferPracticesCatalog(workspaceId) : Promise.resolve([]),
+    // Connaissance entreprise : étude publiée (briques) + études récentes, sans texte brut.
+    getAccountStudyState(supabaseReal, companyId),
   ])
 
   if (companyResult.error) return { error: companyResult.error, data: null }
@@ -1084,53 +1018,7 @@ export async function getClientIntelligence(
   const pdfStoragePath = str(phase3MetaForPdf.pdf_storage_path)
   const pdfBucket = str(phase3MetaForPdf.pdf_bucket) || "ai_intelligence_process_diagnostics"
 
-  // Résolu ici plutôt que plus bas : les sources citées par un artefact V2 se
-  // chargent dans le même aller-retour que le snapshot sectoriel et l'URL signée.
-  //
-  // Dérivation extraite dans un helper pur et testé (`deriveAccountKnowledgeFields`) :
-  // le mapping état → champs exposés doit rester unique, sans quoi une future
-  // requête utilisateur de la date de dernière mise à jour risque de relire
-  // `accountKnowledge.createdAt` seul (restreint V1/V2) et de retomber sur le
-  // même bug (revue Lot 4) — « Jamais mise à jour » alors qu'un V3 vient de
-  // réussir.
-  const {
-    accountKnowledge,
-    accountKnowledgeV3,
-    accountKnowledgeV4,
-    accountKnowledgeLastUpdatedAt,
-    unreadable: unreadableAccountKnowledge,
-  } = deriveAccountKnowledgeFields(results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE))
-
-  // Un artefact produit mais illisible est une panne de génération : la taire
-  // reviendrait à l'afficher comme « pas encore de mise à jour ». Pas d'échec
-  // de la page pour autant — la fiche reste consultable sur l'artefact valide
-  // précédent, et la trace serveur permet de rattacher la ligne fautive.
-  if (unreadableAccountKnowledge.length > 0) {
-    console.error(
-      `[intelligence-data] account_knowledge illisible (compte ${company.id}) :`,
-      unreadableAccountKnowledge
-        .map((row) => `${row.resultId} — ${row.issues.map((i) => `${i.path}: ${i.message}`).join(" | ")}`)
-        .join(" ;; "),
-    )
-  }
-
-  const citedSourceIdsV2 = accountKnowledge?.version === 2
-    ? collectAccountKnowledgeV2SourceIds(accountKnowledge.data)
-    : []
-
-  const citedSourceIdsV3 = accountKnowledgeV3
-    ? collectAccountKnowledgeV3SourceIds(accountKnowledgeV3.data)
-    : []
-
-  // Filtré sur les uuid par le helper : le canal externe porte des ids libres
-  // (`s1`…) qu'un `IN (…)` sur une colonne uuid rejetterait en bloc.
-  const citedSourceIdsV4 = accountKnowledgeV4
-    ? collectAccountKnowledgeV4LookupSourceIds(accountKnowledgeV4.data)
-    : []
-
-  const allCitedSourceIds = Array.from(new Set([...citedSourceIdsV2, ...citedSourceIdsV3, ...citedSourceIdsV4]))
-
-  const [sectorSnapshot, signedUrlOutcome, citedSourcesResult] = await Promise.all([
+  const [sectorSnapshot, signedUrlOutcome] = await Promise.all([
     // Lot 0 : lecture à la maille segment. `sector_id` reste une projection en
     // base (écrite par `apply_account_classification`) mais n'est plus lu comme
     // source de connaissance sectorielle.
@@ -1143,42 +1031,7 @@ export async function getClientIntelligence(
     pdfStoragePath
       ? supabaseReal.storage.from(pdfBucket).createSignedUrl(pdfStoragePath, 3600)
       : Promise.resolve(null),
-    // Lecture en session utilisateur : `intelligence_sources` est SELECT-only
-    // côté client et scopée workspace par la RLS — inutile de repasser par une
-    // fonction SECURITY DEFINER pour lire ses propres sources.
-    allCitedSourceIds.length > 0
-      ? supabase
-          .from("intelligence_sources")
-          .select<AccountKnowledgeSourceRow>("id,source_name,source_type,canonical_url,source_url,published_at,evidence_excerpt")
-          .in("id", allCitedSourceIds)
-      : Promise.resolve({ data: [], error: null }),
   ])
-
-  const allCitedSources = citedSourcesResult?.data ?? []
-
-  const accountKnowledgeSources: AccountKnowledgeCitedSource[] = allCitedSources
-    .filter((row) => citedSourceIdsV2.includes(row.id))
-    .map((row) => ({
-      id: row.id,
-      name: row.source_name,
-      type: row.source_type,
-      url: row.canonical_url ?? row.source_url,
-      publishedAt: row.published_at,
-    }))
-
-  const accountKnowledgeV3Sources: AccountKnowledgeCitedSource[] = allCitedSources
-    .filter((row) => citedSourceIdsV3.includes(row.id))
-    .map((row) => ({
-      id: row.id,
-      name: row.source_name,
-      type: row.source_type,
-      url: row.canonical_url ?? row.source_url,
-      publishedAt: row.published_at,
-    }))
-
-  const accountKnowledgeV4SourceEvidence: AccountKnowledgeV4SourceEvidence[] = allCitedSources
-    .filter((row) => citedSourceIdsV4.includes(row.id))
-    .map((row) => ({ id: row.id, excerpt: row.evidence_excerpt, publishedAt: row.published_at }))
 
   let diagnosticPdfUrl: string | null = null
   if (signedUrlOutcome) {
@@ -1195,16 +1048,12 @@ export async function getClientIntelligence(
   // `phase === 1` seul faisait passer le rapport le plus récent d'un compte
   // pour son "analyse client moteur" (bug live corrigé ici, cf. ADR-0012 Lot 1).
   //
-  // account_knowledge est résolu plus bas par deriveAccountKnowledgeFields
-  // (dernier V2 ou V3, à défaut dernier V1) — il n'est volontairement PAS lu
-  // ici : `client` reste le contrat FOLIO legacy, les deux ne se mélangent pas.
+  // La connaissance entreprise vient des études publiées (`accountStudy`) ; `client`
+  // reste le contrat FOLIO legacy, affiché tant qu'aucune étude n'est publiée.
   const engineSectorSnapshot = results.find((r) => r.result_type === SECTOR_SNAPSHOT_RESULT_TYPE)?.content_json
   const engineProcessDiagnostic = results.find((r) => r.result_type === "process_diagnostic")?.content_json
 
-  // FOLIO reste la seule source du contrat `AnalyseClient` (legacy) tant que
-  // le workflow intel-030 n'a rien produit — `engineAccountKnowledge` a un
-  // schéma différent (AccountKnowledgeContent) et est exposé séparément
-  // ci-dessous via `accountKnowledge`, pas fusionné dans `client`.
+  // FOLIO reste la seule source du contrat `AnalyseClient` (legacy).
   let client: ClientIntelligenceData["client"] = null
   const clientFromFolio = parseAnalyseClient(metadata.analysis_data)
   if (clientFromFolio) client = { data: clientFromFolio, source: "folio" }
@@ -1447,7 +1296,6 @@ export async function getClientIntelligence(
     createdAt: row.created_at,
   }))
 
-  const accountKnowledgeResultId = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.id ?? null
 
   const recentDocuments: AccountRecentDocument[] = (recentDocumentsResult.data ?? []).map((row) => ({
     id: row.id,
@@ -1532,13 +1380,7 @@ export async function getClientIntelligence(
         hasLegacyPitches: Boolean(summary?.has_legacy_pitches),
       },
       client,
-      accountKnowledge,
-      accountKnowledgeV3,
-      accountKnowledgeV4,
-      accountKnowledgeLastUpdatedAt,
-      accountKnowledgeSources,
-      accountKnowledgeV3Sources,
-      accountKnowledgeV4SourceEvidence,
+      accountStudy,
       sectorSnapshot,
       sector,
       diagnostic,
@@ -1563,7 +1405,6 @@ export async function getClientIntelligence(
       accountIssues,
       commercialStrategy,
       offersCatalog,
-      accountKnowledgeResultId,
       pitchDocuments: ((pitchDocumentsResult.data ?? []) as PitchDocumentRow[]).map((row) => {
         const content = asRecord(row.current_content_json)
         const kind = content.kind === "spoken_pitch" || content.kind === "meeting_briefing" ? content.kind : null

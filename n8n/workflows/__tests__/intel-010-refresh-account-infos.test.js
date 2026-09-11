@@ -321,14 +321,12 @@ async function main() {
     check("Search Legal Registry demande au moins 10 résultats",
       /per_page=10/.test(nodes["Search Legal Registry"].parameters.url))
 
-    // Invariant partagé : les deux workflows portent la même transcription.
+    // Invariant de transcription : le workflow porte bien les seuils du module partagé.
     const sharedHelpers = fs.readFileSync(path.join(__dirname, "..", "..", "..", "scripts", "entity-resolution-node.js"), "utf8")
-    const intel030 = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "intel-030-account-knowledge.json"), "utf8"))
-    const intel030Code = intel030.nodes.find((n) => n.name === "V3 Consult & Normalize Sources").parameters.jsCode
     const intel010Code = nodes["Resolve Entity"].parameters.jsCode
     for (const marker of ["const RESOLVED_MIN_SCORE = 4;", "const RESOLVED_MIN_NAME_SCORE = 0.65;", "const REGISTRY_PER_PAGE = 10;"]) {
-      check(`Invariant partagé présent dans les deux workflows : ${marker}`,
-        sharedHelpers.includes(marker) && intel030Code.includes(marker) && intel010Code.includes(marker))
+      check(`Invariant partagé présent dans INTEL-010 : ${marker}`,
+        sharedHelpers.includes(marker) && intel010Code.includes(marker))
     }
 
     httpResponder = () => ({ results: [] })

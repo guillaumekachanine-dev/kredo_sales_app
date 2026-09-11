@@ -37,7 +37,7 @@ describe("workflow labels and nomenclature", () => {
     expect(isLegacyWorkflow("some_legacy_job")).toBe(true)
 
     expect(isLegacyWorkflow("intel-010-refresh")).toBe(false)
-    expect(isLegacyWorkflow("intel-030-account-knowledge")).toBe(false)
+    expect(isLegacyWorkflow("intel-031-issues-map")).toBe(false)
     expect(isLegacyWorkflow("veille-hebdomadaire-kredo")).toBe(false)
     expect(isLegacyWorkflow(null)).toBe(false)
     expect(isLegacyWorkflow(undefined)).toBe(false)

@@ -1,0 +1,23 @@
+{
+  "asset": "engagements-mobile-line-art.png",
+  "purpose": "Engagements Mobile hero artwork for MobileOverviewShell",
+  "dimensions": {
+    "width": 1536,
+    "height": 1024,
+    "format": "PNG",
+    "alpha": true
+  },
+  "provenance": {
+    "reference": "User-supplied Engagements illustration (2026-09-11)",
+    "transformations": [
+      "Faithful recreation of the supplied editorial line-art illustration for the Engagements mobile hero",
+      "Excluded the upper-left K monogram completely; no logo or reserved logo area is present",
+      "Excluded the Engagements title and the lower white UI section",
+      "Exported as a transparent, flattened line-art composition without a hero background"
+    ]
+  },
+  "usage": {
+    "publicPath": "/illustrations/engagements-mobile-line-art.png",
+    "fit": "object-fit: contain"
+  }
+}

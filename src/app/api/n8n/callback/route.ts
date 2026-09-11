@@ -18,15 +18,13 @@ import { saveResult, updateRunStatus, updateRunN8nIds } from "@/lib/n8n/runs"
 import { createClient } from "@supabase/supabase-js"
 import { saveResultAsDocumentWithSupabaseClient } from "@/components/accounts-contacts/intelligence/save-as-document"
 import { materializeAccountIssues } from "@/lib/intelligence/materialize-account-issues"
-import { ingestAccountKnowledgeArtifact } from "@/lib/intelligence/account-knowledge-ingest"
-import { ingestAccountSourcePlan } from "@/lib/intelligence/account-source-plan-ingest"
-import { ACCOUNT_SOURCE_PLAN_RESULT_TYPE } from "@/lib/intelligence/account-source-plan-contracts"
-import {
-  ACCOUNT_ISSUES_MAP_RESULT_TYPE,
-  ACCOUNT_KNOWLEDGE_RESULT_TYPE,
-} from "@/lib/intelligence/account-intelligence-contracts"
+import { ACCOUNT_ISSUES_MAP_RESULT_TYPE } from "@/lib/intelligence/account-intelligence-contracts"
 import { isEligibleDocumentResultType } from "@/lib/communication/communication-result-documents"
 import { isMissionRunType } from "@/features/intelligence-missions/domain/mission-run-type"
+import {
+  handleStudyConversionCallback,
+  isStudyConversionRunType,
+} from "@/features/account-research-studies/data/study-conversion"
 import {
   readCorpusTrace,
   validateMissionReport,
@@ -46,10 +44,7 @@ import type { N8nCallbackPayload } from "@/lib/n8n/types"
  * est reconnu, `resultType`/`phase` sont réassignés (pas seulement `persistedPayload`), de
  * sorte que les blocs suivants — `account_issues_map`, le chemin document, la revalidation
  * `account_watch_refresh`, `updateRunStatus` — dispatchent sur la valeur IMPOSÉE, jamais sur
- * celle qu'aurait envoyée n8n. Le bloc `account_knowledge`, qui s'exécute AVANT ce portail,
- * exclut explicitement `isMissionRunType(run.run_type)` pour la même raison symétrique :
- * sans cette exclusion, un payload de mission au `resultType` erroné y serait rejeté avant
- * même d'être validé comme rapport de mission.
+ * celle qu'aurait envoyée n8n.
  */
 const MISSION_REPORT_RESULT_TYPE = "mission_report"
 const MISSION_REPORT_PHASE = 1
@@ -114,97 +109,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: true, reason: "Run cancelled" })
   }
 
-  // ── 4 bis. Portail account_knowledge (Lot 1) ──────────────────────────────
-  // V1 et V2 sont toutes deux acceptées ; V2 est validée, ses sources vérifiées
-  // contre le workspace du run, et son indicateur de dynamique recalculé
-  // côté applicatif (jamais celui du LLM). Un artefact refusé ne doit JAMAIS
-  // laisser le run en `running` : on le bascule explicitement en `failed`.
-  //
-  // `!isMissionRunType(run.run_type)` : un run de mission n'a rien à faire ici, quel que
-  // soit le `resultType` du payload — un payload malformé/erroné ne doit pas le faire
-  // échouer sur le mauvais contrat avant même d'atteindre son propre validateur (4 ter).
+  // ── 4 bis. Passe de conversion d'une étude compte ─────────────────────────
+  // Un run `mission:study-conversion` est exécuté par `mission-001-run` mais n'est PAS un
+  // rapport de mission : sa sortie est une passe de structuration d'étude. Aiguillé
+  // AVANT le portail mission (4 ter), dont le validateur la refuserait. Le handler
+  // persiste, met à jour le run et finalise la conversion lui-même.
+  if (isStudyConversionRunType(run.run_type)) {
+    const outcome = await handleStudyConversionCallback({ runId, run, payload })
+    return NextResponse.json(outcome.body, { status: outcome.status })
+  }
+
   let persistedPayload = payload
-  if (status === "succeeded" && resultType === ACCOUNT_KNOWLEDGE_RESULT_TYPE && !isMissionRunType(run.run_type)) {
-    const ingest = await ingestAccountKnowledgeArtifact(supabase, {
-      workspaceId: run.workspace_id,
-      companyId: run.company_id,
-      contentJson,
-    })
-
-    if (!ingest.ok) {
-      const detail = ingest.issues.map((issue) => `${issue.path}: ${issue.message}`).join(" | ")
-      console.error("[callback] account_knowledge rejeté:", ingest.error, detail)
-      try {
-        await updateRunStatus(runId, "failed", {
-          phase,
-          errorMessage: `${ingest.error}${detail ? ` — ${detail}` : ""}`.slice(0, 2000),
-        })
-      } catch (err) {
-        console.error("[callback] updateRunStatus(failed) after rejection failed:", err)
-      }
-      return NextResponse.json({ error: ingest.error, issues: ingest.issues }, { status: 400 })
-    }
-
-    persistedPayload = { ...payload, contentJson: ingest.content as unknown as N8nCallbackPayload["contentJson"] }
-  }
-
-  // ── 4 bis-2. Portail plan de sources INTEL-035 (Account Intelligence Lot 0) ──
-  // Le workflow transmet ce qu'il a LU ; c'est ici que les documents sont écrits, que
-  // la frontière tenant est appliquée et que le plan canonique est construit avec les
-  // identifiants réels. Un plan sans le moindre document exploitable n'est pas
-  // publiable : le run bascule en `failed` plutôt que de laisser croire qu'un corpus
-  // a été constitué — c'est A2 appliqué au lancement.
-  if (
-    status === "succeeded" &&
-    resultType === ACCOUNT_SOURCE_PLAN_RESULT_TYPE &&
-    !isMissionRunType(run.run_type)
-  ) {
-    if (!run.company_id) {
-      await updateRunStatus(runId, "failed", { phase, errorMessage: "Plan de sources sans compte rattaché." })
-      return NextResponse.json({ error: "Plan de sources sans compte rattaché." }, { status: 400 })
-    }
-
-    const scope = (contentJson.scope ?? {}) as Record<string, unknown>
-    const ingest = await ingestAccountSourcePlan(supabase, {
-      runId,
-      workspaceId: run.workspace_id,
-      companyId: run.company_id,
-      targetLevel: (typeof scope.target_level === "number" ? scope.target_level : 2) as 1 | 2 | 3 | 4,
-      requestedModules: (Array.isArray(scope.modules) ? scope.modules : []) as never,
-      entityResolution: contentJson.entity_resolution,
-      corpora: (Array.isArray(contentJson.corpora) ? contentJson.corpora : []) as never,
-      documents: payload.sourceDocuments ?? [],
-    })
-
-    if (!ingest.ok) {
-      const detail = ingest.rejected.map((r) => `${r.url}: ${r.reason}`).join(" | ")
-      console.error("[callback] account_source_plan rejeté:", ingest.error, detail)
-      try {
-        await updateRunStatus(runId, "failed", {
-          phase,
-          errorMessage: `${ingest.error}${detail ? ` — ${detail}` : ""}`.slice(0, 2000),
-        })
-      } catch (err) {
-        console.error("[callback] updateRunStatus(failed) after rejection failed:", err)
-      }
-      return NextResponse.json({ error: ingest.error, rejected: ingest.rejected }, { status: 400 })
-    }
-
-    // Les rejets non bloquants restent VISIBLES dans les qaFlags plutôt que d'être
-    // avalés : un document écarté est une information pour l'utilisateur.
-    persistedPayload = {
-      ...payload,
-      contentJson: ingest.content as unknown as N8nCallbackPayload["contentJson"],
-      qaFlags: [
-        ...(payload.qaFlags ?? []),
-        ...ingest.rejected.map((r) => ({
-          check: "source_document_rejected",
-          passed: false,
-          detail: `${r.url} — ${r.reason}`,
-        })),
-      ],
-    }
-  }
 
   // ── 4 ter. Portail mission d'intelligence (ADR-0020 lot L3) ───────────────
   // Le dispatch se fait sur `run.run_type`, écrit par la gateway de lancement (L1) et

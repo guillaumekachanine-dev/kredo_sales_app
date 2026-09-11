@@ -10,7 +10,7 @@
  */
 
 import type { SourceCorpusItemPreview } from "./source-registry-output"
-import type { ParsedSourceRegistry } from "./source-registry-output"
+import { resolveRegistryCorpusSlug, type ParsedSourceRegistry } from "./source-registry-output"
 import type { ParsedThematicSourceList, ThematicSourceItemPreview } from "./thematic-source-list"
 
 export type CorpusImportScopeKind = "sector" | "thematic"
@@ -80,8 +80,8 @@ export function buildThematicItemView(item: ThematicSourceItemPreview): CorpusIm
 export function buildE3HeaderView(parsed: ParsedSourceRegistry): CorpusImportHeaderView {
   return {
     scopeKind: "sector",
-    analysisTitle: "Synthèse de l'analyse E3",
-    corpusSlug: `sources-${parsed.meta.segmentSlug}`,
+    analysisTitle: parsed.meta.corpusScope === "account" ? "Synthèse du registre de l'étude compte" : "Synthèse de l'analyse E3",
+    corpusSlug: resolveRegistryCorpusSlug(parsed),
     targetLabel: "Segment / Secteur",
     targetValue: parsed.meta.segmentSlug,
     version: parsed.meta.version,

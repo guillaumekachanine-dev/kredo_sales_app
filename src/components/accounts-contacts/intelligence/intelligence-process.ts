@@ -1,5 +1,4 @@
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import { resolveAccountKnowledgeAnchoring } from "@/lib/intelligence/account-intelligence-contracts"
 
 // ADR-0012 — Chaîne de décision commerciale.
 // Le processus devient : Socle → Connaissance compte → Intelligence sectorielle →
@@ -84,29 +83,11 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       return { label: "À qualifier", tone: "neutral" }
     }
     case "connaissance": {
-      // ADR-0012 Lot 2 : `client` (FOLIO) et `accountKnowledge` (moteur) sont
-      // deux champs distincts depuis Lot 2 — plus jamais client.source==="engine".
-      //
-      // Revue Lot 4 : `data.accountKnowledge` est restreint à V1/V2 (aucun
-      // lecteur V3 avant le Lot 5). Le tester seul ferait conclure à tort
-      // « À compléter » dès qu'un V3 — le contrat le plus riche — est
-      // l'artefact courant. `accountKnowledgeV3` doit compter comme
-      // « connaissance disponible » au même titre, même si son contenu n'est
-      // pas encore rendu.
-      //
-      // Account Intelligence Lot 1 : même défaut pour V4. Un V4 courant compte
-      // comme connaissance disponible — mais un V4 non ancré (`degraded` /
-      // `internal_only`) le dit dès la frise (axiome A2), au lieu d'afficher
-      // le même « Disponible » qu'une analyse adossée à des documents lus.
-      const v4 = data.accountKnowledgeV4 ?? null
-      if (v4) {
-        return resolveAccountKnowledgeAnchoring(v4.data).research_status === "nominal"
-          ? { label: "Disponible", tone: "success" }
-          : { label: "Non ancrée", tone: "warning" }
-      }
-      const hasEngine = data.accountKnowledge !== null || data.accountKnowledgeV3 !== null
+      // La connaissance entreprise = une étude de recherche PUBLIÉE. À défaut, FOLIO
+      // (affichage conservé tant que les comptes ne sont pas repassés par une étude).
+      const hasStudy = Boolean(data.accountStudy?.current)
       const hasFolio = data.client?.source === "folio"
-      if (hasEngine) {
+      if (hasStudy) {
         return { label: "Disponible", tone: "success" }
       }
       if (hasFolio) {

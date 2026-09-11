@@ -1,4 +1,3 @@
-import type { AccountKnowledgeFact } from "@/lib/intelligence/account-intelligence-contracts"
 import {
   EMPTY_CURRENT_COMPANY_FACTS,
   getCurrentMultiFactTexts,
@@ -548,14 +547,6 @@ export function resolveContactOfferSuggestion(
   const best = ranked[0]
   if (!best || best.score < 5) return null
   return { offerId: best.offer.id, offerName: best.offer.name }
-}
-
-export function getVisibleOpenQuestions(facts: readonly AccountKnowledgeFact[] | null | undefined): AccountKnowledgeFact[] {
-  return (facts ?? []).filter((fact) => !fact.dismissed)
-}
-
-export function hasVisibleOpenQuestions(facts: readonly AccountKnowledgeFact[] | null | undefined): boolean {
-  return getVisibleOpenQuestions(facts).length > 0
 }
 
 // Ne re-trie PAS : intelligence-data.ts trie déjà `accountSignals` par

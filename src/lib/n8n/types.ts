@@ -19,7 +19,6 @@ export type N8nWorkflowId =
                                      // Le pipeline cron (`KREDO — Veille Hebdomadaire IA & Marché`)
                                      // n'expose pas de webhook — il n'a jamais été un N8nWorkflowId.
   | "intel-022-campaign"            // INTEL-022 : création campagne
-  | "intel-030-account-knowledge"   // ADR-0012 Lot 2 : connaissance compte (étape 1 chaîne de décision)
   | "intel-031-issues-map"          // ADR-0012 Lot 4 : cartographie des enjeux (étape 3 chaîne de décision)
   | "intel-032-strategy"            // ADR-0012 Lot 5 : stratégie commerciale (étape 4 chaîne de décision)
   | "intel-033-account-watch-refresh" // Veille spécifique compte : rafraîchissement manuel
@@ -101,11 +100,6 @@ export type N8nCallbackPayload = {
   contextSnapshot?: Record<string, unknown>
   sourceRefs?: CommunicationSourceRef[]
   qaFlags?: CommunicationQaFlag[]
-  // INTEL-035 (Account Intelligence Lot 0) — documents réellement récupérés par le
-  // preflight de sources. Transmis BRUTS : c'est l'application qui les écrit dans
-  // `account_source_documents`, applique la frontière tenant et construit le plan
-  // canonique. Le workflow n'écrit jamais ce store lui-même.
-  sourceDocuments?: Record<string, unknown>[]
   // Alerte échec workflow, Lot 0 (2026-07-18) — identifiants n8n internes
   // ($execution.id / $workflow.id), fusionnés dans ai_intelligence_runs.config
   // pour construire le lien "Ouvrir dans n8n" du drill-down /automations.
@@ -333,24 +327,6 @@ export type AccountSignalVerificationResult = {
   }>
   supportingEvidenceIds: string[]
   contradictingEvidenceIds: string[]
-}
-
-// ─── INTEL-030 — Connaissance compte (account_knowledge) ────────────────────
-// Contenu du champ `input` de POST /api/n8n/trigger pour
-// `workflowId: "intel-030-account-knowledge"`.
-//
-// `triggerN8nRun` transporte ce bloc tel quel sous `body.input` — c'est
-// exactement là que le nœud « Validate Entity » du workflow lit le
-// discriminateur (Lot 4 : il ne lisait auparavant que la racine du body, ce qui
-// rendait la branche V3 inatteignable depuis l'application).
-//
-// Littéral `2 | 3 | 4` plutôt que `number` : une version inventée est rejetée à la
-// compilation, pas seulement par le workflow (même doctrine que
-// `AccountScanTriggerInput.operation`).
-export const ACTIVE_ACCOUNT_KNOWLEDGE_SCHEMA_VERSION = 4 as const
-
-export type AccountKnowledgeTriggerInput = {
-  accountKnowledgeSchemaVersion: 2 | 3 | 4
 }
 
 // ─── Scan rapide d'un compte (V1) ───────────────────────────────────────────

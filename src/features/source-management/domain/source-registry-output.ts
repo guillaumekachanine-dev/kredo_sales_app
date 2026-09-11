@@ -57,6 +57,21 @@ export type CorpusQualityVerdictValue = (typeof CORPUS_QUALITY_VERDICT_VALUES)[n
 
 const SRC_ID_PATTERN = /^SRC-[0-9]{3}$/
 
+/**
+ * Portée d'un registre. `sector` (défaut) = livrable Master Study E3 d'un segment ;
+ * `account` = registre des sources d'une étude de recherche compte
+ * (`features/account-research-studies`). Un registre compte :
+ *   - porte OBLIGATOIREMENT son propre `meta.corpus_slug` — sans lui, il prendrait le
+ *     slug `sources-<segment>` et l'`ON CONFLICT … DO UPDATE` de `ingest_source_corpus`
+ *     écraserait le corpus Master Study du segment ;
+ *   - n'est pas soumis au plancher de 8 sources ni aux trois familles sectorielles
+ *     obligatoires, qui sont des exigences de corpus SECTORIEL (E3 §4.1.7).
+ */
+export const SOURCE_REGISTRY_CORPUS_SCOPES = ["sector", "account"] as const
+export type SourceRegistryCorpusScope = (typeof SOURCE_REGISTRY_CORPUS_SCOPES)[number]
+
+const CORPUS_SLUG_PATTERN = /^sources-[a-z0-9][a-z0-9-]{1,90}$/
+
 export type SourceRegistrySourceInput = {
   srcId: string
   publisher: string | null
@@ -87,10 +102,17 @@ export type ParsedSourceRegistry = {
     dateSnapshot: string
     version: "1.1"
     validationStatus: SourceRegistryMetaVerdict
+    corpusScope: SourceRegistryCorpusScope
+    /** Slug explicite du corpus ; `null` = `sources-<segment_slug>` (registre sectoriel). */
+    corpusSlug: string | null
   }
   /** Passthrough non retypé — projeté tel quel dans `source_corpora.metadata` (Lot 4 §12). */
   besoinsInformation: unknown[]
-  famillesSectoriellesObligatoires: { presse_professionnelle: string; federation: string; regulateur: string }
+  famillesSectoriellesObligatoires: {
+    presse_professionnelle: string | null
+    federation: string | null
+    regulateur: string | null
+  }
   sources: SourceRegistrySourceInput[]
   packMinimal: string[]
   packEnrichi: string[]
@@ -265,6 +287,20 @@ export function parseSourceRegistryOutput(raw: unknown): SourceRegistryParseResu
     errors.push({ path: "meta.version", message: `meta.version doit être « ${SOURCE_REGISTRY_VERSION} » (reçu « ${String(version)} »).` })
   }
 
+  const corpusScopeRaw = meta ? toNullableString(meta.corpus_scope) : null
+  const corpusScope: SourceRegistryCorpusScope = corpusScopeRaw === "account" ? "account" : "sector"
+  if (corpusScopeRaw !== null && !(SOURCE_REGISTRY_CORPUS_SCOPES as readonly string[]).includes(corpusScopeRaw)) {
+    errors.push({ path: "meta.corpus_scope", message: `meta.corpus_scope « ${corpusScopeRaw} » hors domaine (sector, account).` })
+  }
+  const corpusSlug = meta ? toNullableString(meta.corpus_slug) : null
+  if (corpusSlug !== null && !CORPUS_SLUG_PATTERN.test(corpusSlug)) {
+    errors.push({ path: "meta.corpus_slug", message: `meta.corpus_slug « ${corpusSlug} » invalide (attendu sources-xxx, minuscules et tirets).` })
+  }
+  if (corpusScope === "account" && corpusSlug === null) {
+    errors.push({ path: "meta.corpus_slug", message: "Un registre de compte doit porter son propre meta.corpus_slug (jamais le corpus du segment)." })
+  }
+  const minimumSources = corpusScope === "account" ? 1 : 8
+
   const metaValidationRaw = meta ? toNullableString(meta.validation_status) : null
   const metaValidationStatus: SourceRegistryMetaVerdict =
     metaValidationRaw && (SOURCE_REGISTRY_META_VERDICT_VALUES as readonly string[]).includes(metaValidationRaw)
@@ -272,8 +308,8 @@ export function parseSourceRegistryOutput(raw: unknown): SourceRegistryParseResu
       : "pending"
 
   const rawSources = Array.isArray(root.sources) ? root.sources : null
-  if (!rawSources || rawSources.length < 8) {
-    errors.push({ path: "sources", message: `sources doit contenir au moins 8 entrées (reçu ${rawSources?.length ?? 0}).` })
+  if (!rawSources || rawSources.length < minimumSources) {
+    errors.push({ path: "sources", message: `sources doit contenir au moins ${minimumSources} entrée(s) (reçu ${rawSources?.length ?? 0}).` })
   }
 
   if (errors.length > 0) return { ok: false, errors }
@@ -346,14 +382,16 @@ export function parseSourceRegistryOutput(raw: unknown): SourceRegistryParseResu
   const presse = rawFamilles ? toNullableString(rawFamilles.presse_professionnelle) : null
   const federation = rawFamilles ? toNullableString(rawFamilles.federation) : null
   const regulateur = rawFamilles ? toNullableString(rawFamilles.regulateur) : null
-  if (!presse || !allSrcIds.has(presse)) {
-    errors.push({ path: "familles_sectorielles_obligatoires.presse_professionnelle", message: `« ${String(presse)} » ne résout vers aucune source.` })
-  }
-  if (!federation || !allSrcIds.has(federation)) {
-    errors.push({ path: "familles_sectorielles_obligatoires.federation", message: `« ${String(federation)} » ne résout vers aucune source.` })
-  }
-  if (!regulateur || !allSrcIds.has(regulateur)) {
-    errors.push({ path: "familles_sectorielles_obligatoires.regulateur", message: `« ${String(regulateur)} » ne résout vers aucune source.` })
+  for (const [key, value] of [
+    ["presse_professionnelle", presse],
+    ["federation", federation],
+    ["regulateur", regulateur],
+  ] as const) {
+    // Registre de compte : une famille peut manquer (null), mais un pointeur fourni doit résoudre.
+    if (corpusScope === "account" && value === null) continue
+    if (!value || !allSrcIds.has(value)) {
+      errors.push({ path: `familles_sectorielles_obligatoires.${key}`, message: `« ${String(value)} » ne résout vers aucune source.` })
+    }
   }
 
   const rawCompteurs = isPlainObject(root.compteurs) ? root.compteurs : null
@@ -391,12 +429,14 @@ export function parseSourceRegistryOutput(raw: unknown): SourceRegistryParseResu
         dateSnapshot: dateSnapshot as string,
         version: SOURCE_REGISTRY_VERSION,
         validationStatus: metaValidationStatus,
+        corpusScope,
+        corpusSlug,
       },
       besoinsInformation: Array.isArray(root.besoins_information) ? root.besoins_information : [],
       famillesSectoriellesObligatoires: {
-        presse_professionnelle: presse as string,
-        federation: federation as string,
-        regulateur: regulateur as string,
+        presse_professionnelle: presse,
+        federation,
+        regulateur,
       },
       sources,
       packMinimal,
@@ -562,6 +602,11 @@ export type IngestSourceCorpusPayload = {
   sources: IngestSourceCorpusSourceItem[]
 }
 
+/** Slug du corpus créé par l'import : explicite pour un registre de compte, dérivé du segment sinon. */
+export function resolveRegistryCorpusSlug(parsed: ParsedSourceRegistry): string {
+  return parsed.meta.corpusSlug ?? `sources-${parsed.meta.segmentSlug}`
+}
+
 /**
  * Assemble le payload RPC final à partir du livrable parsé, des décisions
  * d'arbitrage de l'étape 2 (activé/exclu par source) et des métadonnées du
@@ -573,7 +618,7 @@ export function buildIngestSourceCorpusPayload(
   corpusMeta: { sourceDocumentPath: string | null; sourceDocumentHash: string | null; sourceFileName: string | null },
 ): IngestSourceCorpusPayload {
   return {
-    slug: `sources-${parsed.meta.segmentSlug}`,
+    slug: resolveRegistryCorpusSlug(parsed),
     version: parsed.meta.version,
     snapshot_date: parsed.meta.dateSnapshot,
     quality_verdict: mapE3VerdictToCorpusQualityVerdict(parsed.meta.validationStatus),
@@ -582,7 +627,12 @@ export function buildIngestSourceCorpusPayload(
     source_document_hash: corpusMeta.sourceDocumentHash,
     gaps: parsed.gaps,
     metadata: {
-      meta: { secteur: parsed.meta.secteur, geographie: parsed.meta.geographie, segment_slug: parsed.meta.segmentSlug },
+      meta: {
+        secteur: parsed.meta.secteur,
+        geographie: parsed.meta.geographie,
+        segment_slug: parsed.meta.segmentSlug,
+        corpus_scope: parsed.meta.corpusScope,
+      },
       besoins_information: parsed.besoinsInformation,
       familles_sectorielles_obligatoires: parsed.famillesSectoriellesObligatoires,
       matrice_couverture: parsed.matriceCouverture,

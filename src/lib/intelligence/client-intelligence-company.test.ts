@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   getInitialAccountSignals,
-  hasVisibleOpenQuestions,
   normalizeOperationalDepartments,
   normalizeOperationalStakeholders,
   normalizeOperationalWorkload,
@@ -292,14 +291,6 @@ describe("suggestion déterministe contact → offre", () => {
 })
 
 describe("visibilité conditionnelle", () => {
-  it("n'affiche les hypothèses que si une question non écartée existe", () => {
-    expect(hasVisibleOpenQuestions([{ text: "Question", provenance: "inferred", dismissed: true }])).toBe(false)
-    expect(hasVisibleOpenQuestions([
-      { text: "Question écartée", provenance: "inferred", dismissed: true },
-      { text: "Question visible", provenance: "inferred" },
-    ])).toBe(true)
-  })
-
   it("prend les cinq premiers signaux sans re-trier (l'appelant trie déjà par fraîcheur)", () => {
     // Volontairement dans le désordre chronologique : la fonction ne doit PAS
     // re-trier, seulement découper — sinon elle romprait le tri par date de

@@ -11,22 +11,9 @@ import {
   ContactsKeyCard,
   CommercialRelationCard,
   AccountSignalsCard,
-  AccountKnowledgeGeneratedContent,
-  AccountKnowledgeOpenQuestions,
-  AccountKnowledgeOpenQuestionsV2,
 } from "./AccountKnowledgeBlocks"
-import {
-  buildSourceIndex,
-  hasMarketPositioningContent,
-  hasOrganisationContent,
-  hasValueChainContent,
-  IdentityV2Content,
-  MarketPositioningV2Content,
-  OrganisationV2Content,
-  ValueChainV2Content,
-} from "./AccountKnowledgeV2Blocks"
-import { AccountKnowledgeUpdateControlsMobile } from "./AccountKnowledgeUpdateControls"
-import { useAccountKnowledgeRun } from "./use-account-knowledge-run"
+import { AccountStudyMobile } from "@/features/account-research-studies/components/AccountStudyMobile"
+import { AccountStudyMobilePanel } from "@/features/account-research-studies/components/AccountStudyPanel"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { triggerN8nWorkflow } from "@/lib/n8n/trigger-client"
 import {
@@ -51,8 +38,6 @@ import {
 } from "./ClientIntelligenceDesktopView"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
-import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
-import { AccountKnowledgeV4Mobile } from "./account-knowledge-v4/AccountKnowledgeV4Mobile"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
@@ -130,21 +115,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
     return () => window.removeEventListener("kredo:open-account-intelligence", openAccountIntelligence)
   }, [company.id])
 
-  const v3State = data.accountKnowledgeV3
-  const v3 = v3State?.data
-  const v4State = data.accountKnowledgeV4
-  const v4 = v4State?.data
-  const knowledge = v4State ?? v3State ?? data.accountKnowledge
-  const showStructuredCompanyProfile = !v3 && !v4 && knowledge?.version !== 2
-  const knowledgeSourceIndex = useMemo(
-    () => buildSourceIndex(data.accountKnowledgeSources),
-    [data.accountKnowledgeSources],
-  )
-  const {
-    status: knowledgeRunStatus,
-    errorMessage: knowledgeErrorMsg,
-    trigger: triggerKnowledgeRun,
-  } = useAccountKnowledgeRun(company.id)
+  const currentStudy = data.accountStudy.current
 
   const [issues, setIssues] = useState(data.accountIssues)
   const [issuesRunId, setIssuesRunId] = useState<string | null>(null)
@@ -316,91 +287,28 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 />
               </div>
 
-              <AccountKnowledgeUpdateControlsMobile
-                state={knowledge}
-                lastUpdatedAt={data.accountKnowledgeLastUpdatedAt}
-                status={knowledgeRunStatus}
-                errorMessage={knowledgeErrorMsg}
-                onUpdate={() => void triggerKnowledgeRun()}
+              <AccountStudyMobilePanel
+                state={data.accountStudy}
+                companyId={company.id}
+                companyName={company.name}
               />
 
-              {showStructuredCompanyProfile ? (
+              {currentStudy ? (
+                <AccountStudyMobile
+                  studyId={currentStudy.id}
+                  knowledge={currentStudy.knowledge}
+                  companyName={company.name}
+                />
+              ) : (
                 <div className="mb-3 space-y-3 border-t border-border/30 pt-4">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
-                    Données structurées du compte
+                    {data.client?.source === "folio" ? "Étude FOLIO historique" : "Données structurées du compte"}
                   </p>
                   <CompanyIdentityPositioningContent
                     identity={data.companyProfile}
                     positioning={data.companyPositioning}
                   />
                 </div>
-              ) : null}
-
-              {v4 ? (
-                <div className="mb-3 mt-2 border-t border-border/30 pt-4">
-                  <AccountKnowledgeV4Mobile
-                    content={v4}
-                    sourceEvidence={data.accountKnowledgeV4SourceEvidence}
-                    companyName={company.name}
-                  />
-                </div>
-              ) : v3 ? (
-                <div className="mb-3 space-y-4 border-t border-border/30 pt-4 mt-2">
-                  <AccountKnowledgeV3Mobile content={v3} sources={knowledgeSourceIndex} signals={data.accountSignals} />
-                  {data.accountKnowledge && (
-                    <div className="mt-4 border-t border-border/30 pt-4">
-                      {data.accountKnowledge.version === 1 ? (
-                        <AccountKnowledgeOpenQuestions data={data.accountKnowledge.data} resultId={data.accountKnowledge.resultId} />
-                      ) : data.accountKnowledge.version === 2 ? (
-                        <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data} />
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  {knowledge?.version === 1 && (
-                    <div className="mb-3">
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
-                        Synthèse générée (moteur IA)
-                      </p>
-                      <AccountKnowledgeGeneratedContent data={knowledge.data} resultId={knowledge.resultId} />
-                    </div>
-                  )}
-
-                  {knowledge?.version === 2 && (
-                    <div className="mb-3 space-y-4">
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
-                        Connaissance entreprise (moteur IA, sourcée)
-                      </p>
-                      <IdentityV2Content
-                        identity={knowledge.data.identity}
-                        summary={knowledge.data.account_summary}
-                        sources={knowledgeSourceIndex}
-                      />
-                      {hasMarketPositioningContent(knowledge.data) && (
-                        <MarketPositioningV2Content
-                          positioning={knowledge.data.market_positioning}
-                          sources={knowledgeSourceIndex}
-                        />
-                      )}
-                      {hasValueChainContent(knowledge.data) && (
-                        <ValueChainV2Content
-                          valueChain={knowledge.data.company_value_chain}
-                          sources={knowledgeSourceIndex}
-                        />
-                      )}
-                      {hasOrganisationContent(knowledge.data) && (
-                        <OrganisationV2Content
-                          organisation={knowledge.data.organisation}
-                          contacts={data.contacts}
-                          sources={knowledgeSourceIndex}
-                        />
-                      )}
-                      <AccountKnowledgeOpenQuestionsV2 data={knowledge.data} />
-                    </div>
-                  )}
-                </>
               )}
 
               <div className="grid grid-cols-2 gap-2 mb-2">

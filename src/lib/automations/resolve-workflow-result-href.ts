@@ -11,7 +11,6 @@ export type WorkflowResultHrefInput = {
 
 const ACCOUNT_CENTRIC_RUN_TYPES = new Set([
   "intel-010-refresh",
-  "intel-030-account-knowledge",
   "intel-031-issues-map",
   "intel-032-strategy",
   "intel-033-account-watch-refresh",

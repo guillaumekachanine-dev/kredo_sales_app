@@ -569,3 +569,62 @@ describe("buildIngestSourceCorpusPayload — assemblage du payload RPC (Lot 4 §
     }
   })
 })
+
+// ─── Registre d'une étude compte (`meta.corpus_scope: "account"`) ─────────────
+// Un registre de compte ne doit JAMAIS prendre le slug `sources-<segment>` : l'upsert
+// de `ingest_source_corpus` écraserait alors le corpus Master Study du segment.
+
+function accountRegistry(sourceCount: number, meta: Record<string, unknown> = {}) {
+  const sources = Array.from({ length: sourceCount }, (_, i) => minimalSource({ pack: i === 0 ? "minimal" : "enrichi" }, i + 1))
+  const ids = sources.map((s) => s.src_id)
+  return {
+    ...minimalRegistry({ sources, meta: { corpus_scope: "account", corpus_slug: "sources-compte-sos-oxygene", ...meta } }),
+    familles_sectorielles_obligatoires: { presse_professionnelle: null, federation: null, regulateur: ids[0] },
+    pack_minimal: ids.slice(0, 1),
+    pack_enrichi: ids.slice(1),
+    compteurs: { sources: sourceCount, pack_minimal: 1, pack_enrichi: sourceCount - 1, requetes: 0 },
+  }
+}
+
+describe("parseSourceRegistryOutput — registre de compte", () => {
+  it("accepte moins de 8 sources et des familles sectorielles absentes", () => {
+    const result = parseSourceRegistryOutput(accountRegistry(3))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.data.meta.corpusScope).toBe("account")
+    expect(result.data.famillesSectoriellesObligatoires.federation).toBeNull()
+  })
+
+  it("importe sous son propre slug, jamais sous celui du segment", () => {
+    const result = parseSourceRegistryOutput(accountRegistry(3))
+    if (!result.ok) throw new Error("registre attendu valide")
+    const payload = buildIngestSourceCorpusPayload(result.data, [], {
+      sourceDocumentPath: null,
+      sourceDocumentHash: null,
+      sourceFileName: null,
+    })
+    expect(payload.slug).toBe("sources-compte-sos-oxygene")
+    expect(payload.metadata.meta).toMatchObject({ corpus_scope: "account", segment_slug: "seg-test-b2b" })
+  })
+
+  it("refuse un registre de compte sans corpus_slug", () => {
+    const registry = accountRegistry(3)
+    delete (registry.meta as Record<string, unknown>).corpus_slug
+    const result = parseSourceRegistryOutput(registry)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.errors.some((error) => error.path === "meta.corpus_slug")).toBe(true)
+  })
+
+  it("refuse un pointeur de famille fourni qui ne résout vers aucune source", () => {
+    const registry = { ...accountRegistry(3), familles_sectorielles_obligatoires: { presse_professionnelle: "SRC-999", federation: null, regulateur: null } }
+    expect(parseSourceRegistryOutput(registry).ok).toBe(false)
+  })
+
+  it("laisse inchangé le registre sectoriel : 8 sources et trois familles restent exigées", () => {
+    const sector = minimalRegistry()
+    expect(parseSourceRegistryOutput({ ...sector, sources: sector.sources.slice(0, 3) }).ok).toBe(false)
+    const parsed = parseSourceRegistryOutput(sector)
+    expect(parsed.ok && parsed.data.meta.corpusScope).toBe("sector")
+  })
+})

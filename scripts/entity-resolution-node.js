@@ -3,13 +3,12 @@
 // GÉNÉRÉ À LA MAIN, PAS AUTOMATIQUEMENT. Transcription de
 // `src/lib/intelligence/entity-resolution.ts`, qui est la SOURCE DE VÉRITÉ et porte
 // les tests. Toute évolution se fait là-bas d'abord, puis ici, puis on rejoue les
-// scripts de patch (`patch-intel-030-entity-resolution.py`,
-// `patch-intel-010-entity-resolution.py`).
+// script de patch `patch-intel-010-entity-resolution.py`.
 //
 // Ce fichier n'est jamais exécuté tel quel : il est INJECTÉ dans les nœuds Code des
 // workflows n8n, qui n'ont pas d'imports. Les harnais
-// `n8n/workflows/__tests__/intel-0*.test.js` vérifient que les deux workflows portent
-// bien les mêmes invariants (seuils, garde de nom).
+// `n8n/workflows/__tests__/intel-010-refresh-account-infos.test.js` vérifie que le
+// workflow porte bien les mêmes invariants (seuils, garde de nom).
 
 const LEGAL_FORM_TOKENS = new Set(['sa','sas','sasu','sarl','eurl','snc','sci','scs','sca','scop','scic','selas','selarl','selafa','sel','sem','spl','gie','gip','eirl','ei','societe','ste','cie','compagnie','etablissements','ets','ltd','limited','llc','inc','gmbh','ag','bv','nv','spa','srl','plc','et','de','du','des','la','le','les','aux']);
 const HOLDING_LIKE_NAF = new Set(['70.10Z','70.22Z','64.20Z','82.99Z','74.90B','94.99Z']);
