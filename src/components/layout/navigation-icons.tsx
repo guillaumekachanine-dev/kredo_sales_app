@@ -44,9 +44,7 @@ export function getNavigationIcon(
           stroke="currentColor"
           strokeWidth={strokeWidthOverride ?? 2}
         >
-          <circle cx="12" cy="12" r="7.5" />
-          <circle cx="12" cy="12" r="3" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5l5 5M5 5h3.5M5 5v3.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.75v6M9.5 6.25L12 3.75l2.5 2.5M14.25 12h6M17.75 9.5l2.5 2.5-2.5 2.5M12 14.25v6M9.5 17.75l2.5 2.5 2.5-2.5M9.75 12h-6M6.25 9.5L3.75 12l2.5 2.5" />
         </svg>
       )
     case "news-mobile":
