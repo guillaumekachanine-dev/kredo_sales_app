@@ -70,7 +70,34 @@ Props :
 
 Le shell est réservé à la branche Mobile. Il ne doit pas être chargé puis masqué sur Desktop. Les versions Desktop restent des compositions structurelles distinctes. Le scroll vertical appartient au scroll root mobile de `AppShell`; le shell empêche uniquement l’overflow horizontal accidentel.
 
-Le contenu de la surface demeure libre. Finance constitue la première déclinaison analytique de référence : deux KPI compacts, puis une zone graphique dominante organisée en carousel Mobile de visualisations métier dédiées. Ce pattern reste une composition Finance et n’est pas abstrait dans le shell générique.
+Le contenu de la surface demeure libre. Le shell ne force ni visualisation unique ni carousel. Les composants de contenu partagés restent légers et ne reçoivent aucune donnée métier, règle de modal ni calcul.
+
+### KPI actionnables
+
+Lorsqu’un KPI principal possède un niveau de détail naturel, une Overview peut commencer sa surface par deux `MobileOverviewKpiCard` dans `MobileOverviewKpiGrid` :
+
+```text
+MobileOverviewKpiGrid
+├── MobileOverviewKpiCard → détail 1
+└── MobileOverviewKpiCard → détail 2
+```
+
+Chaque carte est une action complète, avec une cible tactile d’au moins 44 px, un nom accessible explicite et `aria-haspopup="dialog"`. Elle comprend un pictogramme, une forme décorative CSS dérivée de son accent avec `color-mix()`, le libellé, la valeur et une affordance de détail. Les couleurs proviennent des tokens KREDO ; aucun aplat arbitraire ni élément décoratif bitmap n’est ajouté. Le détail — graphique, analyse ou module existant — reste la responsabilité de la page métier.
+
+Finance est la référence actuelle de cette composition : `2 KPI Cards + 1 visualisation principale`. Les cartes ouvrent respectivement le détail de CA facturé et l’Atlas du portefeuille sur Marge ; `RevenueContributionChart` reste l’unique visualisation affichée dans la surface.
+
+### Carousel de visualisations
+
+`MobileOverviewCarousel` reste disponible pour une page qui présente réellement plusieurs visualisations de même niveau :
+
+```text
+2 KPI Cards
+      +
+MobileOverviewCarousel
+└── visualisations métier optionnelles
+```
+
+Il assure uniquement le défilement horizontal natif, le CSS Scroll Snap, le swipe tactile, la pagination accessible, l’indicateur actif et le respect de `prefers-reduced-motion`. Les contenus, leurs libellés et leurs données sont fournis par la page. Finance ne consomme plus ce pattern.
 
 ## Création d’une future page
 
@@ -82,6 +109,6 @@ Traiter les pages une par une :
 4. concevoir séparément l’illustration dédiée ;
 5. sélectionner la clé `tone` du registre KREDO ;
 6. intégrer le contenu dans `MobileOverviewShell` ;
-7. exécuter une QA individuelle, dont absence de clipping et d’overflow horizontal.
+7. exécuter les vérifications techniques adaptées au chantier.
 
 Ne modifier le shell qu’en présence d’un besoin transversal démontré par plusieurs pages.

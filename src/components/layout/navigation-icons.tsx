@@ -260,6 +260,19 @@ export function getNavigationIcon(
           <circle cx="16.5" cy="15.25" r=".55" fill="currentColor" stroke="none" />
         </svg>
       )
+    case "margin":
+      return (
+        <svg
+          className={baseClasses}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={strokeWidthOverride ?? 1.8}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 18.5V5.5M4 18.5h16M7 15l3.25-3.25 2.5 2.5L18 8.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.75 8.5H18v3.25" />
+        </svg>
+      )
     case "settings":
       return (
         <svg

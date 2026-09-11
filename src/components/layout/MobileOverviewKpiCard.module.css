@@ -1,0 +1,110 @@
+.card {
+  --mobile-overview-kpi-bg: var(--color-brand-primary);
+  --mobile-overview-kpi-fg: var(--color-primary-fg);
+
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 144px;
+  aspect-ratio: 1 / 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: 24px;
+  background: var(--mobile-overview-kpi-bg);
+  color: var(--mobile-overview-kpi-fg);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.card[data-tone="brass"] {
+  --mobile-overview-kpi-bg: var(--color-brand-brass);
+  --mobile-overview-kpi-fg: var(--color-secondary-fg);
+}
+
+.card:hover {
+  background: color-mix(in srgb, var(--mobile-overview-kpi-bg) 91%, var(--color-heading));
+}
+
+.card:active {
+  transform: translateY(1px);
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--color-heading);
+  outline-offset: 3px;
+}
+
+.decorativeShape {
+  position: absolute;
+  top: -32px;
+  right: -26px;
+  width: 104px;
+  height: 104px;
+  border-radius: 44% 56% 49% 51% / 58% 39% 61% 42%;
+  background: radial-gradient(
+    circle at 35% 65%,
+    color-mix(in srgb, var(--mobile-overview-kpi-bg) 67%, white),
+    color-mix(in srgb, var(--mobile-overview-kpi-bg) 86%, white)
+  );
+  opacity: 0.72;
+  transform: rotate(-18deg);
+}
+
+.icon,
+.content,
+.detailIcon {
+  position: relative;
+  z-index: 1;
+}
+
+.icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+}
+
+.content {
+  display: grid;
+  width: 100%;
+  gap: 3px;
+  padding-right: 12px;
+}
+
+.label {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: clamp(20px, 7vw, 25px);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailIcon {
+  position: absolute;
+  right: 12px;
+  bottom: 15px;
+  opacity: 0.78;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}

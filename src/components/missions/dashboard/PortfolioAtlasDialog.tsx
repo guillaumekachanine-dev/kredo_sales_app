@@ -13,9 +13,16 @@ interface PortfolioAtlasDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   overview: EngagementsPortfolioViewModel
+  initialView?: AtlasView
 }
 
-type AtlasView = "exposure" | "production" | "projects" | "margin"
+export type AtlasView = "exposure" | "production" | "projects" | "margin"
+
+export const DEFAULT_ATLAS_VIEW: AtlasView = "exposure"
+
+export function resolveInitialAtlasView(initialView?: AtlasView): AtlasView {
+  return initialView ?? DEFAULT_ATLAS_VIEW
+}
 
 const VIEWS: ReadonlyArray<readonly [AtlasView, string]> = [
   ["exposure", "Exposition"],
@@ -24,8 +31,7 @@ const VIEWS: ReadonlyArray<readonly [AtlasView, string]> = [
   ["margin", "Marge"],
 ]
 
-export function PortfolioAtlasDialog({ open, onOpenChange, overview }: PortfolioAtlasDialogProps) {
-  const [view, setView] = useState<AtlasView>("exposure")
+export function PortfolioAtlasDialog({ open, onOpenChange, overview, initialView }: PortfolioAtlasDialogProps) {
   return (
     <AppDialog
       open={open}
@@ -43,32 +49,50 @@ export function PortfolioAtlasDialog({ open, onOpenChange, overview }: Portfolio
       bodyClassName="!overflow-hidden !pr-0"
       headerClassName="border-b border-border/30 pb-3"
     >
-      <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
-        <nav className="grid grid-cols-4 rounded-[var(--radius-medium)] border border-border/30 bg-slate-950/40 p-1" role="tablist" aria-label="Vues de l’Atlas">
-          {VIEWS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={view === value}
-              aria-controls={`atlas-${value}`}
-              onClick={() => setView(value)}
-              className={cn(
-                "min-h-11 cursor-pointer rounded-[var(--radius-small)] px-2 text-[10px] font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition-colors",
-                view === value ? "bg-primary text-primary-fg" : "text-body hover:text-heading"
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-        <section id={`atlas-${view}`} role="tabpanel" className="min-h-0 overflow-y-auto overscroll-contain rounded-[var(--radius-medium)] border border-border/30 bg-surface p-3 sm:p-4">
-          {view === "exposure" && <ClientExposureTreemap clients={overview.portfolio.clients} firstClientPct={overview.portfolio.clientConcentration.firstClientPct} top3ClientsPct={overview.portfolio.clientConcentration.top3ClientsPct} />}
-          {view === "production" && <ProductionHeatmap clients={overview.portfolio.production.clients} practices={overview.portfolio.production.practices} />}
-          {view === "projects" && <ProjectsCockpit projects={overview.portfolio.projects} />}
-          {view === "margin" && <MarginBridgeChart bridges={overview.portfolio.marginBridge} />}
-        </section>
-      </div>
+      <PortfolioAtlasDialogContent
+        key={`${open ? "open" : "closed"}-${resolveInitialAtlasView(initialView)}`}
+        overview={overview}
+        initialView={resolveInitialAtlasView(initialView)}
+      />
     </AppDialog>
+  )
+}
+
+function PortfolioAtlasDialogContent({
+  overview,
+  initialView,
+}: {
+  overview: EngagementsPortfolioViewModel
+  initialView: AtlasView
+}) {
+  const [view, setView] = useState<AtlasView>(initialView)
+
+  return (
+    <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
+      <nav className="grid grid-cols-4 rounded-[var(--radius-medium)] border border-border/30 bg-slate-950/40 p-1" role="tablist" aria-label="Vues de l’Atlas">
+        {VIEWS.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={view === value}
+            aria-controls={`atlas-${value}`}
+            onClick={() => setView(value)}
+            className={cn(
+              "min-h-11 cursor-pointer rounded-[var(--radius-small)] px-2 text-[10px] font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition-colors",
+              view === value ? "bg-primary text-primary-fg" : "text-body hover:text-heading"
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      <section id={`atlas-${view}`} role="tabpanel" className="min-h-0 overflow-y-auto overscroll-contain rounded-[var(--radius-medium)] border border-border/30 bg-surface p-3 sm:p-4">
+        {view === "exposure" && <ClientExposureTreemap clients={overview.portfolio.clients} firstClientPct={overview.portfolio.clientConcentration.firstClientPct} top3ClientsPct={overview.portfolio.clientConcentration.top3ClientsPct} />}
+        {view === "production" && <ProductionHeatmap clients={overview.portfolio.production.clients} practices={overview.portfolio.production.practices} />}
+        {view === "projects" && <ProjectsCockpit projects={overview.portfolio.projects} />}
+        {view === "margin" && <MarginBridgeChart bridges={overview.portfolio.marginBridge} />}
+      </section>
+    </div>
   )
 }

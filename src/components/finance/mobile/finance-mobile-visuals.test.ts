@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { FinanceMobileDashboardData, FinanceQuarterAmount } from "@/lib/finance/finance-mobile-model"
-import { buildFinanceMobileKpis, FINANCE_MOBILE_CHART_SLIDES } from "../FinanceMobileDashboard"
+import { buildFinanceMobileKpis } from "../FinanceMobileDashboard"
 import { revenueVisualState } from "./AnnualRevenueSkyline"
 import { buildQuarterlyGridRows } from "./QuarterlyProductionGrid"
 import { buildContributionItems, CONTRIBUTION_MODES, pieSlicePath } from "./RevenueContributionChart"
@@ -72,14 +72,6 @@ describe("visualisations Finance mobile", () => {
       actualRevenue: 1_000,
       actualGrossMarginPct: 35,
     })
-  })
-
-  it("verrouille les trois slides, leur ordre et le CA facturé par défaut", () => {
-    expect(FINANCE_MOBILE_CHART_SLIDES).toEqual([
-      "CA facturé",
-      "Structure du CA",
-      "Production annuelle",
-    ])
   })
 
   it("conserve douze mois et distingue le réalisé de la projection", () => {

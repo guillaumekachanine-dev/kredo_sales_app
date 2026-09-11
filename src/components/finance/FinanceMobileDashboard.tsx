@@ -2,14 +2,17 @@
 
 import Image from "next/image"
 import dynamic from "next/dynamic"
-import { useLayoutEffect, useRef, useState } from "react"
+import { useState } from "react"
+import { loadEngagementsOverview } from "@/app/(app)/missions/_actions/load-engagements-overview"
+import { MobileOverviewKpiCard } from "@/components/layout/MobileOverviewKpiCard"
+import { MobileOverviewKpiGrid } from "@/components/layout/MobileOverviewKpiGrid"
 import { MobileOverviewShell } from "@/components/layout/MobileOverviewShell"
 import { getNavigationIcon } from "@/components/layout/navigation-icons"
+import type { EngagementsPortfolioViewModel } from "@/components/missions/dashboard/engagements-portfolio-types"
+import { AppDialog } from "@/components/ui/AppDialog"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { formatEuroCompact, formatPct } from "@/lib/formatters"
 import type { FinanceMobileDashboardData } from "@/lib/finance/finance-mobile-model"
-import { AnnualRevenueSkyline } from "./mobile/AnnualRevenueSkyline"
-import { QuarterlyProductionGrid } from "./mobile/QuarterlyProductionGrid"
 import { RevenueContributionChart } from "./mobile/RevenueContributionChart"
 import styles from "./FinanceMobileDashboard.module.css"
 
@@ -23,12 +26,14 @@ const FinancialModelingMobileFlow = dynamic(() =>
   ),
   { loading: DetailLoading },
 )
-
-export const FINANCE_MOBILE_CHART_SLIDES = [
-  "CA facturé",
-  "Structure du CA",
-  "Production annuelle",
-] as const
+const AnnualRevenueSkyline = dynamic(
+  () => import("./mobile/AnnualRevenueSkyline").then((module) => module.AnnualRevenueSkyline),
+  { ssr: false, loading: DetailLoading },
+)
+const PortfolioAtlasDialog = dynamic(
+  () => import("@/components/missions/dashboard/PortfolioAtlasDialog").then((module) => module.PortfolioAtlasDialog),
+  { ssr: false, loading: DetailLoading },
+)
 
 export function buildFinanceMobileKpis(data: FinanceMobileDashboardData) {
   return {
@@ -57,33 +62,30 @@ function CockpitBriefIcon() {
 }
 
 export function FinanceMobileDashboard({ data }: { data: FinanceMobileDashboardData }) {
-  const [activeSlide, setActiveSlide] = useState(0)
   const [cockpitOpen, setCockpitOpen] = useState(false)
   const [modelingOpen, setModelingOpen] = useState(false)
-  const carouselRef = useRef<HTMLDivElement>(null)
-  const slideRefs = useRef<Array<HTMLElement | null>>([])
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false)
+  const [atlasOpen, setAtlasOpen] = useState(false)
+  const [atlasState, setAtlasState] = useState<
+    | { status: "idle" | "loading" }
+    | { status: "ready"; data: EngagementsPortfolioViewModel }
+    | { status: "error"; message: string }
+  >({ status: "idle" })
   const kpis = buildFinanceMobileKpis(data)
 
-  useLayoutEffect(() => {
-    const carousel = carouselRef.current
-    const slide = slideRefs.current[activeSlide]
-    if (!carousel || !slide) return
+  function openMarginAtlas() {
+    setAtlasOpen(true)
+    if (atlasState.status === "ready" || atlasState.status === "loading") return
 
-    const syncHeight = () => {
-      carousel.style.height = `${slide.offsetHeight}px`
-    }
-    syncHeight()
-
-    const observer = new ResizeObserver(syncHeight)
-    observer.observe(slide)
-    return () => observer.disconnect()
-  }, [activeSlide])
-
-  function scrollToSlide(index: number) {
-    const carousel = carouselRef.current
-    if (!carousel) return
-    carousel.scrollTo({ left: index * carousel.clientWidth, behavior: "smooth" })
-    setActiveSlide(index)
+    setAtlasState({ status: "loading" })
+    void loadEngagementsOverview()
+      .then((overview) => setAtlasState({ status: "ready", data: overview }))
+      .catch((reason: unknown) => {
+        setAtlasState({
+          status: "error",
+          message: reason instanceof Error ? reason.message : "Chargement du portefeuille impossible.",
+        })
+      })
   }
 
   return (
@@ -119,56 +121,62 @@ export function FinanceMobileDashboard({ data }: { data: FinanceMobileDashboardD
           </>
         )}
       >
-        <section className={styles.kpis} aria-label="Indicateurs Finance">
-          <div>
-            <p>CA facturé</p>
-            <strong>{formatEuroCompact(kpis.actualRevenue)}</strong>
-          </div>
-          <div>
-            <p>Marge moyenne</p>
-            <strong>{formatPct(kpis.actualGrossMarginPct, 1)}</strong>
-          </div>
-        </section>
+        <MobileOverviewKpiGrid label="Indicateurs Finance">
+          <MobileOverviewKpiCard
+            label="CA facturé"
+            value={formatEuroCompact(kpis.actualRevenue)}
+            icon={getNavigationIcon("finance", "size-5", 1.8)}
+            tone="primary"
+            onClick={() => setRevenueDialogOpen(true)}
+            ariaLabel="Voir le détail du chiffre d’affaires facturé"
+          />
+          <MobileOverviewKpiCard
+            label="Marge moyenne"
+            value={formatPct(kpis.actualGrossMarginPct, 1)}
+            icon={getNavigationIcon("margin", "size-5", 1.8)}
+            tone="brass"
+            onClick={openMarginAtlas}
+            ariaLabel="Voir l’Atlas du portefeuille sur la marge moyenne"
+          />
+        </MobileOverviewKpiGrid>
 
         <section className={styles.analysis} aria-label="Analyses Finance">
-          <div
-            ref={carouselRef}
-            className={styles.carousel}
-            onScroll={(event) => {
-              const width = event.currentTarget.clientWidth
-              if (width > 0) setActiveSlide(Math.round(event.currentTarget.scrollLeft / width))
-            }}
-          >
-            <article ref={(node) => { slideRefs.current[0] = node }} className={styles.slide} aria-label="CA facturé, vue 1 sur 3">
-              <AnnualRevenueSkyline data={data} />
-            </article>
-            <article ref={(node) => { slideRefs.current[1] = node }} className={styles.slide} aria-label="Structure du CA, vue 2 sur 3">
-              <RevenueContributionChart data={data} />
-            </article>
-            <article ref={(node) => { slideRefs.current[2] = node }} className={styles.slide} aria-label="Production annuelle, vue 3 sur 3">
-              <QuarterlyProductionGrid data={data} />
-            </article>
-          </div>
-
-          <nav className={styles.carouselNav} aria-label="Choisir une analyse Finance">
-            <span aria-live="polite">{FINANCE_MOBILE_CHART_SLIDES[activeSlide]}</span>
-            <div>
-              {FINANCE_MOBILE_CHART_SLIDES.map((label, index) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-label={`Afficher ${label}`}
-                  aria-current={activeSlide === index ? "page" : undefined}
-                  onClick={() => scrollToSlide(index)}
-                >
-                  <i aria-hidden="true" />
-                </button>
-              ))}
-            </div>
-            <small>{activeSlide + 1} / {FINANCE_MOBILE_CHART_SLIDES.length}</small>
-          </nav>
+          <RevenueContributionChart data={data} />
         </section>
       </MobileOverviewShell>
+
+      {revenueDialogOpen ? (
+        <AppDialog
+          open={revenueDialogOpen}
+          onOpenChange={setRevenueDialogOpen}
+          title="CA facturé"
+          description="Réalisé mensuel, projection et cible de l’exercice."
+        >
+          <AnnualRevenueSkyline data={data} />
+        </AppDialog>
+      ) : null}
+
+      {atlasOpen && atlasState.status !== "ready" ? (
+        <AppDialog
+          open={atlasOpen}
+          onOpenChange={setAtlasOpen}
+          title="Atlas du portefeuille"
+          description={atlasState.status === "error" ? atlasState.message : "Chargement du portefeuille…"}
+        >
+          <p role={atlasState.status === "error" ? "alert" : "status"} className="text-xs text-body">
+            {atlasState.status === "error" ? "Le portefeuille ne peut pas être affiché pour le moment." : "Préparation de la vue Marge…"}
+          </p>
+        </AppDialog>
+      ) : null}
+
+      {atlasOpen && atlasState.status === "ready" ? (
+        <PortfolioAtlasDialog
+          open={atlasOpen}
+          onOpenChange={setAtlasOpen}
+          overview={atlasState.data}
+          initialView="margin"
+        />
+      ) : null}
 
       <AppDrawer
         open={cockpitOpen}
