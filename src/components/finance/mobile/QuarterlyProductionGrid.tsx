@@ -96,10 +96,10 @@ export function QuarterlyProductionGrid({ data }: { data: FinanceMobileDashboard
   )
 
   return (
-    <section aria-labelledby="quarterly-production-title" className="space-y-4">
+    <section aria-labelledby="quarterly-production-title" className="space-y-3">
       <div>
-        <h3 id="quarterly-production-title" className="font-heading text-base font-black text-heading">Production annuelle</h3>
-        <p className="mt-1 text-[10px] leading-4 text-muted">Top clients · intensité trimestrielle. Le motif signale toute production projetée.</p>
+        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">Top clients · {data.period.fiscalYear}</p>
+        <h2 id="quarterly-production-title" className="font-heading text-lg font-black tracking-tight text-heading">Production annuelle</h2>
       </div>
 
       {rows.length === 0 ? (
@@ -124,6 +124,7 @@ export function QuarterlyProductionGrid({ data }: { data: FinanceMobileDashboard
                     const total = cell.actual + cell.projected
                     const level = total <= 0 ? 0 : total / max < 0.25 ? 1 : total / max < 0.5 ? 2 : total / max < 0.75 ? 3 : 4
                     const projected = cell.projected > 0
+                    const projectedShare = total > 0 ? (cell.projected / total) * 100 : 0
                     return (
                       <span
                         key={quarter}
@@ -136,14 +137,15 @@ export function QuarterlyProductionGrid({ data }: { data: FinanceMobileDashboard
                           level === 2 && "border-primary/25 bg-primary/[0.18] text-heading",
                           level === 3 && "border-primary/40 bg-primary/[0.38] text-heading",
                           level === 4 && "border-primary bg-primary text-primary-fg",
-                          projected && "border-dashed border-primary",
                           row.overdueWarnings.has(quarter) && "border-2 border-danger",
                         )}
                       >
                         {projected ? (
-                          <svg className="absolute inset-0 size-full" aria-hidden="true" preserveAspectRatio="none">
+                          <svg className="absolute inset-y-0 right-0 h-full" style={{ width: `${projectedShare}%` }} aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 50 48">
                             <defs><pattern id={`${patternId}-${row.id}-${quarter}`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-primary)" strokeOpacity="0.28" strokeWidth="2" /></pattern></defs>
-                            <rect width="100%" height="100%" fill={`url(#${patternId}-${row.id}-${quarter})`} />
+                            <rect width="50" height="48" fill="var(--color-edito-surface)" fillOpacity="0.72" />
+                            <rect width="50" height="48" fill={`url(#${patternId}-${row.id}-${quarter})`} />
+                            <line x1="0.5" x2="0.5" y1="0" y2="48" stroke="var(--color-primary)" strokeDasharray="3 2" />
                           </svg>
                         ) : null}
                         <span className="relative z-[1]">{total > 0 ? formatEuroCompact(total).replace(" €", "") : "—"}</span>

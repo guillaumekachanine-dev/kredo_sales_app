@@ -70,7 +70,7 @@ Props :
 
 Le shell est réservé à la branche Mobile. Il ne doit pas être chargé puis masqué sur Desktop. Les versions Desktop restent des compositions structurelles distinctes. Le scroll vertical appartient au scroll root mobile de `AppShell`; le shell empêche uniquement l’overflow horizontal accidentel.
 
-Le contenu de la surface demeure libre. Pour une future page analytique, la direction produit envisagée est deux KPI compacts suivis d’un graphique principal et de sections graphiques accessibles horizontalement. Ce pattern n’est pas abstrait ici : il sera validé lors du premier chantier analytique réel.
+Le contenu de la surface demeure libre. Finance constitue la première déclinaison analytique de référence : deux KPI compacts, puis une zone graphique dominante organisée en carousel Mobile de visualisations métier dédiées. Ce pattern reste une composition Finance et n’est pas abstrait dans le shell générique.
 
 ## Création d’une future page
 

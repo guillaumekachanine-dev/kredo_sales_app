@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { FinanceMobileDashboardData, FinanceQuarterAmount } from "@/lib/finance/finance-mobile-model"
+import { buildFinanceMobileKpis, FINANCE_MOBILE_CHART_SLIDES } from "../FinanceMobileDashboard"
+import { revenueVisualState } from "./AnnualRevenueSkyline"
 import { buildQuarterlyGridRows } from "./QuarterlyProductionGrid"
-import { buildContributionItems } from "./RevenueContributionChart"
+import { buildContributionItems, CONTRIBUTION_MODES, pieSlicePath } from "./RevenueContributionChart"
 
 function quarters(value: number): Record<"q1" | "q2" | "q3" | "q4", FinanceQuarterAmount> {
   return {
@@ -24,7 +26,14 @@ function dataFixture(): FinanceMobileDashboardData {
     period: { fiscalYear: 2026, actualThrough: "2026-08-01", currency: "EUR" },
     objectives: { annualRevenue: 1_000, grossMarginPct: 32 },
     summary: { actualRevenue: 1_000, actualGrossMarginPct: 35, projectedLanding: 1_200, gapToTarget: 200, coveragePct: 120 },
-    revenueByMonth: [],
+    revenueByMonth: Array.from({ length: 12 }, (_, index) => ({
+      month: `2026-${String(index + 1).padStart(2, "0")}-01`,
+      actual: index < 8 ? 100 : null,
+      projected: index >= 8 ? 120 : null,
+      target: 110,
+      grossMarginPct: index < 8 ? 35 : null,
+      source: index < 8 ? "pnl" as const : "forecast" as const,
+    })),
     forecast: { securedProduction: 100, pipelineGross: 200, pipelineWeighted: 100 },
     distributions: {
       clients: {
@@ -58,6 +67,30 @@ function dataFixture(): FinanceMobileDashboardData {
 }
 
 describe("visualisations Finance mobile", () => {
+  it("branche les deux KPI sur les valeurs réelles consolidées", () => {
+    expect(buildFinanceMobileKpis(dataFixture())).toEqual({
+      actualRevenue: 1_000,
+      actualGrossMarginPct: 35,
+    })
+  })
+
+  it("verrouille les trois slides, leur ordre et le CA facturé par défaut", () => {
+    expect(FINANCE_MOBILE_CHART_SLIDES).toEqual([
+      "CA facturé",
+      "Structure du CA",
+      "Production annuelle",
+    ])
+  })
+
+  it("conserve douze mois et distingue le réalisé de la projection", () => {
+    const rows = dataFixture().revenueByMonth
+
+    expect(rows).toHaveLength(12)
+    expect(revenueVisualState(rows[7])).toBe("actual")
+    expect(revenueVisualState(rows[8])).toBe("projected")
+    expect(rows.every((row) => row.target === 110)).toBe(true)
+  })
+
   it("conserve Top 5, agrège Autres et garde Non attribué", () => {
     const data = dataFixture()
     const items = buildContributionItems(data.distributions.clients, "clients")
@@ -74,9 +107,13 @@ describe("visualisations Finance mobile", () => {
     expect(items.find((item) => item.id === "autres")).toMatchObject({ amount: 110, sharePct: 11 })
   })
 
-  it("nomme explicitement l’engagement non résolu Non classé", () => {
-    const items = buildContributionItems(dataFixture().distributions.engagements, "engagements")
-    expect(items.map((item) => item.label)).toEqual(["Assistance technique", "Forfait", "Non classé"])
+  it("limite la structure du CA aux modes Clients et Practices", () => {
+    expect(CONTRIBUTION_MODES).toEqual([
+      ["clients", "Clients"],
+      ["practices", "Practices"],
+    ])
+    expect(pieSlicePath(50, 50, 40, 0, Math.PI / 2)).toContain("A 40 40")
+    expect(pieSlicePath(50, 50, 40, 0, Math.PI * 2).match(/A 40 40/g)).toHaveLength(2)
   })
 
   it("agrège les clients secondaires sans perdre activité sous cible ni retard actif", () => {

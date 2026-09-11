@@ -1,23 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useId, useState } from "react"
 import { formatEuroCompact } from "@/lib/formatters"
 import type { FinanceDistribution, FinanceMobileDashboardData } from "@/lib/finance/finance-mobile-model"
 import { cn } from "@/lib/utils"
 
-type ContributionMode = "clients" | "practices" | "engagements"
+export type ContributionMode = "clients" | "practices"
 
-type ContributionItem = {
+export type ContributionItem = {
   id: string
   label: string
   amount: number
   sharePct: number
 }
 
-const MODES: ReadonlyArray<readonly [ContributionMode, string]> = [
+export const CONTRIBUTION_MODES: ReadonlyArray<readonly [ContributionMode, string]> = [
   ["clients", "Clients"],
   ["practices", "Practices"],
-  ["engagements", "Engagement"],
 ]
 
 const COLOR_TOKENS = [
@@ -53,49 +52,70 @@ export function buildContributionItems(
     ]
   }
 
-  if (mode === "engagements") {
-    visible = visible.map((item) => ({
-      ...item,
-      label: item.id === "assistance_technique" ? "Assistance technique" : item.id === "forfait" ? "Forfait" : item.label,
-    }))
-  }
-
   if (unassigned && unassigned.amount > 0) {
-    visible = [
-      ...visible,
-      {
-        ...unassigned,
-        label: mode === "engagements" ? "Non classé" : "Non attribué",
-      },
-    ]
+    visible = [...visible, { ...unassigned, label: "Non attribué" }]
   }
 
   return visible
 }
 
+function polarPoint(cx: number, cy: number, radius: number, angle: number) {
+  return { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) }
+}
+
+export function pieSlicePath(
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+) {
+  if (endAngle - startAngle >= Math.PI * 2 - Number.EPSILON) {
+    const top = polarPoint(cx, cy, radius, -Math.PI / 2)
+    const bottom = polarPoint(cx, cy, radius, Math.PI / 2)
+    return `M ${top.x} ${top.y} A ${radius} ${radius} 0 1 1 ${bottom.x} ${bottom.y} A ${radius} ${radius} 0 1 1 ${top.x} ${top.y} Z`
+  }
+  const start = polarPoint(cx, cy, radius, startAngle)
+  const end = polarPoint(cx, cy, radius, endAngle)
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y} Z`
+}
+
+function buildPieSlices(items: ContributionItem[], total: number) {
+  let angle = -Math.PI / 2
+  return items.map((item, index) => {
+    const startAngle = angle
+    const endAngle = angle + (item.amount / total) * Math.PI * 2
+    angle = endAngle
+    return { item, index, path: pieSlicePath(76, 76, 62, startAngle, endAngle) }
+  })
+}
+
 export function RevenueContributionChart({ data }: { data: FinanceMobileDashboardData }) {
   const [mode, setMode] = useState<ContributionMode>("clients")
+  const patternId = useId().replace(/:/g, "")
   const distribution = data.distributions[mode]
   const items = buildContributionItems(distribution, mode)
-  const maxAmount = Math.max(...items.map((item) => item.amount), 1)
-  const modeLabel = MODES.find(([value]) => value === mode)?.[1] ?? mode
+  const total = Math.max(distribution.totalAmount, 1)
+  const modeLabel = CONTRIBUTION_MODES.find(([value]) => value === mode)?.[1] ?? mode
+  const slices = buildPieSlices(items, total)
 
   return (
-    <section aria-labelledby="revenue-contribution-title" className="space-y-4">
-      <div>
-        <h3 id="revenue-contribution-title" className="font-heading text-base font-black text-heading">Structure du CA</h3>
-        <p className="mt-1 text-[10px] leading-4 text-muted">Répartition du CA facturé. Le Non attribué n’est jamais redistribué.</p>
-      </div>
+    <section aria-labelledby="revenue-contribution-title">
+      <header className="mb-2">
+        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">CA facturé</p>
+        <h2 id="revenue-contribution-title" className="font-heading text-lg font-black tracking-tight text-heading">Structure du CA</h2>
+      </header>
 
-      <div className="grid grid-cols-3 gap-1 rounded-[var(--radius-medium)] border border-border bg-canvas p-1" role="group" aria-label="Dimension de contribution">
-        {MODES.map(([value, label]) => (
+      <div className="mb-3 grid grid-cols-2 gap-1 rounded-[var(--radius-small)] bg-canvas p-1" role="group" aria-label="Dimension de contribution">
+        {CONTRIBUTION_MODES.map(([value, label]) => (
           <button
             key={value}
             type="button"
             aria-pressed={mode === value}
             onClick={() => setMode(value)}
             className={cn(
-              "min-h-11 rounded-[var(--radius-small)] px-2 text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none",
+              "min-h-11 rounded-[var(--radius-small)] px-3 text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none",
               mode === value ? "bg-primary text-primary-fg" : "text-body hover:bg-surface-hover",
             )}
           >
@@ -108,47 +128,53 @@ export function RevenueContributionChart({ data }: { data: FinanceMobileDashboar
         <p className="rounded-[var(--radius-medium)] border border-dashed border-border px-3 py-8 text-center text-xs text-muted">Aucune contribution attribuable.</p>
       ) : (
         <>
-          <div>
-            <div className="flex h-4 overflow-hidden rounded-[var(--radius-small)] border border-border bg-canvas" aria-hidden="true">
-              {items.map((item, index) => {
-                const unassigned = item.id === "non-attribue"
-                return (
-                  <span
-                    key={item.id}
-                    className="h-full border-r border-surface last:border-r-0"
-                    style={{
-                      width: `${item.sharePct}%`,
-                      backgroundColor: unassigned ? "var(--color-surface-raised)" : COLOR_TOKENS[index % COLOR_TOKENS.length],
-                      backgroundImage: unassigned
-                        ? "repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--color-muted) 45%, transparent) 4px 6px)"
-                        : undefined,
-                    }}
-                  />
-                )
-              })}
+          <div className="grid grid-cols-[146px_minmax(0,1fr)] items-center gap-3">
+            <svg
+              viewBox="0 0 152 152"
+              className="size-[146px]"
+              role="img"
+              aria-labelledby="revenue-contribution-title-svg revenue-contribution-summary"
+            >
+              <title id="revenue-contribution-title-svg">Répartition du chiffre d’affaires par {modeLabel}</title>
+              <defs>
+                <pattern id={patternId} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <rect width="7" height="7" fill="var(--color-edito-canvas)" />
+                  <line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-muted)" strokeOpacity="0.55" strokeWidth="2" />
+                </pattern>
+              </defs>
+              <circle cx="76" cy="76" r="63" fill="var(--color-edito-canvas)" />
+              {slices.map(({ item, index, path }) => (
+                <path
+                  key={item.id}
+                  d={path}
+                  fill={item.id === "non-attribue" ? `url(#${patternId})` : COLOR_TOKENS[index % COLOR_TOKENS.length]}
+                  stroke="var(--color-edito-surface)"
+                  strokeWidth="2"
+                />
+              ))}
+            </svg>
+
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted">Total officiel</p>
+              <p className="mt-1 font-heading text-xl font-black tracking-tight text-heading">{formatEuroCompact(distribution.totalAmount)}</p>
+              <p className="mt-2 text-[9px] leading-4 text-muted">Le non attribué reste séparé et n’est jamais redistribué.</p>
             </div>
-            <p className="mt-1.5 text-[9px] text-muted">100 % du total officiel · {formatEuroCompact(distribution.totalAmount)}</p>
           </div>
 
-          <div className="space-y-3" aria-live="polite">
+          <div className="mt-3 divide-y divide-border" aria-live="polite">
             {items.map((item, index) => {
               const unassigned = item.id === "non-attribue"
-              const color = unassigned ? "var(--color-muted)" : COLOR_TOKENS[index % COLOR_TOKENS.length]
               return (
-                <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5">
-                  <p className="min-w-0 break-words text-[11px] font-semibold leading-4 text-heading">{item.label}</p>
-                  <p className="text-right font-mono text-[10px] font-bold text-heading">{formatEuroCompact(item.amount)} · {item.sharePct.toFixed(1)}%</p>
-                  <div className="relative col-span-2 h-3" aria-hidden="true">
-                    <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-                    <span
-                      className="absolute left-0 top-1/2 h-0.5 -translate-y-1/2"
-                      style={{ width: `${Math.max(1, (item.amount / maxAmount) * 100)}%`, backgroundColor: color }}
-                    />
-                    <span
-                      className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface"
-                      style={{ left: `${Math.max(1, (item.amount / maxAmount) * 100)}%`, backgroundColor: color }}
-                    />
-                  </div>
+                <div key={item.id} className="grid min-h-8 grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-2 py-1.5">
+                  <span
+                    className={cn("size-2 rounded-full", unassigned && "border border-muted bg-canvas")}
+                    style={unassigned ? undefined : { backgroundColor: COLOR_TOKENS[index % COLOR_TOKENS.length] }}
+                    aria-hidden="true"
+                  />
+                  <p className="min-w-0 truncate text-[10px] font-semibold text-heading">{item.label}</p>
+                  <p className="whitespace-nowrap text-right font-mono text-[9px] font-bold text-heading">
+                    {formatEuroCompact(item.amount)} · {item.sharePct.toFixed(1)}%
+                  </p>
                 </div>
               )
             })}
@@ -156,7 +182,7 @@ export function RevenueContributionChart({ data }: { data: FinanceMobileDashboar
         </>
       )}
 
-      <p className="sr-only">
+      <p id="revenue-contribution-summary" className="sr-only">
         Répartition par {modeLabel} : {items.map((item) => `${item.label}, ${formatEuroCompact(item.amount)}, ${item.sharePct.toFixed(1)} pour cent`).join(" ; ")}.
       </p>
       <table className="sr-only"><caption>Structure du CA par {modeLabel}</caption><thead><tr><th>Catégorie</th><th>Montant</th><th>Part</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><th>{item.label}</th><td>{formatEuroCompact(item.amount)}</td><td>{item.sharePct.toFixed(1)}%</td></tr>)}</tbody></table>

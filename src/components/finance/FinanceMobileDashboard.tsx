@@ -1,32 +1,18 @@
 "use client"
 
+import Image from "next/image"
 import dynamic from "next/dynamic"
-import { useState, type ReactNode } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
+import { MobileOverviewShell } from "@/components/layout/MobileOverviewShell"
+import { getNavigationIcon } from "@/components/layout/navigation-icons"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { IconButton } from "@/components/ui/IconButton"
-import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
-import { MobileActionPage } from "@/components/templates/MobileActionPage"
+import { formatEuroCompact, formatPct } from "@/lib/formatters"
 import type { FinanceMobileDashboardData } from "@/lib/finance/finance-mobile-model"
-import { openCockpit } from "@/lib/intelligence/cockpit-navigation"
-import { FinanceBriefHero } from "./mobile/FinanceBriefHero"
-import { FinanceMonthlyPulse } from "./mobile/FinanceMonthlyPulse"
+import { AnnualRevenueSkyline } from "./mobile/AnnualRevenueSkyline"
+import { QuarterlyProductionGrid } from "./mobile/QuarterlyProductionGrid"
+import { RevenueContributionChart } from "./mobile/RevenueContributionChart"
+import styles from "./FinanceMobileDashboard.module.css"
 
-const AnnualRevenueSkyline = dynamic(() =>
-  import("./mobile/AnnualRevenueSkyline").then((module) => module.AnnualRevenueSkyline),
-  { loading: DetailLoading },
-)
-const RevenueContributionChart = dynamic(() =>
-  import("./mobile/RevenueContributionChart").then((module) => module.RevenueContributionChart),
-  { loading: DetailLoading },
-)
-const QuarterlyProductionGrid = dynamic(() =>
-  import("./mobile/QuarterlyProductionGrid").then((module) => module.QuarterlyProductionGrid),
-  { loading: DetailLoading },
-)
-const FinanceRiskSheet = dynamic(() =>
-  import("./mobile/FinanceRiskSheet").then((module) => module.FinanceRiskSheet),
-  { loading: DetailLoading },
-)
 const FinanceCockpitPanel = dynamic(() =>
   import("./mobile/FinanceCockpitPanel").then((module) => module.FinanceCockpitPanel),
   { loading: DetailLoading },
@@ -38,13 +24,17 @@ const FinancialModelingMobileFlow = dynamic(() =>
   { loading: DetailLoading },
 )
 
-type FinanceDetail = "monthly" | "structure" | "production" | "risks"
+export const FINANCE_MOBILE_CHART_SLIDES = [
+  "CA facturé",
+  "Structure du CA",
+  "Production annuelle",
+] as const
 
-const DETAIL_TITLES: Record<FinanceDetail, string> = {
-  monthly: "CA mensuel",
-  structure: "Structure du CA",
-  production: "Production annuelle",
-  risks: "Risques & écarts",
+export function buildFinanceMobileKpis(data: FinanceMobileDashboardData) {
+  return {
+    actualRevenue: data.summary.actualRevenue,
+    actualGrossMarginPct: data.summary.actualGrossMarginPct,
+  }
 }
 
 function DetailLoading() {
@@ -55,144 +45,130 @@ function DetailLoading() {
   )
 }
 
-function SparkleIcon() {
+function CockpitBriefIcon() {
   return (
-    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.8 15.9 9 18.8l-.8-2.9a4.5 4.5 0 0 0-3.1-3.1L2.3 12l2.8-.8a4.5 4.5 0 0 0 3.1-3.1L9 5.3l.8 2.8a4.5 4.5 0 0 0 3.1 3.1l2.8.8-2.8.8a4.5 4.5 0 0 0-3.1 3.1ZM18.3 8.7 18 9.8l-.3-1.1a3.4 3.4 0 0 0-2.4-2.4L14.3 6l1-.3a3.4 3.4 0 0 0 2.4-2.4l.3-1 .3 1a3.4 3.4 0 0 0 2.4 2.4l1 .3-1 .3a3.4 3.4 0 0 0-2.4 2.4Z" />
+    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
     </svg>
   )
 }
 
-function StructureIcon() {
-  return <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" d="M4 7h16M4 12h10M4 17h6" /><circle cx="18" cy="12" r="2" /><circle cx="14" cy="17" r="2" /></svg>
-}
-
-function ProductionIcon() {
-  return <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M4 19h16M6 16V9m4 7V5m4 11v-4m4 4V7" strokeLinecap="round" /></svg>
-}
-
-function RiskIcon() {
-  return <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3 2.8 19h18.4L12 3Zm0 5v5m0 3h.01" /></svg>
-}
-
-function CockpitBriefIcon() {
-  return <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
-}
-
-function FinanceEntry({
-  title,
-  description,
-  metric,
-  icon,
-  onClick,
-}: {
-  title: string
-  description: string
-  metric: string
-  icon: ReactNode
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="grid min-h-[72px] w-full grid-cols-[44px_minmax(0,1fr)_auto_24px] items-center gap-3 border-b border-border px-1 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
-    >
-      <span className="inline-flex size-11 items-center justify-center rounded-[var(--radius-small)] border border-border bg-canvas text-primary" aria-hidden="true">{icon}</span>
-      <span className="min-w-0">
-        <span className="block text-sm font-bold text-heading">{title}</span>
-        <span className="mt-0.5 block text-[10px] leading-4 text-muted">{description}</span>
-      </span>
-      <span className="max-w-20 text-right font-mono text-[10px] font-bold text-heading">{metric}</span>
-      <span className="inline-flex size-6 items-center justify-center text-primary" aria-hidden="true"><svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25"><path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" /></svg></span>
-    </button>
-  )
-}
-
 export function FinanceMobileDashboard({ data }: { data: FinanceMobileDashboardData }) {
-  const [activeDetail, setActiveDetail] = useState<FinanceDetail | null>(null)
+  const [activeSlide, setActiveSlide] = useState(0)
   const [cockpitOpen, setCockpitOpen] = useState(false)
   const [modelingOpen, setModelingOpen] = useState(false)
-  const riskCount = data.risksAndGaps.filter((risk) => risk.severity !== "info").length
-  const topClient = data.distributions.clients.items.find((item) => item.id !== "non-attribue")
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const slideRefs = useRef<Array<HTMLElement | null>>([])
+  const kpis = buildFinanceMobileKpis(data)
+
+  useLayoutEffect(() => {
+    const carousel = carouselRef.current
+    const slide = slideRefs.current[activeSlide]
+    if (!carousel || !slide) return
+
+    const syncHeight = () => {
+      carousel.style.height = `${slide.offsetHeight}px`
+    }
+    syncHeight()
+
+    const observer = new ResizeObserver(syncHeight)
+    observer.observe(slide)
+    return () => observer.disconnect()
+  }, [activeSlide])
+
+  function scrollToSlide(index: number) {
+    const carousel = carouselRef.current
+    if (!carousel) return
+    carousel.scrollTo({ left: index * carousel.clientWidth, behavior: "smooth" })
+    setActiveSlide(index)
+  }
 
   return (
     <>
-      <MobileActionPage
-        header={
-          <MobilePageHeader
-            title={<span className="text-base font-black uppercase tracking-[0.16em]">Finance</span>}
-            actions={
-              <div className="flex items-center gap-2">
-                <IconButton
-                  aria-label="Ouvrir Cockpit Intelligence"
-                  variant="secondary"
-                  size="md"
-                  onClick={openCockpit}
-                  className="size-11 rounded-[var(--radius-small)] border-brand-brass/35 text-primary"
-                >
-                  <SparkleIcon />
-                </IconButton>
-                <IconButton
-                  aria-label="Ouvrir le Brief Cockpit Finance"
-                  variant="secondary"
-                  size="md"
-                  onClick={() => setCockpitOpen(true)}
-                  className="size-11 rounded-[var(--radius-small)] border-brand-brass/35 text-primary"
-                >
-                  <CockpitBriefIcon />
-                </IconButton>
-              </div>
-            }
+      <MobileOverviewShell
+        tone="finance"
+        heroLabel="Finance"
+        surfaceLabel="Vue d’ensemble analytique Finance"
+        className={styles.shell}
+        artworkClassName={styles.artwork}
+        icon={getNavigationIcon("finance", "size-11 text-heading", 1.8)}
+        artwork={(
+          <Image
+            src="/illustrations/finance-mobile-line-art.png"
+            alt=""
+            width={1536}
+            height={1024}
+            sizes="316px"
+            priority
           />
-        }
-        hero={<FinanceBriefHero data={data} />}
-        contentClassName="gap-3"
+        )}
+        heroContent={(
+          <>
+            <h1 className="sr-only">Finance</h1>
+            <button
+              type="button"
+              className={styles.heroAction}
+              onClick={() => setCockpitOpen(true)}
+              aria-label="Ouvrir le Brief Cockpit Finance"
+            >
+              <CockpitBriefIcon />
+            </button>
+          </>
+        )}
       >
-        <FinanceMonthlyPulse rows={data.revenueByMonth} onOpen={() => setActiveDetail("monthly")} />
+        <section className={styles.kpis} aria-label="Indicateurs Finance">
+          <div>
+            <p>CA facturé</p>
+            <strong>{formatEuroCompact(kpis.actualRevenue)}</strong>
+          </div>
+          <div>
+            <p>Marge moyenne</p>
+            <strong>{formatPct(kpis.actualGrossMarginPct, 1)}</strong>
+          </div>
+        </section>
 
-        <nav aria-label="Analyses Finance" className="rounded-[var(--radius-large)] border border-border bg-surface px-3">
-          <FinanceEntry
-            title="Structure du CA"
-            description="Clients, practices, engagement"
-            metric={topClient ? `${topClient.sharePct.toFixed(0)}% top client` : "—"}
-            icon={<StructureIcon />}
-            onClick={() => setActiveDetail("structure")}
-          />
-          <FinanceEntry
-            title="Production annuelle"
-            description="Q1 · Q2 · Q3 · Q4P"
-            metric={`${data.productionByClient.length} clients`}
-            icon={<ProductionIcon />}
-            onClick={() => setActiveDetail("production")}
-          />
-          <FinanceEntry
-            title="Risques & écarts"
-            description="Bridge forecast et repères"
-            metric={riskCount > 0 ? `${riskCount} alertes` : "Sous contrôle"}
-            icon={<RiskIcon />}
-            onClick={() => setActiveDetail("risks")}
-          />
-        </nav>
-      </MobileActionPage>
+        <section className={styles.analysis} aria-label="Analyses Finance">
+          <div
+            ref={carouselRef}
+            className={styles.carousel}
+            onScroll={(event) => {
+              const width = event.currentTarget.clientWidth
+              if (width > 0) setActiveSlide(Math.round(event.currentTarget.scrollLeft / width))
+            }}
+          >
+            <article ref={(node) => { slideRefs.current[0] = node }} className={styles.slide} aria-label="CA facturé, vue 1 sur 3">
+              <AnnualRevenueSkyline data={data} />
+            </article>
+            <article ref={(node) => { slideRefs.current[1] = node }} className={styles.slide} aria-label="Structure du CA, vue 2 sur 3">
+              <RevenueContributionChart data={data} />
+            </article>
+            <article ref={(node) => { slideRefs.current[2] = node }} className={styles.slide} aria-label="Production annuelle, vue 3 sur 3">
+              <QuarterlyProductionGrid data={data} />
+            </article>
+          </div>
 
-      <AppDrawer
-        open={activeDetail !== null}
-        onOpenChange={(open) => {
-          if (!open) setActiveDetail(null)
-        }}
-        side="bottom"
-        title={activeDetail ? DETAIL_TITLES[activeDetail] : "Analyse Finance"}
-        eyebrow={`Finance · ${data.period.fiscalYear}`}
-        showMobileCloseButton
-        className="sm:hidden"
-        contentClassName="bg-surface"
-      >
-        {activeDetail === "monthly" ? <AnnualRevenueSkyline data={data} /> : null}
-        {activeDetail === "structure" ? <RevenueContributionChart data={data} /> : null}
-        {activeDetail === "production" ? <QuarterlyProductionGrid data={data} /> : null}
-        {activeDetail === "risks" ? <FinanceRiskSheet data={data} /> : null}
-      </AppDrawer>
+          <nav className={styles.carouselNav} aria-label="Choisir une analyse Finance">
+            <span aria-live="polite">{FINANCE_MOBILE_CHART_SLIDES[activeSlide]}</span>
+            <div>
+              {FINANCE_MOBILE_CHART_SLIDES.map((label, index) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-label={`Afficher ${label}`}
+                  aria-current={activeSlide === index ? "page" : undefined}
+                  onClick={() => scrollToSlide(index)}
+                >
+                  <i aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+            <small>{activeSlide + 1} / {FINANCE_MOBILE_CHART_SLIDES.length}</small>
+          </nav>
+        </section>
+      </MobileOverviewShell>
 
       <AppDrawer
         open={cockpitOpen}

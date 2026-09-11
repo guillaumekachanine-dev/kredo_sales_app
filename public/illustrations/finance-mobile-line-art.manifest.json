@@ -1,0 +1,22 @@
+{
+  "asset": "finance-mobile-line-art.png",
+  "purpose": "Finance Mobile hero artwork for MobileOverviewShell",
+  "dimensions": {
+    "width": 1536,
+    "height": 1024,
+    "format": "PNG",
+    "alpha": true
+  },
+  "provenance": {
+    "reference": "User-supplied finance illustration (2026-09-11)",
+    "transformations": [
+      "Recreated as a compact finance illustration in the supplied editorial line-art language",
+      "Excluded the upper-left K monogram completely",
+      "Exported with a transparent outer canvas"
+    ]
+  },
+  "usage": {
+    "publicPath": "/illustrations/finance-mobile-line-art.png",
+    "fit": "object-fit: contain"
+  }
+}
