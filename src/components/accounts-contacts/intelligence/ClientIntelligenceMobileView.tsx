@@ -52,6 +52,7 @@ import {
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
 import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
+import { AccountKnowledgeV4Mobile } from "./account-knowledge-v4/AccountKnowledgeV4Mobile"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import { ContactDirectoryDialog } from "@/components/accounts-contacts/directory/ContactDirectoryDialog"
@@ -131,8 +132,10 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   const v3State = data.accountKnowledgeV3
   const v3 = v3State?.data
-  const knowledge = v3State || data.accountKnowledge
-  const showStructuredCompanyProfile = !v3 && knowledge?.version !== 2
+  const v4State = data.accountKnowledgeV4
+  const v4 = v4State?.data
+  const knowledge = v4State ?? v3State ?? data.accountKnowledge
+  const showStructuredCompanyProfile = !v3 && !v4 && knowledge?.version !== 2
   const knowledgeSourceIndex = useMemo(
     () => buildSourceIndex(data.accountKnowledgeSources),
     [data.accountKnowledgeSources],
@@ -333,7 +336,15 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 </div>
               ) : null}
 
-              {v3 ? (
+              {v4 ? (
+                <div className="mb-3 mt-2 border-t border-border/30 pt-4">
+                  <AccountKnowledgeV4Mobile
+                    content={v4}
+                    sourceEvidence={data.accountKnowledgeV4SourceEvidence}
+                    companyName={company.name}
+                  />
+                </div>
+              ) : v3 ? (
                 <div className="mb-3 space-y-4 border-t border-border/30 pt-4 mt-2">
                   <AccountKnowledgeV3Mobile content={v3} sources={knowledgeSourceIndex} signals={data.accountSignals} />
                   {data.accountKnowledge && (

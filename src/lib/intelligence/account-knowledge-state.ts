@@ -45,7 +45,10 @@ export type AccountKnowledgeRenderableState = Extract<
 /** État V3 isolé — chargé et typé au Lot 4, restitué au Lot 5. */
 export type AccountKnowledgeV3State = Extract<AccountKnowledgeState, { version: 3 }>
 
-/** État V4 typé, sans l'exposer aux lecteurs V1/V2/V3 avant le Lot 4. */
+/**
+ * État V4 typé, jamais exposé aux lecteurs V1/V2/V3. Restitué par ses propres vues
+ * (`account-knowledge-v4/`, Account Intelligence Lot 1).
+ */
 export type AccountKnowledgeV4State = Extract<AccountKnowledgeState, { version: 4 }>
 
 export type AccountKnowledgeResultRow = {

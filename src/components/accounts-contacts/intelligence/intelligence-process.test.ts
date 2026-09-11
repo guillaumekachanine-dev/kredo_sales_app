@@ -51,6 +51,32 @@ describe("getProcessStepStatus — connaissance", () => {
     expect(getProcessStepStatus("connaissance", data)).toEqual({ label: "FOLIO", tone: "warning" })
   })
 
+  it("V4 ancré (nominal) courant : « Disponible »", () => {
+    const data = fixture({
+      accountKnowledgeV4: {
+        version: 4,
+        data: { anchoring: { research_status: "nominal" } } as never,
+        resultId: "r1",
+        createdAt: "2026-09-11T11:09:03Z",
+      },
+    })
+
+    expect(getProcessStepStatus("connaissance", data)).toEqual({ label: "Disponible", tone: "success" })
+  })
+
+  it("V4 non ancré (internal_only) courant : « Non ancrée », jamais le même « Disponible »", () => {
+    const data = fixture({
+      accountKnowledgeV4: {
+        version: 4,
+        data: { anchoring: { research_status: "internal_only" } } as never,
+        resultId: "r1",
+        createdAt: "2026-09-10T23:22:30Z",
+      },
+    })
+
+    expect(getProcessStepStatus("connaissance", data)).toEqual({ label: "Non ancrée", tone: "warning" })
+  })
+
   it("V3 courant PLUS FOLIO présent : le moteur prime, jamais rétrogradé à FOLIO", () => {
     const data = fixture({
       accountKnowledgeV3: { version: 3, data: {} as never, resultId: "r1", createdAt: "2026-08-05T10:00:00Z" },

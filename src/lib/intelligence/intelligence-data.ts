@@ -24,6 +24,10 @@ import {
   collectAccountKnowledgeV2SourceIds,
   collectAccountKnowledgeV3SourceIds,
 } from "@/lib/intelligence/account-knowledge-ingest"
+import {
+  collectAccountKnowledgeV4LookupSourceIds,
+  type AccountKnowledgeV4SourceEvidence,
+} from "@/lib/intelligence/account-knowledge-v4-view"
 export type {
   AccountKnowledgeState,
   AccountKnowledgeRenderableState,
@@ -257,6 +261,7 @@ type AccountKnowledgeSourceRow = {
   canonical_url: string | null
   source_url: string | null
   published_at: string | null
+  evidence_excerpt: string | null
 }
 
 export type AccountRecentDocument = {
@@ -370,7 +375,8 @@ export type ClientIntelligenceData = {
   // sa présence ne modifie donc rien à l'écran, elle rend seulement possible la
   // restitution du Lot 5 sans nouvelle requête.
   accountKnowledgeV3: AccountKnowledgeV3State | null
-  // Lot 2 : V4 est chargé et typé mais ne modifie aucun rendu avant le Lot 4.
+  // Account Intelligence Lot 1 : restitué par `AccountKnowledgeV4Desktop` /
+  // `AccountKnowledgeV4Mobile` via `buildAccountKnowledgeV4View`.
   accountKnowledgeV4: AccountKnowledgeV4State | null
   // Date de l'artefact account_knowledge COURANT, quelle que soit sa version
   // (V1, V2 ou V3). Distinct de `accountKnowledge?.createdAt` : ce dernier est
@@ -382,6 +388,10 @@ export type ClientIntelligenceData = {
   // vérifiable à l'écran que si sa source est nommée et cliquable.
   accountKnowledgeSources: AccountKnowledgeCitedSource[]
   accountKnowledgeV3Sources: AccountKnowledgeCitedSource[]
+  // Complément des sources V4 qui désignent une ligne `intelligence_sources`
+  // (artefacts INTEL-030) : extrait de preuve et date de publication. Vide pour
+  // le canal externe, dont `sources[]` est self-contained (label/url/consulted_at).
+  accountKnowledgeV4SourceEvidence: AccountKnowledgeV4SourceEvidence[]
   // ADR-0012 Lot 3 — snapshot sectoriel déterministe (D-6, 0 token), lu live
   // depuis les vues de résolution `v_sector_knowledge_*`. Lot 0 : la lecture se
   // fait à la maille SEGMENT (`companies.segment_id`), avec héritage du macro
@@ -1112,7 +1122,13 @@ export async function getClientIntelligence(
     ? collectAccountKnowledgeV3SourceIds(accountKnowledgeV3.data)
     : []
 
-  const allCitedSourceIds = Array.from(new Set([...citedSourceIdsV2, ...citedSourceIdsV3]))
+  // Filtré sur les uuid par le helper : le canal externe porte des ids libres
+  // (`s1`…) qu'un `IN (…)` sur une colonne uuid rejetterait en bloc.
+  const citedSourceIdsV4 = accountKnowledgeV4
+    ? collectAccountKnowledgeV4LookupSourceIds(accountKnowledgeV4.data)
+    : []
+
+  const allCitedSourceIds = Array.from(new Set([...citedSourceIdsV2, ...citedSourceIdsV3, ...citedSourceIdsV4]))
 
   const [sectorSnapshot, signedUrlOutcome, citedSourcesResult] = await Promise.all([
     // Lot 0 : lecture à la maille segment. `sector_id` reste une projection en
@@ -1133,7 +1149,7 @@ export async function getClientIntelligence(
     allCitedSourceIds.length > 0
       ? supabase
           .from("intelligence_sources")
-          .select<AccountKnowledgeSourceRow>("id,source_name,source_type,canonical_url,source_url,published_at")
+          .select<AccountKnowledgeSourceRow>("id,source_name,source_type,canonical_url,source_url,published_at,evidence_excerpt")
           .in("id", allCitedSourceIds)
       : Promise.resolve({ data: [], error: null }),
   ])
@@ -1159,6 +1175,10 @@ export async function getClientIntelligence(
       url: row.canonical_url ?? row.source_url,
       publishedAt: row.published_at,
     }))
+
+  const accountKnowledgeV4SourceEvidence: AccountKnowledgeV4SourceEvidence[] = allCitedSources
+    .filter((row) => citedSourceIdsV4.includes(row.id))
+    .map((row) => ({ id: row.id, excerpt: row.evidence_excerpt, publishedAt: row.published_at }))
 
   let diagnosticPdfUrl: string | null = null
   if (signedUrlOutcome) {
@@ -1518,6 +1538,7 @@ export async function getClientIntelligence(
       accountKnowledgeLastUpdatedAt,
       accountKnowledgeSources,
       accountKnowledgeV3Sources,
+      accountKnowledgeV4SourceEvidence,
       sectorSnapshot,
       sector,
       diagnostic,

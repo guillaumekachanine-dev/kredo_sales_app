@@ -188,7 +188,8 @@ Questions factuelles, réponses mesurées :
 | ↳ 0.5 câblage callback `account_source_plan` | ✅ | — | `afdc976f` |
 | ↳ 0.6 workflow INTEL-035 | ✅ 20 nœuds, 60 assertions | — | `a436d04b` |
 | ↳ 0.7 sortie du fetch hors d'INTEL-030 | ✅ 4 nœuds retirés, 2 ajoutés | — | *(ce commit)* |
-| Lot 1 — Restitution V4 | ⬜ Bloqué par G0 | | |
+| Lot 0.8 — Canal LLM externe | ✅ Prouvé en réel (SOS Oxygène importé) | — | `d866cf66` · `37c58e37` |
+| Lot 1 — Restitution V4 | ✅ Livré le 11/09/2026 — Desktop + Mobile + lecteur, testé sur 2 artefacts de prod. QA visuelle Guillaume | G0 non mesurée : lot tiré par le canal externe, seul artefact `nominal` en base (`11` §3) | *(ce commit)* |
 | Lot 2 — Niveaux | ⬜ | | |
 | Lot 3 — Centre de contrôle | ⬜ | | |
 | Lot 4 — Distribution et enjeux | ⬜ | | |

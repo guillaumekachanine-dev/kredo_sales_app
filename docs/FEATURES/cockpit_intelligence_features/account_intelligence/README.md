@@ -24,7 +24,8 @@ précieux — mais aucun ne décrit la cible).
 | **07** | `07-BENCHMARK-ET-GATES.md` | Les gates chiffrées qui autorisent le passage d'un lot au suivant |
 | **08** | `08-HANDOFF-LOT-0-CLOTURE.md` | Clôture du Lot 0 (mesuré en prod), historique — lire `10` pour l'état courant |
 | **09** | `09-PROJECT-INSTRUCTIONS-LLM-EXTERNE.md` | Gabarit du canal LLM externe (Deep Research Gemini/ChatGPT → JSON V4) |
-| **10** | `10-HANDOFF-CANAL-LLM-EXTERNE.md` | **Point de reprise courant** — canal externe prouvé en réel, Lot 1 (renderer V4) à faire |
+| **10** | `10-HANDOFF-CANAL-LLM-EXTERNE.md` | Canal LLM externe prouvé en réel (Lot 0.8), historique — sa §8 reste le programme suivant |
+| **11** | `11-HANDOFF-LOT-1-RESTITUTION-V4.md` | **Point de reprise courant** — Lot 1 (renderer V4) livré, reprise sur la structuration répétable |
 
 **Si tu ne lis qu'un document avant de coder : `02`.** C'est celui qui empêche de créer une
 deuxième vérité. **Si tu ne lis qu'un document avant de décider : `07` §1** — l'état mesuré.

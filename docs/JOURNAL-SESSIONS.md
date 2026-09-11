@@ -13,6 +13,46 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 64 — Account Intelligence Lot 1 : restitution V4 (2026-09-11)
+
+Point de reprise : **`docs/FEATURES/cockpit_intelligence_features/account_intelligence/11-HANDOFF-LOT-1-RESTITUTION-V4.md`**.
+Les sessions intermédiaires (clôture Lot 0, canal LLM externe Lot 0.8) sont documentées dans les
+handoffs `08` et `10` du même dossier, sans entrée ici.
+
+**Livré.** Le renderer V4, qui n'existait pas : `src/components/accounts-contacts/intelligence/account-knowledge-v4/`
+(Desktop, Mobile, lecteur « Rapport complet ») sur un module pur testé
+`src/lib/intelligence/account-knowledge-v4-view.ts` (24 tests). Bandeau d'ancrage lu via
+`resolveAccountKnowledgeAnchoring()` (phrase `internal_only` imposée par `04` §8), badges
+`Établi · Déclaré · Déduit · Hypothèse`, modes Strict/Équilibré/Exploratoire (`04` §4, défaut
+Équilibré, masquage toujours annoncé), sources par affirmation avec numérotation globale, extrait
+et date de publication joints depuis `intelligence_sources` dans la requête existante,
+`knowledge_gaps` toujours visibles, bouton **Vérifier** désactivé. **Aucune migration, aucun
+workflow.**
+
+**Décision — `content_text` inutile pour V4.** Le nœud `V4 Prepare Callback` d'INTEL-030 ne fait
+que concaténer les `narrative[]` (sans titres) ; le lecteur repart de `content_json`, identique
+pour INTEL-030 et le canal externe. Ne pas en faire générer à l'import.
+
+**Pièges évités / corrigés.**
+- Deux lecteurs de l'état courant ignoraient V4 — **même défaut que la revue Lot 4 sur V3** :
+  `AccountKnowledgeUpdateControls` (plus de date ni de couverture) et `getProcessStepStatus`
+  (« À compléter » avec un V4 courant). Corrigés ; un V4 `degraded`/`internal_only` affiche
+  désormais **« Non ancrée »** dans la frise. **Tout nouveau `schema_version` doit être propagé à
+  ces deux fonctions.**
+- Les ids de sources du canal externe (`s1`…) ne sont pas des uuid : les envoyer au `IN (…)` sur
+  `intelligence_sources.id` aurait fait échouer la requête entière. Filtre dédié
+  `collectAccountKnowledgeV4LookupSourceIds`.
+- La vue mobile tourne sous `data-theme="cockpit"` (cobalt) : le bloc V4 est posé sur une seule
+  surface claire edito, sinon navy sur cobalt.
+- `cn()` du projet n'a pas de `tailwind-merge` : surcharger une largeur d'`AppDialog` exige `!`.
+
+**Preuve.** Chaîne réelle de la page sur les deux V4 courants de prod : SOS Oxygène `nominal`
+(20/24 ancrées, 15 sources externes), Tournaire `internal_only` (5 agrégats marqués comme
+non-preuves). `typecheck` · `test` (3 178) · `check:server-boundary` · `lint` · `build` verts.
+QA visuelle : Guillaume, sur `/prospection/accounts/b8ad688f-1597-40b5-9c1d-d7ae7fb6808e`.
+
+**Prochain.** Structuration répétable rapport Deep Research → JSON V4 (`10` §8.1).
+
 ### Session 63 — Account Intelligence : audit live, invalidation de la thèse V4, corpus de cadrage (2026-09-10)
 
 Chantier documenté dans **`docs/FEATURES/cockpit_intelligence_features/account_intelligence/`**

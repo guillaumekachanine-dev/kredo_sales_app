@@ -108,7 +108,7 @@ Vérifié le 10/09/2026. **Ce tableau est la garde contre l'erreur du cadrage V4
 | Ingest V4 | ✅ `account-knowledge-ingest.ts` |
 | Chargement `accountKnowledgeV4` | ✅ `intelligence-data.ts` |
 | Branche V4 dans le workflow | ✅ **16 nœuds** — les 4 nœuds de collecte retirés au Lot 0.7, 2 nœuds de lecture de corpus ajoutés |
-| **Renderer V4** | ❌ **N'EXISTE PAS.** `ClientIntelligenceCompanyTab` rend V1 (`AccountKnowledgeBlocks`), V2 (`AccountKnowledgeV2Blocks`), V3 (`folio-v3/AccountKnowledgeV3Desktop`) |
+| **Renderer V4** | ✅ **Livré au Lot 1 (11/09/2026)** — `account-knowledge-v4/` (Desktop, Mobile, lecteur « Rapport complet »), logique dans `account-knowledge-v4-view.ts`. Voir `11`. *Au 10/09 : n'existait pas.* |
 | `includedSubjects` côté V4 | ❌ **Ignoré.** Seuls `Validate Entity`, `V3 Assemble Draft Prompt` et `V3 Merge Segments` le lisent. La modularité V4 passe par `sourceDocumentIds` (Lot 0.7) puis `includedModules` (Lot 2) |
 | `anchoring` dans `content_json` | ✅ Livré au Lot 0.3, avec `research_status` à trois états |
 | `AccountAnalysisHub` | ✅ 326 lignes — base exploitable du futur centre de contrôle |

@@ -1,4 +1,5 @@
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
+import { resolveAccountKnowledgeAnchoring } from "@/lib/intelligence/account-intelligence-contracts"
 
 // ADR-0012 — Chaîne de décision commerciale.
 // Le processus devient : Socle → Connaissance compte → Intelligence sectorielle →
@@ -92,6 +93,17 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       // l'artefact courant. `accountKnowledgeV3` doit compter comme
       // « connaissance disponible » au même titre, même si son contenu n'est
       // pas encore rendu.
+      //
+      // Account Intelligence Lot 1 : même défaut pour V4. Un V4 courant compte
+      // comme connaissance disponible — mais un V4 non ancré (`degraded` /
+      // `internal_only`) le dit dès la frise (axiome A2), au lieu d'afficher
+      // le même « Disponible » qu'une analyse adossée à des documents lus.
+      const v4 = data.accountKnowledgeV4 ?? null
+      if (v4) {
+        return resolveAccountKnowledgeAnchoring(v4.data).research_status === "nominal"
+          ? { label: "Disponible", tone: "success" }
+          : { label: "Non ancrée", tone: "warning" }
+      }
       const hasEngine = data.accountKnowledge !== null || data.accountKnowledgeV3 !== null
       const hasFolio = data.client?.source === "folio"
       if (hasEngine) {

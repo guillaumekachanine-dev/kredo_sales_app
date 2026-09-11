@@ -7,7 +7,8 @@
 
 import { useState } from "react"
 import { KREDO_TIME_ZONE } from "@/lib/formatting/date-fr"
-import type { AccountKnowledgeRenderableState } from "@/lib/intelligence/intelligence-data"
+import type { AccountKnowledgeState } from "@/lib/intelligence/intelligence-data"
+import { formatAccountKnowledgeV4Coverage } from "@/lib/intelligence/account-knowledge-v4-view"
 import type { AccountKnowledgeRunStatus } from "./use-account-knowledge-run"
 import { WorkflowExecutionConfirmDialog } from "@/components/ui/WorkflowExecutionConfirmDialog"
 
@@ -25,9 +26,11 @@ function formatUpdatedAt(lastUpdatedAt: string | null): string {
   return `Mise à jour le ${new Date(lastUpdatedAt).toLocaleString("fr-FR", DATE_FORMAT)}`
 }
 
-function formatCoverage(state: AccountKnowledgeRenderableState | null): string | null {
+function formatCoverage(state: AccountKnowledgeState | null): string | null {
   if (!state) return null
   if (state.version === 1) return "Version précédente — affirmations non sourcées"
+  // V4 ne porte pas de `source_coverage` : sa couverture est son ancrage (04 §2.3).
+  if (state.version === 4) return formatAccountKnowledgeV4Coverage(state.data)
 
   const coverage = state.data.source_coverage
   if (coverage.displayed_claims === 0) return "Aucune affirmation publiée"
@@ -41,7 +44,7 @@ function statusLabel(status: AccountKnowledgeRunStatus): string | null {
 }
 
 type ControlsProps = {
-  state: AccountKnowledgeRenderableState | null
+  state: AccountKnowledgeState | null
   lastUpdatedAt: string | null
   status: AccountKnowledgeRunStatus
   errorMessage: string | null

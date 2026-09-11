@@ -26,6 +26,7 @@ import { CompanyEditorialSection } from "./CompanyEditorialSection"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import { CompanyOperationsContent } from "./CompanyOperationsContent"
 import { AccountKnowledgeV3Desktop } from "./folio-v3/AccountKnowledgeV3Desktop"
+import { AccountKnowledgeV4Desktop } from "./account-knowledge-v4/AccountKnowledgeV4Desktop"
 
 type CompanySection = {
   id: string
@@ -44,7 +45,11 @@ export function ClientIntelligenceCompanyTab({
 }) {
   const v3State = data.accountKnowledgeV3
   const v3 = v3State?.data
-  const knowledge = v3State || data.accountKnowledge
+  const v4State = data.accountKnowledgeV4
+  const v4 = v4State?.data
+  // Un seul artefact est courant (`resolveAccountKnowledge`) : au plus un de
+  // v4State / v3State / accountKnowledge est non nul.
+  const knowledge = v4State ?? v3State ?? data.accountKnowledge
 
   const { status, errorMessage, trigger } = useAccountKnowledgeRun(data.company.id)
 
@@ -57,11 +62,11 @@ export function ClientIntelligenceCompanyTab({
     ? data.accountKnowledge.version === 1
       ? hasVisibleOpenQuestions(data.accountKnowledge.data.open_questions)
       : data.accountKnowledge.version === 2
-        ? data.accountKnowledge.data.open_questions.some((question: any) => !question.dismissed)
+        ? data.accountKnowledge.data.open_questions.some((question) => !question.dismissed)
         : false
     : false
 
-  if (v3) {
+  if (v3 || v4) {
     return (
       <div className="space-y-6 pt-6">
         <AccountKnowledgeUpdateControlsDesktop
@@ -72,11 +77,19 @@ export function ClientIntelligenceCompanyTab({
           onUpdate={() => void trigger()}
         />
         
-        <AccountKnowledgeV3Desktop
-          content={v3}
-          sources={sourceIndex}
-          signals={data.accountSignals}
-        />
+        {v4 ? (
+          <AccountKnowledgeV4Desktop
+            content={v4}
+            sourceEvidence={data.accountKnowledgeV4SourceEvidence}
+            companyName={data.company.name}
+          />
+        ) : v3 ? (
+          <AccountKnowledgeV3Desktop
+            content={v3}
+            sources={sourceIndex}
+            signals={data.accountSignals}
+          />
+        ) : null}
         
         <div className="mt-12 space-y-6 border-t border-border pt-8">
           <h3 className="font-heading text-lg font-bold text-heading px-1">Espace relationnel & opérations</h3>
@@ -113,16 +126,16 @@ export function ClientIntelligenceCompanyTab({
           <div id="company-questions" className="scroll-mt-6 border-t border-border pt-8">
             {data.accountKnowledge.version === 1 ? (
               <AccountKnowledgeOpenQuestions data={data.accountKnowledge.data} resultId={data.accountKnowledge.resultId} />
-            ) : (
-              <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data as any} />
-            )}
+            ) : data.accountKnowledge.version === 2 ? (
+              <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data} />
+            ) : null}
           </div>
         ) : null}
       </div>
     )
   }
 
-  const v2 = data.accountKnowledge?.version === 2 ? data.accountKnowledge.data as any : null
+  const v2 = data.accountKnowledge?.version === 2 ? data.accountKnowledge.data : null
   const sections: CompanySection[] = []
 
   sections.push({
@@ -265,7 +278,7 @@ export function ClientIntelligenceCompanyTab({
           {data.accountKnowledge.version === 1 ? (
             <AccountKnowledgeOpenQuestions data={data.accountKnowledge.data} resultId={data.accountKnowledge.resultId} />
           ) : data.accountKnowledge.version === 2 ? (
-            <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data as any} />
+            <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data} />
           ) : null}
         </div>
       ) : null}
