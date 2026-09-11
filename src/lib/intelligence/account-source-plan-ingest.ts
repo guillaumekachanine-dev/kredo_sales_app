@@ -102,6 +102,22 @@ function asIsoDate(value: unknown): string | null {
   return new Date(ms).toISOString()
 }
 
+/**
+ * Le texte extrait de vraies pages HTML porte des octets NUL (U+0000) et parfois
+ * des surrogates orphelins (extraction tronquée). Postgres refuse U+0000 dans une
+ * colonne `text` (« unsupported Unicode escape sequence ») et fait échouer l'insert
+ * du lot entier. On les retire ici : ni l'un ni l'autre ne porte de sens dans un
+ * corpus, et le hash de contenu n'a pas besoin d'être recalculé pour la déduplication.
+ */
+function sanitizeExtractedText(value: string): string {
+  return value
+    // C0 et DEL sauf tab / LF / CR : rien à stocker, et U+0000 casse l'insert.
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    // Surrogates orphelins -> caractère de remplacement U+FFFD.
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "\uFFFD")
+    .replace(/(^|[^\uD800-\uDBFF])([\uDC00-\uDFFF])/g, "$1\uFFFD")
+}
+
 function normalizeModules(value: unknown): AccountIntelligenceModule[] {
   if (!Array.isArray(value)) return []
   const seen = new Set<AccountIntelligenceModule>()
@@ -181,7 +197,7 @@ function normalizeDocument(
     return { reject: { url, reason: "Annoncé récupéré sans texte, hash ou date de lecture" } }
   }
 
-  const truncated = extractedText.slice(0, MAX_EXTRACTED_CHARS)
+  const truncated = sanitizeExtractedText(extractedText).slice(0, MAX_EXTRACTED_CHARS)
   return {
     row: {
       ...base,

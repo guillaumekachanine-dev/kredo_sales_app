@@ -373,7 +373,7 @@
         "rawContentType": "application/json",
         "body": "={{ $('Prepare Callback').first().json.rawBody }}",
         "options": {
-          "timeout": 30000
+          "timeout": 120000
         }
       },
       "id": "callback",

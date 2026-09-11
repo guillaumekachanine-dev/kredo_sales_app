@@ -164,6 +164,17 @@ describe("normalisation des documents entrants", () => {
     expect(inserted[0].published_at).toBeNull()
     expect(inserted[1].published_at).toBe("2026-07-08T00:00:00.000Z")
   })
+
+  it("purge les octets NUL et surrogates orphelins du texte extrait", async () => {
+    // Postgres refuse U+0000 dans une colonne `text` : sans nettoyage, l'insert
+    // du lot entier échoue (« unsupported Unicode escape sequence »).
+    const { client, inserted } = fakeSupabase()
+    const dirty = "Tournaire\u0000 conçoit des emballages\uD800 barrière."
+    const result = await ingestAccountSourcePlan(client, input([doc({ extracted_text: dirty })]))
+    expect(result.ok).toBe(true)
+    expect(inserted[0].extracted_text).toBe("Tournaire conçoit des emballages\uFFFD barrière.")
+    expect(String(inserted[0].extracted_text)).not.toContain("\u0000")
+  })
 })
 
 describe("frontière tenant", () => {

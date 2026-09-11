@@ -791,7 +791,12 @@ def build() -> dict:
                 "contentType": "raw",
                 "rawContentType": "application/json",
                 "body": "={{ $('Prepare Callback').first().json.rawBody }}",
-                "options": {"timeout": 30000},
+                # Le portail applicatif écrit N documents (texte extrait lourd) puis
+                # `saveResult` avant de répondre : au-delà de 30 s, n8n coupait la
+                # connexion alors que Vercel avait déjà tout committé, et le run
+                # basculait `failed` sur un corpus pourtant écrit (incident Tournaire,
+                # Étape B). L'ingestion reste bornée côté application.
+                "options": {"timeout": 120000},
             },
             "id": "callback",
             "name": "Callback",
