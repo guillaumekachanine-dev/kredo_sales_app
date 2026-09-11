@@ -55,9 +55,8 @@ export function AccountKnowledgeV4ReportReader({
         "bg-edito-surface",
         isMobile ? "!w-[calc(100vw-1rem)]" : "sm:!max-w-3xl",
       )}
-      maxHeightClassName="max-h-[calc(100dvh-2rem)]"
+      maxHeightClassName="max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)]"
       bodyClassName="pr-2"
-      fillHeight
     >
       <article className="mx-auto max-w-2xl space-y-6 pb-4">
         <AnchoringBanner banner={view.banner} producerLabel={view.producer.label} isMobile={isMobile} />
