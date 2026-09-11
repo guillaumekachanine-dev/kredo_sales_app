@@ -1245,6 +1245,40 @@ describe("AccountKnowledge V4", () => {
     expect(validateAccountKnowledgeV4(accountKnowledgeV4Partial()).valid).toBe(true)
   })
 
+  it("accepte une entity_resolution 'external_research' sans score/marge/candidats (Lot 0.8)", () => {
+    // Un LLM de recherche externe (09-PROJECT-INSTRUCTIONS-LLM-EXTERNE.md) n'exécute pas
+    // notre algorithme de nom-matching : il n'a ni score, ni marge, ni candidats concurrents
+    // à départager. Preuve mesurée sur le rapport SOS Oxygène (2026-09-11) : rejeté sur 11
+    // erreurs entity_resolution avant ce lot, 0 après.
+    const artifact: Record<string, unknown> = accountKnowledgeV4Dense()
+    artifact.entity_resolution = {
+      decision: "resolved",
+      method: "external_research",
+      siren: "384122099",
+      legal_name: "SOS OXYGENE",
+      naf_code: "77.29Z",
+      hq_location: "Nice (06200)",
+      reasons: ["Fiche registre consultée : SIREN cohérent avec le nom, la ville et le site officiel fournis en requête."],
+    }
+    const result = validateAccountKnowledgeV4(artifact)
+    expect(result.valid).toBe(true)
+  })
+
+  it("rejette une entity_resolution 'external_research' dont hq_location est mal typé", () => {
+    const artifact: Record<string, unknown> = accountKnowledgeV4Dense()
+    artifact.entity_resolution = {
+      decision: "resolved",
+      method: "external_research",
+      siren: "384122099",
+      legal_name: "SOS OXYGENE",
+      naf_code: "77.29Z",
+      hq_location: "",
+      reasons: ["Fiche registre consultée."],
+    }
+    const result = validateAccountKnowledgeV4(artifact)
+    expect(result.valid).toBe(false)
+  })
+
   it("rejette une hypothèse chiffrée", () => {
     const artifact = accountKnowledgeV4Dense()
     artifact.sections[7].statements[0].text = "Une hausse de 20 % semble plausible."

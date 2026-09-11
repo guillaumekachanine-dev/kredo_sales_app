@@ -1055,6 +1055,7 @@ const V4_ENTITY_RESOLUTION_KEYS = new Set([
   "candidates",
   "needs_human_confirmation",
   "can_propose_canonical_writes",
+  "hq_location",
 ])
 
 function validateText(raw: unknown, path: string): ValidationIssue[] {
@@ -1099,10 +1100,35 @@ function validateEntityResolutionSnapshotV4(raw: unknown): ValidationIssue[] {
   if (!["resolved", "needs_human_confirmation", "unresolved"].includes(String(raw.decision))) {
     issues.push({ path: "$.entity_resolution.decision", message: "Décision de résolution invalide." })
   }
-  if (!["crm_siren", "registry_match", "none"].includes(String(raw.method))) {
+  if (!["crm_siren", "registry_match", "none", "external_research"].includes(String(raw.method))) {
     issues.push({ path: "$.entity_resolution.method", message: "Méthode de résolution invalide." })
   }
-  for (const key of ["siren", "legal_name", "naf_code", "naf_section", "hq_commune", "hq_postal_code"] as const) {
+  for (const key of ["siren", "legal_name", "naf_code"] as const) {
+    if (raw[key] !== null && (typeof raw[key] !== "string" || raw[key].trim().length === 0)) {
+      issues.push({ path: `$.entity_resolution.${key}`, message: "Chaîne non vide ou null attendu." })
+    }
+  }
+  if (!Array.isArray(raw.reasons) || raw.reasons.some((item) => typeof item !== "string")) {
+    issues.push({ path: "$.entity_resolution.reasons", message: "Tableau de chaînes requis." })
+  }
+
+  // "external_research" — un LLM de recherche externe n'exécute pas notre
+  // algorithme de nom-matching : pas de score contre des candidats concurrents,
+  // pas de marge, pas de liste de candidats écartés. On exige seulement une
+  // localisation lisible ; tout le reste (score/margin/blockers/signals/
+  // candidates/needs_human_confirmation/can_propose_canonical_writes) reste
+  // optionnel et n'est PAS validé — ce ne sont pas des données que ce producteur
+  // peut honnêtement fournir.
+  if (raw.method === "external_research") {
+    if (raw.hq_location !== undefined && raw.hq_location !== null &&
+      (typeof raw.hq_location !== "string" || raw.hq_location.trim().length === 0)) {
+      issues.push({ path: "$.entity_resolution.hq_location", message: "Chaîne non vide ou null attendu." })
+    }
+    return issues
+  }
+
+  // ── Méthodes internes (crm_siren / registry_match / none) — inchangé ──────
+  for (const key of ["naf_section", "hq_commune", "hq_postal_code"] as const) {
     if (raw[key] !== null && (typeof raw[key] !== "string" || raw[key].trim().length === 0)) {
       issues.push({ path: `$.entity_resolution.${key}`, message: "Chaîne non vide ou null attendu." })
     }
@@ -1113,10 +1139,8 @@ function validateEntityResolutionSnapshotV4(raw: unknown): ValidationIssue[] {
   if (raw.margin !== null && (typeof raw.margin !== "number" || !Number.isFinite(raw.margin))) {
     issues.push({ path: "$.entity_resolution.margin", message: "Marge numérique ou null attendue." })
   }
-  for (const key of ["reasons", "blockers"] as const) {
-    if (!Array.isArray(raw[key]) || raw[key].some((item) => typeof item !== "string")) {
-      issues.push({ path: `$.entity_resolution.${key}`, message: "Tableau de chaînes requis." })
-    }
+  if (!Array.isArray(raw.blockers) || raw.blockers.some((item) => typeof item !== "string")) {
+    issues.push({ path: "$.entity_resolution.blockers", message: "Tableau de chaînes requis." })
   }
   if (!Array.isArray(raw.signals)) {
     issues.push({ path: "$.entity_resolution.signals", message: "Tableau de signaux requis." })

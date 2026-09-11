@@ -496,7 +496,9 @@ describe("entity-resolution — trace d'audit", () => {
     expect(snapshot.needs_human_confirmation).toBe(true)
     expect(snapshot.can_propose_canonical_writes).toBe(false)
     expect(snapshot.reasons.length).toBeGreaterThan(0)
-    expect(snapshot.candidates.length).toBeLessThanOrEqual(AUDIT_CANDIDATE_LIMIT)
+    // `candidates` est optionnel dans le type (absent pour "external_research"),
+    // mais toujours peuplé par `toResolutionSnapshot()`, notre résolveur interne.
+    expect(snapshot.candidates!.length).toBeLessThanOrEqual(AUDIT_CANDIDATE_LIMIT)
   })
 
   it("conserve dans la trace les candidats écartés, pas seulement le retenu", () => {
@@ -507,7 +509,7 @@ describe("entity-resolution — trace d'audit", () => {
     ])
     const snapshot = toResolutionSnapshot(resolution)
 
-    expect(snapshot.candidates.map((c) => c.siren)).toContain("505063438")
+    expect(snapshot.candidates!.map((c) => c.siren)).toContain("505063438")
     expect(snapshot.siren).toBe("415550110")
   })
 })

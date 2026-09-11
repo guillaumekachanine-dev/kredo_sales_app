@@ -95,7 +95,12 @@ export type ScoredCandidate = {
 
 export type EntityResolutionDecision = "resolved" | "needs_human_confirmation" | "unresolved"
 
-export type EntityResolutionMethod = "crm_siren" | "registry_match" | "none"
+// "external_research" — un producteur externe (LLM de recherche approfondie hors
+// KREDO, cf. `09-PROJECT-INSTRUCTIONS-LLM-EXTERNE.md`) n'exécute pas notre
+// algorithme de nom-matching : il n'a ni score, ni marge, ni liste de candidats
+// concurrents à départager. `EntityResolutionSnapshot` rend donc ces champs
+// optionnels pour cette seule méthode — voir `validateEntityResolutionSnapshotV4`.
+export type EntityResolutionMethod = "crm_siren" | "registry_match" | "none" | "external_research"
 
 export type EntityResolution = {
   decision: EntityResolutionDecision
@@ -916,17 +921,22 @@ export type EntityResolutionSnapshot = {
   siren: string | null
   legal_name: string | null
   naf_code: string | null
-  naf_section: string | null
-  hq_commune: string | null
-  hq_postal_code: string | null
-  score: number
-  margin: number | null
   reasons: string[]
-  blockers: string[]
-  signals: { key: string; value: number; detail: string }[]
-  candidates: { siren: string; legal_name: string | null; commune: string | null; naf_code: string | null; score: number }[]
-  needs_human_confirmation: boolean
-  can_propose_canonical_writes: boolean
+  // ── Internes au résolveur KREDO (crm_siren / registry_match / none) ────────
+  // Absents pour "external_research" : un LLM de recherche ne produit pas de
+  // score de nom-matching contre des candidats concurrents.
+  naf_section?: string | null
+  hq_commune?: string | null
+  hq_postal_code?: string | null
+  score?: number
+  margin?: number | null
+  blockers?: string[]
+  signals?: { key: string; value: number; detail: string }[]
+  candidates?: { siren: string; legal_name: string | null; commune: string | null; naf_code: string | null; score: number }[]
+  needs_human_confirmation?: boolean
+  can_propose_canonical_writes?: boolean
+  // ── "external_research" uniquement — en alternative à hq_commune/hq_postal_code ──
+  hq_location?: string | null
 }
 
 export function toResolutionSnapshot(resolution: EntityResolution): EntityResolutionSnapshot {
