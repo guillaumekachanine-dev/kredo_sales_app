@@ -48,7 +48,7 @@ function SourceManagementShellBody({
   variant: "desktop" | "mobile"
   onOpenChange: (open: boolean) => void
 }) {
-  const state = useModuleSnapshot(loadSourceManagementSnapshot)
+  const { state, refresh, updateData } = useModuleSnapshot(loadSourceManagementSnapshot)
 
   // L'échec est un état rendu, jamais un silence : un panneau vide ferait croire
   // à une absence de sources là où il y a une erreur de lecture.
@@ -65,8 +65,20 @@ function SourceManagementShellBody({
   }
 
   return variant === "desktop" ? (
-    <SourceManagementDialogDesktop open onOpenChange={onOpenChange} snapshot={state.data} />
+    <SourceManagementDialogDesktop
+      open
+      onOpenChange={onOpenChange}
+      snapshot={state.data}
+      onSnapshotChange={updateData}
+      onRefresh={refresh}
+    />
   ) : (
-    <SourceManagementDrawerMobile open onOpenChange={onOpenChange} snapshot={state.data} />
+    <SourceManagementDrawerMobile
+      open
+      onOpenChange={onOpenChange}
+      snapshot={state.data}
+      onSnapshotChange={updateData}
+      onRefresh={refresh}
+    />
   )
 }

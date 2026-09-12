@@ -11,7 +11,12 @@ import {
   KREDO_SOURCE_CATEGORY_LABELS,
   KREDO_SOURCE_CATEGORY_ORDER,
   type SourceCatalogEntry,
+  type SourceManagementSnapshot,
 } from "../domain/source-management-contracts"
+import {
+  deleteManualSourceInSnapshot,
+  setManualSourceActiveInSnapshot,
+} from "../domain/source-management-reconciliation"
 
 function ValidationBadge({ source }: { source: SourceCatalogEntry }) {
   if (source.isLocked) return <Badge variant="brand">Verrouillée</Badge>
@@ -32,10 +37,14 @@ function RowActions({
   source,
   onEdit,
   variant,
+  onSnapshotChange,
+  onRefresh,
 }: {
   source: SourceCatalogEntry
   onEdit: (source: SourceCatalogEntry) => void
   variant: "table" | "cards"
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: () => Promise<void> | void
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -46,16 +55,27 @@ function RowActions({
   }
 
   const toggleActive = () => {
+    const next = !source.isActive
+    onSnapshotChange?.((curr) => setManualSourceActiveInSnapshot(curr, source.id, next))
     startTransition(async () => {
-      await setManualSourceActiveAction(source.id, !source.isActive)
-      router.refresh()
+      const res = await setManualSourceActiveAction(source.id, next)
+      if (!res.success) {
+        onSnapshotChange?.((curr) => setManualSourceActiveInSnapshot(curr, source.id, !next))
+      } else {
+        router.refresh()
+        void onRefresh?.()
+      }
     })
   }
 
   const confirmDelete = () => {
     startTransition(async () => {
-      await deleteManualSourceAction(source.id)
-      router.refresh()
+      const res = await deleteManualSourceAction(source.id)
+      if (res.success) {
+        onSnapshotChange?.((curr) => deleteManualSourceInSnapshot(curr, source.id))
+        router.refresh()
+        void onRefresh?.()
+      }
     })
   }
 
@@ -104,9 +124,17 @@ export interface SourceBaseListProps {
   sources: SourceCatalogEntry[]
   variant: "table" | "cards"
   onEdit: (source: SourceCatalogEntry) => void
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: () => Promise<void> | void
 }
 
-export function SourceBaseList({ sources, variant, onEdit }: SourceBaseListProps) {
+export function SourceBaseList({
+  sources,
+  variant,
+  onEdit,
+  onSnapshotChange,
+  onRefresh,
+}: SourceBaseListProps) {
   const groups = groupByCategory(sources)
 
   if (groups.length === 0) {
@@ -153,7 +181,13 @@ export function SourceBaseList({ sources, variant, onEdit }: SourceBaseListProps
                     </td>
                     <td className="py-2 pr-3">
                       <div className="flex justify-end">
-                        <RowActions source={source} onEdit={onEdit} variant="table" />
+                        <RowActions
+                          source={source}
+                          onEdit={onEdit}
+                          variant="table"
+                          onSnapshotChange={onSnapshotChange}
+                          onRefresh={onRefresh}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -196,7 +230,13 @@ export function SourceBaseList({ sources, variant, onEdit }: SourceBaseListProps
                     <Badge variant="neutral" className="capitalize">{source.origin}</Badge>
                   </div>
                   <p className="text-[11px] text-muted">{source.searchDomain}</p>
-                  <RowActions source={source} onEdit={onEdit} variant="cards" />
+                  <RowActions
+                    source={source}
+                    onEdit={onEdit}
+                    variant="cards"
+                    onSnapshotChange={onSnapshotChange}
+                    onRefresh={onRefresh}
+                  />
                 </div>
               </details>
             ))}

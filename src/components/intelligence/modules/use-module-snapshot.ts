@@ -1,46 +1,103 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 export type ModuleSnapshotState<T> =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "ready"; data: T }
 
+export type ModuleSnapshotController<T> = ModuleSnapshotState<T> & {
+  state: ModuleSnapshotState<T>
+  refresh: (options?: { silent?: boolean }) => Promise<void>
+  updateData: (updater: (current: T) => T) => void
+}
+
 /**
- * Charge la donnée d'un module « launcher » du Cockpit.
+ * Charge et contrôle la donnée d'un module autoportant.
  *
- * Les modules riches (socle de sources, simulateur de cadence, atlas…) sont
- * montés DANS leur page, qui leur passe un snapshot chargé côté serveur. Le
- * panneau Cockpit est un composant client sans ce contexte : chaque module doit
- * donc devenir autoportant. Ce hook porte la seule chose commune à tous — l'état
- * de chargement — pour qu'un module ne soit qu'un chargeur et un rendu.
+ * Ce hook gère le cycle de chargement initial, le rafraîchissement silencieux
+ * sans démontage/remontage du composant, et la réconciliation synchrone immédiate
+ * (updateData) après mutation réussie.
  *
- * L'échec est un état rendu, jamais un silence : un module qui s'ouvre vide
- * ferait croire à une absence de données là où il y a une erreur de lecture.
+ * Rétrocompatible : peut être déstructuré en `{ state, refresh, updateData }`
+ * ou consommé directement comme un `ModuleSnapshotState<T>`.
  */
-export function useModuleSnapshot<T>(load: () => Promise<T>): ModuleSnapshotState<T> {
+export function useModuleSnapshot<T>(load: () => Promise<T>): ModuleSnapshotController<T> {
   const [state, setState] = useState<ModuleSnapshotState<T>>({ status: "loading" })
+  const loadRef = useRef(load)
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
-    let cancelled = false
+    loadRef.current = load
+  }, [load])
 
-    void load()
+  useEffect(() => {
+    let active = true
+    const currentRequestId = ++requestIdRef.current
+
+    loadRef.current()
       .then((data) => {
-        if (!cancelled) setState({ status: "ready", data })
+        if (!active || currentRequestId !== requestIdRef.current) return
+        setState({ status: "ready", data })
       })
       .catch((reason: unknown) => {
-        if (cancelled) return
+        if (!active || currentRequestId !== requestIdRef.current) return
         setState({
           status: "error",
           message: reason instanceof Error ? reason.message : "Chargement impossible.",
         })
       })
 
-    return () => { cancelled = true }
-    // `load` est une référence stable fournie par le module appelant.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      active = false
+    }
   }, [])
 
-  return state
+  const refresh = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const currentRequestId = ++requestIdRef.current
+      const isExplicitNonSilent = options?.silent === false
+
+      if (isExplicitNonSilent) {
+        setState({ status: "loading" })
+      }
+
+      try {
+        const data = await loadRef.current()
+        if (currentRequestId !== requestIdRef.current) return
+        setState({ status: "ready", data })
+      } catch (reason: unknown) {
+        if (currentRequestId !== requestIdRef.current) return
+        setState((current) => {
+          if (!isExplicitNonSilent && current.status === "ready") {
+            return current
+          }
+          return {
+            status: "error",
+            message: reason instanceof Error ? reason.message : "Chargement impossible.",
+          }
+        })
+      }
+    },
+    [],
+  )
+
+  const updateData = useCallback((updater: (current: T) => T) => {
+    // Invalide toute requête serveur antérieure qui arriverait après ce patch local
+    requestIdRef.current += 1
+    setState((prev) => {
+      if (prev.status !== "ready") return prev
+      return { status: "ready", data: updater(prev.data) }
+    })
+  }, [])
+
+  return useMemo(() => {
+    return {
+      ...state,
+      state,
+      refresh,
+      updateData,
+    } as ModuleSnapshotController<T>
+  }, [state, refresh, updateData])
 }

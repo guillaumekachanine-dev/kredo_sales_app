@@ -11,7 +11,12 @@ import {
   KREDO_SOURCE_CATEGORY_LABELS,
   KREDO_SOURCE_CATEGORY_ORDER,
   type SourceCatalogEntry,
+  type SourceManagementSnapshot,
 } from "../domain/source-management-contracts"
+import {
+  deleteManualSourceInSnapshot,
+  setManualSourceActiveInSnapshot,
+} from "../domain/source-management-reconciliation"
 
 function DarkSwitch({
   checked,
@@ -51,9 +56,13 @@ function DarkSwitch({
 function DiscreteOverflowMenu({
   source,
   onEdit,
+  onSnapshotChange,
+  onRefresh,
 }: {
   source: SourceCatalogEntry
   onEdit: (source: SourceCatalogEntry) => void
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: () => Promise<void> | void
 }) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
@@ -66,9 +75,15 @@ function DiscreteOverflowMenu({
 
   const handleDelete = () => {
     startTransition(async () => {
-      await deleteManualSourceAction(source.id)
-      setIsOpen(false)
-      router.refresh()
+      const res = await deleteManualSourceAction(source.id)
+      if (res.success) {
+        onSnapshotChange?.((curr) => deleteManualSourceInSnapshot(curr, source.id))
+        setIsOpen(false)
+        router.refresh()
+        void onRefresh?.()
+      } else {
+        setIsOpen(false)
+      }
     })
   }
 
@@ -131,9 +146,13 @@ function DiscreteOverflowMenu({
 function SourceRow({
   source,
   onEdit,
+  onSnapshotChange,
+  onRefresh,
 }: {
   source: SourceCatalogEntry
   onEdit: (source: SourceCatalogEntry) => void
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: () => Promise<void> | void
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -142,9 +161,15 @@ function SourceRow({
 
   const toggleActive = (next: boolean) => {
     if (source.origin === "system" || source.isLocked || !source.id) return
+    onSnapshotChange?.((curr) => setManualSourceActiveInSnapshot(curr, source.id, next))
     startTransition(async () => {
-      await setManualSourceActiveAction(source.id, next)
-      router.refresh()
+      const res = await setManualSourceActiveAction(source.id, next)
+      if (!res.success) {
+        onSnapshotChange?.((curr) => setManualSourceActiveInSnapshot(curr, source.id, !next))
+      } else {
+        router.refresh()
+        void onRefresh?.()
+      }
     })
   }
 
@@ -189,7 +214,12 @@ function SourceRow({
           onChange={toggleActive}
           label={`Activer ou désactiver ${source.name || "la source"}`}
         />
-        <DiscreteOverflowMenu source={source} onEdit={onEdit} />
+        <DiscreteOverflowMenu
+          source={source}
+          onEdit={onEdit}
+          onSnapshotChange={onSnapshotChange}
+          onRefresh={onRefresh}
+        />
       </div>
     </div>
   )
@@ -217,9 +247,16 @@ function groupByCategory(sources: SourceCatalogEntry[]) {
 export interface SourceDenseListProps {
   sources: SourceCatalogEntry[]
   onEdit: (source: SourceCatalogEntry) => void
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: () => Promise<void> | void
 }
 
-export function SourceDenseList({ sources, onEdit }: SourceDenseListProps) {
+export function SourceDenseList({
+  sources,
+  onEdit,
+  onSnapshotChange,
+  onRefresh,
+}: SourceDenseListProps) {
   const groups = groupByCategory(sources)
 
   if (groups.length === 0) {
@@ -249,6 +286,8 @@ export function SourceDenseList({ sources, onEdit }: SourceDenseListProps) {
                 key={source?.id || source?.sourceKey || `source-${group.key}-${index}`}
                 source={source}
                 onEdit={onEdit}
+                onSnapshotChange={onSnapshotChange}
+                onRefresh={onRefresh}
               />
             ))}
           </div>

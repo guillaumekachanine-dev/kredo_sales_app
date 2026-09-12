@@ -14,7 +14,67 @@ import {
   type UpdateCorpusEditorialInput,
 } from "../domain/source-management-contracts"
 
-type MutationResult = { success: true } | { success: false; error: string }
+export type MutationResult = { success: true } | { success: false; error: string }
+
+export type UpdateCorpusEditorialResult =
+  | {
+      success: true
+      data: {
+        corpusId: string
+        name: string
+        description: string | null
+      }
+      corpusId: string
+      name: string
+      description: string | null
+    }
+  | { success: false; error: string }
+
+export type RenameCorpusSourceResult =
+  | {
+      success: true
+      data: {
+        sourceId: string
+        itemId: string
+        name: string
+      }
+      sourceId: string
+      itemId: string
+      name: string
+    }
+  | { success: false; error: string }
+
+export type RemoveSourceFromCorpusResult =
+  | {
+      success: true
+      removedItemId: string
+      corpusId: string
+    }
+  | { success: false; error: string }
+
+export type SetCorpusActivationResult =
+  | { success: true; corpusId: string; activationState: "draft" | "active" }
+  | { success: false; error: string }
+
+export type SetCorpusNewsEnabledResult =
+  | { success: true; corpusId: string; enabled: boolean }
+  | { success: false; error: string }
+
+export type SetCorpusAccountWatchEnabledResult =
+  | { success: true; corpusId: string; enabled: boolean }
+  | { success: false; error: string }
+
+export type SetCorpusItemEnabledResult =
+  | { success: true; itemId: string; enabled: boolean }
+  | { success: false; error: string }
+
+export type SetManualSourceActiveResult =
+  | { success: true; id: string; isActive: boolean }
+  | { success: false; error: string }
+
+export type DeleteManualSourceResult =
+  | { success: true; id: string }
+  | { success: false; error: string }
 
 type ExistingSourceSummary = {
   id: string
@@ -153,7 +213,7 @@ export async function updateManualSourceAction(
   return { success: true, id }
 }
 
-export async function setManualSourceActiveAction(id: string, isActive: boolean): Promise<MutationResult> {
+export async function setManualSourceActiveAction(id: string, isActive: boolean): Promise<SetManualSourceActiveResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -176,10 +236,10 @@ export async function setManualSourceActiveAction(id: string, isActive: boolean)
 
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")
-  return { success: true }
+  return { success: true, id, isActive }
 }
 
-export async function deleteManualSourceAction(id: string): Promise<MutationResult> {
+export async function deleteManualSourceAction(id: string): Promise<DeleteManualSourceResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -197,13 +257,13 @@ export async function deleteManualSourceAction(id: string): Promise<MutationResu
   const { error } = await supabase.from("source_catalog").delete().eq("id", id).eq("origin", "manual")
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")
-  return { success: true }
+  return { success: true, id }
 }
 
 export async function setCorpusActivationAction(
   corpusId: string,
   activationState: "draft" | "active",
-): Promise<MutationResult> {
+): Promise<SetCorpusActivationResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -216,10 +276,10 @@ export async function setCorpusActivationAction(
 
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")
-  return { success: true }
+  return { success: true, corpusId, activationState }
 }
 
-export async function setCorpusNewsEnabledAction(corpusId: string, enabled: boolean): Promise<MutationResult> {
+export async function setCorpusNewsEnabledAction(corpusId: string, enabled: boolean): Promise<SetCorpusNewsEnabledResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -232,10 +292,10 @@ export async function setCorpusNewsEnabledAction(corpusId: string, enabled: bool
 
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")
-  return { success: true }
+  return { success: true, corpusId, enabled }
 }
 
-export async function setCorpusAccountWatchEnabledAction(corpusId: string, enabled: boolean): Promise<MutationResult> {
+export async function setCorpusAccountWatchEnabledAction(corpusId: string, enabled: boolean): Promise<SetCorpusAccountWatchEnabledResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -248,10 +308,10 @@ export async function setCorpusAccountWatchEnabledAction(corpusId: string, enabl
 
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")
-  return { success: true }
+  return { success: true, corpusId, enabled }
 }
 
-export async function setCorpusItemEnabledAction(itemId: string, enabled: boolean): Promise<MutationResult> {
+export async function setCorpusItemEnabledAction(itemId: string, enabled: boolean): Promise<SetCorpusItemEnabledResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -263,13 +323,13 @@ export async function setCorpusItemEnabledAction(itemId: string, enabled: boolea
 
   if (error) return { success: false, error: error.message }
   revalidatePath("/veille")
-  return { success: true }
+  return { success: true, itemId, enabled }
 }
 
 export async function updateCorpusEditorialAction(
   corpusId: string,
   input: UpdateCorpusEditorialInput,
-): Promise<MutationResult> {
+): Promise<UpdateCorpusEditorialResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -327,13 +387,23 @@ export async function updateCorpusEditorialAction(
 
   if (updateError) return { success: false, error: updateError.message }
   revalidatePath("/veille")
-  return { success: true }
+  return {
+    success: true,
+    data: {
+      corpusId,
+      name: normalizedName,
+      description: normalizedDescription,
+    },
+    corpusId,
+    name: normalizedName,
+    description: normalizedDescription,
+  }
 }
 
 export async function renameCorpusSourceAction(
   itemId: string,
   name: string,
-): Promise<MutationResult> {
+): Promise<RenameCorpusSourceResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -385,10 +455,20 @@ export async function renameCorpusSourceAction(
 
   if (updateError) return { success: false, error: updateError.message }
   revalidatePath("/veille")
-  return { success: true }
+  return {
+    success: true,
+    data: {
+      sourceId: item.source_id,
+      itemId,
+      name: normalizedName,
+    },
+    sourceId: item.source_id,
+    itemId,
+    name: normalizedName,
+  }
 }
 
-export async function removeSourceFromCorpusAction(itemId: string): Promise<MutationResult> {
+export async function removeSourceFromCorpusAction(itemId: string): Promise<RemoveSourceFromCorpusResult> {
   const acting = await resolveActingWorkspace()
   if (!acting.ok) return { success: false, error: acting.error }
   const { supabase } = acting
@@ -419,7 +499,11 @@ export async function removeSourceFromCorpusAction(itemId: string): Promise<Muta
 
   if (deleteError) return { success: false, error: deleteError.message }
   revalidatePath("/veille")
-  return { success: true }
+  return {
+    success: true,
+    removedItemId: itemId,
+    corpusId: item.corpus_id,
+  }
 }
 
 

@@ -23,6 +23,8 @@ export interface SourceManagementDialogDesktopProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   snapshot: SourceManagementSnapshot
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
 }
 
 function SynthesisIcon({ className = "size-4" }: { className?: string }) {
@@ -58,7 +60,13 @@ function ChevronRight({ className = "size-4" }: { className?: string }) {
   )
 }
 
-export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: SourceManagementDialogDesktopProps) {
+export function SourceManagementDialogDesktop({
+  open,
+  onOpenChange,
+  snapshot,
+  onSnapshotChange,
+  onRefresh,
+}: SourceManagementDialogDesktopProps) {
   const [view, setView] = useState<PanelView>({ kind: "synthesis" })
 
   const catalogSources = [...snapshot.systemSources, ...snapshot.manualSources]
@@ -265,19 +273,26 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
           <SourceDenseList
             sources={catalogSources}
             onEdit={(source) => setView({ kind: "edit", source })}
+            onSnapshotChange={onSnapshotChange}
+            onRefresh={onRefresh}
           />
         </div>
       ) : view.kind === "corpus" && activeCorpus ? (
         <SourceCorpusDetailView
           corpus={activeCorpus}
           canEdit={snapshot.canManage && activeCorpus.scopeKind !== "system"}
+          onSnapshotChange={onSnapshotChange}
+          onRefresh={onRefresh}
         />
       ) : view.kind === "create" ? (
         <div className="p-5 sm:p-6">
           <ManualSourceForm
             mode="create"
             onCancel={() => setView({ kind: "editorial_base" })}
-            onSuccess={() => setView({ kind: "editorial_base" })}
+            onSuccess={() => {
+              void onRefresh?.()
+              setView({ kind: "editorial_base" })
+            }}
           />
         </div>
       ) : view.kind === "edit" ? (
@@ -286,12 +301,18 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
             mode="edit"
             initial={view.source}
             onCancel={() => setView({ kind: "editorial_base" })}
-            onSuccess={() => setView({ kind: "editorial_base" })}
+            onSuccess={() => {
+              void onRefresh?.()
+              setView({ kind: "editorial_base" })
+            }}
           />
         </div>
       ) : view.kind === "import" ? (
         <div className="p-5 sm:p-6">
-          <SourceCorpusImportWizard variant="desktop" onClose={() => setView({ kind: "synthesis" })} />
+          <SourceCorpusImportWizard variant="desktop" onClose={() => {
+            void onRefresh?.()
+            setView({ kind: "synthesis" })
+          }} />
         </div>
       ) : (
         <SourceManagementSynthesisView snapshot={snapshot} />

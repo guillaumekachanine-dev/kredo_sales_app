@@ -13,7 +13,16 @@ import {
   setCorpusNewsEnabledAction,
   updateCorpusEditorialAction,
 } from "../actions/source-management-actions"
-import type { SourceCorpusItemView, SourceCorpusView } from "../domain/source-management-contracts"
+import type { SourceCorpusItemView, SourceCorpusView, SourceManagementSnapshot } from "../domain/source-management-contracts"
+import {
+  removeSourceFromCorpusInSnapshot,
+  setCorpusAccountWatchEnabledInSnapshot,
+  setCorpusActivationInSnapshot,
+  setCorpusItemEnabledInSnapshot,
+  setCorpusNewsEnabledInSnapshot,
+  updateCorpusEditorialInSnapshot,
+  updateSourceNameInSnapshot,
+} from "../domain/source-management-reconciliation"
 
 function PencilIcon({ className = "size-4" }: { className?: string }) {
   return (
@@ -82,7 +91,15 @@ function DarkSwitch({
   )
 }
 
-function CorpusItemRow({ item }: { item: SourceCorpusItemView }) {
+function CorpusItemRow({
+  item,
+  onSnapshotChange,
+  onRefresh,
+}: {
+  item: SourceCorpusItemView
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -90,9 +107,19 @@ function CorpusItemRow({ item }: { item: SourceCorpusItemView }) {
 
   const toggle = (next: boolean) => {
     if (!item.isCollectable || !item.id) return
+    onSnapshotChange?.((current) =>
+      setCorpusItemEnabledInSnapshot(current, item.id, next),
+    )
     startTransition(async () => {
-      await setCorpusItemEnabledAction(item.id, next)
-      router.refresh()
+      const res = await setCorpusItemEnabledAction(item.id, next)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusItemEnabledInSnapshot(current, item.id, !next),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
@@ -143,7 +170,15 @@ function CorpusItemRow({ item }: { item: SourceCorpusItemView }) {
   )
 }
 
-function CorpusItemEditableRow({ item }: { item: SourceCorpusItemView }) {
+function CorpusItemEditableRow({
+  item,
+  onSnapshotChange,
+  onRefresh,
+}: {
+  item: SourceCorpusItemView
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const initialName = item.source?.name ?? item.externalSrcId ?? "Source inconnue"
@@ -156,9 +191,19 @@ function CorpusItemEditableRow({ item }: { item: SourceCorpusItemView }) {
 
   const toggle = (next: boolean) => {
     if (!item.isCollectable || !item.id) return
+    onSnapshotChange?.((current) =>
+      setCorpusItemEnabledInSnapshot(current, item.id, next),
+    )
     startTransition(async () => {
-      await setCorpusItemEnabledAction(item.id, next)
-      router.refresh()
+      const res = await setCorpusItemEnabledAction(item.id, next)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusItemEnabledInSnapshot(current, item.id, !next),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
@@ -173,7 +218,11 @@ function CorpusItemEditableRow({ item }: { item: SourceCorpusItemView }) {
     startTransition(async () => {
       const res = await renameCorpusSourceAction(item.id, trimmed)
       if (res.success) {
+        onSnapshotChange?.((current) =>
+          updateSourceNameInSnapshot(current, res.sourceId ?? item.sourceId, trimmed),
+        )
         router.refresh()
+        void onRefresh?.()
       } else {
         setActionError(res.error)
       }
@@ -187,7 +236,11 @@ function CorpusItemEditableRow({ item }: { item: SourceCorpusItemView }) {
       const res = await removeSourceFromCorpusAction(item.id)
       if (res.success) {
         setConfirmingRemove(false)
+        onSnapshotChange?.((current) =>
+          removeSourceFromCorpusInSnapshot(current, item.id),
+        )
         router.refresh()
+        void onRefresh?.()
       } else {
         setActionError(res.error)
       }
@@ -339,9 +392,16 @@ function CorpusItemEditableRow({ item }: { item: SourceCorpusItemView }) {
 export interface SourceCorpusDetailViewProps {
   corpus: SourceCorpusView
   canEdit?: boolean
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
 }
 
-export function SourceCorpusDetailView({ corpus, canEdit = false }: SourceCorpusDetailViewProps) {
+export function SourceCorpusDetailView({
+  corpus,
+  canEdit = false,
+  onSnapshotChange,
+  onRefresh,
+}: SourceCorpusDetailViewProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -376,14 +436,22 @@ export function SourceCorpusDetailView({ corpus, canEdit = false }: SourceCorpus
       return
     }
     setCorpusEditError(null)
+    const nextDesc = corpusDescDraft.trim() || null
     startTransition(async () => {
       const res = await updateCorpusEditorialAction(corpus.id, {
         name: trimmed,
-        description: corpusDescDraft.trim() || null,
+        description: nextDesc,
       })
       if (res.success) {
         setIsEditing(false)
+        onSnapshotChange?.((current) =>
+          updateCorpusEditorialInSnapshot(current, corpus.id, {
+            name: trimmed,
+            description: nextDesc,
+          }),
+        )
         router.refresh()
+        void onRefresh?.()
       } else {
         setCorpusEditError(res.error)
       }
@@ -392,25 +460,56 @@ export function SourceCorpusDetailView({ corpus, canEdit = false }: SourceCorpus
 
   const toggleActivation = (next: boolean) => {
     if (!corpus?.id) return
+    const nextState = next ? "active" : "draft"
+    onSnapshotChange?.((current) =>
+      setCorpusActivationInSnapshot(current, corpus.id, nextState),
+    )
     startTransition(async () => {
-      await setCorpusActivationAction(corpus.id, next ? "active" : "draft")
-      router.refresh()
+      const res = await setCorpusActivationAction(corpus.id, nextState)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusActivationInSnapshot(current, corpus.id, next ? "draft" : "active"),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
   const toggleNews = (next: boolean) => {
     if (!corpus?.id) return
+    onSnapshotChange?.((current) =>
+      setCorpusNewsEnabledInSnapshot(current, corpus.id, next),
+    )
     startTransition(async () => {
-      await setCorpusNewsEnabledAction(corpus.id, next)
-      router.refresh()
+      const res = await setCorpusNewsEnabledAction(corpus.id, next)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusNewsEnabledInSnapshot(current, corpus.id, !next),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
   const toggleAccountWatch = (next: boolean) => {
     if (!corpus?.id) return
+    onSnapshotChange?.((current) =>
+      setCorpusAccountWatchEnabledInSnapshot(current, corpus.id, next),
+    )
     startTransition(async () => {
-      await setCorpusAccountWatchEnabledAction(corpus.id, next)
-      router.refresh()
+      const res = await setCorpusAccountWatchEnabledAction(corpus.id, next)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusAccountWatchEnabledInSnapshot(current, corpus.id, !next),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
@@ -649,6 +748,8 @@ export function SourceCorpusDetailView({ corpus, canEdit = false }: SourceCorpus
                 <CorpusItemEditableRow
                   key={item.id || item.sourceId || item.externalSrcId || `corpus-item-edit-${index}`}
                   item={item}
+                  onSnapshotChange={onSnapshotChange}
+                  onRefresh={onRefresh}
                 />
               ))}
             </div>
@@ -662,7 +763,12 @@ export function SourceCorpusDetailView({ corpus, canEdit = false }: SourceCorpus
         ) : (
           <div className="grid grid-cols-2 gap-x-3.5 gap-y-2">
             {items.map((item, index) => (
-              <CorpusItemRow key={item.id || item.sourceId || item.externalSrcId || `corpus-item-${index}`} item={item} />
+              <CorpusItemRow
+                key={item.id || item.sourceId || item.externalSrcId || `corpus-item-${index}`}
+                item={item}
+                onSnapshotChange={onSnapshotChange}
+                onRefresh={onRefresh}
+              />
             ))}
           </div>
         )

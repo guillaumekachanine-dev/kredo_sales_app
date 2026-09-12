@@ -9,7 +9,7 @@ const TITLE = "Gérer les sources"
 
 /** Module « Gestion des sources » rendu autoportant pour le Cockpit. */
 export function SourceManagementModule({ onClose }: { onClose: () => void }) {
-  const state = useModuleSnapshot(loadSourceManagementSnapshot)
+  const { state, refresh, updateData } = useModuleSnapshot(loadSourceManagementSnapshot)
 
   if (state.status !== "ready") {
     return (
@@ -28,6 +28,8 @@ export function SourceManagementModule({ onClose }: { onClose: () => void }) {
       open
       onOpenChange={(next) => { if (!next) onClose() }}
       snapshot={state.data}
+      onSnapshotChange={updateData}
+      onRefresh={refresh}
     />
   )
 }

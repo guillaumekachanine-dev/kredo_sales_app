@@ -15,9 +15,17 @@ export interface SourceManagementDrawerMobileProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   snapshot: SourceManagementSnapshot
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
 }
 
-export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: SourceManagementDrawerMobileProps) {
+export function SourceManagementDrawerMobile({
+  open,
+  onOpenChange,
+  snapshot,
+  onSnapshotChange,
+  onRefresh,
+}: SourceManagementDrawerMobileProps) {
   const [view, setView] = useState<PanelView>({ kind: "list" })
 
   const handleOpenChange = (next: boolean) => {
@@ -52,16 +60,29 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
       }}
     >
       {view.kind === "create" ? (
-        <ManualSourceForm mode="create" onCancel={() => setView({ kind: "list" })} onSuccess={() => setView({ kind: "list" })} />
+        <ManualSourceForm
+          mode="create"
+          onCancel={() => setView({ kind: "list" })}
+          onSuccess={() => {
+            void onRefresh?.()
+            setView({ kind: "list" })
+          }}
+        />
       ) : view.kind === "edit" ? (
         <ManualSourceForm
           mode="edit"
           initial={view.source}
           onCancel={() => setView({ kind: "list" })}
-          onSuccess={() => setView({ kind: "list" })}
+          onSuccess={() => {
+            void onRefresh?.()
+            setView({ kind: "list" })
+          }}
         />
       ) : view.kind === "import" ? (
-        <SourceCorpusImportWizard variant="mobile" onClose={() => setView({ kind: "list" })} />
+        <SourceCorpusImportWizard variant="mobile" onClose={() => {
+          void onRefresh?.()
+          setView({ kind: "list" })
+        }} />
       ) : (
         <div className="space-y-6">
           <section className="rounded-xl border border-edito-border bg-white p-4 shadow-xs">
@@ -84,6 +105,8 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
                 sources={catalogSources}
                 variant="cards"
                 onEdit={(source) => setView({ kind: "edit", source })}
+                onSnapshotChange={onSnapshotChange}
+                onRefresh={onRefresh}
               />
             </div>
           </section>
@@ -113,6 +136,8 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
                       corpus={corpus}
                       variant="cards"
                       canEdit={snapshot.canManage && corpus.scopeKind !== "system"}
+                      onSnapshotChange={onSnapshotChange}
+                      onRefresh={onRefresh}
                     />
                   ))}
                 </div>
@@ -145,6 +170,8 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
                       corpus={corpus}
                       variant="cards"
                       canEdit={snapshot.canManage && corpus.scopeKind !== "system"}
+                      onSnapshotChange={onSnapshotChange}
+                      onRefresh={onRefresh}
                     />
                   ))}
                 </div>

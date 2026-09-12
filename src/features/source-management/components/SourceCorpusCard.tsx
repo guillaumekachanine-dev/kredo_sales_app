@@ -8,6 +8,7 @@ import {
   CORPUS_QUALITY_VERDICT_LABELS,
   type SourceCorpusItemView,
   type SourceCorpusView,
+  type SourceManagementSnapshot,
 } from "../domain/source-management-contracts"
 import {
   removeSourceFromCorpusAction,
@@ -18,6 +19,15 @@ import {
   setCorpusNewsEnabledAction,
   updateCorpusEditorialAction,
 } from "../actions/source-management-actions"
+import {
+  removeSourceFromCorpusInSnapshot,
+  setCorpusAccountWatchEnabledInSnapshot,
+  setCorpusActivationInSnapshot,
+  setCorpusItemEnabledInSnapshot,
+  setCorpusNewsEnabledInSnapshot,
+  updateCorpusEditorialInSnapshot,
+  updateSourceNameInSnapshot,
+} from "../domain/source-management-reconciliation"
 
 function PencilIcon({ className = "size-4" }: { className?: string }) {
   return (
@@ -49,14 +59,32 @@ function qualityVariant(verdict: SourceCorpusView["qualityVerdict"]) {
   return "warning" as const
 }
 
-function ItemRow({ item }: { item: SourceCorpusItemView }) {
+function ItemRow({
+  item,
+  onSnapshotChange,
+  onRefresh,
+}: {
+  item: SourceCorpusItemView
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   const toggle = () => {
+    onSnapshotChange?.((current) =>
+      setCorpusItemEnabledInSnapshot(current, item.id, !item.isEnabled),
+    )
     startTransition(async () => {
-      await setCorpusItemEnabledAction(item.id, !item.isEnabled)
-      router.refresh()
+      const res = await setCorpusItemEnabledAction(item.id, !item.isEnabled)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusItemEnabledInSnapshot(current, item.id, item.isEnabled),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
@@ -99,7 +127,15 @@ function ItemRow({ item }: { item: SourceCorpusItemView }) {
   )
 }
 
-function EditableItemRow({ item }: { item: SourceCorpusItemView }) {
+function EditableItemRow({
+  item,
+  onSnapshotChange,
+  onRefresh,
+}: {
+  item: SourceCorpusItemView
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const initialName = item.source?.name ?? item.externalSrcId ?? "Source inconnue"
@@ -121,7 +157,11 @@ function EditableItemRow({ item }: { item: SourceCorpusItemView }) {
     startTransition(async () => {
       const res = await renameCorpusSourceAction(item.id, trimmed)
       if (res.success) {
+        onSnapshotChange?.((current) =>
+          updateSourceNameInSnapshot(current, res.sourceId ?? item.sourceId, trimmed),
+        )
         router.refresh()
+        void onRefresh?.()
       } else {
         setItemError(res.error)
       }
@@ -135,7 +175,11 @@ function EditableItemRow({ item }: { item: SourceCorpusItemView }) {
       const res = await removeSourceFromCorpusAction(item.id)
       if (res.success) {
         setConfirmingRemove(false)
+        onSnapshotChange?.((current) =>
+          removeSourceFromCorpusInSnapshot(current, item.id),
+        )
         router.refresh()
+        void onRefresh?.()
       } else {
         setItemError(res.error)
       }
@@ -268,9 +312,17 @@ export interface SourceCorpusCardProps {
   corpus: SourceCorpusView
   variant: "table" | "cards"
   canEdit?: boolean
+  onSnapshotChange?: (updater: (current: SourceManagementSnapshot) => SourceManagementSnapshot) => void
+  onRefresh?: (options?: { silent?: boolean }) => Promise<void>
 }
 
-export function SourceCorpusCard({ corpus, variant, canEdit = false }: SourceCorpusCardProps) {
+export function SourceCorpusCard({
+  corpus,
+  variant,
+  canEdit = false,
+  onSnapshotChange,
+  onRefresh,
+}: SourceCorpusCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -301,14 +353,22 @@ export function SourceCorpusCard({ corpus, variant, canEdit = false }: SourceCor
       return
     }
     setCorpusError(null)
+    const nextDesc = corpusDescDraft.trim() || null
     startTransition(async () => {
       const res = await updateCorpusEditorialAction(corpus.id, {
         name: trimmed,
-        description: corpusDescDraft.trim() || null,
+        description: nextDesc,
       })
       if (res.success) {
         setIsEditing(false)
+        onSnapshotChange?.((current) =>
+          updateCorpusEditorialInSnapshot(current, corpus.id, {
+            name: trimmed,
+            description: nextDesc,
+          }),
+        )
         router.refresh()
+        void onRefresh?.()
       } else {
         setCorpusError(res.error)
       }
@@ -316,23 +376,56 @@ export function SourceCorpusCard({ corpus, variant, canEdit = false }: SourceCor
   }
 
   const toggleActivation = () => {
+    const nextState = corpus.activationState === "active" ? "draft" : "active"
+    onSnapshotChange?.((current) =>
+      setCorpusActivationInSnapshot(current, corpus.id, nextState),
+    )
     startTransition(async () => {
-      await setCorpusActivationAction(corpus.id, corpus.activationState === "active" ? "draft" : "active")
-      router.refresh()
+      const res = await setCorpusActivationAction(corpus.id, nextState)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusActivationInSnapshot(current, corpus.id, corpus.activationState),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
   const toggleNews = () => {
+    const nextEnabled = !corpus.enabledForNews
+    onSnapshotChange?.((current) =>
+      setCorpusNewsEnabledInSnapshot(current, corpus.id, nextEnabled),
+    )
     startTransition(async () => {
-      await setCorpusNewsEnabledAction(corpus.id, !corpus.enabledForNews)
-      router.refresh()
+      const res = await setCorpusNewsEnabledAction(corpus.id, nextEnabled)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusNewsEnabledInSnapshot(current, corpus.id, corpus.enabledForNews),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
   const toggleAccountWatch = () => {
+    const nextEnabled = !corpus.enabledForAccountWatch
+    onSnapshotChange?.((current) =>
+      setCorpusAccountWatchEnabledInSnapshot(current, corpus.id, nextEnabled),
+    )
     startTransition(async () => {
-      await setCorpusAccountWatchEnabledAction(corpus.id, !corpus.enabledForAccountWatch)
-      router.refresh()
+      const res = await setCorpusAccountWatchEnabledAction(corpus.id, nextEnabled)
+      if (!res.success) {
+        onSnapshotChange?.((current) =>
+          setCorpusAccountWatchEnabledInSnapshot(current, corpus.id, corpus.enabledForAccountWatch),
+        )
+      } else {
+        router.refresh()
+      }
+      void onRefresh?.()
     })
   }
 
@@ -493,9 +586,23 @@ export function SourceCorpusCard({ corpus, variant, canEdit = false }: SourceCor
           {corpus.items.length === 0 ? (
             <p className="text-[11px] text-muted">Aucune source dans ce corpus.</p>
           ) : isEditing ? (
-            corpus.items.map((item) => <EditableItemRow key={item.id} item={item} />)
+            corpus.items.map((item) => (
+              <EditableItemRow
+                key={item.id}
+                item={item}
+                onSnapshotChange={onSnapshotChange}
+                onRefresh={onRefresh}
+              />
+            ))
           ) : (
-            corpus.items.map((item) => <ItemRow key={item.id} item={item} />)
+            corpus.items.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                onSnapshotChange={onSnapshotChange}
+                onRefresh={onRefresh}
+              />
+            ))
           )}
         </div>
       </div>
