@@ -25,8 +25,13 @@ export type ModuleSnapshotController<T> = ModuleSnapshotState<T> & {
  */
 export function useModuleSnapshot<T>(load: () => Promise<T>): ModuleSnapshotController<T> {
   const [state, setState] = useState<ModuleSnapshotState<T>>({ status: "loading" })
+  const stateRef = useRef(state)
   const loadRef = useRef(load)
   const requestIdRef = useRef(0)
+
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   useEffect(() => {
     loadRef.current = load
@@ -57,9 +62,9 @@ export function useModuleSnapshot<T>(load: () => Promise<T>): ModuleSnapshotCont
   const refresh = useCallback(
     async (options?: { silent?: boolean }) => {
       const currentRequestId = ++requestIdRef.current
-      const isExplicitNonSilent = options?.silent === false
+      const isSilent = options?.silent ?? (stateRef.current.status === "ready")
 
-      if (isExplicitNonSilent) {
+      if (!isSilent) {
         setState({ status: "loading" })
       }
 
@@ -69,14 +74,12 @@ export function useModuleSnapshot<T>(load: () => Promise<T>): ModuleSnapshotCont
         setState({ status: "ready", data })
       } catch (reason: unknown) {
         if (currentRequestId !== requestIdRef.current) return
-        setState((current) => {
-          if (!isExplicitNonSilent && current.status === "ready") {
-            return current
-          }
-          return {
-            status: "error",
-            message: reason instanceof Error ? reason.message : "Chargement impossible.",
-          }
+        if (isSilent && stateRef.current.status === "ready") {
+          return
+        }
+        setState({
+          status: "error",
+          message: reason instanceof Error ? reason.message : "Chargement impossible.",
         })
       }
     },
