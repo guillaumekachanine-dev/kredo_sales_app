@@ -265,6 +265,8 @@ export type MissionRunEnvelope = {
   systemPrompt: string
   userPrompt: string
   model: { provider: "anthropic"; model: string; maxOutputTokens: number }
+  /** Optionnel : les missions génériques conservent la sortie texte libre. */
+  outputConfig?: { format: { type: "json_schema"; schema: Record<string, unknown> } }
   corpus: { kept: number; requested: number; dropped: number; totalChars: number }
   budget: CorpusBudget
   requestedAt: string

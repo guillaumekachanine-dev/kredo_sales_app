@@ -162,6 +162,7 @@ export async function startStudyConversion(studyId: string): Promise<{ attempt: 
           systemPrompt: part.systemPrompt,
           userPrompt: part.userPrompt,
           model: { provider: "anthropic", model: part.model, maxOutputTokens: part.maxOutputTokens },
+          outputConfig: { format: { type: "json_schema", schema: part.outputSchema } },
           requestedAt: startedAt,
         },
         // Persisté : la trace seule, jamais le prompt (qui contient l'étude).

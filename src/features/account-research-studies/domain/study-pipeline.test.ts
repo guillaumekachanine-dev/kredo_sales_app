@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { assembleStudyKnowledge } from "./assemble-study-knowledge"
+import { planStudyConversion } from "./study-conversion-plan"
 import { reconstructPdfMarkdown, type PdfPage } from "./pdf-reconstruction"
 import { prepareStudyStructure } from "./prepare-study-structure"
 import { parseBlocksPartOutput, parseSourcesPartOutput } from "./study-conversion-output"
@@ -145,6 +146,24 @@ describe("segmentation et sources", () => {
 
   it("retire les paramètres de suivi sans fusionner deux chemins différents", () => {
     expect(normalizeSourceUrl("https://EXAMPLE.com/a?utm_source=x&id=2#partie")).toBe("https://example.com/a?id=2")
+  })
+
+  it("contraint chaque passe de blocs à un schéma JSON avant l'appel au modèle", () => {
+    const blocks = segmentStudy("# Titre\n\nArianeGroup développe des lanceurs spatiaux.")
+    const parts = planStudyConversion({
+      context: { companyName: "ArianeGroup", segmentName: "Spatial", studyTitle: "Étude ArianeGroup" },
+      blocks,
+      sources: [],
+      authorities: [],
+      blockSourceRefs: new Map(),
+    })
+
+    expect(parts).toHaveLength(1)
+    expect(parts[0].outputSchema).toMatchObject({
+      type: "object",
+      required: ["classifications", "statements", "gaps", "entity"],
+      properties: { statements: { type: "array" } },
+    })
   })
 })
 

@@ -196,20 +196,24 @@ async function main() {
 
   const llmBody = llmNode?.parameters?.jsonBody || ""
   check(
-    "Call LLM jsonBody référence explicitement Validate Envelope pour model.model",
-    llmBody.includes("$('Validate Envelope').item.json.model.model"),
+    "Call LLM jsonBody lit model.model depuis Validate Envelope",
+    llmBody.includes("const base = $('Validate Envelope').item.json") && llmBody.includes("base.model.model"),
   )
   check(
-    "Call LLM jsonBody référence explicitement Validate Envelope pour maxOutputTokens",
-    llmBody.includes("$('Validate Envelope').item.json.model.maxOutputTokens"),
+    "Call LLM jsonBody lit maxOutputTokens depuis Validate Envelope",
+    llmBody.includes("base.model.maxOutputTokens"),
   )
   check(
-    "Call LLM jsonBody référence explicitement Validate Envelope pour systemPrompt",
-    llmBody.includes("$('Validate Envelope').item.json.systemPrompt"),
+    "Call LLM jsonBody lit systemPrompt depuis Validate Envelope",
+    llmBody.includes("base.systemPrompt"),
   )
   check(
-    "Call LLM jsonBody référence explicitement Validate Envelope pour userPrompt",
-    llmBody.includes("$('Validate Envelope').item.json.userPrompt"),
+    "Call LLM jsonBody lit userPrompt depuis Validate Envelope",
+    llmBody.includes("base.userPrompt"),
+  )
+  check(
+    "Call LLM transmet outputConfig uniquement lorsqu'il est fourni",
+    llmBody.includes("base.outputConfig") && llmBody.includes("output_config"),
   )
   check(
     "Call LLM jsonBody ne dépend plus de $json.model",
@@ -267,6 +271,23 @@ async function main() {
   check("Validate Envelope transmet systemPrompt intact", valItem.systemPrompt === "Tu es un analyste stratégique expert Kredo.")
   check("Validate Envelope transmet userPrompt intact", valItem.userPrompt === "Analyse les mouvements concurrentiels du secteur Spatial.")
   check("Validate Envelope transmet model", valItem.model?.model === "claude-sonnet-5" && valItem.model?.maxOutputTokens === 4000)
+  check("Validate Envelope garde outputConfig absent pour les missions texte", valItem.outputConfig === undefined)
+
+  const structuredFormat = { format: { type: "json_schema", schema: { type: "object", properties: {}, required: [] } } }
+  const structuredValidated = await runCodeNode("Validate Envelope", {
+    __input: webhookInput({ input: { outputConfig: structuredFormat } }),
+  })
+  check("Validate Envelope transmet outputConfig structuré", structuredValidated[0]?.json?.outputConfig === structuredFormat)
+
+  let malformedOutputConfigRejected = false
+  try {
+    await runCodeNode("Validate Envelope", {
+      __input: webhookInput({ input: { outputConfig: { format: { type: "text" } } } }),
+    })
+  } catch (err) {
+    malformedOutputConfigRejected = err.message.includes("outputConfig invalide")
+  }
+  check("Validate Envelope rejette un outputConfig mal formé", malformedOutputConfigRejected)
 
   // Rejet signature invalide
   let badSigError = false

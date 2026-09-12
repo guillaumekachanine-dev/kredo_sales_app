@@ -53,8 +53,133 @@ export type StudyConversionPartPrompt = {
   source_ids: string[]
   systemPrompt: string
   userPrompt: string
+  /** Schéma Anthropic qui contraint la réponse à rester un objet JSON parseable. */
+  outputSchema: Record<string, unknown>
   maxOutputTokens: number
   model: string
+}
+
+const NULLABLE_STRING = { anyOf: [{ type: "string" }, { type: "null" }] }
+
+// Les schémas limitent la forme syntaxique de la réponse. Les contrôles métier
+// (identifiants connus, enums KREDO, bornes…) restent dans study-conversion-output.
+const BLOCKS_OUTPUT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: false,
+  required: ["classifications", "statements", "gaps", "entity"],
+  properties: {
+    classifications: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["block_id", "section"],
+        properties: { block_id: { type: "string" }, section: { type: "string" } },
+      },
+    },
+    statements: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["text", "qualification", "confidence", "block_ids", "source_refs", "entity"],
+        properties: {
+          text: { type: "string" },
+          qualification: { type: "string" },
+          confidence: { type: "number" },
+          block_ids: { type: "array", items: { type: "string" } },
+          source_refs: { type: "array", items: { type: "string" } },
+          entity: {
+            anyOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                required: ["kind", "name"],
+                properties: { kind: { type: "string" }, name: { type: "string" } },
+              },
+              { type: "null" },
+            ],
+          },
+        },
+      },
+    },
+    gaps: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["section", "reason"],
+        properties: { section: { type: "string" }, reason: { type: "string" } },
+      },
+    },
+    entity: {
+      anyOf: [
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["legal_name", "siren", "naf_code", "headquarters"],
+          properties: {
+            legal_name: NULLABLE_STRING,
+            siren: NULLABLE_STRING,
+            naf_code: NULLABLE_STRING,
+            headquarters: NULLABLE_STRING,
+          },
+        },
+        { type: "null" },
+      ],
+    },
+  },
+}
+
+const SOURCES_OUTPUT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: false,
+  required: ["sources"],
+  properties: {
+    sources: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "id", "label", "publisher", "source_type", "tier", "primary_role",
+          "utility_score_detail", "automation_fit", "content_temporality", "usage_scopes",
+          "pack", "familles_couvertes", "famille_obligatoire", "atteste",
+        ],
+        properties: {
+          id: { type: "string" },
+          label: NULLABLE_STRING,
+          publisher: NULLABLE_STRING,
+          source_type: { type: "string" },
+          tier: { type: "number" },
+          primary_role: { type: "string" },
+          utility_score_detail: {
+            type: "object",
+            additionalProperties: false,
+            required: [
+              "pertinence_sectorielle", "couverture_besoins", "valeur_commerciale",
+              "fraicheur", "autorite_editoriale", "automation_access",
+            ],
+            properties: {
+              pertinence_sectorielle: { type: "number" },
+              couverture_besoins: { type: "number" },
+              valeur_commerciale: { type: "number" },
+              fraicheur: { type: "number" },
+              autorite_editoriale: { type: "number" },
+              automation_access: { type: "number" },
+            },
+          },
+          automation_fit: { type: "string" },
+          content_temporality: { type: "string" },
+          usage_scopes: { type: "array", items: { type: "string" } },
+          pack: { type: "string" },
+          familles_couvertes: { type: "array", items: { type: "string" } },
+          famille_obligatoire: NULLABLE_STRING,
+          atteste: NULLABLE_STRING,
+        },
+      },
+    },
+  },
 }
 
 const MARKDOWN_LINK = /\[((?:\\.|[^\]\\])*)\]\((https?:\/\/[^)\s]+)\)/g
@@ -207,6 +332,7 @@ export function planStudyConversion(input: {
         `Blocs du lot (${chunk.length}) — chacun doit être classé :`,
         blockLines.join("\n\n"),
       ].join("\n"),
+      outputSchema: BLOCKS_OUTPUT_SCHEMA,
       maxOutputTokens: BLOCKS_PART_MAX_OUTPUT_TOKENS,
       model: STUDY_CONVERSION_MODEL,
     })
@@ -234,6 +360,7 @@ export function planStudyConversion(input: {
       source_ids: slice.map((authority) => authority.id),
       systemPrompt: SOURCES_SYSTEM_PROMPT,
       userPrompt: [contextHeader(context), "", `Sources à qualifier (${slice.length}) — toutes :`, lines.join("\n\n")].join("\n"),
+      outputSchema: SOURCES_OUTPUT_SCHEMA,
       maxOutputTokens: SOURCES_PART_MAX_OUTPUT_TOKENS,
       model: STUDY_CONVERSION_MODEL,
     })

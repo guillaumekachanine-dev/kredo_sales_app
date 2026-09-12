@@ -11,6 +11,7 @@ VPS et n'est plus jamais modifié (M-6).
 - Webhook stable : `mission-001-run`
 - `resultType` : `mission_report` (littéral figé, phase 1)
 - Corps du callback : texte brut dans `contentJson.rawOutput`, sans `JSON.parse` ni validation côté n8n (M-2)
+- `input.outputConfig` est optionnel : lorsqu'il porte un format `json_schema`, il est validé puis transmis tel quel à Anthropic sous `output_config`. Les missions sans ce champ gardent leur sortie texte libre.
 - Déclenchement : `POST /api/n8n/trigger`
 - Payload reçu : `MissionRunEnvelope` (`src/lib/n8n/types.ts`) sous `body.input`
 
