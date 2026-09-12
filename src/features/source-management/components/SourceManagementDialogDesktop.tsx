@@ -268,7 +268,10 @@ export function SourceManagementDialogDesktop({ open, onOpenChange, snapshot }: 
           />
         </div>
       ) : view.kind === "corpus" && activeCorpus ? (
-        <SourceCorpusDetailView corpus={activeCorpus} />
+        <SourceCorpusDetailView
+          corpus={activeCorpus}
+          canEdit={snapshot.canManage && activeCorpus.scopeKind !== "system"}
+        />
       ) : view.kind === "create" ? (
         <div className="p-5 sm:p-6">
           <ManualSourceForm

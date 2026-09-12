@@ -12,6 +12,9 @@ const MUTATING_ACTIONS = [
   "setCorpusNewsEnabledAction",
   "setCorpusAccountWatchEnabledAction",
   "setCorpusItemEnabledAction",
+  "updateCorpusEditorialAction",
+  "renameCorpusSourceAction",
+  "removeSourceFromCorpusAction",
 ]
 
 describe("source management server actions", () => {
@@ -20,7 +23,7 @@ describe("source management server actions", () => {
     expect(source).toContain('import "server-only"')
   })
 
-  it("exposes exactly the actions required by the Lot 3 mandate", () => {
+  it("exposes exactly the actions required by the Lot 3 mandate and corpus editorial mode", () => {
     for (const name of MUTATING_ACTIONS) {
       expect(source).toContain(`export async function ${name}(`)
     }
@@ -66,5 +69,31 @@ describe("source management server actions", () => {
 
   it("supports reactivating an existing inactive manual source on duplicate detection", () => {
     expect(source).toContain("export async function reactivateManualSourceAction(")
+  })
+
+  it("updateCorpusEditorialAction rejects system corpora and merges editorial metadata non-destructively", () => {
+    expect(source).toContain('current.scope_kind === "system"')
+    expect(source).toContain('.neq("scope_kind", "system")')
+    expect(source).toContain("...currentMeta")
+    expect(source).toContain("...currentEditorial")
+    expect(source).toContain("editorial: updatedEditorial")
+  })
+
+  it("renameCorpusSourceAction checks corpus is not system, source is not locked/system, and updates only name", () => {
+    expect(source).toContain('corpus.scope_kind === "system"')
+    expect(source).toContain('source.origin === "system" || source.is_locked')
+    expect(source).toContain('.update({ name: normalizedName })')
+    expect(source).toContain('.eq("id", item.source_id)')
+    expect(source).toContain('.neq("origin", "system")')
+    expect(source).toContain('.eq("is_locked", false)')
+  })
+
+  it("removeSourceFromCorpusAction deletes strictly from source_corpus_items, never from source_catalog", () => {
+    const removeMatch = source.slice(source.indexOf("export async function removeSourceFromCorpusAction("))
+    expect(removeMatch).toContain('.from("source_corpus_items")')
+    expect(removeMatch).toContain(".delete()")
+    expect(removeMatch).toContain('.eq("id", itemId)')
+    expect(removeMatch).not.toContain('.from("source_catalog").delete()')
+    expect(removeMatch).not.toContain("deleteManualSourceAction")
   })
 })

@@ -110,6 +110,7 @@ export type SourceCorpusView = {
   snapshotDate: string
   scopeKind: SourceCorpusScopeKind
   name: string | null
+  description: string | null
   sectorId: string | null
   sectorName: string | null
   qualityVerdict: CorpusQualityVerdict
@@ -212,4 +213,14 @@ export function validateManualSourceInput(input: ManualSourceFormInput): ManualS
 /** `source_key` déterministe et stable pour une source manuelle : dérivé du domaine, jamais du nom (qui peut changer). */
 export function buildManualSourceKey(searchDomain: string): string {
   return `manual:${searchDomain}`
+}
+
+export type UpdateCorpusEditorialInput = {
+  name: string
+  description?: string | null
+}
+
+export type RenameCorpusSourceInput = {
+  itemId: string
+  name: string
 }

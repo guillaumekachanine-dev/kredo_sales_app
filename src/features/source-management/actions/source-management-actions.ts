@@ -4,12 +4,14 @@ import "server-only"
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import type { Json } from "@/types/database"
 import { getSourceManagementSnapshot } from "../data/get-source-management-snapshot"
 import {
   buildManualSourceKey,
   validateManualSourceInput,
   type ManualSourceFormInput,
   type SourceManagementSnapshot,
+  type UpdateCorpusEditorialInput,
 } from "../domain/source-management-contracts"
 
 type MutationResult = { success: true } | { success: false; error: string }
@@ -263,6 +265,163 @@ export async function setCorpusItemEnabledAction(itemId: string, enabled: boolea
   revalidatePath("/veille")
   return { success: true }
 }
+
+export async function updateCorpusEditorialAction(
+  corpusId: string,
+  input: UpdateCorpusEditorialInput,
+): Promise<MutationResult> {
+  const acting = await resolveActingWorkspace()
+  if (!acting.ok) return { success: false, error: acting.error }
+  const { supabase } = acting
+
+  const normalizedName = (input.name ?? "").trim().replace(/\s+/g, " ")
+  if (!normalizedName) {
+    return { success: false, error: "Le nom du corpus ne peut pas être vide." }
+  }
+  if (normalizedName.length > 120) {
+    return { success: false, error: "Le nom du corpus ne peut pas dépasser 120 caractères." }
+  }
+
+  const rawDescription = input.description != null ? input.description.trim() : null
+  const normalizedDescription = rawDescription ? rawDescription.replace(/\r\n/g, "\n") : null
+  if (normalizedDescription && normalizedDescription.length > 500) {
+    return { success: false, error: "La description ne peut pas dépasser 500 caractères." }
+  }
+
+  const { data: current, error: currentError } = await supabase
+    .from("source_corpora")
+    .select("id, metadata, scope_kind")
+    .eq("id", corpusId)
+    .maybeSingle()
+
+  if (currentError || !current) return { success: false, error: "Corpus introuvable." }
+  if (current.scope_kind === "system") {
+    return { success: false, error: "Un corpus système ne peut pas être modifié." }
+  }
+
+  const currentMeta =
+    typeof current.metadata === "object" && current.metadata !== null && !Array.isArray(current.metadata)
+      ? (current.metadata as Record<string, unknown>)
+      : {}
+  const currentEditorial =
+    typeof currentMeta.editorial === "object" && currentMeta.editorial !== null && !Array.isArray(currentMeta.editorial)
+      ? (currentMeta.editorial as Record<string, unknown>)
+      : {}
+
+  const updatedEditorial = {
+    ...currentEditorial,
+    name: normalizedName,
+    description: normalizedDescription,
+  }
+
+  const updatedMetadata = {
+    ...currentMeta,
+    editorial: updatedEditorial,
+  }
+
+  const { error: updateError } = await supabase
+    .from("source_corpora")
+    .update({ metadata: updatedMetadata as unknown as Json })
+    .eq("id", corpusId)
+    .neq("scope_kind", "system")
+
+  if (updateError) return { success: false, error: updateError.message }
+  revalidatePath("/veille")
+  return { success: true }
+}
+
+export async function renameCorpusSourceAction(
+  itemId: string,
+  name: string,
+): Promise<MutationResult> {
+  const acting = await resolveActingWorkspace()
+  if (!acting.ok) return { success: false, error: acting.error }
+  const { supabase } = acting
+
+  const normalizedName = (name ?? "").trim().replace(/\s+/g, " ")
+  if (!normalizedName) {
+    return { success: false, error: "Le nom de la source ne peut pas être vide." }
+  }
+  if (normalizedName.length > 120) {
+    return { success: false, error: "Le nom de la source ne peut pas dépasser 120 caractères." }
+  }
+
+  const { data: item, error: itemError } = await supabase
+    .from("source_corpus_items")
+    .select("id, corpus_id, source_id")
+    .eq("id", itemId)
+    .maybeSingle()
+
+  if (itemError || !item) return { success: false, error: "Source du corpus introuvable." }
+
+  const { data: corpus, error: corpusError } = await supabase
+    .from("source_corpora")
+    .select("id, scope_kind")
+    .eq("id", item.corpus_id)
+    .maybeSingle()
+
+  if (corpusError || !corpus) return { success: false, error: "Corpus introuvable." }
+  if (corpus.scope_kind === "system") {
+    return { success: false, error: "Les sources d'un corpus système ne peuvent pas être modifiées." }
+  }
+
+  const { data: source, error: sourceError } = await supabase
+    .from("source_catalog")
+    .select("id, origin, is_locked")
+    .eq("id", item.source_id)
+    .maybeSingle()
+
+  if (sourceError || !source) return { success: false, error: "Source introuvable dans le catalogue." }
+  if (source.origin === "system" || source.is_locked) {
+    return { success: false, error: "Une source système ou verrouillée ne peut pas être modifiée." }
+  }
+
+  const { error: updateError } = await supabase
+    .from("source_catalog")
+    .update({ name: normalizedName })
+    .eq("id", item.source_id)
+    .neq("origin", "system")
+    .eq("is_locked", false)
+
+  if (updateError) return { success: false, error: updateError.message }
+  revalidatePath("/veille")
+  return { success: true }
+}
+
+export async function removeSourceFromCorpusAction(itemId: string): Promise<MutationResult> {
+  const acting = await resolveActingWorkspace()
+  if (!acting.ok) return { success: false, error: acting.error }
+  const { supabase } = acting
+
+  const { data: item, error: itemError } = await supabase
+    .from("source_corpus_items")
+    .select("id, corpus_id, source_id")
+    .eq("id", itemId)
+    .maybeSingle()
+
+  if (itemError || !item) return { success: false, error: "Source du corpus introuvable." }
+
+  const { data: corpus, error: corpusError } = await supabase
+    .from("source_corpora")
+    .select("id, scope_kind")
+    .eq("id", item.corpus_id)
+    .maybeSingle()
+
+  if (corpusError || !corpus) return { success: false, error: "Corpus introuvable." }
+  if (corpus.scope_kind === "system") {
+    return { success: false, error: "Impossible de retirer une source d'un corpus système." }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("source_corpus_items")
+    .delete()
+    .eq("id", itemId)
+
+  if (deleteError) return { success: false, error: deleteError.message }
+  revalidatePath("/veille")
+  return { success: true }
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Chargeur autoportant du socle de sources.

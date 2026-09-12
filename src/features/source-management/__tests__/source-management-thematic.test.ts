@@ -12,6 +12,7 @@ function makeCorpus(partial: Partial<SourceCorpusView> & { id: string; slug: str
     snapshotDate: "2026-09-06",
     scopeKind: "sector",
     name: null,
+    description: null,
     sectorId: "sec-1",
     sectorName: "Banque",
     qualityVerdict: "production_ready",

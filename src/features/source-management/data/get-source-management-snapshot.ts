@@ -60,16 +60,46 @@ async function resolveWorkspace() {
 
 function extractCorpusName(corpus: SourceCorporaRow): string | null {
   if (typeof corpus.metadata === "object" && corpus.metadata !== null) {
-    const meta = (corpus.metadata as Record<string, unknown>).meta
-    if (typeof meta === "object" && meta !== null && typeof (meta as Record<string, unknown>).name === "string") {
-      return (meta as Record<string, unknown>).name as string
+    const metaObj = corpus.metadata as Record<string, unknown>
+    const editorial = metaObj.editorial
+    if (typeof editorial === "object" && editorial !== null && typeof (editorial as Record<string, unknown>).name === "string") {
+      const val = ((editorial as Record<string, unknown>).name as string).trim()
+      if (val) return val
     }
-    if (typeof (corpus.metadata as Record<string, unknown>).name === "string") {
-      return (corpus.metadata as Record<string, unknown>).name as string
+    const meta = metaObj.meta
+    if (typeof meta === "object" && meta !== null && typeof (meta as Record<string, unknown>).name === "string") {
+      const val = ((meta as Record<string, unknown>).name as string).trim()
+      if (val) return val
+    }
+    if (typeof metaObj.name === "string") {
+      const val = (metaObj.name as string).trim()
+      if (val) return val
     }
   }
   return null
 }
+
+function extractCorpusDescription(corpus: SourceCorporaRow): string | null {
+  if (typeof corpus.metadata === "object" && corpus.metadata !== null) {
+    const metaObj = corpus.metadata as Record<string, unknown>
+    const editorial = metaObj.editorial
+    if (typeof editorial === "object" && editorial !== null && typeof (editorial as Record<string, unknown>).description === "string") {
+      const val = ((editorial as Record<string, unknown>).description as string).trim()
+      if (val) return val
+    }
+    const meta = metaObj.meta
+    if (typeof meta === "object" && meta !== null && typeof (meta as Record<string, unknown>).description === "string") {
+      const val = ((meta as Record<string, unknown>).description as string).trim()
+      if (val) return val
+    }
+    if (typeof metaObj.description === "string") {
+      const val = (metaObj.description as string).trim()
+      if (val) return val
+    }
+  }
+  return null
+}
+
 
 export async function getSourceManagementSnapshot(): Promise<SourceManagementSnapshot> {
   const [supabase, workspace] = await Promise.all([getRequestClient(), resolveWorkspace()])
@@ -207,6 +237,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
       snapshotDate: corpus.snapshot_date,
       scopeKind: corpus.scope_kind,
       name: corpusName,
+      description: extractCorpusDescription(corpus),
       sectorId: corpus.sector_id,
       sectorName: resolvedSectorName,
       qualityVerdict: corpus.quality_verdict as CorpusQualityVerdict,

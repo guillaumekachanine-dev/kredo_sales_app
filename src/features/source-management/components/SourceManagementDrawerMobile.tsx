@@ -108,7 +108,12 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
               ) : (
                 <div className="space-y-2">
                   {snapshot.thematicCorpora.map((corpus) => (
-                    <SourceCorpusCard key={corpus.id} corpus={corpus} variant="cards" />
+                    <SourceCorpusCard
+                      key={corpus.id}
+                      corpus={corpus}
+                      variant="cards"
+                      canEdit={snapshot.canManage && corpus.scopeKind !== "system"}
+                    />
                   ))}
                 </div>
               )}
@@ -135,7 +140,12 @@ export function SourceManagementDrawerMobile({ open, onOpenChange, snapshot }: S
               ) : (
                 <div className="space-y-2">
                   {snapshot.sectorCorpora.map((corpus) => (
-                    <SourceCorpusCard key={corpus.id} corpus={corpus} variant="cards" />
+                    <SourceCorpusCard
+                      key={corpus.id}
+                      corpus={corpus}
+                      variant="cards"
+                      canEdit={snapshot.canManage && corpus.scopeKind !== "system"}
+                    />
                   ))}
                 </div>
               )}

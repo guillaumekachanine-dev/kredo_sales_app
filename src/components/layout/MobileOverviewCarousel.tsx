@@ -10,7 +10,7 @@ export interface MobileOverviewCarouselItem {
 
 interface MobileOverviewCarouselProps {
   items: readonly MobileOverviewCarouselItem[]
-  children: ReactNode
+  children?: ReactNode
   ariaLabel: string
 }
 

@@ -139,8 +139,37 @@ export async function ingestSourceCorpusAction(
   // Seul chemin d'écriture : la RPC SECURITY DEFINER, qui revérifie elle-même
   // is_workspace_admin() et résout le segment. Aucun .insert/.update direct
   // sur source_catalog / source_corpora / source_corpus_items depuis ce module.
+  let effectivePayload = payload
+  const { data: existingCorpus } = await supabase
+    .from("source_corpora")
+    .select("metadata")
+    .eq("slug", payload.slug)
+    .eq("version", payload.version)
+    .maybeSingle()
+
+  if (
+    existingCorpus?.metadata &&
+    typeof existingCorpus.metadata === "object" &&
+    !Array.isArray(existingCorpus.metadata)
+  ) {
+    const existingMeta = existingCorpus.metadata as Record<string, unknown>
+    if (existingMeta.editorial && typeof existingMeta.editorial === "object" && !Array.isArray(existingMeta.editorial)) {
+      const payloadMeta =
+        payload.metadata && typeof payload.metadata === "object" && !Array.isArray(payload.metadata)
+          ? (payload.metadata as Record<string, unknown>)
+          : {}
+      effectivePayload = {
+        ...payload,
+        metadata: {
+          ...payloadMeta,
+          editorial: existingMeta.editorial,
+        },
+      }
+    }
+  }
+
   const { data, error } = await supabase.rpc("ingest_source_corpus", {
-    p_payload: payload as unknown as Json,
+    p_payload: effectivePayload as unknown as Json,
     // PostgREST type `p_segment_slug` en `string` non nullable (le parametre SQL
     // n'a pas de DEFAULT, et lui en donner un imposerait de reordonner la
     // signature donc un nouveau DROP/CREATE). La chaine vide et NULL sont

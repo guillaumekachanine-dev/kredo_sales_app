@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import styles from "./MobileOverviewKpiGrid.module.css"
 
 interface MobileOverviewKpiGridProps {
-  children: ReactNode
+  children?: ReactNode
   label: string
 }
 
