@@ -1,0 +1,22 @@
+{
+  "asset": "business-intelligence-mobile-line-art.png",
+  "purpose": "Business Intelligence Mobile hero artwork for MobileOverviewShell",
+  "dimensions": {
+    "width": 1448,
+    "height": 1086,
+    "format": "PNG",
+    "alpha": true
+  },
+  "provenance": {
+    "reference": "User-supplied Business Intelligence mobile illustration (2026-09-13)",
+    "transformations": [
+      "Recreated only the analytic illustration as a compact premium isometric data prism composition",
+      "Excluded the K monogram, all UI, all text, the amber background, the decorative shell shape, and the white content card",
+      "Exported with a transparent outer canvas for object-fit contain placement"
+    ]
+  },
+  "usage": {
+    "publicPath": "/illustrations/business-intelligence-mobile-line-art.png",
+    "fit": "object-fit: contain"
+  }
+}
