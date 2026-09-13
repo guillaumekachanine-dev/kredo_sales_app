@@ -4,7 +4,7 @@ import { ModuleLoadingDrawer } from "@/components/intelligence/modules/ModuleLoa
 import { useModuleSnapshot } from "@/components/intelligence/modules/use-module-snapshot"
 import { loadSourceManagementSnapshot } from "../actions/source-management-actions"
 import { SourceManagementDialogDesktop } from "./SourceManagementDialogDesktop"
-import { SourceManagementDrawerMobile } from "./SourceManagementDrawerMobile"
+import { SourceManagementModalMobile } from "./SourceManagementModalMobile"
 
 const TITLE = "Gérer les sources"
 
@@ -73,7 +73,7 @@ function SourceManagementShellBody({
       onRefresh={refresh}
     />
   ) : (
-    <SourceManagementDrawerMobile
+    <SourceManagementModalMobile
       open
       onOpenChange={onOpenChange}
       snapshot={state.data}

@@ -4,38 +4,38 @@ import { describe, expect, it } from "vitest"
 const read = (path: string) => readFileSync(path, "utf8")
 
 describe("Mobile Source Management — Hierarchical Navigation & Sub-views", () => {
-  const drawerSource = read("src/features/source-management/components/SourceManagementDrawerMobile.tsx")
+  const modalSource = read("src/features/source-management/components/SourceManagementModalMobile.tsx")
   const synthesisSource = read("src/features/source-management/components/mobile/MobileSourceManagementSynthesis.tsx")
   const editorialSource = read("src/features/source-management/components/mobile/MobileEditorialSourceList.tsx")
   const corpusDetailSource = read("src/features/source-management/components/mobile/MobileCorpusDetail.tsx")
   const darkSwitchSource = read("src/features/source-management/components/mobile/MobileDarkSwitch.tsx")
 
-  it("SourceManagementDrawerMobile implements hierarchical navigation state machine", () => {
-    expect(drawerSource).toContain('kind: "home"')
-    expect(drawerSource).toContain('kind: "synthesis"')
-    expect(drawerSource).toContain('kind: "editorial_base"')
-    expect(drawerSource).toContain('kind: "corpus"')
-    expect(drawerSource).toContain('kind: "create"')
-    expect(drawerSource).toContain('kind: "edit"')
-    expect(drawerSource).toContain('kind: "import"')
+  it("SourceManagementModalMobile implements hierarchical navigation state machine", () => {
+    expect(modalSource).toContain('kind: "home"')
+    expect(modalSource).toContain('kind: "synthesis"')
+    expect(modalSource).toContain('kind: "editorial_base"')
+    expect(modalSource).toContain('kind: "corpus"')
+    expect(modalSource).toContain('kind: "create"')
+    expect(modalSource).toContain('kind: "edit"')
+    expect(modalSource).toContain('kind: "import"')
   })
 
-  it("Drawer header provides a >=44px back button when in a sub-view", () => {
-    expect(drawerSource).toContain("ArrowLeftIcon")
-    expect(drawerSource).toContain("min-h-[44px] min-w-[44px]")
-    expect(drawerSource).toContain("handleBack")
+  it("Header provides a >=44px back button when in a sub-view", () => {
+    expect(modalSource).toContain("ArrowLeftIcon")
+    expect(modalSource).toContain("min-h-[44px] min-w-[44px]")
+    expect(modalSource).toContain("handleBack")
   })
 
-  it("Drawer intercepts back/close gesture to return to previous view before closing", () => {
-    expect(drawerSource).toContain('if (view.kind !== "home" && reason !== "backdrop")')
-    expect(drawerSource).toContain("handleBack()")
-    expect(drawerSource).toContain("return false")
+  it("SourceManagementModalMobile uses canonical IntelligenceSplitModalShell with isMobile and no AppDrawer", () => {
+    expect(modalSource).toContain("<IntelligenceSplitModalShell")
+    expect(modalSource).toContain("isMobile")
+    expect(modalSource).not.toContain("AppDrawer")
   })
 
-  it("Drawer adopts Midnight Navy #0f122c and Brass canonical styling", () => {
-    expect(drawerSource).toContain("bg-[#0f122c]")
-    expect(drawerSource).toContain("border-white/10")
-    expect(drawerSource).toContain("bg-brand-brass")
+  it("Modal adopts Midnight Navy #0f122c and Brass canonical styling", () => {
+    expect(modalSource).toContain("bg-[#0f122c]")
+    expect(modalSource).toContain("border-white/10")
+    expect(modalSource).toContain("bg-brand-brass")
   })
 
   it("MobileDarkSwitch guarantees a touch target >= 44px (min-h-[44px] min-w-[44px])", () => {
@@ -77,5 +77,15 @@ describe("Mobile Source Management — Hierarchical Navigation & Sub-views", () 
   it("MobileCorpusDetail hides News and Account-watch toggles for thematic corpora", () => {
     expect(corpusDetailSource).toContain('corpus?.scopeKind !== "thematic"')
     expect(corpusDetailSource).toContain("Corpus activé")
+  })
+
+  it("handleClose resets view state to home upon dismissal", () => {
+    expect(modalSource).toContain('setView({ kind: "home" })')
+    expect(modalSource).toContain("onOpenChange(false)")
+  })
+
+  it("preserves responsive flex constraints without horizontal overflow blowout", () => {
+    expect(modalSource).toContain("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden")
+    expect(modalSource).toContain("min-h-0 min-w-0 flex-1 overflow-y-auto p-4 pb-safe text-white")
   })
 })

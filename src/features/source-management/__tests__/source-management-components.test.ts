@@ -129,7 +129,7 @@ describe("ManualSourceForm — duplicate handling and reactivation", () => {
 
 describe("Corpus import — wired to the Lot 4 wizard, gated on canManage", () => {
   const desktop = read("src/features/source-management/components/SourceManagementDialogDesktop.tsx")
-  const mobile = read("src/features/source-management/components/SourceManagementDrawerMobile.tsx")
+  const mobile = read("src/features/source-management/components/SourceManagementModalMobile.tsx")
 
   for (const [label, source] of [["Desktop", desktop], ["Mobile", mobile]] as const) {
     it(`${label}: the "Importer un corpus" CTA opens the wizard and is gated on canManage`, () => {
@@ -160,7 +160,7 @@ describe("Corpus import — wired to the Lot 4 wizard, gated on canManage", () =
 
 describe("Thematic corpora display in Desktop and Mobile shells", () => {
   const desktop = read("src/features/source-management/components/SourceManagementDialogDesktop.tsx")
-  const mobile = read("src/features/source-management/components/SourceManagementDrawerMobile.tsx")
+  const mobile = read("src/features/source-management/components/SourceManagementModalMobile.tsx")
 
   it("Desktop displays Corpus thématiques section with snapshot.thematicCorpora", () => {
     expect(desktop).toContain("Corpus thématiques")
@@ -201,7 +201,7 @@ describe("SourceManagementShell — chargement à l'ouverture et invariant adapt
   it("ne monte qu'une seule shell — ADR-0006", () => {
     const branch = source.slice(source.indexOf('return variant === "desktop"'))
     expect(branch).toContain("<SourceManagementDialogDesktop")
-    expect(branch).toContain("<SourceManagementDrawerMobile")
+    expect(branch).toContain("<SourceManagementModalMobile")
     // Ternaire strict : les deux ne peuvent pas être rendues simultanément.
     expect(branch).toMatch(/variant === "desktop" \? \(/)
   })
@@ -223,7 +223,7 @@ describe("Desktop/Mobile shells stay two distinct components (ADR-0006 adaptive)
     const source = read("src/components/veille/VeilleActualitesDesktop.tsx")
     // Insensible au formatage : ce qui compte est la shell et sa variante.
     expect(source).toMatch(/<SourceManagementShell\s+variant="desktop"/)
-    expect(source).not.toContain("<SourceManagementDrawerMobile")
+    expect(source).not.toContain("<SourceManagementModalMobile")
   })
 
   it("VeilleActualitesMobile mounts only the mobile launcher variant, inside MobilePageHeader.actions", () => {

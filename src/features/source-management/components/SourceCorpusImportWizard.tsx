@@ -11,7 +11,7 @@
 // présentation ne connaît plus aucun des deux contrats.
 //
 // État interne du shell Source Management (`view.kind === "import"` dans
-// `SourceManagementDialogDesktop`/`SourceManagementDrawerMobile`) — jamais de
+// `SourceManagementDialogDesktop`/`SourceManagementModalMobile`) — jamais de
 // modale imbriquée. Domaine, parseur, résolution et view models sont partagés
 // entre Desktop et Mobile ; seule la présentation (`variant`) diverge.
 //
@@ -603,7 +603,7 @@ function ArbitrationCard({ item, decision, onToggle }: { item: CorpusImportItemV
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate font-bold text-white">{item.title}</p>
           <p className="text-[10px] text-white/50">{item.subtitle}</p>
         </div>

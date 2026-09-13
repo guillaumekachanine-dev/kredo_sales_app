@@ -141,10 +141,10 @@ describe("Corpus Editorial Mode — Desktop UI (SourceCorpusDetailView)", () => 
 
 describe("Corpus Editorial Mode — Mobile UI (SourceCorpusCard)", () => {
   const cardSource = read("src/features/source-management/components/SourceCorpusCard.tsx")
-  const drawerSource = read("src/features/source-management/components/SourceManagementDrawerMobile.tsx")
+  const mobileSource = read("src/features/source-management/components/SourceManagementModalMobile.tsx")
 
-  it("passes canEdit from SourceManagementDrawerMobile to SourceCorpusCard", () => {
-    expect(drawerSource).toContain("canEdit={snapshot.canManage && corpus.scopeKind !== \"system\"}")
+  it("passes canEdit from SourceManagementModalMobile to corpus view", () => {
+    expect(mobileSource).toContain("canEdit={snapshot.canManage && activeCorpus.scopeKind !== \"system\"}")
   })
 
   it("renders mobile edit button with touch target >= 44px (min-h-[44px] min-w-[44px])", () => {

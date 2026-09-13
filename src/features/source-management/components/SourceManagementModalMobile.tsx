@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { AppDrawer } from "@/components/ui/AppDrawer"
+import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 import { ManualSourceForm } from "./ManualSourceForm"
@@ -24,7 +24,7 @@ export type MobilePanelView =
   | { kind: "edit"; source: SourceCatalogEntry }
   | { kind: "import" }
 
-export interface SourceManagementDrawerMobileProps {
+export interface SourceManagementModalMobileProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   snapshot: SourceManagementSnapshot
@@ -65,10 +65,10 @@ function ChevronRight({ className = "size-4" }: { className?: string }) {
   )
 }
 
-function ArrowLeftIcon({ className = "size-4" }: { className?: string }) {
+function ArrowLeftIcon({ className = "size-5" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
     </svg>
   )
 }
@@ -299,18 +299,18 @@ function MobileSourceManagementHome({
   )
 }
 
-export function SourceManagementDrawerMobile({
+export function SourceManagementModalMobile({
   open,
   onOpenChange,
   snapshot,
   onSnapshotChange,
   onRefresh,
-}: SourceManagementDrawerMobileProps) {
+}: SourceManagementModalMobileProps) {
   const [view, setView] = useState<MobilePanelView>({ kind: "home" })
 
-  const handleOpenChange = (next: boolean) => {
-    if (next) setView({ kind: "home" })
-    onOpenChange(next)
+  const handleClose = () => {
+    setView({ kind: "home" })
+    onOpenChange(false)
   }
 
   const handleBack = () => {
@@ -326,7 +326,7 @@ export function SourceManagementDrawerMobile({
   const activeCorpus =
     view.kind === "corpus" ? allCorpora.find((c) => c.id === view.corpusId) : null
 
-  // Résolution du titre et sous-titre de la vue courante
+  // Résolution du titre et sous-titre canonique pour le header IntelligenceSplitModalShell
   const headerTitle =
     view.kind === "home" ? "Gérer les sources" :
     view.kind === "synthesis" ? "Synthèse" :
@@ -338,138 +338,111 @@ export function SourceManagementDrawerMobile({
     "Gérer les sources"
 
   const headerSubtitle =
-    view.kind === "home" ? "Socle éditorial, corpus thématiques et corpus sectoriels." :
+    view.kind === "home" ? "Socle éditorial, corpus thématiques et corpus sectoriels" :
     view.kind === "synthesis" ? "Indicateurs, répartition et volumétrie" :
     view.kind === "editorial_base" ? `${catalogSources.filter((s) => s.isActive).length} sources actives` :
     view.kind === "corpus" ? `${activeCorpus?.activeSources ?? 0} / ${activeCorpus?.totalSources ?? 0} sources actives` :
     undefined
 
-  const customTitle = view.kind === "home" ? (
-    <div className="flex items-center justify-between gap-2 w-full pr-1">
-      <div className="min-w-0 flex-1">
-        <h2 className="font-heading text-base font-bold text-white truncate">
-          {headerTitle}
-        </h2>
-        <p className="text-[11px] text-white/50 truncate">
-          {headerSubtitle}
-        </p>
-      </div>
-      {snapshot.canManage ? (
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setView({ kind: "create" })}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-white/15 bg-white/5 px-2.5 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            + Source
-          </button>
-          <button
-            type="button"
-            onClick={() => setView({ kind: "import" })}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-brand-brass px-2.5 text-xs font-bold text-secondary-fg hover:bg-brand-brass-hover transition-colors cursor-pointer"
-          >
-            + Corpus
-          </button>
-        </div>
-      ) : null}
-    </div>
-  ) : (
-    <div className="flex items-center gap-2.5 w-full">
+  const headerActions = view.kind !== "home" ? (
+    <button
+      type="button"
+      onClick={handleBack}
+      aria-label="Retour"
+      className="flex size-11 min-h-[44px] min-w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+    >
+      <ArrowLeftIcon className="size-5" />
+    </button>
+  ) : null
+
+  const headerRightActions = view.kind === "home" && snapshot.canManage ? (
+    <div className="flex items-center gap-1.5 shrink-0">
       <button
         type="button"
-        onClick={handleBack}
-        aria-label="Retour à l'écran précédent"
-        className="flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+        onClick={() => setView({ kind: "create" })}
+        className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-white/15 bg-white/5 px-2.5 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer"
       >
-        <ArrowLeftIcon className="size-4" />
+        + Source
       </button>
-      <div className="min-w-0 flex-1">
-        <h2 className="font-heading text-base font-bold text-white truncate">
-          {headerTitle}
-        </h2>
-        {headerSubtitle ? (
-          <p className="text-[11px] text-white/50 truncate">
-            {headerSubtitle}
-          </p>
-        ) : null}
-      </div>
+      <button
+        type="button"
+        onClick={() => setView({ kind: "import" })}
+        className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-brand-brass px-2.5 text-xs font-bold text-secondary-fg hover:bg-brand-brass-hover transition-colors cursor-pointer"
+      >
+        + Corpus
+      </button>
     </div>
-  )
+  ) : null
 
   return (
-    <AppDrawer
+    <IntelligenceSplitModalShell
       open={open}
-      onOpenChange={handleOpenChange}
-      title={customTitle}
-      side="right"
-      width="wide"
-      showMobileCloseButton
-      headerClassName="border-b border-white/10 bg-[#0f122c] pb-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] text-white"
-      contentClassName="bg-[#0f122c] p-4 text-white"
-      onRequestClose={(reason) => {
-        if (view.kind !== "home" && reason !== "backdrop") {
-          handleBack()
-          return false
-        }
-        return true
-      }}
-    >
-      {view.kind === "home" ? (
-        <MobileSourceManagementHome
-          snapshot={snapshot}
-          onSelectView={setView}
-        />
-      ) : view.kind === "synthesis" ? (
-        <MobileSourceManagementSynthesis snapshot={snapshot} />
-      ) : view.kind === "editorial_base" ? (
-        <MobileEditorialSourceList
-          sources={catalogSources}
-          onEdit={(source) => setView({ kind: "edit", source })}
-          onSnapshotChange={onSnapshotChange}
-          onRefresh={onRefresh}
-        />
-      ) : view.kind === "corpus" && activeCorpus ? (
-        (() => {
-          const corpus = activeCorpus
-          return (
-            <MobileCorpusDetail
-              corpus={corpus}
-              canEdit={snapshot.canManage && corpus.scopeKind !== "system"}
-              onSnapshotChange={onSnapshotChange}
-              onRefresh={onRefresh}
-            />
-          )
-        })()
-      ) : view.kind === "create" ? (
-        <ManualSourceForm
-          mode="create"
-          onCancel={() => setView({ kind: "home" })}
-          onSuccess={() => {
-            void onRefresh?.()
-            setView({ kind: "editorial_base" })
-          }}
-        />
-      ) : view.kind === "edit" ? (
-        <ManualSourceForm
-          mode="edit"
-          initial={view.source}
-          onCancel={() => setView({ kind: "editorial_base" })}
-          onSuccess={() => {
-            void onRefresh?.()
-            setView({ kind: "editorial_base" })
-          }}
-        />
-      ) : view.kind === "import" ? (
-        <SourceCorpusImportWizard variant="mobile" onClose={() => {
-          void onRefresh?.()
-          setView({ kind: "home" })
-        }} />
-      ) : (
-        <MobileSourceManagementHome
-          snapshot={snapshot}
-          onSelectView={setView}
-        />
-      )}
-    </AppDrawer>
+      onClose={handleClose}
+      isMobile
+      className="bg-[#0f122c]"
+      title={headerTitle}
+      subtitle={headerSubtitle}
+      leftPane={null}
+      rightPane={null}
+      headerActions={headerActions}
+      headerRightActions={headerRightActions}
+      content={
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 pb-safe text-white">
+            {view.kind === "home" ? (
+              <MobileSourceManagementHome
+                snapshot={snapshot}
+                onSelectView={setView}
+              />
+            ) : view.kind === "synthesis" ? (
+              <MobileSourceManagementSynthesis snapshot={snapshot} />
+            ) : view.kind === "editorial_base" ? (
+              <MobileEditorialSourceList
+                sources={catalogSources}
+                onEdit={(source) => setView({ kind: "edit", source })}
+                onSnapshotChange={onSnapshotChange}
+                onRefresh={onRefresh}
+              />
+            ) : view.kind === "corpus" && activeCorpus ? (
+              <MobileCorpusDetail
+                corpus={activeCorpus}
+                canEdit={snapshot.canManage && activeCorpus.scopeKind !== "system"}
+                onSnapshotChange={onSnapshotChange}
+                onRefresh={onRefresh}
+              />
+            ) : view.kind === "create" ? (
+              <ManualSourceForm
+                mode="create"
+                onCancel={() => setView({ kind: "home" })}
+                onSuccess={() => {
+                  void onRefresh?.()
+                  setView({ kind: "editorial_base" })
+                }}
+              />
+            ) : view.kind === "edit" ? (
+              <ManualSourceForm
+                mode="edit"
+                initial={view.source}
+                onCancel={() => setView({ kind: "editorial_base" })}
+                onSuccess={() => {
+                  void onRefresh?.()
+                  setView({ kind: "editorial_base" })
+                }}
+              />
+            ) : view.kind === "import" ? (
+              <SourceCorpusImportWizard variant="mobile" onClose={() => {
+                void onRefresh?.()
+                setView({ kind: "home" })
+              }} />
+            ) : (
+              <MobileSourceManagementHome
+                snapshot={snapshot}
+                onSelectView={setView}
+              />
+            )}
+          </div>
+        </div>
+      }
+    />
   )
 }

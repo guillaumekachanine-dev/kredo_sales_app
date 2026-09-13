@@ -111,7 +111,7 @@ export function ManualSourceForm({ mode, initial, onCancel, onSuccess }: ManualS
           <p className="mt-1 text-[10px] text-white/40">Sert de clé de dédoublonnage — le hostname est normalisé.</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1" htmlFor="source-family">
               Famille <span className="text-brand-brass">*</span>
