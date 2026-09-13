@@ -1,7 +1,6 @@
-:global(:root) {
-  --color-account-intelligence-petrol: #315D95;
-}
-
+/* Token porté par la classe locale : un sélecteur `:global(:root)` n'est pas « pur »
+   au sens des CSS Modules — Turbopack le tolère, `next build --webpack` le refuse. */
 .petrol {
+  --color-account-intelligence-petrol: #315D95;
   background-color: var(--color-account-intelligence-petrol);
 }
