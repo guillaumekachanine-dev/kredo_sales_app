@@ -1,0 +1,500 @@
+{
+  "schema_version": 4,
+  "entity_resolution": {
+    "decision": "resolved",
+    "method": "registry_match",
+    "legal_name": "Groupe Arkopharma, détenu via Apharma TopCo SAS ; entité opérationnelle française de référence : Laboratoires Arkopharma SAS",
+    "siren": "307378489",
+    "naf_code": "21.20Z",
+    "hq_location": "Carros, Alpes-Maritimes, France",
+    "reasons": [
+      "Le compte commercial demandé est le groupe économique Arkopharma dans le monde, et non la seule société française éditrice du site.",
+      "Laboratoires Arkopharma SAS est l'entité opérationnelle française de référence, tandis qu'Apharma TopCo SAS porte le groupe acquis par Dermapharm.",
+      "Les chiffres sont attribués à leur périmètre propre : groupe Arkopharma, Laboratoires Arkopharma SAS, ou segment Other healthcare products de Dermapharm."
+    ]
+  },
+  "sections": [
+    {
+      "key": "synthesis",
+      "title": "Synthèse",
+      "narrative": [
+        "Arkopharma est un groupe français de santé naturelle intégré à Dermapharm depuis janvier 2023, avec une base industrielle à Carros et des filiales européennes.",
+        "La dynamique récente combine une contraction du chiffre d'affaires de l'entité française, une réorganisation du modèle d'affaires et des signaux de redressement de rentabilité au niveau du segment parent.",
+        "Les recrutements digitaux, l'automatisation Microsoft 365 et les projets historiques CRM, ERP et e-commerce montrent un SI métier étendu mais dont l'architecture actuelle reste peu documentée publiquement."
+      ],
+      "statements": [
+        {
+          "text": "Arkopharma est un groupe français de santé naturelle intégré à Dermapharm depuis la clôture de l'acquisition d'Apharma TopCo SAS le 5 janvier 2023 ; son siège et ses capacités de production principales sont à Carros.",
+          "qualification": "established",
+          "source_refs": ["src-03", "src-05"],
+          "confidence": 0.99
+        },
+        {
+          "text": "Le groupe développe, fabrique et distribue principalement des compléments alimentaires, des médicaments à base de plantes et des cosmétiques, avec un positionnement de leader français des compléments phytothérapeutiques revendiqué et repris par Dermapharm.",
+          "qualification": "declared",
+          "source_refs": ["src-02", "src-06"],
+          "confidence": 0.94
+        },
+        {
+          "text": "La dynamique récente combine une contraction du chiffre d'affaires de Laboratoires Arkopharma SAS de 179,7 M€ en 2023 à 163,8 M€ en 2024, une nouvelle baisse d'Arkopharma signalée en 2025 et une réorganisation du modèle d'affaires toujours en cours au premier semestre 2026.",
+          "qualification": "established",
+          "source_refs": ["src-03", "src-06", "src-07"],
+          "confidence": 0.96
+        },
+        {
+          "text": "La hausse de l'EBITDA ajusté du segment Other healthcare products au premier semestre 2026, malgré un léger recul de son chiffre d'affaires et des coûts de restructuration Arkopharma, indique que les mesures opérationnelles améliorent la rentabilité du périmètre parent sans permettre d'isoler la performance d'Arkopharma.",
+          "qualification": "inferred",
+          "source_refs": ["src-07"],
+          "confidence": 0.88
+        },
+        {
+          "text": "Les offres digitales récentes, les usages Microsoft 365 et Power Automate et les références historiques CRM, ERP et e-commerce indiquent un SI métier étendu, orienté international et parcours client, mais dont l'architecture actuelle n'est pas publiquement documentée.",
+          "qualification": "inferred",
+          "source_refs": ["src-11", "src-12", "src-23", "src-24", "src-25"],
+          "confidence": 0.82
+        }
+      ],
+      "source_refs": ["src-02", "src-03", "src-05", "src-06", "src-07", "src-11", "src-12", "src-23", "src-24", "src-25"]
+    },
+    {
+      "key": "identity",
+      "title": "Identité",
+      "narrative": [
+        "Le périmètre économique résolu couvre Apharma TopCo SAS, Laboratoires Arkopharma SAS et les principales filiales internationales consolidées par Dermapharm.",
+        "Les publications corporate ne permettent pas de retenir un chiffre unique et daté pour l'effectif mondial ni pour le nombre de pays couverts."
+      ],
+      "statements": [
+        {
+          "text": "Laboratoires Arkopharma SAS, SIREN 307 378 489, code NAF 21.20Z, a son siège au LID de Carros Le Broc, 1ère Avenue 2709M, 06510 Carros.",
+          "qualification": "established",
+          "source_refs": ["src-03"],
+          "confidence": 0.99
+        },
+        {
+          "text": "Dermapharm détient 100 % d'Apharma TopCo SAS, holding du groupe Arkopharma, et consolide notamment des entités en France, Portugal, Espagne, Italie, Pays-Bas, Suisse, Belgique, Grèce ainsi que Cipriani Srl en Italie.",
+          "qualification": "established",
+          "source_refs": ["src-06"],
+          "confidence": 0.98
+        },
+        {
+          "text": "La politique groupe signée le 11 février 2025 identifie Christophe Mossé comme directeur général Groupe et présente un comité exécutif couvrant ressources humaines, marketing stratégique, R&D, opérations, international, finance, France et Espagne.",
+          "qualification": "declared",
+          "source_refs": ["src-08"],
+          "confidence": 0.96
+        },
+        {
+          "text": "La page registre de Laboratoires Arkopharma, mise à jour en septembre 2026, mentionne Apharma Topco comme président et Christophe Mossé ainsi que Christelle Morandi parmi les dirigeants de l'entité française.",
+          "qualification": "established",
+          "source_refs": ["src-03"],
+          "confidence": 0.96
+        },
+        {
+          "text": "Les sources corporate non datées divergent sur l'empreinte commerciale : plus de 40 pays sur une page globale, plus de 60 sur une page collaborateurs et plus de 65 dans le flux de recrutement ; le nombre exact de pays actifs n'est donc pas établi.",
+          "qualification": "inferred",
+          "source_refs": ["src-01", "src-10", "src-11"],
+          "confidence": 0.95
+        },
+        {
+          "text": "Les effectifs publics ne sont pas directement comparables : Dermapharm indiquait environ 920 salariés Arkopharma lors de l'acquisition, une page carrière actuelle revendique près de 1 400 collaborateurs dans le monde, et le registre donne seulement une tranche de 500 à 999 salariés pour l'entité française en 2023.",
+          "qualification": "inferred",
+          "source_refs": ["src-03", "src-05", "src-09"],
+          "confidence": 0.94
+        }
+      ],
+      "source_refs": ["src-01", "src-03", "src-05", "src-06", "src-08", "src-09", "src-10", "src-11"]
+    },
+    {
+      "key": "business_and_offering",
+      "title": "Métier et offre",
+      "narrative": [
+        "Arkopharma opère un modèle intégré de développement, fabrication et distribution de produits de santé naturelle autour de familles de marques spécialisées.",
+        "Les données financières publiques sont fragmentées entre l'entité française, le groupe avant acquisition et un segment Dermapharm plus large qu'Arkopharma."
+      ],
+      "statements": [
+        {
+          "text": "Le portefeuille couvre sept domaines représentatifs : phytothérapie avec Arkogélules et Arkofluides, cheveux et beauté avec Forcapil, fatigue et énergie avec Azinc et Arkovital, sommeil et stress avec Arkorelax, immunité avec Arkoroyal, confort urinaire avec Cys-Control et articulations avec Chondro-Aid.",
+          "qualification": "declared",
+          "source_refs": ["src-05"],
+          "confidence": 0.97
+        },
+        {
+          "text": "Les cinq familles les plus représentatives retenues pour l'analyse sont la phytothérapie, les cheveux et la beauté, la vitalité et l'immunité, le sommeil et le stress, et le confort urinaire et articulaire ; aucune ventilation publique de chiffre d'affaires par famille n'a été trouvée.",
+          "qualification": "inferred",
+          "source_refs": ["src-05", "src-06"],
+          "confidence": 0.91
+        },
+        {
+          "text": "Le modèle est intégré de la formulation et du développement à la production, au contrôle qualité, à la logistique et à la distribution par des réseaux pharmaceutiques, avec en complément un canal e-commerce direct.",
+          "qualification": "inferred",
+          "source_refs": ["src-02", "src-05", "src-11", "src-23"],
+          "confidence": 0.93
+        },
+        {
+          "text": "En 2023, Arkopharma a déclaré avoir produit 884 millions de gélules, 155 millions de comprimés, 45 millions d'ampoules et 12 millions de monodoses, ce qui confirme un modèle industriel à forts volumes.",
+          "qualification": "declared",
+          "source_refs": ["src-02"],
+          "confidence": 0.96
+        },
+        {
+          "text": "Pour Laboratoires Arkopharma SAS, le chiffre d'affaires a été de 156 M€ en 2021, 169 M€ en 2022, 180 M€ en 2023 et 164 M€ en 2024 ; l'EBE a évolué respectivement de 15,5 M€ à 22,5 M€, 37,7 M€ puis 21,7 M€.",
+          "qualification": "established",
+          "source_refs": ["src-03"],
+          "confidence": 0.97
+        },
+        {
+          "text": "Les comptes sociaux audités de Laboratoires Arkopharma SAS font ressortir un résultat net de 19,8 M€ en 2024 contre 26,0 M€ en 2023.",
+          "qualification": "established",
+          "source_refs": ["src-04"],
+          "confidence": 0.99
+        },
+        {
+          "text": "Pour le groupe économique avant acquisition, la direction annonçait 183,6 M€ de chiffre d'affaires en 2020, tandis que Dermapharm a indiqué plus de 200 M€ en 2022 ; ces chiffres groupe ne sont pas comparables aux seuls comptes sociaux français.",
+          "qualification": "declared",
+          "source_refs": ["src-05", "src-26"],
+          "confidence": 0.93
+        },
+        {
+          "text": "Le segment Other healthcare products de Dermapharm, qui inclut Arkopharma mais aussi d'autres activités, a réalisé 352,2 M€ de chiffre d'affaires et 53,4 M€ d'EBITDA ajusté en 2025, contre 352,9 M€ et 56,3 M€ en 2024 retraité.",
+          "qualification": "established",
+          "source_refs": ["src-06"],
+          "confidence": 0.98
+        },
+        {
+          "text": "La baisse observée en 2024 faisait suite à un déstockage des pharmacies après des hausses de prix et lancements du premier semestre 2023, alors que le sell-out restait jugé élevé par Dermapharm.",
+          "qualification": "declared",
+          "source_refs": ["src-27"],
+          "confidence": 0.9
+        }
+      ],
+      "source_refs": ["src-02", "src-03", "src-04", "src-05", "src-06", "src-11", "src-23", "src-26", "src-27"]
+    },
+    {
+      "key": "customers_and_market",
+      "title": "Clients et marché",
+      "narrative": [
+        "Les pharmacies et parapharmacies sont le canal intermédiaire central, tandis que le consommateur final arbitre davantage entre conseil officinal et achat en ligne.",
+        "Le marché français reste en croissance mais les estimations diffèrent selon les canaux couverts."
+      ],
+      "statements": [
+        {
+          "text": "Les principaux clients intermédiaires sont les pharmacies, parapharmacies, distributeurs et plateformes en ligne ; les utilisateurs finaux sont des consommateurs recherchant prévention, bien-être et solutions de santé naturelle.",
+          "qualification": "inferred",
+          "source_refs": ["src-01", "src-05", "src-13", "src-14"],
+          "confidence": 0.93
+        },
+        {
+          "text": "Arkopharma déclare être référencé dans plus de 20 000 pharmacies et parapharmacies en Europe, ce qui souligne la centralité du canal officinal.",
+          "qualification": "declared",
+          "source_refs": ["src-01"],
+          "confidence": 0.9
+        },
+        {
+          "text": "Synadiet estime le marché français des compléments alimentaires à 3 Md€ TTC en 2025, en croissance de 2,6 %, avec la pharmacie comme premier canal et le commerce en ligne au-delà de 10 % des ventes.",
+          "qualification": "established",
+          "source_refs": ["src-13"],
+          "confidence": 0.94
+        },
+        {
+          "text": "IQVIA mesure un périmètre plus étroit, limité à la pharmacie, parapharmacie, e-pharmacie, e-parapharmacie et Amazon, à 2 Md€ en 2025, en croissance de 4,7 % ; l'écart avec Synadiet provient donc principalement des canaux couverts.",
+          "qualification": "inferred",
+          "source_refs": ["src-13", "src-14"],
+          "confidence": 0.96
+        },
+        {
+          "text": "Sur le périmètre IQVIA, l'online représentait 8,3 % des ventes mais 28 % de la croissance en 2025 ; les segments mémoire et concentration, santé de la femme, articulations et collagène progressaient, tandis que minceur et gummies reculaient.",
+          "qualification": "established",
+          "source_refs": ["src-14"],
+          "confidence": 0.95
+        },
+        {
+          "text": "IQVIA estime le marché européen des compléments alimentaires à 19,9 Md€ en 2025, en hausse de 5,9 %, avec la France au troisième rang derrière l'Italie et l'Allemagne.",
+          "qualification": "established",
+          "source_refs": ["src-14"],
+          "confidence": 0.94
+        },
+        {
+          "text": "Les moteurs structurels identifiés au niveau européen sont l'innovation produit, l'e-commerce, l'autosoins et le vieillissement ; les risques incluent la saturation, la pression prix, le scepticisme des consommateurs, les coûts d'intrants et la nécessité d'étayer scientifiquement les allégations.",
+          "qualification": "established",
+          "source_refs": ["src-15"],
+          "confidence": 0.91
+        }
+      ],
+      "source_refs": ["src-01", "src-05", "src-13", "src-14", "src-15"]
+    },
+    {
+      "key": "competition_and_positioning",
+      "title": "Concurrence et positionnement",
+      "narrative": [
+        "Arkopharma affronte des laboratoires français spécialisés, des groupes européens multimarques et des acteurs mondiaux de la santé grand public.",
+        "Les chiffres concurrents disponibles portent sur des périmètres hétérogènes et ne doivent pas être lus comme un classement homogène."
+      ],
+      "statements": [
+        {
+          "text": "Le marché officinal français est fragmenté mais concentré : les dix premiers acteurs représentaient 45 % des ventes en pharmacie selon Le Monde, qui cite notamment PiLeJe, Arkopharma, Nutergia, Havea et Procter & Gamble.",
+          "qualification": "established",
+          "source_refs": ["src-16"],
+          "confidence": 0.9
+        },
+        {
+          "text": "PiLeJe est un concurrent français direct sur les compléments vendus en pharmacie ; son entité PiLeJe a réalisé 137 M€ de chiffre d'affaires en 2024, avec un positionnement centré sur la micronutrition et le conseil professionnel.",
+          "qualification": "established",
+          "source_refs": ["src-17"],
+          "confidence": 0.94
+        },
+        {
+          "text": "Nutergia est un concurrent français spécialisé en micronutrition ; Laboratoire Nutergia a réalisé 77,4 M€ de chiffre d'affaires en 2024 et présente un profil de spécialiste rentable sur un périmètre plus étroit qu'Arkopharma.",
+          "qualification": "inferred",
+          "source_refs": ["src-18"],
+          "confidence": 0.93
+        },
+        {
+          "text": "Havea est un concurrent européen multimarque de santé naturelle, avec 350 M€ de chiffre d'affaires en 2025, 1 200 salariés et sept marques stratégiques, combinant pharmacie, grande diffusion et marques digitales.",
+          "qualification": "declared",
+          "source_refs": ["src-19"],
+          "confidence": 0.95
+        },
+        {
+          "text": "Olyos est un concurrent international de santé naturelle et nutrition, regroupant EA Pharma, Drasanvi, Stardea et W Group ; il déclare plus de 110 M€ de chiffre d'affaires, sans année précisée sur la page consultée, et une présence dans plus de 60 pays.",
+          "qualification": "declared",
+          "source_refs": ["src-20"],
+          "confidence": 0.88
+        },
+        {
+          "text": "Reig Jofre concurrence Arkopharma via sa marque Forté Pharma dans la santé, l'énergie, le contrôle du poids et la vente officinale ; le groupe espagnol a déclaré 331 M€ de ventes en 2025, dont 21 % pour sa division Consumer healthcare.",
+          "qualification": "declared",
+          "source_refs": ["src-21"],
+          "confidence": 0.94
+        },
+        {
+          "text": "Procter & Gamble est un concurrent de branche, et non un comparable de taille, via son activité Personal Health Care et des marques comme Vicks ; le groupe a réalisé 87,0 Md$ de ventes sur son exercice 2026.",
+          "qualification": "established",
+          "source_refs": ["src-16", "src-22"],
+          "confidence": 0.94
+        },
+        {
+          "text": "La comparaison financière entre ces concurrents est indicative seulement, car elle mélange entités juridiques françaises, groupes consolidés et chiffres corporate non datés.",
+          "qualification": "inferred",
+          "source_refs": ["src-17", "src-18", "src-19", "src-20", "src-21", "src-22"],
+          "confidence": 0.98
+        }
+      ],
+      "source_refs": ["src-16", "src-17", "src-18", "src-19", "src-20", "src-21", "src-22"]
+    },
+    {
+      "key": "value_chain_and_dependencies",
+      "title": "Chaîne de valeur et dépendances",
+      "narrative": [
+        "Arkopharma maîtrise une large part de la chaîne de valeur, des plantes et emballages jusqu'à la production et la distribution.",
+        "Ses dépendances critiques concernent la qualité des matières végétales, la conformité, l'énergie, les emballages, la logistique et les systèmes numériques supportant les opérations et les canaux."
+      ],
+      "statements": [
+        {
+          "text": "La chaîne de valeur observée va de l'approvisionnement en plantes, extraits, ingrédients et emballages à la formulation, la fabrication, le contrôle qualité, la logistique, la promotion auprès des professionnels de santé et la vente au consommateur.",
+          "qualification": "inferred",
+          "source_refs": ["src-02", "src-05"],
+          "confidence": 0.95
+        },
+        {
+          "text": "La production est encadrée par des certifications et référentiels couvrant notamment ISO 22000, ISO 50001, ISO 14001, ISO 45001, ISO 13485, les bonnes pratiques de fabrication et les bonnes pratiques de distribution.",
+          "qualification": "declared",
+          "source_refs": ["src-02"],
+          "confidence": 0.94
+        },
+        {
+          "text": "Le rapport RSE identifie comme postes matériels les matières premières, les emballages, le fret amont et aval, l'énergie, les déchets ainsi que l'usage et la fin de vie des produits.",
+          "qualification": "declared",
+          "source_refs": ["src-02"],
+          "confidence": 0.96
+        },
+        {
+          "text": "La dépendance à la qualité, la traçabilité et la disponibilité des matières végétales est critique, car Arkopharma utilise des volumes industriels de plantes et vend des produits soumis à des exigences sanitaires et d'allégations.",
+          "qualification": "inferred",
+          "source_refs": ["src-02", "src-15"],
+          "confidence": 0.93
+        },
+        {
+          "text": "Le rapport RSE affirme que 70 % des achats de plantes sont réalisés en Europe et 40 % en France, formulation dont les périmètres ne sont pas explicités et qui ne peut être interprétée comme une répartition additive.",
+          "qualification": "inferred",
+          "source_refs": ["src-02"],
+          "confidence": 0.97
+        },
+        {
+          "text": "Une offre digitale datée de juin 2026 cite Shopify, Drupal ou WordPress, Jira ou Planner et le déploiement international ; une offre IT sans date fiable cite Microsoft 365, SharePoint, Teams, Forms, Lists, Power Automate, CRM et applications métier.",
+          "qualification": "established",
+          "source_refs": ["src-11", "src-12"],
+          "confidence": 0.93
+        },
+        {
+          "text": "Les cas fournisseurs historiques documentent une orchestration CRM-ERP avec Genpact, une protection de portefeuille de noms de domaine avec CSC et un parcours Where to Buy avec Click2Buy ; ils prouvent des briques passées mais pas leur maintien actuel.",
+          "qualification": "established",
+          "source_refs": ["src-23", "src-24", "src-25"],
+          "confidence": 0.9
+        },
+        {
+          "text": "Dermapharm décrit au niveau groupe un centre opérationnel de sécurité, des centres de données redondants, des sauvegardes et des audits cyber externes ; l'application exacte de ces dispositifs à Arkopharma n'est pas précisée.",
+          "qualification": "declared",
+          "source_refs": ["src-06"],
+          "confidence": 0.88
+        }
+      ],
+      "source_refs": ["src-02", "src-05", "src-06", "src-11", "src-12", "src-15", "src-23", "src-24", "src-25"]
+    },
+    {
+      "key": "history_ambitions_and_news",
+      "title": "Histoire, ambitions et actualité",
+      "narrative": [
+        "L'acquisition par Dermapharm a ouvert une phase d'intégration, de consolidation et de réorganisation toujours visible en 2026.",
+        "La politique groupe met l'accent sur innovation naturelle, croissance durable et synergies industrielles et commerciales, tandis que le recrutement digital récent vise les déploiements internationaux et l'usage de l'IA dans les contenus."
+      ],
+      "statements": [
+        {
+          "text": "Laboratoires Arkopharma a été créée juridiquement en 1976 et a développé depuis Carros une activité pharmaceutique spécialisée dans les préparations de santé naturelle.",
+          "qualification": "established",
+          "source_refs": ["src-03"],
+          "confidence": 0.98
+        },
+        {
+          "text": "Dermapharm a acquis 100 % d'Apharma TopCo SAS pour un prix initial de 445,1 M€, avec clôture le 5 janvier 2023 ; l'opération visait l'internationalisation en Europe occidentale et méridionale et des synergies commerciales et de savoir-faire.",
+          "qualification": "established",
+          "source_refs": ["src-05"],
+          "confidence": 0.99
+        },
+        {
+          "text": "La politique groupe de février 2025 fixe une ambition de croissance durable fondée sur des solutions naturelles innovantes et mentionne les synergies industrielles et commerciales avec Dermapharm.",
+          "qualification": "declared",
+          "source_refs": ["src-08"],
+          "confidence": 0.95
+        },
+        {
+          "text": "Dermapharm a qualifié 2025 d'année de consolidation pour Arkopharma et prévoyait pour 2026 une réorganisation du modèle d'affaires, des lancements, une extension de portefeuille dans les filiales européennes et davantage de production interne lorsque cela est économiquement pertinent.",
+          "qualification": "declared",
+          "source_refs": ["src-06"],
+          "confidence": 0.96
+        },
+        {
+          "text": "Au premier semestre 2026, le chiffre d'affaires du segment Other healthcare products a reculé de 1,2 % à 177,4 M€, tandis que son EBITDA ajusté progressait de 14,5 % à 29,3 M€ ; 0,5 M€ d'ajustements concernaient principalement des coûts de restructuration Arkopharma.",
+          "qualification": "established",
+          "source_refs": ["src-07"],
+          "confidence": 0.99
+        },
+        {
+          "text": "L'offre de Chef de Projet Digital publiée le 9 juin 2026 vise la direction Digital Global, les déploiements dans les filiales, la mesure de performance, plusieurs CMS et un intérêt pour l'IA appliquée aux contenus.",
+          "qualification": "declared",
+          "source_refs": ["src-11"],
+          "confidence": 0.98
+        },
+        {
+          "text": "Une offre d'alternance IT et IA décrit des cas d'usage d'automatisation, de documentation et de sensibilisation autour de Microsoft 365 et Power Automate, mais l'absence de date fiable empêche de la compter comme recrutement récent.",
+          "qualification": "inferred",
+          "source_refs": ["src-12"],
+          "confidence": 0.96
+        },
+        {
+          "text": "Le flux carrière contient au moins une annonce de test à supprimer datée d'août 2026, ce qui rend les comptages bruts d'offres non fiables sans nettoyage manuel.",
+          "qualification": "established",
+          "source_refs": ["src-11"],
+          "confidence": 0.99
+        }
+      ],
+      "source_refs": ["src-03", "src-05", "src-06", "src-07", "src-08", "src-11", "src-12"]
+    },
+    {
+      "key": "implications_for_kredo",
+      "title": "Implications pour KREDO",
+      "narrative": [
+        "Les zones de besoin les plus plausibles concernent la donnée commerciale omnicanale, l'expérience digitale internationale, l'automatisation gouvernée et l'intégration applicative liée à la réorganisation.",
+        "La cybersécurité, la traçabilité fournisseur et la qualité des données constituent des angles complémentaires à qualifier avec les responsables métier et IT."
+      ],
+      "statements": [
+        {
+          "text": "La coexistence du canal officinal, de l'e-commerce et d'indicateurs de sell-in et sell-out rend plausible un besoin de socle de données commerciales unifié, de prévision de demande et de pilotage des stocks par marché.",
+          "qualification": "inferred",
+          "source_refs": ["src-07", "src-14", "src-27"],
+          "confidence": 0.89
+        },
+        {
+          "text": "Le rôle Digital Global, la pluralité des CMS et les déploiements dans les filiales créent un terrain pertinent pour Digital Experience, gouvernance de contenu, mesure de performance et industrialisation des déploiements internationaux.",
+          "qualification": "inferred",
+          "source_refs": ["src-11"],
+          "confidence": 0.91
+        },
+        {
+          "text": "Les cas d'usage Microsoft 365, Power Automate et IA suggèrent un besoin d'automatisation gouvernée, d'accompagnement à l'adoption et de cadre de sécurité et de qualité pour l'IA appliquée aux processus et contenus.",
+          "qualification": "inferred",
+          "source_refs": ["src-11", "src-12"],
+          "confidence": 0.89
+        },
+        {
+          "text": "La réorganisation d'Arkopharma au sein de Dermapharm et les briques historiques CRM-ERP rendent plausible un chantier d'intégration applicative, de cartographie des flux, de rationalisation et de tests de non-régression.",
+          "qualification": "inferred",
+          "source_refs": ["src-06", "src-07", "src-25"],
+          "confidence": 0.84
+        },
+        {
+          "text": "Les contraintes de traçabilité des plantes, de qualité réglementaire et de reporting environnemental justifient d'explorer la gouvernance des référentiels fournisseurs, produits et preuves d'allégations.",
+          "qualification": "inferred",
+          "source_refs": ["src-02", "src-15"],
+          "confidence": 0.9
+        },
+        {
+          "text": "Une évaluation ciblée de la couverture cyber d'Arkopharma pourrait vérifier l'alignement réel avec les dispositifs du groupe parent et les risques d'intégration des sociétés acquises.",
+          "qualification": "hypothesis",
+          "source_refs": [],
+          "confidence": 0.58
+        },
+        {
+          "text": "Une mission de fiabilisation des données de présence internationale, d'effectif et de performance pourrait créer un référentiel partagé entre finance, ressources humaines et opérations.",
+          "qualification": "hypothesis",
+          "source_refs": [],
+          "confidence": 0.55
+        }
+      ],
+      "source_refs": ["src-02", "src-06", "src-07", "src-11", "src-12", "src-14", "src-15", "src-25", "src-27"]
+    }
+  ],
+  "sources": [
+    {"id": "src-01", "label": "Arkopharma, global leader in natural health solutions", "source_type": "company_official", "url": "https://www.arkopharma.com/en-GB/arkopharma-global-leader-natural-health-solutions", "consulted_at": "2026-09-13"},
+    {"id": "src-02", "label": "Arkopharma CSR Report 2023", "source_type": "company_official", "url": "https://www.arkopharma.com/sites/default/files/ARKOPHARMA-RAPPORT%20RSE%202023%20EN.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-03", "label": "Pappers — Laboratoires Arkopharma", "source_type": "regulatory_filing", "url": "https://www.pappers.fr/entreprise/laboratoires-arkopharma-307378489", "consulted_at": "2026-09-13"},
+    {"id": "src-04", "label": "Laboratoires Arkopharma — Comptes sociaux 2024", "source_type": "regulatory_filing", "url": "https://www.pappers.fr/entreprise/laboratoires-arkopharma-307378489/comptes/LABORATOIRES%20ARKOPHARMA%20-%20Comptes%20sociaux%202024%2003-09-2025.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-05", "label": "Dermapharm Annual Report 2022", "source_type": "regulatory_filing", "url": "https://ir.dermapharm.de/fileadmin/Dermapharm-se/Dokumenten/Dokumenten_EN/Investor_Relations_EN/Annual_general_meeting/2023/Documents/Dermapharm-AnnualReport2022_EN.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-06", "label": "Dermapharm Annual Report 2025", "source_type": "regulatory_filing", "url": "https://ir.dermapharm.de/fileadmin/Dermapharm-se/Dokumenten/Dokumenten_EN/Investor_Relations_EN/Annual_general_meeting/2026/Documents/DERMAPHARM_ANNUAL_REPORT_2025.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-07", "label": "Dermapharm confirms profitable growth in H1 2026 and increases adjusted EBITDA", "source_type": "company_official", "url": "https://ir.dermapharm.de/fileadmin/Dermapharm-se/Dokumenten/Dokumenten_EN/Investor_Relations_EN/Financial_News/Latest_News/CN_Dermapharm_confirms_profitable_growth_in_H1_2026_and_increases_adjusted_EBITDA_24-08-2026.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-08", "label": "Politique Groupe Arkopharma 2025", "source_type": "company_official", "url": "https://www.arkopharma.com/sites/default/files/Politique_Groupe%20Arkopharma%20V2_2025_%20FR%201.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-09", "label": "Arkopharma — Nous rejoindre", "source_type": "company_official", "url": "https://fr.arkopharma.com/pages/nous-rejoindre", "consulted_at": "2026-09-13"},
+    {"id": "src-10", "label": "Arkopharma — Des collaborateurs engagés", "source_type": "company_official", "url": "https://fr.arkopharma.com/pages/des-collaborateurs-engages", "consulted_at": "2026-09-13"},
+    {"id": "src-11", "label": "Arkopharma — Flux des offres d'emploi", "source_type": "company_official", "url": "https://arkopharma.fr/RH/offres-emploi.php", "consulted_at": "2026-09-13"},
+    {"id": "src-12", "label": "Synadiet — Alternant IT Automatisation Intelligence Artificielle Arkopharma", "source_type": "other", "url": "https://www.synadiet.org/offres-emploi/laboratoires-arkopharma-alternant-it-automatisation-intelligence-artificielle-h-f/", "consulted_at": "2026-09-13"},
+    {"id": "src-13", "label": "Synadiet — La consommation des compléments alimentaires", "source_type": "specialised_study", "url": "https://www.synadiet.org/les-complements-alimentaires/leur-consommation/", "consulted_at": "2026-09-13"},
+    {"id": "src-14", "label": "IQVIA — Compléments alimentaires en France", "source_type": "specialised_study", "url": "https://www.iqvia.com/fr-fr/locations/france/blogs/2026/04/complements-alimentaires-en-france", "consulted_at": "2026-09-13"},
+    {"id": "src-15", "label": "AESGP and EPPA Food Supplements Market Report 2025", "source_type": "specialised_study", "url": "https://aesgp.eu/content/uploads/2025/11/EPPA_AESGP_FS_market_report_2025.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-16", "label": "Le Monde — Les compléments alimentaires attisent les convoitises", "source_type": "press", "url": "https://www.lemonde.fr/economie/article/2025/05/25/les-complements-alimentaires-attisent-les-convoitises_6608273_3234.html", "consulted_at": "2026-09-13"},
+    {"id": "src-17", "label": "Pappers — PiLeJe", "source_type": "regulatory_filing", "url": "https://www.pappers.fr/entreprise/pileje-950450452", "consulted_at": "2026-09-13"},
+    {"id": "src-18", "label": "Pappers — Laboratoire Nutergia", "source_type": "regulatory_filing", "url": "https://www.pappers.fr/entreprise/laboratoire-nutergia-006380042", "consulted_at": "2026-09-13"},
+    {"id": "src-19", "label": "Havea Group — Home", "source_type": "company_official", "url": "https://www.havea.com/en/", "consulted_at": "2026-09-13"},
+    {"id": "src-20", "label": "Olyos Group — Présentation et chiffres clés", "source_type": "company_official", "url": "https://olyos.com/", "consulted_at": "2026-09-13"},
+    {"id": "src-21", "label": "Reig Jofre — Quiénes somos", "source_type": "company_official", "url": "https://reigjofre.com/es/quienes-somos/", "consulted_at": "2026-09-13"},
+    {"id": "src-22", "label": "Procter & Gamble Fiscal Year 2026 Results", "source_type": "regulatory_filing", "url": "https://www.pginvestor.com/news/news-details/2026/PG-Announces-Fourth-Quarter-and-Fiscal-Year-2026-Results/default.aspx", "consulted_at": "2026-09-13"},
+    {"id": "src-23", "label": "CSC Digital Brand Services — Arkopharma Case Study", "source_type": "other", "url": "https://www.cscglobal.com/cscglobal/pdfs/ARKOPHARMA-Case-Study-FR.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-24", "label": "Click2Buy — Arkopharma Success Story", "source_type": "other", "url": "https://cdn.featuredcustomers.com/CustomerCaseStudy.document/EN-ArkopharmaxClick2Buy-success-story-2.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-25", "label": "Genpact — Arkopharma Case Study", "source_type": "other", "url": "https://cdn.featuredcustomers.com/CustomerCaseStudy.document/genpact_arkopharma_179192.pdf", "consulted_at": "2026-09-13"},
+    {"id": "src-26", "label": "La Tribune — Eric Panijel, le marché européen est une nécessité pour notre croissance", "source_type": "press", "url": "https://www.latribune.fr/entreprises-finance/2021-02-12/eric-panijel-arkopharma-le-marche-europeen-est-une-necessite-pour-notre-croissance-877605.html", "consulted_at": "2026-09-13"},
+    {"id": "src-27", "label": "Dermapharm Annual Report 2024", "source_type": "regulatory_filing", "url": "https://cdn.financialreports.eu/financialreports/media/filings/97/2025/10-K/97_10-k_2025-03-28_853ee1d7-f1b3-4c60-96b2-9a679690760f.pdf", "consulted_at": "2026-09-13"}
+  ],
+  "knowledge_gaps": [
+    {"section_key": "business_and_offering", "gap": "Les comptes consolidés Arkopharma autonomes et homogènes ne sont pas publiés pour 2023, 2024 et 2025 ; le segment Dermapharm disponible inclut d'autres sociétés."},
+    {"section_key": "business_and_offering", "gap": "Aucune ventilation publique récente du chiffre d'affaires ou de la marge par marque, famille de produits, canal ou géographie n'a été trouvée."},
+    {"section_key": "business_and_offering", "gap": "Les données publiques ne permettent pas de construire depuis 2020 une série annuelle unique et comparable pour le chiffre d'affaires, l'EBITDA, le cash-flow et la dette du groupe Arkopharma."},
+    {"section_key": "identity", "gap": "L'effectif mondial actuel, sa répartition France-international et son évolution récente ne sont pas établis sur un périmètre et une date homogènes."},
+    {"section_key": "identity", "gap": "Le nombre exact de pays où Arkopharma réalise actuellement une activité commerciale n'est pas établi, les pages corporate indiquant des seuils divergents."},
+    {"section_key": "customers_and_market", "gap": "Aucun client nommé, niveau de concentration client ou poids précis des canaux propres à Arkopharma n'a été trouvé dans les sources publiques consultées."},
+    {"section_key": "competition_and_positioning", "gap": "Le chiffre d'affaires d'Olyos publié sur sa page corporate n'est associé à aucune année, ce qui limite la comparaison temporelle."},
+    {"section_key": "value_chain_and_dependencies", "gap": "La formulation du rapport RSE sur les achats de plantes en Europe et en France ne précise pas si la France est incluse dans l'Europe ni le dénominateur exact."},
+    {"section_key": "value_chain_and_dependencies", "gap": "L'architecture SI actuelle, les versions d'ERP et CRM, la stratégie cloud, les volumes de données, le budget IT et le niveau d'externalisation ne sont pas publics."},
+    {"section_key": "history_ambitions_and_news", "gap": "L'offre Synadiet relative à l'automatisation et à l'IA n'a pas de date de publication fiable et ne peut pas être classée parmi les recrutements des six derniers mois."},
+    {"section_key": "history_ambitions_and_news", "gap": "Le statut actuel des solutions ou relations historiques avec CSC, Click2Buy et Genpact n'a pas été confirmé par une source récente."},
+    {"section_key": "history_ambitions_and_news", "gap": "Aucune référence publique trouvée dans les sources consultées entre Arkopharma et Capgemini, SCC France, Accenture, Sopra Steria, Orange Business, Atos ou IBM France."},
+    {"section_key": "implications_for_kredo", "gap": "Aucune déclaration récente d'un dirigeant Arkopharma spécifiquement consacrée à la stratégie cloud, data, cybersécurité ou IA n'a été trouvée."}
+  ],
+  "generated_at": "2026-09-13T00:00:00+02:00"
+}
