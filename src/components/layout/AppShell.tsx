@@ -1,6 +1,7 @@
 import { cookies } from "next/headers"
 import { DesktopSidebar } from "./DesktopSidebar"
 import { MobileNav } from "./MobileNav"
+import { TabStoresHydrator } from "./TabStoresHydrator"
 import { IntelligencePanel } from "@/components/intelligence/IntelligencePanel"
 import { IntelligenceFAB } from "@/components/intelligence/IntelligenceFAB"
 import { IntelligenceToggle } from "@/components/intelligence/IntelligenceToggle"
@@ -27,6 +28,7 @@ export async function AppShell({ device, children }: AppShellProps) {
           {children}
         </main>
 
+        <TabStoresHydrator />
         <WorkflowExecutionIndicatorMobile />
         <IntelligenceFAB />
         <MobileNav />
@@ -40,6 +42,7 @@ export async function AppShell({ device, children }: AppShellProps) {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-canvas">
+      <TabStoresHydrator />
       <DesktopSidebar defaultCollapsed={defaultCollapsed} />
 
       {/* Zone applicative : relative pour porter le Cockpit Intelligence en

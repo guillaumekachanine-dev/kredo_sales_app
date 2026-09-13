@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useReducer } from "react"
+import { useEffect, useReducer, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
@@ -37,18 +37,31 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
   )
   const isAccountsSection = pathname === ACCOUNTS_PREFIX || pathname.startsWith(ACCOUNTS_PREFIX + "/")
   const isDirectCockpit = pathname.startsWith(ACCOUNTS_PREFIX + "/")
-  const isCockpitActive = isAccountsSection && (isDirectCockpit || activeTabId !== "home")
+  const isEmbeddedCockpitActive = isAccountsSection && !isDirectCockpit && activeTabId !== "home"
 
-  // Le cockpit Desktop possède son propre rail : il prend un verrou de repli
-  // sur la sidebar principale pendant toute sa durée d'affichage. Le compteur
-  // du store évite une restauration prématurée si un autre panneau demande le
-  // même repli en parallèle.
+  // Le cockpit Desktop possède son propre rail : la sidebar principale doit être
+  // repliée pendant son affichage. Sur une fiche ouverte par URL, `DesktopSidebar`
+  // le dérive du pathname dès le rendu serveur (`isAccountCockpitPathname`). Seul le
+  // cockpit EMBARQUÉ en onglet sur la liste dépend d'un état client : lui seul prend
+  // un verrou. Le compteur du store évite une restauration prématurée si un autre
+  // panneau demande le même repli en parallèle.
   useEffect(() => {
-    if (isMobile || !isCockpitActive) return
+    if (isMobile || !isEmbeddedCockpitActive) return
 
     useSidebarCollapse.getState().requestCollapse()
     return () => useSidebarCollapse.getState().requestRestore()
-  }, [isCockpitActive, isMobile])
+  }, [isEmbeddedCockpitActive, isMobile])
+
+  // Montage paresseux des cockpits d'onglet (audit d'ouverture des pages, O-4).
+  // Un panneau n'est monté qu'à sa PREMIÈRE activation, puis conservé masqué pour
+  // préserver son état. Auparavant, tous les onglets restaurés étaient montés au
+  // chargement et chacun lançait deux appels API complets pour un cockpit invisible.
+  const [mountedTabIds, setMountedTabIds] = useState<ReadonlySet<string>>(
+    () => new Set([activeTabId]),
+  )
+  if (activeTabId !== "home" && !mountedTabIds.has(activeTabId)) {
+    setMountedTabIds((previous) => new Set(previous).add(activeTabId))
+  }
 
   useEffect(() => {
     if (isMobile) return
@@ -147,8 +160,8 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
         {children}
       </div>
 
-      {/* Panels entité */}
-      {tabs.map((tab) => (
+      {/* Panels entité — seulement ceux déjà activés dans cette session */}
+      {tabs.filter((tab) => mountedTabIds.has(tab.id)).map((tab) => (
         <div
           key={tab.id}
           className={cn(

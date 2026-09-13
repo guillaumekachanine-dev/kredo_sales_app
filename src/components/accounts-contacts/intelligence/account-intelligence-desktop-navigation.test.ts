@@ -161,7 +161,7 @@ describe("Account Intelligence Desktop navigation", () => {
     expect(desktop).not.toContain("useState<ClientIntelligenceDesktopTabKey>")
   })
 
-  it("garde les panneaux embedded montés et empêche un panneau inactif de piloter l'URL", () => {
+  it("garde les panneaux embedded montés une fois activés et empêche un panneau inactif de piloter l'URL", () => {
     const shell = readFileSync(
       resolve(root, "src/components/accounts-contacts/CrmTabbedShell.tsx"),
       "utf8",
@@ -171,7 +171,9 @@ describe("Account Intelligence Desktop navigation", () => {
       "utf8",
     )
 
-    expect(shell).toContain("tabs.map((tab) =>")
+    // Montage paresseux (audit d'ouverture des pages, O-4) : un onglet restauré mais
+    // jamais activé n'est pas monté, donc ne lance aucun appel API.
+    expect(shell).toContain("tabs.filter((tab) => mountedTabIds.has(tab.id)).map((tab) =>")
     expect(shell).toContain('tab.id !== activeTabId && "hidden"')
     expect(shell).toContain("if (panelId !== activeTabId) return")
     expect(shell).toContain("router.push(buildAccountIntelligenceHref(pathname, searchParams, section))")

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { MainMenuItem, mainMenuItems, getActiveModuleHref } from "@/lib/navigation/main-menu.config"
 import {
+  isAccountCockpitPathname,
   resolveDesktopSidebarCollapsed,
   shouldAutoCollapseDesktopSidebar,
 } from "@/lib/navigation/desktop-sidebar-policy"
@@ -159,7 +160,10 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
   const openSandbox = useLegacySandboxStore((s) => s.open)
   const isOpen = useLegacySandboxStore((s) => s.isOpen)
 
-  const workspaceAutoCollapsed = shouldAutoCollapseDesktopSidebar(pathname)
+  // Dérivé du pathname, donc juste dès le rendu serveur : aucune animation de
+  // repli après hydratation (audit d'ouverture des pages, O-4).
+  const workspaceAutoCollapsed =
+    shouldAutoCollapseDesktopSidebar(pathname) || isAccountCockpitPathname(pathname)
   const isForcedCollapsed = workspaceAutoCollapsed || collapseRequestCount > 0
   const isCollapsed = resolveDesktopSidebarCollapsed({
     preferredCollapsed,

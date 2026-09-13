@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { resolve as resolvePath } from "node:path"
 import { describe, expect, it } from "vitest"
 import {
+  isAccountCockpitPathname,
   resolveDesktopSidebarCollapsed,
   shouldAutoCollapseDesktopSidebar,
 } from "./desktop-sidebar-policy"
@@ -63,6 +64,23 @@ describe("shouldAutoCollapseDesktopSidebar", () => {
     expect(shouldAutoCollapseDesktopSidebar("/prospection-intelligence")).toBe(true)
     expect(shouldAutoCollapseDesktopSidebar("/prospection/accounts")).toBe(false)
   })
+})
+
+describe("isAccountCockpitPathname", () => {
+  it.each([
+    "/prospection/accounts/company-id",
+    "/prospection/accounts/company-id?aiSection=secteur",
+    "/prospection/accounts/company-id/contacts",
+  ])("reconnaît la fiche compte ouverte par URL %s", (pathname) => {
+    expect(isAccountCockpitPathname(pathname)).toBe(true)
+  })
+
+  it.each(["", "/prospection/accounts", "/prospection/accounts?tab=contacts", "/prospection-intelligence"])(
+    "ne reconnaît pas %s",
+    (pathname) => {
+      expect(isAccountCockpitPathname(pathname)).toBe(false)
+    },
+  )
 })
 
 describe("resolveDesktopSidebarCollapsed", () => {

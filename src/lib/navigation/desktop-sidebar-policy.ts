@@ -48,6 +48,24 @@ export function shouldAutoCollapseDesktopSidebar(pathname: string): boolean {
 }
 
 /**
+ * `true` sur une fiche compte ouverte par URL (`/prospection/accounts/<id>`, et ses
+ * sous-routes). Le cockpit Account Intelligence y porte son propre rail : la
+ * navigation principale doit être repliée **dès le premier rendu**.
+ *
+ * Audit d'ouverture des pages (O-4) : ce cas passait par le verrou
+ * `useSidebarCollapse` pris dans un `useEffect` de `CrmTabbedShell` — la sidebar
+ * était donc rendue dépliée côté serveur, puis se repliait avec une animation de
+ * largeur après hydratation. Dérivable du pathname, il n'a pas besoin d'effet.
+ * Le verrou reste réservé au cockpit embarqué en onglet sur la liste
+ * (`/prospection/accounts` + onglet actif), qui dépend d'un état client.
+ */
+export function isAccountCockpitPathname(pathname: string): boolean {
+  if (!pathname) return false
+  const path = pathname.split("?")[0].split("#")[0]
+  return path.startsWith("/prospection/accounts/")
+}
+
+/**
  * État visuel effectif de la sidebar principale, composé de trois entrées
  * indépendantes et composables :
  *  - `preferredCollapsed`   : préférence durable de l'utilisateur (cookie) ;
