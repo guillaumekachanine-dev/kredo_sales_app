@@ -7,7 +7,6 @@ import styles from "./AccountIntelligenceSignatureHeader.module.css"
 
 const TAB_LABELS: Record<TabKey, string> = {
   accueil: "Account Intelligence",
-  socle: "Socle",
   connaissance: "Entreprise",
   secteur: "Secteur",
   enjeux: "Enjeux",

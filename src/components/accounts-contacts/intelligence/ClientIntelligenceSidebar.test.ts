@@ -26,10 +26,9 @@ function renderSidebar(options?: {
 }
 
 describe("ClientIntelligenceSidebar", () => {
-  it("préserve les clés métier derrière les sept libellés Desktop", () => {
+  it("préserve les clés métier derrière les six libellés Desktop", () => {
     expect(CLIENT_INTELLIGENCE_NAV_ITEMS.map(({ key, label }) => ({ key, label }))).toEqual([
       { key: "accueil", label: "Accueil" },
-      { key: "socle", label: "Socle" },
       { key: "connaissance", label: "Entreprise" },
       { key: "secteur", label: "Secteur" },
       { key: "enjeux", label: "Enjeux" },
@@ -82,7 +81,6 @@ describe("ClientIntelligenceSidebar", () => {
   it("dérive le libellé exact du header Desktop, y compris Accueil", () => {
     expect(CLIENT_INTELLIGENCE_NAV_ITEMS.map((item) => getClientIntelligenceDesktopTabLabel(item.key))).toEqual([
       "Accueil",
-      "Socle",
       "Entreprise",
       "Secteur",
       "Enjeux",

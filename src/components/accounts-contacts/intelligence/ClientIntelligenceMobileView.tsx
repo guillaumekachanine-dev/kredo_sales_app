@@ -21,7 +21,6 @@ import {
   COMMERCIAL_STRATEGY_RESULT_TYPE,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import { ClientIntelligenceSectorMobileTab } from "./ClientIntelligenceSectorTab"
-import { ClientIntelligenceSocleTab } from "./ClientIntelligenceSocleTab"
 import { AccountIssuesTopList } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
@@ -269,10 +268,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         <AccountIntelligenceMobileNav activePanel={activePanel} onNavigate={setActivePanel} />
 
         <div className="flex flex-col gap-4 p-4">
-          {activePanel === "socle" && (
-            <ClientIntelligenceSocleTab data={data} isMobile />
-          )}
-
           {activePanel === "connaissance" && (
             <>
               <div className="space-y-3 mb-3">

@@ -19,7 +19,6 @@ import {
 } from "@/features/account-research-studies/data/study-read"
 export type { AccountStudyState } from "@/features/account-research-studies/data/study-read"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
-import { isAccountDepthLevel, type AccountDepthLevel } from "@/features/account-lifecycle/domain/depth-level"
 import {
   DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS,
   normalizeAccountWatchSettings,
@@ -297,18 +296,13 @@ export type ClientIntelligenceData = {
     website: string | null
     hqLocation: string
     logoPath: string | null
-    // ADR-0019 — socle d'identité (étape 0 du cockpit). `sectorId` distinct de
-    // `sectorSnapshot` (celui-ci est le snapshot déterministe hydraté, celui-là
-    // n'est que la FK brute, nécessaire à AccountScanDialog).
+    // `sectorId` distinct de `sectorSnapshot` (celui-ci est le snapshot
+    // déterministe hydraté, celui-là n'est que la FK brute).
     // Lot 0 — `segmentId` est la maille de LECTURE de la connaissance
     // sectorielle ; `sectorId` (le macro) reste exposé pour l'affichage du
-    // parent et pour AccountScanDialog, mais n'est plus une source de lecture.
-    siren: string | null
-    nafCode: string | null
+    // parent, mais n'est plus une source de lecture.
     sectorId: string | null
     segmentId: string | null
-    depthLevel: AccountDepthLevel
-    origin: string
   }
   companyProfile: CompanyIdentityProfile
   companyPositioning: CompanyMarketPositioning
@@ -1353,12 +1347,8 @@ export async function getClientIntelligence(
         website: company.website,
         hqLocation: clean(company.hq_location),
         logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
-        siren: company.siren,
-        nafCode: company.naf_code,
         sectorId: company.sector_id,
         segmentId: company.segment_id,
-        depthLevel: isAccountDepthLevel(company.depth_level) ? company.depth_level : "noted",
-        origin: company.origin,
       },
       companyProfile,
       companyPositioning,

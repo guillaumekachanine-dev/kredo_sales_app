@@ -1,17 +1,12 @@
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 
 // ADR-0012 — Chaîne de décision commerciale.
-// Le processus devient : Socle → Connaissance compte → Intelligence sectorielle →
+// Le processus devient : Connaissance compte → Intelligence sectorielle →
 // Cartographie des enjeux → Stratégie commerciale → Roadmap commerciale.
 // Le Scoring N'EST PLUS une étape : c'est une capacité transverse (badge header
 // + modale, ADR-0011). Cf. docs/adr/ADR-0012-cockpit-intelligence-chaine-decision.md
-//
-// ADR-0019 Lot 3 — « socle » est l'étape 0 : elle porte la profondeur du compte
-// (mapped/noted/qualified/active, cf. domain/depth-level.ts), pas une analyse
-// IA. Elle précède « connaissance » dans l'ordre du process.
 export type TabKey =
   | "accueil"
-  | "socle"
   | "connaissance"
   | "secteur"
   | "enjeux"
@@ -27,12 +22,6 @@ export const INTELLIGENCE_PROCESS_STEPS: {
   shortLabel: string
   description: string
 }[] = [
-  {
-    key: "socle",
-    label: "Socle du compte",
-    shortLabel: "Socle",
-    description: "Vérifier l'identité du compte : SIREN, NAF, taille et rattachement à la taxonomie sectorielle.",
-  },
   {
     key: "connaissance",
     label: "Connaissance compte",
@@ -70,18 +59,6 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
   tone: "success" | "warning" | "neutral"
 } {
   switch (stepKey) {
-    case "socle": {
-      // ADR-0019 D-1 : le socle est « vérifié » à partir de qualified — c'est
-      // sa définition même (SIREN/NAF/taille/taxonomie confirmés par un scan
-      // appliqué). `active` a nécessairement franchi ce palier (axe monotone).
-      if (data.company.depthLevel === "qualified" || data.company.depthLevel === "active") {
-        return { label: "Disponible", tone: "success" }
-      }
-      if (data.company.depthLevel === "mapped") {
-        return { label: "Citation", tone: "neutral" }
-      }
-      return { label: "À qualifier", tone: "neutral" }
-    }
     case "connaissance": {
       // La connaissance entreprise = une étude de recherche PUBLIÉE. À défaut, FOLIO
       // (affichage conservé tant que les comptes ne sont pas repassés par une étude).

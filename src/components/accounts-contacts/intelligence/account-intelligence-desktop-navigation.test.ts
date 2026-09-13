@@ -18,7 +18,7 @@ describe("Account Intelligence Desktop navigation", () => {
     [undefined, "accueil"],
     [null, "accueil"],
     ["accueil", "accueil"],
-    ["socle", "socle"],
+    ["socle", "accueil"],
     ["connaissance", "connaissance"],
     ["secteur", "secteur"],
     ["enjeux", "enjeux"],
@@ -29,10 +29,9 @@ describe("Account Intelligence Desktop navigation", () => {
     expect(parseAccountIntelligenceSection(value)).toBe(expected)
   })
 
-  it("réutilise l'ordre et les sept clés de la navigation Desktop", () => {
+  it("réutilise l'ordre et les six clés de la navigation Desktop", () => {
     expect(CLIENT_INTELLIGENCE_NAV_ITEMS.map((item) => item.key)).toEqual([
       "accueil",
-      "socle",
       "connaissance",
       "secteur",
       "enjeux",

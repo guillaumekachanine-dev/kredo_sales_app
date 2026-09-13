@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import type { AccountDepthLevel } from "@/features/account-lifecycle/domain/depth-level"
 import { getProcessStepStatus, getRecommendedProcessStep } from "./intelligence-process"
 
 // ─── getProcessStepStatus("connaissance", …) ────────────────────────────────
@@ -40,12 +39,13 @@ describe("getProcessStepStatus — connaissance", () => {
   })
 })
 
-// ─── getProcessStepStatus("socle", …) — ADR-0019 Lot 3 ─────────────────────
-function socleFixture(depthLevel: AccountDepthLevel): ClientIntelligenceData {
+// ─── getRecommendedProcessStep — ADR-0019 D-6, action suivante unique ──────
+function emptyFixture(): ClientIntelligenceData {
   return {
-    company: { depthLevel },
     accountStudy: { current: null, currentUnreadable: null, recent: [] },
     client: null,
+    sectorSnapshot: null,
+    sector: null,
     accountIssues: [],
     commercialStrategy: null,
     pitchDocuments: [],
@@ -54,37 +54,17 @@ function socleFixture(depthLevel: AccountDepthLevel): ClientIntelligenceData {
   } as unknown as ClientIntelligenceData
 }
 
-describe("getProcessStepStatus — socle", () => {
-  it("mapped : citation cartographie, jamais confondue avec un vrai compte qualifié", () => {
-    expect(getProcessStepStatus("socle", socleFixture("mapped"))).toEqual({ label: "Citation", tone: "neutral" })
-  })
-
-  it("noted : pense-bête CRM, à qualifier", () => {
-    expect(getProcessStepStatus("socle", socleFixture("noted"))).toEqual({ label: "À qualifier", tone: "neutral" })
-  })
-
-  it("qualified : socle vérifié", () => {
-    expect(getProcessStepStatus("socle", socleFixture("qualified"))).toEqual({ label: "Disponible", tone: "success" })
-  })
-
-  it("active : le socle est nécessairement franchi (axe monotone)", () => {
-    expect(getProcessStepStatus("socle", socleFixture("active"))).toEqual({ label: "Disponible", tone: "success" })
-  })
-})
-
-// ─── getRecommendedProcessStep — ADR-0019 D-6, action suivante unique ──────
 describe("getRecommendedProcessStep", () => {
-  it("compte tout juste noté : recommande d'abord le socle, pas connaissance", () => {
-    expect(getRecommendedProcessStep(socleFixture("noted"))).toBe("socle")
+  it("compte vierge : recommande d'abord la connaissance compte, première étape", () => {
+    expect(getRecommendedProcessStep(emptyFixture())).toBe("connaissance")
   })
 
-  it("socle qualifié mais rien d'autre : recommande connaissance, l'étape suivante", () => {
-    expect(getRecommendedProcessStep(socleFixture("qualified"))).toBe("connaissance")
+  it("connaissance franchie mais rien d'autre : recommande le secteur, l'étape suivante", () => {
+    expect(getRecommendedProcessStep({ ...emptyFixture(), accountStudy: PUBLISHED_STUDY } as ClientIntelligenceData)).toBe("secteur")
   })
 
   it("tout franchi (success/warning) : retombe sur la roadmap, action de clôture", () => {
     const data = {
-      company: { depthLevel: "active" },
       accountStudy: { current: null, currentUnreadable: null, recent: [] },
       client: { data: {} as never, source: "folio" },
       sectorSnapshot: { regulatoryItems: [], hasAnyKnowledge: true },

@@ -5,10 +5,9 @@ export type ClientIntelligenceDesktopTabKey = Exclude<TabKey, "actualite">
 export const CLIENT_INTELLIGENCE_NAV_ITEMS: ReadonlyArray<{
   key: ClientIntelligenceDesktopTabKey
   label: string
-  icon: "home" | "socle" | "company" | "sector" | "issues" | "strategy" | "roadmap"
+  icon: "home" | "company" | "sector" | "issues" | "strategy" | "roadmap"
 }> = [
   { key: "accueil", label: "Accueil", icon: "home" },
-  { key: "socle", label: "Socle", icon: "socle" },
   { key: "connaissance", label: "Entreprise", icon: "company" },
   { key: "secteur", label: "Secteur", icon: "sector" },
   { key: "enjeux", label: "Enjeux", icon: "issues" },
