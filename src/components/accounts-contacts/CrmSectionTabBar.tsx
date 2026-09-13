@@ -14,10 +14,24 @@ function CompanyIcon() {
   )
 }
 
+function ListIcon() {
+  return (
+    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  )
+}
+
 export function CrmSectionTabBar() {
   const { tabs, activeTabId, setActiveTab, closeTab } = useCrmTabStore()
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>, tabId: string) => {
+  if (tabs.length === 0) {
+    return null
+  }
+
+  const isHomeActive = activeTabId === "home"
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>, tabId: string) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
       setActiveTab(tabId)
@@ -30,6 +44,26 @@ export function CrmSectionTabBar() {
       role="tablist"
       aria-label="Cockpits comptes ouverts"
     >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={isHomeActive}
+        tabIndex={0}
+        onClick={() => setActiveTab("home")}
+        onKeyDown={(e) => handleKeyDown(e, "home")}
+        className={cn(
+          sectionTabItemClasses({ active: isHomeActive, compact: true }),
+          "border-r border-border px-3.5 cursor-pointer select-none",
+          "bg-page-accounts-contacts text-white hover:text-white",
+          isHomeActive
+            ? "font-semibold border-b-2 border-b-white hover:border-b-white hover:bg-page-accounts-contacts"
+            : "bg-page-accounts-contacts/90 hover:bg-page-accounts-contacts text-white/85 border-b-2 border-b-transparent hover:border-b-white/40",
+          "focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-page-accounts-contacts"
+        )}
+      >
+        <ListIcon />
+        <span className="leading-none">Liste</span>
+      </button>
 
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId
