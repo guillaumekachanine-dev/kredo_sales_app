@@ -47,6 +47,7 @@ export function buildSourceManagementOverview(snapshot: SourceManagementSnapshot
   const managedCorpora = [
     ...snapshot.sectorCorpora,
     ...(snapshot.thematicCorpora ?? []),
+    ...(snapshot.accountCorpora ?? []),
   ]
 
   // Deduplicate by searchDomain

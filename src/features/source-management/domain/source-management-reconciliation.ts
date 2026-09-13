@@ -52,6 +52,7 @@ export function updateCorpusEditorialInSnapshot(
     ...snapshot,
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 
@@ -97,6 +98,7 @@ export function updateSourceNameInSnapshot(
     manualSources: snapshot.manualSources.map(patchSource),
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 
@@ -128,6 +130,7 @@ export function removeSourceFromCorpusInSnapshot(
     ...snapshot,
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 
@@ -159,6 +162,7 @@ export function setCorpusItemEnabledInSnapshot(
     ...snapshot,
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 
@@ -179,6 +183,7 @@ export function setCorpusActivationInSnapshot(
     ...snapshot,
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 
@@ -199,6 +204,7 @@ export function setCorpusNewsEnabledInSnapshot(
     ...snapshot,
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 
@@ -219,6 +225,7 @@ export function setCorpusAccountWatchEnabledInSnapshot(
     ...snapshot,
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 
@@ -259,6 +266,7 @@ export function setManualSourceActiveInSnapshot(
     activeNewsSourceCount: allActiveSources.filter((s) => s.usageScopes.includes("news")).length,
     sectorCorpora: snapshot.sectorCorpora.map(patchCorpus),
     thematicCorpora: snapshot.thematicCorpora.map(patchCorpus),
+    accountCorpora: (snapshot.accountCorpora ?? []).map(patchCorpus),
   }
 }
 

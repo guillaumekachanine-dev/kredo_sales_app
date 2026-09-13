@@ -167,8 +167,8 @@ describe("Thematic corpora display in Desktop and Mobile shells", () => {
     expect(desktop).toContain("snapshot.thematicCorpora")
   })
 
-  it("Desktop resolves activeCorpus from both sectorCorpora and thematicCorpora", () => {
-    expect(desktop).toContain("[...snapshot.sectorCorpora, ...snapshot.thematicCorpora]")
+  it("Desktop resolves activeCorpus from sectorCorpora, thematicCorpora, and accountCorpora", () => {
+    expect(desktop).toContain("[...snapshot.sectorCorpora, ...snapshot.thematicCorpora, ...snapshot.accountCorpora]")
   })
 
   it("Mobile displays Corpus thématiques section with snapshot.thematicCorpora", () => {

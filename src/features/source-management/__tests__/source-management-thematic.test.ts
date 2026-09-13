@@ -139,6 +139,7 @@ describe("Thematic corpora domain and overview contracts", () => {
       manualSources: [],
       sectorCorpora: [sectorCorpus],
       thematicCorpora: [thematicCorpus],
+      accountCorpora: [],
       activeNewsSourceCount: 0,
       canManage: true,
     }

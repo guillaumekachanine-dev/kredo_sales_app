@@ -95,3 +95,17 @@ export async function registerWorkStudyAction(
 ): Promise<StudyActionResult<RegisterWorkStudyResult>> {
   return run(() => registerWorkStudyFromUpload(input))
 }
+
+export async function prepareWorkSourceDistributionAction(
+  studyId: string,
+): Promise<StudyActionResult<import("@/features/source-management/domain/account-source-corpus").AccountSourceCorpusPreparation>> {
+  const { prepareWorkSourceDistribution } = await import("../data/work-source-distribution")
+  return run(() => prepareWorkSourceDistribution(studyId))
+}
+
+export async function distributeWorkStudySourcesAction(
+  input: import("../data/work-source-distribution").DistributeWorkStudySourcesInput,
+): Promise<StudyActionResult<import("@/features/source-management/actions/ingest-source-corpus").IngestSourceCorpusResult>> {
+  const { distributeWorkStudySources } = await import("../data/work-source-distribution")
+  return run(() => distributeWorkStudySources(input))
+}

@@ -32,6 +32,7 @@ import {
   type WorkBundleDetectionSuccess,
 } from "../domain/work-study-detection"
 import { StudyCoverageReport } from "./StudyCoverageReport"
+import { WorkStudySourceDistributionDialog } from "./WorkStudySourceDistributionDialog"
 
 type Step = "select" | "uploading" | "ready"
 
@@ -83,6 +84,8 @@ export function WorkBundleImportFlow({
   const [studyId, setStudyId] = useState<string | null>(initialStudyId)
   const [progress, setProgress] = useState<StudyConversionProgress | null>(null)
   const [isPublished, setIsPublished] = useState(false)
+  const [distributionOpen, setDistributionOpen] = useState(false)
+  const [isDistributed, setIsDistributed] = useState(false)
   const [pending, startTransition] = useTransition()
 
   const primaryBtnClass = cn(
@@ -476,10 +479,54 @@ export function WorkBundleImportFlow({
             )}
           </div>
 
-          <p className="text-[11px] leading-relaxed text-edito-muted">
-            Le corpus de sources de l&apos;étude est archivé dans Storage. La normalisation et distribution
-            vers Gestion des sources sera assurée au Lot 3.
-          </p>
+          {/* Section Distribution des sources vers Gestion des sources (Lot 3) */}
+          <div className="rounded-lg border border-edito-border bg-edito-surface p-3.5 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-bold text-edito-heading">
+                  Bibliothèque « Gestion des sources »
+                </p>
+                <p className="text-[11px] text-edito-muted">
+                  Transférez les autorités et domaines réellement utilisés vers la bibliothèque canonique.
+                </p>
+              </div>
+              {isDistributed ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                    ✓ Sources en bibliothèque
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDistributionOpen(true)}
+                    className={secondaryBtnClass}
+                  >
+                    Revoir / Mettre à jour
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDistributionOpen(true)}
+                  className="inline-flex items-center justify-center rounded border border-brand-brass bg-brand-brass px-3 py-1.5 text-xs font-bold text-secondary-fg transition-colors hover:bg-brand-brass-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60 cursor-pointer"
+                >
+                  Ajouter les sources à la bibliothèque
+                </button>
+              )}
+            </div>
+          </div>
+
+          {distributionOpen && studyId ? (
+            <WorkStudySourceDistributionDialog
+              open={distributionOpen}
+              onOpenChange={setDistributionOpen}
+              studyId={studyId}
+              companyName={companyName}
+              isMobile={isMobile}
+              onSuccess={() => {
+                setIsDistributed(true)
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -16,6 +16,11 @@ import {
 import { validateStudyKnowledge } from "../domain/validate-study-knowledge"
 import { getStudyServiceClient, requireStudyActor } from "./study-server"
 
+export type StudyDistributionStatus = {
+  isDistributed: boolean
+  corpusId: string | null
+}
+
 export type AccountStudySummary = {
   id: string
   title: string
@@ -25,11 +30,19 @@ export type AccountStudySummary = {
   publishedAt: string | null
   errorMessage: string | null
   coverage: StudyCoverage | null
+  distribution?: StudyDistributionStatus
 }
 
 export type AccountStudyState = {
   /** Étude publiée la plus récente : la connaissance courante du compte. */
-  current: { id: string; title: string; publishedAt: string; knowledge: AccountStudyKnowledge } | null
+  current: {
+    id: string
+    title: string
+    publishedAt: string
+    knowledge: AccountStudyKnowledge
+    producer: StudyProducer
+    distribution?: StudyDistributionStatus
+  } | null
   /** Briques publiées présentes mais illisibles — signalé, jamais masqué. */
   currentUnreadable: { id: string; issues: string[] } | null
   /** Dernières études du compte, sans leurs gros champs. */
@@ -51,6 +64,7 @@ type RecentRow = {
  * Deux requêtes parallèles : l'étude publiée (avec ses briques) et la liste courte des
  * études récentes (sans texte brut ni briques). Le texte intégral ne transite jamais
  * vers la page : il n'est lu qu'au téléchargement.
+ * Résout également par jointure légère le statut de distribution des sources de l'étude.
  */
 export async function getAccountStudyState(
   supabase: SupabaseClient<Database>,
@@ -59,7 +73,7 @@ export async function getAccountStudyState(
   const [publishedResult, recentResult] = await Promise.all([
     supabase
       .from("account_research_studies")
-      .select("id,title,published_at,knowledge_json")
+      .select("id,title,published_at,knowledge_json,producer")
       .eq("company_id", companyId)
       .not("published_at", "is", null)
       .order("published_at", { ascending: false })
@@ -77,13 +91,43 @@ export async function getAccountStudyState(
   if (publishedResult.error) console.error("[account-study] published study query failed:", publishedResult.error.message)
   if (recentResult.error) console.error("[account-study] recent studies query failed:", recentResult.error.message)
 
+  const candidateStudyIds = Array.from(
+    new Set([
+      ...(publishedResult.data?.id ? [publishedResult.data.id] : []),
+      ...(recentResult.data ?? []).map((row) => row.id),
+    ]),
+  )
+
+  const distributionMap = new Map<string, string>()
+  if (candidateStudyIds.length > 0) {
+    const { data: distributedRows } = await supabase
+      .from("source_corpora")
+      .select("id, study_id")
+      .eq("scope_kind", "account")
+      .in("study_id", candidateStudyIds)
+
+    for (const r of distributedRows ?? []) {
+      if (r.study_id) distributionMap.set(r.study_id, r.id)
+    }
+  }
+
   let current: AccountStudyState["current"] = null
   let currentUnreadable: AccountStudyState["currentUnreadable"] = null
   const published = publishedResult.data
   if (published?.published_at) {
     const validation = validateStudyKnowledge(published.knowledge_json)
     if (validation.ok) {
-      current = { id: published.id, title: published.title, publishedAt: published.published_at, knowledge: validation.value }
+      current = {
+        id: published.id,
+        title: published.title,
+        publishedAt: published.published_at,
+        knowledge: validation.value,
+        producer: (published.producer as StudyProducer) ?? "chatgpt_deep_research",
+        distribution: {
+          isDistributed: distributionMap.has(published.id),
+          corpusId: distributionMap.get(published.id) ?? null,
+        },
+      }
     } else {
       currentUnreadable = { id: published.id, issues: validation.issues }
       console.error(`[account-study] briques illisibles (étude ${published.id}) :`, validation.issues.join(" | "))
@@ -102,6 +146,10 @@ export async function getAccountStudyState(
       publishedAt: row.published_at,
       errorMessage: row.error_message,
       coverage: row.coverage,
+      distribution: {
+        isDistributed: distributionMap.has(row.id),
+        corpusId: distributionMap.get(row.id) ?? null,
+      },
     })),
   }
 }

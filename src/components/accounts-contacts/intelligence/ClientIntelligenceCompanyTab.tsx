@@ -130,6 +130,8 @@ export function ClientIntelligenceCompanyTab({
             studyId={currentStudy.id}
             knowledge={currentStudy.knowledge}
             companyName={data.company.name}
+            producer={currentStudy.producer}
+            distribution={currentStudy.distribution}
           />
         </section>
       ) : null}

@@ -623,7 +623,7 @@ export function SourceCorpusDetailView({
               />
             </label>
 
-            {corpus?.scopeKind !== "thematic" ? (
+            {corpus?.scopeKind !== "thematic" && corpus?.scopeKind !== "account" ? (
               <>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <span className="text-white/70">Actualités</span>
@@ -701,7 +701,7 @@ export function SourceCorpusDetailView({
               />
             </label>
 
-            {corpus?.scopeKind !== "thematic" ? (
+            {corpus?.scopeKind !== "thematic" && corpus?.scopeKind !== "account" ? (
               <>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <span className="text-white/70">Actualités</span>

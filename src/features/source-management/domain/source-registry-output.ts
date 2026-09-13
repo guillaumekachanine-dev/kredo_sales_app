@@ -600,6 +600,7 @@ export type IngestSourceCorpusPayload = {
   gaps: unknown[]
   metadata: Record<string, unknown>
   sources: IngestSourceCorpusSourceItem[]
+  study_id?: string | null
 }
 
 /** Slug du corpus créé par l'import : explicite pour un registre de compte, dérivé du segment sinon. */

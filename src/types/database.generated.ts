@@ -6674,6 +6674,7 @@ export type Database = {
           snapshot_date: string
           source_document_hash: string | null
           source_document_path: string | null
+          study_id: string | null
           updated_at: string
           version: string
           workspace_id: string
@@ -6694,6 +6695,7 @@ export type Database = {
           snapshot_date: string
           source_document_hash?: string | null
           source_document_path?: string | null
+          study_id?: string | null
           updated_at?: string
           version: string
           workspace_id?: string
@@ -6714,6 +6716,7 @@ export type Database = {
           snapshot_date?: string
           source_document_hash?: string | null
           source_document_path?: string | null
+          study_id?: string | null
           updated_at?: string
           version?: string
           workspace_id?: string
@@ -6739,6 +6742,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_sector_knowledge_resolved"
             referencedColumns: ["segment_id"]
+          },
+          {
+            foreignKeyName: "source_corpora_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "account_research_studies"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "source_corpora_workspace_id_fkey"
@@ -8855,7 +8865,7 @@ export type Database = {
         | "production_ready"
         | "usable_with_caveats"
         | "rejected"
-      corpus_scope_kind: "system" | "sector" | "thematic"
+      corpus_scope_kind: "system" | "sector" | "thematic" | "account"
       corpus_source_role: "proof" | "corroboration" | "discovery" | "watch"
       intelligence_document_status: "draft" | "ready" | "used" | "archived"
       intelligence_document_type:
@@ -9101,7 +9111,7 @@ export const Constants = {
         "usable_with_caveats",
         "rejected",
       ],
-      corpus_scope_kind: ["system", "sector", "thematic"],
+      corpus_scope_kind: ["system", "sector", "thematic", "account"],
       corpus_source_role: ["proof", "corroboration", "discovery", "watch"],
       intelligence_document_status: ["draft", "ready", "used", "archived"],
       intelligence_document_type: [

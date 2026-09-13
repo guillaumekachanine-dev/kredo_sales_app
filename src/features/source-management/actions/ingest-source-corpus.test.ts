@@ -45,4 +45,12 @@ describe("ingest-source-corpus action — seul chemin d'écriture (Lot 4 §18-§
     expect(source).toContain('item.content_temporality === "static"')
     expect(source).toContain("item.is_enabled || item.news_eligible || item.account_watch_eligible")
   })
+
+  it("supports 'account' scope kind with strict validation (Lot 3)", () => {
+    expect(source).toContain('"account"')
+    expect(source).toContain('scopeKind === "account" && !payload.study_id?.trim()')
+    expect(source).toContain('scopeKind === "account" ? "de compte" : "thématique"')
+    expect(source).toContain('scopeKind === "account"')
+    expect(source).toContain('!item.usage_scopes.includes("study")')
+  })
 })

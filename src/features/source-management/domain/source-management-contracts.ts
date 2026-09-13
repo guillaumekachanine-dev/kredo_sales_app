@@ -101,7 +101,7 @@ export type SourceCorpusItemView = {
   isCollectable: boolean
 }
 
-export type SourceCorpusScopeKind = "system" | "sector" | "thematic"
+export type SourceCorpusScopeKind = "system" | "sector" | "thematic" | "account"
 
 export type SourceCorpusView = {
   id: string
@@ -113,6 +113,10 @@ export type SourceCorpusView = {
   description: string | null
   sectorId: string | null
   sectorName: string | null
+  studyId?: string | null
+  companyId?: string | null
+  companyName?: string | null
+  studyTitle?: string | null
   qualityVerdict: CorpusQualityVerdict
   activationState: CorpusActivationState
   enabledForNews: boolean
@@ -131,6 +135,7 @@ export type SourceManagementSnapshot = {
   manualSources: SourceCatalogEntry[]
   sectorCorpora: SourceCorpusView[]
   thematicCorpora: SourceCorpusView[]
+  accountCorpora: SourceCorpusView[]
   activeNewsSourceCount: number
   canManage: boolean
 }
@@ -140,6 +145,7 @@ export const EMPTY_SOURCE_MANAGEMENT_SNAPSHOT: SourceManagementSnapshot = {
   manualSources: [],
   sectorCorpora: [],
   thematicCorpora: [],
+  accountCorpora: [],
   activeNewsSourceCount: 0,
   canManage: false,
 }

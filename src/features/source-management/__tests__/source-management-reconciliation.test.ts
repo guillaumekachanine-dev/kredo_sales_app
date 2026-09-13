@@ -141,6 +141,7 @@ describe("source-management-reconciliation — Pure Local Snapshot Updates", () 
     manualSources: [src1, src2, src3],
     sectorCorpora: [corpusA],
     thematicCorpora: [corpusB],
+    accountCorpora: [],
     activeNewsSourceCount: 3,
     canManage: true,
   }

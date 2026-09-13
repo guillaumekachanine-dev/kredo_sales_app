@@ -293,6 +293,8 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                   studyId={currentStudy.id}
                   knowledge={currentStudy.knowledge}
                   companyName={company.name}
+                  producer={currentStudy.producer}
+                  distribution={currentStudy.distribution}
                 />
               ) : (
                 <div className="mb-3 space-y-3 border-t border-border/30 pt-4">

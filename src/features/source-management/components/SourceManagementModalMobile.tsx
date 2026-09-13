@@ -274,6 +274,63 @@ function MobileSourceManagementHome({
         )}
       </div>
 
+      {/* ── BLOC E : CORPUS COMPTES ──────────────────────────────── */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/60">
+            Corpus comptes
+          </h4>
+          <span className="text-[10px] font-semibold text-white/40 tabular-nums">
+            ({snapshot.accountCorpora.length})
+          </span>
+        </div>
+
+        {snapshot.accountCorpora.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/45 italic">
+            Aucun corpus de compte importé. Distribuez les sources d’une étude Work pour en créer un.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {snapshot.accountCorpora.map((corpus) => (
+              <button
+                key={corpus.id}
+                type="button"
+                onClick={() => onSelectView({ kind: "corpus", corpusId: corpus.id })}
+                className="group flex w-full min-h-[44px] items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-left transition-all active:bg-white/[0.07] hover:border-brand-brass/40 cursor-pointer"
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/5 text-white/60 group-hover:bg-brand-brass/15 group-hover:text-brand-brass transition-colors">
+                    <CorpusIcon className="size-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-white">
+                      {corpus.companyName ? `Compte : ${corpus.companyName}` : (corpus.name ?? corpus.slug)}
+                    </p>
+                    <p className="mt-0.5 truncate text-[10px] text-white/50">
+                      {corpus.totalSources} sources
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider border",
+                      corpus.activationState === "active"
+                        ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                        : "border-white/15 bg-white/5 text-white/50",
+                    )}
+                  >
+                    {corpus.activationState === "active" ? "Actif" : "Brouillon"}
+                  </span>
+                  <ChevronRight className="size-4 text-white/30 group-hover:translate-x-0.5 group-hover:text-brand-brass transition-all" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ── ACTIONS GLOBALES COMPACTES (canManage) ────────────────── */}
       {snapshot.canManage ? (
         <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-white/10">
@@ -322,7 +379,7 @@ export function SourceManagementModalMobile({
   }
 
   const catalogSources = [...snapshot.systemSources, ...snapshot.manualSources]
-  const allCorpora = [...snapshot.sectorCorpora, ...snapshot.thematicCorpora]
+  const allCorpora = [...snapshot.sectorCorpora, ...snapshot.thematicCorpora, ...snapshot.accountCorpora]
   const activeCorpus =
     view.kind === "corpus" ? allCorpora.find((c) => c.id === view.corpusId) : null
 
@@ -338,7 +395,7 @@ export function SourceManagementModalMobile({
     "Gérer les sources"
 
   const headerSubtitle =
-    view.kind === "home" ? "Socle éditorial, corpus thématiques et corpus sectoriels" :
+    view.kind === "home" ? "Socle éditorial, corpus sectoriels, thématiques et comptes" :
     view.kind === "synthesis" ? "Indicateurs, répartition et volumétrie" :
     view.kind === "editorial_base" ? `${catalogSources.filter((s) => s.isActive).length} sources actives` :
     view.kind === "corpus" ? `${activeCorpus?.activeSources ?? 0} / ${activeCorpus?.totalSources ?? 0} sources actives` :

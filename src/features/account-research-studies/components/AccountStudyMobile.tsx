@@ -6,6 +6,7 @@
 // lecture que le Desktop, composition propre, cibles de 44 px.
 
 import { useMemo, useState } from "react"
+import { cn } from "@/lib/utils"
 
 import type { AccountStudyKnowledge } from "../domain/study-contracts"
 import {
@@ -16,6 +17,7 @@ import {
   type StudyEpistemicMode,
 } from "../domain/study-view"
 import { AccountStudyReader } from "./AccountStudyReader"
+import { WorkStudySourceDistributionDialog } from "./WorkStudySourceDistributionDialog"
 import {
   EpistemicModeSelector,
   GapsBlock,
@@ -32,14 +34,23 @@ export function AccountStudyMobile({
   studyId,
   knowledge,
   companyName,
+  producer,
+  distribution,
 }: {
   studyId: string
   knowledge: AccountStudyKnowledge
   companyName: string
+  producer?: string | null
+  distribution?: {
+    isDistributed: boolean
+    corpusId: string | null
+  } | null
 }) {
   const [reading, setReading] = useState<StudyReadingView>("text")
   const [mode, setMode] = useState<StudyEpistemicMode>(DEFAULT_STUDY_EPISTEMIC_MODE)
   const [readerOpen, setReaderOpen] = useState(false)
+  const [distributionOpen, setDistributionOpen] = useState(false)
+  const [isDistributedState, setIsDistributedState] = useState(distribution?.isDistributed ?? false)
 
   const view = useMemo(() => buildStudyReportView(knowledge), [knowledge])
   const countsByMode = useMemo(() => countStatementsByMode(view.statementCounts), [view.statementCounts])
@@ -53,13 +64,30 @@ export function AccountStudyMobile({
         <EpistemicModeSelector mode={mode} onChange={setMode} countsByMode={countsByMode} isMobile />
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setReaderOpen(true)}
-        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-edito-navy text-xs font-bold text-edito-navy active:bg-edito-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-brass/60"
-      >
-        Lire le rapport complet
-      </button>
+      <div className="space-y-2">
+        {producer === "chatgpt_work" ? (
+          <button
+            type="button"
+            onClick={() => setDistributionOpen(true)}
+            className={cn(
+              "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg text-xs font-bold transition-colors cursor-pointer",
+              isDistributedState
+                ? "border border-emerald-600/30 bg-emerald-50 text-emerald-800"
+                : "border border-brand-brass bg-brand-brass text-secondary-fg hover:bg-brand-brass-hover",
+            )}
+          >
+            {isDistributedState ? "✓ Sources ajoutées à la bibliothèque" : "Ajouter les sources à la bibliothèque"}
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => setReaderOpen(true)}
+          className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-edito-navy text-xs font-bold text-edito-navy active:bg-edito-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-brass/60"
+        >
+          Lire le rapport complet
+        </button>
+      </div>
 
       <div className="space-y-4 border-t border-edito-border pt-4">
         {view.sections.map((section) => {
@@ -111,6 +139,19 @@ export function AccountStudyMobile({
           studyId={studyId}
           companyName={companyName}
           isMobile
+        />
+      ) : null}
+
+      {distributionOpen ? (
+        <WorkStudySourceDistributionDialog
+          open={distributionOpen}
+          onOpenChange={setDistributionOpen}
+          studyId={studyId}
+          companyName={companyName}
+          isMobile
+          onSuccess={() => {
+            setIsDistributedState(true)
+          }}
         />
       ) : null}
     </div>

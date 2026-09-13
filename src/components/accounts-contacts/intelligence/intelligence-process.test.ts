@@ -14,7 +14,13 @@ function fixture(overrides: Partial<ClientIntelligenceData>): ClientIntelligence
 }
 
 const PUBLISHED_STUDY = {
-  current: { id: "s1", title: "Étude", publishedAt: "2026-09-11T12:00:00Z", knowledge: {} as never },
+  current: {
+    id: "s1",
+    title: "Étude",
+    publishedAt: "2026-09-11T12:00:00Z",
+    knowledge: {} as never,
+    producer: "chatgpt_deep_research" as const,
+  },
   currentUnreadable: null,
   recent: [],
 }

@@ -31,7 +31,7 @@ export type IngestSourceCorpusResult =
 
 const SNAPSHOT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
-type CorpusScopeKind = "sector" | "thematic"
+type CorpusScopeKind = "sector" | "thematic" | "account"
 
 function isValidSourceItem(
   item: IngestSourceCorpusSourceItem,
@@ -51,8 +51,7 @@ function isValidSourceItem(
   if (!(SOURCE_REGISTRY_PACK_VALUES as readonly string[]).includes(item.pack)) return `${path}.pack invalide`
 
   // Les quatre champs de preuve E3 restent OBLIGATOIRES pour un corpus sectoriel,
-  // et facultatifs pour un corpus thematique, ou ils n'ont pas d'objet
-  // (ADR-0022 Lot 1). Quand ils sont fournis, ils sont valides dans les deux cas.
+  // et facultatifs pour un corpus thématique ou de compte (Lot 3), où ils n'ont pas d'objet.
   const requiresE3Fields = scopeKind === "sector"
 
   if (item.primary_role === null || item.primary_role === undefined) {
@@ -85,6 +84,16 @@ function isValidSourceItem(
     return `${path}.kredo_category invalide`
   }
 
+  // Pour le scope account : usage_scopes doit contenir 'study' et aucune veille ne doit être activée
+  if (scopeKind === "account") {
+    if (!item.usage_scopes.includes("study")) {
+      return `${path}.usage_scopes doit contenir 'study'`
+    }
+    if (item.news_eligible || item.account_watch_eligible || item.is_enabled) {
+      return `${path} ne doit pas être activé pour la veille dans un corpus de compte`
+    }
+  }
+
   // Règle déterministe dure (E3 §8) : une source static ne peut jamais entrer dans la veille récurrente,
   // quelle que soit la décision de l'utilisateur en étape 2 — revérifié ici, pas seulement côté client.
   if (item.content_temporality === "static" && (item.is_enabled || item.news_eligible || item.account_watch_eligible)) {
@@ -101,6 +110,10 @@ function isValidPayload(payload: IngestSourceCorpusPayload, scopeKind: CorpusSco
   // §12 — le corpus ne s'active jamais tout seul à l'import : revérifié serveur, pas seulement construit ainsi côté client.
   if (payload.activation_state !== "draft") return "activation_state doit être 'draft' à l'import"
   if (!Array.isArray(payload.sources) || payload.sources.length === 0) return "sources requis (au moins une entrée)"
+
+  if (scopeKind === "account") {
+    if (!payload.study_id?.trim()) return "study_id requis pour un corpus de compte"
+  }
 
   for (const [index, item] of payload.sources.entries()) {
     const itemError = isValidSourceItem(item, index, scopeKind)
@@ -120,12 +133,15 @@ export async function ingestSourceCorpusAction(
   if (validationError) return { error: `Payload invalide : ${validationError}`, corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
 
   // Le segment est requis pour un corpus sectoriel, et INTERDIT pour un corpus
-  // thematique — la RPC applique la meme regle, ceci n'en est que le miroir client.
+  // thématique ou de compte — la RPC applique la même règle, ceci n'en est que le miroir client.
   if (scopeKind === "sector" && !segmentSlug?.trim()) {
     return { error: "Segment requis.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
   }
-  if (scopeKind === "thematic" && segmentSlug?.trim()) {
-    return { error: "Un corpus thématique ne vise aucun segment.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
+  if ((scopeKind === "thematic" || scopeKind === "account") && segmentSlug?.trim()) {
+    return { error: `Un corpus ${scopeKind === "account" ? "de compte" : "thématique"} ne vise aucun segment.`, corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
+  }
+  if (scopeKind === "account" && !payload.study_id?.trim()) {
+    return { error: "study_id requis pour un corpus de compte.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
   }
   if (!reason?.trim()) return { error: "Motif d'import requis.", corpusId: null, sourcesUpserted: 0, itemsUpserted: 0 }
 

@@ -15,9 +15,10 @@ describe("source management snapshot loader", () => {
     expect(source).not.toMatch(/const\s+.*sources\s*=\s*\[/i)
   })
 
-  it("reads sector, system and thematic corpora", () => {
-    expect(source).toContain('.in("scope_kind", ["sector", "system", "thematic"])')
+  it("reads sector, system, thematic and account corpora", () => {
+    expect(source).toContain('.in("scope_kind", ["sector", "system", "thematic", "account"])')
     expect(source).toContain("thematicCorpora")
+    expect(source).toContain("accountCorpora")
     expect(source).toContain("scopeKind: corpus.scope_kind")
   })
 

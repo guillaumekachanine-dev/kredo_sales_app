@@ -149,6 +149,9 @@ async function resolveCorpusSources(
 
   if (corpusError) return { error: `Lecture du corpus impossible : ${corpusError.message}` }
   if (!corpus) return { error: "Corpus introuvable ou inaccessible." }
+  if (corpus.scope_kind === "account") {
+    return { error: `Le corpus « ${corpus.slug} » est un corpus de compte et ne peut pas être utilisé pour un digest.` }
+  }
   if (!corpus.is_current) return { error: `Le corpus « ${corpus.slug} » n'est pas la version courante.` }
   if (corpus.activation_state !== "active") {
     return { error: `Le corpus « ${corpus.slug} » est en brouillon : il doit être activé avant d'être utilisé.` }

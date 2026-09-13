@@ -142,7 +142,9 @@ export async function getDigestLaunchOptions(
     })),
   ]
 
-  const corpora: DigestCorpusOption[] = (corporaResult.data ?? []).map((corpus) => {
+  const corpora: DigestCorpusOption[] = (corporaResult.data ?? [])
+    .filter((corpus) => corpus.scope_kind !== "account")
+    .map((corpus) => {
     const sourcesCount = sourcesByCorpus.get(corpus.id) ?? 0
     const isDraft = corpus.activation_state !== "active"
     return {

@@ -13,7 +13,7 @@ import type { SourceCorpusItemPreview } from "./source-registry-output"
 import { resolveRegistryCorpusSlug, type ParsedSourceRegistry } from "./source-registry-output"
 import type { ParsedThematicSourceList, ThematicSourceItemPreview } from "./thematic-source-list"
 
-export type CorpusImportScopeKind = "sector" | "thematic"
+export type CorpusImportScopeKind = "sector" | "thematic" | "account"
 
 export type CorpusImportItemView = {
   srcId: string

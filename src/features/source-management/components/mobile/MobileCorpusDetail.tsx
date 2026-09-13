@@ -600,7 +600,7 @@ export function MobileCorpusDetail({
           />
         </div>
 
-        {corpus?.scopeKind !== "thematic" ? (
+        {corpus?.scopeKind !== "thematic" && corpus?.scopeKind !== "account" ? (
           <>
             <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-1 min-h-[44px]">
               <span className="text-xs font-medium text-white/80">Usage Actualités</span>

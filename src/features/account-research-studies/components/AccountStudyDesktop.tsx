@@ -19,6 +19,7 @@ import {
   type StudySectionView,
 } from "../domain/study-view"
 import { AccountStudyReader } from "./AccountStudyReader"
+import { WorkStudySourceDistributionDialog } from "./WorkStudySourceDistributionDialog"
 import {
   EpistemicModeSelector,
   GapsBlock,
@@ -88,14 +89,23 @@ export function AccountStudyDesktop({
   studyId,
   knowledge,
   companyName,
+  producer,
+  distribution,
 }: {
   studyId: string
   knowledge: AccountStudyKnowledge
   companyName: string
+  producer?: string | null
+  distribution?: {
+    isDistributed: boolean
+    corpusId: string | null
+  } | null
 }) {
   const [reading, setReading] = useState<StudyReadingView>("text")
   const [mode, setMode] = useState<StudyEpistemicMode>(DEFAULT_STUDY_EPISTEMIC_MODE)
   const [readerOpen, setReaderOpen] = useState(false)
+  const [distributionOpen, setDistributionOpen] = useState(false)
+  const [isDistributedState, setIsDistributedState] = useState(distribution?.isDistributed ?? false)
 
   const view = useMemo(() => buildStudyReportView(knowledge), [knowledge])
   const countsByMode = useMemo(() => countStatementsByMode(view.statementCounts), [view.statementCounts])
@@ -122,6 +132,26 @@ export function AccountStudyDesktop({
         </div>
         <div className="flex items-center gap-3">
           {identity.length > 0 ? <p className="hidden text-[11px] text-edito-muted xl:block">{identity.join(" · ")}</p> : null}
+          {producer === "chatgpt_work" ? (
+            isDistributedState ? (
+              <button
+                type="button"
+                onClick={() => setDistributionOpen(true)}
+                title="Corpus de compte associé dans Gestion des sources"
+                className="inline-flex min-h-8 shrink-0 items-center rounded border border-emerald-600/30 bg-emerald-50 px-2.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition-colors cursor-pointer"
+              >
+                ✓ Sources en bibliothèque
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDistributionOpen(true)}
+                className="inline-flex min-h-8 shrink-0 items-center rounded border border-brand-brass bg-brand-brass/10 px-3 text-[11px] font-bold text-brand-brass transition-colors hover:bg-brand-brass hover:text-secondary-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60 cursor-pointer"
+              >
+                + Sources en bibliothèque
+              </button>
+            )
+          ) : null}
           <button
             type="button"
             onClick={() => setReaderOpen(true)}
@@ -143,6 +173,18 @@ export function AccountStudyDesktop({
           view={view}
           studyId={studyId}
           companyName={companyName}
+        />
+      ) : null}
+
+      {distributionOpen ? (
+        <WorkStudySourceDistributionDialog
+          open={distributionOpen}
+          onOpenChange={setDistributionOpen}
+          studyId={studyId}
+          companyName={companyName}
+          onSuccess={() => {
+            setIsDistributedState(true)
+          }}
         />
       ) : null}
     </div>

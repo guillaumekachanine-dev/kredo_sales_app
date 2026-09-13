@@ -110,7 +110,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
     supabase
       .from("source_corpora")
       .select("*")
-      .in("scope_kind", ["sector", "system", "thematic"])
+      .in("scope_kind", ["sector", "system", "thematic", "account"])
       .eq("is_current", true)
       .order("snapshot_date", { ascending: false }),
     supabase.from("v_source_effectiveness_30d").select("*"),
@@ -156,8 +156,16 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
 
   const corpusIds = corpusRows.map((row) => row.id)
   const sectorIds = Array.from(new Set(corpusRows.map((row) => row.sector_id).filter((id): id is string => Boolean(id))))
+  const studyIds = Array.from(new Set(corpusRows.map((row) => row.study_id).filter((id): id is string => Boolean(id))))
 
-  const [itemsResult, sectorsResult, accountsFedResult] = await Promise.all([
+  type StudyWithCompany = {
+    id: string
+    title: string
+    company_id: string
+    companies: { id: string; name: string } | { id: string; name: string }[] | null
+  }
+
+  const [itemsResult, sectorsResult, accountsFedResult, studiesResult] = await Promise.all([
     corpusIds.length > 0
       ? supabase.from("source_corpus_items").select("*").in("corpus_id", corpusIds)
       : Promise.resolve({ data: [] as SourceCorpusItemRow[], error: null }),
@@ -172,10 +180,29 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
           .eq("usage_scope", "account_watch")
           .in("corpus_id", corpusIds)
       : Promise.resolve({ data: [] as Array<{ corpus_id: string | null; company_id: string | null }>, error: null }),
+    studyIds.length > 0
+      ? supabase
+          .from("account_research_studies")
+          .select("id, title, company_id, companies(id, name)")
+          .in("id", studyIds)
+      : Promise.resolve({ data: [] as StudyWithCompany[], error: null }),
   ])
 
   const itemRows: SourceCorpusItemRow[] = itemsResult.data ?? []
   const sectorNameById = new Map((sectorsResult.data ?? []).map((row) => [row.id, row.name]))
+
+  const studyInfoById = new Map<
+    string,
+    { title: string; companyId: string; companyName: string | null }
+  >()
+  for (const s of (studiesResult.data ?? []) as unknown as StudyWithCompany[]) {
+    const comp = Array.isArray(s.companies) ? s.companies[0] : s.companies
+    studyInfoById.set(s.id, {
+      title: s.title,
+      companyId: s.company_id,
+      companyName: comp?.name ?? null,
+    })
+  }
 
   const accountsFedByCorpus = new Map<string, Set<string>>()
   for (const row of accountsFedResult.data ?? []) {
@@ -227,8 +254,10 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
           )
         : null
 
+    const studyInfo = corpus.study_id ? studyInfoById.get(corpus.study_id) ?? null : null
     const resolvedSectorName = corpus.sector_id ? sectorNameById.get(corpus.sector_id) ?? null : null
-    const corpusName = extractCorpusName(corpus) ?? resolvedSectorName ?? corpus.slug
+    const corpusName =
+      extractCorpusName(corpus) ?? resolvedSectorName ?? corpus.slug
 
     return {
       id: corpus.id,
@@ -236,6 +265,10 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
       version: corpus.version,
       snapshotDate: corpus.snapshot_date,
       scopeKind: corpus.scope_kind,
+      studyId: corpus.study_id,
+      companyId: studyInfo?.companyId ?? null,
+      companyName: studyInfo?.companyName ?? null,
+      studyTitle: studyInfo?.title ?? null,
       name: corpusName,
       description: extractCorpusDescription(corpus),
       sectorId: corpus.sector_id,
@@ -256,6 +289,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
 
   const sectorCorpora = allCorpora.filter((c) => c.scopeKind === "sector" || c.scopeKind === "system")
   const thematicCorpora = allCorpora.filter((c) => c.scopeKind === "thematic")
+  const accountCorpora = allCorpora.filter((c) => c.scopeKind === "account")
 
   const systemSources = sourceRows.map(mapSource).filter((s) => s.origin === "system").map((s) => {
     s.effectiveness = effectivenessBySourceId.get(s.id) ?? null
@@ -274,6 +308,7 @@ export async function getSourceManagementSnapshot(): Promise<SourceManagementSna
     manualSources,
     sectorCorpora,
     thematicCorpora,
+    accountCorpora,
     activeNewsSourceCount,
     canManage: workspace.isAdmin,
   }
