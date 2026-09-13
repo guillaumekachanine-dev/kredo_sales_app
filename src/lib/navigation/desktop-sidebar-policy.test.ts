@@ -69,52 +69,36 @@ describe("resolveDesktopSidebarCollapsed", () => {
   const resolve = (
     preferredCollapsed: boolean,
     workspaceAutoCollapsed: boolean,
-    intelligencePanelOpen: boolean,
     externalCollapseRequestCount: number,
   ) =>
     resolveDesktopSidebarCollapsed({
       preferredCollapsed,
       workspaceAutoCollapsed,
-      intelligencePanelOpen,
       externalCollapseRequestCount,
     })
 
   it("aucune contrainte → suit la préférence utilisateur", () => {
-    expect(resolve(false, false, false, 0)).toBe(false)
-    expect(resolve(true, false, false, 0)).toBe(true)
+    expect(resolve(false, false, 0)).toBe(false)
+    expect(resolve(true, false, 0)).toBe(true)
   })
 
   it("workspace auto-replié → replié quelle que soit la préférence", () => {
-    expect(resolve(false, true, false, 0)).toBe(true)
-    expect(resolve(true, true, false, 0)).toBe(true)
-  })
-
-  it("Cockpit Intelligence ouvert → replié quelle que soit la préférence", () => {
-    expect(resolve(false, false, true, 0)).toBe(true)
-    expect(resolve(true, false, true, 0)).toBe(true)
+    expect(resolve(false, true, 0)).toBe(true)
+    expect(resolve(true, true, 0)).toBe(true)
   })
 
   it("un ou plusieurs verrous externes → replié", () => {
-    expect(resolve(false, false, false, 1)).toBe(true)
-    expect(resolve(false, false, false, 2)).toBe(true)
+    expect(resolve(false, false, 1)).toBe(true)
+    expect(resolve(false, false, 2)).toBe(true)
   })
 
-  it("Cockpit Intelligence + verrou CRM sont composables et indépendants", () => {
-    // les deux contraintes actives
-    expect(resolve(false, false, true, 1)).toBe(true)
-    // Cockpit Intelligence fermé, verrou CRM encore actif → toujours replié
-    expect(resolve(false, false, false, 1)).toBe(true)
-    // verrou CRM retombé, Cockpit Intelligence encore ouvert → toujours replié
-    expect(resolve(false, false, true, 0)).toBe(true)
-  })
-
-  it("toutes les contraintes retombées → restauration de la préférence, sans mémorisation", () => {
-    expect(resolve(false, false, false, 0)).toBe(false)
-    expect(resolve(true, false, false, 0)).toBe(true)
+  it("verrou CRM retombé → restauration de la préférence, sans mémorisation", () => {
+    expect(resolve(false, false, 0)).toBe(false)
+    expect(resolve(true, false, 0)).toBe(true)
   })
 })
 
-describe("Découplage Shell ↔ Cockpit Intelligence (SHELL 6.6)", () => {
+describe("Découplage Shell ↔ Cockpit Intelligence (overlay)", () => {
   const read = (relPath: string) =>
     readFileSync(resolvePath(repoRoot, relPath), "utf8")
 
@@ -125,10 +109,16 @@ describe("Découplage Shell ↔ Cockpit Intelligence (SHELL 6.6)", () => {
     expect(source).not.toContain("requestRestore")
   })
 
-  it("DesktopSidebar observe directement useIntelligencePanel", () => {
+  it("DesktopSidebar n'observe plus useIntelligencePanel — l'ouverture du Cockpit ne pilote plus son repli", () => {
     const source = read("src/components/layout/DesktopSidebar.tsx")
-    expect(source).toContain("useIntelligencePanel")
-    expect(source).toContain("state.isOpen")
+    expect(source).not.toContain("useIntelligencePanel")
+  })
+
+  it("IntelligencePanel est un overlay absolute hors flux, pas un sibling flex", () => {
+    const source = read("src/components/intelligence/IntelligencePanel.tsx")
+    expect(source).toContain("absolute")
+    expect(source).toContain("inset-y-0")
+    expect(source).not.toContain("shrink-0 overflow-y-auto")
   })
 
   it("CrmTabbedShell reste le seul émetteur applicatif de verrous externes", () => {

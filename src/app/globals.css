@@ -1959,9 +1959,10 @@ html {
   --z-toast: 80;
 
   /* ── Layout ─────────────────────────────────────────────── */
-  --layout-sidebar-width-collapsed: 4rem;
+  --layout-sidebar-width-collapsed: 3.5rem;
   --layout-sidebar-width-expanded: 14rem;
   /* "Prospection Intelligence" = label le plus long → 224px */
+  --layout-section-rail-width: 13rem;
   --layout-header-height: 3.5rem;
   --layout-bottom-nav-height: 5rem;
   --layout-drawer-width: 28rem;

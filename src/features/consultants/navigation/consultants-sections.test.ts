@@ -277,7 +277,7 @@ describe("ConsultantsDesktopShell — conformité SHELL-0018 (Phase 7.2)", () =>
     const markup = render("synthese")
     expect(markup).toContain("Consultants")
     expect(markup).toContain('href="/consultants"')
-    expect(markup).toContain("w-[11.5rem]")
+    expect(markup).toContain("w-[var(--layout-section-rail-width)]")
     expect(markup).toContain('aria-label="Navigation Consultants"')
   })
 

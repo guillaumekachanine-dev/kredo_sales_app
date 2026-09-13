@@ -42,19 +42,20 @@ export async function AppShell({ device, children }: AppShellProps) {
     <div className="flex h-screen w-screen overflow-hidden bg-canvas">
       <DesktopSidebar defaultCollapsed={defaultCollapsed} />
 
-      <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
-        {/* Main scrollable content with top-right floating Intelligence button */}
-        <div className="relative flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-          <main className="flex-1 flex flex-col overflow-y-auto min-w-0">
-            {children}
-          </main>
+      {/* Zone applicative : relative pour porter le Cockpit Intelligence en
+          overlay hors flux — son ouverture ne redimensionne jamais ce conteneur. */}
+      <div className="relative flex-1 flex min-h-0 min-w-0 overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-y-auto min-w-0">
+          {children}
+        </main>
 
-          {/* Absolute floating Intelligence toggle & Workflow execution indicator */}
-          <div className="pointer-events-none absolute right-4 top-3 z-30">
-            <div className="pointer-events-auto flex items-center gap-2">
-              <WorkflowExecutionIndicatorDesktop />
-              <IntelligenceToggle />
-            </div>
+        {/* Absolute floating Intelligence toggle & Workflow execution indicator —
+            au-dessus du Cockpit Intelligence (z-drawer) pour rester cliquable
+            (notamment pour le fermer) quand le panneau overlay est ouvert. */}
+        <div className="pointer-events-none absolute right-4 top-3 z-[calc(var(--z-drawer)+1)]">
+          <div className="pointer-events-auto flex items-center gap-2">
+            <WorkflowExecutionIndicatorDesktop />
+            <IntelligenceToggle />
           </div>
         </div>
 

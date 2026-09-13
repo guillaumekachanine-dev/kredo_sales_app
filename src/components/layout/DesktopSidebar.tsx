@@ -13,7 +13,6 @@ import { getNavigationIcon } from "./navigation-icons"
 import { cn } from "@/lib/utils"
 import { IconButton } from "@/components/ui/IconButton"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
-import { useIntelligencePanel } from "@/hooks/use-intelligence-panel"
 
 import { useLegacySandboxStore } from "@/features/legacy/LegacySandboxStore"
 
@@ -128,22 +127,24 @@ function ModuleItem({
 // ─────────────────────────────────────────────────────────────────────────────
 //  DesktopSidebar
 //
-//  État effectif dérivé (SHELL 6.5 / 6.6) de quatre entrées indépendantes :
+//  État effectif dérivé (SHELL 6.5, amendé par le chantier overlay) de trois
+//  entrées indépendantes :
 //   1. préférence utilisateur durable — `preferredCollapsed`, persistée dans le
 //      cookie `kredo_sidebar_collapsed` (lu côté serveur dans AppShell et injecté
 //      en prop `defaultCollapsed` pour éviter le flash d'hydratation) ;
 //   2. politique Shell d'auto-repli dérivée du pathname
 //      (`shouldAutoCollapseDesktopSidebar`) — les workspaces à `SectionRail` ne
 //      pilotent plus la sidebar eux-mêmes ;
-//   3. état d'ouverture du Cockpit Intelligence (`useIntelligencePanel.isOpen`)
-//      — le Shell lit ce signal directement : les deux rails ne peuvent pas être
-//      dépliés simultanément ;
-//   4. verrous externes exceptionnels (`useSidebarCollapse.collapseRequestCount`)
+//   3. verrous externes exceptionnels (`useSidebarCollapse.collapseRequestCount`)
 //      pour les surfaces dont l'état ne peut pas être dérivé directement par le
 //      Shell — actuellement le cockpit CRM uniquement.
 //
-//  Un repli imposé par (2), (3) ou (4) ne touche jamais au cookie ; quitter le
-//  workspace / fermer le panneau restaure automatiquement la préférence (1).
+//  Le Cockpit Intelligence Desktop est un panneau overlay hors flux : son
+//  ouverture/fermeture ne fait plus partie de ces contraintes et ne touche
+//  jamais à l'état de cette sidebar.
+//
+//  Un repli imposé par (2) ou (3) ne touche jamais au cookie ; quitter le
+//  workspace / relâcher le verrou restaure automatiquement la préférence (1).
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface DesktopSidebarProps {
@@ -155,17 +156,14 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
   const [preferredCollapsed, setPreferredCollapsed] = useState(defaultCollapsed)
   const activeModuleHref = getActiveModuleHref(pathname)
   const collapseRequestCount = useSidebarCollapse((s) => s.collapseRequestCount)
-  const intelligencePanelOpen = useIntelligencePanel((state) => state.isOpen)
   const openSandbox = useLegacySandboxStore((s) => s.open)
   const isOpen = useLegacySandboxStore((s) => s.isOpen)
 
   const workspaceAutoCollapsed = shouldAutoCollapseDesktopSidebar(pathname)
-  const isForcedCollapsed =
-    workspaceAutoCollapsed || intelligencePanelOpen || collapseRequestCount > 0
+  const isForcedCollapsed = workspaceAutoCollapsed || collapseRequestCount > 0
   const isCollapsed = resolveDesktopSidebarCollapsed({
     preferredCollapsed,
     workspaceAutoCollapsed,
-    intelligencePanelOpen,
     externalCollapseRequestCount: collapseRequestCount,
   })
 

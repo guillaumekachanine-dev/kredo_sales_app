@@ -346,10 +346,9 @@ export function IntelligencePanel() {
     return resolvePageCockpitConfig(pathname).label
   }, [isAccountMode, entityContext, pathname])
 
-  // Le repli de la sidebar principale quand le Cockpit Intelligence est ouvert
-  // est désormais décidé par le Shell lui-même : `DesktopSidebar` observe
-  // directement `useIntelligencePanel.isOpen` (SHELL 6.6). Ce composant ne
-  // pilote plus la sidebar.
+  // Le Cockpit Intelligence Desktop est un panneau overlay hors flux : son
+  // ouverture/fermeture ne modifie plus l'état de la sidebar principale, qui
+  // ne l'observe plus (chantier proportions Shell + overlay).
 
   // Reset des écrans secondaires lors du changement d'entité
   useEffect(() => {
@@ -363,7 +362,7 @@ export function IntelligencePanel() {
   return (
     <aside
       data-theme="cockpit"
-      className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-brand-primary kredo-intelligence-panel"
+      className="absolute inset-y-0 right-0 z-[var(--z-drawer)] w-[var(--layout-intelligence-width)] overflow-y-auto border-l border-primary-fg/10 bg-brand-primary shadow-[var(--shadow-overlay-md)] kredo-intelligence-panel"
       aria-label="Cockpit Intelligence"
     >
       {/* ── Header 3 lignes ─────────────────────────────────────── */}

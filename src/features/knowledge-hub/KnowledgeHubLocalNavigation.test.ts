@@ -38,14 +38,14 @@ describe("KnowledgeHubLocalNavigation", () => {
     "utf8",
   )
 
-  it("utilise le SectionRail canonique avec la largeur 11.5rem et le chapeau Knowledge Hub", () => {
+  it("utilise le SectionRail canonique avec le token global de largeur et le chapeau Knowledge Hub", () => {
     const html = renderNavigation()
 
     expect(navigationSource).toContain("<SectionRail")
     expect(navigationSource).not.toContain("w-[12.5rem]")
     expect(navigationSource).not.toContain("<nav")
     expect(html).toContain('aria-label="Navigation Knowledge Hub"')
-    expect(html).toContain("w-[11.5rem]")
+    expect(html).toContain("w-[var(--layout-section-rail-width)]")
     expect(html).toContain("bg-edito-navy")
     expect(html).toContain("Knowledge Hub")
     expect(html).not.toContain("Catégories</span></button>")

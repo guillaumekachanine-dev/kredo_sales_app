@@ -162,7 +162,7 @@ describe("veille Desktop UI source contract", () => {
 
     expect(navigation).toContain("<SectionRail")
     expect(html).toContain('aria-label="Navigation locale Veille &amp; actualités"')
-    expect(html).toContain("w-[11.5rem]")
+    expect(html).toContain("w-[var(--layout-section-rail-width)]")
     expect(html).toContain("bg-edito-navy")
     expect(html).toContain("Veille &amp; actualités")
     expect(html).toContain(">Chapitres<")

@@ -52,7 +52,7 @@ describe("SectionRail", () => {
   it("rend le chapeau canonique navy avec titre blanc, gras et centré", () => {
     const html = renderRail()
 
-    expect(html).toContain("w-[11.5rem]")
+    expect(html).toContain("w-[var(--layout-section-rail-width)]")
     expect(html).toContain("bg-edito-navy")
     expect(html).toContain("text-white")
     expect(html).toContain("font-bold")

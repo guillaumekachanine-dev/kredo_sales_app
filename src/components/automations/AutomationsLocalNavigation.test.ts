@@ -47,7 +47,7 @@ describe("AutomationsLocalNavigation", () => {
 
     expect(navigationSource).toContain("<SectionRail")
     expect(html).toContain('aria-label="Navigation locale Automatisations"')
-    expect(html).toContain("w-[11.5rem]")
+    expect(html).toContain("w-[var(--layout-section-rail-width)]")
     expect(html).toContain("bg-edito-navy")
     expect(html).toContain("Automatisations")
     expect(html).toContain(">Chapitres<")

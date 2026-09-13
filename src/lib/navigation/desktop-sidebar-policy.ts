@@ -48,16 +48,17 @@ export function shouldAutoCollapseDesktopSidebar(pathname: string): boolean {
 }
 
 /**
- * État visuel effectif de la sidebar principale, composé de quatre entrées
+ * État visuel effectif de la sidebar principale, composé de trois entrées
  * indépendantes et composables :
  *  - `preferredCollapsed`   : préférence durable de l'utilisateur (cookie) ;
  *  - `workspaceAutoCollapsed` : politique Shell dérivée du pathname ;
- *  - `intelligencePanelOpen` : état d'ouverture du Cockpit Intelligence, lu
- *    directement par le Shell depuis `useIntelligencePanel` (les deux rails ne
- *    peuvent pas être dépliés en même temps) ;
  *  - `externalCollapseRequestCount` : nombre de verrous externes exceptionnels
  *    pour les surfaces dont l'état ne peut pas être dérivé directement par le
  *    Shell — actuellement le cockpit CRM uniquement (voir `useSidebarCollapse`).
+ *
+ * Le Cockpit Intelligence Desktop est un panneau overlay hors flux (SHELL
+ * proportions/overlay) : son ouverture ne fait plus partie des causes de
+ * repli — elle ne modifie ni ne dépend de l'état de cette sidebar.
  *
  * La sidebar est repliée dès qu'au moins une de ces contraintes le demande ;
  * quand toutes retombent, la préférence utilisateur reprend la main sans
@@ -66,13 +67,11 @@ export function shouldAutoCollapseDesktopSidebar(pathname: string): boolean {
 export function resolveDesktopSidebarCollapsed(input: {
   preferredCollapsed: boolean
   workspaceAutoCollapsed: boolean
-  intelligencePanelOpen: boolean
   externalCollapseRequestCount: number
 }): boolean {
   return (
     input.preferredCollapsed ||
     input.workspaceAutoCollapsed ||
-    input.intelligencePanelOpen ||
     input.externalCollapseRequestCount > 0
   )
 }

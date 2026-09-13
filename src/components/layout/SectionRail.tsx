@@ -98,7 +98,7 @@ export function SectionRail({
     <nav
       aria-label={ariaLabel}
       className={cn(
-        "flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5",
+        "flex h-full w-[var(--layout-section-rail-width)] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5",
         className,
       )}
     >

@@ -38,7 +38,7 @@ describe("BusinessIntelligenceLocalNavigation", () => {
     const html = renderNavigation()
 
     expect(html).toContain('aria-label="Navigation locale Business Intelligence"')
-    expect(html).toContain("w-[11.5rem]")
+    expect(html).toContain("w-[var(--layout-section-rail-width)]")
     expect(html).toContain("bg-edito-navy")
     expect(html).toContain(">Business Intelligence<")
     expect(html).toContain(">Chapitres<")

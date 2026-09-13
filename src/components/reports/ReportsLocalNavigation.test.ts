@@ -102,7 +102,7 @@ describe("ReportsLocalNavigation & URLisation", () => {
 
       expect(navigationSource).toContain("<SectionRail")
       expect(html).toContain('aria-label="Navigation locale Rapports &amp; rédaction"')
-      expect(html).toContain("w-[11.5rem]")
+      expect(html).toContain("w-[var(--layout-section-rail-width)]")
       expect(html).toContain("bg-edito-navy")
       expect(html).toContain("Rapports &amp; rédaction")
       expect(html).toContain(">Chapitres<")

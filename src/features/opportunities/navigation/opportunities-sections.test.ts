@@ -172,7 +172,7 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
     const markup = render("synthese")
     expect(markup).toContain("Opportunités")
     expect(markup).toContain('href="/missions/opps"')
-    expect(markup).toContain("w-[11.5rem]")
+    expect(markup).toContain("w-[var(--layout-section-rail-width)]")
     expect(markup).toContain("bg-edito-navy")
     expect(markup).toContain('aria-label="Navigation Opportunités"')
   })

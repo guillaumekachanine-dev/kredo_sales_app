@@ -39,13 +39,13 @@ describe("ProspectionIntelligenceLocalNavigation", () => {
     "utf8",
   )
 
-  it("utilise le SectionRail canonique avec la largeur 11.5rem et le chapeau Prospection", () => {
+  it("utilise le SectionRail canonique avec le token global de largeur et le chapeau Prospection", () => {
     const html = renderNavigation()
 
     expect(navigationSource).toContain("<SectionRail")
     expect(navigationSource).not.toContain("w-[15rem]")
     expect(html).toContain('aria-label="Navigation locale Prospection"')
-    expect(html).toContain("w-[11.5rem]")
+    expect(html).toContain("w-[var(--layout-section-rail-width)]")
     expect(html).toContain("bg-edito-navy")
     expect(html).toContain("Prospection")
     expect(html).toContain(">Chapitres<")
