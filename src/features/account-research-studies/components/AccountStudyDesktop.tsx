@@ -43,7 +43,7 @@ function SectionCard({
 }) {
   const { visible, hiddenCount } = selectStatementsForMode(section.statements, mode)
   return (
-    <section aria-labelledby={`study-section-${section.key}`} className="overflow-hidden rounded-lg border border-edito-border bg-edito-surface">
+    <section aria-labelledby={`study-section-${section.key}`} className="flex h-full flex-col overflow-hidden rounded-lg border border-edito-border bg-edito-surface">
       <header className="flex items-center justify-between gap-3 border-b border-edito-border bg-edito-navy px-4 py-2.5">
         <h3 id={`study-section-${section.key}`} className="flex items-baseline gap-2 text-[12px] font-bold uppercase tracking-wider text-edito-surface">
           <span className="font-mono text-[10px] text-edito-gold">{String(section.number).padStart(2, "0")}</span>
@@ -53,7 +53,7 @@ function SectionCard({
           {section.blocks.length} bloc{section.blocks.length > 1 ? "s" : ""} · {section.statements.length} affirmation{section.statements.length > 1 ? "s" : ""}
         </span>
       </header>
-      <div className="space-y-4 p-4">
+      <div className="flex-1 space-y-4 p-4">
         {reading === "text" ? (
           section.blocks.length > 0 ? (
             <div className="space-y-3">
@@ -162,9 +162,11 @@ export function AccountStudyDesktop({
         </div>
       </div>
 
-      {view.sections.map((section) => (
-        <SectionCard key={section.key} section={section} reading={reading} mode={mode} />
-      ))}
+      <div className="grid grid-cols-2 gap-5">
+        {view.sections.map((section) => (
+          <SectionCard key={section.key} section={section} reading={reading} mode={mode} />
+        ))}
+      </div>
 
       {readerOpen ? (
         <AccountStudyReader

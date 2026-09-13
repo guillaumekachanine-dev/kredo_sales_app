@@ -127,10 +127,7 @@ export function ClientIntelligenceDesktopView({
               />
             )}
             {activeTab === "connaissance" && (
-              <ClientIntelligenceCompanyTab
-                data={data}
-                onOpenAudit={() => setExpandedViewer(true)}
-              />
+              <ClientIntelligenceCompanyTab data={data} />
             )}
             {activeTab === "secteur" && (
               <ClientIntelligenceSectorTab

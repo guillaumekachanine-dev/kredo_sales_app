@@ -6,11 +6,8 @@ import { AccountStudyDesktop } from "@/features/account-research-studies/compone
 import { AccountStudyPanel } from "@/features/account-research-studies/components/AccountStudyPanel"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 
-import { AccountSignalsCard } from "./AccountKnowledgeBlocks"
-import { CompanyCommercialContent } from "./CompanyCommercialContent"
 import { CompanyEditorialSection } from "./CompanyEditorialSection"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
-import { CompanyOperationsContent } from "./CompanyOperationsContent"
 
 type CompanySection = {
   id: string
@@ -22,10 +19,8 @@ type CompanySection = {
 
 export function ClientIntelligenceCompanyTab({
   data,
-  onOpenAudit,
 }: {
   data: ClientIntelligenceData
-  onOpenAudit: () => void
 }) {
   const currentStudy = data.accountStudy.current
   const sections: CompanySection[] = []
@@ -46,52 +41,6 @@ export function ClientIntelligenceCompanyTab({
       ),
     })
   }
-
-  sections.push(
-    {
-      id: "company-operations",
-      label: "Activités opérationnelles",
-      title: "Activités opérationnelles",
-      description: "Dernier diagnostic process réussi, normalisé depuis les données structurées de l’audit sans relire le PDF.",
-      content: (
-        <CompanyOperationsContent
-          data={data.operationalSnapshot}
-          auditAvailable={Boolean(data.diagnosticPdfUrl)}
-          onOpenAudit={onOpenAudit}
-        />
-      ),
-    },
-    {
-      id: "company-commercial",
-      label: "Relation commerciale",
-      title: "Relation commerciale",
-      description: "Historique des échanges, opportunités, engagements et carte des contacts prioritaires.",
-      content: (
-        <CompanyCommercialContent
-          timeline={data.commercialTimeline}
-          opportunities={data.opportunities}
-          missions={data.missions}
-          projects={data.projects}
-          contacts={data.contacts}
-        />
-      ),
-    },
-    {
-      id: "company-signals",
-      label: "Signaux & actualités",
-      title: "Signaux & actualités",
-      description: "Signaux natifs du compte, du plus récent au plus ancien, avec actions commerciales et validation humaine.",
-      content: (
-        <AccountSignalsCard
-          signals={data.accountSignals}
-          variant="companyDesktop"
-          companyId={data.company.id}
-          companyName={data.company.name}
-          lastUpdatedAt={data.accountWatch.lastRunAt}
-        />
-      ),
-    },
-  )
 
   const navLinks = [
     ...(currentStudy ? [{ id: "company-study", label: "Étude de l’entreprise" }] : []),
