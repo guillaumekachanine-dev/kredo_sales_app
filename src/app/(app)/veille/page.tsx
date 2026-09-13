@@ -26,6 +26,8 @@ import {
 import { VeilleActualitesPage } from "@/components/veille/VeilleActualitesPage"
 import { getDigestLaunchOptions } from "@/features/veille/digest/data/get-digest-launch-options"
 
+const PAST_DIGESTS_LIMIT = 30
+
 export default async function VeillePage({
   searchParams,
 }: {
@@ -63,7 +65,7 @@ export default async function VeillePage({
     getCompaniesContextStats(),
     getWatchedAccountsSignals(),
     getWatchedCompanyIds(),
-    getPastVeilleDigests(30),
+    getPastVeilleDigests(PAST_DIGESTS_LIMIT),
     getGlobalWatchSettings(),
     getGlobalWatchWorkflowHealth(),
     getLatestStrategicWatchAnalysis(),
@@ -111,7 +113,18 @@ export default async function VeillePage({
   }
 
   let digestNumber: number | null = null
-  if (selectedDigest) {
+  // Numéro du digest = rang parmi les digests du même sujet jusqu'à sa date. Quand la
+  // liste déjà chargée est COMPLÈTE (moins de digests que la limite), il se calcule
+  // sans requête supplémentaire (audit d'ouverture des pages, O-8). Mêmes critères que
+  // la requête de repli : `topic_key` strictement égal, `digest_date` inférieure ou égale.
+  const pastDigestsAreComplete =
+    !pastDigestsResult.error && allPastDigests.length < PAST_DIGESTS_LIMIT
+  if (selectedDigest && pastDigestsAreComplete) {
+    const selectedDate = selectedDigest.digest_date
+    digestNumber = allPastDigests.filter(
+      (d) => d.topic_key === effectiveTopic && d.digest_date <= selectedDate,
+    ).length
+  } else if (selectedDigest) {
     const { count } = await supabase
       .from("veille_digests")
       .select("*", { count: "exact", head: true })

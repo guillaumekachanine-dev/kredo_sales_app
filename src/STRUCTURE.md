@@ -94,7 +94,8 @@ Le composant serveur passe `device` en prop → distribue le bon sous-composant.
 **Règle absolue : on ne charge jamais le composant lourd pour le masquer en CSS.**
 
 > ⚠️ Voir `docs/AUDIT.md` §2 pour les limites du sniffing UA serveur (cache CDN, resize).  
-> À corriger avant mise en production : `Vary: User-Agent` + correction client post-hydratation.
+> `Vary: User-Agent` est posé par `src/proxy.ts` (audit d'ouverture des pages, 2026-09-14).
+> Reste ouvert : la correction client post-hydratation prévue par ADR-0006 n'existe pas.
 
 ---
 

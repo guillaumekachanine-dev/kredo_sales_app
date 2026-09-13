@@ -13,6 +13,36 @@
 > comptes rattachés, tables existantes, « prochain focus ») valaient au jour de la session.
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
+### Session 65 — Ouverture des pages : fin de l'« ancienne version » avant la nouvelle (2026-09-14)
+
+Point de reprise : **`docs/audits/AUDIT-OUVERTURE-DES-PAGES.md`** — audit, plan, et journal
+d'exécution §8 (mesures par route et par device, retours arrière, ce qui reste ouvert).
+
+**Diagnostic.** Pas un ancien shell : des **états de chargement périmés**. Les shells de module
+étaient rendus par `page.tsx` après les données, donc précédés du squelette générique
+`(app)/loading.tsx` ; plusieurs `loading.tsx` peignaient des pages disparues (Rapports sombre,
+cockpit compte cobalt à 6 onglets, cockpit d'accueil clair alors qu'il est sombre) ; 5 routes
+enchaînaient deux squelettes ; le store d'onglets CRM s'hydratait avant le premier rendu client.
+
+**Livré (Lots 1 → 5, 5 commits).** Chrome des workspaces dans les layouts (`…DesktopFrame`, route
+groups `missions/(engagements)` et `missions/opps/(workspace)`) ; squelettes fidèles par device sur
+`WorkspaceSkeleton.tsx` ; 9 redirections dans `next.config.ts` ; stores d'onglets `skipHydration` +
+liste seule persistée ; repli sidebar dérivé du pathname ; panneaux CRM montés à la demande ; vues et
+chrome découpées par device là où la mesure dépasse 15 Ko (−60 à −90 Ko gzip sur la plupart des
+routes, `/cockpit` 257 → 171/141) ; `build:webpack` rétabli ; 27 fichiers morts de l'ancien shell
+supprimés ; `Vary: User-Agent` ; garde-fou `src/app/__tests__/loading-fidelity.test.ts`.
+
+**Pièges à retenir.** (1) Next 16 ne découpe pas un Client Component importé dynamiquement depuis un
+Server Component : le découpage device se fait dans un module client. (2) Découper duplique les
+modules partagés — cinq imports dynamiques de chrome alourdissaient le desktop de 22 Ko, regroupés en
+un par device. (3) `AppDrawer` rend toujours ses enfants : un import dynamique dedans part au
+chargement si on ne garde pas le montage. (4) Un prédicat importé depuis un module de composants tire
+tout le module dans le socle.
+
+**Non fait.** Lot 0 (QA visuelle, Guillaume). Reprise de session BI de `/intelligence` (catalogue
+rendu puis redirection client) — prochain chantier recommandé. Décisions produit F-13,
+`/prospection-intelligence`, `/settings`.
+
 ### Session 64 — Account Intelligence Lot 1 : restitution V4 (2026-09-11)
 
 Point de reprise : **`docs/FEATURES/cockpit_intelligence_features/account_intelligence/11-HANDOFF-LOT-1-RESTITUTION-V4.md`**.

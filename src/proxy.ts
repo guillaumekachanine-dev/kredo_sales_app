@@ -82,6 +82,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Le rendu dépend de l'user-agent (distribution Desktop/Mobile côté serveur,
+  // ADR-0006 — `getDashboardDevice()`) : tout cache intermédiaire doit en tenir compte.
+  // Dette relevée par src/STRUCTURE.md, soldée par l'audit d'ouverture des pages (O-9).
+  supabaseResponse.headers.append("Vary", "User-Agent")
+
   return supabaseResponse
 }
 

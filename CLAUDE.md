@@ -576,6 +576,22 @@ Corollaire non négociable : **ne jamais charger le composant lourd pour le masq
 Quand seule la vue mobile est rendue, ne pas charger non plus ses données (cf. `/missions/opps` :
 ~10 requêtes → ~3, et la rémunération confidentielle ne transite plus dans le payload RSC).
 
+**Ouverture des pages — trois règles** (`docs/audits/AUDIT-OUVERTURE-DES-PAGES.md`, contrôlées par
+`src/app/__tests__/loading-fidelity.test.ts`) :
+1. **Le chrome d'un workspace (rail `SectionRail`, header, `data-theme`) vit dans son `layout.tsx`**,
+   sans donnée, piloté par l'URL (`…DesktopFrame` + `useSearchParams`). Son `loading.tsx` ne dessine
+   que la zone de contenu. Rendu par la page après ses `await`, le chrome était précédé d'un
+   squelette générique : c'était « l'ancienne version » perçue avant chaque page.
+2. **Une route = un squelette**, par device, dans le thème de la page, bâti sur
+   `src/components/layout/loading/WorkspaceSkeleton.tsx`. Jamais de `<Suspense>` de page en plus d'un
+   `loading.tsx`. **Refondre une vue = refondre son squelette dans le même commit.**
+3. **Une vue Desktop/Mobile distribuée par un `if` serveur part vers les DEUX appareils** si elle est
+   importée statiquement : Next 16 ne découpe pas un Client Component importé dynamiquement depuis un
+   Server Component. Découper dans un module client (`*-device-views.tsx`, `next/dynamic`), et
+   seulement si la mesure le justifie (≥ 15 Ko gzip sur un device) — le découpage duplique des
+   modules partagés et peut alourdir l'autre device. Redirection permanente constante =
+   `src/lib/navigation/legacy-redirects.ts`, jamais une `page.tsx`.
+
 ---
 
 ## Design System — palette Cobalt Franc
@@ -722,6 +738,8 @@ de la base.
 ### Dettes connues, non traitées
 - ~~`check:server-boundary` échoue sur `get-kredo-expertise-snapshot.ts`~~ — **vérifié vert le 2026-08-12**, dette résorbée.
 - ESLint `react/no-unescaped-entities` dans `src/components/automations/VeilleSimulatorCard.tsx:43`.
+- ESLint `react-hooks/set-state-in-effect` dans `src/components/intelligence/IntelligencePanel.tsx` (reset d'actions au changement d'entité).
+- `/intelligence` : `BusinessIntelligenceEntryGate` rend le catalogue côté serveur puis redirige côté client vers le dernier segment (`sessionStorage`) — une « page avant la page » au rechargement. Voir `docs/audits/AUDIT-OUVERTURE-DES-PAGES.md` §8.
 - **ADR-0010 et ADR-0011 sont cités partout mais n'ont pas de fichier** dans `docs/adr/` — la seule trace de leurs décisions est le journal de sessions.
 - La réorganisation de `docs/` (2026-08) n'est pas commitée : `git status` affiche 145 fichiers supprimés + 9 dossiers non suivis. Ce sont des **déplacements**, pas des pertes.
 - `README 2.md` à la racine : doublon de `README.md`, à supprimer.
