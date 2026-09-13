@@ -1,8 +1,6 @@
 import { EngagementsOverviewDesktop } from "@/components/missions/dashboard/EngagementsOverviewDesktop"
-import {
-  EngagementsMobileShell,
-  type EngagementsMobileView,
-} from "@/components/missions/engagements/mobile/EngagementsMobileShell"
+import type { EngagementsMobileView } from "@/components/missions/engagements/mobile/EngagementsMobileShell"
+import { EngagementsMobileShell } from "@/components/missions/engagements/mobile/engagements-mobile-views"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getEngagementsOverview } from "@/app/(app)/missions/_data/get-engagements-overview"
 import { getCurrentEngagementMissions } from "@/app/(app)/missions/_data/get-current-engagement-missions"

@@ -24,13 +24,24 @@ import { CockpitReturnButton } from "@/components/intelligence/CockpitReturnButt
 import { COCKPIT_OPEN_EVENT, COCKPIT_RETURN_EVENT, returnToAccountCockpit } from "@/lib/intelligence/cockpit-navigation"
 import type { AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import {
-  IntelligenceActionResultContent,
   isDeterministicIntelligenceAction,
   type DeterministicIntelligenceActionId,
-} from "./action-results/IntelligenceActionResultContent"
-import { CockpitIntelligenceMobileContent } from "./cockpit-mobile/CockpitIntelligenceMobileContent"
+} from "./action-results/deterministic-actions"
 import { CockpitIntelligenceHeader, CockpitIntelligenceShell } from "./cockpit-mobile/CockpitIntelligenceShell"
 
+// Contenus du tiroir chargés à la demande (audit d'ouverture des pages, O-7) : le FAB
+// fait partie de la chrome Mobile de toutes les pages, ces contenus ne servent qu'à
+// l'ouverture du Cockpit Intelligence.
+const IntelligenceActionResultContent = dynamic(() =>
+  import("./action-results/IntelligenceActionResultContent").then(
+    (module) => module.IntelligenceActionResultContent,
+  ),
+)
+const CockpitIntelligenceMobileContent = dynamic(() =>
+  import("./cockpit-mobile/CockpitIntelligenceMobileContent").then(
+    (module) => module.CockpitIntelligenceMobileContent,
+  ),
+)
 const AgendaEventTypePicker = dynamic(
   () => import("@/components/agenda/AgendaEventTypePicker").then((module) => module.AgendaEventTypePicker),
   { ssr: false },
@@ -433,6 +444,12 @@ function GenericEntityMobileContent({
 
 export function IntelligenceFAB() {
   const [isOpen, setIsOpen] = useState(false)
+  // Le contenu du tiroir n'est monté qu'à sa PREMIÈRE ouverture, puis conservé (pour
+  // l'animation de fermeture). `AppDrawer` rend toujours ses enfants : sans cette
+  // garde, les contenus chargés dynamiquement partiraient au chargement de chaque
+  // page (audit d'ouverture des pages, O-7).
+  const [hasOpened, setHasOpened] = useState(false)
+  if (isOpen && !hasOpened) setHasOpened(true)
   const [cockpitReturnKey, setCockpitReturnKey] = useState(0)
   const router = useRouter()
   const pathname = usePathname()
@@ -627,7 +644,7 @@ export function IntelligenceFAB() {
           <span className="inline-flex size-5 items-center justify-center text-white"><SparkleIcon /></span>
         ) : undefined}
       >
-        {displayMode === "page" && activeDeterministicAction ? (
+        {!hasOpened ? null : displayMode === "page" && activeDeterministicAction ? (
           <CockpitIntelligenceShell>
             <IntelligenceActionResultContent
               actionId={activeDeterministicAction}

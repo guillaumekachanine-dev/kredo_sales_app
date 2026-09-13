@@ -8,7 +8,7 @@ import { useIntelligenceContext, type IntelligenceEntityContext } from "@/hooks/
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { cockpitIconForAction } from "./cockpit-action-icons"
-import { isDeterministicIntelligenceAction } from "./action-results/IntelligenceActionResultContent"
+import { isDeterministicIntelligenceAction } from "./action-results/deterministic-actions"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
 import { MATCHING_COMPOSER_ACTION_ID } from "@/lib/intelligence/matching-composer-action"
 import { CockpitActionCard } from "./cockpit-mobile/CockpitIntelligenceCards"

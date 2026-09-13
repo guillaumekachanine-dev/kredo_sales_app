@@ -1,11 +1,13 @@
 import { cookies } from "next/headers"
-import { DesktopSidebar } from "./DesktopSidebar"
-import { MobileNav } from "./MobileNav"
+import {
+  DesktopSidebar,
+  IntelligenceFAB,
+  IntelligencePanel,
+  MobileAccountQuickSearchHost,
+  MobileNav,
+} from "./app-shell-device-chrome"
 import { TabStoresHydrator } from "./TabStoresHydrator"
-import { IntelligencePanel } from "@/components/intelligence/IntelligencePanel"
-import { IntelligenceFAB } from "@/components/intelligence/IntelligenceFAB"
 import { IntelligenceToggle } from "@/components/intelligence/IntelligenceToggle"
-import { MobileAccountQuickSearchHost } from "@/components/accounts-contacts/MobileAccountQuickSearchHost"
 import { WorkflowExecutionIndicatorDesktop } from "@/components/automations/WorkflowExecutionIndicatorDesktop"
 import { WorkflowExecutionIndicatorMobile } from "@/components/automations/WorkflowExecutionIndicatorMobile"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"

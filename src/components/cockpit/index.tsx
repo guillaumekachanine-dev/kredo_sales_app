@@ -1,8 +1,7 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getCockpitDesktopSnapshot } from "@/lib/cockpit/cockpit-desktop-data"
 import { getCockpitMobileSnapshot } from "@/lib/cockpit/mobile/get-cockpit-mobile-snapshot"
-import { CockpitDesktopDashboard } from "./CockpitDesktopDashboard"
-import { CockpitMobileDashboard } from "./CockpitMobileDashboard"
+import { CockpitDesktopDashboard, CockpitMobileDashboard } from "./cockpit-device-views"
 import { getWorkspaceDiagnostic } from "@/lib/intelligence/diagnostic/get-workspace-diagnostic"
 
 // Server Component: selects the device branch before loading branch-specific data (ADR-0006).

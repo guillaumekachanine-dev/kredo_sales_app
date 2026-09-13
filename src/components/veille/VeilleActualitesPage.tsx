@@ -7,8 +7,7 @@ import type {
   CompanyContextStats,
   WatchedAccountSignal
 } from "@/app/(app)/veille/_data/veille-data"
-import { VeilleActualitesDesktop } from "./VeilleActualitesDesktop"
-import { VeilleActualitesMobile } from "./VeilleActualitesMobile"
+import { VeilleActualitesDesktop, VeilleActualitesMobile } from "./veille-device-views"
 import type {
   GlobalWatchSettings,
   GlobalWatchWorkflowHealth,

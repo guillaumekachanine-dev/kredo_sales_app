@@ -1,14 +1,16 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { buildBusinessIntelligenceDesktopModel } from "@/features/business-intelligence/presenters/build-business-intelligence-desktop-model"
 import { buildBusinessIntelligenceMobileModel } from "@/features/business-intelligence/presenters/build-business-intelligence-mobile-model"
-import { BusinessIntelligenceDesktop } from "@/features/business-intelligence/desktop/BusinessIntelligenceDesktop"
-import { BusinessIntelligenceMobile } from "@/features/business-intelligence/mobile/BusinessIntelligenceMobile"
+import {
+  BusinessIntelligenceDesktop,
+  BusinessIntelligenceMobile,
+  SegmentCatalogLandingDesktop,
+  SegmentCatalogLandingMobile,
+} from "@/features/business-intelligence/device/business-intelligence-device-views"
 import { getBusinessIntelligenceCatalog } from "@/features/business-intelligence/data/get-business-intelligence-catalog"
 import { getBusinessIntelligenceSegmentWorkspace } from "@/features/business-intelligence/data/get-business-intelligence-segment-workspace"
 import { buildBusinessIntelligenceWorkspaceAdapter } from "@/features/business-intelligence/data/build-business-intelligence-workspace-adapter"
 import { resolveBusinessIntelligenceRoute } from "@/features/business-intelligence/data/resolve-business-intelligence-route"
-import { SegmentCatalogLandingDesktop } from "@/features/business-intelligence/catalog/SegmentCatalogLandingDesktop"
-import { SegmentCatalogLandingMobile } from "@/features/business-intelligence/catalog/SegmentCatalogLandingMobile"
 import { BusinessIntelligenceEntryGate } from "@/features/business-intelligence/session/BusinessIntelligenceEntryGate"
 import { BusinessIntelligenceSessionTracker } from "@/features/business-intelligence/session/BusinessIntelligenceSessionTracker"
 import { BusinessIntelligenceErrorState } from "@/features/business-intelligence/states/BusinessIntelligenceErrorState"

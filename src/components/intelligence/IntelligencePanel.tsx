@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { usePathname } from "next/navigation"
 import { useMemo, useState, useEffect, useCallback } from "react"
 import {
@@ -17,19 +18,40 @@ import { PanelActivity } from "./PanelActivity"
 import { PanelKeyContacts } from "./PanelKeyContacts"
 import { IconButton } from "@/components/ui/IconButton"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { PitchMailDrawerContent, SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
-import {
-  IntelligenceActionResultContent,
-  isDeterministicIntelligenceAction,
-} from "./action-results/IntelligenceActionResultContent"
+import { isDeterministicIntelligenceAction } from "./action-results/deterministic-actions"
 import {
   applyCommunicationEntryPoint,
   buildDefaultBrief,
 } from "@/components/accounts-contacts/intelligence/communication-brief-options"
-import { MissionComposerDesktop } from "@/features/intelligence-missions/components/MissionComposerDesktop"
 import { MISSION_COMPOSER_ACTION_CONFIGS } from "@/features/intelligence-missions/components/mission-composer-model"
 import { MATCHING_COMPOSER_ACTION_ID } from "@/lib/intelligence/matching-composer-action"
-import { MatchingComposer } from "@/components/intelligence/matching/MatchingComposer"
+
+// Composeurs et tiroirs d'action chargés à la demande (audit d'ouverture des pages,
+// O-7) : ils ne s'affichent qu'après le choix d'une action, mais le panneau fait
+// partie de la chrome Desktop chargée sur toutes les pages.
+const PitchMailDrawerContent = dynamic(() =>
+  import("@/components/accounts-contacts/intelligence/IntelligenceActionDrawers").then(
+    (m) => m.PitchMailDrawerContent,
+  ),
+)
+const SummaryDrawerContent = dynamic(() =>
+  import("@/components/accounts-contacts/intelligence/IntelligenceActionDrawers").then(
+    (m) => m.SummaryDrawerContent,
+  ),
+)
+const MissionComposerDesktop = dynamic(() =>
+  import("@/features/intelligence-missions/components/MissionComposerDesktop").then(
+    (m) => m.MissionComposerDesktop,
+  ),
+)
+const IntelligenceActionResultContent = dynamic(() =>
+  import("./action-results/IntelligenceActionResultContent").then(
+    (m) => m.IntelligenceActionResultContent,
+  ),
+)
+const MatchingComposer = dynamic(() =>
+  import("@/components/intelligence/matching/MatchingComposer").then((m) => m.MatchingComposer),
+)
 
 type AccountPanelAction = "pitch" | "summary" | string | null
 

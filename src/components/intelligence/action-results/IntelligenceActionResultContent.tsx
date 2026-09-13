@@ -40,26 +40,13 @@ import { AutomationFixesResult } from "./AutomationFixesResult"
 import { SkillsVsNeedsResult } from "./SkillsVsNeedsResult"
 import { CockpitBrightHeader, CockpitBrightSection } from "../CockpitBrightSection"
 
-export const DETERMINISTIC_INTELLIGENCE_ACTION_IDS = [
-  "action_priorities",
-  "prepare_day",
-  "detect_risks",
-  "analyze_activity",
-  "pipeline_insights",
-  "forecast_revenue",
-  "prioritize_pipeline",
-  "analyze_needs",
-  "scan_contacts",
-  "analyze_funnel",
-  "analyze_margins",
-  "upcoming_deadlines",
-  "analyze_automation_errors",
-  "analyze_automation_costs",
-  "prioritize_automation_fixes",
-  "skills_vs_needs",
-] as const
+export {
+  DETERMINISTIC_INTELLIGENCE_ACTION_IDS,
+  isDeterministicIntelligenceAction,
+  type DeterministicIntelligenceActionId,
+} from "./deterministic-actions"
+import type { DeterministicIntelligenceActionId } from "./deterministic-actions"
 
-export type DeterministicIntelligenceActionId = typeof DETERMINISTIC_INTELLIGENCE_ACTION_IDS[number]
 
 type LoadedResult =
   | { id: "action_priorities"; data: ActionPrioritiesResultData }
@@ -79,9 +66,6 @@ type LoadedResult =
   | { id: "prioritize_automation_fixes"; data: AutomationFixesResultData }
   | { id: "skills_vs_needs"; data: SkillsVsNeedsResultData }
 
-export function isDeterministicIntelligenceAction(id: string): id is DeterministicIntelligenceActionId {
-  return DETERMINISTIC_INTELLIGENCE_ACTION_IDS.includes(id as DeterministicIntelligenceActionId)
-}
 
 function titleForAction(id: DeterministicIntelligenceActionId) {
   switch (id) {

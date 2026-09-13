@@ -1,8 +1,7 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getFinanceDashboardData } from "@/lib/finance/finance-data"
 import { getFinanceMobileDashboardData } from "@/lib/finance/finance-mobile-data"
-import { FinanceDesktopDashboard } from "./FinanceDesktopDashboard"
-import { FinanceMobileDashboard } from "./FinanceMobileDashboard"
+import { FinanceDesktopDashboard, FinanceMobileDashboard } from "./finance-device-views"
 
 // Server Component: le device décide du loader avant toute requête Finance.
 export async function SyntheseFinanceSection() {
