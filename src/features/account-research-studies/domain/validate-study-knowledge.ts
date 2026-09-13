@@ -6,6 +6,7 @@
 import {
   STUDY_KNOWLEDGE_FORMAT,
   STUDY_KNOWLEDGE_VERSION,
+  STUDY_PRODUCERS,
   STUDY_QUALIFICATIONS,
   STUDY_SECTION_KEYS,
   type AccountStudyKnowledge,
@@ -21,6 +22,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const SECTION_SET = new Set<string>(STUDY_SECTION_KEYS)
 const QUALIFICATION_SET = new Set<string>(STUDY_QUALIFICATIONS)
+const PRODUCER_SET = new Set<string>(STUDY_PRODUCERS)
 
 export function validateStudyKnowledge(raw: unknown): StudyKnowledgeValidation {
   const issues: string[] = []
@@ -28,6 +30,11 @@ export function validateStudyKnowledge(raw: unknown): StudyKnowledgeValidation {
   if (raw.format !== STUDY_KNOWLEDGE_FORMAT) issues.push(`format attendu : ${STUDY_KNOWLEDGE_FORMAT}.`)
   if (raw.version !== STUDY_KNOWLEDGE_VERSION) issues.push(`version attendue : ${STUDY_KNOWLEDGE_VERSION}.`)
   if (!isRecord(raw.study) || typeof raw.study.id !== "string") issues.push("study.id manquant.")
+  if (!isRecord(raw.study) || typeof raw.study.producer !== "string" || !PRODUCER_SET.has(raw.study.producer)) {
+    issues.push(
+      `study.producer invalide ou non supporté (${raw.study && isRecord(raw.study) ? String(raw.study.producer) : "manquant"} — attendu : ${STUDY_PRODUCERS.join(", ")}).`,
+    )
+  }
   if (!Array.isArray(raw.blocks)) issues.push("blocks doit être un tableau.")
   if (!Array.isArray(raw.statements)) issues.push("statements doit être un tableau.")
   if (!Array.isArray(raw.sources)) issues.push("sources doit être un tableau.")

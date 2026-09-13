@@ -5,7 +5,12 @@
 
 import { cn } from "@/lib/utils"
 
-import { STUDY_QUALIFICATION_LABELS, STUDY_QUALIFICATIONS, type StudyCoverage } from "../domain/study-contracts"
+import {
+  STUDY_QUALIFICATION_LABELS,
+  STUDY_QUALIFICATIONS,
+  type StudyCoverage,
+  type StudyProducer,
+} from "../domain/study-contracts"
 
 function Row({ ok, label, detail }: { ok: boolean | null; label: string; detail: string }) {
   return (
@@ -30,10 +35,18 @@ function Row({ ok, label, detail }: { ok: boolean | null; label: string; detail:
   )
 }
 
-export function StudyCoverageReport({ coverage }: { coverage: StudyCoverage }) {
+export function StudyCoverageReport({
+  coverage,
+  producer = "chatgpt_deep_research",
+}: {
+  coverage: StudyCoverage
+  producer?: StudyProducer
+}) {
   const qualifications = STUDY_QUALIFICATIONS.map(
     (q) => `${coverage.statements.by_qualification[q]} ${STUDY_QUALIFICATION_LABELS[q].toLowerCase()}`,
   ).join(" · ")
+
+  const isWork = producer === "chatgpt_work"
 
   return (
     <section aria-label="Rapport de couverture" className="rounded-lg border border-edito-border bg-edito-surface px-4 py-2">
@@ -63,11 +76,17 @@ export function StudyCoverageReport({ coverage }: { coverage: StudyCoverage }) {
         />
         <Row
           ok={coverage.sources.authorities_default_qualified === 0}
-          label={`${coverage.sources.authorities} sources (domaines) qualifiées au format E3`}
+          label={
+            isWork
+              ? `${coverage.sources.authorities} autorités (domaines) répertoriées`
+              : `${coverage.sources.authorities} sources (domaines) qualifiées au format E3`
+          }
           detail={
-            coverage.sources.authorities_default_qualified === 0
-              ? "Toutes qualifiées par la conversion."
-              : `${coverage.sources.authorities_default_qualified} qualifiée(s) par défaut (tier 4, découverte) : à revoir avant import.`
+            isWork
+              ? "Toutes les autorités identifiées dans le livrable Work sont associées à leurs documents."
+              : coverage.sources.authorities_default_qualified === 0
+                ? "Toutes qualifiées par la conversion."
+                : `${coverage.sources.authorities_default_qualified} qualifiée(s) par défaut (tier 4, découverte) : à revoir avant import.`
           }
         />
         <Row
@@ -76,9 +95,21 @@ export function StudyCoverageReport({ coverage }: { coverage: StudyCoverage }) {
           detail={`${qualifications}${coverage.statements.fallback_qualification ? ` · ${coverage.statements.fallback_qualification} qualification(s) non rendue(s)` : ""}. ${coverage.blocks.without_statement} bloc(s) de texte sans affirmation — leur texte reste lisible dans l'étude intégrale.`}
         />
         <Row
-          ok={coverage.registry.importable}
-          label={coverage.registry.importable ? "Fichier de sources importable comme corpus" : "Fichier de sources non importable"}
-          detail={coverage.registry.importable ? "Validé par le parseur du wizard « Importer un corpus »." : coverage.registry.errors.join(" ; ")}
+          ok={isWork && !coverage.registry.importable ? null : coverage.registry.importable}
+          label={
+            isWork && !coverage.registry.importable
+              ? "Corpus de sources — normalisation E3 à venir"
+              : coverage.registry.importable
+                ? "Fichier de sources importable comme corpus"
+                : "Fichier de sources non importable"
+          }
+          detail={
+            isWork && !coverage.registry.importable
+              ? "Étude valide. Le corpus de sources nécessite encore une normalisation avant son ajout à Gestion des sources."
+              : coverage.registry.importable
+                ? "Validé par le parseur du wizard « Importer un corpus »."
+                : coverage.registry.errors.join(" ; ")
+          }
         />
         {coverage.entity_conflicts.length > 0 ? (
           <Row

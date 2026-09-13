@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "corpus": {
+    "name": "Account Intelligence — ARKOPHARMA",
+    "account_name": "ARKOPHARMA",
+    "scope": "Toutes activités du groupe Arkopharma dans le monde",
+    "geography": "France et international",
+    "generated_at": "2026-09-13T00:00:00+02:00"
+  },
+  "sources": [
+    {
+      "name": "Arkopharma",
+      "domain": "arkopharma.com",
+      "publisher": "Groupe Arkopharma",
+      "source_type": "company_official",
+      "description": "Sites corporate internationaux d'Arkopharma, utiles pour l'offre, l'empreinte commerciale, les politiques groupe, la RSE, les carrières et les déclarations de l'entreprise.",
+      "information_types": ["company_profile", "products", "geographies", "workforce", "governance", "csr", "careers"],
+      "primary_language": "fr",
+      "primary_geography": "international",
+      "confidence": 0.88,
+      "documents_used": [
+        {"source_ref": "src-01", "title": "Arkopharma, global leader in natural health solutions", "url": "https://www.arkopharma.com/en-GB/arkopharma-global-leader-natural-health-solutions", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["identity", "customers_and_market"]},
+        {"source_ref": "src-02", "title": "Arkopharma CSR Report 2023", "url": "https://www.arkopharma.com/sites/default/files/ARKOPHARMA-RAPPORT%20RSE%202023%20EN.pdf", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "business_and_offering", "value_chain_and_dependencies", "implications_for_kredo"]},
+        {"source_ref": "src-08", "title": "Politique Groupe Arkopharma 2025", "url": "https://www.arkopharma.com/sites/default/files/Politique_Groupe%20Arkopharma%20V2_2025_%20FR%201.pdf", "published_at": "2025-02-11", "consulted_at": "2026-09-13", "used_in_sections": ["identity", "history_ambitions_and_news"]},
+        {"source_ref": "src-09", "title": "Arkopharma — Nous rejoindre", "url": "https://fr.arkopharma.com/pages/nous-rejoindre", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["identity"]},
+        {"source_ref": "src-10", "title": "Arkopharma — Des collaborateurs engagés", "url": "https://fr.arkopharma.com/pages/des-collaborateurs-engages", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["identity"]}
+      ]
+    },
+    {
+      "name": "Arkopharma France — recrutement",
+      "domain": "arkopharma.fr",
+      "publisher": "Laboratoires Arkopharma",
+      "source_type": "company_official",
+      "description": "Flux de recrutement opérationnel d'Arkopharma France, utile pour les postes ouverts, leurs dates, les compétences recherchées et les technologies citées.",
+      "information_types": ["job_postings", "digital_skills", "technology_signals", "organisation"],
+      "primary_language": "fr",
+      "primary_geography": "France",
+      "confidence": 0.78,
+      "documents_used": [
+        {"source_ref": "src-11", "title": "Arkopharma — Flux des offres d'emploi", "url": "https://arkopharma.fr/RH/offres-emploi.php", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "identity", "business_and_offering", "value_chain_and_dependencies", "history_ambitions_and_news", "implications_for_kredo"]}
+      ]
+    },
+    {
+      "name": "Pappers",
+      "domain": "pappers.fr",
+      "publisher": "Pappers",
+      "source_type": "regulatory_filing",
+      "description": "Plateforme française d'accès aux données légales, dirigeants, établissements, comptes déposés et indicateurs financiers des sociétés immatriculées.",
+      "information_types": ["legal_identity", "registry_data", "governance", "financial_statements", "workforce", "establishments"],
+      "primary_language": "fr",
+      "primary_geography": "France",
+      "confidence": 0.95,
+      "documents_used": [
+        {"source_ref": "src-03", "title": "Pappers — Laboratoires Arkopharma", "url": "https://www.pappers.fr/entreprise/laboratoires-arkopharma-307378489", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "identity", "business_and_offering", "history_ambitions_and_news"]},
+        {"source_ref": "src-04", "title": "Laboratoires Arkopharma — Comptes sociaux 2024", "url": "https://www.pappers.fr/entreprise/laboratoires-arkopharma-307378489/comptes/LABORATOIRES%20ARKOPHARMA%20-%20Comptes%20sociaux%202024%2003-09-2025.pdf", "published_at": "2025-09-03", "consulted_at": "2026-09-13", "used_in_sections": ["business_and_offering"]},
+        {"source_ref": "src-17", "title": "Pappers — PiLeJe", "url": "https://www.pappers.fr/entreprise/pileje-950450452", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["competition_and_positioning"]},
+        {"source_ref": "src-18", "title": "Pappers — Laboratoire Nutergia", "url": "https://www.pappers.fr/entreprise/laboratoire-nutergia-006380042", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["competition_and_positioning"]}
+      ]
+    },
+    {
+      "name": "Dermapharm Investor Relations",
+      "domain": "ir.dermapharm.de",
+      "publisher": "Dermapharm Holding SE",
+      "source_type": "regulatory_filing",
+      "description": "Site investisseurs de Dermapharm, utile pour les rapports annuels, résultats périodiques, périmètres de consolidation, acquisitions, stratégie, risques et perspectives du groupe.",
+      "information_types": ["annual_reports", "financial_results", "subsidiaries", "acquisitions", "strategy", "risk_factors", "press_releases"],
+      "primary_language": "en",
+      "primary_geography": "Europe",
+      "confidence": 0.98,
+      "documents_used": [
+        {"source_ref": "src-05", "title": "Dermapharm Annual Report 2022", "url": "https://ir.dermapharm.de/fileadmin/Dermapharm-se/Dokumenten/Dokumenten_EN/Investor_Relations_EN/Annual_general_meeting/2023/Documents/Dermapharm-AnnualReport2022_EN.pdf", "published_at": "2023-03-28", "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "identity", "business_and_offering", "customers_and_market", "value_chain_and_dependencies", "history_ambitions_and_news"]},
+        {"source_ref": "src-06", "title": "Dermapharm Annual Report 2025", "url": "https://ir.dermapharm.de/fileadmin/Dermapharm-se/Dokumenten/Dokumenten_EN/Investor_Relations_EN/Annual_general_meeting/2026/Documents/DERMAPHARM_ANNUAL_REPORT_2025.pdf", "published_at": "2026-03-31", "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "identity", "business_and_offering", "value_chain_and_dependencies", "history_ambitions_and_news", "implications_for_kredo"]},
+        {"source_ref": "src-07", "title": "Dermapharm confirms profitable growth in H1 2026 and increases adjusted EBITDA", "url": "https://ir.dermapharm.de/fileadmin/Dermapharm-se/Dokumenten/Dokumenten_EN/Investor_Relations_EN/Financial_News/Latest_News/CN_Dermapharm_confirms_profitable_growth_in_H1_2026_and_increases_adjusted_EBITDA_24-08-2026.pdf", "published_at": "2026-08-25", "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "history_ambitions_and_news", "implications_for_kredo"]}
+      ]
+    },
+    {
+      "name": "Synadiet",
+      "domain": "synadiet.org",
+      "publisher": "Syndicat national des compléments alimentaires",
+      "source_type": "specialised_study",
+      "description": "Organisation professionnelle française des compléments alimentaires, utile pour les données de marché, canaux, tendances sectorielles, réglementation et offres d'emploi de ses membres.",
+      "information_types": ["market_size", "sales_channels", "consumer_trends", "regulation", "industry_jobs"],
+      "primary_language": "fr",
+      "primary_geography": "France",
+      "confidence": 0.89,
+      "documents_used": [
+        {"source_ref": "src-12", "title": "Synadiet — Alternant IT Automatisation Intelligence Artificielle Arkopharma", "url": "https://www.synadiet.org/offres-emploi/laboratoires-arkopharma-alternant-it-automatisation-intelligence-artificielle-h-f/", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "value_chain_and_dependencies", "history_ambitions_and_news", "implications_for_kredo"]},
+        {"source_ref": "src-13", "title": "Synadiet — La consommation des compléments alimentaires", "url": "https://www.synadiet.org/les-complements-alimentaires/leur-consommation/", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["customers_and_market"]}
+      ]
+    },
+    {
+      "name": "IQVIA France",
+      "domain": "iqvia.com",
+      "publisher": "IQVIA",
+      "source_type": "specialised_study",
+      "description": "Source d'analyses de marché de la santé fondées sur des panels de vente, utile pour les tailles de marché, canaux, catégories, lancements et dynamiques de consommation.",
+      "information_types": ["market_size", "growth_rates", "sales_channels", "category_trends", "product_launches"],
+      "primary_language": "fr",
+      "primary_geography": "France",
+      "confidence": 0.94,
+      "documents_used": [
+        {"source_ref": "src-14", "title": "IQVIA — Compléments alimentaires en France", "url": "https://www.iqvia.com/fr-fr/locations/france/blogs/2026/04/complements-alimentaires-en-france", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["customers_and_market", "implications_for_kredo"]}
+      ]
+    },
+    {
+      "name": "AESGP",
+      "domain": "aesgp.eu",
+      "publisher": "Association of the European Self-Care Industry",
+      "source_type": "specialised_study",
+      "description": "Association européenne de l'autosoins, utile pour les études de marché, cadres réglementaires, comportements consommateurs, durabilité et enjeux des produits de santé grand public.",
+      "information_types": ["european_market", "regulation", "consumer_research", "sustainability", "industry_risks"],
+      "primary_language": "en",
+      "primary_geography": "Europe",
+      "confidence": 0.9,
+      "documents_used": [
+        {"source_ref": "src-15", "title": "AESGP and EPPA Food Supplements Market Report 2025", "url": "https://aesgp.eu/content/uploads/2025/11/EPPA_AESGP_FS_market_report_2025.pdf", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["customers_and_market", "value_chain_and_dependencies", "implications_for_kredo"]}
+      ]
+    },
+    {
+      "name": "Le Monde",
+      "domain": "lemonde.fr",
+      "publisher": "Société éditrice du Monde",
+      "source_type": "press",
+      "description": "Presse généraliste et économique française reconnue, utile pour les tendances de marché, opérations d'entreprise, concurrence, déclarations de dirigeants et contexte sectoriel.",
+      "information_types": ["market_trends", "competition", "executive_quotes", "corporate_news"],
+      "primary_language": "fr",
+      "primary_geography": "France",
+      "confidence": 0.88,
+      "documents_used": [
+        {"source_ref": "src-16", "title": "Le Monde — Les compléments alimentaires attisent les convoitises", "url": "https://www.lemonde.fr/economie/article/2025/05/25/les-complements-alimentaires-attisent-les-convoitises_6608273_3234.html", "published_at": "2025-05-25", "consulted_at": "2026-09-13", "used_in_sections": ["competition_and_positioning"]}
+      ]
+    },
+    {
+      "name": "Havea Group",
+      "domain": "havea.com",
+      "publisher": "Havea Group",
+      "source_type": "company_official",
+      "description": "Site corporate de Havea, utile pour les marques, chiffres clés, canaux, empreinte internationale, positionnement et histoire du groupe de santé naturelle.",
+      "information_types": ["company_profile", "brands", "financial_highlights", "workforce", "geographies", "sales_channels"],
+      "primary_language": "en",
+      "primary_geography": "Europe",
+      "confidence": 0.87,
+      "documents_used": [
+        {"source_ref": "src-19", "title": "Havea Group — Home", "url": "https://www.havea.com/en/", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["competition_and_positioning"]}
+      ]
+    },
+    {
+      "name": "Olyos Group",
+      "domain": "olyos.com",
+      "publisher": "Olyos Group",
+      "source_type": "company_official",
+      "description": "Site corporate d'Olyos, utile pour les entités, marques, chiffres clés, présence internationale, production, stratégie de croissance et positionnement en santé naturelle.",
+      "information_types": ["company_profile", "brands", "financial_highlights", "geographies", "manufacturing", "strategy"],
+      "primary_language": "fr",
+      "primary_geography": "international",
+      "confidence": 0.84,
+      "documents_used": [
+        {"source_ref": "src-20", "title": "Olyos Group — Présentation et chiffres clés", "url": "https://olyos.com/", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["competition_and_positioning"]}
+      ]
+    },
+    {
+      "name": "Reig Jofre",
+      "domain": "reigjofre.com",
+      "publisher": "Laboratorio Reig Jofre SA",
+      "source_type": "company_official",
+      "description": "Site corporate et investisseurs de Reig Jofre, utile pour les résultats, unités d'affaires, marques, production, innovation, géographies et stratégie du groupe pharmaceutique.",
+      "information_types": ["financial_results", "business_units", "brands", "manufacturing", "innovation", "geographies"],
+      "primary_language": "es",
+      "primary_geography": "international",
+      "confidence": 0.91,
+      "documents_used": [
+        {"source_ref": "src-21", "title": "Reig Jofre — Quiénes somos", "url": "https://reigjofre.com/es/quienes-somos/", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["competition_and_positioning"]}
+      ]
+    },
+    {
+      "name": "Procter & Gamble Investor Relations",
+      "domain": "pginvestor.com",
+      "publisher": "The Procter & Gamble Company",
+      "source_type": "regulatory_filing",
+      "description": "Site investisseurs de Procter & Gamble, utile pour les résultats, segments, marques, stratégie, risques et perspectives du groupe mondial de biens de consommation.",
+      "information_types": ["financial_results", "business_segments", "brands", "strategy", "risk_factors"],
+      "primary_language": "en",
+      "primary_geography": "international",
+      "confidence": 0.97,
+      "documents_used": [
+        {"source_ref": "src-22", "title": "Procter & Gamble Fiscal Year 2026 Results", "url": "https://www.pginvestor.com/news/news-details/2026/PG-Announces-Fourth-Quarter-and-Fiscal-Year-2026-Results/default.aspx", "published_at": "2026-07-29", "consulted_at": "2026-09-13", "used_in_sections": ["competition_and_positioning"]}
+      ]
+    },
+    {
+      "name": "CSC Global",
+      "domain": "cscglobal.com",
+      "publisher": "Corporation Service Company",
+      "source_type": "other",
+      "description": "Site d'un fournisseur de gestion de domaines et de protection de marques numériques, utile pour les études de cas, la gouvernance de portefeuille de domaines et la lutte contre les abus de marque.",
+      "information_types": ["vendor_case_studies", "domain_management", "brand_protection", "cybersecurity"],
+      "primary_language": "en",
+      "primary_geography": "international",
+      "confidence": 0.76,
+      "documents_used": [
+        {"source_ref": "src-23", "title": "CSC Digital Brand Services — Arkopharma Case Study", "url": "https://www.cscglobal.com/cscglobal/pdfs/ARKOPHARMA-Case-Study-FR.pdf", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "business_and_offering", "value_chain_and_dependencies"]}
+      ]
+    },
+    {
+      "name": "FeaturedCustomers",
+      "domain": "featuredcustomers.com",
+      "publisher": "FeaturedCustomers",
+      "source_type": "other",
+      "description": "Bibliothèque d'études de cas fournisseurs, utile pour repérer des projets clients déclarés, technologies, objectifs et résultats, avec nécessité de validation complémentaire et de contrôle de fraîcheur.",
+      "information_types": ["vendor_case_studies", "technology_projects", "customer_experience", "process_automation", "crm", "erp"],
+      "primary_language": "en",
+      "primary_geography": "international",
+      "confidence": 0.67,
+      "documents_used": [
+        {"source_ref": "src-24", "title": "Click2Buy — Arkopharma Success Story", "url": "https://cdn.featuredcustomers.com/CustomerCaseStudy.document/EN-ArkopharmaxClick2Buy-success-story-2.pdf", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "value_chain_and_dependencies"]},
+        {"source_ref": "src-25", "title": "Genpact — Arkopharma Case Study", "url": "https://cdn.featuredcustomers.com/CustomerCaseStudy.document/genpact_arkopharma_179192.pdf", "published_at": null, "consulted_at": "2026-09-13", "used_in_sections": ["synthesis", "value_chain_and_dependencies", "implications_for_kredo"]}
+      ]
+    },
+    {
+      "name": "La Tribune",
+      "domain": "latribune.fr",
+      "publisher": "La Tribune Nouvelle",
+      "source_type": "press",
+      "description": "Presse économique française, utile pour les interviews de dirigeants, résultats déclarés, stratégies, investissements et contexte de marché.",
+      "information_types": ["executive_interviews", "financial_highlights", "strategy", "market_context"],
+      "primary_language": "fr",
+      "primary_geography": "France",
+      "confidence": 0.85,
+      "documents_used": [
+        {"source_ref": "src-26", "title": "La Tribune — Eric Panijel, le marché européen est une nécessité pour notre croissance", "url": "https://www.latribune.fr/entreprises-finance/2021-02-12/eric-panijel-arkopharma-le-marche-europeen-est-une-necessite-pour-notre-croissance-877605.html", "published_at": "2021-02-12", "consulted_at": "2026-09-13", "used_in_sections": ["business_and_offering"]}
+      ]
+    },
+    {
+      "name": "FinancialReports.eu",
+      "domain": "financialreports.eu",
+      "publisher": "FinancialReports.eu",
+      "source_type": "other",
+      "description": "Archive de rapports financiers et dépôts d'entreprises cotées, utile pour retrouver des rapports annuels, comptes consolidés et documents réglementaires historiques.",
+      "information_types": ["annual_reports", "financial_results", "segment_reporting", "risk_factors"],
+      "primary_language": "en",
+      "primary_geography": "Europe",
+      "confidence": 0.9,
+      "documents_used": [
+        {"source_ref": "src-27", "title": "Dermapharm Annual Report 2024", "url": "https://cdn.financialreports.eu/financialreports/media/filings/97/2025/10-K/97_10-k_2025-03-28_853ee1d7-f1b3-4c60-96b2-9a679690760f.pdf", "published_at": "2025-03-28", "consulted_at": "2026-09-13", "used_in_sections": ["business_and_offering", "implications_for_kredo"]}
+      ]
+    }
+  ]
+}

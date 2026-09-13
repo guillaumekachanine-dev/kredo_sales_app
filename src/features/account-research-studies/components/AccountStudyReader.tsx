@@ -71,7 +71,11 @@ export function AccountStudyReader({
               isMobile ? "min-h-[44px]" : "min-h-8",
             )}
           >
-            {pending ? "Ouverture…" : "Ouvrir le PDF original"}
+            {pending
+              ? "Ouverture…"
+              : view.producer === "chatgpt_work" || view.fileName.toLowerCase().endsWith(".json")
+                ? "Ouvrir le JSON original"
+                : "Ouvrir le PDF original"}
           </button>
           {error ? <p role="alert" className="text-[11px] font-medium text-danger">{error}</p> : null}
         </div>

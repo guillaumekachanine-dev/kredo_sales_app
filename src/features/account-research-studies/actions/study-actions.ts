@@ -15,6 +15,14 @@ import {
   type StudyUploadTicket,
 } from "../data/study-intake"
 import {
+  createWorkStudyUploadTickets,
+  registerWorkStudyFromUpload,
+  type RegisterWorkStudyInput,
+  type RegisterWorkStudyResult,
+  type WorkStudyUploadFileInput,
+  type WorkStudyUploadTicketsResult,
+} from "../data/work-study-intake"
+import {
   getStudyConversionProgress,
   publishStudy,
   startStudyConversion,
@@ -73,4 +81,17 @@ export async function readStudyFileAction(
 
 export async function getStudyOriginalUrlAction(studyId: string): Promise<StudyActionResult<string>> {
   return run(() => getStudyOriginalUrl(studyId))
+}
+
+export async function requestWorkStudyUploadAction(input: {
+  companyId: string
+  files: [WorkStudyUploadFileInput, WorkStudyUploadFileInput]
+}): Promise<StudyActionResult<WorkStudyUploadTicketsResult>> {
+  return run(() => createWorkStudyUploadTickets(input))
+}
+
+export async function registerWorkStudyAction(
+  input: RegisterWorkStudyInput,
+): Promise<StudyActionResult<RegisterWorkStudyResult>> {
+  return run(() => registerWorkStudyFromUpload(input))
 }

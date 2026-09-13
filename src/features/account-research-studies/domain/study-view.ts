@@ -14,6 +14,7 @@ import {
   type AccountStudyKnowledge,
   type StudyBlockKind,
   type StudyEntity,
+  type StudyProducer,
   type StudyQualification,
   type StudySectionKey,
   type StudySourceType,
@@ -91,6 +92,7 @@ export type StudySectionView = {
 export type StudyReportView = {
   title: string
   fileName: string
+  producer: StudyProducer
   importedAt: string
   convertedAt: string
   entity: StudyEntity | null
@@ -166,6 +168,7 @@ export function buildStudyReportView(knowledge: AccountStudyKnowledge): StudyRep
   return {
     title: knowledge.study.title,
     fileName: knowledge.study.file_name,
+    producer: knowledge.study.producer,
     importedAt: knowledge.study.imported_at,
     convertedAt: knowledge.study.converted_at,
     entity: knowledge.entity,
@@ -175,7 +178,11 @@ export function buildStudyReportView(knowledge: AccountStudyKnowledge): StudyRep
     statementCounts,
     banner: {
       tone: sourced ? "sourced" : "alert",
-      title: sourced ? "Étude sourcée — ChatGPT Deep Research" : "Étude sans source citée",
+      title: sourced
+        ? (knowledge.study.producer === "chatgpt_work"
+          ? "Étude sourcée — ChatGPT Work"
+          : "Étude sourcée — ChatGPT Deep Research")
+        : "Étude sans source citée",
       body: sourced
         ? "Le texte de l'étude est restitué intégralement, section par section. Chaque affirmation qualifiée renvoie aux documents que l'étude cite."
         : "L'étude ne cite aucune URL : aucune affirmation ne peut être rattachée à une source consultable.",

@@ -11,6 +11,7 @@ import { formatDayMonthYear } from "@/lib/formatting/date-fr"
 import { cn } from "@/lib/utils"
 
 import type { AccountStudyState } from "../data/study-read"
+import type { StudyProducer } from "../domain/study-contracts"
 import { AccountStudyImportDialog } from "./AccountStudyImportDialog"
 
 const STATUS_LABELS: Record<string, string> = {
@@ -31,7 +32,7 @@ export function AccountStudyPanel({
   companyName: string
   isMobile?: boolean
 }) {
-  const [dialog, setDialog] = useState<{ studyId: string | null } | null>(null)
+  const [dialog, setDialog] = useState<{ studyId: string | null; producer?: string | null } | null>(null)
   const pending = state.recent.find((study) => !study.publishedAt) ?? null
   const current = state.current
 
@@ -62,7 +63,7 @@ export function AccountStudyPanel({
               Dernière étude : {pending.title} — {STATUS_LABELS[pending.status] ?? pending.status}
               <button
                 type="button"
-                onClick={() => setDialog({ studyId: pending.id })}
+                onClick={() => setDialog({ studyId: pending.id, producer: pending.producer })}
                 className="ml-2 font-bold text-edito-heading underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-brass/60"
               >
                 Ouvrir
@@ -78,7 +79,7 @@ export function AccountStudyPanel({
             isMobile ? "min-h-[44px] w-full" : "min-h-9",
           )}
         >
-          Importer une étude (PDF ChatGPT)
+          Importer une étude
         </button>
       </div>
 
@@ -90,6 +91,8 @@ export function AccountStudyPanel({
           companyId={companyId}
           companyName={companyName}
           initialStudyId={dialog.studyId}
+          initialProducer={dialog.producer as StudyProducer | null | undefined}
+          isMobile={isMobile}
         />
       ) : null}
     </>

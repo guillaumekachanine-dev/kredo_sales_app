@@ -15,8 +15,18 @@
 export const STUDY_KNOWLEDGE_FORMAT = "kredo.account-study-knowledge" as const
 export const STUDY_KNOWLEDGE_VERSION = 1 as const
 
-export const STUDY_PRODUCER = "chatgpt_deep_research" as const
-export type StudyProducer = typeof STUDY_PRODUCER
+export const STUDY_PRODUCER_DEEP_RESEARCH = "chatgpt_deep_research" as const
+export const STUDY_PRODUCER_WORK = "chatgpt_work" as const
+
+/** Producteur canonique du pipeline PDF historique */
+export const STUDY_PRODUCER = STUDY_PRODUCER_DEEP_RESEARCH
+
+export const STUDY_PRODUCERS = [
+  STUDY_PRODUCER_DEEP_RESEARCH,
+  STUDY_PRODUCER_WORK,
+] as const
+
+export type StudyProducer = (typeof STUDY_PRODUCERS)[number]
 
 /** Modèle d'exécution des passes de conversion (exécuteur `mission-001-run`). */
 export const STUDY_CONVERSION_MODEL = "claude-sonnet-5" as const

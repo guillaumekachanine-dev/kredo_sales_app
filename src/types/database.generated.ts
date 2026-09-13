@@ -8563,6 +8563,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_account_understanding_context: {
+        Args: { p_company_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       get_activity_commercial_facts: {
         Args: {
           p_as_of_date?: string

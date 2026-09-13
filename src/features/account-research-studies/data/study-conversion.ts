@@ -16,7 +16,7 @@ import { saveResult, updateRunN8nIds, updateRunStatus } from "@/lib/n8n/runs"
 import { triggerN8nRun } from "@/lib/n8n/trigger-run"
 import type { N8nCallbackPayload } from "@/lib/n8n/types"
 import type { Json } from "@/types/database"
-import { parseSourceRegistryOutput } from "@/features/source-management/domain/source-registry-output"
+import { validateStudyPublicationPolicy } from "../domain/study-publication-policy"
 
 import { assembleStudyKnowledge } from "../domain/assemble-study-knowledge"
 import { prepareStudyStructure, readExtractionMeta } from "../domain/prepare-study-structure"
@@ -27,6 +27,7 @@ import {
   type StudyConversionPartKind,
   type StudyConversionState,
   type StudyCoverage,
+  type StudyProducer,
 } from "../domain/study-contracts"
 import {
   parseBlocksPartOutput,
@@ -397,25 +398,20 @@ export async function publishStudy(studyId: string): Promise<void> {
   const actor = await requireStudyActor()
   const { data: study } = await actor.supabase
     .from("account_research_studies")
-    .select("status,published_at,knowledge_json,sources_registry_json")
+    .select("producer,status,published_at,knowledge_json,sources_registry_json")
     .eq("id", studyId)
     .maybeSingle()
   if (!study) throw new Error("Étude introuvable.")
-  if (study.status !== "ready" || study.published_at) {
-    throw new Error("Seule une étude convertie et non encore publiée peut être publiée.")
-  }
 
-  const knowledge = validateStudyKnowledge(study.knowledge_json)
-  if (!knowledge.ok) throw new Error(`Publication bloquée : briques invalides (${knowledge.issues[0]}).`)
-  if (!knowledge.value.coverage.text.identical) {
-    throw new Error("Publication bloquée : l’intégrité du texte source n’est pas démontrée.")
-  }
-  if (!knowledge.value.coverage.registry.importable) {
-    throw new Error("Publication bloquée : le registre de sources E3 n’est pas importable.")
-  }
-  const registry = parseSourceRegistryOutput(study.sources_registry_json)
-  if (!registry.ok) {
-    throw new Error(`Publication bloquée : registre E3 invalide (${registry.errors[0]?.message ?? "erreur inconnue"}).`)
+  const policy = validateStudyPublicationPolicy({
+    producer: (study.producer as StudyProducer) ?? "chatgpt_deep_research",
+    status: study.status,
+    publishedAt: study.published_at,
+    knowledgeJson: study.knowledge_json,
+    sourcesRegistryJson: study.sources_registry_json,
+  })
+  if (!policy.ok) {
+    throw new Error(policy.reason)
   }
 
   const { data, error } = await actor.supabase

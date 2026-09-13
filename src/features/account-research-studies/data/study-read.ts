@@ -6,13 +6,20 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { Database } from "@/types/database"
 
-import { STUDY_STORAGE_BUCKET, type AccountStudyKnowledge, type StudyCoverage, type StudyStatus } from "../domain/study-contracts"
+import {
+  STUDY_STORAGE_BUCKET,
+  type AccountStudyKnowledge,
+  type StudyCoverage,
+  type StudyProducer,
+  type StudyStatus,
+} from "../domain/study-contracts"
 import { validateStudyKnowledge } from "../domain/validate-study-knowledge"
 import { getStudyServiceClient, requireStudyActor } from "./study-server"
 
 export type AccountStudySummary = {
   id: string
   title: string
+  producer: StudyProducer
   status: StudyStatus
   createdAt: string
   publishedAt: string | null
@@ -32,6 +39,7 @@ export type AccountStudyState = {
 type RecentRow = {
   id: string
   title: string
+  producer: StudyProducer
   status: StudyStatus
   created_at: string
   published_at: string | null
@@ -59,7 +67,7 @@ export async function getAccountStudyState(
       .maybeSingle(),
     supabase
       .from("account_research_studies")
-      .select("id,title,status,created_at,published_at,error_message,coverage")
+      .select("id,title,status,created_at,published_at,error_message,coverage,producer")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(5)
@@ -88,6 +96,7 @@ export async function getAccountStudyState(
     recent: (recentResult.data ?? []).map((row) => ({
       id: row.id,
       title: row.title,
+      producer: (row.producer as StudyProducer) ?? "chatgpt_deep_research",
       status: row.status,
       createdAt: row.created_at,
       publishedAt: row.published_at,
@@ -107,7 +116,7 @@ export async function readStudyFile(studyId: string, kind: StudyFileKind): Promi
     .eq("id", studyId)
     .maybeSingle()
   if (!data) throw new Error("Étude introuvable.")
-  const base = data.original_file_name.replace(/\.pdf$/i, "")
+  const base = data.original_file_name.replace(/\.(pdf|json)$/i, "")
 
   if (kind === "raw") return { fileName: `${base} — texte intégral.md`, content: data.raw_content }
   if (kind === "knowledge") {
@@ -118,7 +127,7 @@ export async function readStudyFile(studyId: string, kind: StudyFileKind): Promi
   return { fileName: `${base} — sources E3.json`, content: JSON.stringify(data.sources_registry_json, null, 2) }
 }
 
-/** URL signée (10 min) vers le PDF original, octet pour octet. */
+/** URL signée (10 min) vers le fichier original (PDF ou JSON), octet pour octet. */
 export async function getStudyOriginalUrl(studyId: string): Promise<string> {
   const actor = await requireStudyActor()
   const { data } = await actor.supabase
@@ -130,6 +139,6 @@ export async function getStudyOriginalUrl(studyId: string): Promise<string> {
   const { data: signed, error } = await getStudyServiceClient()
     .storage.from(STUDY_STORAGE_BUCKET)
     .createSignedUrl(data.original_file_path, 600)
-  if (error || !signed) throw new Error(`Lien vers le PDF impossible : ${error?.message ?? "réponse vide"}.`)
+  if (error || !signed) throw new Error(`Lien vers le fichier original impossible : ${error?.message ?? "réponse vide"}.`)
   return signed.signedUrl
 }
