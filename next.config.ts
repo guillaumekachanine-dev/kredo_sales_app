@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import type { NextConfig } from "next";
+import { LEGACY_PERMANENT_REDIRECTS } from "./src/lib/navigation/legacy-redirects";
 
 // Dossiers d'assets statiques stables (icônes, logos, images de marque). Servis
 // tels quels depuis /public : on les cache agressivement côté CDN + navigateur.
@@ -38,6 +39,15 @@ const nextConfig: NextConfig = {
     // (défaut Next = 60 s → réoptimisation quasi permanente). Nos sources d'icônes
     // sont stables, donc aucune raison de réoptimiser à chaque requête.
     minimumCacheTTL: 31536000,
+  },
+  // Routes historiques : 308 servi avant tout rendu (audit d'ouverture des pages, O-5).
+  // Table et exclusions documentées dans src/lib/navigation/legacy-redirects.ts.
+  async redirects() {
+    return LEGACY_PERMANENT_REDIRECTS.map(({ source, destination }) => ({
+      source,
+      destination,
+      permanent: true,
+    }));
   },
   async headers() {
     return [

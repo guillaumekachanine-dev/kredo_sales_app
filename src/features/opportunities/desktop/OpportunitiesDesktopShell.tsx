@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { useSearchParams } from "next/navigation"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailEntry } from "@/lib/navigation/section-rail"
 import {
@@ -8,6 +9,7 @@ import {
   HEADER_TITLE_BY_SECTION,
   OPPORTUNITIES_CANONICAL_PATH,
   OPPORTUNITIES_SECTIONS,
+  parseOpportunitiesSection,
   type OpportunitiesSection,
 } from "../navigation/opportunities-sections"
 import {
@@ -113,5 +115,22 @@ export function OpportunitiesDesktopShell({
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </section>
     </div>
+  )
+}
+
+// Monté par `app/(app)/missions/opps/(workspace)/layout.tsx` (audit d'ouverture des
+// pages, O-1) : le chrome s'affiche avant les données et reste en place d'un
+// chapitre à l'autre. Section active et query courante relues dans l'URL par les
+// mêmes fonctions pures que la page.
+export function OpportunitiesDesktopFrame({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams()
+
+  return (
+    <OpportunitiesDesktopShell
+      activeSection={parseOpportunitiesSection(searchParams)}
+      searchParamsString={searchParams.toString()}
+    >
+      {children}
+    </OpportunitiesDesktopShell>
   )
 }

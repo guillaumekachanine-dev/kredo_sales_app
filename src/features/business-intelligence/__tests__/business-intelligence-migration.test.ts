@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs"
+import { LEGACY_PERMANENT_REDIRECTS } from "@/lib/navigation/legacy-redirects"
 import { describe, expect, it } from "vitest"
 import {
   getActiveModuleHref,
@@ -27,15 +28,16 @@ describe("Business Intelligence migration", () => {
     expect(mobileBottomNav).not.toContain('label: "Intelligence"')
   })
 
+  // Audit d'ouverture des pages (O-5) : redirections servies par next.config.ts,
+  // avant tout rendu, au lieu d'une page.tsx rendue sous (app)/loading.tsx.
   it.each([
-    "src/app/(app)/prospection/page.tsx",
-    "src/app/(app)/prospection/approche-sectorielle/page.tsx",
-    "src/app/(app)/prospection/approche-sectorielle/[slug]/page.tsx",
-    "src/app/(app)/prospection/sector-studies/page.tsx",
-  ])("redirige définitivement la route legacy %s", (path) => {
-    const source = read(path)
-    expect(source).toContain('import { permanentRedirect } from "next/navigation"')
-    expect(source).toContain('permanentRedirect("/intelligence")')
+    ["/prospection", "src/app/(app)/prospection/page.tsx"],
+    ["/prospection/approche-sectorielle", "src/app/(app)/prospection/approche-sectorielle/page.tsx"],
+    ["/prospection/approche-sectorielle/:slug", "src/app/(app)/prospection/approche-sectorielle/[slug]/page.tsx"],
+    ["/prospection/sector-studies", "src/app/(app)/prospection/sector-studies/page.tsx"],
+  ])("redirige définitivement la route legacy %s", (source, pagePath) => {
+    expect(LEGACY_PERMANENT_REDIRECTS).toContainEqual({ source, destination: "/intelligence" })
+    expect(existsSync(pagePath)).toBe(false)
   })
 
   it("migre les liens legacy sans toucher aux sous-routes CRM", () => {

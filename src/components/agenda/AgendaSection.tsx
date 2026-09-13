@@ -1,27 +1,19 @@
-import { Suspense } from "react"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { AgendaDesktopPage } from "./AgendaDesktopPage"
-import { AgendaDesktopSkeleton } from "./AgendaDesktopSkeleton"
 import { AgendaMobilePage } from "./AgendaMobilePage"
 
 interface AgendaSectionProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
+// Le squelette est porté par `app/(app)/agenda/loading.tsx`, par device : plus de
+// `<Suspense>` ici, qui ajoutait un second squelette après celui de la route.
 export async function AgendaSection({ searchParams }: AgendaSectionProps) {
   const device = await getDashboardDevice()
 
   if (device === "mobile") {
-    return (
-      <Suspense fallback={<AgendaDesktopSkeleton />}>
-        <AgendaMobilePage searchParams={searchParams} />
-      </Suspense>
-    )
+    return <AgendaMobilePage searchParams={searchParams} />
   }
 
-  return (
-    <Suspense fallback={<AgendaDesktopSkeleton />}>
-      <AgendaDesktopPage searchParams={searchParams} />
-    </Suspense>
-  )
+  return <AgendaDesktopPage searchParams={searchParams} />
 }

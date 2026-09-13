@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { useSearchParams } from "next/navigation"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailEntry } from "@/lib/navigation/section-rail"
 import {
@@ -8,6 +9,7 @@ import {
   buildConsultantsSectionHref,
   CONSULTANTS_DESKTOP_CHAPTERS,
   HEADER_TITLE_BY_SECTION,
+  resolveConsultantsDesktopEntry,
   type ConsultantsContextualModule,
   type ConsultantsDesktopChapter,
   type ConsultantsSection,
@@ -29,9 +31,11 @@ import { PoolCompetencesDesktop } from "../modules/pool-competences/desktop/Pool
 import type { ConsultantsSkillsData } from "../data/get-consultants-skills"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Shell Desktop du Consultants Workspace — chrome uniquement (navigation
-//  secondaire verticale `SectionRail` + header). Le contenu de la
-//  section active est composé côté serveur et passé en `children`.
+//  Shell Desktop du Consultants Workspace, en trois pièces :
+//   - `ConsultantsDesktopShell` — chrome pur (rail `SectionRail` + header) ;
+//   - `ConsultantsDesktopFrame` — le même chrome piloté par l'URL, monté par le
+//     layout (audit d'ouverture des pages, O-1) ;
+//   - `ConsultantsDesktopModules` — overlays des modules, montés par la page.
 //
 //  SHELL-0018 V2 : chapeau navy = titre de page (« Consultants ») ; le header
 //  de la zone principale affiche toujours le nom exact du chapitre actif.
@@ -52,20 +56,14 @@ const ICON_BY_SECTION: Record<ConsultantsSection, ReactNode> = {
 interface ConsultantsDesktopShellProps {
   activeSection: ConsultantsDesktopChapter
   activeModule?: ConsultantsContextualModule | null
-  poolSkillsData?: ConsultantsSkillsData | null
-  productionLeaveVm?: ProductionLeaveViewModel | null
-  profileMatchingVm?: ProfileMatchingViewModel | null
-  initialPersonId?: string | null
   children?: ReactNode
 }
 
+// Chrome pur (rail + header), sans aucune donnée. Rendu par `ConsultantsDesktopFrame`
+// depuis le layout du module — audit d'ouverture des pages, O-1.
 export function ConsultantsDesktopShell({
   activeSection,
   activeModule,
-  poolSkillsData,
-  productionLeaveVm,
-  profileMatchingVm,
-  initialPersonId,
   children,
 }: ConsultantsDesktopShellProps) {
   const chapters: SectionRailEntry[] = CONSULTANTS_DESKTOP_CHAPTERS.map((entry) => ({
@@ -76,31 +74,27 @@ export function ConsultantsDesktopShell({
     active: !entry.external && entry.key === activeSection,
   }))
 
-  const isPoolCompetencesActive = activeModule === "pool-competences"
-  const isProductionCongesActive = activeModule === "production-conges"
-  const isMatchingProfilActive = activeModule === "matching-profil"
-
   const contextualModules: SectionRailEntry[] = [
     {
       key: "pool-competences",
       label: "Pool de compétences",
       icon: <PoolCompetencesIcon />,
       href: buildConsultantsModuleHref(activeSection, "pool-competences"),
-      active: isPoolCompetencesActive,
+      active: activeModule === "pool-competences",
     },
     {
       key: "production-conges",
       label: "Production & Congés",
       icon: <ProductionCongesIcon />,
       href: buildConsultantsModuleHref(activeSection, "production-conges"),
-      active: isProductionCongesActive,
+      active: activeModule === "production-conges",
     },
     {
       key: "matching-profil",
       label: "Matching Profil",
       icon: <MatchingProfilIcon />,
       href: buildConsultantsModuleHref(activeSection, "matching-profil"),
-      active: isMatchingProfilActive,
+      active: activeModule === "matching-profil",
     },
   ]
 
@@ -123,31 +117,70 @@ export function ConsultantsDesktopShell({
 
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </section>
+    </div>
+  )
+}
 
+// Monté par `app/(app)/consultants/layout.tsx`. L'état actif est relu dans l'URL par
+// la MÊME fonction pure que la page (`resolveConsultantsDesktopEntry`) : le rail et
+// le contenu ne peuvent pas diverger.
+export function ConsultantsDesktopFrame({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams()
+  const entry = resolveConsultantsDesktopEntry(
+    searchParams.get("section"),
+    searchParams.get("module"),
+  )
+
+  return (
+    <ConsultantsDesktopShell activeSection={entry.chapter} activeModule={entry.module}>
+      {children}
+    </ConsultantsDesktopShell>
+  )
+}
+
+// ─── Modules contextuels ─────────────────────────────────────────────────────
+//  Rendus par la page, qui seule en charge les données. Tous sont des `<dialog>`
+//  modaux : leur position dans le DOM est indifférente.
+
+interface ConsultantsDesktopModulesProps {
+  activeSection: ConsultantsDesktopChapter
+  activeModule: ConsultantsContextualModule | null
+  poolSkillsData?: ConsultantsSkillsData | null
+  productionLeaveVm?: ProductionLeaveViewModel | null
+  profileMatchingVm?: ProfileMatchingViewModel | null
+  initialPersonId?: string | null
+}
+
+export function ConsultantsDesktopModules({
+  activeSection,
+  activeModule,
+  poolSkillsData,
+  productionLeaveVm,
+  profileMatchingVm,
+  initialPersonId,
+}: ConsultantsDesktopModulesProps) {
+  const closeHref = buildConsultantsSectionHref(activeSection)
+
+  return (
+    <>
       {/* Module « Pool de compétences » (Phase 7.2 — ex-chapitre) */}
-      {isPoolCompetencesActive && poolSkillsData ? (
-        <PoolCompetencesDesktop
-          data={poolSkillsData}
-          closeHref={buildConsultantsSectionHref(activeSection)}
-        />
+      {activeModule === "pool-competences" && poolSkillsData ? (
+        <PoolCompetencesDesktop data={poolSkillsData} closeHref={closeHref} />
       ) : null}
 
       {/* Module transverse Production & Congés (Lot 12) */}
-      {isProductionCongesActive && productionLeaveVm ? (
-        <ProductionLeaveDesktop
-          vm={productionLeaveVm}
-          closeHref={buildConsultantsSectionHref(activeSection)}
-        />
+      {activeModule === "production-conges" && productionLeaveVm ? (
+        <ProductionLeaveDesktop vm={productionLeaveVm} closeHref={closeHref} />
       ) : null}
 
       {/* Module transverse Matching Profil (Lot 13) */}
-      {isMatchingProfilActive && profileMatchingVm ? (
+      {activeModule === "matching-profil" && profileMatchingVm ? (
         <ProfileMatchingDesktop
           vm={profileMatchingVm}
-          closeHref={buildConsultantsSectionHref(activeSection)}
+          closeHref={closeHref}
           initialPersonId={initialPersonId}
         />
       ) : null}
-    </div>
+    </>
   )
 }

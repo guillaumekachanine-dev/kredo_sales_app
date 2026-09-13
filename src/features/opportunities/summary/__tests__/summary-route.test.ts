@@ -22,7 +22,7 @@ vi.mock("@/features/opportunities/modules/OpportunitiesModulesHost", () => ({
   OpportunitiesModulesHost: () => null,
 }))
 
-import Page from "@/app/(app)/missions/opps/page"
+import Page from "@/app/(app)/missions/opps/(workspace)/page"
 import { SummaryDesktop } from "../SummaryDesktop"
 import { EmptyState } from "@/components/dashboard/widgets/EmptyState"
 import { NeedsDesktop } from "@/features/opportunities/needs/NeedsDesktop"
@@ -30,7 +30,8 @@ import { PlanningDesktop } from "@/features/opportunities/planning/PlanningDeskt
 import { OpportunitiesModulesHost } from "@/features/opportunities/modules/OpportunitiesModulesHost"
 
 /**
- * Depuis le Lot 10 le shell reçoit `[contenuChapitre, <OpportunitiesModulesHost>?]`.
+ * Depuis le Lot 10 la page rend `[contenuChapitre, <OpportunitiesModulesHost>?]` (fragment ;
+ * le chrome est porté par le layout depuis l'audit d'ouverture des pages, O-1).
  * Le premier enfant est toujours le contenu du chapitre actif.
  */
 function chapterChild(page: { props: { children: unknown } }): ReactElement {

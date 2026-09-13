@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs"
+import { LEGACY_PERMANENT_REDIRECTS } from "@/lib/navigation/legacy-redirects"
 import { resolve } from "node:path"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -229,7 +230,7 @@ describe("OpportunitiesDesktopShell — conformité SHELL-0018 V2", () => {
 
 describe("Opportunities Workspace — invariants de code", () => {
   const pageSource = readFileSync(
-    resolve(root, "src/app/(app)/missions/opps/page.tsx"),
+    resolve(root, "src/app/(app)/missions/opps/(workspace)/page.tsx"),
     "utf8",
   )
 
@@ -355,13 +356,16 @@ describe("Engagements & Missions — invariants legacy (SHELL 6.3)", () => {
   })
 
   it("les routes /missions/actives et /missions/projets redirigent de façon permanente vers ?vue=", () => {
-    expect(existsSync(activesPath)).toBe(true)
-    expect(existsSync(projetsPath)).toBe(true)
-
-    const activesSource = readFileSync(activesPath, "utf8")
-    const projetsSource = readFileSync(projetsPath, "utf8")
-
-    expect(activesSource).toContain('permanentRedirect("/missions?vue=missions-at")')
-    expect(projetsSource).toContain('permanentRedirect("/missions?vue=projets")')
+    // Audit d'ouverture des pages (O-5) : 308 déclaré dans next.config.ts, plus de page rendue.
+    expect(existsSync(activesPath)).toBe(false)
+    expect(existsSync(projetsPath)).toBe(false)
+    expect(LEGACY_PERMANENT_REDIRECTS).toContainEqual({
+      source: "/missions/actives",
+      destination: "/missions?vue=missions-at",
+    })
+    expect(LEGACY_PERMANENT_REDIRECTS).toContainEqual({
+      source: "/missions/projets",
+      destination: "/missions?vue=projets",
+    })
   })
 })

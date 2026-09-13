@@ -94,27 +94,24 @@ export default async function ReportsPage({
 
   if (device === "mobile") {
     return (
-      <div data-theme="edito-bright-reports" className="h-full min-h-0 bg-canvas text-body">
-        <ReportsMobileView
-          reportsData={reportsData}
-          filters={filters}
-          listError={listError}
-        />
-      </div>
+      <ReportsMobileView
+        reportsData={reportsData}
+        filters={filters}
+        listError={listError}
+      />
     )
   }
 
+  // Thème `edito-bright-reports` : posé par `./layout.tsx`, partagé avec `./loading.tsx`.
   return (
-    <div data-theme="edito-bright-reports" className="h-full min-h-0 bg-canvas text-body">
-      <ReportsDesktopView
-        reportsData={reportsData}
-        kpis={reportsData.kpis}
-        filters={filters}
-        selectedDocumentId={selectedDocumentId}
-        selectedDocument={selectedDocument}
-        selectedDocumentError={selectedDocumentError}
-        listError={listError}
-      />
-    </div>
+    <ReportsDesktopView
+      reportsData={reportsData}
+      kpis={reportsData.kpis}
+      filters={filters}
+      selectedDocumentId={selectedDocumentId}
+      selectedDocument={selectedDocument}
+      selectedDocumentError={selectedDocumentError}
+      listError={listError}
+    />
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { type ReactNode } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { SectionRail } from "@/components/layout/SectionRail"
 import type { SectionRailEntry } from "@/lib/navigation/section-rail"
 import { ProductionLeaveDesktop } from "@/features/consultants/modules/production-leave/desktop/ProductionLeaveDesktop"
@@ -14,6 +14,8 @@ import {
   ENGAGEMENTS_MODULE_LABELS,
   ENGAGEMENTS_VIEW_LABELS,
   ENGAGEMENTS_VIEWS,
+  parseEngagementsModule,
+  parseEngagementsView,
   type EngagementsContextualModule,
   type EngagementsView,
 } from "./engagements-navigation"
@@ -28,10 +30,13 @@ import {
 } from "./engagement-icons"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Shell Desktop d'Engagements — chrome uniquement (thème + repli sidebar + nav
-//  secondaire verticale `SectionRail` + header). Le contenu du chapitre actif
-//  (Synthèse, Missions AT, Projets, Rentabilité des engagements, Planning &
-//  Échéances) est composé côté serveur et passé en `children`.
+//  Shell Desktop d'Engagements, en deux pièces :
+//   - `EngagementsDesktopFrame` — chrome (thème + nav secondaire `SectionRail` +
+//     header), monté par le layout, piloté par l'URL ;
+//   - `EngagementsDesktopModules` — overlays des modules contextuels, montés par
+//     la page qui en charge les données.
+//  Le contenu du chapitre actif (Synthèse, Missions AT, Projets, Rentabilité des
+//  engagements, Planning & Échéances) est composé côté serveur par la page.
 //
 //  SHELL-0018 V2 : le titre de page reste dans le chapeau ; le header de la zone
 //  principale affiche toujours le nom exact du chapitre actif.
@@ -70,23 +75,17 @@ const MODULE_ICON: Record<EngagementsContextualModule, ReactNode> = {
   "atlas-portefeuille": <WalletCardsIcon />,
 }
 
-interface EngagementsDesktopViewProps {
-  activeView: EngagementsView
-  activeModule?: EngagementsContextualModule | null
-  productionLeaveVm?: ProductionLeaveViewModel | null
-  portfolioOverview?: EngagementsPortfolioViewModel | null
-  children: ReactNode
-}
+// ─── Chrome (porté par le layout) ────────────────────────────────────────────
+//  Audit d'ouverture des pages (O-1) : le chrome vit dans
+//  `app/(app)/missions/(engagements)/layout.tsx`. Il ne dépend d'aucune donnée et
+//  lit l'état actif dans l'URL : il est donc rendu AVANT le chapitre et reste en
+//  place pendant les changements de chapitre (le `loading.tsx` ne remplace que la
+//  zone de contenu).
 
-export function EngagementsDesktopView({
-  activeView,
-  activeModule = null,
-  productionLeaveVm = null,
-  portfolioOverview = null,
-  children,
-}: EngagementsDesktopViewProps) {
-  const router = useRouter()
-  const closeHref = buildEngagementsViewHref(activeView)
+export function EngagementsDesktopFrame({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams()
+  const activeView = parseEngagementsView(searchParams.get("vue"))
+  const activeModule = parseEngagementsModule(searchParams.get("module"))
 
   const contextualModules: SectionRailEntry[] = (
     Object.keys(ENGAGEMENTS_MODULE_LABELS) as EngagementsContextualModule[]
@@ -126,7 +125,31 @@ export function EngagementsDesktopView({
 
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </section>
+    </div>
+  )
+}
 
+// ─── Modules contextuels (rendus par la page : ils dépendent de données) ─────
+//  Ce sont des `<dialog>` modaux : leur position dans le DOM est indifférente.
+
+interface EngagementsDesktopModulesProps {
+  activeView: EngagementsView
+  activeModule: EngagementsContextualModule | null
+  productionLeaveVm?: ProductionLeaveViewModel | null
+  portfolioOverview?: EngagementsPortfolioViewModel | null
+}
+
+export function EngagementsDesktopModules({
+  activeView,
+  activeModule,
+  productionLeaveVm = null,
+  portfolioOverview = null,
+}: EngagementsDesktopModulesProps) {
+  const router = useRouter()
+  const closeHref = buildEngagementsViewHref(activeView)
+
+  return (
+    <>
       {/* Module REUSE « Production & Congés » (src/features/consultants/modules/production-leave/) */}
       {activeModule === "production-conges" && productionLeaveVm ? (
         <ProductionLeaveDesktop vm={productionLeaveVm} closeHref={closeHref} />
@@ -142,6 +165,6 @@ export function EngagementsDesktopView({
           overview={portfolioOverview}
         />
       ) : null}
-    </div>
+    </>
   )
 }

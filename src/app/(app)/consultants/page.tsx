@@ -10,7 +10,7 @@ import {
   parseConsultantsSection,
   resolveConsultantsDesktopEntry,
 } from "@/features/consultants/navigation/consultants-sections"
-import { ConsultantsDesktopShell } from "@/features/consultants/desktop/ConsultantsDesktopShell"
+import { ConsultantsDesktopModules } from "@/features/consultants/desktop/ConsultantsDesktopShell"
 import { ConsultantsMobileShell } from "@/features/consultants/mobile/ConsultantsMobileShell"
 import { SyntheseDesktop } from "@/features/consultants/desktop/synthese/SyntheseDesktop"
 import { SyntheseMobile } from "@/features/consultants/mobile/synthese/SyntheseMobile"
@@ -31,7 +31,10 @@ import { ProfileMatchingMobile } from "@/features/consultants/modules/profile-ma
 //  Consultants Workspace — orchestrateur de la route `/consultants`
 //  (chantier docs/FEATURES/consultants_workspace/).
 //
-//  Le shell (rail secondaire `SectionRail` + header) est porté par la feature.
+//  Le chrome Desktop (rail secondaire `SectionRail` + header) est porté par
+//  `./layout.tsx` via `ConsultantsDesktopFrame` (audit d'ouverture des pages, O-1) :
+//  il s'affiche avant les données et reste en place d'un chapitre à l'autre.
+//  Cette page ne rend que le contenu de la section et les overlays de modules.
 //  La navigation inter-chapitres passe par `?section=`. Chaque section ne charge
 //  que ses propres données (ADR-0006).
 //
@@ -71,6 +74,7 @@ export default async function ConsultantsPage({
   // Résolution de l'état effectif.
   //  - Desktop : fonction pure `resolveConsultantsDesktopEntry` — 4 chapitres,
   //    `?section=pool-competences` réinterprété en module Pool sur « Vue d'ensemble ».
+  //    Le layout relit l'URL avec la même fonction : rail et contenu concordent.
   //  - Mobile  : navigation historique inchangée (`pool-competences` reste une
   //    section rendue directement, dette adaptative SKILLS-1).
   const desktopEntry = resolveConsultantsDesktopEntry(
@@ -84,21 +88,41 @@ export default async function ConsultantsPage({
     ? parseConsultantsModule(resolvedSearchParams.module)
     : desktopEntry.module
 
-  // Lazy loading des modules transverses Desktop uniquement si demandés (ADR-0006)
-  const poolSkillsData =
+  // Modules transverses Desktop : chargés uniquement si demandés (ADR-0006), et
+  // lancés MAINTENANT pour partir dans la même vague que la section (audit
+  // d'ouverture des pages, O-8) — ils étaient auparavant attendus en série, avant.
+  const poolSkillsDataPromise =
     !isMobile && activeModule === "pool-competences"
-      ? await getConsultantsSkills()
-      : null
+      ? getConsultantsSkills()
+      : Promise.resolve(null)
 
-  const productionLeaveVm =
+  const productionLeaveVmPromise =
     !isMobile && activeModule === "production-conges"
-      ? await getProductionLeave()
-      : null
+      ? getProductionLeave()
+      : Promise.resolve(null)
 
-  const profileMatchingVm =
+  const profileMatchingVmPromise =
     !isMobile && activeModule === "matching-profil"
-      ? await getProfileMatching()
-      : null
+      ? getProfileMatching()
+      : Promise.resolve(null)
+
+  const desktopModules = async () => {
+    const [poolSkillsData, productionLeaveVm, profileMatchingVm] = await Promise.all([
+      poolSkillsDataPromise,
+      productionLeaveVmPromise,
+      profileMatchingVmPromise,
+    ])
+    return (
+      <ConsultantsDesktopModules
+        activeSection={desktopEntry.chapter}
+        activeModule={desktopEntry.module}
+        poolSkillsData={poolSkillsData}
+        productionLeaveVm={productionLeaveVm}
+        profileMatchingVm={profileMatchingVm}
+        initialPersonId={personId}
+      />
+    )
+  }
 
   // Mobile : branche contextuelle du module Matching profil (Lot 13)
   if (isMobile && activeModule === "matching-profil") {
@@ -115,24 +139,23 @@ export default async function ConsultantsPage({
   }
 
   if (activeSection === "synthese") {
-    const vm = await getConsultantsSynthese()
-    return isMobile ? (
-      <ConsultantsMobileShell activeSection={activeSection}>
-        <SyntheseMobile vm={vm} />
-      </ConsultantsMobileShell>
-    ) : (
-      <ConsultantsDesktopShell
-        activeSection={desktopEntry.chapter}
-        activeModule={desktopEntry.module}
-        poolSkillsData={poolSkillsData}
-        productionLeaveVm={productionLeaveVm}
-        profileMatchingVm={profileMatchingVm}
-        initialPersonId={personId}
-      >
+    if (isMobile) {
+      const vm = await getConsultantsSynthese()
+      return (
+        <ConsultantsMobileShell activeSection={activeSection}>
+          <SyntheseMobile vm={vm} />
+        </ConsultantsMobileShell>
+      )
+    }
+
+    const [vm, modules] = await Promise.all([getConsultantsSynthese(), desktopModules()])
+    return (
+      <>
         <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <SyntheseDesktop vm={vm} />
         </div>
-      </ConsultantsDesktopShell>
+        {modules}
+      </>
     )
   }
 
@@ -149,23 +172,14 @@ export default async function ConsultantsPage({
     }
 
     // Desktop conserve l'ActivityDashboard analytique global existant
-    const data = await getConsultantsActivity()
-    const content = (
-      <div className="min-h-0 flex-1 overflow-auto bg-canvas">
-        <ActivityDashboard data={data} />
-      </div>
-    )
+    const [data, modules] = await Promise.all([getConsultantsActivity(), desktopModules()])
     return (
-      <ConsultantsDesktopShell
-        activeSection={desktopEntry.chapter}
-        activeModule={desktopEntry.module}
-        poolSkillsData={poolSkillsData}
-        productionLeaveVm={productionLeaveVm}
-        profileMatchingVm={profileMatchingVm}
-        initialPersonId={personId}
-      >
-        {content}
-      </ConsultantsDesktopShell>
+      <>
+        <div className="min-h-0 flex-1 overflow-auto bg-canvas">
+          <ActivityDashboard data={data} />
+        </div>
+        {modules}
+      </>
     )
   }
 
@@ -188,45 +202,43 @@ export default async function ConsultantsPage({
   if (activeSection === "candidats") {
     // Chapitre Candidats candidate-centric (Lot 8). Distribution Desktop/Mobile
     // côté serveur (ADR-0006) : la vue non rendue n'est pas chargée.
-    const vm = await getConsultantsCandidates()
-    return isMobile ? (
-      <ConsultantsMobileShell activeSection={activeSection}>
-        <CandidatesMobile vm={vm} />
-      </ConsultantsMobileShell>
-    ) : (
-      <ConsultantsDesktopShell
-        activeSection={desktopEntry.chapter}
-        activeModule={desktopEntry.module}
-        poolSkillsData={poolSkillsData}
-        productionLeaveVm={productionLeaveVm}
-        profileMatchingVm={profileMatchingVm}
-        initialPersonId={personId}
-      >
+    if (isMobile) {
+      const vm = await getConsultantsCandidates()
+      return (
+        <ConsultantsMobileShell activeSection={activeSection}>
+          <CandidatesMobile vm={vm} />
+        </ConsultantsMobileShell>
+      )
+    }
+
+    const [vm, modules] = await Promise.all([getConsultantsCandidates(), desktopModules()])
+    return (
+      <>
         <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
           <CandidatesDesktop vm={vm} />
         </div>
-      </ConsultantsDesktopShell>
+        {modules}
+      </>
     )
   }
 
   // ── section=collaborateurs — effectif consultant actif (Lot 4) ──
-  const team = await getConsultantsTeam()
-  return isMobile ? (
-    <ConsultantsMobileShell activeSection={activeSection}>
-      <CollaboratorsMobile data={team} />
-    </ConsultantsMobileShell>
-  ) : (
-    <ConsultantsDesktopShell
-      activeSection={desktopEntry.chapter}
-      activeModule={desktopEntry.module}
-      poolSkillsData={poolSkillsData}
-      productionLeaveVm={productionLeaveVm}
-      profileMatchingVm={profileMatchingVm}
-      initialPersonId={personId}
-    >
+  if (isMobile) {
+    const team = await getConsultantsTeam()
+    return (
+      <ConsultantsMobileShell activeSection={activeSection}>
+        <CollaboratorsMobile data={team} />
+      </ConsultantsMobileShell>
+    )
+  }
+
+  const [team, modules] = await Promise.all([getConsultantsTeam(), desktopModules()])
+  return (
+    <>
       <div className="min-h-0 flex-1 overflow-y-auto bg-canvas">
         <CollaboratorsDesktop data={team} />
       </div>
-    </ConsultantsDesktopShell>
+      {modules}
+    </>
   )
 }

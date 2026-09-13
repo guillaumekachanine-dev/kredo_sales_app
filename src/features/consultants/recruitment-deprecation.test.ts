@@ -6,6 +6,7 @@ import {
   mainMenuItems,
 } from "@/lib/navigation/main-menu.config"
 import { resolveWeeklyManagerEntityHref } from "@/lib/reports/weekly-manager/entity-links"
+import { LEGACY_PERMANENT_REDIRECTS } from "@/lib/navigation/legacy-redirects"
 
 function getFilesRecursively(dir: string, extension: string): string[] {
   if (!existsSync(dir)) return []
@@ -22,22 +23,17 @@ function getFilesRecursively(dir: string, extension: string): string[] {
 }
 
 describe("Lot 10 — Dépréciation de la route /recruitment", () => {
-  it("la page legacy /recruitment applique une redirection permanente vers /consultants?section=candidats", () => {
-    const pagePath = resolve(process.cwd(), "src/app/(app)/recruitment/page.tsx")
-    const content = readFileSync(pagePath, "utf-8")
-
-    expect(content).toContain('import { permanentRedirect } from "next/navigation"')
-    expect(content).toContain('permanentRedirect("/consultants?section=candidats")')
+  it("la route legacy /recruitment redirige de façon permanente vers /consultants?section=candidats", () => {
+    // Audit d'ouverture des pages (O-5) : 308 déclaré dans next.config.ts, avant tout rendu.
+    expect(LEGACY_PERMANENT_REDIRECTS).toContainEqual({
+      source: "/recruitment",
+      destination: "/consultants?section=candidats",
+    })
   })
 
-  it("la page legacy /recruitment n'exécute aucun loader ni composant Recruitment", () => {
+  it("la route legacy /recruitment n'a plus de page : aucun loader ni composant ne peut s'exécuter", () => {
     const pagePath = resolve(process.cwd(), "src/app/(app)/recruitment/page.tsx")
-    const content = readFileSync(pagePath, "utf-8")
-
-    expect(content).not.toContain("getRecruitmentWorkspace")
-    expect(content).not.toContain("RecruitmentWorkspace")
-    expect(content).not.toContain("getDashboardDevice")
-    expect(content).not.toContain("DashboardSkeleton")
+    expect(existsSync(pagePath)).toBe(false)
   })
 
   it("le contrat mobile getMobileTabsForPath pointe canoniquement vers /consultants?section=candidats (C-13)", () => {

@@ -1,10 +1,11 @@
-// Layout commun à toutes les pages du module Missions (Engagements).
+// Layout commun à toutes les pages du module Missions.
 //
-// SHELL-0018 Lot 6.3 : le groupe (tabbed) et son SectionNavBarSlot ont été
-// définitivement retirés. La page racine `/missions` porte le shell Engagements
-// unifié (navigation secondaire SectionRail via `?vue=`). Les sous-routes
-// historiques `/missions/actives` et `/missions/projets` redirigent désormais
-// de façon permanente vers leurs vues canoniques respectives.
+// Deux workspaces vivent sous ce segment, chacun avec son propre chrome porté par
+// un layout de route group (audit d'ouverture des pages, O-1) :
+//   - `(engagements)/`         → `/missions`       (Engagements, `?vue=`)
+//   - `opps/(workspace)/`      → `/missions/opps`  (Opportunités, `?section=`)
+// Les routes historiques `/missions/actives` et `/missions/projets` sont des
+// redirections déclarées dans `next.config.ts` (src/lib/navigation/legacy-redirects.ts).
 
 export default function MissionsLayout({
   children,

@@ -1256,6 +1256,58 @@ dialog.kredo-drawer-bottom {
   }
 }
 
+/* ── Chargement de route — fallback neutre de (app)/loading.tsx ─────
+ *  Audit d'ouverture des pages (O-2) : aucun faux gabarit de page, seulement
+ *  une barre de progression indéterminée. La forme d'une page appartient au
+ *  loading.tsx de son module, jamais au fallback du groupe.
+ *  Apparition différée : une navigation rapide ne montre rien du tout.
+ * ──────────────────────────────────────────────────────────────────── */
+@keyframes kredo-route-progress {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes kredo-route-progress-reveal {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.kredo-route-progress {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  overflow: hidden;
+  animation: kredo-route-progress-reveal var(--motion-duration-base) ease-out 150ms both;
+}
+
+.kredo-route-progress::before {
+  content: "";
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--color-primary);
+  animation: kredo-route-progress 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-route-progress::before {
+    width: 100%;
+    opacity: 0.5;
+    animation: none;
+  }
+}
+
 /* ── Intelligence Panel — slide-in depuis la droite ──────────────────
  *  Le panel est un <aside> persistant (pas un <dialog>). L'animation
  *  est déclenchée par la classe ajoutée au mount React.

@@ -165,10 +165,8 @@ export default async function VeillePage({
   const watchedSignals = watchedSignalsResult.data || []
 
   return (
-    <div
-      data-theme="edito-bright-veille"
-      className="h-full min-h-0 w-full flex flex-col overflow-hidden bg-canvas text-body"
-    >
+    // Thème `edito-bright-veille` : posé par `./layout.tsx`, partagé avec `./loading.tsx`.
+    <>
       <VeilleActualitesPage
         device={device}
         digest={selectedDigest}
@@ -195,6 +193,6 @@ export default async function VeillePage({
         initialMobileCompanyId={initialCompanyId}
         initialMobileAnalysisId={initialAnalysisId}
       />
-    </div>
+    </>
   )
 }

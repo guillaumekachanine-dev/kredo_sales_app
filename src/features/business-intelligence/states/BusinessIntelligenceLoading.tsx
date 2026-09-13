@@ -1,5 +1,23 @@
+import { WorkspaceDesktopSkeleton } from "@/components/layout/loading/WorkspaceSkeleton"
+
 export function BusinessIntelligenceLoadingDesktop({ mode = "workspace" }: { mode?: "catalog" | "workspace" }) {
-  return <main className="min-h-screen bg-edito-canvas px-8 py-8" aria-label={`Chargement du ${mode === "catalog" ? "catalogue" : "workspace"}`}><div className="mx-auto max-w-6xl space-y-5"><div className="h-7 w-72 animate-pulse rounded bg-edito-chip" /><div className="h-16 animate-pulse rounded-xl bg-edito-surface" />{mode === "catalog" ? <><div className="h-16 animate-pulse bg-edito-surface" /><div className="h-36 animate-pulse bg-edito-surface" /><div className="h-16 animate-pulse bg-edito-surface" /></> : <><div className="grid grid-cols-2 gap-5"><div className="h-44 animate-pulse rounded-xl bg-edito-surface" /><div className="h-44 animate-pulse rounded-xl bg-edito-surface" /></div><div className="h-40 animate-pulse rounded-xl bg-edito-surface" /></>}</div></main>
+  // Workspace : même anatomie que `BusinessIntelligenceDesktop` (rail BI à 6
+  // chapitres + header + corps), dans son thème — audit d'ouverture des pages, O-3.
+  if (mode === "workspace") {
+    return (
+      <div data-theme="edito-bright-cockpit" className="flex h-full min-h-0 flex-1">
+        <WorkspaceDesktopSkeleton
+          title="Business Intelligence"
+          chapters={6}
+          modules={2}
+          body="reading"
+          label="Chargement du workspace"
+        />
+      </div>
+    )
+  }
+
+  return <main className="min-h-screen bg-edito-canvas px-8 py-8" aria-label="Chargement du catalogue"><div className="mx-auto max-w-6xl space-y-5"><div className="h-7 w-72 animate-pulse rounded bg-edito-chip" /><div className="h-16 animate-pulse rounded-xl bg-edito-surface" /><div className="h-16 animate-pulse bg-edito-surface" /><div className="h-36 animate-pulse bg-edito-surface" /><div className="h-16 animate-pulse bg-edito-surface" /></div></main>
 }
 
 export function BusinessIntelligenceLoadingMobile({ mode = "workspace" }: { mode?: "catalog" | "workspace" }) {

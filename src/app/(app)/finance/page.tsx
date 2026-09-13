@@ -1,11 +1,6 @@
-import { Suspense } from "react"
 import { SyntheseFinanceSection } from "@/components/finance"
-import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
 
+// Squelette : `./loading.tsx` (un seul par route — audit d'ouverture des pages, O-3).
 export default function FinancePage() {
-  return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <SyntheseFinanceSection />
-    </Suspense>
-  )
+  return <SyntheseFinanceSection />
 }

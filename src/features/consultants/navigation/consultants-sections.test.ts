@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs"
+import { LEGACY_PERMANENT_REDIRECTS } from "@/lib/navigation/legacy-redirects"
 import { resolve } from "node:path"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -378,19 +379,18 @@ describe("Consultants Workspace — invariants de code (SHELL 6.2 / Phase 7.2)",
     expect(existsSync(tabbedDir)).toBe(false)
   })
 
-  it("les deux routes legacy existent toujours hors (tabbed) et redirigent canoniquement (aucun nouveau redirect)", () => {
-    expect(existsSync(activiteCongesPath)).toBe(true)
-    expect(existsSync(poolCompetencesPath)).toBe(true)
-
-    const activiteCongesContent = readFileSync(activiteCongesPath, "utf8")
-    const poolCompetencesContent = readFileSync(poolCompetencesPath, "utf8")
-
-    expect(activiteCongesContent).toContain(
-      'permanentRedirect("/consultants?section=activite-conges")',
-    )
-    expect(poolCompetencesContent).toContain(
-      'permanentRedirect("/consultants?section=pool-competences")',
-    )
+  it("les deux routes legacy redirigent canoniquement, avant tout rendu (O-5)", () => {
+    // Audit d'ouverture des pages : 308 déclaré dans next.config.ts, plus de page rendue.
+    expect(existsSync(activiteCongesPath)).toBe(false)
+    expect(existsSync(poolCompetencesPath)).toBe(false)
+    expect(LEGACY_PERMANENT_REDIRECTS).toContainEqual({
+      source: "/consultants/activite-conges",
+      destination: "/consultants?section=activite-conges",
+    })
+    expect(LEGACY_PERMANENT_REDIRECTS).toContainEqual({
+      source: "/consultants/pool-competences",
+      destination: "/consultants?section=pool-competences",
+    })
   })
 
   it("ConsultantsDesktopShell n'importe ni n'utilise useSidebarCollapse", () => {

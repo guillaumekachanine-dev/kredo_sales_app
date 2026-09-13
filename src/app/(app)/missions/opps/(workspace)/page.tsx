@@ -7,7 +7,6 @@ import {
   parseOpportunitiesSection,
   searchParamsToString,
 } from "@/features/opportunities/navigation/opportunities-sections"
-import { OpportunitiesDesktopShell } from "@/features/opportunities/desktop/OpportunitiesDesktopShell"
 import { getOpportunitiesSynthese } from "@/features/opportunities/data/get-opportunities-synthese"
 import { SummaryDesktop } from "@/features/opportunities/summary/SummaryDesktop"
 import { getNeedsChapterData } from "@/features/opportunities/needs/data/get-needs-chapter-data"
@@ -32,9 +31,10 @@ import type { OpportunityDetailData } from "@/app/(app)/missions/_data/get-oppor
 //  Opportunities Workspace — orchestrateur de la route `/missions/opps`
 //  (chantier docs/FEATURES/opportunities_workspace/).
 //
-//  Route canonique inchangée (OPP-02), hors du groupe `(tabbed)` : le shell est
-//  porté par la feature (`SectionRail` V2 inline), plus par
-//  `missions/(tabbed)/layout.tsx` (qui reste pour `actives` / `projets`).
+//  Route canonique inchangée (OPP-02). Le chrome Desktop (`SectionRail` V2 +
+//  header) est porté par `./layout.tsx` via `OpportunitiesDesktopFrame` (audit
+//  d'ouverture des pages, O-1) : il s'affiche avant les données. Cette page ne
+//  rend que le chapitre actif et l'hôte des modules.
 //
 //  Navigation inter-chapitres : `?section=` (OPP-04). État racine `synthese`
 //  sans paramètre. Compat des anciennes URLs `?scope=needs|staffing` → chapitre
@@ -117,7 +117,7 @@ export default async function OpportunitesPage({
   }
 
   return (
-    <OpportunitiesDesktopShell activeSection={activeSection} searchParamsString={searchParamsString}>
+    <>
       {chapterContent}
       {activeModule ? (
         <OpportunitiesModulesHost
@@ -130,6 +130,6 @@ export default async function OpportunitesPage({
           context={moduleContext}
         />
       ) : null}
-    </OpportunitiesDesktopShell>
+    </>
   )
 }

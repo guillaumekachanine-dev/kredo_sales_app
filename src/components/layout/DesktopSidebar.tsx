@@ -102,7 +102,7 @@ function ModuleItem({
   if (canNavigate) {
     return (
       <Link
-        href={item.href === "/prospection" ? "/prospection/accounts" : item.href!}
+        href={item.href!}
         className={baseClasses}
         aria-label={isCollapsed ? item.label : undefined}
         aria-current={isActive ? "page" : undefined}

@@ -1,11 +1,6 @@
-import { Suspense } from "react"
 import { SyntheseCockpitSection } from "@/components/cockpit"
-import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
 
+// Squelette : `./loading.tsx` (un seul par route — audit d'ouverture des pages, O-3).
 export default function CockpitPage() {
-  return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <SyntheseCockpitSection />
-    </Suspense>
-  )
+  return <SyntheseCockpitSection />
 }

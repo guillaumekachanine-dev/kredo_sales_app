@@ -7,6 +7,10 @@ import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-dat
 import type { AccountIntelligencePanelData } from "@/lib/intelligence/account-panel-types"
 import { RegisterIntelligenceContext } from "@/components/intelligence/RegisterIntelligenceContext"
 import type { ClientIntelligenceDesktopTabKey } from "./intelligence/account-intelligence-desktop-navigation"
+import {
+  AccountIntelligenceDesktopSkeleton,
+  AccountIntelligenceMobileSkeleton,
+} from "./intelligence/AccountIntelligenceSkeleton"
 
 // Code-split par device : les deux vues cockpit (desktop ≈1570 lignes, mobile)
 // sont lourdes et mutuellement exclusives. En import statique, les DEUX étaient
@@ -17,42 +21,15 @@ const ClientIntelligenceDesktopView = dynamic(
     import("./intelligence/ClientIntelligenceDesktopView").then(
       (m) => m.ClientIntelligenceDesktopView
     ),
-  { loading: () => <LoadingShell /> }
+  { loading: () => <AccountIntelligenceDesktopSkeleton /> }
 )
 const ClientIntelligenceMobileView = dynamic(
   () =>
     import("./intelligence/ClientIntelligenceMobileView").then(
       (m) => m.ClientIntelligenceMobileView
     ),
-  { loading: () => <LoadingShell /> }
+  { loading: () => <AccountIntelligenceMobileSkeleton /> }
 )
-
-function LoadingShell() {
-  return (
-    <div className="w-full max-w-5xl mx-auto px-6 py-8 flex flex-col gap-6 animate-pulse">
-      <div className="flex items-start justify-between gap-4 pb-5 border-b border-border">
-        <div className="flex flex-col gap-2">
-          <div className="h-4 w-24 bg-border/40 rounded" />
-          <div className="h-7 w-64 bg-border/40 rounded" />
-        </div>
-        <div className="flex gap-2">
-          <div className="h-8 w-20 bg-border/30 rounded" />
-          <div className="h-8 w-24 bg-primary/10 rounded" />
-        </div>
-      </div>
-      <div className="grid grid-cols-12 gap-5">
-        <div className="col-span-8 flex flex-col gap-5">
-          <div className="h-48 bg-border/20 rounded-lg" />
-          <div className="h-32 bg-border/20 rounded-lg" />
-        </div>
-        <div className="col-span-4 flex flex-col gap-5">
-          <div className="h-40 bg-border/20 rounded-lg" />
-          <div className="h-28 bg-border/20 rounded-lg" />
-        </div>
-      </div>
-    </div>
-  )
-}
 
 interface CrmEntityPanelProps {
   tab: SectionTab
@@ -109,7 +86,7 @@ export function CrmEntityPanel({
     )
   }
 
-  if (!data) return <LoadingShell />
+  if (!data) return isMobile ? <AccountIntelligenceMobileSkeleton /> : <AccountIntelligenceDesktopSkeleton />
 
   return (
     <>

@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
+import { LEGACY_PERMANENT_REDIRECTS } from "@/lib/navigation/legacy-redirects"
 import { resolve } from "node:path"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -47,13 +48,14 @@ describe("ActivityDashboard", () => {
 })
 
 describe("route historique /consultants/activite-conges", () => {
-  it("redirige de façon permanente vers ?section=activite-conges", () => {
-    const source = readFileSync(
-      resolve(root, "src/app/(app)/consultants/activite-conges/page.tsx"),
-      "utf8",
-    )
-    expect(source).toContain("permanentRedirect")
-    expect(source).toContain('"/consultants?section=activite-conges"')
-    expect(source).not.toContain("createClient")
+  it("redirige de façon permanente vers ?section=activite-conges, avant tout rendu", () => {
+    // Audit d'ouverture des pages (O-5) : 308 déclaré dans next.config.ts.
+    expect(
+      existsSync(resolve(root, "src/app/(app)/consultants/activite-conges/page.tsx")),
+    ).toBe(false)
+    expect(LEGACY_PERMANENT_REDIRECTS).toContainEqual({
+      source: "/consultants/activite-conges",
+      destination: "/consultants?section=activite-conges",
+    })
   })
 })
