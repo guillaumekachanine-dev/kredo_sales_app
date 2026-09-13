@@ -7,11 +7,6 @@ import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import type { CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
 import { ProvenanceBadge, SectionBlock, FreshnessLine } from "./intelligence-parts"
-import {
-  ContactsKeyCard,
-  CommercialRelationCard,
-  AccountSignalsCard,
-} from "./AccountKnowledgeBlocks"
 import { AccountStudyMobile } from "@/features/account-research-studies/components/AccountStudyMobile"
 import { AccountStudyMobilePanel } from "@/features/account-research-studies/components/AccountStudyPanel"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
@@ -94,7 +89,7 @@ function AccountIntelligenceMobileNav({
 }
 
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
-  const { company, client, sector, diagnostic, diagnosticPdfUrl, contacts, opportunities, missions, accountSignals } = data
+  const { company, client, sector, diagnostic, diagnosticPdfUrl, accountSignals } = data
   const supabase = useMemo(() => createBrowserClient(), [])
 
   const [activePanel, setActivePanel] = useState<TabKey>("accueil")
@@ -259,7 +254,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   if (activePanel !== "accueil") {
     return (
-      <div data-theme="cockpit" className="flex min-h-full flex-col overflow-x-hidden bg-canvas pb-24">
+      <div data-theme="edito-bright-cockpit" className="flex min-h-full flex-col overflow-x-hidden bg-canvas pb-24">
         <AccountIntelligenceSignatureHeaderMobile
           company={company}
           title={getAccountIntelligenceTabLabel(activePanel)}
@@ -270,18 +265,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         <div className="flex flex-col gap-4 p-4">
           {activePanel === "connaissance" && (
             <>
-              <div className="space-y-3 mb-3">
-                <ContactsKeyCard contacts={contacts} />
-                <CommercialRelationCard opportunities={opportunities} missions={missions} />
-                <AccountSignalsCard
-                  signals={accountSignals}
-                  isMobile={true}
-                  companyId={company.id}
-                  companyName={company.name}
-                  lastUpdatedAt={data.accountWatch.lastRunAt}
-                />
-              </div>
-
               <AccountStudyMobilePanel
                 state={data.accountStudy}
                 companyId={company.id}
@@ -470,29 +453,54 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           )}
 
           {activePanel === "enjeux" && (
-            <>
-              <button
-                type="button"
-                onClick={() => setConfirmIssuesOpen(true)}
-                disabled={issuesRunStatus === "loading"}
-                className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60 cursor-pointer"
-              >
-                {issuesRunStatus === "loading" ? "Génération en cours…" : "Actualiser la cartographie des enjeux"}
-              </button>
-              {issuesErrorMsg && (
-                <p className="mb-3 text-[11px] font-medium text-danger">{issuesErrorMsg}</p>
-              )}
-              <AccountIssuesTopList issues={issues} contacts={data.contacts} onDismiss={handleDismissIssue} />
+            issues.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setConfirmIssuesOpen(true)}
+                  disabled={issuesRunStatus === "loading"}
+                  className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60 cursor-pointer"
+                >
+                  {issuesRunStatus === "loading" ? "Génération en cours…" : "Actualiser la cartographie des enjeux"}
+                </button>
+                {issuesErrorMsg ? (
+                  <p className="mb-3 text-[11px] font-medium text-danger">{issuesErrorMsg}</p>
+                ) : null}
+                <AccountIssuesTopList issues={issues} contacts={data.contacts} onDismiss={handleDismissIssue} />
 
-              <WorkflowExecutionConfirmDialog
-                open={confirmIssuesOpen}
-                onOpenChange={setConfirmIssuesOpen}
-                actionLabel="Actualiser la cartographie des enjeux"
-                runType="intel-031-issues-map"
-                onConfirm={handleGenerateIssues}
-                pending={issuesRunStatus === "loading"}
-              />
-            </>
+                <WorkflowExecutionConfirmDialog
+                  open={confirmIssuesOpen}
+                  onOpenChange={setConfirmIssuesOpen}
+                  actionLabel="Actualiser la cartographie des enjeux"
+                  runType="intel-031-issues-map"
+                  onConfirm={handleGenerateIssues}
+                  pending={issuesRunStatus === "loading"}
+                />
+              </>
+            ) : (
+              <div className="flex min-h-[55vh] flex-col items-center justify-center gap-3 px-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setConfirmIssuesOpen(true)}
+                  disabled={issuesRunStatus === "loading"}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-fg shadow-sm active:scale-98 transition-all disabled:opacity-60 cursor-pointer"
+                >
+                  {issuesRunStatus === "loading" ? "Génération en cours…" : "Lancer la cartographie des enjeux"}
+                </button>
+                {issuesErrorMsg ? (
+                  <p className="max-w-xs text-[11px] font-medium text-danger">{issuesErrorMsg}</p>
+                ) : null}
+
+                <WorkflowExecutionConfirmDialog
+                  open={confirmIssuesOpen}
+                  onOpenChange={setConfirmIssuesOpen}
+                  actionLabel="Lancer la cartographie des enjeux"
+                  runType="intel-031-issues-map"
+                  onConfirm={handleGenerateIssues}
+                  pending={issuesRunStatus === "loading"}
+                />
+              </div>
+            )
           )}
 
           {activePanel === "strategie" && (
