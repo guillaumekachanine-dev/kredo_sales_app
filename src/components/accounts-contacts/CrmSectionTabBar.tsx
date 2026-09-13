@@ -52,13 +52,11 @@ export function CrmSectionTabBar() {
         onClick={() => setActiveTab("home")}
         onKeyDown={(e) => handleKeyDown(e, "home")}
         className={cn(
-          sectionTabItemClasses({ active: isHomeActive, compact: true }),
-          "border-r border-border px-3.5 cursor-pointer select-none",
-          "bg-page-accounts-contacts text-white hover:text-white",
-          isHomeActive
-            ? "font-semibold border-b-2 border-b-white hover:border-b-white hover:bg-page-accounts-contacts"
-            : "bg-page-accounts-contacts/90 hover:bg-page-accounts-contacts text-white/85 border-b-2 border-b-transparent hover:border-b-white/40",
-          "focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-page-accounts-contacts"
+          "group relative inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap px-6 text-xs font-medium",
+          "border-r border-border cursor-pointer select-none text-edito-navy hover:text-edito-navy",
+          "transition-colors duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)]",
+          "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-canvas)]",
+          isHomeActive && "font-semibold"
         )}
       >
         <ListIcon />

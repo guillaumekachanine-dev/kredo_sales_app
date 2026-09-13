@@ -170,16 +170,20 @@ describe("CrmSectionTabBar — onglet fixe Liste et cycle de vie", () => {
       expect(source).toContain('handleKeyDown(e, "home")')
     })
 
-    it("applique le token de couleur canonique bg-page-accounts-contacts et aucun HEX en dur", () => {
-      expect(source).toContain("bg-page-accounts-contacts")
-      expect(source).not.toContain("#1E5E99")
+    it("n'applique aucun HEX en dur", () => {
       expect(source).not.toMatch(/#[0-9a-fA-F]{3,6}/)
     })
 
-    it("conserve le fond Bleu Pétrole qu'il soit actif ou inactif avec un texte blanc", () => {
-      expect(source).toContain("text-white")
-      expect(source).toContain("border-b-2 border-b-white")
-      expect(source).toContain("border-b-2 border-b-transparent")
+    it("n'a plus de fond Bleu Pétrole, écrit 'Liste' en bleu navy et ne dessine que la bordure droite", () => {
+      const listButtonSlice = source.slice(
+        source.indexOf('<button'),
+        source.indexOf('{tabs.map'),
+      )
+      expect(listButtonSlice).not.toContain("bg-page-accounts-contacts")
+      expect(listButtonSlice).not.toContain("text-white")
+      expect(listButtonSlice).toContain("text-edito-navy")
+      expect(listButtonSlice).toContain("border-r border-border")
+      expect(listButtonSlice).not.toMatch(/border-b-\w/)
     })
 
     it("affiche le libellé 'Liste' et l'icône de liste à lignes horizontales", () => {
